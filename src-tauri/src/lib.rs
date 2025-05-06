@@ -1,6 +1,5 @@
 mod managers;
 
-use enigo::{Enigo, Keyboard, Settings};
 use log::info;
 use managers::audio::AudioRecordingManager;
 use managers::keybinding::KeyBindingManager;
@@ -13,69 +12,104 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
-// fn send_copy() {
-//     // Determine the modifier key based on the OS
-//     #[cfg(target_os = "macos")]
-//     let modifier_key = Key::MetaLeft; // Command key on macOS
-//     #[cfg(not(target_os = "macos"))]
-//     let modifier_key = Key::ControlLeft; // Control key on other systems
-
-//     // Press both keys
-//     send(EventType::KeyPress(modifier_key));
-//     send(EventType::KeyPress(Key::KeyC));
-
-//     // Release both keys
-//     send(EventType::KeyRelease(Key::KeyC));
-//     send(EventType::KeyRelease(modifier_key));
-// }
-
-fn paste(text: String) {
-    let mut enigo = Enigo::new(&Settings::default()).unwrap();
-    enigo.text(&text).unwrap();
+fn try_send_event(event: &EventType) {
+    if let Err(SimulateError) = simulate(event) {
+        println!("We could not send {:?}", event);
+    }
 }
 
-// fn get_highlighted_text(app_handle: tauri::AppHandle) -> String {
-//     let clipboard = app_handle.clipboard();
+fn send(event: EventType) {
+    try_send_event(&event);
+    thread::sleep(time::Duration::from_millis(60));
+}
 
-//     // save the clipboard content
-//     let clipboard_content = clipboard.read_text().unwrap_or_default();
+fn send_paste() {
+    // Determine the modifier key based on the OS
+    #[cfg(target_os = "macos")]
+    let modifier_key = Key::MetaLeft; // Command key on macOS
+    #[cfg(not(target_os = "macos"))]
+    let modifier_key = Key::ControlLeft; // Control key on other systems
 
-//     // empty the clipboard
-//     clipboard.write_text("").unwrap();
+    // Press both keys
+    send(EventType::KeyPress(modifier_key));
+    send(EventType::KeyPress(Key::KeyV));
 
-//     // issue 'copy'
-//     send_copy();
+    // Release both keys
+    send(EventType::KeyRelease(Key::KeyV));
+    send(EventType::KeyRelease(modifier_key));
+}
 
-//     // get the highlighted text
-//     let highlighted_text = clipboard.read_text().unwrap_or_default();
+fn send_copy() {
+    // Determine the modifier key based on the OS
+    #[cfg(target_os = "macos")]
+    let modifier_key = Key::MetaLeft; // Command key on macOS
+    #[cfg(not(target_os = "macos"))]
+    let modifier_key = Key::ControlLeft; // Control key on other systems
 
-//     // restore the clipboard content
-//     clipboard.write_text(&clipboard_content).unwrap();
+    // Press both keys
+    send(EventType::KeyPress(modifier_key));
+    send(EventType::KeyPress(Key::KeyC));
 
-//     highlighted_text
-// }
+    // Release both keys
+    send(EventType::KeyRelease(Key::KeyC));
+    send(EventType::KeyRelease(modifier_key));
+}
 
-// const INSTRUCT_SYS: &str = r#"
-// You are a helpful assistant. You will receive voice transcriptions
-// from a user that may include both a command/question and some
-// minimal context to help you respond appropriately.
+fn paste(text: String, app_handle: tauri::AppHandle) {
+    let clipboard = app_handle.clipboard();
 
-// For example, the user might say:
-// - A direct question with no context: "What is the capital of France?"
-// - A command with context: "get commit message I fixed the bug in the login system"
-// "#;
+    // get the current clipboard content
+    let clipboard_content = clipboard.read_text().unwrap_or_default();
 
-// const CODE_SYS: &str = r#"
-// You are a code-only assistant. I will provide you with selected text or clipboard content along with instructions. If I request code, output only the exact code implementation. If I request a terminal command, provide only the valid command syntax. Never use markdown, explanations, or additional text.
+    clipboard.write_text(&text).unwrap();
+    send_paste();
 
-//     When I share selected text or clipboard content, use that as context for generating your response. The output should be ready to copy and paste directly, with no formatting or commentary. For terminal commands, ensure they are valid for the specified environment. Note for terminal commands, I typically use lowercase instead of uppercase. You may also be given them directly, but need to translate them into a way that can actually be executed in the terminal because the transcription you are given might be poor.
+    // restore the clipboard
+    clipboard.write_text(&clipboard_content).unwrap();
+}
 
-//     Output only:
-//     - Raw code implementation when code is requested
-//     - Terminal command syntax when a command is requested
-//     - No markdown, no backticks, no explanations
-//     - No additional text or descriptions
-// "#;
+fn get_highlighted_text(app_handle: tauri::AppHandle) -> String {
+    let clipboard = app_handle.clipboard();
+
+    // save the clipboard content
+    let clipboard_content = clipboard.read_text().unwrap_or_default();
+
+    // empty the clipboard
+    clipboard.write_text("").unwrap();
+
+    // issue 'copy'
+    send_copy();
+
+    // get the highlighted text
+    let highlighted_text = clipboard.read_text().unwrap_or_default();
+
+    // restore the clipboard content
+    clipboard.write_text(&clipboard_content).unwrap();
+
+    highlighted_text
+}
+
+const INSTRUCT_SYS: &str = r#"
+You are a helpful assistant. You will receive voice transcriptions
+from a user that may include both a command/question and some
+minimal context to help you respond appropriately.
+
+For example, the user might say:
+- A direct question with no context: "What is the capital of France?"
+- A command with context: "get commit message I fixed the bug in the login system"
+"#;
+
+const CODE_SYS: &str = r#"
+You are a code-only assistant. I will provide you with selected text or clipboard content along with instructions. If I request code, output only the exact code implementation. If I request a terminal command, provide only the valid command syntax. Never use markdown, explanations, or additional text.
+
+    When I share selected text or clipboard content, use that as context for generating your response. The output should be ready to copy and paste directly, with no formatting or commentary. For terminal commands, ensure they are valid for the specified environment. Note for terminal commands, I typically use lowercase instead of uppercase. You may also be given them directly, but need to translate them into a way that can actually be executed in the terminal because the transcription you are given might be poor.
+
+    Output only:
+    - Raw code implementation when code is requested
+    - Terminal command syntax when a command is requested
+    - No markdown, no backticks, no explanations
+    - No additional text or descriptions
+"#;
 
 fn register_bindings(manager: &mut KeyBindingManager) {
     manager.register(
@@ -94,7 +128,7 @@ fn register_bindings(manager: &mut KeyBindingManager) {
                     match ctx.transcription_manager.transcribe(samples) {
                         Ok(transcription) => {
                             println!("Transcription: {}", transcription);
-                            paste(transcription);
+                            paste(transcription, ctx.app_handle.clone());
                         }
                         Err(err) => println!("Transcription error: {}", err),
                     }
