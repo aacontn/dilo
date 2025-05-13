@@ -99,17 +99,19 @@ pub fn run() {
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 #[cfg(target_os = "macos")]
-                let res = window
-                    .app_handle()
-                    .set_activation_policy(tauri::ActivationPolicy::Accessory);
-                if let Err(e) = res {
-                    println!("Failed to set activation policy: {}", e);
+                {
+                    let res = window
+                        .app_handle()
+                        .set_activation_policy(tauri::ActivationPolicy::Accessory);
+                    if let Err(e) = res {
+                        println!("Failed to set activation policy: {}", e);
+                    }
+
+                    api.prevent_close();
+
+                    // TODO may be different on windows, this works for macos
+                    tauri::AppHandle::hide(window.app_handle()).unwrap();
                 }
-
-                api.prevent_close();
-
-                // TODO may be different on windows, this works for macos
-                tauri::AppHandle::hide(window.app_handle()).unwrap();
             }
             _ => {}
         })
