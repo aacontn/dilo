@@ -3,7 +3,7 @@ use tauri::{App, AppHandle, Manager};
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_global_shortcut::{Shortcut, ShortcutState};
 
-use crate::actions::{ShortcutAction, ACTION_MAP};
+use crate::actions::ACTION_MAP;
 use crate::settings::ShortcutBinding;
 use crate::settings::{self, get_settings};
 use crate::ManagedToggleState;
