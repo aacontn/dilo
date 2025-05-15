@@ -12,7 +12,7 @@ use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
-use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 #[derive(Default)]
 struct ShortcutToggleStates {
@@ -29,14 +29,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            Some(vec!["--auto-launch"]),
-        ))
         .plugin(tauri_plugin_macos_permissions::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ))
         .manage(Mutex::new(ShortcutToggleStates::default()))
         .setup(move |app| {
             let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -80,6 +80,18 @@ pub fn run() {
                 })
                 .build(app)?;
             app.manage(tray);
+
+            // Get the autostart manager
+            let autostart_manager = app.autolaunch();
+            // Enable autostart
+            let _ = autostart_manager.enable();
+            // Check enable state
+            println!(
+                "registered for autostart? {}",
+                autostart_manager.is_enabled().unwrap()
+            );
+            // Disable autostart
+            let _ = autostart_manager.disable();
 
             let recording_manager = Arc::new(
                 AudioRecordingManager::new(app).expect("Failed to initialize recording manager"),
