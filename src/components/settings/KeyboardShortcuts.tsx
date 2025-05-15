@@ -7,6 +7,7 @@ import {
   ShortcutBindingsMap,
 } from "../../lib/types";
 import { invoke } from "@tauri-apps/api/core";
+import { type } from "@tauri-apps/plugin-os";
 import keycode from "keycode";
 import ResetIcon from "../icons/ResetIcon";
 
@@ -16,10 +17,57 @@ export const KeyboardShortcuts: React.FC = () => {
   const [keyPressed, setKeyPressed] = useState<string[]>([]);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
   const [editingShortcutId, setEditingShortcutId] = useState<string | null>(
-    null
+    null,
   );
   const [originalBinding, setOriginalBinding] = useState<string>("");
+  const [isMacOS, setIsMacOS] = useState<boolean>(false);
   const shortcutRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  // Check if running on macOS
+  useEffect(() => {
+    const checkOsType = async () => {
+      try {
+        const osType = type();
+        setIsMacOS(osType === "macos");
+      } catch (error) {
+        console.error("Error detecting OS type:", error);
+        setIsMacOS(false);
+      }
+    };
+
+    checkOsType();
+  }, []);
+
+  // Normalize modifier keys (unify left/right variants)
+  const normalizeKey = (key: string): string => {
+    // Handle left/right variants of modifier keys
+    if (key.startsWith("left ") || key.startsWith("right ")) {
+      const parts = key.split(" ");
+      if (parts.length === 2) {
+        // Return just the modifier name without left/right prefix
+        return parts[1];
+      }
+    }
+    return key;
+  };
+
+  // Format keys for macOS display
+  const formatMacOSKeys = (key: string): string => {
+    if (!isMacOS) return key; // Only format for macOS
+
+    const keyMap: Record<string, string> = {
+      alt: "option",
+    };
+
+    return keyMap[key.toLowerCase()] || key;
+  };
+
+  // Format a key combination for display
+  const formatKeyCombination = (combination: string): string => {
+    if (!isMacOS) return combination; // Only format for macOS
+
+    return combination.split("+").map(formatMacOSKeys).join(" + ");
+  };
 
   useEffect(() => {
     load("settings_store.json", { autoSave: false }).then((r) => {
@@ -43,8 +91,11 @@ export const KeyboardShortcuts: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
 
-      const key = keycode(e).toLowerCase();
-      console.log("You pressed", key);
+      // Get the key and normalize it (unify left/right modifiers)
+      const rawKey = keycode(e).toLowerCase();
+      const key = normalizeKey(rawKey);
+
+      console.log("You pressed", rawKey, "normalized to", key);
 
       if (!keyPressed.includes(key)) {
         setKeyPressed((prev) => [...prev, key]);
@@ -58,7 +109,9 @@ export const KeyboardShortcuts: React.FC = () => {
     const handleKeyUp = (e: KeyboardEvent) => {
       e.preventDefault();
 
-      const key = keycode(e).toLowerCase();
+      // Get the key and normalize it
+      const rawKey = keycode(e).toLowerCase();
+      const key = normalizeKey(rawKey);
 
       // Remove from currently pressed keys
       setKeyPressed((prev) => prev.filter((k) => k !== key));
@@ -138,7 +191,14 @@ export const KeyboardShortcuts: React.FC = () => {
 
   // Format the current shortcut keys being recorded
   const formatCurrentKeys = () => {
-    return recordedKeys.length > 0 ? recordedKeys.join("+") : "Press keys...";
+    if (recordedKeys.length === 0) return "Press keys...";
+
+    if (!isMacOS) {
+      return recordedKeys.join("+");
+    }
+
+    // Map each key to its macOS-friendly name for display
+    return recordedKeys.map(formatMacOSKeys).join(" + ");
   };
 
   // Store references to shortcut elements
@@ -185,16 +245,16 @@ export const KeyboardShortcuts: React.FC = () => {
             {editingShortcutId === id ? (
               <div
                 ref={(ref) => setShortcutRef(id, ref)}
-                className="px-2 py-1 text-sm font-semibold border border-logo-primary bg-logo-primary/30 rounded min-w-[100px] text-center"
+                className="px-2 py-1 text-sm font-semibold border border-logo-primary bg-logo-primary/30 rounded min-w-[120px] text-center"
               >
                 {formatCurrentKeys()}
               </div>
             ) : (
               <div
-                className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border  border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary"
+                className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary"
                 onClick={() => startRecording(id)}
               >
-                {binding.current_binding}
+                {formatKeyCombination(binding.current_binding)}
               </div>
             )}
             <button
