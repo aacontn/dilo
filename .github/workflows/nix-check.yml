@@ -7,11 +7,27 @@
 # Setting up a Cachix binary cache would further reduce full-build times.
 
 name: "nix build check"
-# Dilo: el flake aún empaqueta el crate con el nombre upstream (`handy`) y no
-# se ha migrado al rename `dilo`; hasta adaptar flake.nix/.nix/* este check
-# solo corre manual para no marcar en rojo cada push (packaging nix = roadmap).
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - ".nix/**"
+      - "bun.lock"
+      - "src-tauri/**"
+      - "src/**"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "flake.nix"
+      - "flake.lock"
+      - ".nix/**"
+      - "bun.lock"
+      - "src-tauri/**"
+      - "src/**"
+      - ".github/workflows/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
