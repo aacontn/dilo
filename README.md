@@ -111,6 +111,7 @@ Detalle por plataforma en [BUILD.md](BUILD.md).
 - [ ] Overlay nativo sin webview (menos RAM aún)
 - [ ] Homebrew cask y winget
 - [ ] Actualizador integrado propio
+- [ ] Reactivar el empaquetado Nix del upstream (flake aún apunta al crate viejo)
 
 ## Créditos
 
