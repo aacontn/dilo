@@ -27,6 +27,7 @@
 ### Task A1: Identidad técnica (config) + updater off
 
 **Files:**
+
 - Modify: `src-tauri/tauri.conf.json` (productName, identifier, plugins.updater, bundle.createUpdaterArtifacts)
 - Modify: `src-tauri/Cargo.toml:1-9` (package name/description/authors/default-run) y `src-tauri/src/main.rs` si referencia `handy` como crate
 - Modify: `package.json` (name `dilo`, version `0.1.0`), `src-tauri/tauri.conf.json` version `0.1.0`, `Cargo.toml` version `0.1.0`
@@ -34,6 +35,7 @@
 - Modify: `src-tauri/src/settings.rs:499-501` (update checks default false)
 
 **Interfaces:**
+
 - Produces: crate/binario `dilo` (los workflows de la Task A9 y el CLI lo referencian), identifier `cl.espaciodigital.dilo`.
 
 - [ ] **Paso 1: tauri.conf.json** — `productName: "Dilo"`, `identifier: "cl.espaciodigital.dilo"`, `version: "0.1.0"`; eliminar el bloque `plugins.updater` completo (pubkey+endpoints de cjpais); en `bundle`: `createUpdaterArtifacts: false`.
@@ -47,6 +49,7 @@
 ### Task A2: Iconos y assets de marca
 
 **Files:**
+
 - Create: `brand/dilo-icon.svg` (fuente maestra: cuadrado redondeado tinta #0D1117, caret ámbar #FF9E1B centrado-izquierda, onda mínima de 3 barras menta #2EE6A8 abajo-derecha)
 - Create: `brand/dilo-wordmark.svg` (`dilo▌` Space Grotesk semibold, caret mango)
 - Modify: `src-tauri/icons/*` (regenerados), `src-tauri/resources/tray_*.png` y `recording.png`/`transcribing.png` (variantes tinta/mango/rojo del caret)
@@ -59,10 +62,12 @@
 ### Task A3: Defaults livianos + catálogo ES-first
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs:135-145` (ModelUnloadTimeout default), `:521-527` (overlay default)
 - Modify: `src-tauri/src/catalog/catalog.json` (recommended/ranks)
 
 **Interfaces:**
+
 - Produces: ranks nuevos que la UI de onboarding (A4) muestra tal cual.
 
 - [ ] **Paso 1: settings.rs** — mover `#[default]` de `Min5` a `Min2` en `ModelUnloadTimeout`. En `fn default_overlay_style()`: retornar `OverlayStyle::Minimal` en todas las plataformas salvo Linux (mantener su `None` por el tema layer-shell).
@@ -73,16 +78,19 @@
 ### Task A4: Recomendación de modelo por RAM en onboarding
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` (dep `sysinfo = { version = "0.33", default-features = false, features = ["system"] }`)
 - Create: comando en `src-tauri/src/commands/mod.rs` (o archivo nuevo `src-tauri/src/commands/system.rs`)
 - Modify: `src/components/onboarding/Onboarding.tsx` + `src/components/onboarding/ModelCard.tsx`
 - Modify: `src/i18n/locales/en/translation.json` y `es/translation.json` (claves nuevas de copy)
 
 **Interfaces:**
+
 - Produces: comando Tauri `get_total_memory_gb() -> u32` (specta-bound, aparece en `src/bindings.ts` regenerado por el dev run).
 - Consumes: ranks del catálogo (A3).
 
 - [ ] **Paso 1 (Rust):**
+
 ```rust
 #[tauri::command]
 #[specta::specta]
@@ -92,7 +100,9 @@ pub fn get_total_memory_gb() -> u32 {
     (sys.total_memory() / (1024 * 1024 * 1024)) as u32
 }
 ```
+
 Registrarlo donde se registran los demás commands (buscar `collect_commands!` o `invoke_handler` en `lib.rs`) para que specta lo exporte.
+
 - [ ] **Paso 2:** `bun run tauri dev` una vez para regenerar `src/bindings.ts`; verificar que expone `getTotalMemoryGb`.
 - [ ] **Paso 3 (React):** en el paso de modelo del onboarding: si `ram <= 8` → destacar `canary-180m-flash` como "Recomendado para tu equipo" y mostrar aviso de cuantización Q4 al elegir modelos 0.6B; si `> 8` → destacar `nemotron-3.5-asr-streaming-0.6b`. El resto de la lista sigue el orden del catálogo. Copy vía i18n (`onboarding.recommendedForYourMachine`, `onboarding.ramDetected` con interpolación `{{gb}}`).
 - [ ] **Paso 4:** Verificar — `bun run build` PASS + prueba manual del onboarding (borrar el store de settings o usar el reset de debug `Cmd+Shift+D` si existe).
@@ -101,9 +111,11 @@ Registrarlo donde se registran los demás commands (buscar `collect_commands!` o
 ### Task A5: Reposo casi-cero — ventana principal destruible
 
 **Files:**
+
 - Modify: `src-tauri/src/lib.rs` (~796-830 creación; ~884-886 CloseRequested; `show_main_window` :96)
 
 **Interfaces:**
+
 - Produces: `fn create_main_window(app: &AppHandle) -> tauri::Result<WebviewWindow>` reutilizada por setup y por `show_main_window`.
 
 - [ ] **Paso 1:** Extraer la construcción actual (`WebviewWindowBuilder::new(app, "main", …)` con title/size/portable data_dir) a `create_main_window`. El setup la llama igual que hoy.
@@ -115,9 +127,11 @@ Registrarlo donde se registran los demás commands (buscar `collect_commands!` o
 ### Task A6: Reposo casi-cero — overlay perezoso
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs` (creación :278-340, show/hide) y su call-site de setup en `src-tauri/src/lib.rs`
 
 **Interfaces:**
+
 - Consumes: eventos existentes de grabación/transcripción (los mismos que hoy muestran/ocultan el overlay).
 
 - [ ] **Paso 1:** Leer `overlay.rs` completo para mapear el flujo show/hide actual (funciones que responden a recording started/stopped/transcribing).
@@ -129,6 +143,7 @@ Registrarlo donde se registran los demás commands (buscar `collect_commands!` o
 ### Task A7: Re-skin — tokens, fuentes y wordmark
 
 **Files:**
+
 - Create: `src/assets/fonts/` (SpaceGrotesk-{Medium,SemiBold}.woff2, Inter-{Regular,Medium,SemiBold}.woff2, JetBrainsMono-{Regular,Medium}.woff2 — descargadas de Google Fonts/repos oficiales, licencias OFL)
 - Create: `src/styles/brand.css` (@font-face + design tokens CSS)
 - Modify: `src/App.css` (importar brand.css, mapear tokens a Tailwind theme vars existentes)
@@ -136,6 +151,7 @@ Registrarlo donde se registran los demás commands (buscar `collect_commands!` o
 - Modify: componentes de cabecera/footer donde hoy aparece el nombre/logo Handy (grep `Handy` en `src/`)
 
 **Interfaces:**
+
 - Produces: variables CSS `--dilo-ink #0D1117`, `--dilo-mango #FF9E1B`, `--dilo-menta #2EE6A8`, `--dilo-rojo #FF5C5C`, `--dilo-papel #F7F2EA`; clase `font-display`; componente `<Wordmark size="sm|lg" />`.
 
 - [ ] **Paso 1:** Bajar las 7 woff2 a `src/assets/fonts/` (curl desde github oficial de cada fuente); crear `brand.css` con los @font-face (`font-display: swap`) y los tokens de arriba en `:root` + overrides dark (la app ya tiene Theme enum — mapear a su mecanismo actual, grep `data-theme\|dark` en `src/styles/`).
@@ -147,10 +163,12 @@ Registrarlo donde se registran los demás commands (buscar `collect_commands!` o
 ### Task A8: Locale es con voz de marca + onboarding copy
 
 **Files:**
+
 - Modify: `src/i18n/locales/es/translation.json` (las 385 claves, reescritas — no traducción literal)
 - Modify: `src/i18n/locales/en/translation.json` (solo claves NUEVAS del onboarding/A4 y las que digan "Handy" → "Dilo")
 
 Reglas de autoría (fuente: spec §Marca — el ejecutor escribe el contenido final aplicándolas):
+
 - Tuteo, LATAM neutro; "tu compu", "aprieta", "listo".
 - Términos dev en spanglish natural: "el prompt", "pegar", "atajo", "el modelo".
 - Nada de "por favor espere", "¡Ups!", "¡Genial!" corporativo. Sí: "Un segundo…", "Eso no salió. Reintenta.", "Listo."
@@ -165,6 +183,7 @@ Reglas de autoría (fuente: spec §Marca — el ejecutor escribe el contenido fi
 ### Task A9: README, LICENSE y CI
 
 **Files:**
+
 - Rewrite: `README.md` (es-first según spec §README; badges a `aacontn/dilo`; tabla de modelos con RAM real del análisis: Canary 180M ~0.4–0.5 GB · 0.6B Q8 ~1.1–1.4 GB · reposo ~60–80 MB; sección EN breve al final; crédito a Handy arriba)
 - Modify: `LICENSE` (mantener MIT CJ Pais, añadir línea `Copyright (c) 2026 Alfonso Contreras (Dilo)`)
 - Modify: `.github/workflows/release.yml` y `main-build.yml` y `build.yml` (nombres de artefactos `dilo_*`, quitar pasos de firma/notarización y de updater `latest.json` o condicionarlos a `if: ${{ secrets.X != '' }}`; los workflows que publican a infra de handy.computer se eliminan)
@@ -187,9 +206,11 @@ Reglas de autoría (fuente: spec §Marca — el ejecutor escribe el contenido fi
 ### Task B1: Sitio estático completo
 
 **Files:**
+
 - Create: `dilo-landing/index.html`, `dilo-landing/styles.css`, `dilo-landing/app.js` (detección de OS + links release), `dilo-landing/assets/` (logo.svg, favicon.svg, og.png), `dilo-landing/README.md`, `dilo-landing/.gitignore`
 
 Contenido (el ejecutor lo redacta completo con spec §Marca + §Landing):
+
 - Hero: "Deja de tipear tus prompts. **Dilo.**" + sub: "Dictado por voz para los que programan con IA. Offline, gratis y en español." + CTA por OS + animación CSS onda→texto.
 - Secciones: Cómo funciona (aprieta/habla/suelta con `<kbd>`) · Hecho para vibe coders (Cursor, Claude, terminal) · Privado de verdad (offline, MIT, sin telemetría) · Modelos y RAM (tabla del README) · FAQ (gratis / mi voz / precisión es / requisitos / sin firma cómo abrir) · Footer (GitHub, crédito Handy-CJ Pais MIT, hecho en LATAM).
 - Sin frameworks; CSS a mano con los tokens; fuentes woff2 locales (mismas de A7); JS mínimo para detectar OS y armar el link a GitHub Releases latest.

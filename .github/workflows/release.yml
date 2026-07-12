@@ -73,8 +73,10 @@ jobs:
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
-      sign-binaries: true
-      asset-prefix: "handy"
+      # Sin secretos de firma en este fork (v0.1.x se distribuye sin firmar);
+      # ver README para el flujo de instalación por plataforma.
+      sign-binaries: false
+      asset-prefix: "dilo"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}
       # Releases always build from scratch — never restore the Rust cache, so a

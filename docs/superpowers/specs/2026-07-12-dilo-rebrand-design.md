@@ -33,6 +33,7 @@ Criterio de éxito: un dev latino ve la landing y dice "esto es para mí".
 ## Producto (cambios sobre Handy)
 
 ### Defaults español-primero y livianos
+
 - Modelo recomendado en onboarding según RAM detectada:
   - > 8 GB → **Nemotron Streaming 3.5 Q8** (751 MB, 28 idiomas incl. es, streaming en vivo).
   - ≤ 8 GB → **Canary 180M Flash Q8** (218 MB, es/en/de/fr, velocísimo).
@@ -42,17 +43,20 @@ Criterio de éxito: un dev latino ve la landing y dice "esto es para mí".
 - Idioma de transcripción: `auto` (los modelos con lang_detect lo resuelven); UI es-first.
 
 ### Reposo casi-cero (RAM)
+
 - Ventana de ajustes: al cerrarse se **destruye** el webview (hoy se oculta); se recrea al abrir. Objetivo: reposo ~60–80 MB (hoy ~150–250 MB).
 - Overlay: crear la ventana al iniciar grabación y destruirla tras unos segundos de inactividad (hoy vive siempre). Elimina también el CPU residual (issue upstream #1418).
 - Riesgo aceptado: +100–300 ms al reabrir ajustes / primer overlay. Aceptable.
 
 ### Re-skin y voz
+
 - Tema nuevo (paleta/tipos de arriba) sobre la UI de settings existente; iconos lucide se mantienen.
 - Onboarding rediseñado, 3 pasos: (1) permisos explicados en cristiano, (2) modelo auto-recomendado mostrando MB y trade-offs, (3) prueba en vivo ("di: hola mundo").
 - Locale `es` reescrito con voz de marca (no traducción literal). Los otros 21 idiomas quedan intactos (heredan de upstream).
 - Rebrand técnico: nombre de app/binario `dilo`, bundle ID `cl.espaciodigital.dilo`, iconos nuevos, sonidos se mantienen.
 
 ### v2 (documentado, no se construye ahora)
+
 Overlay nativo sin webview · Homebrew cask · winget · firma de código (Apple Developer US$99/año).
 
 ## Landing (repo aparte: dilo-landing)

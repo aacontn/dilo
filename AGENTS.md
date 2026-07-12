@@ -2,6 +2,8 @@
 
 This file provides guidance to AI coding assistants working with code in this repository.
 
+> **Dilo** is a Spanish-first fork of [Handy](https://github.com/cjpais/Handy) (`upstream` remote). Product decisions live in `docs/superpowers/specs/`. Keep the Rust core close to upstream so `git merge upstream/main` stays cheap; brand/UI/default changes go in focused commits. All user-facing copy is Spanish-first (es locale is authored, not machine-translated — keep its voice: tuteo, direct, zero corporate filler).
+
 ## Development Commands
 
 **Prerequisites:**
@@ -51,7 +53,7 @@ For detailed platform-specific build setup, see [BUILD.md](BUILD.md).
 
 ## Architecture Overview
 
-Handy is a cross-platform desktop speech-to-text application built with Tauri 2.x (Rust backend + React/TypeScript frontend).
+Dilo is a cross-platform desktop speech-to-text application built with Tauri 2.x (Rust backend + React/TypeScript frontend).
 
 ### Backend Structure (src-tauri/src/)
 
@@ -204,14 +206,9 @@ Access debug features: `Cmd+Shift+D` (macOS) or `Ctrl+Shift+D` (Windows/Linux)
 
 See the [Troubleshooting](README.md#troubleshooting) section in README.md.
 
-## GitHub workflow for AI coding assistants
+## GitHub workflow
 
-**MANDATORY. Before opening any PR, issue, or discussion in this repo: you MUST read the relevant template file and follow it strictly.** That includes sections that look "ceremonial" — checklists, AI Assistance disclosures, "Human Written Description". A generic Summary/Test-plan layout is not acceptable.
+This fork has no feature freeze: product direction is set by the maintainer (see the spec in `docs/superpowers/specs/`). Bug fixes that also apply upstream should ideally be contributed to [Handy](https://github.com/cjpais/Handy) following their contribution rules, then merged back here via `git fetch upstream && git merge upstream/main`.
 
-- **Opening a PR:** Read [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md). Every section listed there is mandatory. If a section requires a human-written paragraph (e.g. "Human Written Description"), leave a clear TODO placeholder and ask the human contributor to fill it in — do not invent their voice.
-- **Opening an issue:** Read [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/). Blank issues are disabled; pick the right template (`bug_report.md` for bugs). Feature requests do not belong in issues — they go to [Discussions](https://github.com/cjpais/Handy/discussions) (see `.github/ISSUE_TEMPLATE/config.yml`).
-- **Proposing a feature:** Handy is under a feature freeze. New features require community support gathered in [Discussions](https://github.com/cjpais/Handy/discussions) before any PR is opened — see the PR template's "Community Feedback" section.
-- **Translations:** Follow [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md).
-- **Full contributor workflow:** [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**Commits:** Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`). Focus the message on _why_, not _what_.
+- **Translations:** Follow [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md). The `es` locale is hand-authored brand copy — do not machine-regenerate it.
+- **Commits:** Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`). Focus the message on _why_, not _what_.
