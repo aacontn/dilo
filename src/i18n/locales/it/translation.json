@@ -96,35 +96,35 @@
       },
       "nemotron-3.5-asr-streaming-0.6b": {
         "name": "Nemotron Streaming 3.5",
-        "description": "Live multilingual transcription across 28 languages."
+        "description": "Trascrizione live in 28 lingue."
       },
       "whisper-medium": {
         "name": "Whisper Medium",
-        "description": "The classic: 99 languages. Can be a bit slow."
+        "description": "Il classico: 99 lingue. Può essere un po' lento."
       },
       "cohere-transcribe-03-2026": {
         "name": "Cohere Transcribe",
-        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+        "description": "Massima precisione, 14 lingue. Richiede una macchina potente."
       },
       "parakeet-unified-en-0.6b": {
         "name": "Parakeet Unified EN",
-        "description": "English only, live. Best for pure-English dictation."
+        "description": "Solo inglese, live. Ideale per dettare in inglese puro."
       },
       "Voxtral-Mini-4B-Realtime-2602": {
         "name": "Voxtral Mini 4B",
-        "description": "The heavyweight: live multilingual, great on powerful machines."
+        "description": "Il peso massimo: multilingue live, ottimo su macchine potenti."
       },
       "Qwen3-ASR-0.6B": {
         "name": "Qwen3-ASR",
-        "description": "Solid multilingual: 30 languages."
+        "description": "Multilingue solido: 30 lingue."
       },
       "Fun-ASR-MLT-Nano-2512": {
         "name": "Fun-ASR Nano",
-        "description": "Small and multilingual: 31 languages."
+        "description": "Piccolo e multilingue: 31 lingue."
       },
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
-        "description": "Fast, 4 languages, with English translation."
+        "description": "Veloce, 4 lingue, con traduzione in inglese."
       }
     },
     "errors": {
@@ -132,7 +132,7 @@
     },
     "permissions": {
       "title": "Permessi Richiesti",
-      "description": "Handy ha bisogno di alcuni permessi per funzionare correttamente.",
+      "description": "Dilo ha bisogno di alcuni permessi per funzionare correttamente.",
       "microphone": {
         "title": "Accesso al Microfono",
         "description": "Necessario per sentire la tua voce per la trascrizione."
@@ -150,7 +150,7 @@
         "requestFailed": "Impossibile richiedere il permesso. Riprova."
       }
     },
-    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
+    "ramRecommendation": "Il tuo computer ha {{gb}} GB di RAM — ti consigliamo {{model}}."
   },
   "modelSelector": {
     "custom": "Personalizzato",
@@ -205,13 +205,13 @@
       "searchPlaceholder": "Cerca modelli per nome…",
       "rescan": {
         "label": "Riscansiona",
-        "tooltip": "Riscansiona per trovare modelli aggiunti alla cartella dei modelli o alla cache di Hugging Face al di fuori di Handy"
+        "tooltip": "Riscansiona per trovare modelli aggiunti alla cartella dei modelli o alla cache di Hugging Face al di fuori di Dilo"
       }
     },
     "general": {
       "title": "Generale",
       "shortcut": {
-        "title": "Scorciatoie di Handy",
+        "title": "Scorciatoie di Dilo",
         "description": "Configura le scorciatoie per attivare la trascrizione vocale",
         "loading": "Caricamento delle scorciatoie...",
         "none": "Nessuna scorciatoia configurata",
@@ -307,11 +307,11 @@
       },
       "autostart": {
         "label": "Avvia all'Accensione",
-        "description": "Avvia Handy automaticamente quando accedi al computer."
+        "description": "Avvia Dilo automaticamente quando accedi al computer."
       },
       "showTrayIcon": {
         "label": "Mostra icona nella barra di sistema",
-        "description": "Mostra l'icona di Handy nella barra di sistema."
+        "description": "Mostra l'icona di Dilo nella barra di sistema."
       },
       "overlay": {
         "style": {
@@ -494,7 +494,7 @@
       },
       "updateChecks": {
         "label": "Controlla aggiornamenti",
-        "description": "Controlla automaticamente la disponibilità di nuove versioni di Handy"
+        "description": "Controlla automaticamente la disponibilità di nuove versioni di Dilo"
       },
       "soundTheme": {
         "label": "Tema Sonoro",
@@ -573,11 +573,11 @@
       "title": "Informazioni",
       "version": {
         "title": "Versione",
-        "description": "Versione attuale di Handy"
+        "description": "Versione attuale di Dilo"
       },
       "appDataDirectory": {
         "title": "Cartella Dati App",
-        "description": "Cartella in cui Handy salva i dati"
+        "description": "Cartella in cui Dilo salva i dati"
       },
       "sourceCode": {
         "title": "Codice Sorgente",
@@ -586,7 +586,7 @@
       },
       "supportDevelopment": {
         "title": "Supporta lo Sviluppo",
-        "description": "Aiutaci a sviluppare Handy",
+        "description": "Aiutaci a sviluppare Dilo",
         "button": "Dona"
       },
       "acknowledgments": {
@@ -594,17 +594,17 @@
         "ggml": {
           "title": "ggml",
           "description": "Inferenza ad alte prestazioni del modello di riconoscimento vocale automatico Whisper di OpenAI",
-          "details": "Handy usa ggml per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
+          "details": "Dilo usa ggml per il riconoscimento vocale veloce in locale. Grazie a Georgi Gerganov e collaboratori per il fantastico lavoro."
         },
         "handy": {
           "title": "Handy",
-          "description": "The original project Dilo is forked from",
-          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
+          "description": "Il progetto originale da cui nasce Dilo",
+          "details": "Dilo è un fork affettuoso di Handy, di CJ Pais (licenza MIT). Grazie per la base straordinaria e per l'open source."
         }
       },
       "whatsNewUpdates": {
         "label": "Mostra novità",
-        "description": "Mostra le note di rilascio dopo gli aggiornamenti di Handy"
+        "description": "Mostra le note di rilascio dopo gli aggiornamenti di Dilo"
       }
     }
   },
@@ -631,7 +631,7 @@
     "noOptionsFound": "Nessuna opzione trovata"
   },
   "accessibility": {
-    "permissionsDescription": "Handy ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
+    "permissionsDescription": "Dilo ha bisogno dei permessi di accessibilità per digitare il testo trascritto.",
     "openSettings": "Apri Impostazioni di Sistema"
   },
   "errors": {
@@ -654,11 +654,11 @@
   },
   "appLanguage": {
     "title": "Lingua Applicazione",
-    "description": "Cambia la lingua dell'interfaccia di Handy"
+    "description": "Cambia la lingua dell'interfaccia di Dilo"
   },
   "theme": {
     "title": "Tema dell'applicazione",
-    "description": "Scegli se Handy segue il tema di sistema o resta chiaro o scuro",
+    "description": "Scegli se Dilo segue il tema di sistema o resta chiaro o scuro",
     "options": {
       "system": "Sistema",
       "light": "Chiaro",
@@ -670,6 +670,6 @@
     "processing": "Elaborazione..."
   },
   "whatsNew": {
-    "title": "Novità in Handy v{{version}}"
+    "title": "Novità in Dilo v{{version}}"
   }
 }

@@ -96,35 +96,35 @@
       },
       "nemotron-3.5-asr-streaming-0.6b": {
         "name": "Nemotron Streaming 3.5",
-        "description": "Live multilingual transcription across 28 languages."
+        "description": "28 種語言的即時轉錄。"
       },
       "whisper-medium": {
         "name": "Whisper Medium",
-        "description": "The classic: 99 languages. Can be a bit slow."
+        "description": "經典之選:99 種語言。速度可能稍慢。"
       },
       "cohere-transcribe-03-2026": {
         "name": "Cohere Transcribe",
-        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+        "description": "精確度最高,支援 14 種語言。需要效能較強的電腦。"
       },
       "parakeet-unified-en-0.6b": {
         "name": "Parakeet Unified EN",
-        "description": "English only, live. Best for pure-English dictation."
+        "description": "僅英語,即時。純英語聽寫的最佳選擇。"
       },
       "Voxtral-Mini-4B-Realtime-2602": {
         "name": "Voxtral Mini 4B",
-        "description": "The heavyweight: live multilingual, great on powerful machines."
+        "description": "重量級:多語言即時轉錄,在高效能電腦上表現出色。"
       },
       "Qwen3-ASR-0.6B": {
         "name": "Qwen3-ASR",
-        "description": "Solid multilingual: 30 languages."
+        "description": "紮實的多語言模型:30 種語言。"
       },
       "Fun-ASR-MLT-Nano-2512": {
         "name": "Fun-ASR Nano",
-        "description": "Small and multilingual: 31 languages."
+        "description": "小巧的多語言模型:31 種語言。"
       },
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
-        "description": "Fast, 4 languages, with English translation."
+        "description": "快速,4 種語言,支援翻譯成英語。"
       }
     },
     "errors": {
@@ -132,7 +132,7 @@
     },
     "permissions": {
       "title": "需要權限",
-      "description": "Handy 需要一些權限才能正常運作",
+      "description": "Dilo 需要一些權限才能正常運作",
       "microphone": {
         "title": "麥克風存取",
         "description": "需要聽取您的語音進行轉錄"
@@ -150,7 +150,7 @@
         "requestFailed": "請求權限失敗，請重試"
       }
     },
-    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
+    "ramRecommendation": "你的電腦有 {{gb}} GB 記憶體——推薦使用 {{model}}。"
   },
   "modelSelector": {
     "custom": "自訂",
@@ -193,7 +193,7 @@
     "general": {
       "title": "一般",
       "shortcut": {
-        "title": "Handy 快捷鍵",
+        "title": "Dilo 快捷鍵",
         "description": "設定啟動語音轉文字錄製的鍵盤快捷鍵",
         "loading": "載入快捷鍵中...",
         "none": "未設定快捷鍵",
@@ -246,7 +246,7 @@
       "searchPlaceholder": "依名稱搜尋模型…",
       "rescan": {
         "label": "重新掃描",
-        "tooltip": "重新掃描在 Handy 之外新增到模型資料夾或 Hugging Face 快取中的模型"
+        "tooltip": "重新掃描在 Dilo 之外新增到模型資料夾或 Hugging Face 快取中的模型"
       }
     },
     "sound": {
@@ -307,11 +307,11 @@
       },
       "autostart": {
         "label": "開機啟動",
-        "description": "登入電腦時自動啟動 Handy"
+        "description": "登入電腦時自動啟動 Dilo"
       },
       "showTrayIcon": {
         "label": "顯示系統匣圖示",
-        "description": "在系統匣中顯示 Handy 圖示"
+        "description": "在系統匣中顯示 Dilo 圖示"
       },
       "overlay": {
         "style": {
@@ -494,7 +494,7 @@
       },
       "updateChecks": {
         "label": "檢查更新",
-        "description": "自動檢查 Handy 的新版本"
+        "description": "自動檢查 Dilo 的新版本"
       },
       "soundTheme": {
         "label": "聲音主題",
@@ -573,11 +573,11 @@
       "title": "關於",
       "version": {
         "title": "版本",
-        "description": "Handy 的目前版本"
+        "description": "Dilo 的目前版本"
       },
       "appDataDirectory": {
         "title": "應用程式資料目錄",
-        "description": "Handy 儲存資料的位置"
+        "description": "Dilo 儲存資料的位置"
       },
       "sourceCode": {
         "title": "原始碼",
@@ -586,7 +586,7 @@
       },
       "supportDevelopment": {
         "title": "支持開發",
-        "description": "幫助我們繼續開發 Handy",
+        "description": "幫助我們繼續開發 Dilo",
         "button": "捐贈"
       },
       "acknowledgments": {
@@ -594,17 +594,17 @@
         "ggml": {
           "title": "ggml",
           "description": "針對 OpenAI Whisper 自動語音識別模型的高效能推理引擎",
-          "details": "Handy 使用 ggml 進行快速的本機語音轉文字處理。感謝 Georgi Gerganov 和貢獻者們的傑出工作"
+          "details": "Dilo 使用 ggml 進行快速的本機語音轉文字處理。感謝 Georgi Gerganov 和貢獻者們的傑出工作"
         },
         "handy": {
           "title": "Handy",
-          "description": "The original project Dilo is forked from",
-          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
+          "description": "Dilo 的上游原始專案",
+          "details": "Dilo 是對 CJ Pais 的 Handy(MIT 授權)滿懷敬意的分支。感謝出色的基礎與開源精神。"
         }
       },
       "whatsNewUpdates": {
         "label": "顯示新功能",
-        "description": "Handy 更新後顯示版本資訊"
+        "description": "Dilo 更新後顯示版本資訊"
       }
     }
   },
@@ -631,7 +631,7 @@
     "noOptionsFound": "未找到選項"
   },
   "accessibility": {
-    "permissionsDescription": "Handy 需要輔助使用權限才能輸入轉錄的文字",
+    "permissionsDescription": "Dilo 需要輔助使用權限才能輸入轉錄的文字",
     "openSettings": "開啟系統設定"
   },
   "errors": {
@@ -654,11 +654,11 @@
   },
   "appLanguage": {
     "title": "應用程式語言",
-    "description": "變更 Handy 介面的語言"
+    "description": "變更 Dilo 介面的語言"
   },
   "theme": {
     "title": "應用程式主題",
-    "description": "選擇 Handy 跟隨系統主題，或維持淺色或深色",
+    "description": "選擇 Dilo 跟隨系統主題，或維持淺色或深色",
     "options": {
       "system": "跟隨系統",
       "light": "淺色",
@@ -670,6 +670,6 @@
     "processing": "處理中..."
   },
   "whatsNew": {
-    "title": "Handy v{{version}} 新功能"
+    "title": "Dilo v{{version}} 新功能"
   }
 }

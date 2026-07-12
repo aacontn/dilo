@@ -96,35 +96,35 @@
       },
       "nemotron-3.5-asr-streaming-0.6b": {
         "name": "Nemotron Streaming 3.5",
-        "description": "Live multilingual transcription across 28 languages."
+        "description": "२८ भाषामा प्रत्यक्ष ट्रान्सक्रिप्सन।"
       },
       "whisper-medium": {
         "name": "Whisper Medium",
-        "description": "The classic: 99 languages. Can be a bit slow."
+        "description": "क्लासिक मोडेल: ९९ भाषा। अलि ढिलो हुन सक्छ।"
       },
       "cohere-transcribe-03-2026": {
         "name": "Cohere Transcribe",
-        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+        "description": "उच्चतम शुद्धता, १४ भाषा। शक्तिशाली कम्प्युटर चाहिन्छ।"
       },
       "parakeet-unified-en-0.6b": {
         "name": "Parakeet Unified EN",
-        "description": "English only, live. Best for pure-English dictation."
+        "description": "अङ्ग्रेजी मात्र, प्रत्यक्ष। शुद्ध अङ्ग्रेजी बोलेर लेखाउन उत्तम।"
       },
       "Voxtral-Mini-4B-Realtime-2602": {
         "name": "Voxtral Mini 4B",
-        "description": "The heavyweight: live multilingual, great on powerful machines."
+        "description": "हेभिवेट: बहुभाषिक प्रत्यक्ष, शक्तिशाली कम्प्युटरमा उत्कृष्ट।"
       },
       "Qwen3-ASR-0.6B": {
         "name": "Qwen3-ASR",
-        "description": "Solid multilingual: 30 languages."
+        "description": "भरपर्दो बहुभाषिक: ३० भाषा।"
       },
       "Fun-ASR-MLT-Nano-2512": {
         "name": "Fun-ASR Nano",
-        "description": "Small and multilingual: 31 languages."
+        "description": "सानो र बहुभाषिक: ३१ भाषा।"
       },
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
-        "description": "Fast, 4 languages, with English translation."
+        "description": "छिटो, ४ भाषा, अङ्ग्रेजीमा अनुवादसहित।"
       }
     },
     "errors": {
@@ -132,7 +132,7 @@
     },
     "permissions": {
       "title": "अनुमतिहरू आवश्यक छन्",
-      "description": "Handy लाई राम्रोसँग काम गर्न केही अनुमतिहरू चाहिन्छ।",
+      "description": "Dilo लाई राम्रोसँग काम गर्न केही अनुमतिहरू चाहिन्छ।",
       "microphone": {
         "title": "माइक्रोफोन पहुँच",
         "description": "ट्रान्सक्रिप्सनका लागि तपाईंको आवाज सुन्न आवश्यक छ।"
@@ -150,7 +150,7 @@
         "requestFailed": "अनुमति अनुरोध गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।"
       }
     },
-    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
+    "ramRecommendation": "तपाईंको कम्प्युटरमा {{gb}} GB RAM छ — हामी {{model}} सिफारिस गर्छौँ।"
   },
   "modelSelector": {
     "custom": "कस्टम",
@@ -193,7 +193,7 @@
     "general": {
       "title": "सामान्य",
       "shortcut": {
-        "title": "Handy सर्टकटहरू",
+        "title": "Dilo सर्टकटहरू",
         "description": "स्पिच-टु-टेक्स्ट रेकर्डिङ सुरु गर्न किबोर्ड सर्टकटहरू सेट अप गर्नुहोस्",
         "loading": "सर्टकटहरू लोड गरिँदैछन्...",
         "none": "कुनै सर्टकट सेट गरिएको छैन",
@@ -245,7 +245,7 @@
       },
       "rescan": {
         "label": "फेरि स्क्यान गर्नुहोस्",
-        "tooltip": "Handy बाहिरबाट मोडेल फोल्डर वा Hugging Face क्यासमा थपिएका मोडेलहरू फेरि स्क्यान गर्नुहोस्"
+        "tooltip": "Dilo बाहिरबाट मोडेल फोल्डर वा Hugging Face क्यासमा थपिएका मोडेलहरू फेरि स्क्यान गर्नुहोस्"
       },
       "noModelsMatch": "यो फिल्टरसँग कुनै मोडेल मिल्दैन।"
     },
@@ -307,11 +307,11 @@
       },
       "autostart": {
         "label": "स्टार्टअपमा सुरु गर्नुहोस्",
-        "description": "कम्प्युटरमा लगइन गर्दा Handy स्वतः सुरु गर्नुहोस्।"
+        "description": "कम्प्युटरमा लगइन गर्दा Dilo स्वतः सुरु गर्नुहोस्।"
       },
       "showTrayIcon": {
         "label": "ट्रे आइकन देखाउनुहोस्",
-        "description": "सिस्टम ट्रेमा Handy आइकन देखाउनुहोस्।"
+        "description": "सिस्टम ट्रेमा Dilo आइकन देखाउनुहोस्।"
       },
       "overlay": {
         "style": {
@@ -494,7 +494,7 @@
       },
       "updateChecks": {
         "label": "अपडेटहरू जाँच गर्नुहोस्",
-        "description": "Handy को नयाँ संस्करण स्वतः जाँच गर्नुहोस्"
+        "description": "Dilo को नयाँ संस्करण स्वतः जाँच गर्नुहोस्"
       },
       "whatsNewPreview": {
         "title": "नयाँ के छ पूर्वावलोकन",
@@ -573,15 +573,15 @@
       "title": "बारेमा",
       "version": {
         "title": "संस्करण",
-        "description": "Handy को हालको संस्करण"
+        "description": "Dilo को हालको संस्करण"
       },
       "whatsNewUpdates": {
         "label": "नयाँ के छ देखाउनुहोस्",
-        "description": "Handy अपडेट भएपछि रिलिज नोटहरू देखाउनुहोस्"
+        "description": "Dilo अपडेट भएपछि रिलिज नोटहरू देखाउनुहोस्"
       },
       "appDataDirectory": {
         "title": "एप डेटा डाइरेक्टरी",
-        "description": "Handy ले आफ्नो डेटा भण्डारण गर्ने स्थान"
+        "description": "Dilo ले आफ्नो डेटा भण्डारण गर्ने स्थान"
       },
       "sourceCode": {
         "title": "स्रोत कोड",
@@ -590,7 +590,7 @@
       },
       "supportDevelopment": {
         "title": "विकासलाई सहयोग गर्नुहोस्",
-        "description": "Handy निर्माण जारी राख्न हामीलाई सहयोग गर्नुहोस्",
+        "description": "Dilo निर्माण जारी राख्न हामीलाई सहयोग गर्नुहोस्",
         "button": "दान गर्नुहोस्"
       },
       "acknowledgments": {
@@ -598,12 +598,12 @@
         "ggml": {
           "title": "ggml",
           "description": "अन-डिभाइस मेसिन लर्निङ अनुमानका लागि उच्च-प्रदर्शन टेन्सर लाइब्रेरी",
-          "details": "Handy को स्थानीय स्पिच-टु-टेक्स्ट transcribe.cpp र ggml मा आधारित छ। Georgi Gerganov र योगदानकर्ताहरूको उत्कृष्ट कामका लागि धन्यवाद।"
+          "details": "Dilo को स्थानीय स्पिच-टु-टेक्स्ट transcribe.cpp र ggml मा आधारित छ। Georgi Gerganov र योगदानकर्ताहरूको उत्कृष्ट कामका लागि धन्यवाद।"
         },
         "handy": {
           "title": "Handy",
-          "description": "The original project Dilo is forked from",
-          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
+          "description": "मूल परियोजना जसबाट Dilo फोर्क गरिएको हो",
+          "details": "Dilo, CJ Pais को Handy (MIT लाइसेन्स) बाट मायाले बनाइएको फोर्क हो। उत्कृष्ट आधार र खुला स्रोतका लागि धन्यवाद।"
         }
       }
     }
@@ -622,7 +622,7 @@
     "portableUpdateButton": "GitHub Releases खोल्नुहोस्"
   },
   "whatsNew": {
-    "title": "Handy v{{version}} मा नयाँ"
+    "title": "Dilo v{{version}} मा नयाँ"
   },
   "common": {
     "loading": "लोड गरिँदैछ...",
@@ -634,7 +634,7 @@
     "noOptionsFound": "कुनै विकल्प भेटिएन"
   },
   "accessibility": {
-    "permissionsDescription": "ट्रान्सक्राइब गरिएको टेक्स्ट टाइप गर्न Handy लाई एक्सेसिबिलिटी अनुमति चाहिन्छ।",
+    "permissionsDescription": "ट्रान्सक्राइब गरिएको टेक्स्ट टाइप गर्न Dilo लाई एक्सेसिबिलिटी अनुमति चाहिन्छ।",
     "openSettings": "सिस्टम सेटिङहरू खोल्नुहोस्"
   },
   "errors": {
@@ -657,11 +657,11 @@
   },
   "appLanguage": {
     "title": "एपको भाषा",
-    "description": "Handy इन्टरफेसको भाषा परिवर्तन गर्नुहोस्"
+    "description": "Dilo इन्टरफेसको भाषा परिवर्तन गर्नुहोस्"
   },
   "theme": {
     "title": "अनुप्रयोगको थिम",
-    "description": "Handy ले तपाईंको सिस्टम थिम अनुसरण गर्ने वा उज्यालो वा अँध्यारो रहने छान्नुहोस्",
+    "description": "Dilo ले तपाईंको सिस्टम थिम अनुसरण गर्ने वा उज्यालो वा अँध्यारो रहने छान्नुहोस्",
     "options": {
       "system": "सिस्टम",
       "light": "उज्यालो",

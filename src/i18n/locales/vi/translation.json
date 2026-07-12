@@ -96,35 +96,35 @@
       },
       "nemotron-3.5-asr-streaming-0.6b": {
         "name": "Nemotron Streaming 3.5",
-        "description": "Live multilingual transcription across 28 languages."
+        "description": "Phiên âm trực tiếp với 28 ngôn ngữ."
       },
       "whisper-medium": {
         "name": "Whisper Medium",
-        "description": "The classic: 99 languages. Can be a bit slow."
+        "description": "Mẫu kinh điển: 99 ngôn ngữ. Có thể hơi chậm."
       },
       "cohere-transcribe-03-2026": {
         "name": "Cohere Transcribe",
-        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+        "description": "Độ chính xác cao nhất, 14 ngôn ngữ. Cần máy mạnh."
       },
       "parakeet-unified-en-0.6b": {
         "name": "Parakeet Unified EN",
-        "description": "English only, live. Best for pure-English dictation."
+        "description": "Chỉ tiếng Anh, trực tiếp. Tốt nhất cho đọc chính tả thuần tiếng Anh."
       },
       "Voxtral-Mini-4B-Realtime-2602": {
         "name": "Voxtral Mini 4B",
-        "description": "The heavyweight: live multilingual, great on powerful machines."
+        "description": "Hạng nặng: đa ngôn ngữ trực tiếp, tuyệt vời trên máy mạnh."
       },
       "Qwen3-ASR-0.6B": {
         "name": "Qwen3-ASR",
-        "description": "Solid multilingual: 30 languages."
+        "description": "Đa ngôn ngữ vững chắc: 30 ngôn ngữ."
       },
       "Fun-ASR-MLT-Nano-2512": {
         "name": "Fun-ASR Nano",
-        "description": "Small and multilingual: 31 languages."
+        "description": "Nhỏ gọn và đa ngôn ngữ: 31 ngôn ngữ."
       },
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
-        "description": "Fast, 4 languages, with English translation."
+        "description": "Nhanh, 4 ngôn ngữ, có dịch sang tiếng Anh."
       }
     },
     "errors": {
@@ -132,7 +132,7 @@
     },
     "permissions": {
       "title": "Cần cấp quyền",
-      "description": "Handy cần một số quyền để hoạt động bình thường.",
+      "description": "Dilo cần một số quyền để hoạt động bình thường.",
       "microphone": {
         "title": "Quyền truy cập Micrô",
         "description": "Cần thiết để nghe giọng nói của bạn để chuyển đổi."
@@ -150,7 +150,7 @@
         "requestFailed": "Không thể yêu cầu quyền. Vui lòng thử lại."
       }
     },
-    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
+    "ramRecommendation": "Máy của bạn có {{gb}} GB RAM — chúng tôi đề xuất {{model}}."
   },
   "modelSelector": {
     "custom": "Tùy chỉnh",
@@ -205,13 +205,13 @@
       "searchPlaceholder": "Tìm mô hình theo tên…",
       "rescan": {
         "label": "Quét lại",
-        "tooltip": "Quét lại các mô hình được thêm vào thư mục mô hình hoặc bộ nhớ đệm Hugging Face bên ngoài Handy"
+        "tooltip": "Quét lại các mô hình được thêm vào thư mục mô hình hoặc bộ nhớ đệm Hugging Face bên ngoài Dilo"
       }
     },
     "general": {
       "title": "Chung",
       "shortcut": {
-        "title": "Phím tắt Handy",
+        "title": "Phím tắt Dilo",
         "description": "Cấu hình phím tắt để kích hoạt ghi âm chuyển đổi giọng nói thành văn bản",
         "loading": "Đang tải phím tắt...",
         "none": "Chưa cấu hình phím tắt",
@@ -307,11 +307,11 @@
       },
       "autostart": {
         "label": "Khởi động cùng hệ thống",
-        "description": "Tự động khởi động Handy khi bạn đăng nhập vào máy tính."
+        "description": "Tự động khởi động Dilo khi bạn đăng nhập vào máy tính."
       },
       "showTrayIcon": {
         "label": "Hiển thị biểu tượng khay",
-        "description": "Hiển thị biểu tượng Handy trong khay hệ thống."
+        "description": "Hiển thị biểu tượng Dilo trong khay hệ thống."
       },
       "overlay": {
         "style": {
@@ -494,7 +494,7 @@
       },
       "updateChecks": {
         "label": "Kiểm tra cập nhật",
-        "description": "Tự động kiểm tra phiên bản mới của Handy"
+        "description": "Tự động kiểm tra phiên bản mới của Dilo"
       },
       "soundTheme": {
         "label": "Chủ đề âm thanh",
@@ -573,11 +573,11 @@
       "title": "Giới thiệu",
       "version": {
         "title": "Phiên bản",
-        "description": "Phiên bản hiện tại của Handy"
+        "description": "Phiên bản hiện tại của Dilo"
       },
       "appDataDirectory": {
         "title": "Thư mục dữ liệu ứng dụng",
-        "description": "Vị trí Handy lưu trữ dữ liệu"
+        "description": "Vị trí Dilo lưu trữ dữ liệu"
       },
       "sourceCode": {
         "title": "Mã nguồn",
@@ -586,7 +586,7 @@
       },
       "supportDevelopment": {
         "title": "Hỗ trợ phát triển",
-        "description": "Giúp chúng tôi tiếp tục xây dựng Handy",
+        "description": "Giúp chúng tôi tiếp tục xây dựng Dilo",
         "button": "Quyên góp"
       },
       "acknowledgments": {
@@ -594,17 +594,17 @@
         "ggml": {
           "title": "ggml",
           "description": "Suy luận hiệu suất cao của mô hình nhận dạng giọng nói tự động Whisper của OpenAI",
-          "details": "Handy sử dụng ggml để xử lý chuyển đổi giọng nói thành văn bản nhanh, cục bộ. Cảm ơn công việc tuyệt vời của Georgi Gerganov và các cộng tác viên."
+          "details": "Dilo sử dụng ggml để xử lý chuyển đổi giọng nói thành văn bản nhanh, cục bộ. Cảm ơn công việc tuyệt vời của Georgi Gerganov và các cộng tác viên."
         },
         "handy": {
           "title": "Handy",
-          "description": "The original project Dilo is forked from",
-          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
+          "description": "Dự án gốc mà Dilo được fork từ đó",
+          "details": "Dilo là bản fork đầy tâm huyết của Handy, do CJ Pais tạo ra (giấy phép MIT). Cảm ơn vì nền tảng tuyệt vời và tinh thần mã nguồn mở."
         }
       },
       "whatsNewUpdates": {
         "label": "Hiển thị điểm mới",
-        "description": "Hiển thị ghi chú phát hành sau khi Handy cập nhật"
+        "description": "Hiển thị ghi chú phát hành sau khi Dilo cập nhật"
       }
     }
   },
@@ -631,7 +631,7 @@
     "noOptionsFound": "Không tìm thấy tùy chọn"
   },
   "accessibility": {
-    "permissionsDescription": "Handy cần quyền truy cập để gõ văn bản đã chuyển đổi.",
+    "permissionsDescription": "Dilo cần quyền truy cập để gõ văn bản đã chuyển đổi.",
     "openSettings": "Mở Cài đặt Hệ thống"
   },
   "errors": {
@@ -654,11 +654,11 @@
   },
   "appLanguage": {
     "title": "Ngôn ngữ ứng dụng",
-    "description": "Thay đổi ngôn ngữ giao diện của Handy"
+    "description": "Thay đổi ngôn ngữ giao diện của Dilo"
   },
   "theme": {
     "title": "Giao diện ứng dụng",
-    "description": "Chọn xem Handy theo chủ đề hệ thống hay giữ ở chế độ sáng hoặc tối",
+    "description": "Chọn xem Dilo theo chủ đề hệ thống hay giữ ở chế độ sáng hoặc tối",
     "options": {
       "system": "Hệ thống",
       "light": "Sáng",
@@ -670,6 +670,6 @@
     "processing": "Đang xử lý..."
   },
   "whatsNew": {
-    "title": "Điểm mới trong Handy v{{version}}"
+    "title": "Điểm mới trong Dilo v{{version}}"
   }
 }

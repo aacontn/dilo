@@ -96,35 +96,35 @@
       },
       "nemotron-3.5-asr-streaming-0.6b": {
         "name": "Nemotron Streaming 3.5",
-        "description": "Live multilingual transcription across 28 languages."
+        "description": "28개 언어 실시간 전사."
       },
       "whisper-medium": {
         "name": "Whisper Medium",
-        "description": "The classic: 99 languages. Can be a bit slow."
+        "description": "클래식 모델: 99개 언어. 조금 느릴 수 있어요."
       },
       "cohere-transcribe-03-2026": {
         "name": "Cohere Transcribe",
-        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+        "description": "최고 정확도, 14개 언어. 강력한 컴퓨터가 필요해요."
       },
       "parakeet-unified-en-0.6b": {
         "name": "Parakeet Unified EN",
-        "description": "English only, live. Best for pure-English dictation."
+        "description": "영어 전용, 실시간. 순수 영어 받아쓰기에 최적."
       },
       "Voxtral-Mini-4B-Realtime-2602": {
         "name": "Voxtral Mini 4B",
-        "description": "The heavyweight: live multilingual, great on powerful machines."
+        "description": "헤비급: 다국어 실시간, 고성능 컴퓨터에서 탁월."
       },
       "Qwen3-ASR-0.6B": {
         "name": "Qwen3-ASR",
-        "description": "Solid multilingual: 30 languages."
+        "description": "탄탄한 다국어 모델: 30개 언어."
       },
       "Fun-ASR-MLT-Nano-2512": {
         "name": "Fun-ASR Nano",
-        "description": "Small and multilingual: 31 languages."
+        "description": "작고 다국어 지원: 31개 언어."
       },
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
-        "description": "Fast, 4 languages, with English translation."
+        "description": "빠름, 4개 언어, 영어 번역 지원."
       }
     },
     "errors": {
@@ -132,7 +132,7 @@
     },
     "permissions": {
       "title": "권한 필요",
-      "description": "Handy가 제대로 작동하려면 몇 가지 권한이 필요합니다.",
+      "description": "Dilo가 제대로 작동하려면 몇 가지 권한이 필요합니다.",
       "microphone": {
         "title": "마이크 접근",
         "description": "음성 인식을 위해 마이크 접근 권한이 필요합니다."
@@ -150,7 +150,7 @@
         "requestFailed": "권한 요청에 실패했습니다. 다시 시도해주세요."
       }
     },
-    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
+    "ramRecommendation": "이 컴퓨터의 RAM은 {{gb}}GB — {{model}}을(를) 추천합니다."
   },
   "modelSelector": {
     "custom": "사용자 정의",
@@ -193,7 +193,7 @@
     "general": {
       "title": "일반",
       "shortcut": {
-        "title": "Handy 단축키",
+        "title": "Dilo 단축키",
         "description": "음성-텍스트 녹음을 시작하는 키보드 단축키를 설정하세요",
         "loading": "단축키 로딩 중...",
         "none": "설정된 단축키 없음",
@@ -269,7 +269,7 @@
       "searchPlaceholder": "이름으로 모델 검색…",
       "rescan": {
         "label": "다시 스캔",
-        "tooltip": "Handy 외부에서 모델 폴더 또는 Hugging Face 캐시에 추가된 모델을 다시 스캔합니다"
+        "tooltip": "Dilo 외부에서 모델 폴더 또는 Hugging Face 캐시에 추가된 모델을 다시 스캔합니다"
       }
     },
     "advanced": {
@@ -307,11 +307,11 @@
       },
       "autostart": {
         "label": "시작 시 실행",
-        "description": "컴퓨터 로그인 시 Handy를 자동으로 시작합니다."
+        "description": "컴퓨터 로그인 시 Dilo를 자동으로 시작합니다."
       },
       "showTrayIcon": {
         "label": "트레이 아이콘 표시",
-        "description": "시스템 트레이에 Handy 아이콘을 표시합니다."
+        "description": "시스템 트레이에 Dilo 아이콘을 표시합니다."
       },
       "overlay": {
         "style": {
@@ -494,7 +494,7 @@
       },
       "updateChecks": {
         "label": "업데이트 확인",
-        "description": "Handy의 새 버전을 자동으로 확인합니다"
+        "description": "Dilo의 새 버전을 자동으로 확인합니다"
       },
       "soundTheme": {
         "label": "사운드 테마",
@@ -573,11 +573,11 @@
       "title": "정보",
       "version": {
         "title": "버전",
-        "description": "Handy의 현재 버전"
+        "description": "Dilo의 현재 버전"
       },
       "appDataDirectory": {
         "title": "앱 데이터 디렉토리",
-        "description": "Handy가 데이터를 저장하는 위치"
+        "description": "Dilo가 데이터를 저장하는 위치"
       },
       "sourceCode": {
         "title": "소스 코드",
@@ -586,7 +586,7 @@
       },
       "supportDevelopment": {
         "title": "개발 지원",
-        "description": "Handy 개발을 계속할 수 있도록 도와주세요",
+        "description": "Dilo 개발을 계속할 수 있도록 도와주세요",
         "button": "후원하기"
       },
       "acknowledgments": {
@@ -594,17 +594,17 @@
         "ggml": {
           "title": "ggml",
           "description": "OpenAI의 Whisper 자동 음성 인식 모델의 고성능 추론",
-          "details": "Handy는 빠르고 로컬 음성-텍스트 처리를 위해 ggml를 사용합니다. Georgi Gerganov와 기여자들의 놀라운 작업에 감사드립니다."
+          "details": "Dilo는 빠르고 로컬 음성-텍스트 처리를 위해 ggml를 사용합니다. Georgi Gerganov와 기여자들의 놀라운 작업에 감사드립니다."
         },
         "handy": {
           "title": "Handy",
-          "description": "The original project Dilo is forked from",
-          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
+          "description": "Dilo가 포크한 원본 프로젝트",
+          "details": "Dilo는 CJ Pais의 Handy(MIT 라이선스)를 애정을 담아 포크한 프로젝트입니다. 훌륭한 기반과 오픈소스에 감사드립니다."
         }
       },
       "whatsNewUpdates": {
         "label": "새 소식 표시",
-        "description": "Handy 업데이트 후 릴리스 노트를 표시합니다"
+        "description": "Dilo 업데이트 후 릴리스 노트를 표시합니다"
       }
     }
   },
@@ -631,7 +631,7 @@
     "noOptionsFound": "옵션을 찾을 수 없습니다"
   },
   "accessibility": {
-    "permissionsDescription": "Handy는 녹음된 텍스트를 입력하기 위해 접근성 권한이 필요합니다.",
+    "permissionsDescription": "Dilo는 녹음된 텍스트를 입력하기 위해 접근성 권한이 필요합니다.",
     "openSettings": "시스템 설정 열기"
   },
   "errors": {
@@ -654,11 +654,11 @@
   },
   "appLanguage": {
     "title": "애플리케이션 언어",
-    "description": "Handy 인터페이스의 언어를 변경하세요"
+    "description": "Dilo 인터페이스의 언어를 변경하세요"
   },
   "theme": {
     "title": "앱 테마",
-    "description": "Handy가 시스템 테마를 따를지, 밝게 또는 어둡게 유지할지 선택하세요",
+    "description": "Dilo가 시스템 테마를 따를지, 밝게 또는 어둡게 유지할지 선택하세요",
     "options": {
       "system": "시스템",
       "light": "밝게",
@@ -670,6 +670,6 @@
     "processing": "처리 중..."
   },
   "whatsNew": {
-    "title": "Handy v{{version}}의 새 소식"
+    "title": "Dilo v{{version}}의 새 소식"
   }
 }
