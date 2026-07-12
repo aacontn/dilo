@@ -74,7 +74,7 @@ Español primero: qué es, gif, descarga por OS, requisitos con RAM honesta, có
 ## Estructura y repos
 
 ```
-carpeta sin título/
+Dilo/
 ├── handy-upstream/   ← referencia de solo lectura (clon shallow)
 ├── dilo/             ← fork app; remote upstream=cjpais/handy, origin=aacontn/dilo
 └── dilo-landing/     ← landing; origin=aacontn/dilo-landing → Cloudflare Pages
