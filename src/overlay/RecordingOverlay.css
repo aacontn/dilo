@@ -1,17 +1,22 @@
 @import "../styles/theme.css";
 
 :root {
-  --s-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --s-font:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
      light/dark with --color-background, so no dark-mode override is needed. */
   --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
-  /* Accent = logo pink; flips automatically via --color-logo-primary. */
+  /* Accent = brand mango; flips automatically via --color-logo-primary. */
   --s-accent: var(--color-logo-primary);
   --s-accent-soft: color-mix(
     in srgb,
     var(--color-background-ui) 16%,
     transparent
   );
+  /* Recording = rojo (brand: rojo suave means "grabando"): pulsing dot +
+     reactive waveform. The caret/spinner keep the mango accent. */
+  --s-rec: var(--dilo-rojo);
+  --s-rec-soft: color-mix(in srgb, var(--dilo-rojo) 22%, transparent);
   /* Neutrals. Hairlines reuse the app's mid-gray at low opacity — same vocabulary
      as the app's border-mid-gray/* utilities. muted/faint are overlay-specific
      secondary/tertiary text grays (no theme equivalent). */
@@ -36,8 +41,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Accent uses the lighter logo pink in dark — reads better on the dark
-       surface than the deeper UI pink. */
+    /* Soft accent leans on the logo token in dark — reads better on the dark
+       surface. */
     --s-accent-soft: color-mix(
       in srgb,
       var(--color-logo-primary) 20%,
@@ -267,13 +272,13 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--s-accent);
+  background: var(--s-rec);
   flex: none;
   animation: sdot-pulse 1.9s infinite;
 }
 @keyframes sdot-pulse {
   0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
+    box-shadow: 0 0 0 0 var(--s-rec-soft);
   }
   70% {
     box-shadow: 0 0 0 7px transparent;
@@ -305,7 +310,7 @@
   min-height: 3px;
   max-height: 18px;
   border-radius: 2px;
-  background: var(--s-accent);
+  background: var(--s-rec);
   transition: height 80ms linear;
 }
 .sx {

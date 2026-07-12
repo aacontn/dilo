@@ -1,21 +1,24 @@
-/* Handy Colors */
+/* Dilo Colors */
+
+@import "./brand.css";
 
 :root {
   /* Palette source of truth. Each themed color is defined once as a
      light/dark pair; the active tokens below and the `data-theme` overrides
-     in App.css reference these, so a hex value lives in exactly one place. */
-  --light-color-text: #0f0f0f;
-  --light-color-background: #fbfbfb;
-  --light-color-logo-primary: #faa2ca;
-  --light-color-logo-stroke: #382731;
+     in App.css reference these, so a hex value lives in exactly one place
+     (the raw brand constants live in brand.css). */
+  --light-color-text: var(--dilo-ink);
+  --light-color-background: var(--dilo-papel);
+  --light-color-logo-primary: var(--dilo-mango);
+  --light-color-logo-stroke: var(--dilo-ink);
 
-  --dark-color-text: #fbfbfb;
-  --dark-color-background: #2c2b29;
-  --dark-color-logo-primary: #f28cbb;
-  --dark-color-logo-stroke: #fad1ed;
+  --dark-color-text: var(--dilo-papel);
+  --dark-color-background: var(--dilo-ink);
+  --dark-color-logo-primary: var(--dilo-mango);
+  --dark-color-logo-stroke: var(--dilo-papel);
 
   /* Tokens that do not change between light and dark */
-  --color-background-ui: #da5893;
+  --color-background-ui: var(--dilo-mango);
   --color-text-stroke: #f6f6f6;
   --color-mid-gray: #808080;
 

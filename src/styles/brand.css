@@ -1,0 +1,87 @@
+/* Dilo brand — bundled fonts + raw design tokens.
+ *
+ * Single source of truth for the brand palette and typefaces. theme.css maps
+ * these raw tokens onto the app's themed light/dark pairs; App.css exposes
+ * them as Tailwind utilities. Fonts are bundled woff2 (OFL-1.1) — the app is
+ * offline, never load type from a CDN. */
+
+/* --- Typefaces (latin subsets from @fontsource) --- */
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/SpaceGrotesk-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/SpaceGrotesk-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/Inter-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/Inter-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../assets/fonts/Inter-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../assets/fonts/JetBrainsMono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../assets/fonts/JetBrainsMono-500.woff2") format("woff2");
+}
+
+/* --- Palette (spec: docs/superpowers/specs/2026-07-12-dilo-rebrand-design.md) --- */
+
+:root {
+  --dilo-ink: #0d1117; /* fondo dark / texto light */
+  --dilo-mango: #ff9e1b; /* acento primario, caret */
+  --dilo-menta: #2ee6a8; /* activo / éxito */
+  --dilo-rojo: #ff5c5c; /* peligro / grabando */
+  --dilo-papel: #f7f2ea; /* fondo light / texto dark */
+}
+
+/* --- Caret blink (the `dilo▌` prompt waiting for you to speak) --- */
+
+@keyframes dilo-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.wordmark-caret {
+  color: var(--dilo-mango);
+  animation: dilo-blink 1.2s steps(1) infinite;
+}

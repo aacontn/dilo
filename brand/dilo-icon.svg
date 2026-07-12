@@ -1,0 +1,12 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dilo app icon — master source.
+       Tinta rounded square, mango terminal caret, menta 3-bar audio wave.
+       Export: rsvg-convert -w 1024 -h 1024 brand/dilo-icon.svg -o dilo-1024.png -->
+  <rect width="1024" height="1024" rx="228" fill="#0D1117"/>
+  <!-- Caret ▌ (a prompt waiting for you to speak) -->
+  <rect x="330" y="280" width="120" height="380" rx="28" fill="#FF9E1B"/>
+  <!-- Audio wave, 3 bars (heights 140/240/100) centered on the caret's midline (y=470) -->
+  <rect x="514" y="400" width="68" height="140" rx="34" fill="#2EE6A8"/>
+  <rect x="626" y="350" width="68" height="240" rx="34" fill="#2EE6A8"/>
+  <rect x="738" y="420" width="68" height="100" rx="34" fill="#2EE6A8"/>
+</svg>

@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "./styles/brand.css";
 @import "./styles/theme.css";
 
-/* Register the shared color tokens (src/styles/theme.css) as Tailwind
-   utilities */
+/* Register the shared color tokens (src/styles/theme.css + brand.css) as
+   Tailwind utilities */
 @theme inline {
   --color-text: var(--color-text);
   --color-background: var(--color-background);
@@ -11,6 +12,25 @@
   --color-logo-stroke: var(--color-logo-stroke);
   --color-text-stroke: var(--color-text-stroke);
   --color-mid-gray: var(--color-mid-gray);
+
+  /* Dilo brand palette (src/styles/brand.css) */
+  --color-ink: var(--dilo-ink);
+  --color-mango: var(--dilo-mango);
+  --color-menta: var(--dilo-menta);
+  --color-rojo: var(--dilo-rojo);
+  --color-papel: var(--dilo-papel);
+}
+
+/* Bundled brand typefaces (src/styles/brand.css). `--font-sans` also drives
+   the preflight default font via Tailwind's `--default-font-family`. */
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-display:
+    "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 :root {

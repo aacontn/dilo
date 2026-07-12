@@ -1,0 +1,9 @@
+<svg width="380" height="200" viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dilo">
+  <!-- Dilo wordmark: `dilo▌` — papel text + blinking mango caret (static here).
+       Space Grotesk when available; falls back to a bold system sans. -->
+  <text x="20" y="155" font-family="'Space Grotesk', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif"
+        font-size="150" font-weight="600" letter-spacing="-4"
+        textLength="260" lengthAdjust="spacing" fill="#F7F2EA">dilo</text>
+  <!-- Caret ▌ -->
+  <rect x="308" y="43" width="46" height="112" rx="12" fill="#FF9E1B"/>
+</svg>

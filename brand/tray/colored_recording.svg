@@ -1,0 +1,8 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Colored recording miniature (recording.png — Linux tray "Colored" theme):
+       caret + wave in rojo (grabando). -->
+  <rect x="8" y="14" width="12" height="36" rx="3.5" fill="#FF5C5C"/>
+  <rect x="28" y="24" width="7" height="16" rx="3.5" fill="#FF5C5C"/>
+  <rect x="39" y="18" width="7" height="28" rx="3.5" fill="#FF5C5C"/>
+  <rect x="50" y="26" width="7" height="12" rx="3.5" fill="#FF5C5C"/>
+</svg>

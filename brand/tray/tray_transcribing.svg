@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transcribing: caret + ellipsis (typing…). White = for dark menubars. -->
+  <rect x="8" y="14" width="12" height="36" rx="3.5" fill="#FFFFFF"/>
+  <circle cx="30" cy="45.5" r="4.5" fill="#FFFFFF"/>
+  <circle cx="42" cy="45.5" r="4.5" fill="#FFFFFF"/>
+  <circle cx="54" cy="45.5" r="4.5" fill="#FFFFFF"/>
+</svg>

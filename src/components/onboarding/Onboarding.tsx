@@ -2,11 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
-import type { ModelInfo } from "@/bindings";
+import { commands, type ModelInfo } from "@/bindings";
 import type { ModelCardStatus } from "./ModelCard";
 import ModelCard, { isLegacySource } from "./ModelCard";
-import HandyTextLogo from "../icons/HandyTextLogo";
+import { Wordmark } from "../shared";
 import { useModelStore } from "../../stores/modelStore";
+import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
+
+// Equipos con esta RAM o menos reciben un featured pick liviano en vez del
+// default editorial (los 0.6B Q8 rondan 1.1–1.4 GB en uso).
+const LOW_RAM_GB = 8;
+const LOW_RAM_PICK = "canary-180m-flash";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -27,15 +33,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   } = useModelStore();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [ramGb, setRamGb] = useState<number | null>(null);
   const hasStartedSelection = useRef(false);
 
   const isBusy = selectedModelId !== null;
 
+  useEffect(() => {
+    commands
+      .getTotalMemoryGb()
+      .then(setRamGb)
+      .catch(() => setRamGb(null)); // sin dato de RAM se mantiene el orden editorial
+  }, []);
+
   // Curate the download list: legacy (.bin/ONNX) downloads are deprecated and
   // never shown here (they still appear in the compatible section if already on
-  // disk). The catalog arrives rank-sorted, so the first two recommended models
-  // are the featured picks — currently Parakeet Unified (English) and Nemotron
-  // Streaming (multilingual). Everything else hides behind "Show all".
+  // disk). The catalog arrives rank-sorted (es-first: Nemotron Streaming, then
+  // Canary 180M) and the first two recommended models are the featured picks —
+  // except on low-RAM machines, where the lightweight pick jumps to the front.
+  // Everything else hides behind "Show all".
   const { downloadable, topPicks, otherRecommended, rest } = useMemo(() => {
     const downloadable = models.filter(
       (m: ModelInfo) => !m.is_downloaded && !isLegacySource(m),
@@ -45,13 +60,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     // then accuracy), so keep that order here: ranked-but-not-recommended models
     // surface first, then the unranked tail by accuracy.
     const rest = downloadable.filter((m: ModelInfo) => !m.is_recommended);
+    const lowRam = ramGb !== null && ramGb <= LOW_RAM_GB;
+    const ordered = lowRam
+      ? [...recommended].sort(
+          (a, b) =>
+            (a.id === LOW_RAM_PICK ? -1 : 0) - (b.id === LOW_RAM_PICK ? -1 : 0),
+        )
+      : recommended;
     return {
       downloadable,
-      topPicks: recommended.slice(0, 2),
-      otherRecommended: recommended.slice(2),
+      topPicks: ordered.slice(0, 2),
+      otherRecommended: ordered.slice(2),
       rest,
     };
-  }, [models]);
+  }, [models, ramGb]);
 
   const hasRecommended = topPicks.length > 0 || otherRecommended.length > 0;
   // When nothing recommended remains to download (e.g. all already on disk),
@@ -146,10 +168,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   return (
     <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0">
       <div className="flex flex-col items-center gap-2 shrink-0">
-        <HandyTextLogo width={200} />
+        <Wordmark size="lg" />
         <p className="text-text/70 max-w-md font-medium mx-auto">
           {t("onboarding.subtitle")}
         </p>
+        {ramGb !== null && topPicks[0] && (
+          <p className="text-sm text-text/50">
+            {t("onboarding.ramRecommendation", {
+              gb: ramGb,
+              model: getTranslatedModelName(topPicks[0], t),
+            })}
+          </p>
+        )}
       </div>
 
       <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
