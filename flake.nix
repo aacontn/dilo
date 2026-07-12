@@ -1,5 +1,5 @@
 {
-  description = "Handy - A free, open source, and extensible speech-to-text application that works completely offline";
+  description = "Dilo — dictado por voz offline, gratis y en español (fork es-first de Handy)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -86,8 +86,8 @@
           };
         in
         {
-          handy = pkgs.rustPlatform.buildRustPackage {
-            pname = "handy";
+          dilo = pkgs.rustPlatform.buildRustPackage {
+            pname = "dilo";
             inherit version;
             src = self;
 
@@ -173,15 +173,18 @@
             '';
 
             meta = {
-              description = "A free, open source, and extensible speech-to-text application that works completely offline";
-              homepage = "https://github.com/cjpais/Handy";
+              description = "Dictado por voz offline, gratis y en español — fork es-first de Handy";
+              homepage = "https://github.com/aacontn/dilo";
               license = lib.licenses.mit;
-              mainProgram = "handy";
+              mainProgram = "dilo";
               platforms = supportedSystems;
             };
           };
 
-          default = self.packages.${system}.handy;
+          # Alias de compatibilidad: el paquete se llamaba `handy` antes del fork.
+          handy = self.packages.${system}.dilo;
+
+          default = self.packages.${system}.dilo;
         }
       );
 
@@ -190,7 +193,7 @@
         { lib, pkgs, ... }:
         {
           imports = [ ./nix/module.nix ];
-          programs.handy.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.handy;
+          programs.dilo.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.dilo;
         };
 
       # Home-manager module for per-user service
@@ -198,7 +201,7 @@
         { lib, pkgs, ... }:
         {
           imports = [ ./nix/hm-module.nix ];
-          services.handy.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.handy;
+          services.dilo.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.dilo;
         };
 
       # Development shell for building from source

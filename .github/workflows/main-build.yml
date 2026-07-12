@@ -7,6 +7,12 @@ name: "Main Branch Build"
 on:
   push:
     branches: [main]
+    # Los pushes solo-documentación no necesitan 7 builds de ~40 min.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "brand/**"
+      - "sponsor-images/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
