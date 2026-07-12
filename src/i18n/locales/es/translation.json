@@ -1,9 +1,9 @@
 {
   "tray": {
-    "settings": "Configuración...",
+    "settings": "Ajustes...",
     "checkUpdates": "Buscar actualizaciones...",
-    "copyLastTranscript": "Copiar la última transcripción",
-    "unloadModel": "Descargar modelo",
+    "copyLastTranscript": "Copiar lo último que dictaste",
+    "unloadModel": "Sacar el modelo de la RAM",
     "model": "Modelo",
     "quit": "Salir",
     "cancel": "Cancelar"
@@ -12,19 +12,20 @@
     "general": "General",
     "models": "Modelos",
     "advanced": "Avanzado",
-    "postProcessing": "Post Proceso",
+    "postProcessing": "Post-proceso",
     "history": "Historial",
-    "debug": "Depuración",
+    "debug": "Debug",
     "about": "Acerca de"
   },
   "onboarding": {
-    "subtitle": "Para comenzar, elige un modelo de transcripción",
-    "existingModelsTitle": "Compatible Models",
-    "downloadModelsTitle": "Available to Download",
-    "showAllModels": "Show all {{total}} models",
-    "showFewerModels": "Show fewer models",
+    "subtitle": "Elige tu modelo de voz y empieza a dictar",
+    "existingModelsTitle": "Modelos que ya tienes",
+    "downloadModelsTitle": "Para descargar",
+    "showAllModels": "Ver los {{total}} modelos",
+    "showFewerModels": "Ver menos",
     "recommended": "Recomendado",
-    "customModelDescription": "Sin soporte oficial",
+    "ramRecommendation": "Tu compu tiene {{gb}} GB de RAM — te recomendamos {{model}}.",
+    "customModelDescription": "Modelo propio, sin soporte oficial",
     "modelCard": {
       "accuracy": "precisión",
       "speed": "velocidad"
@@ -36,7 +37,7 @@
       },
       "medium": {
         "name": "Whisper Medium",
-        "description": "Buena precisión, velocidad media"
+        "description": "Buena precisión, velocidad media."
       },
       "turbo": {
         "name": "Whisper Turbo",
@@ -44,23 +45,23 @@
       },
       "large": {
         "name": "Whisper Large",
-        "description": "Buena precisión, pero lento."
+        "description": "Muy preciso, pero lento."
       },
       "parakeet-tdt-0.6b-v2": {
         "name": "Parakeet V2",
-        "description": "Solo inglés. El mejor modelo para hablantes de inglés."
+        "description": "Solo inglés. Buenísimo, pero solo inglés."
       },
       "parakeet-tdt-0.6b-v3": {
         "name": "Parakeet V3",
-        "description": "Rápido y preciso"
+        "description": "Rápido y preciso. 25 idiomas europeos, español incluido."
       },
       "moonshine-base": {
         "name": "Moonshine Base",
-        "description": "Muy rápido, solo inglés. Maneja bien los acentos."
+        "description": "Muy rápido, solo inglés. Se lleva bien con los acentos."
       },
       "moonshine-tiny-streaming-en": {
         "name": "Moonshine V2 Tiny",
-        "description": "Ultrarrápido, solo inglés"
+        "description": "Ultrarrápido, solo inglés."
       },
       "moonshine-small-streaming-en": {
         "name": "Moonshine V2 Small",
@@ -72,7 +73,7 @@
       },
       "breeze-asr": {
         "name": "Breeze ASR",
-        "description": "Optimizado para mandarín taiwanés. Soporte para cambio de código."
+        "description": "Optimizado para mandarín taiwanés. Soporta cambio de código."
       },
       "sense-voice-int8": {
         "name": "SenseVoice",
@@ -84,43 +85,75 @@
       },
       "canary-180m-flash": {
         "name": "Canary 180M Flash",
-        "description": "Muy rápido. Inglés, alemán, español, francés. Soporta traducción."
+        "description": "Chiquito e instantáneo: corre en cualquier compu. Español, inglés, alemán y francés."
       },
       "canary-1b-v2": {
         "name": "Canary 1B v2",
-        "description": "Multilingüe preciso. 25 idiomas europeos. Soporta traducción."
+        "description": "Multilingüe preciso: 25 idiomas europeos. Soporta traducción."
       },
       "cohere-int8": {
         "name": "Cohere",
-        "description": "Un modelo grande, más lento, pero muy preciso y multilingüe."
+        "description": "Grande y lento, pero muy preciso y multilingüe."
+      },
+      "nemotron-3.5-asr-streaming-0.6b": {
+        "name": "Nemotron Streaming 3.5",
+        "description": "Ves el texto en vivo mientras hablas. 28 idiomas, español incluido."
+      },
+      "whisper-medium": {
+        "name": "Whisper Medium",
+        "description": "El clásico: 99 idiomas. Puede ir algo lento."
+      },
+      "cohere-transcribe-03-2026": {
+        "name": "Cohere Transcribe",
+        "description": "Máxima precisión, 14 idiomas. Pide una compu con músculo."
+      },
+      "parakeet-unified-en-0.6b": {
+        "name": "Parakeet Unified EN",
+        "description": "Solo inglés, en vivo. Para cuando dictas en inglés puro."
+      },
+      "Voxtral-Mini-4B-Realtime-2602": {
+        "name": "Voxtral Mini 4B",
+        "description": "El pesado: multilingüe en vivo, excelente si tu máquina aguanta."
+      },
+      "Qwen3-ASR-0.6B": {
+        "name": "Qwen3-ASR",
+        "description": "Multilingüe sólido: 30 idiomas, español incluido."
+      },
+      "Fun-ASR-MLT-Nano-2512": {
+        "name": "Fun-ASR Nano",
+        "description": "Chico y multilingüe: 31 idiomas."
+      },
+      "canary-1b-flash": {
+        "name": "Canary 1B Flash",
+        "description": "Rápido, 4 idiomas (español incluido) y traduce al inglés."
       }
     },
     "errors": {
-      "selectModel": "Failed to select model"
+      "selectModel": "No se pudo activar el modelo. Reintenta."
     },
     "permissions": {
-      "title": "Permisos Requeridos",
-      "description": "Handy necesita algunos permisos para funcionar correctamente.",
+      "title": "Dos permisos y listo",
+      "description": "Nada raro: micrófono para escucharte y accesibilidad para escribir por ti. Todo pasa en tu compu.",
       "microphone": {
-        "title": "Acceso al Micrófono",
-        "description": "Necesario para escuchar tu voz para la transcripción."
+        "title": "Micrófono",
+        "description": "Para escucharte cuando aprietes el atajo. Solo ahí."
       },
       "accessibility": {
-        "title": "Acceso de Accesibilidad",
-        "description": "Necesario para escribir el texto transcrito en tus aplicaciones."
+        "title": "Accesibilidad",
+        "description": "Para escribir el texto directo en tu app activa: Cursor, terminal, donde sea."
       },
-      "grant": "Conceder Permiso",
-      "granted": "Concedido",
+      "grant": "Dar permiso",
+      "granted": "Listo",
       "waiting": "Esperando...",
-      "allGranted": "¡Todo listo!",
+      "allGranted": "Todo listo. A dictar.",
       "errors": {
-        "checkFailed": "Error al verificar permisos. Por favor, inténtalo de nuevo.",
-        "requestFailed": "Error al solicitar permiso. Por favor, inténtalo de nuevo."
+        "checkFailed": "No pudimos verificar los permisos. Reintenta.",
+        "requestFailed": "No se pudo pedir el permiso. Reintenta."
       }
     }
   },
   "modelSelector": {
-    "custom": "Personalizado",
+    "custom": "Propio",
     "streaming": "Streaming",
     "active": "Activo",
     "switching": "Cambiando...",
@@ -130,113 +163,113 @@
     "extracting": "Extrayendo {{modelName}}...",
     "extractingMultiple": "Extrayendo {{count}} modelos...",
     "extractingGeneric": "Extrayendo...",
-    "downloading": "Descargando {{percentage}}%",
-    "downloadingMultiple": "Descargando {{count}} modelos...",
-    "modelReady": "Modelo Listo",
+    "downloading": "Bajando {{percentage}}%",
+    "downloadingMultiple": "Bajando {{count}} modelos...",
+    "modelReady": "Modelo listo",
     "loading": "Cargando {{modelName}}...",
     "loadingGeneric": "Cargando...",
-    "modelError": "Error del Modelo",
-    "modelUnloaded": "Modelo Descargado",
-    "noModelDownloadRequired": "Sin Modelo - Descarga Requerida",
+    "modelError": "Error del modelo",
+    "modelUnloaded": "Modelo fuera de la RAM",
+    "noModelDownloadRequired": "Sin modelo — baja uno para empezar",
     "deleteModel": "Eliminar {{modelName}}",
     "downloadSpeed": "{{speed}} MB/s",
     "capabilities": {
-      "languageSelection": "Soporta múltiples idiomas de entrada",
-      "languageCount": "{{total}} languages",
+      "languageSelection": "Soporta varios idiomas de entrada",
+      "languageCount": "{{total}} idiomas",
       "translation": "Puede traducir al inglés",
-      "translate": "Traducir al inglés",
+      "translate": "Traduce al inglés",
       "singleLanguage": "Solo admite este idioma",
       "languageOnly": "Solo {{language}}",
-      "streaming": "Muestra la transcripción en vivo mientras hablas"
+      "streaming": "Muestra el texto en vivo mientras hablas"
     },
     "cancel": "Cancelar",
     "cancelDownload": "Cancelar descarga",
-    "legacy": "Heredado"
+    "legacy": "Antiguo"
   },
   "settings": {
     "modelSettings": {
-      "title": "Configuración de {{model}}"
+      "title": "Ajustes de {{model}}"
     },
     "models": {
-      "title": "Modelos de Transcripción",
-      "description": "Selecciona un modelo de transcripción o descarga modelos adicionales. Diferentes modelos ofrecen distintos niveles de precisión y velocidad.",
-      "deleteConfirm": "¿Estás seguro de que deseas eliminar {{modelName}}? Necesitarás descargarlo de nuevo para usarlo.",
-      "deleteActiveConfirm": "{{modelName}} es tu modelo activo. Eliminarlo detendrá las transcripciones hasta que selecciones un nuevo modelo. ¿Estás seguro?",
+      "title": "Modelos de transcripción",
+      "description": "Elige tu modelo o baja otros. Regla simple: más grande = más preciso y más RAM; más chico = vuela.",
+      "deleteConfirm": "¿Eliminar {{modelName}}? Tendrás que bajarlo de nuevo para usarlo.",
+      "deleteActiveConfirm": "{{modelName}} es tu modelo activo. Si lo eliminas, no habrá transcripción hasta que elijas otro. ¿Seguro?",
       "deleteTitle": "Eliminar modelo",
       "filters": {
         "allLanguages": "Todos los idiomas"
       },
       "noModelsMatch": "Ningún modelo coincide con este filtro.",
-      "yourModels": "Modelos descargados",
-      "availableModels": "Disponibles para descargar",
+      "yourModels": "Tus modelos",
+      "availableModels": "Para descargar",
       "searchPlaceholder": "Buscar modelos por nombre…",
       "rescan": {
-        "label": "Volver a escanear",
-        "tooltip": "Vuelve a escanear en busca de modelos añadidos a la carpeta de modelos o a la caché de Hugging Face fuera de Handy"
+        "label": "Re-escanear",
+        "tooltip": "Vuelve a buscar modelos que hayas puesto en la carpeta de modelos o en la caché de Hugging Face fuera de Dilo"
       }
     },
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Atajos de Handy",
-        "description": "Configura atajos de teclado para activar la grabación de voz a texto",
+        "title": "Atajos de Dilo",
+        "description": "Configura los atajos de teclado que activan el dictado",
         "loading": "Cargando atajos...",
         "none": "No hay atajos configurados",
         "notFound": "Atajo no encontrado",
-        "pressKeys": "Presiona teclas...",
+        "pressKeys": "Aprieta las teclas...",
         "bindings": {
           "transcribe": {
-            "name": "Atajo de Transcripción",
-            "description": "El atajo de teclado para grabar y transcribir tu voz."
+            "name": "Atajo de dictado",
+            "description": "El atajo para grabar y transcribir tu voz."
           },
           "cancel": {
-            "name": "Atajo de Cancelar",
-            "description": "El atajo de teclado para cancelar la grabación actual."
+            "name": "Atajo de cancelar",
+            "description": "El atajo para cancelar la grabación en curso."
           },
           "transcribe_with_post_process": {
-            "name": "Tecla de Post Procesamiento",
-            "description": "Opcional: Una tecla de acceso rápido dedicada que siempre aplica post procesamiento con IA a tu transcripción."
+            "name": "Atajo con post-proceso",
+            "description": "Opcional: un atajo dedicado que siempre pasa tu dictado por la IA de post-proceso."
           }
         },
         "errors": {
-          "restore": "Error al restaurar el atajo original",
-          "set": "Error al configurar el atajo: {{error}}",
-          "reset": "Error al restablecer el atajo al valor original"
+          "restore": "No se pudo restaurar el atajo original",
+          "set": "No se pudo configurar el atajo: {{error}}",
+          "reset": "No se pudo restablecer el atajo"
         }
       },
       "language": {
         "title": "Idioma",
-        "description": "Selecciona el idioma para el reconocimiento de voz. Auto detectará automáticamente el idioma, mientras que seleccionar un idioma específico puede mejorar la precisión para ese idioma.",
+        "description": "Idioma del reconocimiento de voz. En Auto lo detecta solo; fijar uno puede afinar la precisión.",
         "searchPlaceholder": "Buscar idiomas...",
         "noResults": "No se encontraron idiomas",
         "auto": "Auto"
       },
       "pushToTalk": {
-        "label": "Presionar para Hablar",
-        "description": "Mantén presionado para grabar, suelta para detener"
+        "label": "Apretar para hablar",
+        "description": "Mantén apretado para grabar; suelta y listo."
       }
     },
     "sound": {
       "title": "Sonido",
       "microphone": {
         "title": "Micrófono",
-        "description": "Selecciona tu dispositivo de micrófono preferido",
-        "placeholder": "Seleccionar micrófono...",
+        "description": "Elige tu micrófono preferido",
+        "placeholder": "Elegir micrófono...",
         "loading": "Cargando..."
       },
       "audioFeedback": {
-        "label": "Retroalimentación de Audio",
-        "description": "Reproducir sonido cuando la grabación inicia y se detiene"
+        "label": "Sonidos de confirmación",
+        "description": "Un sonido al empezar y otro al terminar de grabar"
       },
       "outputDevice": {
-        "title": "Dispositivo de Salida",
-        "description": "Selecciona tu dispositivo de salida de audio preferido para los sonidos de retroalimentación",
-        "placeholder": "Seleccionar dispositivo de salida...",
+        "title": "Salida de audio",
+        "description": "Por dónde suenan los sonidos de confirmación",
+        "placeholder": "Elegir salida...",
         "loading": "Cargando..."
       },
       "volume": {
         "title": "Volumen",
-        "description": "Ajusta el volumen de los sonidos de retroalimentación de audio"
+        "description": "Volumen de los sonidos de confirmación"
       }
     },
     "advanced": {
@@ -248,51 +281,51 @@
         "experimental": "Experimental"
       },
       "experimentalToggle": {
-        "label": "Funciones Experimentales",
-        "description": "Habilitar funciones experimentales que aún están en desarrollo."
+        "label": "Funciones experimentales",
+        "description": "Activa lo que todavía está en el horno. Puede fallar."
       },
       "lazyStreamClose": {
-        "label": "Mantener micrófono abierto entre transcripciones",
-        "description": "Mantiene el flujo del micrófono abierto durante 30 segundos después de detener la grabación, reduciendo la latencia en transcripciones consecutivas. Puede degradar la calidad del audio Bluetooth mientras está activo."
+        "label": "Mantener el micrófono abierto entre dictados",
+        "description": "Deja el stream del mic abierto 30 segundos después de grabar: menos latencia si dictas seguido. Puede degradar el audio Bluetooth mientras tanto."
       },
       "acceleration": {
         "transcribe": {
           "title": "Aceleración de Whisper",
-          "description": "Aceleración por hardware para modelos Whisper. Auto usa GPU si está disponible (Metal en macOS, Vulkan en Windows/Linux)."
+          "description": "Aceleración por hardware para modelos Whisper. Auto usa GPU si hay (Metal en macOS, Vulkan en Windows/Linux)."
         },
         "ort": {
           "title": "Aceleración de ONNX",
-          "description": "Aceleración por hardware para modelos ONNX (Parakeet, Canary, Moonshine, etc.). DirectML en Windows es experimental. Los modelos pueden fallar al transcribir."
+          "description": "Aceleración por hardware para modelos ONNX (Parakeet, Canary, Moonshine, etc.). DirectML en Windows es experimental y puede fallar."
         },
         "gpuDevice": {
           "auto": "Auto"
         }
       },
       "startHidden": {
-        "label": "Iniciar Oculto",
-        "description": "Lanzar en la bandeja del sistema sin abrir la ventana."
+        "label": "Iniciar oculto",
+        "description": "Arranca en la bandeja del sistema, sin abrir la ventana."
       },
       "autostart": {
-        "label": "Iniciar al Arranque",
-        "description": "Iniciar Handy automáticamente cuando inicies sesión en tu computadora."
+        "label": "Iniciar con el sistema",
+        "description": "Dilo arranca solo cuando inicias sesión."
       },
       "showTrayIcon": {
-        "label": "Mostrar Icono de Bandeja",
-        "description": "Mostrar el icono de Handy en la bandeja del sistema."
+        "label": "Ícono en la bandeja",
+        "description": "Muestra el ícono de Dilo en la bandeja del sistema."
       },
       "overlay": {
         "style": {
-          "title": "Overlay",
-          "description": "Choose the recording overlay: None hides it, Minimal shows a compact pill, Live shows transcription in real time as you speak (streaming-capable models only — look for the Streaming badge in the model picker). On Linux 'None' is recommended.",
+          "title": "Indicador de grabación",
+          "description": "Qué ves al grabar: Ninguno lo oculta, Minimal muestra una pastilla compacta, En vivo muestra la transcripción mientras hablas (solo modelos con la insignia Streaming). En Linux se recomienda Ninguno.",
           "options": {
-            "none": "Ninguna",
+            "none": "Ninguno",
             "minimal": "Minimal",
-            "live": "Live"
+            "live": "En vivo"
           }
         },
         "position": {
-          "title": "Posición de Superposición",
-          "description": "Mostrar superposición de retroalimentación visual durante la grabación y transcripción. En Linux se recomienda 'Ninguna'.",
+          "title": "Posición del indicador",
+          "description": "Dónde aparece el indicador al grabar y transcribir.",
           "options": {
             "bottom": "Abajo",
             "top": "Arriba"
@@ -300,8 +333,8 @@
         }
       },
       "pasteMethod": {
-        "title": "Método de Pegado",
-        "description": "Elige cómo se inserta el texto. Directo: simula escritura mediante entrada del sistema. Ninguno: omite el pegado, solo actualiza historial/portapapeles.",
+        "title": "Método de pegado",
+        "description": "Cómo se inserta el texto. Directo simula escritura del sistema. Ninguno no pega: solo historial y portapapeles.",
         "options": {
           "clipboard": "Portapapeles ({{modifier}}+V)",
           "clipboardCtrlShiftV": "Portapapeles (Ctrl+Shift+V)",
@@ -310,26 +343,26 @@
           "none": "Ninguno",
           "externalScript": "Script externo"
         },
-        "externalScriptPlaceholder": "/ruta/a/su/script.sh"
+        "externalScriptPlaceholder": "/ruta/a/tu/script.sh"
       },
       "typingTool": {
-        "title": "Herramienta de Escritura",
-        "description": "Elige qué herramienta de escritura de Linux usar para el método de pegado directo. Auto detectará y usará automáticamente la mejor herramienta disponible para tu sistema.",
+        "title": "Herramienta de escritura",
+        "description": "Qué herramienta de Linux usar para el pegado directo. Auto elige la mejor disponible en tu sistema.",
         "options": {
-          "auto": "Auto (Recomendado)"
+          "auto": "Auto (recomendado)"
         }
       },
       "clipboardHandling": {
-        "title": "Manejo del Portapapeles",
-        "description": "No Modificar Portapapeles conserva el contenido actual de tu portapapeles después de la transcripción. Copiar al Portapapeles deja el resultado de la transcripción en tu portapapeles después de pegar.",
+        "title": "Portapapeles",
+        "description": "No modificar conserva lo que tenías copiado. Copiar deja la transcripción en el portapapeles después de pegar.",
         "options": {
-          "dontModify": "No Modificar Portapapeles",
-          "copyToClipboard": "Copiar al Portapapeles"
+          "dontModify": "No modificar",
+          "copyToClipboard": "Copiar al portapapeles"
         }
       },
       "autoSubmit": {
         "title": "Envío automático",
-        "description": "Envía automáticamente la combinación de teclas seleccionada después de insertar el texto. Cmd+Enter se aplica en macOS, mientras que Windows/Linux usan Super+Enter.",
+        "description": "Manda la tecla elegida justo después de pegar el texto. Cmd+Enter aplica en macOS; Windows/Linux usan Super+Enter.",
         "options": {
           "off": "Desactivado",
           "enter": "Enter",
@@ -339,248 +372,253 @@
         }
       },
       "translateToEnglish": {
-        "label": "Traducir al Inglés",
-        "description": "Traducir automáticamente el habla de otros idiomas al inglés durante la transcripción."
+        "label": "Traducir al inglés",
+        "description": "Dicta en tu idioma y sale en inglés. Útil para PRs y issues."
       },
       "modelUnload": {
-        "title": "Descargar Modelo",
-        "description": "Liberar automáticamente la memoria GPU/CPU cuando el modelo no se ha usado durante el tiempo especificado",
+        "title": "Liberar RAM",
+        "description": "Saca el modelo de la memoria cuando llevas un rato sin dictar. Se recarga solo la próxima vez (uno o dos segundos).",
         "options": {
           "never": "Nunca",
-          "immediately": "Inmediatamente",
-          "min2": "Después de 2 minutos",
-          "min5": "Después de 5 minutos",
-          "min10": "Después de 10 minutos",
-          "min15": "Después de 15 minutos",
-          "hour1": "Después de 1 hora",
-          "sec15": "Después de 15 segundos (Depuración)"
+          "immediately": "De inmediato",
+          "min2": "A los 2 minutos",
+          "min5": "A los 5 minutos",
+          "min10": "A los 10 minutos",
+          "min15": "A los 15 minutos",
+          "hour1": "A la hora",
+          "sec15": "A los 15 segundos (debug)"
         }
       },
       "customWords": {
-        "title": "Palabras Personalizadas",
-        "description": "Agrega palabras que a menudo se escuchan mal o se escriben incorrectamente durante la transcripción. El sistema corregirá automáticamente palabras similares para que coincidan con tu lista.",
+        "title": "Palabras propias",
+        "description": "Agrega palabras que el modelo suele escuchar mal (nombres, jerga, siglas). Dilo corrige lo parecido para que coincida con tu lista.",
         "placeholder": "Agregar una palabra",
         "add": "Agregar",
         "remove": "Eliminar {{word}}",
         "duplicate": "\"{{word}}\" ya existe"
       },
       "voiceActivityDetection": {
-        "title": "Voice Activity Detection",
-        "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
+        "title": "Detección de voz (VAD)",
+        "description": "Filtra los silencios de la grabación. Los modelos streaming usan una cola de VAD más larga; si lo desactivas, se graba el audio crudo."
       }
     },
     "postProcessing": {
       "hotkey": {
-        "title": "Tecla de acceso rápido"
+        "title": "Atajo"
       },
       "api": {
-        "title": "API (Compatible con OpenAI)",
+        "title": "API (compatible con OpenAI)",
         "provider": {
           "title": "Proveedor",
-          "description": "Selecciona un proveedor compatible con OpenAI."
+          "description": "Elige un proveedor compatible con OpenAI."
         },
         "appleIntelligence": {
-          "unavailable": "Apple Intelligence no está disponible en este dispositivo. Requiere un Mac con Apple Silicon ejecutando macOS Tahoe (26.0) o posterior con Apple Intelligence habilitado en Ajustes del Sistema."
+          "unavailable": "Apple Intelligence no está disponible en este equipo. Requiere un Mac con Apple Silicon y macOS Tahoe (26.0) o superior, con Apple Intelligence activado en Ajustes del Sistema."
         },
         "baseUrl": {
-          "title": "URL Base",
-          "description": "URL base de la API para el proveedor seleccionado. Solo se puede editar el proveedor personalizado.",
+          "title": "URL base",
+          "description": "URL base de la API del proveedor. Solo el proveedor personalizado permite editarla.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
-          "title": "Clave API",
-          "description": "Clave API para el proveedor seleccionado.",
+          "title": "API key",
+          "description": "La API key del proveedor elegido.",
           "placeholder": "sk-..."
         },
         "model": {
           "title": "Modelo",
-          "descriptionCustom": "Proporciona el identificador del modelo esperado por tu endpoint personalizado.",
-          "descriptionDefault": "Elige un modelo expuesto por el proveedor seleccionado.",
-          "placeholderWithOptions": "Buscar o seleccionar un modelo",
-          "placeholderNoOptions": "Escribe un nombre de modelo",
+          "descriptionCustom": "Escribe el identificador de modelo que espera tu endpoint.",
+          "descriptionDefault": "Elige un modelo del proveedor seleccionado.",
+          "placeholderWithOptions": "Buscar o elegir un modelo",
+          "placeholderNoOptions": "Escribe el nombre del modelo",
           "refreshModels": "Actualizar modelos"
         }
       },
       "prompts": {
         "title": "Prompt",
         "selectedPrompt": {
-          "title": "Prompt Seleccionado",
-          "description": "Selecciona una plantilla para refinar las transcripciones o crea una nueva. Usa ${output} dentro del texto del prompt para hacer referencia a la transcripción capturada."
+          "title": "Prompt activo",
+          "description": "Elige una plantilla para pulir tus dictados o crea la tuya. Usa ${output} dentro del prompt para referirte al texto transcrito."
         },
-        "noPrompts": "No hay prompts disponibles",
-        "selectPrompt": "Seleccionar un prompt",
-        "createNew": "Crear Nuevo Prompt",
-        "promptLabel": "Etiqueta del Prompt",
-        "promptLabelPlaceholder": "Ingresa el nombre del prompt",
-        "promptInstructions": "Instrucciones del Prompt",
-        "promptInstructionsPlaceholder": "Escribe las instrucciones para ejecutar después de la transcripción. Ejemplo: Mejora la gramática y claridad del siguiente texto: ${output}",
-        "promptTip": "Consejo: Usa <code>${output}</code> para insertar el texto transcrito en tu prompt.",
-        "updatePrompt": "Actualizar Prompt",
-        "deletePrompt": "Eliminar Prompt",
-        "createPrompt": "Crear Prompt",
+        "noPrompts": "No hay prompts todavía",
+        "selectPrompt": "Elegir un prompt",
+        "createNew": "Crear prompt",
+        "promptLabel": "Nombre del prompt",
+        "promptLabelPlaceholder": "Ponle nombre al prompt",
+        "promptInstructions": "Instrucciones",
+        "promptInstructionsPlaceholder": "Qué hacer con tu dictado. Ejemplo: Mejora la gramática y claridad de este texto: ${output}",
+        "promptTip": "Tip: usa <code>${output}</code> para insertar el texto dictado en tu prompt.",
+        "updatePrompt": "Guardar cambios",
+        "deletePrompt": "Eliminar prompt",
+        "createPrompt": "Crear prompt",
         "cancel": "Cancelar",
-        "selectToEdit": "Selecciona un prompt arriba para ver y editar sus detalles.",
-        "createFirst": "Haz clic en 'Crear Nuevo Prompt' arriba para crear tu primer prompt de post procesamiento."
+        "selectToEdit": "Elige un prompt arriba para ver y editar sus detalles.",
+        "createFirst": "Crea tu primer prompt de post-proceso con el botón de arriba."
       }
     },
     "history": {
       "title": "Historial",
-      "openFolder": "Abrir Carpeta de Grabaciones",
+      "openFolder": "Abrir carpeta de grabaciones",
       "loading": "Cargando historial...",
-      "empty": "Aún no hay transcripciones. ¡Comienza a grabar para crear tu historial!",
-      "copyToClipboard": "Copiar transcripción al portapapeles",
+      "empty": "Nada por aquí todavía. Dicta algo y aparece.",
+      "copyToClipboard": "Copiar transcripción",
       "save": "Guardar transcripción",
-      "unsave": "Eliminar de guardados",
+      "unsave": "Quitar de guardados",
       "delete": "Eliminar entrada",
-      "deleteError": "Error al eliminar la entrada. Por favor, intenta de nuevo.",
+      "deleteError": "No se pudo eliminar. Reintenta.",
       "retranscribe": "Re-transcribir",
-      "retranscribeError": "No se pudo re-transcribir. Por favor, inténtalo de nuevo.",
+      "retranscribeError": "No se pudo re-transcribir. Reintenta.",
       "transcribing": "Transcribiendo...",
-      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el ícono de reintentar."
+      "transcriptionFailed": "La transcripción falló. Puedes reintentar con el ícono de re-transcribir."
     },
     "debug": {
-      "title": "Depuración",
+      "title": "Debug",
       "logDirectory": {
-        "title": "Directorio de Registros",
-        "description": "Ubicación donde se almacenan los archivos de registro"
+        "title": "Carpeta de logs",
+        "description": "Dónde se guardan los archivos de log"
       },
       "logLevel": {
-        "title": "Nivel de Registro",
-        "description": "Establece el nivel de detalle del registro"
+        "title": "Nivel de log",
+        "description": "Cuánto detalle se registra"
       },
       "liveLogs": {
-        "title": "Registros en Vivo",
-        "description": "Transmite los registros de la aplicación en tiempo real para diagnosticar problemas sin abrir el archivo de registro. Solo se muestran los registros emitidos mientras este panel está abierto; respeta el ajuste de Nivel de Registro de arriba.",
-        "live": "En Vivo",
-        "paused": "En Pausa",
+        "title": "Logs en vivo",
+        "description": "Muestra los logs de la app en tiempo real para diagnosticar sin abrir el archivo. Solo aparece lo emitido con este panel abierto; respeta el nivel de log de arriba.",
+        "live": "En vivo",
+        "paused": "En pausa",
         "pause": "Pausar",
         "resume": "Reanudar",
         "copied": "Copiado",
         "lineCount": "{{count}} líneas",
-        "empty": "Esperando registros… Las entradas aparecerán aquí a medida que la aplicación las emita."
+        "empty": "Esperando logs… Irán apareciendo a medida que la app los emita."
       },
       "updateChecks": {
-        "label": "Buscar Actualizaciones",
-        "description": "Buscar automáticamente nuevas versiones de Handy"
+        "label": "Buscar actualizaciones",
+        "description": "Buscar nuevas versiones de Dilo automáticamente"
       },
       "soundTheme": {
-        "label": "Tema de Sonido",
-        "description": "Elige un tema de sonido para la retroalimentación de inicio y parada de grabación"
+        "label": "Tema de sonido",
+        "description": "El sonido de inicio y fin de grabación"
       },
       "wordCorrectionThreshold": {
-        "title": "Umbral de Corrección de Palabras",
-        "description": "Sensibilidad para correcciones de palabras personalizadas"
+        "title": "Umbral de corrección",
+        "description": "Sensibilidad de la corrección de palabras propias"
       },
       "historyLimit": {
-        "title": "Límite de Historial",
-        "description": "Número máximo de entradas de historial a conservar",
+        "title": "Límite del historial",
+        "description": "Máximo de entradas que se conservan",
         "entries": "entradas"
       },
       "recordingRetention": {
-        "title": "Eliminación automática de grabaciones",
-        "description": "Eliminar automáticamente grabaciones antiguas para ahorrar espacio",
+        "title": "Borrado automático de grabaciones",
+        "description": "Elimina grabaciones viejas para ahorrar espacio",
         "never": "Nunca",
         "preserveLimit": "Mantener las últimas {{count}}",
-        "days3": "Después de 3 días",
-        "weeks2": "Después de 2 semanas",
-        "months3": "Después de 3 meses",
-        "placeholder": "Seleccionar período de retención..."
+        "days3": "A los 3 días",
+        "weeks2": "A las 2 semanas",
+        "months3": "A los 3 meses",
+        "placeholder": "Elegir período..."
       },
       "alwaysOnMicrophone": {
-        "label": "Micrófono Siempre Activo",
-        "description": "Mantener el micrófono activo para una respuesta más rápida"
+        "label": "Micrófono siempre activo",
+        "description": "Mic siempre listo: responde más rápido, gasta un poco más."
       },
       "clamshellMicrophone": {
-        "title": "Micrófono en Modo Clamshell",
-        "description": "Micrófono a usar cuando la tapa del portátil está cerrada"
+        "title": "Micrófono en modo clamshell",
+        "description": "Qué micrófono usar con la tapa del laptop cerrada"
       },
       "postProcessingToggle": {
-        "label": "Post Procesamiento",
-        "description": "Habilitar refinamiento de texto impulsado por IA después de la transcripción"
+        "label": "Post-proceso",
+        "description": "Pulir el texto con IA después de transcribir"
       },
       "muteWhileRecording": {
-        "label": "Silenciar Durante la Grabación",
-        "description": "Silenciar el audio del sistema durante la grabación"
+        "label": "Silenciar al grabar",
+        "description": "Silencia el audio del sistema mientras grabas"
       },
       "appendTrailingSpace": {
-        "label": "Agregar Espacio Final",
-        "description": "Agregar un espacio después de la transcripción pegada"
+        "label": "Espacio al final",
+        "description": "Agrega un espacio después del texto pegado"
       },
       "keyboardImplementation": {
         "title": "Implementación del teclado",
-        "description": "Elige el sistema que gestiona los atajos de teclado.",
-        "bindingsReset": "Los atajos de teclado eran incompatibles y se restablecieron a los valores predeterminados"
+        "description": "Qué sistema gestiona los atajos.",
+        "bindingsReset": "Los atajos eran incompatibles y se restablecieron a los predeterminados"
       },
       "paths": {
-        "appData": "Datos de la Aplicación:",
+        "appData": "Datos de la app:",
         "models": "Modelos:",
-        "settings": "Configuración:"
+        "settings": "Ajustes:"
       },
       "pasteDelay": {
         "title": "Retraso de pegado (antes)",
-        "description": "Retraso (en milisegundos) después de copiar el texto, antes de enviar la pulsación de tecla de pegar. Auméntelo si no se pega nada."
+        "description": "Milisegundos entre copiar el texto y enviar la tecla de pegar. Súbelo si no se pega nada."
       },
       "pasteDelayAfter": {
         "title": "Retraso de pegado (después)",
-        "description": "Retraso (en milisegundos) después de la pulsación de tecla de pegar, antes de restaurar el portapapeles anterior. Auméntelo si se pega el contenido antiguo del portapapeles en lugar de la transcripción."
+        "description": "Milisegundos después de pegar, antes de restaurar tu portapapeles anterior. Súbelo si se pega el contenido viejo en vez del dictado."
       },
       "recordingBuffer": {
-        "title": "Búfer de grabación adicional",
-        "description": "Tiempo adicional (en milisegundos) para seguir grabando después de soltar la tecla, para capturar el audio restante. 0 = sin búfer adicional."
+        "title": "Búfer extra de grabación",
+        "description": "Milisegundos extra de grabación después de soltar la tecla, para no cortar el final. 0 = sin búfer."
       },
       "whatsNewPreview": {
         "title": "Vista previa de novedades",
-        "description": "Abrir la nota de la versión incluida más reciente sin marcarla como vista",
+        "description": "Abre la nota de versión incluida más reciente sin marcarla como vista",
         "button": "Vista previa",
-        "noNotes": "No se encontraron notas de la versión incluidas",
-        "error": "No se pudo mostrar la vista previa de las notas de la versión"
+        "noNotes": "No hay notas de versión incluidas",
+        "error": "No se pudo mostrar la nota de versión"
       }
     },
     "about": {
       "title": "Acerca de",
       "version": {
         "title": "Versión",
-        "description": "Versión actual de Handy"
+        "description": "Versión actual de Dilo"
       },
       "appDataDirectory": {
-        "title": "Directorio de Datos de la Aplicación",
-        "description": "Ubicación donde Handy almacena sus datos"
+        "title": "Carpeta de datos",
+        "description": "Dónde guarda Dilo sus datos"
       },
       "sourceCode": {
-        "title": "Código Fuente",
-        "description": "Ver código fuente y contribuir",
+        "title": "Código fuente",
+        "description": "Mira el código y contribuye",
         "button": "Ver en GitHub"
       },
       "supportDevelopment": {
-        "title": "Apoyar el Desarrollo",
-        "description": "Ayúdanos a continuar construyendo Handy",
+        "title": "Apoya el proyecto",
+        "description": "Dilo es gratis y open source. Si te sirve, invítanos algo.",
         "button": "Donar"
       },
       "acknowledgments": {
-        "title": "Reconocimientos",
+        "title": "Créditos",
         "ggml": {
           "title": "ggml",
-          "description": "Inferencia de alto rendimiento del modelo de reconocimiento automático de voz Whisper de OpenAI",
-          "details": "Handy usa ggml para procesamiento de voz a texto rápido y local. Gracias al increíble trabajo de Georgi Gerganov y colaboradores."
+          "description": "Inferencia de alto rendimiento para modelos de voz como Whisper",
+          "details": "Dilo usa ggml para transcribir rápido y 100% local. Gracias al tremendo trabajo de Georgi Gerganov y colaboradores."
+        },
+        "handy": {
+          "title": "Handy",
+          "description": "El proyecto original del que Dilo es fork",
+          "details": "Dilo nace de Handy, de CJ Pais (licencia MIT). Gracias por la base espectacular y por hacerla open source."
         }
       },
       "whatsNewUpdates": {
         "label": "Mostrar novedades",
-        "description": "Mostrar notas de la versión después de las actualizaciones de Handy"
+        "description": "Muestra las notas de versión después de actualizar Dilo"
       }
     }
   },
   "footer": {
     "checkingUpdates": "Buscando actualizaciones...",
     "updateAvailableShort": "Actualización disponible",
-    "upToDate": "Actualizado",
-    "updateCheckingDisabled": "Búsqueda de Actualizaciones Deshabilitada",
-    "downloading": "Descargando... {{progress}}%",
+    "upToDate": "Al día",
+    "updateCheckingDisabled": "Actualizaciones automáticas desactivadas",
+    "downloading": "Bajando... {{progress}}%",
     "installing": "Instalando...",
     "preparing": "Preparando...",
     "checkForUpdates": "Buscar actualizaciones",
-    "portableUpdateTitle": "Actualización manual necesaria",
-    "portableUpdateMessage": "Las instalaciones portátiles no se pueden actualizar automáticamente. Para actualizar: descarga el instalador NSIS más reciente desde GitHub Releases, instálalo en la misma carpeta y luego copia tu carpeta Data/ (ajustes, modelos, grabaciones) de la versión anterior a la nueva.",
+    "portableUpdateTitle": "Actualización manual",
+    "portableUpdateMessage": "Las instalaciones portátiles no se actualizan solas. Para actualizar: baja el instalador NSIS más reciente desde GitHub Releases, instálalo en la misma carpeta y copia tu carpeta Data/ (ajustes, modelos, grabaciones) de la versión anterior a la nueva.",
     "portableUpdateButton": "Abrir GitHub Releases"
   },
   "common": {
@@ -593,34 +631,34 @@
     "noOptionsFound": "No se encontraron opciones"
   },
   "accessibility": {
-    "permissionsDescription": "Handy necesita permisos de accesibilidad para escribir texto transcrito.",
+    "permissionsDescription": "Dilo necesita el permiso de accesibilidad para escribir por ti.",
     "openSettings": "Abrir Ajustes del Sistema"
   },
   "errors": {
-    "loadDirectory": "Error al cargar el directorio: {{error}}",
+    "loadDirectory": "No se pudo cargar la carpeta: {{error}}",
     "micPermissionDeniedTitle": "Acceso al micrófono denegado",
     "micPermissionDenied": {
-      "generic": "El sistema operativo denegó el acceso al micrófono. Por favor, conceda el permiso del micrófono en la configuración del sistema.",
-      "windows": "Active el acceso al micrófono en Configuración → Privacidad y seguridad → Micrófono (incluido el acceso de aplicaciones de escritorio).",
-      "macos": "Conceda el acceso al micrófono en Ajustes del Sistema → Privacidad y seguridad → Micrófono.",
-      "linux": "Conceda el acceso al micrófono en la configuración de sonido o privacidad de su sistema."
+      "generic": "El sistema denegó el acceso al micrófono. Concede el permiso en la configuración del sistema.",
+      "windows": "Activa el acceso al micrófono en Configuración → Privacidad y seguridad → Micrófono (incluido el acceso para apps de escritorio).",
+      "macos": "Concede el acceso al micrófono en Ajustes del Sistema → Privacidad y seguridad → Micrófono.",
+      "linux": "Concede el acceso al micrófono en la configuración de sonido o privacidad de tu sistema."
     },
-    "noInputDeviceTitle": "No se encontró micrófono",
-    "noInputDevice": "No se detectó ningún dispositivo de entrada de audio. Conecta un micrófono o auriculares e inténtalo de nuevo.",
-    "recordingFailed": "Error al iniciar la grabación: {{error}}",
-    "modelLoadFailed": "Error al cargar el modelo: {{model}}",
+    "noInputDeviceTitle": "No hay micrófono",
+    "noInputDevice": "No se detectó ningún micrófono. Conecta uno (o unos audífonos) y reintenta.",
+    "recordingFailed": "No se pudo iniciar la grabación: {{error}}",
+    "modelLoadFailed": "No se pudo cargar el modelo: {{model}}",
     "modelLoadFailedUnknown": "modelo desconocido",
-    "pasteFailedTitle": "Error al pegar el texto",
-    "pasteFailed": "No se pudo pegar el texto en la aplicación activa.",
+    "pasteFailedTitle": "No se pudo pegar",
+    "pasteFailed": "No se pudo pegar el texto en la app activa.",
     "transcriptionFailedTitle": "Error de transcripción"
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",
-    "description": "Cambia el idioma de la interfaz de Handy"
+    "description": "Cambia el idioma de la interfaz de Dilo"
   },
   "theme": {
-    "title": "Tema de la aplicación",
-    "description": "Elige si Handy sigue el tema del sistema o permanece claro u oscuro",
+    "title": "Tema",
+    "description": "Dilo puede seguir el tema del sistema o quedarse claro u oscuro",
     "options": {
       "system": "Sistema",
       "light": "Claro",
@@ -632,6 +670,6 @@
     "processing": "Procesando..."
   },
   "whatsNew": {
-    "title": "Nuevo en Handy v{{version}}"
+    "title": "Nuevo en Dilo v{{version}}"
   }
 }

@@ -93,6 +93,38 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "Büyük, daha yavaş, ancak çok doğru çok dilli bir model."
+      },
+      "nemotron-3.5-asr-streaming-0.6b": {
+        "name": "Nemotron Streaming 3.5",
+        "description": "Live multilingual transcription across 28 languages."
+      },
+      "whisper-medium": {
+        "name": "Whisper Medium",
+        "description": "The classic: 99 languages. Can be a bit slow."
+      },
+      "cohere-transcribe-03-2026": {
+        "name": "Cohere Transcribe",
+        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+      },
+      "parakeet-unified-en-0.6b": {
+        "name": "Parakeet Unified EN",
+        "description": "English only, live. Best for pure-English dictation."
+      },
+      "Voxtral-Mini-4B-Realtime-2602": {
+        "name": "Voxtral Mini 4B",
+        "description": "The heavyweight: live multilingual, great on powerful machines."
+      },
+      "Qwen3-ASR-0.6B": {
+        "name": "Qwen3-ASR",
+        "description": "Solid multilingual: 30 languages."
+      },
+      "Fun-ASR-MLT-Nano-2512": {
+        "name": "Fun-ASR Nano",
+        "description": "Small and multilingual: 31 languages."
+      },
+      "canary-1b-flash": {
+        "name": "Canary 1B Flash",
+        "description": "Fast, 4 languages, with English translation."
       }
     },
     "errors": {
@@ -117,7 +149,8 @@
         "checkFailed": "İzinler kontrol edilemedi. Lütfen tekrar deneyin.",
         "requestFailed": "İzin isteği başarısız oldu. Lütfen tekrar deneyin."
       }
-    }
+    },
+    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
   },
   "modelSelector": {
     "custom": "Özel",
@@ -562,6 +595,11 @@
           "title": "ggml",
           "description": "OpenAI'nin Whisper otomatik konuşma tanıma modelinin yüksek performanslı çıkarımı",
           "details": "Handy, hızlı ve yerel konuşmadan metne dönüştürme için ggml kullanır. Georgi Gerganov ve katkıda bulunanların harika çalışmaları için teşekkür ederiz."
+        },
+        "handy": {
+          "title": "Handy",
+          "description": "The original project Dilo is forked from",
+          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
         }
       },
       "whatsNewUpdates": {

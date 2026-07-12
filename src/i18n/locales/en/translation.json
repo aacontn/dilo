@@ -93,6 +93,38 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "A large, slower, but very accurate multilingual model."
+      },
+      "nemotron-3.5-asr-streaming-0.6b": {
+        "name": "Nemotron Streaming 3.5",
+        "description": "Live multilingual transcription across 28 languages."
+      },
+      "whisper-medium": {
+        "name": "Whisper Medium",
+        "description": "The classic: 99 languages. Can be a bit slow."
+      },
+      "cohere-transcribe-03-2026": {
+        "name": "Cohere Transcribe",
+        "description": "Highest accuracy, 14 languages. Wants a beefy machine."
+      },
+      "parakeet-unified-en-0.6b": {
+        "name": "Parakeet Unified EN",
+        "description": "English only, live. Best for pure-English dictation."
+      },
+      "Voxtral-Mini-4B-Realtime-2602": {
+        "name": "Voxtral Mini 4B",
+        "description": "The heavyweight: live multilingual, great on powerful machines."
+      },
+      "Qwen3-ASR-0.6B": {
+        "name": "Qwen3-ASR",
+        "description": "Solid multilingual: 30 languages."
+      },
+      "Fun-ASR-MLT-Nano-2512": {
+        "name": "Fun-ASR Nano",
+        "description": "Small and multilingual: 31 languages."
+      },
+      "canary-1b-flash": {
+        "name": "Canary 1B Flash",
+        "description": "Fast, 4 languages, with English translation."
       }
     },
     "errors": {
@@ -100,7 +132,7 @@
     },
     "permissions": {
       "title": "Permissions Required",
-      "description": "Handy needs a couple of permissions to work properly.",
+      "description": "Dilo needs a couple of permissions to work properly.",
       "microphone": {
         "title": "Microphone Access",
         "description": "Required to hear your voice for transcription."
@@ -117,7 +149,8 @@
         "checkFailed": "Failed to check permissions. Please try again.",
         "requestFailed": "Failed to request permission. Please try again."
       }
-    }
+    },
+    "ramRecommendation": "Your machine has {{gb}} GB of RAM — we picked {{model}} for you."
   },
   "modelSelector": {
     "custom": "Custom",
@@ -160,7 +193,7 @@
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Handy Shortcuts",
+        "title": "Dilo Shortcuts",
         "description": "Configure keyboard shortcuts to trigger speech-to-text recording",
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
@@ -212,7 +245,7 @@
       },
       "rescan": {
         "label": "Rescan",
-        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Handy"
+        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Dilo"
       },
       "noModelsMatch": "No models match this filter."
     },
@@ -274,11 +307,11 @@
       },
       "autostart": {
         "label": "Launch on Startup",
-        "description": "Automatically start Handy when you log in to your computer."
+        "description": "Automatically start Dilo when you log in to your computer."
       },
       "showTrayIcon": {
         "label": "Show Tray Icon",
-        "description": "Display the Handy icon in the system tray."
+        "description": "Display the Dilo icon in the system tray."
       },
       "overlay": {
         "style": {
@@ -461,7 +494,7 @@
       },
       "updateChecks": {
         "label": "Check for Updates",
-        "description": "Automatically check for new versions of Handy"
+        "description": "Automatically check for new versions of Dilo"
       },
       "whatsNewPreview": {
         "title": "Preview What's New",
@@ -540,15 +573,15 @@
       "title": "About",
       "version": {
         "title": "Version",
-        "description": "Current version of Handy"
+        "description": "Current version of Dilo"
       },
       "whatsNewUpdates": {
         "label": "Show What's New",
-        "description": "Show release notes after Handy updates"
+        "description": "Show release notes after Dilo updates"
       },
       "appDataDirectory": {
         "title": "App Data Directory",
-        "description": "Location where Handy stores its data"
+        "description": "Location where Dilo stores its data"
       },
       "sourceCode": {
         "title": "Source Code",
@@ -557,7 +590,7 @@
       },
       "supportDevelopment": {
         "title": "Support Development",
-        "description": "Help us continue building Handy",
+        "description": "Help us continue building Dilo",
         "button": "Donate"
       },
       "acknowledgments": {
@@ -565,7 +598,12 @@
         "ggml": {
           "title": "ggml",
           "description": "High-performance tensor library for on-device machine learning inference",
-          "details": "Handy's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "details": "Dilo's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+        },
+        "handy": {
+          "title": "Handy",
+          "description": "The original project Dilo is forked from",
+          "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
         }
       }
     }
@@ -584,7 +622,7 @@
     "portableUpdateButton": "Open GitHub Releases"
   },
   "whatsNew": {
-    "title": "New in Handy v{{version}}"
+    "title": "New in Dilo v{{version}}"
   },
   "common": {
     "loading": "Loading...",
@@ -596,7 +634,7 @@
     "noOptionsFound": "No options found"
   },
   "accessibility": {
-    "permissionsDescription": "Handy needs accessibility permissions to type transcribed text.",
+    "permissionsDescription": "Dilo needs accessibility permissions to type transcribed text.",
     "openSettings": "Open System Settings"
   },
   "errors": {
@@ -619,11 +657,11 @@
   },
   "appLanguage": {
     "title": "Application Language",
-    "description": "Change the language of the Handy interface"
+    "description": "Change the language of the Dilo interface"
   },
   "theme": {
     "title": "Application Theme",
-    "description": "Choose whether Handy follows your system theme or stays light or dark",
+    "description": "Choose whether Dilo follows your system theme or stays light or dark",
     "options": {
       "system": "System",
       "light": "Light",
