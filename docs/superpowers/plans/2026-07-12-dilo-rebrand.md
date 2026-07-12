@@ -17,7 +17,7 @@
 - Identifier `cl.espaciodigital.dilo` · binario/paquete `dilo` · versión `0.1.0`.
 - El updater de Tauri queda **desactivado** en v0.1.0 (endpoints/pubkey upstream removidos; `default_update_checks_enabled() -> false`).
 - Los 21 locales no-`es` no se tocan. ESLint prohíbe strings hardcodeados en JSX: todo texto nuevo entra por i18n (`en` + `es` como mínimo).
-- Commits convencionales (`feat:`/`fix:`/`docs:`/`chore:`) + footer `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
+- Commits convencionales (`feat:`/`fix:`/`docs:`/`chore:`), sin trailers de atribución.
 - Verificación mínima por task: `bun run build` (tsc+vite) y, si tocó Rust, `cargo check` en `src-tauri/`. Antes del release: `bun run lint` + `bun run format:check` + `cargo fmt --check`.
 
 ---
