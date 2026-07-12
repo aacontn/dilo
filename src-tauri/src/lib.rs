@@ -93,31 +93,65 @@ fn build_console_filter() -> env_filter::Filter {
     builder.build()
 }
 
-fn show_main_window(app: &AppHandle) {
-    if let Some(main_window) = app.get_webview_window("main") {
-        if let Err(e) = main_window.unminimize() {
-            log::error!("Failed to unminimize webview window: {}", e);
-        }
-        if let Err(e) = main_window.show() {
-            log::error!("Failed to show webview window: {}", e);
-        }
-        if let Err(e) = main_window.set_focus() {
-            log::error!("Failed to focus webview window: {}", e);
-        }
-        #[cfg(target_os = "macos")]
-        {
-            if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
-                log::error!("Failed to set activation policy to Regular: {}", e);
-            }
-        }
-        return;
+/// Builds the (hidden) main settings window. Created programmatically — not in
+/// tauri.conf.json — so portable mode can redirect the WebView2 cache into the
+/// portable Data dir. Called at startup and again by `show_main_window`, since
+/// closing the window destroys its webview (see `CloseRequested` below).
+fn create_main_window(app: &AppHandle) -> tauri::Result<tauri::WebviewWindow> {
+    let mut win_builder =
+        tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
+            .title("Dilo")
+            .inner_size(680.0, 570.0)
+            .min_inner_size(680.0, 570.0)
+            .resizable(true)
+            .maximizable(false)
+            .visible(false);
+
+    if let Some(data_dir) = portable::data_dir() {
+        win_builder = win_builder.data_directory(data_dir.join("webview"));
     }
 
-    let webview_labels = app.webview_windows().keys().cloned().collect::<Vec<_>>();
-    log::error!(
-        "Main window not found. Webview labels: {:?}",
-        webview_labels
-    );
+    let window = win_builder.build()?;
+
+    // Apply the persisted appearance theme to the Windows title bar before the
+    // window is shown, so it matches the in-app palette without a flash of the
+    // wrong theme. On macOS/Linux, Tauri themes are app-wide and would also
+    // affect windows that intentionally keep the system theme.
+    #[cfg(target_os = "windows")]
+    shortcut::apply_window_theme(app, get_settings(app).theme);
+
+    Ok(window)
+}
+
+fn show_main_window(app: &AppHandle) {
+    // Closing the main window destroys its webview to free memory, so showing
+    // it again may need to recreate it first.
+    let main_window = match app.get_webview_window("main") {
+        Some(window) => window,
+        None => match create_main_window(app) {
+            Ok(window) => window,
+            Err(e) => {
+                log::error!("Failed to recreate main window: {}", e);
+                return;
+            }
+        },
+    };
+
+    if let Err(e) = main_window.unminimize() {
+        log::error!("Failed to unminimize webview window: {}", e);
+    }
+    if let Err(e) = main_window.show() {
+        log::error!("Failed to show webview window: {}", e);
+    }
+    if let Err(e) = main_window.set_focus() {
+        log::error!("Failed to focus webview window: {}", e);
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
+            log::error!("Failed to set activation policy to Regular: {}", e);
+        }
+    }
 }
 
 #[allow(unused_variables)]
@@ -307,8 +341,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         let _ = autostart_manager.disable();
     }
 
-    // Create the recording overlay window (hidden by default)
-    utils::create_recording_overlay(app_handle);
+    // The recording overlay window is created lazily on first show and
+    // destroyed after a short idle period (see overlay.rs), so a resting app
+    // keeps no overlay webview in memory.
 }
 
 #[tauri::command]
@@ -604,6 +639,7 @@ pub fn run(cli_args: CliArgs) {
             commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,
+            commands::system::get_total_memory_gb,
             commands::models::get_available_models,
             commands::models::get_model_info,
             commands::models::download_model,
@@ -738,10 +774,11 @@ pub fn run(cli_args: CliArgs) {
         }));
     }
 
+    // El plugin updater de upstream queda fuera en v0.1.0 (sin endpoints ni
+    // pubkey propios); reactivar junto con `plugins.updater` al firmar releases.
     builder
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_macos_permissions::init())
@@ -798,31 +835,9 @@ pub fn run(cli_args: CliArgs) {
                 return Ok(());
             }
 
-            // Create main window programmatically so we can set data_directory
-            // for portable mode (redirects WebView2 cache to portable Data dir)
-            let mut win_builder =
-                tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/".into()))
-                    .title("Handy")
-                    .inner_size(680.0, 570.0)
-                    .min_inner_size(680.0, 570.0)
-                    .resizable(true)
-                    .maximizable(false)
-                    .visible(false);
-
-            if let Some(data_dir) = portable::data_dir() {
-                win_builder = win_builder.data_directory(data_dir.join("webview"));
-            }
-
-            win_builder.build()?;
+            create_main_window(app.handle())?;
 
             let mut settings = get_settings(app.handle());
-
-            // Apply the persisted appearance theme to the Windows title bar before
-            // the window is shown, so it matches the in-app palette without a flash
-            // of the wrong theme. On macOS/Linux, Tauri themes are app-wide and
-            // would also affect windows that intentionally keep the system theme.
-            #[cfg(target_os = "windows")]
-            shortcut::apply_window_theme(app.handle(), settings.theme);
 
             // CLI --debug flag overrides debug_mode and log level (runtime-only, not persisted)
             if cli_args.debug {
@@ -882,8 +897,14 @@ pub fn run(cli_args: CliArgs) {
         })
         .on_window_event(|window, event| match event {
             tauri::WindowEvent::CloseRequested { api, .. } => {
+                // Keep the app alive in the tray; only the window goes away.
                 api.prevent_close();
-                let _res = window.hide();
+                if window.label() == "main" {
+                    // liberar el webview en reposo; se recrea al reabrir
+                    let _res = window.destroy();
+                } else {
+                    let _res = window.hide();
+                }
 
                 #[cfg(target_os = "macos")]
                 {
@@ -913,6 +934,14 @@ pub fn run(cli_args: CliArgs) {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| match &event {
+            // With the main window destroyed on close and the overlay created
+            // lazily, the app can reach zero windows while it lives in the
+            // tray; only an explicit exit (tray Quit / app.exit) may end it.
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
                 show_main_window(app);

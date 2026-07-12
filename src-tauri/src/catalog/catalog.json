@@ -55,8 +55,8 @@
         }
       ],
       "default_quant": "Q8_0",
-      "recommended": true,
-      "recommended_rank": 1
+      "recommended": false,
+      "recommended_rank": 6
     },
     {
       "id": "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf",
@@ -112,7 +112,7 @@
       ],
       "default_quant": "Q8_0",
       "recommended": true,
-      "recommended_rank": 2
+      "recommended_rank": 1
     },
     {
       "id": "handy-computer/canary-180m-flash-gguf",
@@ -168,7 +168,7 @@
       ],
       "default_quant": "Q8_0",
       "recommended": true,
-      "recommended_rank": 3
+      "recommended_rank": 2
     },
     {
       "id": "handy-computer/cohere-transcribe-03-2026-gguf",
@@ -391,8 +391,8 @@
         }
       ],
       "default_quant": "Q8_0",
-      "recommended": false,
-      "recommended_rank": 7
+      "recommended": true,
+      "recommended_rank": 3
     },
     {
       "id": "handy-computer/parakeet-tdt-0.6b-v2-gguf",

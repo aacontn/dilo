@@ -2,7 +2,8 @@ use crate::input;
 use crate::settings;
 use crate::settings::{OverlayPosition, OverlayStyle};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
 
 #[cfg(not(target_os = "macos"))]
@@ -61,6 +62,35 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
 
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
 const EMIT_THROTTLE_MS: u64 = 33; // ~30 FPS
+
+// Lazy-overlay lifecycle: the window is created on first show and destroyed
+// after OVERLAY_DESTROY_DELAY of inactivity, so a resting app keeps no overlay
+// webview (or its residual CPU) alive. Every show bumps the generation; a
+// pending destroy timer only fires if its captured generation is still current.
+static OVERLAY_GENERATION: AtomicU64 = AtomicU64::new(0);
+const OVERLAY_DESTROY_DELAY: Duration = Duration::from_secs(5);
+
+// Page-load handshake for the lazily-created webview: the show that creates the
+// window runs before the overlay page has registered its event listeners, so a
+// plain `show-overlay` emit would be lost. The show path queues the state here
+// and `on_page_load` re-emits it once the page can hear it.
+static PENDING_OVERLAY_STATE: Mutex<Option<String>> = Mutex::new(None);
+
+fn set_pending_overlay_state(state: Option<&str>) {
+    if let Ok(mut pending) = PENDING_OVERLAY_STATE.lock() {
+        *pending = state.map(str::to_owned);
+    }
+}
+
+fn emit_pending_overlay_state(window: &tauri::webview::WebviewWindow) {
+    let state = PENDING_OVERLAY_STATE
+        .lock()
+        .ok()
+        .and_then(|mut pending| pending.take());
+    if let Some(state) = state {
+        let _ = window.emit("show-overlay", state);
+    }
+}
 
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
@@ -259,9 +289,11 @@ fn current_overlay_logical_size(window: &tauri::webview::WebviewWindow) -> Optio
     Some((size.width as f64 / scale, size.height as f64 / scale))
 }
 
-/// Creates the recording overlay window and keeps it hidden by default
+/// Creates the recording overlay window, hidden. Called lazily from
+/// `show_overlay_state`; the window is destroyed again after idling
+/// (see `hide_recording_overlay`).
 #[cfg(not(target_os = "macos"))]
-pub fn create_recording_overlay(app_handle: &AppHandle) {
+fn create_recording_overlay(app_handle: &AppHandle) {
     // On Linux (Wayland), monitor detection often fails, but we don't need exact coordinates
     // for Layer Shell as we use anchors. On other platforms, we require a monitor.
     #[cfg(not(target_os = "linux"))]
@@ -294,7 +326,12 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     .transparent(true)
     .focusable(false)
     .focused(false)
-    .visible(false);
+    .visible(false)
+    .on_page_load(|window, payload| {
+        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+            emit_pending_overlay_state(&window);
+        }
+    });
 
     if let Some(data_dir) = crate::portable::data_dir() {
         builder = builder.data_directory(data_dir.join("webview"));
@@ -321,9 +358,11 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     }
 }
 
-/// Creates the recording overlay panel and keeps it hidden by default (macOS)
+/// Creates the recording overlay panel, hidden (macOS). Called lazily from
+/// `show_overlay_state`; the panel is destroyed again after idling
+/// (see `hide_recording_overlay`).
 #[cfg(target_os = "macos")]
-pub fn create_recording_overlay(app_handle: &AppHandle) {
+fn create_recording_overlay(app_handle: &AppHandle) {
     if let Some((x, y)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT) {
         // PanelBuilder creates a Tauri window then converts it to NSPanel.
         // The window remains registered, so get_webview_window() still works.
@@ -341,7 +380,16 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
             .no_activate(true)
             .corner_radius(0.0)
             .style_mask(StyleMask::empty().borderless().nonactivating_panel())
-            .with_window(|w| w.decorations(false).transparent(true).focusable(false))
+            .with_window(|w| {
+                w.decorations(false)
+                    .transparent(true)
+                    .focusable(false)
+                    .on_page_load(|window, payload| {
+                        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                            emit_pending_overlay_state(&window);
+                        }
+                    })
+            })
             .collection_behavior(
                 CollectionBehavior::new()
                     .can_join_all_spaces()
@@ -367,44 +415,64 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
         return;
     }
 
+    // Invalidate any pending destroy timer from an earlier hide.
+    OVERLAY_GENERATION.fetch_add(1, Ordering::Relaxed);
+
+    // Queue the state for the page-load handshake: if the window below is
+    // freshly created (or still loading), the direct emit at the end of this
+    // function fires before the page's listeners exist and would be lost.
+    set_pending_overlay_state(Some(state));
+
+    // Get-or-create: the overlay window only lives while recording (plus a
+    // short idle period), so a resting app keeps no overlay webview alive.
+    let overlay_window = match app_handle.get_webview_window("recording_overlay") {
+        Some(window) => window,
+        None => {
+            create_recording_overlay(app_handle);
+            match app_handle.get_webview_window("recording_overlay") {
+                Some(window) => window,
+                None => return,
+            }
+        }
+    };
+
     // Size the overlay for this state (compact vs. streaming), then position it.
     let (width, height) = overlay_dimensions(state);
-    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-        #[cfg(target_os = "linux")]
-        update_gtk_layer_shell_anchors(&overlay_window);
 
-        let size_started = std::time::Instant::now();
-        let _ = overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
-        let size_elapsed = size_started.elapsed();
+    #[cfg(target_os = "linux")]
+    update_gtk_layer_shell_anchors(&overlay_window);
 
-        let pos_started = std::time::Instant::now();
-        let mut set_pos_elapsed = std::time::Duration::ZERO;
-        if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
-            let set_pos_started = std::time::Instant::now();
-            let _ = overlay_window
-                .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
-            set_pos_elapsed = set_pos_started.elapsed();
-        }
-        let pos_calc_elapsed = pos_started.elapsed() - set_pos_elapsed;
+    let size_started = std::time::Instant::now();
+    let _ = overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
+    let size_elapsed = size_started.elapsed();
 
-        let show_started = std::time::Instant::now();
-        let _ = overlay_window.show();
-        let show_elapsed = show_started.elapsed();
-
-        // On Windows, aggressively re-assert "topmost" in the native Z-order after showing
-        #[cfg(target_os = "windows")]
-        force_overlay_topmost(&overlay_window);
-
-        let _ = overlay_window.emit("show-overlay", state);
-        log::debug!(
-            "overlay '{}': set_size={:?} pos_calc={:?} set_pos={:?} show={:?}",
-            state,
-            size_elapsed,
-            pos_calc_elapsed,
-            set_pos_elapsed,
-            show_elapsed
-        );
+    let pos_started = std::time::Instant::now();
+    let mut set_pos_elapsed = std::time::Duration::ZERO;
+    if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
+        let set_pos_started = std::time::Instant::now();
+        let _ =
+            overlay_window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        set_pos_elapsed = set_pos_started.elapsed();
     }
+    let pos_calc_elapsed = pos_started.elapsed() - set_pos_elapsed;
+
+    let show_started = std::time::Instant::now();
+    let _ = overlay_window.show();
+    let show_elapsed = show_started.elapsed();
+
+    // On Windows, aggressively re-assert "topmost" in the native Z-order after showing
+    #[cfg(target_os = "windows")]
+    force_overlay_topmost(&overlay_window);
+
+    let _ = overlay_window.emit("show-overlay", state);
+    log::debug!(
+        "overlay '{}': set_size={:?} pos_calc={:?} set_pos={:?} show={:?}",
+        state,
+        size_elapsed,
+        pos_calc_elapsed,
+        set_pos_elapsed,
+        show_elapsed
+    );
 }
 
 /// Shows the recording overlay window with fade-in animation
@@ -446,18 +514,42 @@ pub fn update_overlay_position(app_handle: &AppHandle) {
     }
 }
 
-/// Hides the recording overlay window with fade-out animation
+/// Hides the recording overlay window with fade-out animation, then destroys
+/// it after an idle period so a resting app keeps no overlay webview alive.
 pub fn hide_recording_overlay(app_handle: &AppHandle) {
     // Always hide the overlay regardless of settings - if setting was changed while recording,
     // we still want to hide it properly
+    set_pending_overlay_state(None);
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Emit event to trigger fade-out animation
         let _ = overlay_window.emit("hide-overlay", ());
-        // Hide the window after a short delay to allow animation to complete
+        // Hide the window after a short delay to allow the animation to
+        // complete, then destroy it once it has idled. Both steps abort if a
+        // new show reclaimed the window (generation bumped) in the meantime.
+        let generation = OVERLAY_GENERATION.load(Ordering::Relaxed);
         let window_clone = overlay_window.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(300));
+        #[cfg(target_os = "macos")]
+        let app_handle = app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
+                return;
+            }
             let _ = window_clone.hide();
+
+            tokio::time::sleep(OVERLAY_DESTROY_DELAY).await;
+            if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
+                return;
+            }
+            // liberar el webview del overlay en reposo; se recrea al grabar
+            #[cfg(target_os = "macos")]
+            {
+                // Drop tauri-nspanel's retained handle so the NSPanel is
+                // actually released along with the window.
+                use tauri_nspanel::ManagerExt;
+                let _ = app_handle.remove_webview_panel("recording_overlay");
+            }
+            let _ = window_clone.destroy();
         });
     }
 }

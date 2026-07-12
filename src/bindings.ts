@@ -586,6 +586,13 @@ async initializeShortcuts() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Total physical RAM in whole GiB. The onboarding flow uses it to pick the
+ * model recommendation for this machine.
+ */
+async getTotalMemoryGb() : Promise<number> {
+    return await TAURI_INVOKE("get_total_memory_gb");
+},
 async getAvailableModels() : Promise<Result<ModelInfo[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_available_models") };
