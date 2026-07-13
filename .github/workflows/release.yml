@@ -83,3 +83,29 @@ jobs:
       # stale cached native lib can never be linked into a shipped artifact.
       no-cache: true
     secrets: inherit
+
+  # "aarch64"/"x64" no le dicen nada a la mayoría de usuarios de Mac:
+  # renombramos los assets de macOS a Mac-AppleSilicon / Mac-Intel.
+  rename-mac-assets:
+    permissions:
+      contents: write
+    needs: [create-release, publish-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Nombres amigables para los assets de macOS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rid="${{ needs.create-release.outputs.release-id }}"
+          gh api "repos/${{ github.repository }}/releases/$rid/assets" --paginate \
+            --jq '.[] | "\(.id) \(.name)"' | while read -r id name; do
+            nuevo=$(echo "$name" | sed -E \
+              -e 's/_aarch64\.dmg$/_Mac-AppleSilicon.dmg/' \
+              -e 's/_x64\.dmg$/_Mac-Intel.dmg/' \
+              -e 's/^Dilo_aarch64\.app\.tar\.gz$/Dilo_Mac-AppleSilicon.app.tar.gz/' \
+              -e 's/^Dilo_x64\.app\.tar\.gz$/Dilo_Mac-Intel.app.tar.gz/')
+            if [ "$nuevo" != "$name" ]; then
+              gh api -X PATCH "repos/${{ github.repository }}/releases/assets/$id" \
+                -f name="$nuevo" --jq '.name' | xargs -I{} echo "$name → {}"
+            fi
+          done
