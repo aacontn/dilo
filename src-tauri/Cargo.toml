@@ -1,6 +1,6 @@
 [package]
 name = "dilo"
-version = "0.1.5"
+version = "0.1.6"
 description = "Dilo — dictado por voz offline, en español"
 authors = ["Alfonso Contreras", "cjpais"]
 edition = "2021"

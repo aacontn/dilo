@@ -48,6 +48,15 @@ struct CatalogModel {
     /// from `recommended_rank`, which only orders the full list.
     #[serde(default)]
     recommended: bool,
+    /// Optional direct-download URL. When present the model is fetched over plain
+    /// HTTP from here instead of the HF Hub — used to mirror models whose HF repo
+    /// migrated to Xet storage (unsupported by the bundled hf-hub). The `id` stays
+    /// the HF-style `repo/file` so identity and stored selections are unchanged.
+    #[serde(default)]
+    download_url: Option<String>,
+    /// Expected SHA-256 of the direct-download file (integrity check). Optional.
+    #[serde(default)]
+    sha256: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -70,9 +79,16 @@ impl From<CatalogModel> for ModelDescriptor {
 
         ModelDescriptor {
             id: format!("{}/{}", m.id, default_filename),
-            source: ModelSource::HuggingFace {
-                repo_id: m.id,
-                revision: "main".to_string(),
+            // Direct URL wins when set (Xet mirror); otherwise fetch from HF Hub.
+            source: match m.download_url {
+                Some(url) => ModelSource::Url {
+                    url,
+                    sha256: m.sha256,
+                },
+                None => ModelSource::HuggingFace {
+                    repo_id: m.id,
+                    revision: "main".to_string(),
+                },
             },
             name: m.name,
             description: m.description,
