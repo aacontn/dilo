@@ -1746,7 +1746,7 @@ fn resolve_device_index(index: usize) -> Result<(Backend, i32)> {
     Ok((backend, gpu_device))
 }
 
-/// Map Handy's whisper accelerator setting to a transcribe-cpp [`Backend`].
+/// Map Dilo's whisper accelerator setting to a transcribe-cpp [`Backend`].
 ///
 /// `Auto` lets the library pick the best device (with CPU fallback). `Cpu` forces
 /// strict CPU. `Gpu` requests the platform GPU backend, but only if a device for

@@ -173,7 +173,7 @@ For translation contribution guidelines, see [CONTRIBUTING_TRANSLATIONS.md](CONT
 
 ## CLI Parameters
 
-Handy supports command-line parameters on all platforms for integration with scripts, window managers, and autostart configurations.
+Dilo supports command-line parameters on all platforms for integration with scripts, window managers, and autostart configurations.
 
 **Implementation:** `cli.rs` (definitions), `main.rs` (parsing), `lib.rs` (applying), `signal_handle.rs` (shared logic)
 
@@ -200,7 +200,7 @@ Access debug features: `Cmd+Shift+D` (macOS) or `Ctrl+Shift+D` (Windows/Linux)
 
 - **macOS**: Metal acceleration, accessibility permissions required for keyboard shortcuts
 - **Windows**: Vulkan acceleration, code signing
-- **Linux**: OpenBLAS + Vulkan, limited Wayland support, overlay uses GTK layer shell (disable with `HANDY_NO_GTK_LAYER_SHELL=1`)
+- **Linux**: OpenBLAS + Vulkan, limited Wayland support, overlay uses GTK layer shell (disable with `DILO_NO_GTK_LAYER_SHELL=1`; the legacy `HANDY_NO_GTK_LAYER_SHELL` is still honored)
 
 ## Troubleshooting
 

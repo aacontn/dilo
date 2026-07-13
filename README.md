@@ -103,7 +103,7 @@ Detalle por plataforma en [BUILD.md](BUILD.md).
 - **macOS: el permiso de Accesibilidad queda en "Esperando…" aunque ya lo activaste** → en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad, quita Dilo con **−** y agrégalo de nuevo. Pasa porque los binarios van sin firma de Apple: tras cada actualización macOS trata la app como si fuera otra y el permiso viejo deja de calzar. Vía rápida por terminal: `tccutil reset Accessibility cl.espaciodigital.dilo` y vuelve a abrir Dilo. (Se resuelve de raíz al firmar los binarios — está en el roadmap.)
 - **macOS: el atajo no escribe nada** → mismo remedio de arriba: el permiso de Accesibilidad quedó apuntando a una versión anterior.
 - **No se pega el texto en algunas apps** → prueba otro Método de pegado en Ajustes → Avanzado.
-- **Linux Wayland: atajos globales no funcionan** → configura el atajo en tu DE/WM apuntando a `dilo --toggle-transcription`. Overlay: se recomienda "Ninguno" (o `HANDY_NO_GTK_LAYER_SHELL=1`).
+- **Linux Wayland: atajos globales no funcionan** → configura el atajo en tu DE/WM apuntando a `dilo --toggle-transcription`. Overlay: se recomienda "Ninguno" (o `DILO_NO_GTK_LAYER_SHELL=1`).
 - **La primera transcripción tarda** → es la carga del modelo a RAM (1–2 s). Si te molesta, sube el tiempo de "Liberar RAM" en Ajustes → Avanzado.
 
 ## Roadmap
