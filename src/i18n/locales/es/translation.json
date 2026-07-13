@@ -9,6 +9,7 @@
     "cancel": "Cancelar"
   },
   "sidebar": {
+    "home": "Inicio",
     "general": "General",
     "models": "Modelos",
     "advanced": "Avanzado",
@@ -16,6 +17,60 @@
     "history": "Historial",
     "debug": "Debug",
     "about": "Acerca de"
+  },
+  "home": {
+    "status": {
+      "label": "Listo para dictar",
+      "title": "Dilo está listo",
+      "description": "Mantén el atajo, habla y suelta. Aparece escrito donde tengas el cursor.",
+      "privacy": "Tu voz y tus transcripciones se procesan en esta compu. Nada sale de aquí."
+    },
+    "model": {
+      "label": "Modelo activo",
+      "loading": "Cargando modelo…",
+      "streaming": "Texto en vivo · corre localmente",
+      "local": "Dictado local y offline"
+    },
+    "smart": {
+      "label": "Dictado inteligente",
+      "enabled": "Modo inteligente activo",
+      "disabled": "Opcional, cuando lo necesites"
+    },
+    "history": {
+      "title": "Lo último que dijiste",
+      "subtitle": "Guardado sólo en esta compu",
+      "empty": "Tu primer dictado aparecerá acá.",
+      "copy": "Copiar dictado"
+    },
+    "modes": {
+      "title": "Cómo quieres que escriba",
+      "subtitle": "El dictado normal siempre queda local. Los modos inteligentes usan el proveedor que configures.",
+      "literal": {
+        "title": "Literal",
+        "description": "Exactamente lo que dijiste"
+      },
+      "clean": {
+        "title": "Limpio",
+        "description": "Sin muletillas ni errores obvios"
+      },
+      "prompt": {
+        "title": "Prompt",
+        "description": "Ordena contexto e instrucciones"
+      },
+      "message": {
+        "title": "Mensaje",
+        "description": "Breve, natural y casual"
+      },
+      "email": {
+        "title": "Correo",
+        "description": "Claro y bien estructurado"
+      },
+      "code": {
+        "title": "Código",
+        "description": "Respeta rutas, comandos e identificadores"
+      },
+      "needsProvider": "Configura un proveedor de post-proceso para usar este modo."
+    }
   },
   "onboarding": {
     "subtitle": "Elige tu modelo de voz y empieza a dictar",
@@ -130,6 +185,18 @@
     },
     "errors": {
       "selectModel": "No se pudo activar el modelo. Reintenta."
+    },
+    "test": {
+      "title": "Pruébalo de verdad",
+      "description": "Deja el cursor en el recuadro, mantén el atajo, di «hola mundo» y suelta.",
+      "placeholder": "Tu dictado aparecerá acá…",
+      "fieldLabel": "Campo para probar el dictado",
+      "shortcutPrefix": "Mantén",
+      "successTitle": "Listo. Dilo funciona.",
+      "successDescription": "Eso que dijiste ya fue transcrito y pegado por Dilo.",
+      "tryAgain": "Probar otra vez",
+      "skip": "Probar después",
+      "finish": "Empezar a usar Dilo"
     },
     "permissions": {
       "title": "Dos permisos y listo",
@@ -391,8 +458,8 @@
         }
       },
       "customWords": {
-        "title": "Palabras propias",
-        "description": "Agrega palabras que el modelo suele escuchar mal (nombres, jerga, siglas). Dilo corrige lo parecido para que coincida con tu lista.",
+        "title": "Tu diccionario",
+        "description": "Enséñale a Dilo los nombres, proyectos, siglas y palabras técnicas que usas. Se quedan sólo en esta compu.",
         "placeholder": "Agregar una palabra",
         "add": "Agregar",
         "remove": "Eliminar {{word}}",

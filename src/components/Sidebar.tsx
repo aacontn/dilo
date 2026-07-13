@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
   Cog,
+  House,
   FlaskConical,
   History,
   Info,
@@ -10,6 +11,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { Wordmark } from "./shared";
+import { HomeDashboard } from "./home";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -39,6 +41,12 @@ interface SectionConfig {
 }
 
 export const SECTIONS_CONFIG = {
+  home: {
+    labelKey: "sidebar.home",
+    icon: House,
+    component: HomeDashboard,
+    enabled: () => true,
+  },
   general: {
     labelKey: "sidebar.general",
     icon: Mic,

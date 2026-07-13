@@ -9,6 +9,7 @@
     "cancel": "Anuluj"
   },
   "sidebar": {
+    "home": "Home",
     "general": "Ogólne",
     "models": "Modele",
     "advanced": "Zaawansowane",
@@ -16,6 +17,54 @@
     "history": "Historia",
     "debug": "Debugowanie",
     "about": "O programie"
+  },
+  "home": {
+    "status": {
+      "label": "Ready to dictate",
+      "title": "Dilo is ready",
+      "description": "Hold the shortcut, speak, and release. Your words appear wherever the cursor is.",
+      "privacy": "Your voice and transcripts are processed on this computer. Nothing leaves it."
+    },
+    "model": {
+      "label": "Active model",
+      "loading": "Loading model…",
+      "streaming": "Live text · runs locally",
+      "local": "Local, offline dictation"
+    },
+    "smart": {
+      "label": "Smart dictation",
+      "enabled": "Smart mode enabled",
+      "disabled": "Optional, whenever you need it"
+    },
+    "history": {
+      "title": "What you said recently",
+      "subtitle": "Stored only on this computer",
+      "empty": "Your first dictation will appear here.",
+      "copy": "Copy dictation"
+    },
+    "modes": {
+      "title": "How you want Dilo to write",
+      "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
+      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "clean": {
+        "title": "Clean",
+        "description": "No filler or obvious errors"
+      },
+      "prompt": {
+        "title": "Prompt",
+        "description": "Organizes context and instructions"
+      },
+      "message": {
+        "title": "Message",
+        "description": "Short, natural, and casual"
+      },
+      "email": { "title": "Email", "description": "Clear and well structured" },
+      "code": {
+        "title": "Code",
+        "description": "Preserves paths, commands, and identifiers"
+      },
+      "needsProvider": "Configure a post-processing provider to use this mode."
+    }
   },
   "onboarding": {
     "subtitle": "Aby rozpocząć, wybierz model transkrypcji",
@@ -129,6 +178,18 @@
     },
     "errors": {
       "selectModel": "Failed to select model"
+    },
+    "test": {
+      "title": "Try it for real",
+      "description": "Leave the cursor in the box, hold the shortcut, say hello world, and release.",
+      "placeholder": "Your dictation will appear here…",
+      "fieldLabel": "Field for testing dictation",
+      "shortcutPrefix": "Hold",
+      "successTitle": "Done. Dilo works.",
+      "successDescription": "What you said was transcribed and pasted by Dilo.",
+      "tryAgain": "Try again",
+      "skip": "Try later",
+      "finish": "Start using Dilo"
     },
     "permissions": {
       "title": "Wymagane uprawnienia",

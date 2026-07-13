@@ -8,11 +8,7 @@ import ModelCard, { isLegacySource } from "./ModelCard";
 import { Wordmark } from "../shared";
 import { useModelStore } from "../../stores/modelStore";
 import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
-
-// Equipos con esta RAM o menos reciben un featured pick liviano en vez del
-// default editorial (los 0.6B Q8 rondan 1.1–1.4 GB en uso).
-const LOW_RAM_GB = 8;
-const LOW_RAM_PICK = "canary-180m-flash";
+import { prioritizeRecommendedModels } from "../../lib/utils/onboarding";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -60,13 +56,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     // then accuracy), so keep that order here: ranked-but-not-recommended models
     // surface first, then the unranked tail by accuracy.
     const rest = downloadable.filter((m: ModelInfo) => !m.is_recommended);
-    const lowRam = ramGb !== null && ramGb <= LOW_RAM_GB;
-    const ordered = lowRam
-      ? [...recommended].sort(
-          (a, b) =>
-            (a.id === LOW_RAM_PICK ? -1 : 0) - (b.id === LOW_RAM_PICK ? -1 : 0),
-        )
-      : recommended;
+    const ordered = prioritizeRecommendedModels(recommended, ramGb);
     return {
       downloadable,
       topPicks: ordered.slice(0, 2),

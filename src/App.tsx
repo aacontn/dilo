@@ -11,15 +11,20 @@ import { ModelStateEvent, RecordingErrorEvent } from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
-import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import Onboarding, {
+  AccessibilityOnboarding,
+  DictationTestOnboarding,
+} from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
-
-type OnboardingStep = "accessibility" | "model" | "done";
+import {
+  getNextOnboardingStep,
+  type OnboardingStep,
+} from "@/lib/utils/onboardingFlow";
 
 const renderSettingsContent = (section: SidebarSection) => {
   const ActiveComponent =
@@ -35,8 +40,7 @@ function App() {
   // Track if this is a returning user who just needs to grant permissions
   // (vs a new user who needs full onboarding including model selection)
   const [isReturningUser, setIsReturningUser] = useState(false);
-  const [currentSection, setCurrentSection] =
-    useState<SidebarSection>("general");
+  const [currentSection, setCurrentSection] = useState<SidebarSection>("home");
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -58,7 +62,10 @@ function App() {
 
   // Initialize Enigo, shortcuts, and refresh audio devices when main app loads
   useEffect(() => {
-    if (onboardingStep === "done" && !hasCompletedPostOnboardingInit.current) {
+    if (
+      (onboardingStep === "test" || onboardingStep === "done") &&
+      !hasCompletedPostOnboardingInit.current
+    ) {
       hasCompletedPostOnboardingInit.current = true;
       Promise.all([
         commands.initializeEnigo(),
@@ -239,14 +246,17 @@ function App() {
   };
 
   const handleAccessibilityComplete = () => {
-    // Returning users already have models, skip to main app
-    // New users need to select a model
-    setOnboardingStep(isReturningUser ? "done" : "model");
+    setOnboardingStep(
+      getNextOnboardingStep("permissions-complete", isReturningUser),
+    );
   };
 
   const handleModelSelected = () => {
-    // Transition to main app - user has started a download
-    setOnboardingStep("done");
+    setOnboardingStep(getNextOnboardingStep("model-selected", false));
+  };
+
+  const handleDictationTestComplete = () => {
+    setOnboardingStep(getNextOnboardingStep("test-complete", false));
   };
 
   // Rendered once around every step below (including onboarding) so
@@ -284,6 +294,10 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
+  } else if (onboardingStep === "test") {
+    content = (
+      <DictationTestOnboarding onComplete={handleDictationTestComplete} />
+    );
   } else {
     content = (
       <div
