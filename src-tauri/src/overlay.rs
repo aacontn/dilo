@@ -408,6 +408,16 @@ fn create_recording_overlay(app_handle: &AppHandle) {
 }
 
 fn show_overlay_state(app_handle: &AppHandle, state: &str) {
+    // La creación del NSPanel (setFloatingPanel/setWindowLevel) y las llamadas
+    // crudas de tauri-nspanel exigen el hilo principal de AppKit, pero este
+    // show llega desde el hilo del atajo/transcripción — sin el marshal, macOS
+    // aborta con SIGTRAP ("Must only be used from the main thread").
+    let app = app_handle.clone();
+    let state = state.to_string();
+    let _ = app_handle.run_on_main_thread(move || show_overlay_state_on_main(&app, &state));
+}
+
+fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     // Whether the overlay shows at all is governed by overlay_style; position
     // only chooses Top vs Bottom placement.
     let settings = settings::get_settings(app_handle);
@@ -528,7 +538,6 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         // new show reclaimed the window (generation bumped) in the meantime.
         let generation = OVERLAY_GENERATION.load(Ordering::Relaxed);
         let window_clone = overlay_window.clone();
-        #[cfg(target_os = "macos")]
         let app_handle = app_handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(Duration::from_millis(300)).await;
@@ -541,15 +550,22 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
             if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
                 return;
             }
-            // liberar el webview del overlay en reposo; se recrea al grabar
-            #[cfg(target_os = "macos")]
-            {
-                // Drop tauri-nspanel's retained handle so the NSPanel is
-                // actually released along with the window.
-                use tauri_nspanel::ManagerExt;
-                let _ = app_handle.remove_webview_panel("recording_overlay");
-            }
-            let _ = window_clone.destroy();
+            // liberar el webview del overlay en reposo; se recrea al grabar.
+            // remove_webview_panel llama a AppKit sin marshal propio y destroy
+            // suelta un NSWindow: ambos van al hilo principal.
+            let _ = app_handle.clone().run_on_main_thread(move || {
+                if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
+                    return;
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    // Drop tauri-nspanel's retained handle so the NSPanel is
+                    // actually released along with the window.
+                    use tauri_nspanel::ManagerExt;
+                    let _ = app_handle.remove_webview_panel("recording_overlay");
+                }
+                let _ = window_clone.destroy();
+            });
         });
     }
 }
