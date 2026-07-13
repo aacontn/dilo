@@ -533,6 +533,18 @@ jobs:
         shell: bash
         run: |
           APP=$(find src-tauri/target -name "*.app" -type d | head -1)
+          echo "=== Code signature sanity ==="
+          # Hardened runtime sobre firma adhoc activa library validation y dyld
+          # rechaza TODA dylib externa ("different Team IDs") — crash al abrir
+          # en Macs Intel. Sin certificado real, el flag runtime no debe estar.
+          FLAGS=$(codesign -d --verbose=4 "$APP/Contents/MacOS/dilo" 2>&1 | grep "^flags=")
+          echo "$FLAGS"
+          if echo "$FLAGS" | grep -q "adhoc" && echo "$FLAGS" | grep -q "runtime"; then
+            echo "ERROR: hardened runtime sobre firma adhoc — library validation impedirá cargar las dylibs"
+            exit 1
+          fi
+          echo "=== Launch smoke (--list-devices) ==="
+          "$APP/Contents/MacOS/dilo" --list-devices || { echo "ERROR: el binario no arranca (¿dyld?)"; exit 1; }
           echo "=== Frameworks contents ==="
           ls -la "$APP/Contents/Frameworks/" | grep onnx || true
           echo "=== Binary linked libs ==="
