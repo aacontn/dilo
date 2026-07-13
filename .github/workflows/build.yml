@@ -537,12 +537,20 @@ jobs:
           # Hardened runtime sobre firma adhoc activa library validation y dyld
           # rechaza TODA dylib externa ("different Team IDs") — crash al abrir
           # en Macs Intel. Sin certificado real, el flag runtime no debe estar.
-          FLAGS=$(codesign -d --verbose=4 "$APP/Contents/MacOS/dilo" 2>&1 | grep "^flags=")
-          echo "$FLAGS"
-          if echo "$FLAGS" | grep -q "adhoc" && echo "$FLAGS" | grep -q "runtime"; then
-            echo "ERROR: hardened runtime sobre firma adhoc — library validation impedirá cargar las dylibs"
+          # Ojo: "flags=" vive DENTRO de la línea CodeDirectory, sin anclar.
+          SIGN_INFO=$(codesign -d --verbose=4 "$APP/Contents/MacOS/dilo" 2>&1 || true)
+          echo "$SIGN_INFO" | head -6
+          FLAGS=$(echo "$SIGN_INFO" | grep -o "flags=[^ ]*" || true)
+          if [ -z "$FLAGS" ]; then
+            echo "ERROR: el binario no está firmado (ni siquiera adhoc)"
             exit 1
           fi
+          case "$FLAGS" in
+            *adhoc*runtime*|*runtime*adhoc*)
+              echo "ERROR: hardened runtime sobre firma adhoc — library validation impedirá cargar las dylibs"
+              exit 1
+              ;;
+          esac
           echo "=== Launch smoke (--list-devices) ==="
           "$APP/Contents/MacOS/dilo" --list-devices || { echo "ERROR: el binario no arranca (¿dyld?)"; exit 1; }
           echo "=== Frameworks contents ==="
