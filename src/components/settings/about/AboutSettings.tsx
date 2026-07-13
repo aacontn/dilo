@@ -31,7 +31,8 @@ export const AboutSettings: React.FC = () => {
 
   const handleDonateClick = async () => {
     try {
-      await openUrl("https://handy.computer/donate");
+      // Sin página de donaciones propia todavía: al repo (estrella/contribuir).
+      await openUrl("https://github.com/aacontn/dilo");
     } catch (error) {
       console.error("Failed to open donate link:", error);
     }
@@ -71,7 +72,7 @@ export const AboutSettings: React.FC = () => {
           <Button
             variant="secondary"
             size="md"
-            onClick={() => openUrl("https://github.com/cjpais/Handy")}
+            onClick={() => openUrl("https://github.com/aacontn/dilo")}
           >
             {t("settings.about.sourceCode.button")}
           </Button>
@@ -82,6 +83,24 @@ export const AboutSettings: React.FC = () => {
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.about.acknowledgments.title")}>
+        <SettingContainer
+          title={t("settings.about.acknowledgments.handy.title")}
+          description={t("settings.about.acknowledgments.handy.description")}
+          grouped={true}
+          layout="stacked"
+        >
+          <div className="text-sm text-mid-gray">
+            {t("settings.about.acknowledgments.handy.details")}
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="mt-2"
+            onClick={() => openUrl("https://github.com/cjpais/Handy")}
+          >
+            {t("settings.about.sourceCode.button")}
+          </Button>
+        </SettingContainer>
         <SettingContainer
           title={t("settings.about.acknowledgments.ggml.title")}
           description={t("settings.about.acknowledgments.ggml.description")}
