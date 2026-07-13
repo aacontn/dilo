@@ -31,8 +31,7 @@ export const AboutSettings: React.FC = () => {
 
   const handleDonateClick = async () => {
     try {
-      // Sin página de donaciones propia todavía: al repo (estrella/contribuir).
-      await openUrl("https://github.com/aacontn/dilo");
+      await openUrl("https://github.com/sponsors/aacontn");
     } catch (error) {
       console.error("Failed to open donate link:", error);
     }
@@ -84,24 +83,6 @@ export const AboutSettings: React.FC = () => {
 
       <SettingsGroup title={t("settings.about.acknowledgments.title")}>
         <SettingContainer
-          title={t("settings.about.acknowledgments.handy.title")}
-          description={t("settings.about.acknowledgments.handy.description")}
-          grouped={true}
-          layout="stacked"
-        >
-          <div className="text-sm text-mid-gray">
-            {t("settings.about.acknowledgments.handy.details")}
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="mt-2"
-            onClick={() => openUrl("https://github.com/cjpais/Handy")}
-          >
-            {t("settings.about.sourceCode.button")}
-          </Button>
-        </SettingContainer>
-        <SettingContainer
           title={t("settings.about.acknowledgments.ggml.title")}
           description={t("settings.about.acknowledgments.ggml.description")}
           grouped={true}
@@ -111,6 +92,15 @@ export const AboutSettings: React.FC = () => {
             {t("settings.about.acknowledgments.ggml.details")}
           </div>
         </SettingContainer>
+        {/* Crédito discreto al proyecto del que Dilo es fork (la licencia MIT
+            completa vive en LICENSE). Una línea clickeable, sin destacar. */}
+        <button
+          type="button"
+          className="px-1 pt-1 text-left text-xs text-mid-gray/70 underline-offset-2 hover:text-mid-gray hover:underline"
+          onClick={() => openUrl("https://github.com/cjpais/Handy")}
+        >
+          {t("settings.about.acknowledgments.handy.details")}
+        </button>
       </SettingsGroup>
     </div>
   );
