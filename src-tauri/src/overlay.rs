@@ -63,12 +63,18 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
 const EMIT_THROTTLE_MS: u64 = 33; // ~30 FPS
 
-// Lazy-overlay lifecycle: the window is created on first show and destroyed
-// after OVERLAY_DESTROY_DELAY of inactivity, so a resting app keeps no overlay
-// webview (or its residual CPU) alive. Every show bumps the generation; a
-// pending destroy timer only fires if its captured generation is still current.
+// Lazy-overlay lifecycle: the window is created on first show and only HIDDEN
+// afterwards, never destroyed. A resting app that hasn't dictated yet keeps no
+// overlay webview alive; after first use the hidden webview stays (~40 MB).
+//
+// Destroying is deliberately off the table: `WebviewWindow::destroy()` on a
+// window converted to NSPanel over-releases it (double-free between
+// tauri-nspanel's retained handle and tao's close path) and aborts on a later
+// autorelease-pool drain — crash seconds after the destroy, on the main
+// thread's run-loop observer. Upstream never destroys its overlay for the
+// same reason. Every show bumps the generation; the pending 300 ms hide (for
+// the fade-out) only fires if its captured generation is still current.
 static OVERLAY_GENERATION: AtomicU64 = AtomicU64::new(0);
-const OVERLAY_DESTROY_DELAY: Duration = Duration::from_secs(5);
 
 // Page-load handshake for the lazily-created webview: the show that creates the
 // window runs before the overlay page has registered its event listeners, so a
@@ -290,8 +296,8 @@ fn current_overlay_logical_size(window: &tauri::webview::WebviewWindow) -> Optio
 }
 
 /// Creates the recording overlay window, hidden. Called lazily from
-/// `show_overlay_state`; the window is destroyed again after idling
-/// (see `hide_recording_overlay`).
+/// `show_overlay_state`; afterwards it is only hidden, never destroyed
+/// (see the lifecycle note by `OVERLAY_GENERATION`).
 #[cfg(not(target_os = "macos"))]
 fn create_recording_overlay(app_handle: &AppHandle) {
     // On Linux (Wayland), monitor detection often fails, but we don't need exact coordinates
@@ -359,8 +365,8 @@ fn create_recording_overlay(app_handle: &AppHandle) {
 }
 
 /// Creates the recording overlay panel, hidden (macOS). Called lazily from
-/// `show_overlay_state`; the panel is destroyed again after idling
-/// (see `hide_recording_overlay`).
+/// `show_overlay_state`; afterwards it is only hidden, never destroyed
+/// (see the lifecycle note by `OVERLAY_GENERATION`).
 #[cfg(target_os = "macos")]
 fn create_recording_overlay(app_handle: &AppHandle) {
     if let Some((x, y)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT) {
@@ -524,8 +530,9 @@ pub fn update_overlay_position(app_handle: &AppHandle) {
     }
 }
 
-/// Hides the recording overlay window with fade-out animation, then destroys
-/// it after an idle period so a resting app keeps no overlay webview alive.
+/// Hides the recording overlay window with a fade-out animation. The window
+/// is kept (hidden) for reuse — destroying a panel-converted window aborts;
+/// see the lifecycle note by `OVERLAY_GENERATION`.
 pub fn hide_recording_overlay(app_handle: &AppHandle) {
     // Always hide the overlay regardless of settings - if setting was changed while recording,
     // we still want to hide it properly
@@ -538,34 +545,15 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         // new show reclaimed the window (generation bumped) in the meantime.
         let generation = OVERLAY_GENERATION.load(Ordering::Relaxed);
         let window_clone = overlay_window.clone();
-        let app_handle = app_handle.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(Duration::from_millis(300)).await;
             if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
                 return;
             }
+            // Solo esconder — ver la nota del ciclo de vida junto a
+            // OVERLAY_GENERATION: destruir la ventana-panel sobre-libera el
+            // NSPanel y aborta en un drain posterior del autorelease pool.
             let _ = window_clone.hide();
-
-            tokio::time::sleep(OVERLAY_DESTROY_DELAY).await;
-            if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
-                return;
-            }
-            // liberar el webview del overlay en reposo; se recrea al grabar.
-            // remove_webview_panel llama a AppKit sin marshal propio y destroy
-            // suelta un NSWindow: ambos van al hilo principal.
-            let _ = app_handle.clone().run_on_main_thread(move || {
-                if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
-                    return;
-                }
-                #[cfg(target_os = "macos")]
-                {
-                    // Drop tauri-nspanel's retained handle so the NSPanel is
-                    // actually released along with the window.
-                    use tauri_nspanel::ManagerExt;
-                    let _ = app_handle.remove_webview_panel("recording_overlay");
-                }
-                let _ = window_clone.destroy();
-            });
         });
     }
 }
