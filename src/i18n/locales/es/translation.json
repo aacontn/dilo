@@ -140,7 +140,8 @@
       },
       "accessibility": {
         "title": "Accesibilidad",
-        "description": "Para escribir el texto directo en tu app activa: Cursor, terminal, donde sea."
+        "description": "Para escribir el texto directo en tu app activa: Cursor, terminal, donde sea.",
+        "stuckHint": "¿Lo activaste y sigue esperando? Quita Dilo de la lista de Accesibilidad con − y agrégalo de nuevo — al actualizar, macOS trata la app sin firma como si fuera nueva."
       },
       "grant": "Dar permiso",
       "granted": "Listo",

@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Dostęp do dostępności",
-        "description": "Wymagany do wpisywania transkrybowanego tekstu w Twoich aplikacjach."
+        "description": "Wymagany do wpisywania transkrybowanego tekstu w Twoich aplikacjach.",
+        "stuckHint": "Przyznane, a wciąż czeka? Usuń Dilo z listy Dostępność przyciskiem − i dodaj ponownie — po aktualizacji macOS traktuje niepodpisaną aplikację jak nową."
       },
       "grant": "Przyznaj uprawnienie",
       "granted": "Przyznano",

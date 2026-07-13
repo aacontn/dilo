@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Hjälpmedelsåtkomst",
-        "description": "Krävs för att skriva transkriberad text i dina program."
+        "description": "Krävs för att skriva transkriberad text i dina program.",
+        "stuckHint": "Beviljat men väntar ändå? Ta bort Dilo från Hjälpmedel-listan med − och lägg till det igen — efter en uppdatering ser macOS den osignerade appen som ny."
       },
       "grant": "Bevilja behörighet",
       "granted": "Beviljad",

@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Accessibility Access",
-        "description": "Required to type transcribed text into your applications."
+        "description": "Required to type transcribed text into your applications.",
+        "stuckHint": "Granted but still waiting? Remove Dilo from the Accessibility list with − and add it back — after an update, macOS treats the unsigned app as new."
       },
       "grant": "Grant Permission",
       "granted": "Granted",

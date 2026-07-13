@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "輔助使用存取",
-        "description": "需要將轉錄文字輸入到您的應用程式中"
+        "description": "需要將轉錄文字輸入到您的應用程式中",
+        "stuckHint": "已授權卻一直等待?在「輔助使用」清單中用 − 移除 Dilo 再重新加入——更新後,macOS 會把未簽署的應用程式視為新的。"
       },
       "grant": "授予權限",
       "granted": "已授予",

@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Acesso à Acessibilidade",
-        "description": "Necessário para digitar o texto transcrito em seus aplicativos."
+        "description": "Necessário para digitar o texto transcrito em seus aplicativos.",
+        "stuckHint": "Concedeu e continua esperando? Remova o Dilo da lista de Acessibilidade com − e adicione de novo — após uma atualização, o macOS trata o app sem assinatura como novo."
       },
       "grant": "Conceder Permissão",
       "granted": "Concedido",

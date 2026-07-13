@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Toegankelijkheid",
-        "description": "Vereist om getranscribeerde tekst in je applicaties te kunnen typen."
+        "description": "Vereist om getranscribeerde tekst in je applicaties te kunnen typen.",
+        "stuckHint": "Toegestaan maar wacht nog steeds? Verwijder Dilo met − uit de Toegankelijkheid-lijst en voeg het opnieuw toe — na een update ziet macOS de niet-ondertekende app als nieuw."
       },
       "grant": "Machtiging verlenen",
       "granted": "Verleend",

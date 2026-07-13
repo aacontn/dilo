@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Accesso all'Accessibilità",
-        "description": "Necessario per digitare il testo trascritto nelle tue applicazioni."
+        "description": "Necessario per digitare il testo trascritto nelle tue applicazioni.",
+        "stuckHint": "Concesso ma resta in attesa? Rimuovi Dilo dall'elenco Accessibilità con − e aggiungilo di nuovo — dopo un aggiornamento, macOS tratta l'app non firmata come nuova."
       },
       "grant": "Concedi Permesso",
       "granted": "Concesso",

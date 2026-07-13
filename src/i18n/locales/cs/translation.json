@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Přístup k usnadnění",
-        "description": "Potřebný pro psaní přepsaného textu do vašich aplikací."
+        "description": "Potřebný pro psaní přepsaného textu do vašich aplikací.",
+        "stuckHint": "Povoleno, a přesto čeká? Odeber Dilo ze seznamu Zpřístupnění tlačítkem − a přidej ho znovu — po aktualizaci bere macOS nepodepsanou aplikaci jako novou."
       },
       "grant": "Udělit oprávnění",
       "granted": "Uděleno",

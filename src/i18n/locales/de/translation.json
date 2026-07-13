@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Bedienungshilfen-Zugriff",
-        "description": "Erforderlich, um transkribierten Text in deine Anwendungen einzugeben."
+        "description": "Erforderlich, um transkribierten Text in deine Anwendungen einzugeben.",
+        "stuckHint": "Aktiviert und es wartet trotzdem? Entferne Dilo mit − aus der Bedienungshilfen-Liste und füge es neu hinzu — nach einem Update behandelt macOS die unsignierte App wie eine neue."
       },
       "grant": "Berechtigung erteilen",
       "granted": "Erteilt",

@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "辅助功能访问",
-        "description": "需要将转录文本输入到您的应用程序中。"
+        "description": "需要将转录文本输入到您的应用程序中。",
+        "stuckHint": "已授权却一直等待?在「辅助功能」列表中用 − 移除 Dilo 再重新添加——更新后,macOS 会把未签名的应用当作新应用。"
       },
       "grant": "授予权限",
       "granted": "已授予",

@@ -139,7 +139,8 @@
       },
       "accessibility": {
         "title": "Accès à l'accessibilité",
-        "description": "Nécessaire pour taper le texte transcrit dans vos applications."
+        "description": "Nécessaire pour taper le texte transcrit dans vos applications.",
+        "stuckHint": "Accordé mais toujours en attente ? Retire Dilo de la liste Accessibilité avec − puis rajoute-le — après une mise à jour, macOS traite l'app non signée comme une nouvelle."
       },
       "grant": "Accorder l'autorisation",
       "granted": "Accordé",

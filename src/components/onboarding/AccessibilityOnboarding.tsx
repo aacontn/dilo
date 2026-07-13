@@ -45,6 +45,20 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const errorCountRef = useRef<number>(0);
   const MAX_POLLING_ERRORS = 3;
+  // Con firma adhoc, TCC deja de reconocer a la app tras cada actualización:
+  // el toggle se ve activo pero el permiso no aplica. Si la espera se alarga,
+  // mostramos el remedio (quitar de la lista y volver a agregar).
+  const [showStuckHint, setShowStuckHint] = useState(false);
+  const STUCK_HINT_DELAY_MS = 12000;
+
+  useEffect(() => {
+    if (permissions.accessibility !== "waiting") {
+      setShowStuckHint(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowStuckHint(true), STUCK_HINT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [permissions.accessibility]);
 
   const isMacOS = permissionPlatform === "macos";
   const isWindows = permissionPlatform === "windows";
@@ -380,9 +394,16 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
                     {t("onboarding.permissions.granted")}
                   </div>
                 ) : permissions.accessibility === "waiting" ? (
-                  <div className="flex items-center gap-2 text-text/50 text-sm">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {t("onboarding.permissions.waiting")}
+                  <div>
+                    <div className="flex items-center gap-2 text-text/50 text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t("onboarding.permissions.waiting")}
+                    </div>
+                    {showStuckHint && (
+                      <p className="text-xs text-text/50 mt-2">
+                        {t("onboarding.permissions.accessibility.stuckHint")}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <button
