@@ -19,9 +19,13 @@ const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
 
 // Legacy models are the blob (Url-sourced) .bin/ONNX downloads, superseded by
 // the catalog GGUFs. They stay runnable when already on disk, but we no longer
-// advertise the download.
+// advertise the download. NOTE: catalog GGUFs re-hosted to a direct URL (Xet
+// mirror) are ALSO Url-sourced but are current models — exclude .gguf so they
+// aren't badged "legacy" nor hidden when not yet on disk.
 const isLegacyModel = (model: ModelInfo): boolean =>
-  typeof model.source === "object" && "Url" in model.source;
+  typeof model.source === "object" &&
+  "Url" in model.source &&
+  !model.filename.endsWith(".gguf");
 
 export const ModelsSettings: React.FC = () => {
   const { t } = useTranslation();

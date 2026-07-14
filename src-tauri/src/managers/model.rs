@@ -285,6 +285,17 @@ fn hf_cached_path(repo_id: &str, revision: &str, filename: &str) -> Option<PathB
         .get(filename)
 }
 
+/// A catalog model re-hosted to a direct URL (see [`ModelSource::Url`]) keeps its
+/// HF-style id — `"{repo_id}/{filename}"` — so an existing user may already have
+/// the file in the shared HF cache from before the mirror existed, with nothing
+/// in `models_dir`. Recover that cached copy from the id so we neither hide the
+/// model nor make them re-download. Returns `None` when the id doesn't carry a
+/// `/{filename}` suffix (defensive) or the file isn't cached.
+fn url_model_hf_cache_path(model_id: &str, filename: &str) -> Option<PathBuf> {
+    let repo_id = model_id.strip_suffix(&format!("/{filename}"))?;
+    hf_cached_path(repo_id, "main", filename)
+}
+
 /// Friendly name advertised by GGUF metadata, if present. Empty strings are not
 /// useful display names, so callers can keep their filename/repo fallback.
 fn probed_display_name(probe: &CapabilityProbe) -> Option<String> {
@@ -1345,7 +1356,12 @@ impl ModelManager {
                 let model_path = self.models_dir.join(&model.filename);
                 let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
 
-                model.is_downloaded = model_path.exists();
+                // A catalog Url mirror already sitting in the shared HF cache (no
+                // copy in models_dir) still counts as downloaded — otherwise the
+                // user is told to re-download a file they already have.
+                let in_hf_cache = matches!(&model.source, ModelSource::Url { .. })
+                    && url_model_hf_cache_path(&model.id, &model.filename).is_some();
+                model.is_downloaded = model_path.exists() || in_hf_cache;
                 model.is_downloading = false;
 
                 // Get partial file size if it exists
@@ -2288,6 +2304,16 @@ impl ModelManager {
             return hf_cached_path(repo_id, revision, &model_info.filename).ok_or_else(|| {
                 anyhow::anyhow!("Complete model file not found in HF cache: {}", model_id)
             });
+        }
+
+        // Catalog Url mirror not in models_dir but present in the shared HF cache:
+        // load straight from the cache instead of forcing a re-download.
+        if matches!(&model_info.source, ModelSource::Url { .. })
+            && !self.models_dir.join(&model_info.filename).exists()
+        {
+            if let Some(cached) = url_model_hf_cache_path(&model_info.id, &model_info.filename) {
+                return Ok(cached);
+            }
         }
 
         let model_path = self.models_dir.join(&model_info.filename);
