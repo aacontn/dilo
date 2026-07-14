@@ -19,7 +19,7 @@ export const GeneralSettings: React.FC = () => {
   const pushToTalk = getSetting("push_to_talk");
   const isLinux = type() === "linux";
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-6">
+    <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title={t("settings.general.title")}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <PushToTalk descriptionMode="tooltip" grouped={true} />

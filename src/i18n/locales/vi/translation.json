@@ -45,7 +45,10 @@
     "modes": {
       "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
-      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "literal": {
+        "title": "Literal",
+        "description": "Exactly what you said"
+      },
       "clean": {
         "title": "Clean",
         "description": "No filler or obvious errors"
@@ -58,7 +61,10 @@
         "title": "Message",
         "description": "Short, natural, and casual"
       },
-      "email": { "title": "Email", "description": "Clear and well structured" },
+      "email": {
+        "title": "Email",
+        "description": "Clear and well structured"
+      },
       "code": {
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
@@ -174,6 +180,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "Nhanh, 4 ngôn ngữ, có dịch sang tiếng Anh."
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "Nhanh và chính xác, 25 ngôn ngữ. Cân bằng lý tưởng cho việc đọc chính tả hằng ngày."
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "Độ chính xác cao nhất, 14 ngôn ngữ. Đáng để chờ thêm một chút."
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "Văn bản hiện ra khi bạn nói. Trực tiếp, 28 ngôn ngữ."
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "Whisper lớn được tinh chỉnh cho tốc độ. 100 ngôn ngữ, cần thêm chút RAM."
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "Lựa chọn kinh điển đáng tin cậy. 99 ngôn ngữ, tương thích hoàn toàn."
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "Hiện đại và cân bằng. Hiểu 30 ngôn ngữ mà không dịch bạn."
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "Nhẹ (257 MB). Cho máy cấu hình khiêm tốn vẫn muốn đọc chính tả."
       }
     },
     "errors": {

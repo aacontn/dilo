@@ -45,7 +45,10 @@
     "modes": {
       "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
-      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "literal": {
+        "title": "Literal",
+        "description": "Exactly what you said"
+      },
       "clean": {
         "title": "Clean",
         "description": "No filler or obvious errors"
@@ -58,7 +61,10 @@
         "title": "Message",
         "description": "Short, natural, and casual"
       },
-      "email": { "title": "Email", "description": "Clear and well structured" },
+      "email": {
+        "title": "Email",
+        "description": "Clear and well structured"
+      },
       "code": {
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
@@ -174,6 +180,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "سريع، 4 لغات، مع ترجمة إلى الإنجليزية."
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "سريع ودقيق، 25 لغة. التوازن المثالي للإملاء اليومي."
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "أعلى دقة، 14 لغة. يستحق الانتظار الإضافي القصير."
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "يظهر النص أثناء حديثك. بث مباشر، 28 لغة."
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "نموذج Whisper الكبير مضبوط للسرعة. 100 لغة، يحتاج ذاكرة أكبر قليلاً."
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "الكلاسيكي الموثوق. 99 لغة، توافق كامل."
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "حديث ومتوازن. يفهم 30 لغة دون أن يترجمك."
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "خفيف (257 ميغابايت). للأجهزة المتواضعة التي تريد الإملاء أيضاً."
       }
     },
     "errors": {

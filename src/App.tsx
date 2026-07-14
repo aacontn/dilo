@@ -271,7 +271,7 @@ function App() {
         unstyled: true,
         classNames: {
           toast:
-            "bg-background border border-mid-gray/20 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm",
+            "glass-toast rounded-xl px-4 py-3 flex items-center gap-3 text-sm",
           title: "font-medium",
           description: "text-mid-gray",
         },
@@ -287,39 +287,59 @@ function App() {
   // Select the content for the current step. The Toaster is rendered once, in a
   // stable wrapper around this node, so crossing between onboarding steps and
   // the main app never remounts it (which would drop any in-flight toast).
+  const titlebarDragRegion = (
+    <div
+      className="dilo-titlebar-drag-region"
+      data-tauri-drag-region
+      aria-hidden="true"
+    />
+  );
+
   let content: ReactNode;
   if (onboardingStep === "accessibility") {
     content = (
-      <AccessibilityOnboarding onComplete={handleAccessibilityComplete} />
+      <div className="dilo-onboarding-shell">
+        {titlebarDragRegion}
+        <AccessibilityOnboarding onComplete={handleAccessibilityComplete} />
+      </div>
     );
   } else if (onboardingStep === "model") {
-    content = <Onboarding onModelSelected={handleModelSelected} />;
+    content = (
+      <div className="dilo-onboarding-shell">
+        {titlebarDragRegion}
+        <Onboarding onModelSelected={handleModelSelected} />
+      </div>
+    );
   } else if (onboardingStep === "test") {
     content = (
-      <DictationTestOnboarding onComplete={handleDictationTestComplete} />
+      <div className="dilo-onboarding-shell">
+        {titlebarDragRegion}
+        <DictationTestOnboarding onComplete={handleDictationTestComplete} />
+      </div>
     );
   } else {
     content = (
       <div
         dir={direction}
-        className="h-screen flex flex-col select-none cursor-default"
+        className="dilo-shell h-screen flex flex-col select-none cursor-default"
       >
+        {titlebarDragRegion}
         <WhatsNewGate />
         {/* Main content area that takes remaining space */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="dilo-workspace flex-1 flex overflow-hidden">
           <Sidebar
             activeSection={currentSection}
             onSectionChange={setCurrentSection}
           />
           {/* Scrollable content area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col items-center p-4 gap-4">
+          <main className="dilo-main flex-1 flex flex-col overflow-hidden">
+            <div className="dilo-scroll flex-1 overflow-y-auto">
+              <div className="dilo-page flex flex-col items-center gap-4">
                 <AccessibilityPermissions />
                 {renderSettingsContent(currentSection)}
               </div>
             </div>
-          </div>
+          </main>
         </div>
         {/* Fixed footer at bottom */}
         <Footer />

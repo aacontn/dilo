@@ -45,7 +45,10 @@
     "modes": {
       "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
-      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "literal": {
+        "title": "Literal",
+        "description": "Exactly what you said"
+      },
       "clean": {
         "title": "Clean",
         "description": "No filler or obvious errors"
@@ -58,7 +61,10 @@
         "title": "Message",
         "description": "Short, natural, and casual"
       },
-      "email": { "title": "Email", "description": "Clear and well structured" },
+      "email": {
+        "title": "Email",
+        "description": "Clear and well structured"
+      },
       "code": {
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
@@ -174,6 +180,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "快速,4 種語言,支援翻譯成英語。"
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "快速且準確,支援 25 種語言。日常聽寫的理想平衡。"
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "最高精度,支援 14 種語言。多等一下也值得。"
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "邊說邊出字。即時轉錄,支援 28 種語言。"
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "為速度調校的大型 Whisper。支援 100 種語言,需要較多記憶體。"
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "可靠的經典之選。支援 99 種語言,完全相容。"
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "現代且均衡。理解 30 種語言,不會替你翻譯。"
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "輕量(257 MB)。配置一般的電腦也能聽寫。"
       }
     },
     "errors": {

@@ -45,7 +45,10 @@
     "modes": {
       "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
-      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "literal": {
+        "title": "Literal",
+        "description": "Exactly what you said"
+      },
       "clean": {
         "title": "Clean",
         "description": "No filler or obvious errors"
@@ -58,7 +61,10 @@
         "title": "Message",
         "description": "Short, natural, and casual"
       },
-      "email": { "title": "Email", "description": "Clear and well structured" },
+      "email": {
+        "title": "Email",
+        "description": "Clear and well structured"
+      },
       "code": {
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
@@ -174,6 +180,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "Veloce, 4 lingue, con traduzione in inglese."
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "Veloce e preciso, 25 lingue. L'equilibrio ideale per l'uso quotidiano."
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "Massima precisione, 14 lingue. Vale la piccola attesa in più."
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "Vedi il testo mentre parli. In diretta, 28 lingue."
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "Il grande Whisper ottimizzato per la velocità. 100 lingue, serve un po' più di RAM."
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "Il classico affidabile. 99 lingue, compatibilità totale."
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "Moderno ed equilibrato. Capisce 30 lingue senza tradurti."
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "Leggero (257 MB). Per macchine modeste che vogliono comunque dettare."
       }
     },
     "errors": {

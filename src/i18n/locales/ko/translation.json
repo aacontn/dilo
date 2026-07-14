@@ -45,7 +45,10 @@
     "modes": {
       "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
-      "literal": { "title": "Literal", "description": "Exactly what you said" },
+      "literal": {
+        "title": "Literal",
+        "description": "Exactly what you said"
+      },
       "clean": {
         "title": "Clean",
         "description": "No filler or obvious errors"
@@ -58,7 +61,10 @@
         "title": "Message",
         "description": "Short, natural, and casual"
       },
-      "email": { "title": "Email", "description": "Clear and well structured" },
+      "email": {
+        "title": "Email",
+        "description": "Clear and well structured"
+      },
       "code": {
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
@@ -174,6 +180,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "빠름, 4개 언어, 영어 번역 지원."
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "빠르고 정확함, 25개 언어. 일상 받아쓰기에 이상적인 균형."
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "최고 정확도, 14개 언어. 약간의 기다림이 아깝지 않습니다."
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "말하는 동안 텍스트가 표시됩니다. 실시간, 28개 언어."
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "속도에 최적화된 대형 Whisper. 100개 언어, RAM이 조금 더 필요."
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "신뢰할 수 있는 클래식. 99개 언어, 완전한 호환성."
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "현대적이고 균형 잡힘. 번역 없이 30개 언어를 이해."
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "경량(257 MB). 소박한 컴퓨터에서도 받아쓰기 가능."
       }
     },
     "errors": {

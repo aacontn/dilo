@@ -7,9 +7,12 @@ import {
   getStoredTheme,
   syncThemeFromSettings,
 } from "./lib/utils/theme";
+import { getAppAppearance } from "./lib/utils/appearance";
 
 // Set platform before render so CSS can scope per-platform (e.g. scrollbar styles)
-document.documentElement.dataset.platform = platform();
+const currentPlatform = platform();
+document.documentElement.dataset.platform = currentPlatform;
+document.documentElement.dataset.appearance = getAppAppearance(currentPlatform);
 
 // Apply the last-known theme synchronously before render to avoid a flash of
 // the wrong palette, then reconcile with the persisted setting once it loads.

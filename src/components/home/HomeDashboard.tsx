@@ -25,7 +25,7 @@ import { DictationModes } from "./DictationModes";
 const ShortcutBadge = ({ binding }: { binding: string }) => {
   const osType = useOsType();
   return (
-    <kbd className="font-mono text-xs rounded-md border border-mid-gray/25 bg-mid-gray/10 px-2 py-1 text-text whitespace-nowrap">
+    <kbd className="dilo-keycap font-mono text-xs rounded-md px-2 py-1 text-text whitespace-nowrap">
       {formatKeyCombination(binding, osType)}
     </kbd>
   );
@@ -89,8 +89,8 @@ export const HomeDashboard = () => {
   };
 
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-4">
-      <section className="rounded-2xl border border-logo-primary/25 bg-logo-primary/[0.06] p-5">
+    <div className="home-dashboard max-w-3xl w-full mx-auto space-y-4">
+      <section className="glass-surface glass-surface--hero rounded-2xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-menta mb-2">
@@ -108,14 +108,14 @@ export const HomeDashboard = () => {
           </div>
           <ShortcutBadge binding={primaryShortcut} />
         </div>
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-mid-gray/15 bg-background/55 px-3 py-2 text-xs text-text/60">
+        <div className="glass-inset mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-text/65">
           <LockKeyhole className="size-4 shrink-0 text-menta" />
           {t("home.status.privacy")}
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <section className="rounded-xl border border-mid-gray/20 p-4">
+      <div className="home-metric-grid grid grid-cols-2 gap-3">
+        <section className="glass-surface rounded-xl p-4">
           <div className="flex items-center gap-2 text-text/55">
             <Cpu className="size-4" />
             <span className="text-xs font-medium uppercase tracking-wide">
@@ -132,7 +132,7 @@ export const HomeDashboard = () => {
           </p>
         </section>
 
-        <section className="rounded-xl border border-mid-gray/20 p-4">
+        <section className="glass-surface rounded-xl p-4">
           <div className="flex items-center gap-2 text-text/55">
             {settings?.post_process_enabled ? (
               <Sparkles className="size-4 text-logo-primary" />
@@ -156,7 +156,7 @@ export const HomeDashboard = () => {
 
       <DictationModes />
 
-      <section className="rounded-xl border border-mid-gray/20 overflow-hidden">
+      <section className="glass-surface rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-mid-gray/15">
           <div>
             <h2 className="font-semibold text-sm text-text">

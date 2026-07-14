@@ -67,14 +67,14 @@ export const DictationModes = () => {
   ];
 
   return (
-    <section className="rounded-xl border border-mid-gray/20 p-4">
+    <section className="glass-surface rounded-xl p-4">
       <div className="mb-3">
         <h2 className="font-semibold text-sm text-text">
           {t("home.modes.title")}
         </h2>
         <p className="text-xs text-text/50">{t("home.modes.subtitle")}</p>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="dictation-modes-grid grid gap-2">
         {modes.map((mode) => {
           const Icon = mode.icon;
           const selected = activeMode === mode.id;
@@ -85,10 +85,8 @@ export const DictationModes = () => {
               onClick={mode.onSelect}
               disabled={busy}
               aria-pressed={selected}
-              className={`relative min-h-20 rounded-lg border p-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                selected
-                  ? "border-logo-primary/60 bg-logo-primary/10"
-                  : "border-mid-gray/15 hover:border-logo-primary/35 hover:bg-mid-gray/5"
+              className={`dictation-mode-card relative min-h-20 rounded-lg p-3 text-left disabled:opacity-50 disabled:cursor-not-allowed ${
+                selected ? "dictation-mode-card--selected" : ""
               }`}
             >
               <div className="flex items-center gap-2">

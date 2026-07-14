@@ -12,7 +12,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   children,
 }) => {
   return (
-    <div className="space-y-2">
+    <div className="settings-group space-y-2">
       {title && (
         <div className="px-4">
           <h2 className="text-xs font-medium text-mid-gray uppercase tracking-wide">
@@ -23,7 +23,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="bg-background border border-mid-gray/20 rounded-lg overflow-visible">
+      <div className="glass-surface settings-group-surface rounded-xl overflow-visible">
         <div className="divide-y divide-mid-gray/20">{children}</div>
       </div>
     </div>

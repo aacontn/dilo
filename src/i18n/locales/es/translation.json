@@ -181,6 +181,27 @@
       "canary-1b-flash": {
         "name": "Canary 1B Flash",
         "description": "Rápido, 4 idiomas (español incluido) y traduce al inglés."
+      },
+      "handy-computer/parakeet-tdt-0.6b-v3-gguf/parakeet-tdt-0.6b-v3-Q8_0.gguf": {
+        "description": "Rápido y preciso, 25 idiomas. El equilibrio ideal para dictar a diario."
+      },
+      "handy-computer/cohere-transcribe-03-2026-gguf/cohere-transcribe-03-2026-Q5_K_M.gguf": {
+        "description": "La máxima precisión, 14 idiomas. Vale la pequeña espera extra."
+      },
+      "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf/nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf": {
+        "description": "Ves el texto mientras hablas. En vivo, 28 idiomas."
+      },
+      "handy-computer/whisper-large-v3-turbo-gguf/whisper-large-v3-turbo-Q8_0.gguf": {
+        "description": "El Whisper grande afinado para volar. 100 idiomas, pide algo más de RAM."
+      },
+      "handy-computer/whisper-medium-gguf/whisper-medium-Q8_0.gguf": {
+        "description": "El clásico confiable. 99 idiomas, compatibilidad total."
+      },
+      "handy-computer/Qwen3-ASR-0.6B-gguf/Qwen3-ASR-0.6B-Q8_0.gguf": {
+        "description": "Moderno y equilibrado. Entiende 30 idiomas sin traducirte."
+      },
+      "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
+        "description": "Liviano (257 MB). Para equipos modestos que igual quieren dictar."
       }
     },
     "errors": {

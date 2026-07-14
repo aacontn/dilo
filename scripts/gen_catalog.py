@@ -12,6 +12,14 @@ Merges three sources into one catalog.json:
 
 Emits catalog.json to be committed and `include_str!`'d into the Rust binary.
 Run:  HF_TOKEN=$(hf auth token) uv run gen_catalog.py [out_path]
+
+OJO (curaduría Dilo 2026-07-14): el catalog.json committeado NO es la salida
+cruda de este script. Está curado a 7 modelos, todos con español y descarga
+directa (`download_url` + `sha256` → GitHub Releases aacontn/dilo-models),
+porque HF migró handy-computer/* a Xet y el hf-hub de la app no lo soporta.
+Si regeneras desde HF, vas a resucitar ~58 modelos sin español y con descarga
+rota. Antes de regenerar, replica la curaduría (o actualiza este script para
+aplicarla). Racional: docs/superpowers/specs/ + memoria del proyecto.
 """
 import json, os, re, sys, math, struct, datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed

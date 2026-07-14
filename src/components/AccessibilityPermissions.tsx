@@ -85,7 +85,7 @@ const AccessibilityPermissions: React.FC = () => {
   const config = buttonConfig[permissionState] as ButtonConfig;
 
   return (
-    <div className="p-4 w-full rounded-lg border border-mid-gray">
+    <div className="glass-surface p-4 w-full rounded-xl">
       <div className="flex justify-between items-center gap-2">
         <div className="">
           <p className="text-sm font-medium">

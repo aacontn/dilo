@@ -219,7 +219,7 @@ export const ModelsSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-3xl w-full mx-auto">
+      <div className="settings-page max-w-3xl w-full mx-auto">
         <div className="flex items-center justify-center py-16">
           <div className="w-8 h-8 border-2 border-logo-primary border-t-transparent rounded-full animate-spin" />
         </div>
@@ -228,7 +228,7 @@ export const ModelsSettings: React.FC = () => {
   }
 
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-4">
+    <div className="settings-page max-w-3xl w-full mx-auto space-y-4">
       <div className="mb-4">
         <h1 className="text-xl font-semibold mb-2">
           {t("settings.models.title")}
@@ -297,7 +297,7 @@ export const ModelsSettings: React.FC = () => {
                   </button>
 
                   {languageDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-56 bg-background border border-mid-gray/80 rounded-lg shadow-lg z-50 overflow-hidden">
+                    <div className="glass-popover absolute top-full right-0 mt-1 w-56 rounded-xl z-50 overflow-hidden">
                       <div className="p-2 border-b border-mid-gray/40">
                         <input
                           ref={languageSearchInputRef}
