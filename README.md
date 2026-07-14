@@ -58,13 +58,15 @@ La primera vez, Dilo te guía: dos permisos (micrófono y accesibilidad, explica
 
 Regla simple: más grande = más preciso y más RAM; más chico = vuela. Dilo te recomienda según tu máquina, y **libera la RAM solo** a los 2 minutos sin dictar (configurable).
 
-| Modelo                                   | Español        | Descarga | RAM dictando | Ideal para                           |
-| ---------------------------------------- | -------------- | -------- | ------------ | ------------------------------------ |
-| **Nemotron Streaming 3.5** (recomendado) | ✅ +27 idiomas | 751 MB   | ~1.1–1.4 GB  | Ver el texto en vivo mientras hablas |
-| **Canary 180M Flash**                    | ✅ es/en/de/fr | 218 MB   | ~0.4–0.5 GB  | Compus con 8 GB de RAM o menos       |
-| **Parakeet V3**                          | ✅ 25 idiomas  | 740 MB   | ~1.1–1.4 GB  | Precisión sin streaming              |
-| **Cohere Transcribe**                    | ✅ 14 idiomas  | 1.8 GB   | ~2.5 GB      | Máxima precisión, máquinas potentes  |
-| **Whisper Medium**                       | ✅ 99 idiomas  | 832 MB   | ~1.5 GB      | Idiomas poco comunes                 |
+| Modelo                        | Español        | Descarga | RAM dictando | Ideal para                           |
+| ----------------------------- | -------------- | -------- | ------------ | ------------------------------------ |
+| **Parakeet V3** (recomendado) | ✅ 25 idiomas  | 705 MB   | ~1.1–1.4 GB  | Rápido y preciso — el día a día      |
+| **Nemotron Streaming 3.5**    | ✅ +27 idiomas | 716 MB   | ~1.1–1.4 GB  | Ver el texto en vivo mientras hablas |
+| **Cohere Transcribe**         | ✅ 14 idiomas  | 1.7 GB   | ~2.5 GB      | Máxima precisión, máquinas potentes  |
+| **Whisper Large v3 Turbo**    | ✅ 100 idiomas | 845 MB   | ~1.6 GB      | Whisper de alta calidad              |
+| **Whisper Medium**            | ✅ 99 idiomas  | 793 MB   | ~1.5 GB      | Idiomas poco comunes                 |
+| **Qwen3-ASR 0.6B**            | ✅ 30 idiomas  | 811 MB   | ~1.3 GB      | Balance moderno, multilingüe         |
+| **Whisper Small**             | ✅ 99 idiomas  | 257 MB   | ~0.6 GB      | Equipos modestos (8 GB o menos)      |
 
 En reposo (modelo liberado, ventana cerrada): **~60–80 MB**. Puedes elegir cuantizaciones más chicas (Q4) de cualquier modelo si tu RAM anda justa.
 
@@ -81,7 +83,7 @@ En reposo (modelo liberado, ventana cerrada): **~60–80 MB**. Puedes elegir cua
 - **macOS**: Apple Silicon o Intel (Metal para modelos Whisper)
 - **Windows**: CPU moderna; GPU (Vulkan) opcional para Whisper
 - **Linux**: Ubuntu 22.04/24.04 probado; Wayland con limitaciones (ver abajo)
-- Los modelos recomendados (Parakeet/Nemotron/Canary) corren **bien en CPU pura** — no necesitas GPU
+- Los modelos recomendados (Parakeet/Nemotron/Qwen3) corren **bien en CPU pura** — no necesitas GPU
 
 ## Compilar desde el código
 
