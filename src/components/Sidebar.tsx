@@ -108,7 +108,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <aside className="dilo-sidebar flex flex-col h-full items-center">
+    // The sidebar chrome doubles as a window drag handle: with the native macOS
+    // title bar hidden for the glass look, the thin top strip alone was too hard
+    // to grab. Tauri only starts a drag when the press lands on the drag-region
+    // element itself (its empty space / the wordmark) — the nav <button>s below
+    // are interactive children, so clicks on them still navigate.
+    <aside
+      className="dilo-sidebar flex flex-col h-full items-center"
+      data-tauri-drag-region
+    >
       <Wordmark size="sm" className="dilo-sidebar-wordmark" />
       <nav className="dilo-sidebar-nav flex flex-col w-full items-center gap-1">
         {availableSections.map((section) => {
@@ -120,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               key={section.id}
               className={`dilo-nav-item flex gap-2 items-center w-full cursor-pointer ${
-                isActive ? "dilo-nav-item--active text-ink" : "text-text"
+                isActive ? "dilo-nav-item--active text-text" : "text-text"
               }`}
               onClick={() => onSectionChange(section.id)}
               aria-current={isActive ? "page" : undefined}
