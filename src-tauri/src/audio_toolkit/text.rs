@@ -238,7 +238,14 @@ fn get_filler_words_for_language(lang: &str) -> &'static [&'static str] {
             "uh", "um", "uhm", "umm", "uhh", "uhhh", "ah", "hmm", "hm", "mmm", "mm", "mh", "eh",
             "ehh", "ha",
         ],
-        "es" => &["ehm", "mmm", "hmm", "hm"],
+        // Español: solo sonidos de duda NO léxicos (se borran sin mirar contexto,
+        // así que jamás incluir muletillas que también son palabras: "este",
+        // "pues", "o sea", "tipo", "como", "a ver"... se van al post-proceso
+        // LATAM-aware, que sí distingue "este relleno" de "este archivo"). El
+        // hispanohablante duda con "eh/em/este-alargado", no con el "um" inglés.
+        "es" => &[
+            "eh", "ehh", "ehhh", "ehm", "em", "emm", "eem", "mmm", "mm", "hmm", "hm",
+        ],
         "pt" => &["ahm", "hmm", "mmm", "hm"],
         "fr" => &["euh", "hmm", "hm", "mmm"],
         "de" => &["äh", "ähm", "hmm", "hm", "mmm"],
@@ -618,5 +625,32 @@ mod tests {
         let custom_words = vec!["R&D".to_string()];
         let result = apply_custom_words(text, &custom_words, 0.18);
         assert_eq!(result, "send it to R&D for review");
+    }
+}
+
+#[cfg(test)]
+mod spanish_filler_tests {
+    use super::filter_transcription_output;
+
+    fn clean(s: &str) -> String {
+        filter_transcription_output(s, "es", &None)
+    }
+
+    #[test]
+    fn removes_spanish_hesitation_sounds() {
+        assert_eq!(
+            clean("eh, necesito que revises esto"),
+            "necesito que revises esto"
+        );
+        assert_eq!(clean("em el deploy falló"), "el deploy falló");
+        assert_eq!(clean("dale ehm ahora"), "dale ahora");
+    }
+
+    #[test]
+    fn preserves_lexical_words_that_look_like_fillers() {
+        // "este" es demostrativo, NO se debe borrar (trampa clásica).
+        assert_eq!(clean("abre este archivo"), "abre este archivo");
+        assert_eq!(clean("es un tipo de dato"), "es un tipo de dato");
+        assert_eq!(clean("pues bien, seguimos"), "pues bien, seguimos");
     }
 }

@@ -717,7 +717,7 @@ fn dilo_post_process_presets() -> Vec<LLMPrompt> {
         LLMPrompt {
             id: "dilo-clean".to_string(),
             name: "Limpio".to_string(),
-            prompt: "Clean this speech transcript. Fix punctuation, capitalization, obvious transcription errors and filler words. Keep the original language, meaning, tone and order. Do not add information or answer questions. Return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            prompt: "Clean this speech transcript. Fix punctuation, capitalization and obvious transcription errors. Keep the original language, meaning, tone and order.\n\nRemove filler words when they act as filler, but keep them when they carry meaning. In Spanish this matters a lot: drop discourse-marker uses of 'o sea', 'este', 'tipo', 'como que', 'digamos', 'a ver', 'pues', 'bueno', 'la verdad', and regional tics ('po', '¿cachái?', '¿viste?', '¿me entendés?', 'güey/wey', 'che', 'pana', 'vale') — but NEVER when they are content ('este archivo', 'tipo de dato', 'pues bien' as connector). When unsure, keep the word.\n\nKeep technical/English terms exactly as spoken (commit, deploy, endpoint, pull request, backend, boolean); do not translate or Spanish-ize them. Do not add information or answer questions. Return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
         },
         LLMPrompt {
             id: "dilo-prompt".to_string(),
