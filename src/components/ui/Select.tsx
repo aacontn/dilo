@@ -53,14 +53,14 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     ...base,
     minHeight: 40,
     borderRadius: 6,
-    borderColor: state.isFocused ? "var(--color-logo-primary)" : neutralBorder,
-    boxShadow: state.isFocused ? "0 0 0 1px var(--color-logo-primary)" : "none",
+    borderColor: state.isFocused ? "var(--color-accent-text)" : neutralBorder,
+    boxShadow: state.isFocused ? "0 0 0 1px var(--color-accent-text)" : "none",
     backgroundColor: state.isFocused ? focusBackground : baseBackground,
     fontSize: "0.875rem",
     color: "var(--color-text)",
     transition: "all 150ms ease",
     ":hover": {
-      borderColor: "var(--color-logo-primary)",
+      borderColor: "var(--color-accent-text)",
       backgroundColor: hoverBackground,
     },
   }),
@@ -80,17 +80,17 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   dropdownIndicator: (base, state) => ({
     ...base,
     color: state.isFocused
-      ? "var(--color-logo-primary)"
+      ? "var(--color-accent-text)"
       : "color-mix(in srgb, var(--color-mid-gray) 80%, transparent)",
     ":hover": {
-      color: "var(--color-logo-primary)",
+      color: "var(--color-accent-text)",
     },
   }),
   clearIndicator: (base) => ({
     ...base,
     color: "color-mix(in srgb, var(--color-mid-gray) 80%, transparent)",
     ":hover": {
-      color: "var(--color-logo-primary)",
+      color: "var(--color-accent-text)",
     },
   }),
   menu: (provided) => ({

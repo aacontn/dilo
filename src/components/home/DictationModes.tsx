@@ -1,7 +1,7 @@
 import {
-  AlertTriangle,
   Check,
   Code2,
+  Info,
   Mail,
   MessageCircle,
   Quote,
@@ -67,47 +67,47 @@ export const DictationModes = () => {
   ];
 
   return (
-    <section className="glass-surface rounded-xl p-4">
+    <section className="dictation-modes-section">
       <div className="mb-3">
-        <h2 className="font-semibold text-sm text-text">
+        <h2 className="font-semibold text-base text-text">
           {t("home.modes.title")}
         </h2>
-        <p className="text-xs text-text/50">{t("home.modes.subtitle")}</p>
+        <p className="text-xs text-muted-text">{t("home.modes.subtitle")}</p>
       </div>
-      <div className="dictation-modes-grid grid gap-2">
-        {modes.map((mode) => {
-          const Icon = mode.icon;
-          const selected = activeMode === mode.id;
-          return (
-            <button
-              type="button"
-              key={mode.id}
-              onClick={mode.onSelect}
-              disabled={busy}
-              aria-pressed={selected}
-              className={`dictation-mode-card relative min-h-20 rounded-lg p-3 text-left disabled:opacity-50 disabled:cursor-not-allowed ${
-                selected ? "dictation-mode-card--selected" : ""
-              }`}
-            >
-              <div className="flex items-center gap-2">
+      <div className="glass-surface dictation-mode-segment overflow-hidden rounded-xl">
+        <div className="dictation-modes-grid grid">
+          {modes.map((mode) => {
+            const Icon = mode.icon;
+            const selected = activeMode === mode.id;
+            return (
+              <button
+                type="button"
+                key={mode.id}
+                onClick={mode.onSelect}
+                disabled={busy}
+                aria-pressed={selected}
+                className={`dictation-mode-card relative flex min-h-14 items-center justify-center gap-2 px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  selected ? "dictation-mode-card--selected" : ""
+                }`}
+              >
                 <Icon
-                  className={`size-4 ${selected ? "text-logo-primary" : "text-text/45"}`}
+                  className={`size-4 ${selected ? "text-accent-text" : "text-muted-text"}`}
                 />
-                <span className="text-sm font-semibold text-text">
+                <span className="text-sm font-medium text-text">
                   {mode.label}
                 </span>
-                {selected && <Check className="ms-auto size-3.5 text-menta" />}
-              </div>
-              <p className="mt-1.5 text-[11px] leading-4 text-text/50">
-                {mode.description}
-              </p>
-            </button>
-          );
-        })}
+                {selected && <Check className="size-3.5 text-accent-text" />}
+              </button>
+            );
+          })}
+        </div>
+        <p className="border-t border-mid-gray/15 px-4 py-2.5 text-sm text-text/60">
+          {modes.find((mode) => mode.id === activeMode)?.description}
+        </p>
       </div>
       {activeMode !== "literal" && !providerReady && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-200/80">
-          <AlertTriangle className="size-4 shrink-0" />
+        <div className="mt-3 flex items-center gap-2 px-0.5 text-xs text-muted-text">
+          <Info className="size-4 shrink-0" />
           {t("home.modes.needsProvider")}
         </div>
       )}

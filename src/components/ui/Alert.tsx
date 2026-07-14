@@ -17,23 +17,23 @@ const variantStyles: Record<
 > = {
   error: {
     container: "bg-rojo/10",
-    icon: "text-rojo",
-    text: "text-rojo",
+    icon: "text-danger-text",
+    text: "text-danger-text",
   },
   warning: {
     container: "bg-yellow-500/10",
-    icon: "text-yellow-500",
-    text: "text-yellow-400",
+    icon: "text-warning-text",
+    text: "text-warning-text",
   },
   info: {
     container: "bg-blue-500/10",
-    icon: "text-blue-500",
-    text: "text-blue-400",
+    icon: "text-info-text",
+    text: "text-info-text",
   },
   success: {
     container: "bg-menta/10",
-    icon: "text-menta",
-    text: "text-menta",
+    icon: "text-success-text",
+    text: "text-success-text",
   },
 };
 

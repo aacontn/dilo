@@ -11,6 +11,7 @@ import {
   supportsLanguageCode,
 } from "@/lib/constants/languages.ts";
 import type { ModelInfo } from "@/bindings";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 // check if model supports a language based on its supported_languages list
 const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
@@ -219,9 +220,13 @@ export const ModelsSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="settings-page max-w-3xl w-full mx-auto">
+      <div className="settings-page max-w-3xl w-full mx-auto space-y-4">
+        <PageHeader
+          title={t("settings.models.title")}
+          description={t("settings.models.description")}
+        />
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-2 border-logo-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-accent-text border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -229,24 +234,20 @@ export const ModelsSettings: React.FC = () => {
 
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold mb-2">
-          {t("settings.models.title")}
-        </h1>
-        <p className="text-sm text-text/60">
-          {t("settings.models.description")}
-        </p>
-      </div>
+      <PageHeader
+        title={t("settings.models.title")}
+        description={t("settings.models.description")}
+      />
 
       {/* Search bar — filter the catalog by name or description */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text/40 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-text pointer-events-none" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("settings.models.searchPlaceholder")}
-          className="w-full pl-9 pr-3 py-2 text-sm bg-mid-gray/10 border border-mid-gray/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-logo-primary placeholder:text-text/40"
+          className="w-full pl-9 pr-3 py-2 text-sm bg-mid-gray/10 border border-mid-gray/40 rounded-lg focus:outline-none focus:ring-1 focus:ring-accent-text placeholder:text-muted-text"
         />
       </div>
 
@@ -281,7 +282,7 @@ export const ModelsSettings: React.FC = () => {
                     }
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                       languageFilter !== "all"
-                        ? "bg-logo-primary/20 text-logo-primary"
+                        ? "bg-logo-primary/20 text-accent-text"
                         : "bg-mid-gray/10 text-text/60 hover:bg-mid-gray/20"
                     }`}
                   >
@@ -320,7 +321,7 @@ export const ModelsSettings: React.FC = () => {
                           placeholder={t(
                             "settings.general.language.searchPlaceholder",
                           )}
-                          className="w-full px-2 py-1 text-sm bg-mid-gray/10 border border-mid-gray/40 rounded-md focus:outline-none focus:ring-1 focus:ring-logo-primary"
+                          className="w-full px-2 py-1 text-sm bg-mid-gray/10 border border-mid-gray/40 rounded-md focus:outline-none focus:ring-1 focus:ring-accent-text"
                         />
                       </div>
                       <div className="max-h-48 overflow-y-auto">
@@ -333,7 +334,7 @@ export const ModelsSettings: React.FC = () => {
                           }}
                           className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${
                             languageFilter === "all"
-                              ? "bg-logo-primary/20 text-logo-primary font-semibold"
+                              ? "bg-logo-primary/20 text-accent-text font-semibold"
                               : "hover:bg-mid-gray/10"
                           }`}
                         >
@@ -350,7 +351,7 @@ export const ModelsSettings: React.FC = () => {
                             }}
                             className={`w-full px-3 py-1.5 text-sm text-left transition-colors ${
                               languageFilter === lang.value
-                                ? "bg-logo-primary/20 text-logo-primary font-semibold"
+                                ? "bg-logo-primary/20 text-accent-text font-semibold"
                                 : "hover:bg-mid-gray/10"
                             }`}
                           >
@@ -358,7 +359,7 @@ export const ModelsSettings: React.FC = () => {
                           </button>
                         ))}
                         {filteredLanguages.length === 0 && (
-                          <div className="px-3 py-2 text-sm text-text/50 text-center">
+                          <div className="px-3 py-2 text-sm text-muted-text text-center">
                             {t("settings.general.language.noResults")}
                           </div>
                         )}
@@ -408,7 +409,7 @@ export const ModelsSettings: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="text-center py-8 text-text/50">
+        <div className="text-center py-8 text-muted-text">
           {t("settings.models.noModelsMatch")}
         </div>
       )}

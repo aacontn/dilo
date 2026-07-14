@@ -60,7 +60,7 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
   if (error) {
     return (
       <div className="p-4 bg-rojo/10 border border-rojo/30 rounded-lg">
-        <p className="text-rojo text-sm">
+        <p className="text-danger-text text-sm">
           {t("errors.loadDirectory", { error })}
         </p>
       </div>

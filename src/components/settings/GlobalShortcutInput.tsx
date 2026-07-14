@@ -213,7 +213,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
+        <div className="text-sm text-muted-text">
           {t("settings.general.shortcut.loading")}
         </div>
       </SettingContainer>
@@ -229,7 +229,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
+        <div className="text-sm text-muted-text">
           {t("settings.general.shortcut.none")}
         </div>
       </SettingContainer>
@@ -245,7 +245,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">
+        <div className="text-sm text-muted-text">
           {t("settings.general.shortcut.none")}
         </div>
       </SettingContainer>
@@ -275,13 +275,13 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
         {editingShortcutId === shortcutId ? (
           <div
             ref={(ref) => setShortcutRef(shortcutId, ref)}
-            className="px-2 py-1 text-sm font-semibold border border-logo-primary bg-logo-primary/30 rounded-md"
+            className="px-2 py-1 text-sm font-semibold border border-accent-text bg-logo-primary/30 rounded-md"
           >
             {formatCurrentKeys()}
           </div>
         ) : (
           <div
-            className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-logo-primary"
+            className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded-md cursor-pointer hover:border-accent-text"
             onClick={() => startRecording(shortcutId)}
           >
             {formatKeyCombination(binding.current_binding, osType)}

@@ -11,11 +11,23 @@
   --light-color-background: var(--dilo-papel);
   --light-color-logo-primary: var(--dilo-mango);
   --light-color-logo-stroke: var(--dilo-ink);
+  --light-color-accent-text: #a34f00;
+  --light-color-success-text: #0d7a59;
+  --light-color-danger-text: #b4232b;
+  --light-color-warning-text: #854d0e;
+  --light-color-info-text: #1d4ed8;
+  --light-color-muted-text: #66615b;
 
   --dark-color-text: var(--dilo-papel);
   --dark-color-background: var(--dilo-ink);
   --dark-color-logo-primary: var(--dilo-mango);
   --dark-color-logo-stroke: var(--dilo-papel);
+  --dark-color-accent-text: #ffb15b;
+  --dark-color-success-text: #2ee6a8;
+  --dark-color-danger-text: #ff7b7b;
+  --dark-color-warning-text: #facc15;
+  --dark-color-info-text: #60a5fa;
+  --dark-color-muted-text: #aaa49a;
 
   /* Tokens that do not change between light and dark */
   --color-background-ui: var(--dilo-mango);
@@ -28,6 +40,12 @@
   --color-background: var(--light-color-background);
   --color-logo-primary: var(--light-color-logo-primary);
   --color-logo-stroke: var(--light-color-logo-stroke);
+  --color-accent-text: var(--light-color-accent-text);
+  --color-success-text: var(--light-color-success-text);
+  --color-danger-text: var(--light-color-danger-text);
+  --color-warning-text: var(--light-color-warning-text);
+  --color-info-text: var(--light-color-info-text);
+  --color-muted-text: var(--light-color-muted-text);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,5 +54,11 @@
     --color-background: var(--dark-color-background);
     --color-logo-primary: var(--dark-color-logo-primary);
     --color-logo-stroke: var(--dark-color-logo-stroke);
+    --color-accent-text: var(--dark-color-accent-text);
+    --color-success-text: var(--dark-color-success-text);
+    --color-danger-text: var(--dark-color-danger-text);
+    --color-warning-text: var(--dark-color-warning-text);
+    --color-info-text: var(--dark-color-info-text);
+    --color-muted-text: var(--dark-color-muted-text);
   }
 }

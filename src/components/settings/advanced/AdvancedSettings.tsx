@@ -20,6 +20,7 @@ import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationS
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
+import { PageHeader } from "../../ui/PageHeader";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export const AdvancedSettings: React.FC = () => {
 
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
+      <PageHeader title={t("sidebar.advanced")} />
       <SettingsGroup title={t("settings.advanced.groups.app")}>
         <StartHidden descriptionMode="tooltip" grouped={true} />
         <AutostartToggle descriptionMode="tooltip" grouped={true} />

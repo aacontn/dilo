@@ -95,7 +95,7 @@ const components: Components = {
 
     return (
       <li
-        className={`${isTaskListItem ? "list-none" : "pl-1"} marker:text-text/50`}
+        className={`${isTaskListItem ? "list-none" : "pl-1"} marker:text-muted-text`}
       >
         {children}
       </li>
@@ -156,7 +156,7 @@ const components: Components = {
   ),
   td: ({ children }) => <td className="px-2 py-1.5 align-top">{children}</td>,
   blockquote: ({ children }) => (
-    <blockquote className="border-s-2 border-logo-primary/50 ps-3 text-sm leading-relaxed text-text/70">
+    <blockquote className="border-s-2 border-accent-text ps-3 text-sm leading-relaxed text-text/70">
       {children}
     </blockquote>
   ),
@@ -195,7 +195,7 @@ const components: Components = {
           event.preventDefault();
           void openSafeUrl(href);
         }}
-        className="text-logo-primary underline decoration-logo-primary/40 underline-offset-2 hover:decoration-logo-primary"
+        className="text-accent-text underline decoration-accent-text underline-offset-2 hover:decoration-accent-text"
       >
         {children}
       </a>

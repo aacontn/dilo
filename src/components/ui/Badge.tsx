@@ -13,7 +13,7 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   const variantClasses = {
     primary: "bg-logo-primary text-ink",
-    success: "bg-menta/20 text-menta",
+    success: "bg-menta/20 text-success-text",
     secondary: "bg-mid-gray/20 text-text/70",
   };
 

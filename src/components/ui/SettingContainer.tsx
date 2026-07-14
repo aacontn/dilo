@@ -48,8 +48,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   };
 
   const containerClasses = grouped
-    ? "px-4 p-2"
-    : "glass-surface setting-container-surface px-4 p-2 rounded-xl";
+    ? "setting-row px-5 py-3"
+    : "glass-surface setting-container-surface setting-row px-5 py-3 rounded-xl";
 
   if (layout === "stacked") {
     if (descriptionMode === "tooltip") {
@@ -69,7 +69,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-logo-primary transition-colors duration-200 select-none"
+                className="w-4 h-4 text-muted-text cursor-help hover:text-accent-text transition-colors duration-200 select-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -121,8 +121,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
 
   // Horizontal layout (default)
   const horizontalContainerClasses = grouped
-    ? "flex items-center justify-between min-h-12 px-4 p-2"
-    : "glass-surface setting-container-surface flex items-center justify-between min-h-12 px-4 p-2 rounded-xl";
+    ? "setting-row flex items-center justify-between min-h-[3.25rem] px-5 py-2"
+    : "glass-surface setting-container-surface setting-row flex items-center justify-between min-h-[3.25rem] px-5 py-2 rounded-xl";
 
   if (descriptionMode === "tooltip") {
     return (
@@ -142,7 +142,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-logo-primary transition-colors duration-200 select-none"
+                className="w-4 h-4 text-muted-text cursor-help hover:text-accent-text transition-colors duration-200 select-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

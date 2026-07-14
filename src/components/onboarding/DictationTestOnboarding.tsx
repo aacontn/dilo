@@ -37,7 +37,7 @@ export const DictationTestOnboarding = ({
       <div className="w-full max-w-xl">
         <div className="flex flex-col items-center text-center mb-5">
           <Wordmark size="lg" />
-          <div className="mt-4 flex items-center justify-center size-11 rounded-full bg-logo-primary/10 text-logo-primary">
+          <div className="mt-4 flex items-center justify-center size-11 rounded-full bg-logo-primary/10 text-accent-text">
             {success ? (
               <Check className="size-6" />
             ) : (
@@ -60,7 +60,7 @@ export const DictationTestOnboarding = ({
           className={`rounded-2xl border p-3 transition-colors ${
             success
               ? "border-menta/45 bg-menta/[0.05]"
-              : "border-logo-primary/25 bg-logo-primary/[0.04]"
+              : "border-accent-text bg-logo-primary/[0.04]"
           }`}
         >
           <textarea
@@ -69,10 +69,10 @@ export const DictationTestOnboarding = ({
             onChange={(event) => setText(event.target.value)}
             placeholder={t("onboarding.test.placeholder")}
             aria-label={t("onboarding.test.fieldLabel")}
-            className="h-28 w-full resize-none rounded-xl border border-mid-gray/15 bg-background px-4 py-3 text-base text-text outline-none placeholder:text-text/30 focus:border-logo-primary/55"
+            className="h-28 w-full resize-none rounded-xl border border-mid-gray/15 bg-background px-4 py-3 text-base text-text outline-none placeholder:text-muted-text focus:border-accent-text"
           />
           <div className="flex items-center justify-between gap-3 px-1 pt-3">
-            <p className="text-xs text-text/50">
+            <p className="text-xs text-muted-text">
               {t("onboarding.test.shortcutPrefix")}{" "}
               <kbd className="font-mono rounded border border-mid-gray/20 bg-mid-gray/10 px-1.5 py-0.5 text-text/80">
                 {formatKeyCombination(shortcut, osType)}

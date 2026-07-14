@@ -42,7 +42,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
               role="button"
               className={`w-full px-3 py-2 text-start hover:bg-mid-gray/10 transition-colors cursor-pointer focus:outline-none ${
                 currentModelId === model.id
-                  ? "bg-logo-primary/10 text-logo-primary"
+                  ? "bg-logo-primary/10 text-accent-text"
                   : ""
               }`}
             >
@@ -51,22 +51,22 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                   <div className="text-sm text-text/80">
                     {getTranslatedModelName(model, t)}
                     {model.is_custom && (
-                      <span className="ms-1.5 text-[10px] font-medium text-text/40 uppercase">
+                      <span className="ms-1.5 text-[10px] font-medium text-muted-text uppercase">
                         {t("modelSelector.custom")}
                       </span>
                     )}
                     {model.supports_streaming && (
-                      <span className="ms-1.5 text-[10px] font-medium text-logo-primary/70 uppercase">
+                      <span className="ms-1.5 text-[10px] font-medium text-accent-text uppercase">
                         {t("modelSelector.streaming")}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-text/40 italic pe-4">
+                  <div className="text-xs text-muted-text italic pe-4">
                     {getTranslatedModelDescription(model, t)}
                   </div>
                 </div>
                 {currentModelId === model.id && (
-                  <div className="text-xs text-logo-primary">
+                  <div className="text-xs text-accent-text">
                     {t("modelSelector.active")}
                   </div>
                 )}

@@ -14,6 +14,7 @@ import { useOsType } from "@/hooks/useOsType";
 import { formatDateTime } from "@/utils/dateFormat";
 import { AudioPlayer } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
+import { PageHeader } from "../../ui/PageHeader";
 
 const IconButton: React.FC<{
   onClick: () => void;
@@ -27,8 +28,8 @@ const IconButton: React.FC<{
     disabled={disabled}
     className={`p-1.5 rounded-md flex items-center justify-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:text-text/20 ${
       active
-        ? "text-logo-primary hover:text-logo-primary/80"
-        : "text-text/50 hover:text-logo-primary"
+        ? "text-accent-text hover:text-accent-text"
+        : "text-muted-text hover:text-accent-text"
     }`}
     title={title}
   >
@@ -272,18 +273,16 @@ export const HistorySettings: React.FC = () => {
 
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
-      <div className="space-y-2">
-        <div className="px-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xs font-medium text-mid-gray uppercase tracking-wide">
-              {t("settings.history.title")}
-            </h2>
-          </div>
+      <PageHeader
+        title={t("settings.history.title")}
+        actions={
           <OpenRecordingsButton
             onClick={openRecordingsFolder}
             label={t("settings.history.openFolder")}
           />
-        </div>
+        }
+      />
+      <div>
         <div className="glass-surface rounded-xl overflow-visible">
           {content}
         </div>
@@ -416,7 +415,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             ? ""
             : hasTranscription
               ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
-              : "text-text/40"
+              : "text-muted-text"
         }`}
         style={
           retrying

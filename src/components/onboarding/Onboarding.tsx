@@ -163,7 +163,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
           {t("onboarding.subtitle")}
         </p>
         {ramGb !== null && topPicks[0] && (
-          <p className="text-sm text-text/50">
+          <p className="text-sm text-muted-text">
             {t("onboarding.ramRecommendation", {
               gb: ramGb,
               model: getTranslatedModelName(topPicks[0], t),

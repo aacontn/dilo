@@ -273,7 +273,7 @@ function App() {
           toast:
             "glass-toast rounded-xl px-4 py-3 flex items-center gap-3 text-sm",
           title: "font-medium",
-          description: "text-mid-gray",
+          description: "text-muted-text",
         },
       }}
     />

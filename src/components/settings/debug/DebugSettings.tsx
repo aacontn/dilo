@@ -11,13 +11,15 @@ import { SoundPicker } from "../SoundPicker";
 import { ClamshellMicrophoneSelector } from "../ClamshellMicrophoneSelector";
 import { UpdateChecksToggle } from "../UpdateChecksToggle";
 import { WhatsNewPreview } from "./WhatsNewPreview";
+import { PageHeader } from "../../ui/PageHeader";
 
 export const DebugSettings: React.FC = () => {
   const { t } = useTranslation();
 
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.debug.title")}>
+      <PageHeader title={t("settings.debug.title")} />
+      <SettingsGroup>
         <LogLevelSelector grouped={true} />
         <WhatsNewPreview descriptionMode="tooltip" grouped={true} />
         <UpdateChecksToggle descriptionMode="tooltip" grouped={true} />

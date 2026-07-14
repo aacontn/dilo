@@ -10,6 +10,7 @@ import { AppLanguageSelector } from "../AppLanguageSelector";
 import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
 import { ThemeSelector } from "../ThemeSelector";
 import { LogDirectory } from "../debug";
+import { PageHeader } from "../../ui/PageHeader";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -39,7 +40,8 @@ export const AboutSettings: React.FC = () => {
 
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.about.title")}>
+      <PageHeader title={t("settings.about.title")} />
+      <SettingsGroup>
         <AppLanguageSelector descriptionMode="tooltip" grouped={true} />
         <ThemeSelector descriptionMode="tooltip" grouped={true} />
         <SettingContainer
@@ -88,7 +90,7 @@ export const AboutSettings: React.FC = () => {
           grouped={true}
           layout="stacked"
         >
-          <div className="text-sm text-mid-gray">
+          <div className="text-sm text-muted-text">
             {t("settings.about.acknowledgments.ggml.details")}
           </div>
         </SettingContainer>
@@ -96,7 +98,7 @@ export const AboutSettings: React.FC = () => {
             completa vive en LICENSE). Una línea clickeable, sin destacar. */}
         <button
           type="button"
-          className="px-1 pt-1 text-left text-xs text-mid-gray/70 underline-offset-2 hover:text-mid-gray hover:underline"
+          className="px-1 pt-1 text-left text-xs text-muted-text underline-offset-2 hover:text-muted-text hover:underline"
           onClick={() => openUrl("https://github.com/cjpais/Handy")}
         >
           {t("settings.about.acknowledgments.handy.details")}

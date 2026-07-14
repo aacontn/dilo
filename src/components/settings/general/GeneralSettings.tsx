@@ -12,6 +12,7 @@ import { VolumeSlider } from "../VolumeSlider";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { ModelSettingsCard } from "./ModelSettingsCard";
 import { CustomWords } from "../CustomWords";
+import { PageHeader } from "../../ui/PageHeader";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -20,7 +21,8 @@ export const GeneralSettings: React.FC = () => {
   const isLinux = type() === "linux";
   return (
     <div className="settings-page max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title={t("settings.general.title")}>
+      <PageHeader title={t("settings.general.title")} />
+      <SettingsGroup title={t("settings.general.shortcut.title")}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <PushToTalk descriptionMode="tooltip" grouped={true} />
         {/* Cancel shortcut is hidden with push-to-talk (release key cancels) and on Linux (dynamic shortcut instability) */}
