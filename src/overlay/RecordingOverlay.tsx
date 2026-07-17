@@ -201,13 +201,13 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
-  // dot (left) | waveform (center) | timer + cancel (right) — same structure for
-  // pill & panel, so the Live morph is a pure width change.
+  // spacer (left) | waveform (center) | timer + cancel (right) — same structure
+  // for pill & panel, so the Live morph is a pure width change. The left zone
+  // stays empty (no more red dot: the live waveform already says "recording")
+  // and balances the 3-column grid so the waveform sits centered.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        <span className="sdot" />
-      </div>
+      <div className="sbase-l" />
       {waveform}
       <div className="sbase-r">
         {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}

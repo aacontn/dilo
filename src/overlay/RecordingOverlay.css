@@ -3,9 +3,13 @@
 :root {
   --s-font:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
-     light/dark with --color-background, so no dark-mode override is needed. */
-  --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
+  /* Vidrio simulado: tinte del fondo del tema, translúcido. (backdrop-filter
+     no puede muestrear el escritorio tras una ventana transparente de Tauri,
+     así que no hay blur real; el vidrio lo venden tinte + hairline +
+     highlight + sombra.) El panel Live usa un tinte más opaco para que el
+     transcript se lea sobre fondos ruidosos. */
+  --s-surface: color-mix(in srgb, var(--color-background) 72%, transparent);
+  --s-surface-live: color-mix(in srgb, var(--color-background) 86%, transparent);
   /* Accent = brand mango; flips automatically via --color-logo-primary. */
   --s-accent: var(--color-logo-primary);
   --s-accent-soft: color-mix(
@@ -13,23 +17,25 @@
     var(--color-background-ui) 16%,
     transparent
   );
-  /* Recording = rojo (brand: rojo suave means "grabando"): pulsing dot +
-     reactive waveform. The caret/spinner keep the mango accent. */
-  --s-rec: var(--dilo-rojo);
-  --s-rec-soft: color-mix(in srgb, var(--dilo-rojo) 22%, transparent);
-  /* Neutrals. Hairlines reuse the app's mid-gray at low opacity — same vocabulary
-     as the app's border-mid-gray/* utilities. muted/faint are overlay-specific
-     secondary/tertiary text grays (no theme equivalent). */
-  --s-muted: #6e6e6e;
-  --s-faint: #9a9a9a;
-  --s-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
-  --s-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
+  /* Ondas "brasa": gradiente mango→rojo con glow tenue solo en las barras
+     (elección de diseño: la pastilla no brilla ni respira). */
+  --s-wave-lo: var(--dilo-mango);
+  --s-wave-hi: var(--dilo-rojo);
+  --s-wave-glow: color-mix(in srgb, #ff7a3c 50%, transparent);
+  /* Neutrales derivados del tema para leerse sobre vidrio en ambos modos. */
+  --s-muted: color-mix(in srgb, var(--color-text) 62%, transparent);
+  --s-faint: color-mix(in srgb, var(--color-text) 45%, transparent);
+  --s-border: color-mix(in srgb, var(--color-text) 20%, transparent);
+  --s-hair: color-mix(in srgb, var(--color-text) 10%, transparent);
+  --s-highlight: color-mix(in srgb, #ffffff 32%, transparent);
+  --s-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 
   /* Card geometry — single source of truth for the visible overlay sizes. The
-     native overlay window (overlay.rs) is sized from these: it must be at least
-     the card's max footprint (--ov-work-w for compact, --ov-open-w for Live),
-     since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
-     in sync when these change. */
+     native overlay window (overlay.rs) is sized from these PLUS the shadow pad
+     (12px per side = .ov-stage padding = OVERLAY_SHADOW_PAD): it must be at
+     least the card's max footprint (--ov-work-w for compact, --ov-open-w for
+     Live) plus the pad, since the card is anchored to the padded edge in CSS.
+     Keep overlay.rs in sync when these change. */
   --ov-rest-w: 172px; /* resting compact pill (minimal, recording) -- roomy enough
                          for the English working label before the grow starts */
   --ov-pill-w: 184px; /* base width / Live pill before it opens or collapses */
@@ -48,11 +54,10 @@
       var(--color-logo-primary) 20%,
       transparent
     );
-    --s-muted: #a3a09a;
-    --s-faint: #6f6c66;
-    /* Hairlines flip to the near-white text token for contrast on dark. */
-    --s-border: color-mix(in srgb, var(--color-text) 12%, transparent);
-    --s-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
+    /* En dark el highlight superior baja para no verse plateado, y la sombra
+       sube para separarse de fondos ya oscuros. */
+    --s-highlight: color-mix(in srgb, #ffffff 14%, transparent);
+    --s-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -123,7 +128,8 @@
   margin: 0;
 }
 
-/* Shared base card. Flat: theme surface + hairline border, no shadow or blur. */
+/* Shared base card. Vidrio: tinte translúcido + hairline + highlight interior
+   superior + sombra suave (la sombra vive dentro del pad de la ventana). */
 .scard {
   width: var(--ov-pill-w);
   border-radius: 24px;
@@ -132,14 +138,18 @@
   flex-direction: column;
   flex: none; /* hold our own width; never let the stage flex shrink the card */
   transform-origin: bottom center;
+  cursor: grab; /* toda la tarjeta es zona de agarre (menos ✕ y scroll Live) */
   background: var(--s-surface);
   border: 1px solid var(--s-border);
-  /* Flat: no drop shadow, no backdrop blur/saturate (was a glassy gradient look). */
+  box-shadow:
+    var(--s-shadow),
+    inset 0 1px 0 var(--s-highlight);
   /* pop-in plays on mount; morph (width/radius) is a transition */
   animation: scard-pop 460ms cubic-bezier(0.22, 1, 0.36, 1);
   transition:
     width 460ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 300ms ease;
   will-change: transform, width, opacity;
 }
 @keyframes scard-pop {
@@ -163,6 +173,8 @@
 .scard.open {
   width: var(--ov-open-w);
   border-radius: 16px;
+  /* Más tinte con texto en pantalla: legibilidad del transcript primero. */
+  background: var(--s-surface-live);
 }
 .scard.working {
   width: var(--ov-work-w);
@@ -272,22 +284,6 @@
   gap: 10px;
   justify-self: end;
 }
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--s-rec);
-  flex: none;
-  animation: sdot-pulse 1.9s infinite;
-}
-@keyframes sdot-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--s-rec-soft);
-  }
-  70% {
-    box-shadow: 0 0 0 7px transparent;
-  }
-}
 .stimer {
   font-size: 12px;
   color: var(--s-faint);
@@ -314,7 +310,8 @@
   min-height: 3px;
   max-height: 18px;
   border-radius: 2px;
-  background: var(--s-rec);
+  background: linear-gradient(to top, var(--s-wave-lo), var(--s-wave-hi));
+  box-shadow: 0 0 7px var(--s-wave-glow);
   transition: height 80ms linear;
 }
 .sx {
