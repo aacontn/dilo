@@ -50,21 +50,16 @@ const RecordingOverlay: React.FC = () => {
 
   useEffect(() => {
     const setupEventListeners = async () => {
-      const unlistenShow = await listen("show-overlay", async (event) => {
+      const unlistenShow = await listen<{
+        state: OverlayState;
+        edge: "top" | "bottom";
+      }>("show-overlay", async (event) => {
         await syncLanguageFromSettings();
         // The Live panel flows downward from a top overlay and upward from a
-        // bottom one; read the placement so the layout can flip to match.
-        try {
-          const settings = await commands.getAppSettings();
-          if (settings.status === "ok") {
-            setPosition(
-              settings.data.overlay_position === "top" ? "top" : "bottom",
-            );
-          }
-        } catch {
-          // Keep the previous/default placement if settings can't be read.
-        }
-        const overlayState = event.payload as OverlayState;
+        // bottom one. The effective edge (dragged anchor or preset) comes in
+        // the payload, resolved by the Rust show path.
+        setPosition(event.payload.edge);
+        const overlayState = event.payload.state;
         setState(overlayState);
         if (overlayState === "recording" || overlayState === "streaming") {
           setStreamText({ committed: "", tentative: "" });

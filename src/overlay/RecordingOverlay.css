@@ -68,6 +68,9 @@
 .ov-stage {
   position: fixed;
   inset: 0;
+  /* Aire para la sombra del vidrio; debe calzar con OVERLAY_SHADOW_PAD
+     (overlay.rs). La tarjeta queda inset 12px desde cada borde de la ventana. */
+  padding: 12px;
   display: flex;
   justify-content: center; /* horizontal centering, kept for both forms */
   align-items: flex-end; /* bottom placement: flush to the bottom edge */

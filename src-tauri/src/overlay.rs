@@ -43,13 +43,15 @@ tauri_panel! {
 //
 // Compact overlay (Minimal / transcribing / processing): the 40h pill animates
 // width from 172 (--ov-rest-w) to 216 (--ov-work-w) and expands from center, so
-// the window must fit the widest state plus a little slack.
-const OVERLAY_WIDTH: f64 = 256.0;
-const OVERLAY_HEIGHT: f64 = 46.0;
+// the window must fit the widest state plus a little slack — PLUS the shadow
+// pad on every side (`.ov-stage` padding = OVERLAY_SHADOW_PAD), which keeps the
+// CSS drop shadow of the glass card from clipping at the window edge.
+const OVERLAY_WIDTH: f64 = 280.0; // 256 + 2*OVERLAY_SHADOW_PAD
+const OVERLAY_HEIGHT: f64 = 70.0; // 46 + 2*OVERLAY_SHADOW_PAD
 
-// Actual is 394x118, just a little extra
-const OVERLAY_STREAM_WIDTH: f64 = 400.0;
-const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
+// Actual is 394x118, just a little extra (+ shadow pad per side)
+const OVERLAY_STREAM_WIDTH: f64 = 424.0; // 400 + 24
+const OVERLAY_STREAM_HEIGHT: f64 = 144.0; // 120 + 24
 
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
@@ -174,36 +176,60 @@ static OVERLAY_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 // Page-load handshake for the lazily-created webview: the show that creates the
 // window runs before the overlay page has registered its event listeners, so a
-// plain `show-overlay` emit would be lost. The show path queues the state here
+// plain `show-overlay` emit would be lost. The show path queues the payload here
 // and `on_page_load` re-emits it once the page can hear it.
-static PENDING_OVERLAY_STATE: Mutex<Option<String>> = Mutex::new(None);
+#[derive(Clone, serde::Serialize)]
+struct ShowOverlayPayload {
+    state: String,
+    /// "top" | "bottom" — effective edge (anchor or preset); the webview flips
+    /// the card's CSS anchoring and the Live panel's growth direction with it.
+    edge: String,
+}
 
-fn set_pending_overlay_state(state: Option<&str>) {
+impl ShowOverlayPayload {
+    fn new(state: &str, edge: OverlayPosition) -> Self {
+        ShowOverlayPayload {
+            state: state.to_string(),
+            edge: match edge {
+                OverlayPosition::Top => "top",
+                OverlayPosition::Bottom => "bottom",
+            }
+            .to_string(),
+        }
+    }
+}
+
+static PENDING_OVERLAY_STATE: Mutex<Option<ShowOverlayPayload>> = Mutex::new(None);
+
+fn set_pending_overlay_state(payload: Option<ShowOverlayPayload>) {
     if let Ok(mut pending) = PENDING_OVERLAY_STATE.lock() {
-        *pending = state.map(str::to_owned);
+        *pending = payload;
     }
 }
 
 fn emit_pending_overlay_state(window: &tauri::webview::WebviewWindow) {
-    let state = PENDING_OVERLAY_STATE
+    let payload = PENDING_OVERLAY_STATE
         .lock()
         .ok()
         .and_then(|mut pending| pending.take());
-    if let Some(state) = state {
-        let _ = window.emit("show-overlay", state);
+    if let Some(payload) = payload {
+        let _ = window.emit("show-overlay", payload);
     }
 }
 
+// Screen-edge offsets apply to the WINDOW edge; the visible card sits inset
+// OVERLAY_SHADOW_PAD from it, so each offset is the historical visual distance
+// minus the pad (negative = only the shadow region hangs past the screen edge).
 #[cfg(target_os = "macos")]
-const OVERLAY_TOP_OFFSET: f64 = 46.0;
+const OVERLAY_TOP_OFFSET: f64 = 34.0; // 46 visuales: 34 + pad 12
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-const OVERLAY_TOP_OFFSET: f64 = 4.0;
+const OVERLAY_TOP_OFFSET: f64 = -8.0; // 4 visuales: la ventana sobresale solo sombra
 
 #[cfg(target_os = "macos")]
-const OVERLAY_BOTTOM_OFFSET: f64 = 15.0;
+const OVERLAY_BOTTOM_OFFSET: f64 = 3.0; // 15 visuales
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-const OVERLAY_BOTTOM_OFFSET: f64 = 40.0;
+const OVERLAY_BOTTOM_OFFSET: f64 = 28.0; // 40 visuales
 
 #[cfg(target_os = "linux")]
 fn update_gtk_layer_shell_anchors(overlay_window: &tauri::webview::WebviewWindow) {
@@ -352,7 +378,10 @@ fn is_mouse_within_monitor(
         && mouse_y < (monitor_y + monitor_height as i32)
 }
 
-/// Returns overlay position in logical coordinates (points on macOS).
+/// Returns overlay position in logical coordinates (points on macOS), plus the
+/// effective edge (drives the Live panel's growth direction in the webview).
+/// A dragged anchor for the cursor's monitor wins; otherwise the Top/Bottom
+/// preset applies.
 ///
 /// Uses monitor position/size directly rather than work_area(), which can
 /// return incorrect coordinates on macOS for monitors with negative positions.
@@ -366,23 +395,26 @@ fn calculate_overlay_position(
     app_handle: &AppHandle,
     width: f64,
     height: f64,
-) -> Option<(f64, f64)> {
+) -> Option<(f64, f64, OverlayPosition)> {
     let monitor = get_monitor_with_cursor(app_handle)?;
-    let scale = monitor.scale_factor();
-    let monitor_x = monitor.position().x as f64 / scale;
-    let monitor_y = monitor.position().y as f64 / scale;
-    let monitor_width = monitor.size().width as f64 / scale;
-    let monitor_height = monitor.size().height as f64 / scale;
-
+    let mon = MonRect::from_monitor(&monitor);
+    if mon.w <= 0.0 || mon.h <= 0.0 {
+        return None;
+    }
     let settings = settings::get_settings(app_handle);
 
-    let x = monitor_x + (monitor_width - width) / 2.0;
+    if let Some(anchor) = settings.overlay_custom_positions.get(&monitor_key(&monitor)) {
+        let (x, y) = resolve_anchor_position(&mon, anchor, width, height);
+        return Some((x, y, anchor.edge));
+    }
+
+    let x = mon.x + (mon.w - width) / 2.0;
     let y = match settings.overlay_position {
-        OverlayPosition::Top => monitor_y + OVERLAY_TOP_OFFSET,
-        OverlayPosition::Bottom => monitor_y + monitor_height - height - OVERLAY_BOTTOM_OFFSET,
+        OverlayPosition::Top => mon.y + OVERLAY_TOP_OFFSET,
+        OverlayPosition::Bottom => mon.y + mon.h - height - OVERLAY_BOTTOM_OFFSET,
     };
 
-    Some((x, y))
+    Some((x, y, settings.overlay_position))
 }
 
 /// Current overlay window size in logical units (points), for repositioning
@@ -467,7 +499,8 @@ fn create_recording_overlay(app_handle: &AppHandle) {
 /// (see the lifecycle note by `OVERLAY_GENERATION`).
 #[cfg(target_os = "macos")]
 fn create_recording_overlay(app_handle: &AppHandle) {
-    if let Some((x, y)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT) {
+    if let Some((x, y, _edge)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    {
         // PanelBuilder creates a Tauri window then converts it to NSPanel.
         // The window remains registered, so get_webview_window() still works.
         match PanelBuilder::<_, RecordingOverlayPanel>::new(app_handle, "recording_overlay")
@@ -532,10 +565,20 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     // Invalidate any pending destroy timer from an earlier hide.
     OVERLAY_GENERATION.fetch_add(1, Ordering::Relaxed);
 
-    // Queue the state for the page-load handshake: if the window below is
+    // Size for this state (compact vs. streaming) and resolve where the window
+    // goes — dragged anchor of the cursor's monitor, or the Top/Bottom preset —
+    // plus the effective edge the webview needs for its layout direction.
+    let (width, height) = overlay_dimensions(state);
+    let position = calculate_overlay_position(app_handle, width, height);
+    let edge = position
+        .map(|(_, _, edge)| edge)
+        .unwrap_or(settings.overlay_position);
+    let payload = ShowOverlayPayload::new(state, edge);
+
+    // Queue the payload for the page-load handshake: if the window below is
     // freshly created (or still loading), the direct emit at the end of this
     // function fires before the page's listeners exist and would be lost.
-    set_pending_overlay_state(Some(state));
+    set_pending_overlay_state(Some(payload.clone()));
 
     // Get-or-create: the overlay window only lives while recording (plus a
     // short idle period), so a resting app keeps no overlay webview alive.
@@ -550,9 +593,6 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
         }
     };
 
-    // Size the overlay for this state (compact vs. streaming), then position it.
-    let (width, height) = overlay_dimensions(state);
-
     #[cfg(target_os = "linux")]
     update_gtk_layer_shell_anchors(&overlay_window);
 
@@ -562,7 +602,7 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
 
     let pos_started = std::time::Instant::now();
     let mut set_pos_elapsed = std::time::Duration::ZERO;
-    if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
+    if let Some((x, y, _edge)) = position {
         let set_pos_started = std::time::Instant::now();
         let _ =
             overlay_window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
@@ -578,7 +618,7 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     #[cfg(target_os = "windows")]
     force_overlay_topmost(&overlay_window);
 
-    let _ = overlay_window.emit("show-overlay", state);
+    let _ = overlay_window.emit("show-overlay", payload);
     log::debug!(
         "overlay '{}': set_size={:?} pos_calc={:?} set_pos={:?} show={:?}",
         state,
@@ -621,7 +661,7 @@ pub fn update_overlay_position(app_handle: &AppHandle) {
         // overlay is in compact or streaming layout.
         let (width, height) = current_overlay_logical_size(&overlay_window)
             .unwrap_or((OVERLAY_WIDTH, OVERLAY_HEIGHT));
-        if let Some((x, y)) = calculate_overlay_position(app_handle, width, height) {
+        if let Some((x, y, _edge)) = calculate_overlay_position(app_handle, width, height) {
             let _ = overlay_window
                 .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
         }
