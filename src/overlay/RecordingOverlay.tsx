@@ -144,6 +144,32 @@ const RecordingOverlay: React.FC = () => {
   const fmtTime = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  // Arrastre: toda la tarjeta es zona de agarre salvo los controles
+  // interactivos (✕ y el scroll del texto Live). El drag nativo recién parte
+  // cuando el press se movió >4px — un press quieto no hace nada.
+  const DRAG_THRESHOLD_PX = 4;
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest(".sx, .stext-cap")) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const onMove = (ev: MouseEvent) => {
+      if (
+        Math.hypot(ev.clientX - startX, ev.clientY - startY) >=
+        DRAG_THRESHOLD_PX
+      ) {
+        cleanup();
+        void commands.startOverlayDrag();
+      }
+    };
+    const cleanup = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", cleanup);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", cleanup);
+  };
+
   // ---- Shared building blocks (one visual language for every overlay form) ----
   const waveform = (
     <div className="swave">
@@ -221,6 +247,7 @@ const RecordingOverlay: React.FC = () => {
           className={`scard ${open ? "open" : ""} ${collapsed ? "working" : ""} ${
             isVisible ? "" : "leaving"
           }`}
+          onMouseDown={handleDragMouseDown}
         >
           <div className="stext">
             <div className="stext-clip">
@@ -270,6 +297,7 @@ const RecordingOverlay: React.FC = () => {
     >
       <div
         className={`scard compact ${working && isVisible ? "cworking" : ""}`}
+        onMouseDown={handleDragMouseDown}
       >
         {working ? workingRow(workLabel, true) : listeningRow(false, true)}
       </div>

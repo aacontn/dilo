@@ -638,6 +638,7 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            overlay::start_overlay_drag,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,
@@ -938,6 +939,13 @@ pub fn run(cli_args: CliArgs) {
                 log::info!("Theme changed to: {:?}", theme);
                 // Re-apply the current tray state with the new theme's icon set
                 utils::refresh_tray_icon(window.app_handle());
+            }
+            tauri::WindowEvent::Moved(_) => {
+                // Persistencia del arrastre del overlay: overlay.rs decide si el
+                // movimiento fue del usuario (flag de drag) o programático.
+                if window.label() == "recording_overlay" {
+                    overlay::on_overlay_moved(window.app_handle());
+                }
             }
             _ => {}
         })

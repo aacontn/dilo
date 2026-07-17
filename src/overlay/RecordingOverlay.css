@@ -201,6 +201,7 @@
 }
 .stext-cap {
   max-height: var(--ov-cap-max-h);
+  cursor: auto; /* el texto Live scrollea, no agarra */
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;

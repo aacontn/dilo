@@ -292,6 +292,10 @@ fn init_gtk_layer_shell(overlay_window: &tauri::webview::WebviewWindow) -> bool 
 
         update_gtk_layer_shell_anchors(overlay_window);
 
+        // Con layer-shell el compositor ancla la ventana: el arrastre queda
+        // deshabilitado (ver start_overlay_drag).
+        LAYER_SHELL_ACTIVE.store(true, Ordering::Relaxed);
+
         return true;
     }
     false
@@ -596,6 +600,10 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     #[cfg(target_os = "linux")]
     update_gtk_layer_shell_anchors(&overlay_window);
 
+    // Un show supersede cualquier arrastre a medio camino: los set_size /
+    // set_position de abajo son programáticos y no deben persistirse.
+    cancel_pending_drag();
+
     let size_started = std::time::Instant::now();
     let _ = overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
     let size_elapsed = size_started.elapsed();
@@ -627,6 +635,99 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
         set_pos_elapsed,
         show_elapsed
     );
+}
+
+// --- Arrastre del overlay ---
+// El frontend invoca `start_overlay_drag` (tras un umbral de 4px); el OS mueve
+// la ventana. Mientras el flag está activo, cada WindowEvent::Moved re-arma un
+// debounce; cuando el movimiento cesa ~500ms se persiste la posición final
+// como ancla del monitor donde quedó el centro de la ventana. Un show
+// programático cancela cualquier drag pendiente (sus set_position no deben
+// persistirse como si fueran del usuario).
+static OVERLAY_DRAGGING: AtomicBool = AtomicBool::new(false);
+static OVERLAY_MOVE_SEQ: AtomicU64 = AtomicU64::new(0);
+const DRAG_SETTLE_MS: u64 = 500;
+
+#[cfg(target_os = "linux")]
+static LAYER_SHELL_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+pub(crate) fn cancel_pending_drag() {
+    OVERLAY_DRAGGING.store(false, Ordering::Relaxed);
+    OVERLAY_MOVE_SEQ.fetch_add(1, Ordering::Relaxed);
+}
+
+/// Inicia el arrastre nativo del overlay. Invocado desde el webview del
+/// overlay con el mouse presionado (requisito de `start_dragging`).
+#[tauri::command]
+#[specta::specta]
+pub fn start_overlay_drag(app: AppHandle) {
+    #[cfg(target_os = "linux")]
+    if LAYER_SHELL_ACTIVE.load(Ordering::Relaxed) {
+        return; // layer-shell ancla la ventana: no hay arrastre posible
+    }
+    if let Some(window) = app.get_webview_window("recording_overlay") {
+        OVERLAY_DRAGGING.store(true, Ordering::Relaxed);
+        if let Err(e) = window.start_dragging() {
+            log::warn!("start_dragging del overlay falló: {}", e);
+            cancel_pending_drag();
+        }
+    }
+}
+
+/// Handler de WindowEvent::Moved del overlay (ver on_window_event en lib.rs).
+pub fn on_overlay_moved(app_handle: &AppHandle) {
+    if !OVERLAY_DRAGGING.load(Ordering::Relaxed) {
+        return; // movimiento programático (show/update), no del usuario
+    }
+    let seq = OVERLAY_MOVE_SEQ.fetch_add(1, Ordering::Relaxed) + 1;
+    let app = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(DRAG_SETTLE_MS)).await;
+        if OVERLAY_MOVE_SEQ.load(Ordering::Relaxed) != seq
+            || !OVERLAY_DRAGGING.swap(false, Ordering::Relaxed)
+        {
+            return; // llegó otro Moved (sigue arrastrando) o un show lo canceló
+        }
+        persist_dropped_position(&app);
+    });
+}
+
+/// Lee dónde quedó la ventana y guarda el ancla bajo el monitor que contiene
+/// su centro. Si nada la contiene (soltada entre pantallas), no se guarda.
+fn persist_dropped_position(app_handle: &AppHandle) {
+    let Some(window) = app_handle.get_webview_window("recording_overlay") else {
+        return;
+    };
+    let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) else {
+        return;
+    };
+    let Some((w, h)) = current_overlay_logical_size(&window) else {
+        return;
+    };
+    let x = pos.x as f64 / scale;
+    let y = pos.y as f64 / scale;
+    let (cx, cy) = (x + w / 2.0, y + h / 2.0);
+
+    let Ok(monitors) = app_handle.available_monitors() else {
+        return;
+    };
+    for monitor in monitors {
+        let mon = MonRect::from_monitor(&monitor);
+        if mon.w <= 0.0 || mon.h <= 0.0 {
+            continue;
+        }
+        if cx >= mon.x && cx < mon.x + mon.w && cy >= mon.y && cy < mon.y + mon.h {
+            let anchor = anchor_from_drop(&mon, x, y, w, h);
+            let mut settings = settings::get_settings(app_handle);
+            settings
+                .overlay_custom_positions
+                .insert(monitor_key(&monitor), anchor);
+            settings::write_settings(app_handle, settings);
+            log::debug!("overlay drop persistido en '{}'", monitor_key(&monitor));
+            return;
+        }
+    }
+    log::debug!("overlay drop fuera de todo monitor; no se persiste");
 }
 
 /// Shows the recording overlay window with fade-in animation

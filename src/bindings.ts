@@ -487,6 +487,13 @@ async showMainWindowCommand() : Promise<Result<null, string>> {
 async cancelOperation() : Promise<void> {
     await TAURI_INVOKE("cancel_operation");
 },
+/**
+ * Inicia el arrastre nativo del overlay. Invocado desde el webview del
+ * overlay con el mouse presionado (requisito de `start_dragging`).
+ */
+async startOverlayDrag() : Promise<void> {
+    await TAURI_INVOKE("start_overlay_drag");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },
@@ -918,7 +925,14 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; 
+/**
+ * Posiciones arrastradas del overlay, por monitor (clave: nombre del
+ * monitor o fallback tamaño@posición). Vacío = usar el preset
+ * `overlay_position`. Se limpia desde el tray ("Restablecer posición")
+ * o al re-elegir Arriba/Abajo en Configuración.
+ */
+overlay_custom_positions?: Partial<{ [key in string]: OverlayAnchor }> }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -974,6 +988,25 @@ sha256: string | null } } |
 "Local"
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
+/**
+ * Posición personalizada del overlay para un monitor, guardada al soltar un
+ * arrastre. Se ancla al borde superior o inferior del monitor (no a una
+ * esquina) para que la tarjeta no salte cuando la ventana cambia de tamaño
+ * entre compacto y streaming.
+ */
+export type OverlayAnchor = { 
+/**
+ * Centro horizontal de la ventana como fracción [0,1] del ancho del monitor.
+ */
+x_frac: number; 
+/**
+ * Borde del monitor al que está anclada (reutiliza Top/Bottom).
+ */
+edge: OverlayPosition; 
+/**
+ * Puntos lógicos desde el borde `edge` del monitor al borde homólogo de la ventana.
+ */
+edge_offset: number }
 export type OverlayPosition = "top" | "bottom"
 /**
  * Which recording overlay to display. `Minimal` and `Live` share one base
