@@ -130,6 +130,20 @@ pub enum OverlayStyle {
     Live,
 }
 
+/// Posición personalizada del overlay para un monitor, guardada al soltar un
+/// arrastre. Se ancla al borde superior o inferior del monitor (no a una
+/// esquina) para que la tarjeta no salte cuando la ventana cambia de tamaño
+/// entre compacto y streaming.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Type)]
+pub struct OverlayAnchor {
+    /// Centro horizontal de la ventana como fracción [0,1] del ancho del monitor.
+    pub x_frac: f64,
+    /// Borde del monitor al que está anclada (reutiliza Top/Bottom).
+    pub edge: OverlayPosition,
+    /// Puntos lógicos desde el borde `edge` del monitor al borde homólogo de la ventana.
+    pub edge_offset: f64,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelUnloadTimeout {
@@ -464,6 +478,12 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Posiciones arrastradas del overlay, por monitor (clave: nombre del
+    /// monitor o fallback tamaño@posición). Vacío = usar el preset
+    /// `overlay_position`. Se limpia desde el tray ("Restablecer posición")
+    /// o al re-elegir Arriba/Abajo en Configuración.
+    #[serde(default)]
+    pub overlay_custom_positions: HashMap<String, OverlayAnchor>,
 }
 
 fn default_model() -> String {
@@ -933,6 +953,7 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
+        overlay_custom_positions: HashMap::new(),
     }
 }
 
@@ -1550,5 +1571,35 @@ mod tests {
         let out = format!("{:?}", map);
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn overlay_custom_positions_defaults_to_empty_map() {
+        // Un store viejo (sin la clave) debe deserializar con mapa vacío, no fallar.
+        let settings: AppSettings = serde_json::from_value(serde_json::json!({
+            "overlay_position": "bottom"
+        }))
+        .expect("store viejo sin overlay_custom_positions debe deserializar");
+        assert!(settings.overlay_custom_positions.is_empty());
+        assert!(get_default_settings().overlay_custom_positions.is_empty());
+    }
+
+    #[test]
+    fn overlay_anchor_roundtrips_via_serde() {
+        let mut settings = get_default_settings();
+        settings.overlay_custom_positions.insert(
+            "Built-in Retina Display".to_string(),
+            OverlayAnchor {
+                x_frac: 0.25,
+                edge: OverlayPosition::Top,
+                edge_offset: 120.0,
+            },
+        );
+        let json = serde_json::to_value(&settings).expect("serialize");
+        let back: AppSettings = serde_json::from_value(json).expect("deserialize");
+        let anchor = &back.overlay_custom_positions["Built-in Retina Display"];
+        assert_eq!(anchor.edge, OverlayPosition::Top);
+        assert!((anchor.x_frac - 0.25).abs() < f64::EPSILON);
+        assert!((anchor.edge_offset - 120.0).abs() < f64::EPSILON);
     }
 }
