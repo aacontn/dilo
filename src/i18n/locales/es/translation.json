@@ -3,6 +3,7 @@
     "settings": "Ajustes...",
     "checkUpdates": "Buscar actualizaciones...",
     "copyLastTranscript": "Copiar lo último que dictaste",
+    "resetOverlayPosition": "Restablecer posición del overlay",
     "unloadModel": "Sacar el modelo de la RAM",
     "model": "Modelo",
     "quit": "Salir",

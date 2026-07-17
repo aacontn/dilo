@@ -730,6 +730,19 @@ fn persist_dropped_position(app_handle: &AppHandle) {
     log::debug!("overlay drop fuera de todo monitor; no se persiste");
 }
 
+/// Borra las posiciones arrastradas de todas las pantallas; el overlay vuelve
+/// al preset Arriba/Abajo. Lo llaman el tray y el cambio del setting de
+/// posición ("re-elegir Abajo" también resetea).
+pub fn clear_custom_overlay_positions(app_handle: &AppHandle) {
+    let mut settings = settings::get_settings(app_handle);
+    if settings.overlay_custom_positions.is_empty() {
+        return;
+    }
+    settings.overlay_custom_positions.clear();
+    settings::write_settings(app_handle, settings);
+    update_overlay_position(app_handle);
+}
+
 /// Shows the recording overlay window with fade-in animation
 pub fn show_recording_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "recording");

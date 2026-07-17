@@ -3,6 +3,7 @@
     "settings": "Configurações...",
     "checkUpdates": "Verificar Atualizações...",
     "copyLastTranscript": "Copiar última transcrição",
+    "resetOverlayPosition": "Redefinir posição do overlay",
     "unloadModel": "Descarregar modelo",
     "model": "Modelo",
     "quit": "Sair",

@@ -280,6 +280,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
             "copy_last_transcript" => {
                 tray::copy_last_transcript(app);
             }
+            "reset_overlay_position" => {
+                overlay::clear_custom_overlay_positions(app);
+            }
             "unload_model" => {
                 let transcription_manager = app.state::<Arc<TranscriptionManager>>();
                 if !transcription_manager.is_model_loaded() {
