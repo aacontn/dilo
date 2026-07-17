@@ -63,6 +63,102 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
 const EMIT_THROTTLE_MS: u64 = 33; // ~30 FPS
 
+/// Padding (puntos lógicos) entre la tarjeta y el borde de la ventana, para
+/// que la sombra CSS del vidrio no se recorte. Debe calzar con el
+/// `padding: 12px` de `.ov-stage` en RecordingOverlay.css.
+pub(crate) const OVERLAY_SHADOW_PAD: f64 = 12.0;
+
+/// Rect lógico de un monitor (posición/tamaño divididos por scale factor).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MonRect {
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
+}
+
+impl MonRect {
+    fn from_monitor(monitor: &tauri::Monitor) -> Self {
+        let scale = monitor.scale_factor();
+        MonRect {
+            x: monitor.position().x as f64 / scale,
+            y: monitor.position().y as f64 / scale,
+            w: monitor.size().width as f64 / scale,
+            h: monitor.size().height as f64 / scale,
+        }
+    }
+}
+
+/// Clave estable para el mapa de posiciones custom. Nombre del monitor; si el
+/// backend no lo entrega, tamaño@posición física como fallback.
+fn monitor_key(monitor: &tauri::Monitor) -> String {
+    match monitor.name() {
+        Some(name) if !name.is_empty() => name.clone(),
+        _ => format!(
+            "{}x{}@{},{}",
+            monitor.size().width,
+            monitor.size().height,
+            monitor.position().x,
+            monitor.position().y
+        ),
+    }
+}
+
+/// La tarjeta (ventana inset OVERLAY_SHADOW_PAD) debe quedar completa dentro
+/// del monitor; la ventana puede sobresalir hasta el pad (solo sombra afuera).
+fn clamp_window_to_monitor(mon: &MonRect, x: f64, y: f64, w: f64, h: f64) -> (f64, f64) {
+    let min_x = mon.x - OVERLAY_SHADOW_PAD;
+    let max_x = (mon.x + mon.w) - w + OVERLAY_SHADOW_PAD;
+    let min_y = mon.y - OVERLAY_SHADOW_PAD;
+    let max_y = (mon.y + mon.h) - h + OVERLAY_SHADOW_PAD;
+    (
+        x.clamp(min_x, max_x.max(min_x)),
+        y.clamp(min_y, max_y.max(min_y)),
+    )
+}
+
+/// Posición (lógica) de la ventana para un ancla guardada, clampeada.
+fn resolve_anchor_position(
+    mon: &MonRect,
+    anchor: &crate::settings::OverlayAnchor,
+    w: f64,
+    h: f64,
+) -> (f64, f64) {
+    let x = mon.x + anchor.x_frac * mon.w - w / 2.0;
+    let y = match anchor.edge {
+        OverlayPosition::Top => mon.y + anchor.edge_offset,
+        OverlayPosition::Bottom => mon.y + mon.h - anchor.edge_offset - h,
+    };
+    clamp_window_to_monitor(mon, x, y, w, h)
+}
+
+/// Ancla a partir de dónde quedó la ventana al soltar el arrastre. El borde se
+/// decide por la mitad del monitor en que quedó el centro de la ventana.
+fn anchor_from_drop(
+    mon: &MonRect,
+    x: f64,
+    y: f64,
+    w: f64,
+    h: f64,
+) -> crate::settings::OverlayAnchor {
+    let cx = x + w / 2.0;
+    let cy = y + h / 2.0;
+    let edge = if cy < mon.y + mon.h / 2.0 {
+        OverlayPosition::Top
+    } else {
+        OverlayPosition::Bottom
+    };
+    let edge_offset = match edge {
+        OverlayPosition::Top => (y - mon.y).max(0.0),
+        OverlayPosition::Bottom => ((mon.y + mon.h) - (y + h)).max(0.0),
+    };
+    crate::settings::OverlayAnchor {
+        x_frac: ((cx - mon.x) / mon.w).clamp(0.0, 1.0),
+        edge,
+        edge_offset,
+    }
+}
+
 // Lazy-overlay lifecycle: the window is created on first show and only HIDDEN
 // afterwards, never destroyed. A resting app that hasn't dictated yet keeps no
 // overlay webview alive; after first use the hidden webview stays (~40 MB).
@@ -610,4 +706,62 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
     // eval_script call per callback, cutting the per-callback WebKit
     // dispatch work in half.
     let _ = app_handle.emit_to("recording_overlay", "mic-level", levels);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::OverlayAnchor;
+
+    const MON: MonRect = MonRect {
+        x: 0.0,
+        y: 0.0,
+        w: 1440.0,
+        h: 900.0,
+    };
+
+    #[test]
+    fn drop_in_top_half_anchors_to_top_edge() {
+        // Ventana de 280x70 soltada con su centro en y=200 (mitad superior).
+        let a = anchor_from_drop(&MON, 300.0, 165.0, 280.0, 70.0);
+        assert_eq!(a.edge, OverlayPosition::Top);
+        assert!((a.edge_offset - 165.0).abs() < 0.5);
+        // centro x = 300 + 140 = 440 → 440/1440
+        assert!((a.x_frac - 440.0 / 1440.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn drop_in_bottom_half_anchors_to_bottom_edge() {
+        let a = anchor_from_drop(&MON, 300.0, 700.0, 280.0, 70.0);
+        assert_eq!(a.edge, OverlayPosition::Bottom);
+        // borde inferior ventana = 770 → offset = 900-770 = 130
+        assert!((a.edge_offset - 130.0).abs() < 0.5);
+    }
+
+    #[test]
+    fn resolve_roundtrips_the_drop_position_across_sizes() {
+        // La misma ancla coloca el borde anclado en el mismo lugar aunque la
+        // ventana cambie de alto (compacto 70 vs streaming 144).
+        let a = anchor_from_drop(&MON, 300.0, 700.0, 280.0, 70.0);
+        let (_, y_compact) = resolve_anchor_position(&MON, &a, 280.0, 70.0);
+        let (_, y_stream) = resolve_anchor_position(&MON, &a, 424.0, 144.0);
+        assert!((y_compact + 70.0 - (y_stream + 144.0)).abs() < 0.5); // mismo borde inferior
+        assert!((y_compact - 700.0).abs() < 0.5);
+    }
+
+    #[test]
+    fn resolve_clamps_offscreen_anchor_to_visible_area() {
+        // Ancla corrupta / de otra resolución: la tarjeta (ventana menos el pad
+        // de sombra) debe quedar dentro del monitor.
+        let a = OverlayAnchor {
+            x_frac: 1.4,
+            edge: OverlayPosition::Bottom,
+            edge_offset: 5000.0,
+        };
+        let (x, y) = resolve_anchor_position(&MON, &a, 280.0, 70.0);
+        assert!(x + OVERLAY_SHADOW_PAD >= MON.x - 0.5);
+        assert!(x + 280.0 - OVERLAY_SHADOW_PAD <= MON.x + MON.w + 0.5);
+        assert!(y + OVERLAY_SHADOW_PAD >= MON.y - 0.5);
+        assert!(y + 70.0 - OVERLAY_SHADOW_PAD <= MON.y + MON.h + 0.5);
+    }
 }
