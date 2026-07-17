@@ -9,7 +9,11 @@
      highlight + sombra.) El panel Live usa un tinte más opaco para que el
      transcript se lea sobre fondos ruidosos. */
   --s-surface: color-mix(in srgb, var(--color-background) 72%, transparent);
-  --s-surface-live: color-mix(in srgb, var(--color-background) 86%, transparent);
+  --s-surface-live: color-mix(
+    in srgb,
+    var(--color-background) 86%,
+    transparent
+  );
   /* Accent = brand mango; flips automatically via --color-logo-primary. */
   --s-accent: var(--color-logo-primary);
   --s-accent-soft: color-mix(

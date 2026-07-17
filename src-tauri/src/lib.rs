@@ -943,12 +943,10 @@ pub fn run(cli_args: CliArgs) {
                 // Re-apply the current tray state with the new theme's icon set
                 utils::refresh_tray_icon(window.app_handle());
             }
-            tauri::WindowEvent::Moved(_) => {
-                // Persistencia del arrastre del overlay: overlay.rs decide si el
-                // movimiento fue del usuario (flag de drag) o programático.
-                if window.label() == "recording_overlay" {
-                    overlay::on_overlay_moved(window.app_handle());
-                }
+            // Persistencia del arrastre del overlay: overlay.rs decide si el
+            // movimiento fue del usuario (flag de drag) o programático.
+            tauri::WindowEvent::Moved(_) if window.label() == "recording_overlay" => {
+                overlay::on_overlay_moved(window.app_handle());
             }
             _ => {}
         })

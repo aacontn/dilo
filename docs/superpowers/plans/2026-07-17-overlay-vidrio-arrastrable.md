@@ -36,9 +36,11 @@
 ### Task 1: Settings — `OverlayAnchor` + `overlay_custom_positions`
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs` (enum `OverlayPosition` ~línea 110; struct `AppSettings` ~línea 340; `get_default_settings()` ~línea 826; tests al final)
 
 **Interfaces:**
+
 - Produces: `pub struct OverlayAnchor { pub x_frac: f64, pub edge: OverlayPosition, pub edge_offset: f64 }` y `AppSettings.overlay_custom_positions: HashMap<String, OverlayAnchor>`. Task 2/3/4 los consumen desde `crate::settings`.
 
 - [ ] **Step 1: Escribir tests que fallan** — al final de `src-tauri/src/settings.rs`, dentro del `mod tests` existente (`#[cfg(test)]`):
@@ -136,9 +138,11 @@ git commit -m "feat(overlay): ancla de posición personalizada por monitor en se
 ### Task 2: Geometría pura de anclas en overlay.rs (+tests)
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs` (nuevas fns puras + `mod tests` nuevo al final)
 
 **Interfaces:**
+
 - Consumes: `settings::{OverlayAnchor, OverlayPosition}` (Task 1).
 - Produces (para Task 3/4):
   - `pub(crate) struct MonRect { pub x: f64, pub y: f64, pub w: f64, pub h: f64 }` (rect lógico de monitor)
@@ -321,11 +325,13 @@ git commit -m "feat(overlay): geometría pura de anclas por monitor con clamping
 ### Task 3: Show path — resolver ancla→preset, edge en el payload, padding de ventana
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs` (consts de tamaño/offset, `calculate_overlay_position`, `show_overlay_state_on_main`, `update_overlay_position`, `PENDING_OVERLAY_STATE`)
 - Modify: `src/overlay/RecordingOverlay.tsx` (listener `show-overlay`)
 - Modify: `src/overlay/RecordingOverlay.css` (padding del stage)
 
 **Interfaces:**
+
 - Consumes: Task 1 (`overlay_custom_positions`), Task 2 (`MonRect`, `resolve_anchor_position`, `monitor_key`, `OVERLAY_SHADOW_PAD`).
 - Produces: evento `show-overlay` con payload `{ state: string, edge: "top" | "bottom" }`; `calculate_overlay_position(app, w, h) -> Option<(f64, f64, OverlayPosition)>`. Task 4 reutiliza este show path intacto.
 
@@ -416,25 +422,25 @@ En `show_overlay_state_on_main`: calcular `(x, y, edge)` UNA vez antes del get-o
 - [ ] **Step 4: Frontend — leer el edge del payload.** En `RecordingOverlay.tsx`, reemplazar el listener `show-overlay` (se elimina la lectura de `getAppSettings`; `syncLanguageFromSettings` se queda):
 
 ```tsx
-      const unlistenShow = await listen<{ state: OverlayState; edge: "top" | "bottom" }>(
-        "show-overlay",
-        async (event) => {
-          await syncLanguageFromSettings();
-          setPosition(event.payload.edge);
-          const overlayState = event.payload.state;
-          setState(overlayState);
-          if (overlayState === "recording" || overlayState === "streaming") {
-            setStreamText({ committed: "", tentative: "" });
-          }
-          if (overlayState === "streaming") {
-            setPhase("listening");
-            setWorkKind("transcribing");
-            setElapsed(0);
-            setSession((s) => s + 1); // remount the card fresh for this session
-          }
-          setIsVisible(true);
-        },
-      );
+const unlistenShow = await listen<{
+  state: OverlayState;
+  edge: "top" | "bottom";
+}>("show-overlay", async (event) => {
+  await syncLanguageFromSettings();
+  setPosition(event.payload.edge);
+  const overlayState = event.payload.state;
+  setState(overlayState);
+  if (overlayState === "recording" || overlayState === "streaming") {
+    setStreamText({ committed: "", tentative: "" });
+  }
+  if (overlayState === "streaming") {
+    setPhase("listening");
+    setWorkKind("transcribing");
+    setElapsed(0);
+    setSession((s) => s + 1); // remount the card fresh for this session
+  }
+  setIsVisible(true);
+});
 ```
 
 El import de `commands` sigue siendo necesario (cancel + drag en Task 4).
@@ -472,6 +478,7 @@ git commit -m "feat(overlay): show path resuelve anclas custom y publica el edge
 ### Task 4: Arrastre — comando, persistencia al soltar, gesto en el frontend
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs` (flag de drag, `start_overlay_drag`, `on_overlay_moved`, persistencia)
 - Modify: `src-tauri/src/lib.rs` (registro en `collect_commands!`, brazo `Moved` en `on_window_event`)
 - Modify: `src/overlay/RecordingOverlay.tsx` (mousedown + umbral)
@@ -479,6 +486,7 @@ git commit -m "feat(overlay): show path resuelve anclas custom y publica el edge
 - Regenerated: `src/bindings.ts` (tauri-specta, al correr en dev)
 
 **Interfaces:**
+
 - Consumes: Task 2 (`anchor_from_drop`, `monitor_key`, `MonRect`), Task 1 (mapa en settings).
 - Produces: comando specta `start_overlay_drag` → `commands.startOverlayDrag()` en bindings; `pub fn on_overlay_moved(window: &tauri::Window)` llamado desde lib.rs; `pub(crate) fn cancel_pending_drag()` usado por el show path.
 
@@ -593,31 +601,30 @@ Notas: `AtomicBool` ya está importado en overlay.rs; `LAYER_SHELL_ACTIVE` es un
 - [ ] **Step 3: Frontend — gesto con umbral en RecordingOverlay.tsx:**
 
 ```tsx
-  // Arrastre: toda la tarjeta es zona de agarre salvo los controles
-  // interactivos (✕ y el scroll del texto Live). El drag nativo recién parte
-  // cuando el press se movió >4px — un press quieto no hace nada.
-  const DRAG_THRESHOLD_PX = 4;
-  const handleDragMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest(".sx, .stext-cap")) return;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const onMove = (ev: MouseEvent) => {
-      if (
-        Math.hypot(ev.clientX - startX, ev.clientY - startY) >=
-        DRAG_THRESHOLD_PX
-      ) {
-        cleanup();
-        void commands.startOverlayDrag();
-      }
-    };
-    const cleanup = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", cleanup);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", cleanup);
+// Arrastre: toda la tarjeta es zona de agarre salvo los controles
+// interactivos (✕ y el scroll del texto Live). El drag nativo recién parte
+// cuando el press se movió >4px — un press quieto no hace nada.
+const DRAG_THRESHOLD_PX = 4;
+const handleDragMouseDown = (e: React.MouseEvent) => {
+  if (e.button !== 0) return;
+  if ((e.target as HTMLElement).closest(".sx, .stext-cap")) return;
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const onMove = (ev: MouseEvent) => {
+    if (
+      Math.hypot(ev.clientX - startX, ev.clientY - startY) >= DRAG_THRESHOLD_PX
+    ) {
+      cleanup();
+      void commands.startOverlayDrag();
+    }
   };
+  const cleanup = () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", cleanup);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", cleanup);
+};
 ```
 
 Agregar `onMouseDown={handleDragMouseDown}` a los DOS `.scard` (el del branch streaming y el compacto).
@@ -650,12 +657,14 @@ git commit -m "feat(overlay): arrastre nativo con persistencia de ancla al solta
 ### Task 5: Reset — tray + re-elección del preset + i18n
 
 **Files:**
+
 - Modify: `src-tauri/src/overlay.rs` (`clear_custom_overlay_positions`)
 - Modify: `src-tauri/src/shortcut/mod.rs` (`change_overlay_position_setting` ~línea 575)
 - Modify: `src-tauri/src/tray.rs` (ítem de menú) y `src-tauri/src/lib.rs` (handler)
 - Modify: `src/i18n/locales/*/translation.json` — los 22 locales (build.rs genera `""` para claves faltantes → ítem vacío, por eso van todos)
 
 **Interfaces:**
+
 - Consumes: Task 1 (mapa), overlay::update_overlay_position existente.
 - Produces: `pub fn clear_custom_overlay_positions(app: &AppHandle)` en overlay.rs; clave i18n `tray.resetOverlayPosition` → campo generado `strings.reset_overlay_position`.
 
@@ -686,30 +695,30 @@ pub fn clear_custom_overlay_positions(app_handle: &AppHandle) {
 
 - [ ] **Step 3: i18n — clave `tray.resetOverlayPosition` en los 22 locales.** en y es son autorales; el resto traducción razonable:
 
-| locale | valor |
-|---|---|
-| en | `"Reset Overlay Position"` |
-| es | `"Restablecer posición del overlay"` |
-| ar | `"إعادة تعيين موضع الشريط"` |
-| bg | `"Нулиране на позицията на индикатора"` |
-| cs | `"Obnovit pozici overlaye"` |
-| de | `"Overlay-Position zurücksetzen"` |
-| fr | `"Réinitialiser la position de l'overlay"` |
-| he | `"איפוס מיקום השכבה"` |
-| it | `"Ripristina posizione overlay"` |
-| ja | `"オーバーレイ位置をリセット"` |
-| ko | `"오버레이 위치 초기화"` |
-| ne | `"ओभरले स्थिति रिसेट गर्नुहोस्"` |
-| nl | `"Overlaypositie herstellen"` |
-| pl | `"Zresetuj pozycję nakładki"` |
-| pt | `"Redefinir posição do overlay"` |
-| ru | `"Сбросить позицию оверлея"` |
-| sv | `"Återställ overlayens position"` |
-| tr | `"Kaplama konumunu sıfırla"` |
-| uk | `"Скинути позицію оверлея"` |
-| vi | `"Đặt lại vị trí lớp phủ"` |
-| zh | `"重置悬浮窗位置"` |
-| zh-TW | `"重設懸浮窗位置"` |
+| locale | valor                                      |
+| ------ | ------------------------------------------ |
+| en     | `"Reset Overlay Position"`                 |
+| es     | `"Restablecer posición del overlay"`       |
+| ar     | `"إعادة تعيين موضع الشريط"`                |
+| bg     | `"Нулиране на позицията на индикатора"`    |
+| cs     | `"Obnovit pozici overlaye"`                |
+| de     | `"Overlay-Position zurücksetzen"`          |
+| fr     | `"Réinitialiser la position de l'overlay"` |
+| he     | `"איפוס מיקום השכבה"`                      |
+| it     | `"Ripristina posizione overlay"`           |
+| ja     | `"オーバーレイ位置をリセット"`             |
+| ko     | `"오버레이 위치 초기화"`                   |
+| ne     | `"ओभरले स्थिति रिसेट गर्नुहोस्"`           |
+| nl     | `"Overlaypositie herstellen"`              |
+| pl     | `"Zresetuj pozycję nakładki"`              |
+| pt     | `"Redefinir posição do overlay"`           |
+| ru     | `"Сбросить позицию оверлея"`               |
+| sv     | `"Återställ overlayens position"`          |
+| tr     | `"Kaplama konumunu sıfırla"`               |
+| uk     | `"Скинути позицію оверлея"`                |
+| vi     | `"Đặt lại vị trí lớp phủ"`                 |
+| zh     | `"重置悬浮窗位置"`                         |
+| zh-TW  | `"重設懸浮窗位置"`                         |
 
 Agregar la clave dentro del objeto `"tray"` de cada `src/i18n/locales/<loc>/translation.json`, junto a `"copyLastTranscript"`.
 
@@ -758,26 +767,28 @@ git commit -m "feat(overlay): restablecer posición desde el tray y al re-elegir
 ### Task 6: Restyle — vidrio + ondas brasa
 
 **Files:**
+
 - Modify: `src/overlay/RecordingOverlay.css` (tokens y reglas)
 - Modify: `src/overlay/RecordingOverlay.tsx` (quitar `.sdot`)
 
 **Interfaces:**
+
 - Consumes: tokens de `theme.css` (`--color-background`, `--color-text`, `--color-logo-primary`) y `brand.css` (`--dilo-mango`, `--dilo-rojo`).
 - Produces: solo cambios visuales; ninguna API.
 
 - [ ] **Step 1: TSX — eliminar el punto rojo.** En `listeningRow`, quitar `<span className="sdot" />` dejando la zona izquierda vacía (equilibra la grilla de 3 columnas):
 
 ```tsx
-  const listeningRow = (showTimer: boolean, showCancel: boolean) => (
-    <div className="sbase">
-      <div className="sbase-l" />
-      {waveform}
-      <div className="sbase-r">
-        {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}
-        {showCancel && cancelBtn}
-      </div>
+const listeningRow = (showTimer: boolean, showCancel: boolean) => (
+  <div className="sbase">
+    <div className="sbase-l" />
+    {waveform}
+    <div className="sbase-r">
+      {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}
+      {showCancel && cancelBtn}
     </div>
-  );
+  </div>
+);
 ```
 
 - [ ] **Step 2: CSS — reemplazar el bloque de tokens `:root` completo por:**
@@ -792,7 +803,11 @@ git commit -m "feat(overlay): restablecer posición desde el tray y al re-elegir
      highlight + sombra.) El panel Live usa un tinte más opaco para que el
      transcript se lea sobre fondos ruidosos. */
   --s-surface: color-mix(in srgb, var(--color-background) 72%, transparent);
-  --s-surface-live: color-mix(in srgb, var(--color-background) 86%, transparent);
+  --s-surface-live: color-mix(
+    in srgb,
+    var(--color-background) 86%,
+    transparent
+  );
   /* Accent = brand mango; flips automatically via --color-logo-primary. */
   --s-accent: var(--color-logo-primary);
   --s-accent-soft: color-mix(
@@ -912,16 +927,19 @@ git commit -m "style(overlay): vidrio con ondas mango→rojo, adiós punto rojo"
 ### Task 7: Verificación integral y cierre
 
 **Files:**
+
 - Modify (si algo falla): los de las tasks anteriores.
 - Modify: `docs/superpowers/specs/2026-07-17-overlay-vidrio-arrastrable-design.md` (nota de la desviación del vidrio simulado)
 
 - [ ] **Step 1: Suites y linters**
 
 Run:
+
 ```bash
 cd src-tauri && cargo test && cargo clippy -- -D warnings && cd ..
 bun run lint && bun run format:check && bun run build
 ```
+
 Expected: todo verde (si `format:check` acusa, correr `bun run format` y re-chequear).
 
 - [ ] **Step 2: Los 7 chequeos del spec, en vivo** (`bun run tauri dev`):

@@ -407,7 +407,10 @@ fn calculate_overlay_position(
     }
     let settings = settings::get_settings(app_handle);
 
-    if let Some(anchor) = settings.overlay_custom_positions.get(&monitor_key(&monitor)) {
+    if let Some(anchor) = settings
+        .overlay_custom_positions
+        .get(&monitor_key(&monitor))
+    {
         let (x, y) = resolve_anchor_position(&mon, anchor, width, height);
         return Some((x, y, anchor.edge));
     }
@@ -503,7 +506,8 @@ fn create_recording_overlay(app_handle: &AppHandle) {
 /// (see the lifecycle note by `OVERLAY_GENERATION`).
 #[cfg(target_os = "macos")]
 fn create_recording_overlay(app_handle: &AppHandle) {
-    if let Some((x, y, _edge)) = calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT)
+    if let Some((x, y, _edge)) =
+        calculate_overlay_position(app_handle, OVERLAY_WIDTH, OVERLAY_HEIGHT)
     {
         // PanelBuilder creates a Tauri window then converts it to NSPanel.
         // The window remains registered, so get_webview_window() still works.

@@ -20,7 +20,8 @@ Rediseño del overlay de grabación en dos frentes:
 
 ### Pastilla (todos los estados)
 
-- **Superficie:** translúcida con `backdrop-filter: blur(~14px) saturate(1.4)`, tinte derivado de `--color-background` a baja opacidad (~14%) para que se adapte a tema claro/oscuro, borde de pelo luminoso (`--color-text` a baja opacidad + inset highlight superior), sombra suave amplia. Reemplaza el `--s-surface` casi opaco actual.
+- **Superficie:** translúcida, tinte derivado de `--color-background` para que se adapte a tema claro/oscuro, borde de pelo luminoso (`--color-text` a baja opacidad + inset highlight superior), sombra suave amplia. Reemplaza el `--s-surface` casi opaco actual.
+  - **Desviación acordada en el plan (implementada):** el vidrio es **simulado, sin `backdrop-filter`** — WebKit no puede muestrear el escritorio detrás de una ventana transparente de Tauri, y blur real (vibrancy nativa) exigiría ventanas de tamaño fijo que rompen los morfos animados. El tinte sube para compensar: pastilla ~72%, panel Live ~86% (a ~14% sin blur era ilegible).
 - **Ondas:** las barras reactivas al mic pasan de color sólido a **gradiente vertical mango→rojo** (`--dilo-mango` #ff9e1b → `--dilo-rojo` #ff5c5c) con **glow tenue por barra** (`box-shadow` ~7px a ~50% de alfa de un naranjo intermedio). La pastilla en sí NO tiene glow ni animación de respiración.
 - **Se elimina:** el punto rojo pulsante (`.sdot` y su animación). La zona izquierda de la fila base queda para equilibrio de la grilla (el layout de 3 zonas se conserva).
 - **Timer y cancelar (✕):** mismos elementos y posiciones de hoy, colores ajustados para leerse sobre vidrio (texto sigue `--color-text` con opacidades, no grises fijos).
