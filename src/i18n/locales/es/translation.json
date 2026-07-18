@@ -732,13 +732,14 @@
       "notionTest": "Probar conexión",
       "notionTestHint": "Verifica el token guardado contra Notion.",
       "notionTestOk": "Conexión con Notion lista.",
-      "notionTestError": "No se pudo conectar con Notion. Revisá el token.",
-      "pending": "{{count}} notas pendientes de sincronizar",
+      "notionTestError": "No se pudo conectar con Notion. Revisa el token.",
+      "pending_one": "1 nota pendiente de sincronizar",
+      "pending_other": "{{count}} notas pendientes de sincronizar",
       "pendingHint": "La nota local ya está guardada; solo falta la sincronización externa.",
       "pendingTitle": "Pendientes de sincronizar",
       "retry": "Reintentar ahora",
-      "retryError": "Algunas notas siguen pendientes. Probá de nuevo más tarde.",
-      "notionTokenSaveError": "No se pudo guardar el token de Notion. Probá de nuevo."
+      "retryError": "Algunas notas siguen pendientes. Prueba de nuevo más tarde.",
+      "notionTokenSaveError": "No se pudo guardar el token de Notion. Prueba de nuevo."
     }
   },
   "footer": {
