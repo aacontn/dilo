@@ -241,12 +241,12 @@ jobs:
           # Certificado autofirmado estable (identidad TCC constante entre
           # versiones): hay que confiarlo explícitamente o codesign no lo
           # considera identidad válida. Con un Developer ID real de Apple
-          # este paso es inocuo (la cadena ya ancla en Apple).
-          openssl pkcs12 -in certificate.p12 -clcerts -nokeys \
-            -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -out certificate.pem
-          openssl x509 -in certificate.pem -outform der -out certificate.cer
+          # este paso es inocuo (la cadena ya ancla en Apple). El cert se
+          # extrae del keychain con `security` (openssl 3 del runner no lee
+          # el p12 legacy sin -legacy, y LibreSSL local no tiene -legacy).
+          security find-certificate -a -p build.keychain > certificate.pem
           sudo security add-trusted-cert -d -r trustRoot \
-            -k /Library/Keychains/System.keychain certificate.cer
+            -k /Library/Keychains/System.keychain certificate.pem
           security find-identity -v -p codesigning build.keychain
 
       - name: verify certificate
