@@ -579,6 +579,13 @@ pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
 }
 
+/// Shows the brief "note saved" success overlay. Same lazily-created,
+/// never-destroyed window as every other state (see the lifecycle note by
+/// `OVERLAY_GENERATION`); the caller hides it after a short delay.
+pub fn show_note_saved_overlay(app_handle: &AppHandle) {
+    show_overlay_state(app_handle, "note-saved");
+}
+
 /// Updates the overlay window position based on current settings
 pub fn update_overlay_position(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {

@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "未知模型",
     "pasteFailedTitle": "粘贴文本失败",
     "pasteFailed": "无法将文本粘贴到当前活动的应用程序中。",
-    "transcriptionFailedTitle": "转录失败"
+    "transcriptionFailedTitle": "转录失败",
+    "noteSaveFailed": "无法保存笔记：{{error}}"
   },
   "appLanguage": {
     "title": "应用语言",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "正在转录...",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "noteSaved": "笔记已保存"
   },
   "whatsNew": {
     "title": "Dilo v{{version}} 新功能"

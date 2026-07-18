@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "מודל לא ידוע",
     "pasteFailedTitle": "ההדבקה נכשלה",
     "pasteFailed": "לא ניתן היה להדביק את הטקסט ביישום הפעיל.",
-    "transcriptionFailedTitle": "התמלול נכשל"
+    "transcriptionFailedTitle": "התמלול נכשל",
+    "noteSaveFailed": "לא ניתן היה לשמור את ההערה: {{error}}"
   },
   "appLanguage": {
     "title": "שפת האפליקציה",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "מתמלל...",
-    "processing": "מעבד..."
+    "processing": "מעבד...",
+    "noteSaved": "הערה נשמרה"
   },
   "whatsNew": {
     "title": "חדש ב-Dilo v{{version}}"

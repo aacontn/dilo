@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "bilinmeyen model",
     "pasteFailedTitle": "Metin yapıştırılamadı",
     "pasteFailed": "Metin etkin uygulamaya yapıştırılamadı.",
-    "transcriptionFailedTitle": "Transkripsiyon başarısız oldu"
+    "transcriptionFailedTitle": "Transkripsiyon başarısız oldu",
+    "noteSaveFailed": "Not kaydedilemedi: {{error}}"
   },
   "appLanguage": {
     "title": "Uygulama Dili",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor..."
+    "processing": "İşleniyor...",
+    "noteSaved": "Not kaydedildi"
   },
   "whatsNew": {
     "title": "Dilo v{{version}} yenilikleri"

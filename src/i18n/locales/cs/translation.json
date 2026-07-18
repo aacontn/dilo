@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "neznámý model",
     "pasteFailedTitle": "Vložení textu se nezdařilo",
     "pasteFailed": "Text nebylo možné vložit do aktivní aplikace.",
-    "transcriptionFailedTitle": "Přepis selhal"
+    "transcriptionFailedTitle": "Přepis selhal",
+    "noteSaveFailed": "Poznámku se nepodařilo uložit: {{error}}"
   },
   "appLanguage": {
     "title": "Jazyk aplikace",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám..."
+    "processing": "Zpracovávám...",
+    "noteSaved": "Poznámka uložena"
   },
   "whatsNew": {
     "title": "Novinky v Dilo v{{version}}"

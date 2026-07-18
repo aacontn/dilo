@@ -786,7 +786,8 @@
     "modelLoadFailedUnknown": "unknown model",
     "pasteFailedTitle": "Failed to Paste Text",
     "pasteFailed": "Text could not be pasted into the active application.",
-    "transcriptionFailedTitle": "Transcription Failed"
+    "transcriptionFailedTitle": "Transcription Failed",
+    "noteSaveFailed": "Couldn't save the note: {{error}}"
   },
   "appLanguage": {
     "title": "Application Language",
@@ -803,6 +804,7 @@
   },
   "overlay": {
     "transcribing": "Transcribing...",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "noteSaved": "Note saved"
   }
 }

@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "modello sconosciuto",
     "pasteFailedTitle": "Impossibile incollare il testo",
     "pasteFailed": "Non è stato possibile incollare il testo nell'applicazione attiva.",
-    "transcriptionFailedTitle": "Trascrizione non riuscita"
+    "transcriptionFailedTitle": "Trascrizione non riuscita",
+    "noteSaveFailed": "Impossibile salvare la nota: {{error}}"
   },
   "appLanguage": {
     "title": "Lingua Applicazione",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Trascrizione...",
-    "processing": "Elaborazione..."
+    "processing": "Elaborazione...",
+    "noteSaved": "Nota salvata"
   },
   "whatsNew": {
     "title": "Novità in Dilo v{{version}}"

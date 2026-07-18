@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "不明なモデル",
     "pasteFailedTitle": "テキストの貼り付けに失敗しました",
     "pasteFailed": "アクティブなアプリにテキストを貼り付けられませんでした。",
-    "transcriptionFailedTitle": "文字起こしに失敗しました"
+    "transcriptionFailedTitle": "文字起こしに失敗しました",
+    "noteSaveFailed": "メモを保存できませんでした: {{error}}"
   },
   "appLanguage": {
     "title": "アプリの言語",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "文字起こし中…",
-    "processing": "処理中…"
+    "processing": "処理中…",
+    "noteSaved": "メモを保存しました"
   },
   "whatsNew": {
     "title": "Dilo v{{version}} の新機能"

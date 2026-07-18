@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "невідома модель",
     "pasteFailedTitle": "Не вдалося вставити текст",
     "pasteFailed": "Не вдалося вставити текст до активної програми.",
-    "transcriptionFailedTitle": "Помилка транскрипції"
+    "transcriptionFailedTitle": "Помилка транскрипції",
+    "noteSaveFailed": "Не вдалося зберегти нотатку: {{error}}"
   },
   "appLanguage": {
     "title": "Мова інтерфейсу",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Обробка...",
-    "processing": "Постобробка..."
+    "processing": "Постобробка...",
+    "noteSaved": "Нотатку збережено"
   },
   "whatsNew": {
     "title": "Нове в Dilo v{{version}}"

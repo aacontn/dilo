@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "نموذج غير معروف",
     "pasteFailedTitle": "فشل لصق النص",
     "pasteFailed": "تعذر لصق النص في التطبيق النشط.",
-    "transcriptionFailedTitle": "فشل التفريغ النصي"
+    "transcriptionFailedTitle": "فشل التفريغ النصي",
+    "noteSaveFailed": "تعذّر حفظ الملاحظة: {{error}}"
   },
   "appLanguage": {
     "title": "لغة التطبيق",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "...جاري التفريغ",
-    "processing": "...جاري المعالجة"
+    "processing": "...جاري المعالجة",
+    "noteSaved": "تم حفظ الملاحظة"
   },
   "whatsNew": {
     "title": "الجديد في Dilo v{{version}}"

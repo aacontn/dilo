@@ -786,7 +786,8 @@
     "modelLoadFailedUnknown": "onbekend model",
     "pasteFailedTitle": "Tekst plakken mislukt",
     "pasteFailed": "Tekst kon niet worden geplakt in de actieve applicatie.",
-    "transcriptionFailedTitle": "Transcriptie mislukt"
+    "transcriptionFailedTitle": "Transcriptie mislukt",
+    "noteSaveFailed": "Kon de notitie niet opslaan: {{error}}"
   },
   "appLanguage": {
     "title": "Interfacetaal",
@@ -803,6 +804,7 @@
   },
   "overlay": {
     "transcribing": "Transcriberen...",
-    "processing": "Verwerken..."
+    "processing": "Verwerken...",
+    "noteSaved": "Notitie opgeslagen"
   }
 }

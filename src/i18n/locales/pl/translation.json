@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "nieznany model",
     "pasteFailedTitle": "Nie udało się wkleić tekstu",
     "pasteFailed": "Nie można było wkleić tekstu do aktywnej aplikacji.",
-    "transcriptionFailedTitle": "Transkrypcja nie powiodła się"
+    "transcriptionFailedTitle": "Transkrypcja nie powiodła się",
+    "noteSaveFailed": "Nie udało się zapisać notatki: {{error}}"
   },
   "appLanguage": {
     "title": "Język aplikacji",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Transkrypcja...",
-    "processing": "Przetwarzanie..."
+    "processing": "Przetwarzanie...",
+    "noteSaved": "Zapisano notatkę"
   },
   "whatsNew": {
     "title": "Nowości w Dilo v{{version}}"

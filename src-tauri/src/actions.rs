@@ -11,7 +11,8 @@ use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENC
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{
-    self, show_processing_overlay, show_recording_overlay, show_transcribing_overlay,
+    self, show_note_saved_overlay, show_processing_overlay, show_recording_overlay,
+    show_transcribing_overlay,
 };
 use crate::TranscriptionCoordinator;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
@@ -848,8 +849,18 @@ impl ShortcutAction for TranscribeAction {
                                 tauri::async_runtime::spawn(async move {
                                     crate::notes::capture_note(&ah_note, &final_text).await;
                                 });
-                                utils::hide_recording_overlay(&ah);
+                                // Feedback breve de éxito: el archivo local ya
+                                // quedó guardado (es lo primero que hace
+                                // capture_note), así que mostramos el estado
+                                // "nota guardada" ~1.2s y recién ahí escondemos el
+                                // overlay. La bandeja vuelve a Idle de inmediato.
+                                show_note_saved_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
+                                let ah_hide = ah.clone();
+                                tauri::async_runtime::spawn(async move {
+                                    tokio::time::sleep(Duration::from_millis(1200)).await;
+                                    utils::hide_recording_overlay(&ah_hide);
+                                });
                             } else {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();

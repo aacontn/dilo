@@ -12,7 +12,12 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "note-saved";
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -256,6 +261,39 @@ const RecordingOverlay: React.FC = () => {
                 true,
               )
             : listeningRow(open, true)}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Note-saved overlay: a brief success pill — check icon + short label, no
+  // cancel. Styled like the working pill (same glass card / --ov-work-w width);
+  // the backend shows it for ~1.2s after a quick note is captured, then hides.
+  if (state === "note-saved") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact cworking">
+          <div className="sbase">
+            <div className="sbase-l">
+              <span className="scheck">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M3.5 8.5 L6.5 11.5 L12.5 4.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </div>
+            <span className="swork-label">{t("overlay.noteSaved")}</span>
+            <div className="sbase-r" />
+          </div>
         </div>
       </div>
     );

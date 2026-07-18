@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "modèle inconnu",
     "pasteFailedTitle": "Échec du collage du texte",
     "pasteFailed": "Le texte n'a pas pu être collé dans l'application active.",
-    "transcriptionFailedTitle": "Échec de la transcription"
+    "transcriptionFailedTitle": "Échec de la transcription",
+    "noteSaveFailed": "Impossible d'enregistrer la note : {{error}}"
   },
   "appLanguage": {
     "title": "Langue de l'application",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Transcription...",
-    "processing": "Traitement..."
+    "processing": "Traitement...",
+    "noteSaved": "Note enregistrée"
   },
   "whatsNew": {
     "title": "Nouveautés de Dilo v{{version}}"

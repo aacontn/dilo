@@ -165,6 +165,18 @@ function App() {
     };
   }, [t]);
 
+  // Listen for local note-write failures and show a toast.
+  // The payload is the backend error message (notes.rs emits `note-error` when
+  // the local markdown file can't be written; also logged to handy.log).
+  useEffect(() => {
+    const unlisten = listen<string>("note-error", (event) => {
+      toast.error(t("errors.noteSaveFailed", { error: event.payload }));
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t]);
+
   // Listen for model loading failures and show a toast
   useEffect(() => {
     const unlisten = listen<ModelStateEvent>("model-state-changed", (event) => {

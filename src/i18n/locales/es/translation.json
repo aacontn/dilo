@@ -783,7 +783,8 @@
     "modelLoadFailedUnknown": "modelo desconocido",
     "pasteFailedTitle": "No se pudo pegar",
     "pasteFailed": "No se pudo pegar el texto en la app activa.",
-    "transcriptionFailedTitle": "Error de transcripción"
+    "transcriptionFailedTitle": "Error de transcripción",
+    "noteSaveFailed": "No pude guardar la nota: {{error}}"
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",
@@ -800,7 +801,8 @@
   },
   "overlay": {
     "transcribing": "Transcribiendo...",
-    "processing": "Procesando..."
+    "processing": "Procesando...",
+    "noteSaved": "Nota guardada"
   },
   "whatsNew": {
     "title": "Nuevo en Dilo v{{version}}"

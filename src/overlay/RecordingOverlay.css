@@ -423,6 +423,23 @@
     transform: rotate(1turn);
   }
 }
+/* note-saved state — accent check icon in the left zone (mirrors the spinner
+   position, so the label stays centered in the same 3-zone grid). */
+.scheck {
+  width: 15px;
+  height: 15px;
+  color: var(--s-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.scheck svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
 .swork-label {
   font-size: 12px;
   color: var(--s-muted);
