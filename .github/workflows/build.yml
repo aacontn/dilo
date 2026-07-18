@@ -234,6 +234,9 @@ jobs:
           echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
+          # default-keychain NO basta: codesign/find-identity buscan en la
+          # LISTA de búsqueda, y un keychain nuevo no entra solo a ella.
+          security list-keychains -d user -s build.keychain login.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
@@ -529,13 +532,15 @@ jobs:
       # certificado estable; al comprar el Developer ID de Apple, reponer aquí
       # APPLE_ID / APPLE_ID_PASSWORD / APPLE_TEAM_ID (notarización) — vacías
       # gatillan intentos de notarizar con credenciales vacías y rompen el build.
+      # OJO: no pasar APPLE_CERTIFICATE aquí — con esa var presente, tauri
+      # importa el cert a un keychain temporal propio (fuera de la lista de
+      # búsqueda y sin nuestro trust) y "failed to resolve signing identity".
+      # El paso de import de arriba ya dejó el keychain listo y confiado.
       - name: Build with Tauri (signed)
         if: inputs.sign-binaries && contains(inputs.platform, 'macos')
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
         with:
           tagName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
