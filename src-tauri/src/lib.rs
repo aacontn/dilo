@@ -11,6 +11,10 @@ mod helpers;
 mod input;
 mod llm_client;
 mod managers;
+// Las funciones puras de notas se consumen en tareas posteriores (sync +
+// comandos); permitimos dead_code hasta que se conecten.
+#[allow(dead_code)]
+mod notes;
 mod overlay;
 pub mod portable;
 mod settings;

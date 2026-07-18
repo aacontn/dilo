@@ -1286,6 +1286,7 @@ dependencies = [
  "chrono",
  "clap",
  "cpal",
+ "dirs 6.0.0",
  "enigo",
  "env_filter",
  "ferrous-opencc",
