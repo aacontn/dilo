@@ -54,6 +54,9 @@ pub fn init_shortcuts(app: &AppHandle) {
             }
         }
     }
+
+    // Atajos dinámicos por modo (bindings `mode:<id>`), sobre la impl activa.
+    register_mode_shortcuts(app);
 }
 
 /// Register the cancel shortcut (called when recording starts)
@@ -81,6 +84,111 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
         KeyboardImplementation::Tauri => tauri_impl::register_shortcut(app, binding),
         KeyboardImplementation::HandyKeys => handy_keys::register_shortcut(app, binding),
     }
+}
+
+/// Binding dinámico de un modo con atajo asignado (id `mode:<prompt_id>`).
+fn mode_binding(prompt: &LLMPrompt) -> Option<ShortcutBinding> {
+    let shortcut = prompt.shortcut.clone()?;
+    if shortcut.trim().is_empty() {
+        return None;
+    }
+    Some(ShortcutBinding {
+        id: format!("mode:{}", prompt.id),
+        name: prompt.name.clone(),
+        description: String::new(),
+        default_binding: String::new(),
+        current_binding: shortcut,
+    })
+}
+
+/// Registra los atajos de todos los modos que tengan uno (init de la app y
+/// cambio de implementación de teclado).
+pub fn register_mode_shortcuts(app: &AppHandle) {
+    let settings = settings::get_settings(app);
+    for prompt in &settings.post_process_prompts {
+        if let Some(binding) = mode_binding(prompt) {
+            if let Err(e) = register_shortcut(app, binding) {
+                warn!(
+                    "No se pudo registrar el atajo del modo '{}': {}",
+                    prompt.name, e
+                );
+            }
+        }
+    }
+}
+
+/// Desregistra los atajos de todos los modos (cambio de implementación).
+pub fn unregister_mode_shortcuts(app: &AppHandle) {
+    let settings = settings::get_settings(app);
+    for prompt in &settings.post_process_prompts {
+        if let Some(binding) = mode_binding(prompt) {
+            let _ = unregister_shortcut(app, binding);
+        }
+    }
+}
+
+/// Asigna, cambia o quita (`shortcut` vacío) el atajo global de un modo.
+/// Registra ANTES de persistir: si la tecla está tomada o es inválida, el
+/// estado registrado y el guardado siguen coherentes y se devuelve el error.
+#[tauri::command]
+#[specta::specta]
+pub fn change_mode_shortcut(
+    app: AppHandle,
+    prompt_id: String,
+    shortcut: String,
+) -> Result<(), String> {
+    let shortcut = shortcut.trim().to_string();
+
+    let snapshot = settings::get_settings(&app);
+    let prompt = snapshot
+        .post_process_prompts
+        .iter()
+        .find(|p| p.id == prompt_id)
+        .cloned()
+        .ok_or_else(|| format!("No existe el modo '{prompt_id}'"))?;
+
+    if !shortcut.is_empty()
+        && snapshot.keyboard_implementation == KeyboardImplementation::Tauri
+    {
+        tauri_impl::validate_shortcut(&shortcut)?;
+    }
+
+    // Soltar la tecla anterior del modo, si tenía.
+    if let Some(old) = mode_binding(&prompt) {
+        let _ = unregister_shortcut(&app, old);
+    }
+
+    if !shortcut.is_empty() {
+        let candidate = ShortcutBinding {
+            id: format!("mode:{}", prompt.id),
+            name: prompt.name.clone(),
+            description: String::new(),
+            default_binding: String::new(),
+            current_binding: shortcut.clone(),
+        };
+        if let Err(e) = register_shortcut(&app, candidate) {
+            // Restaurar el atajo anterior para no dejar el modo sin su tecla.
+            if let Some(old) = mode_binding(&prompt) {
+                let _ = register_shortcut(&app, old);
+            }
+            return Err(format!("No se pudo asignar el atajo: {e}"));
+        }
+    }
+
+    let mut settings = settings::get_settings(&app);
+    if let Some(p) = settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|p| p.id == prompt_id)
+    {
+        p.shortcut = if shortcut.is_empty() {
+            None
+        } else {
+            Some(shortcut)
+        };
+    }
+    settings::write_settings(&app, settings);
+    Ok(())
 }
 
 /// Unregister a shortcut using the appropriate implementation
@@ -275,6 +383,7 @@ pub fn change_keyboard_implementation_setting(
     );
 
     // Unregister all shortcuts from the current implementation
+    unregister_mode_shortcuts(&app);
     unregister_all_shortcuts(&app, current_impl);
 
     // Update the setting
@@ -284,7 +393,8 @@ pub fn change_keyboard_implementation_setting(
 
     // Initialize new implementation if needed (HandyKeys needs state)
     if new_impl == KeyboardImplementation::HandyKeys && initialize_handy_keys_with_rollback(&app)? {
-        // Shortcuts already registered during init
+        // Shortcuts already registered during init; los de modos van aparte.
+        register_mode_shortcuts(&app);
         return Ok(ImplementationChangeResult {
             success: true,
             reset_bindings: vec![],
@@ -293,6 +403,7 @@ pub fn change_keyboard_implementation_setting(
 
     // Register all shortcuts with new implementation, resetting invalid ones
     let reset_bindings = register_all_shortcuts_for_implementation(&app, new_impl);
+    register_mode_shortcuts(&app);
 
     // Emit event to notify frontend of the change
     let _ = app.emit(
@@ -1084,6 +1195,13 @@ pub fn delete_post_process_prompt(app: AppHandle, id: String) -> Result<(), Stri
     // Don't allow deleting the last prompt
     if settings.post_process_prompts.len() <= 1 {
         return Err("Cannot delete the last prompt".to_string());
+    }
+
+    // Soltar el atajo global del modo antes de removerlo.
+    if let Some(prompt) = settings.post_process_prompts.iter().find(|p| p.id == id) {
+        if let Some(binding) = mode_binding(prompt) {
+            let _ = unregister_shortcut(&app, binding);
+        }
     }
 
     // Find and remove the prompt
