@@ -16,7 +16,8 @@
     "postProcessing": "Post-traitement",
     "history": "Historique",
     "debug": "Débogage",
-    "about": "À propos"
+    "about": "À propos",
+    "notes": "Notes"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Raccourci de post-traitement",
             "description": "Facultatif : Un raccourci dédié qui applique toujours le post-traitement IA à votre transcription."
+          },
+          "quick_note": {
+            "name": "Raccourci de note rapide",
+            "description": "Dictez et enregistrez comme note, sans coller dans l'app active."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Afficher les nouveautés",
         "description": "Afficher les notes de version après les mises à jour de Dilo"
       }
+    },
+    "notes": {
+      "title": "Notes",
+      "shortcut": "Raccourci de note rapide",
+      "shortcutHint": "Dictez et enregistrez comme note, sans coller dans l'app active.",
+      "folder": "Dossier des notes",
+      "folderHint": "Où sont enregistrées les notes markdown locales. Par défaut : ~/Documents/Dilo/Notas.",
+      "folderPick": "Choisir un dossier",
+      "folderReset": "Rétablir le dossier par défaut",
+      "folderDefault": "Par défaut (~/Documents/Dilo/Notas)",
+      "sync": "Synchronisation",
+      "apple": "Notes Apple",
+      "appleHint": "Enregistrer aussi chaque note dans l'app Notes d'Apple.",
+      "appleFolder": "Dossier dans Notes",
+      "appleFolderHint": "Nom du dossier Notes Apple où enregistrer.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Enregistrer aussi chaque note dans une page ou base Notion.",
+      "notionToken": "Jeton d'intégration",
+      "notionTokenHint": "Jeton d'intégration interne Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ID de page ou de base de données",
+      "notionParentHint": "ID de la page ou base parente où les notes sont créées.",
+      "notionParentPlaceholder": "ID de page ou de base de données",
+      "notionTest": "Tester la connexion",
+      "notionTestHint": "Vérifier le jeton enregistré auprès de Notion.",
+      "notionTestOk": "Connexion à Notion opérationnelle.",
+      "notionTestError": "Connexion à Notion impossible. Vérifiez le jeton.",
+      "pending": "{{count}} notes en attente de synchronisation",
+      "pendingHint": "La note locale est déjà enregistrée ; seule la synchronisation externe est en attente.",
+      "pendingTitle": "Synchronisation en attente",
+      "retry": "Réessayer maintenant",
+      "retryError": "Certaines notes sont encore en attente. Réessayez plus tard."
     }
   },
   "footer": {

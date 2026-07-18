@@ -16,7 +16,8 @@
     "postProcessing": "पोस्ट प्रोसेस",
     "history": "हिस्ट्री",
     "debug": "डिबग",
-    "about": "बारेमा"
+    "about": "बारेमा",
+    "notes": "नोटहरू"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "पोस्ट-प्रोसेसिङ हटकी",
             "description": "वैकल्पिक: तपाईंको ट्रान्सक्रिप्सनमा सधैँ AI पोस्ट-प्रोसेसिङ लागू गर्ने छुट्टै हटकी।"
+          },
+          "quick_note": {
+            "name": "द्रुत नोट सर्टकट",
+            "description": "सक्रिय एपमा टाँस्नुको सट्टा बोलेर नोटको रूपमा सुरक्षित गर्नुहोस्।"
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
           "details": "Dilo, CJ Pais को Handy (MIT लाइसेन्स) बाट मायाले बनाइएको फोर्क हो। उत्कृष्ट आधार र खुला स्रोतका लागि धन्यवाद।"
         }
       }
+    },
+    "notes": {
+      "title": "नोटहरू",
+      "shortcut": "द्रुत नोट सर्टकट",
+      "shortcutHint": "सक्रिय एपमा टाँस्नुको सट्टा बोलेर नोटको रूपमा सुरक्षित गर्नुहोस्।",
+      "folder": "नोट फोल्डर",
+      "folderHint": "स्थानीय markdown नोटहरू कहाँ सुरक्षित हुन्छन्। पूर्वनिर्धारित: ~/Documents/Dilo/Notas।",
+      "folderPick": "फोल्डर छान्नुहोस्",
+      "folderReset": "पूर्वनिर्धारित फोल्डरमा रिसेट गर्नुहोस्",
+      "folderDefault": "पूर्वनिर्धारित (~/Documents/Dilo/Notas)",
+      "sync": "सिंक",
+      "apple": "Apple Notes",
+      "appleHint": "प्रत्येक नोट Apple Notes एपमा पनि सुरक्षित गर्नुहोस्।",
+      "appleFolder": "Notes भित्रको फोल्डर",
+      "appleFolderHint": "सुरक्षित गर्ने Apple Notes फोल्डरको नाम।",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "प्रत्येक नोट Notion पृष्ठ वा डाटाबेसमा पनि सुरक्षित गर्नुहोस्।",
+      "notionToken": "इन्टिग्रेसन टोकन",
+      "notionTokenHint": "Notion को आन्तरिक इन्टिग्रेसन टोकन।",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "पृष्ठ वा डाटाबेस ID",
+      "notionParentHint": "नोटहरू सिर्जना हुने अभिभावक पृष्ठ वा डाटाबेसको ID।",
+      "notionParentPlaceholder": "पृष्ठ वा डाटाबेस ID",
+      "notionTest": "जडान परीक्षण गर्नुहोस्",
+      "notionTestHint": "सुरक्षित गरिएको टोकन Notion सँग जाँच गर्नुहोस्।",
+      "notionTestOk": "Notion जडान काम गरिरहेको छ।",
+      "notionTestError": "Notion सँग जडान गर्न सकिएन। टोकन जाँच गर्नुहोस्।",
+      "pending": "{{count}} नोटहरू सिंक हुन बाँकी",
+      "pendingHint": "स्थानीय नोट पहिले नै सुरक्षित छ; बाह्य सिंक मात्र बाँकी छ।",
+      "pendingTitle": "सिंक बाँकी",
+      "retry": "अहिले पुनः प्रयास गर्नुहोस्",
+      "retryError": "केही नोटहरू अझै बाँकी छन्। पछि पुनः प्रयास गर्नुहोस्।"
     }
   },
   "footer": {

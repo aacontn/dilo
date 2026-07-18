@@ -16,7 +16,8 @@
     "postProcessing": "後處理",
     "history": "歷史紀錄",
     "debug": "偵錯",
-    "about": "關於"
+    "about": "關於",
+    "notes": "筆記"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "後處理快捷鍵",
             "description": "可選：專用快捷鍵，使用時一律對轉錄結果套用 AI 後處理"
+          },
+          "quick_note": {
+            "name": "快速筆記快捷鍵",
+            "description": "口述並儲存為筆記，不貼上到目前的應用程式。"
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "顯示新功能",
         "description": "Dilo 更新後顯示版本資訊"
       }
+    },
+    "notes": {
+      "title": "筆記",
+      "shortcut": "快速筆記快捷鍵",
+      "shortcutHint": "口述並儲存為筆記，不貼上到目前的應用程式。",
+      "folder": "筆記資料夾",
+      "folderHint": "本機 Markdown 筆記的儲存位置。預設：~/Documents/Dilo/Notas。",
+      "folderPick": "選擇資料夾",
+      "folderReset": "重設為預設資料夾",
+      "folderDefault": "預設（~/Documents/Dilo/Notas）",
+      "sync": "同步",
+      "apple": "Apple 備忘錄",
+      "appleHint": "同時將每則筆記儲存到 Apple 備忘錄應用程式。",
+      "appleFolder": "備忘錄中的資料夾",
+      "appleFolderHint": "用於儲存的 Apple 備忘錄資料夾名稱。",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "同時將每則筆記儲存到 Notion 頁面或資料庫。",
+      "notionToken": "整合權杖",
+      "notionTokenHint": "Notion 內部整合權杖。",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "頁面或資料庫 ID",
+      "notionParentHint": "建立筆記的上層頁面或資料庫的 ID。",
+      "notionParentPlaceholder": "頁面或資料庫 ID",
+      "notionTest": "測試連線",
+      "notionTestHint": "對照 Notion 檢查已儲存的權杖。",
+      "notionTestOk": "Notion 連線正常。",
+      "notionTestError": "無法連線到 Notion。請檢查權杖。",
+      "pending": "{{count}} 則筆記等待同步",
+      "pendingHint": "本機筆記已儲存，僅剩外部同步待完成。",
+      "pendingTitle": "等待同步",
+      "retry": "立即重試",
+      "retryError": "部分筆記仍在等待。請稍後再試。"
     }
   },
   "footer": {

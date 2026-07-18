@@ -16,7 +16,8 @@
     "postProcessing": "Efterbearbetning",
     "history": "Historik",
     "debug": "Felsökning",
-    "about": "Om"
+    "about": "Om",
+    "notes": "Anteckningar"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "Snabbkommando för efterbearbetning",
             "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+          },
+          "quick_note": {
+            "name": "Kortkommando för snabbanteckning",
+            "description": "Diktera och spara som anteckning, utan att klistra in i den aktiva appen."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Visa nyheter",
         "description": "Visa versionsinformation efter Dilo-uppdateringar"
       }
+    },
+    "notes": {
+      "title": "Anteckningar",
+      "shortcut": "Kortkommando för snabbanteckning",
+      "shortcutHint": "Diktera och spara som anteckning, utan att klistra in i den aktiva appen.",
+      "folder": "Anteckningsmapp",
+      "folderHint": "Var lokala markdown-anteckningar sparas. Standard: ~/Documents/Dilo/Notas.",
+      "folderPick": "Välj mapp",
+      "folderReset": "Återställ till standardmapp",
+      "folderDefault": "Standard (~/Documents/Dilo/Notas)",
+      "sync": "Synkronisering",
+      "apple": "Apple Anteckningar",
+      "appleHint": "Spara även varje anteckning i appen Apple Anteckningar.",
+      "appleFolder": "Mapp i Anteckningar",
+      "appleFolderHint": "Namn på Apple Anteckningar-mappen att spara i.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Spara även varje anteckning på en Notion-sida eller -databas.",
+      "notionToken": "Integrationstoken",
+      "notionTokenHint": "Notions interna integrationstoken.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "Sid- eller databas-ID",
+      "notionParentHint": "ID för den överordnade sidan eller databasen där anteckningar skapas.",
+      "notionParentPlaceholder": "Sid- eller databas-ID",
+      "notionTest": "Testa anslutning",
+      "notionTestHint": "Kontrollera det sparade token mot Notion.",
+      "notionTestOk": "Notion-anslutningen fungerar.",
+      "notionTestError": "Kunde inte ansluta till Notion. Kontrollera token.",
+      "pending": "{{count}} anteckningar väntar på synkronisering",
+      "pendingHint": "Den lokala anteckningen är redan sparad; endast den externa synkroniseringen återstår.",
+      "pendingTitle": "Väntar på synkronisering",
+      "retry": "Försök igen nu",
+      "retryError": "Några anteckningar väntar fortfarande. Försök igen senare."
     }
   },
   "footer": {

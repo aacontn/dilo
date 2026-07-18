@@ -9,6 +9,7 @@ import {
   Mic,
   Sparkles,
   Cpu,
+  NotebookPen,
 } from "lucide-react";
 import { Wordmark } from "./shared";
 import { HomeDashboard } from "./home";
@@ -21,6 +22,7 @@ import {
   AboutSettings,
   PostProcessingSettings,
   ModelsSettings,
+  NotesSettings,
 } from "./settings";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
@@ -76,6 +78,12 @@ export const SECTIONS_CONFIG = {
     icon: Sparkles,
     component: PostProcessingSettings,
     enabled: (settings) => settings?.post_process_enabled ?? false,
+  },
+  notes: {
+    labelKey: "sidebar.notes",
+    icon: NotebookPen,
+    component: NotesSettings,
+    enabled: () => true,
   },
   debug: {
     labelKey: "sidebar.debug",

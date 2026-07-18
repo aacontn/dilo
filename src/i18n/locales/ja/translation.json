@@ -16,7 +16,8 @@
     "postProcessing": "後処理",
     "history": "履歴",
     "debug": "デバッグ",
-    "about": "概要"
+    "about": "概要",
+    "notes": "ノート"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "後処理のショートカット",
             "description": "文字起こしに常に AI 後処理を適用するキーボードショートカット。 (任意)"
+          },
+          "quick_note": {
+            "name": "クイックノートのショートカット",
+            "description": "アクティブなアプリに貼り付けず、口述してノートとして保存します。"
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "新機能を表示",
         "description": "Dilo のアップデート後にリリースノートを表示"
       }
+    },
+    "notes": {
+      "title": "ノート",
+      "shortcut": "クイックノートのショートカット",
+      "shortcutHint": "アクティブなアプリに貼り付けず、口述してノートとして保存します。",
+      "folder": "ノートフォルダ",
+      "folderHint": "ローカルの Markdown ノートの保存先。既定: ~/Documents/Dilo/Notas。",
+      "folderPick": "フォルダを選択",
+      "folderReset": "既定のフォルダに戻す",
+      "folderDefault": "既定 (~/Documents/Dilo/Notas)",
+      "sync": "同期",
+      "apple": "Apple メモ",
+      "appleHint": "各ノートを Apple メモアプリにも保存します。",
+      "appleFolder": "メモ内のフォルダ",
+      "appleFolderHint": "保存先の Apple メモのフォルダ名。",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "各ノートを Notion のページまたはデータベースにも保存します。",
+      "notionToken": "インテグレーショントークン",
+      "notionTokenHint": "Notion の内部インテグレーショントークン。",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ページまたはデータベースの ID",
+      "notionParentHint": "ノートを作成する親ページまたはデータベースの ID。",
+      "notionParentPlaceholder": "ページまたはデータベースの ID",
+      "notionTest": "接続をテスト",
+      "notionTestHint": "保存したトークンを Notion で確認します。",
+      "notionTestOk": "Notion への接続は正常です。",
+      "notionTestError": "Notion に接続できませんでした。トークンを確認してください。",
+      "pending": "{{count}} 件のノートが同期待ちです",
+      "pendingHint": "ローカルのノートはすでに保存済みで、外部同期のみが保留中です。",
+      "pendingTitle": "同期の保留",
+      "retry": "今すぐ再試行",
+      "retryError": "一部のノートがまだ保留中です。後でもう一度お試しください。"
     }
   },
   "footer": {

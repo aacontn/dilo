@@ -876,6 +876,34 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 }
 },
 /**
+ * Verifica el token de Notion guardado con `GET /v1/users/me`.
+ */
+async testNotionConnection() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("test_notion_connection") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Cuántas notas quedan pendientes de sincronizar.
+ */
+async pendingNotesCount() : Promise<number> {
+    return await TAURI_INVOKE("pending_notes_count");
+},
+/**
+ * Fuerza un reintento de la cola y devuelve cuántas notas siguen pendientes.
+ */
+async flushPendingNotes() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("flush_pending_notes") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Checks if the Mac is a laptop by detecting battery presence
  * 
  * This uses pmset to check for battery information.
@@ -941,7 +969,36 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; 
+/**
+ * Carpeta donde se guardan las notas rápidas locales. `None` → default
+ * `~/Documents/Dilo/Notas` (resuelto en el momento de escribir).
+ */
+notes_folder?: string | null; 
+/**
+ * Sincronizar notas con la app Notas de Apple.
+ */
+notes_apple_enabled?: boolean; 
+/**
+ * Carpeta destino dentro de Apple Notes.
+ */
+notes_apple_folder?: string; 
+/**
+ * Sincronizar notas con Notion.
+ */
+notes_notion_enabled?: boolean; 
+/**
+ * Página/base padre de Notion donde crear las notas.
+ */
+notes_notion_parent?: string; 
+/**
+ * Secretos de sincronización de notas (clave `"notion"` = token).
+ */
+notes_secrets?: SecretMap; 
+/**
+ * Notas dictadas cuya sincronización quedó pendiente de reintento.
+ */
+notes_pending?: PendingNote[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1011,6 +1068,15 @@ export type OverlayPosition = "top" | "bottom"
 export type OverlayStyle = "none" | "minimal" | "live"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
+/**
+ * Una nota dictada que no pudo sincronizarse todavía (sin conexión, error del
+ * proveedor, etc.). Se guarda para reintentar el envío a sus `targets`.
+ */
+export type PendingNote = { title: string; body: string; 
+/**
+ * Destinos pendientes: `"apple"` / `"notion"`.
+ */
+targets: string[]; last_error?: string | null }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"

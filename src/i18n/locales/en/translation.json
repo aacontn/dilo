@@ -16,7 +16,8 @@
     "postProcessing": "Post Process",
     "history": "History",
     "debug": "Debug",
-    "about": "About"
+    "about": "About",
+    "notes": "Notes"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
             "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+          },
+          "quick_note": {
+            "name": "Quick Note Shortcut",
+            "description": "Dictate and save as a note, without pasting into the active app."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
           "details": "Dilo is a loving fork of Handy by CJ Pais (MIT license). Thanks for the amazing foundation and for keeping it open source."
         }
       }
+    },
+    "notes": {
+      "title": "Notes",
+      "shortcut": "Quick note shortcut",
+      "shortcutHint": "Dictate and save as a note, without pasting into the active app.",
+      "folder": "Notes folder",
+      "folderHint": "Where local markdown notes are saved. Default: ~/Documents/Dilo/Notas.",
+      "folderPick": "Choose folder",
+      "folderReset": "Reset to default folder",
+      "folderDefault": "Default (~/Documents/Dilo/Notas)",
+      "sync": "Sync",
+      "apple": "Apple Notes",
+      "appleHint": "Also save each note into the Apple Notes app.",
+      "appleFolder": "Folder in Notes",
+      "appleFolderHint": "Name of the Apple Notes folder to save into.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Also save each note to a Notion page or database.",
+      "notionToken": "Integration token",
+      "notionTokenHint": "Notion internal integration token.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "Page or database ID",
+      "notionParentHint": "ID of the parent page or database where notes are created.",
+      "notionParentPlaceholder": "Page or database ID",
+      "notionTest": "Test connection",
+      "notionTestHint": "Check the saved token against Notion.",
+      "notionTestOk": "Notion connection works.",
+      "notionTestError": "Couldn't connect to Notion. Check the token.",
+      "pending": "{{count}} notes waiting to sync",
+      "pendingHint": "The local note is already saved; only external sync is pending.",
+      "pendingTitle": "Pending sync",
+      "retry": "Retry now",
+      "retryError": "Some notes are still pending. Try again later."
     }
   },
   "footer": {

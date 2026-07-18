@@ -16,7 +16,8 @@
     "postProcessing": "后处理",
     "history": "历史记录",
     "debug": "调试",
-    "about": "关于"
+    "about": "关于",
+    "notes": "笔记"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "后处理快捷键",
             "description": "可选：一个专用快捷键，始终对您的转录应用 AI 后处理。"
+          },
+          "quick_note": {
+            "name": "快速笔记快捷键",
+            "description": "口述并保存为笔记，不粘贴到当前应用。"
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "显示新功能",
         "description": "Dilo 更新后显示发行说明"
       }
+    },
+    "notes": {
+      "title": "笔记",
+      "shortcut": "快速笔记快捷键",
+      "shortcutHint": "口述并保存为笔记，不粘贴到当前应用。",
+      "folder": "笔记文件夹",
+      "folderHint": "本地 Markdown 笔记的保存位置。默认：~/Documents/Dilo/Notas。",
+      "folderPick": "选择文件夹",
+      "folderReset": "重置为默认文件夹",
+      "folderDefault": "默认（~/Documents/Dilo/Notas）",
+      "sync": "同步",
+      "apple": "Apple 备忘录",
+      "appleHint": "同时将每条笔记保存到 Apple 备忘录应用。",
+      "appleFolder": "备忘录中的文件夹",
+      "appleFolderHint": "用于保存的 Apple 备忘录文件夹名称。",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "同时将每条笔记保存到 Notion 页面或数据库。",
+      "notionToken": "集成令牌",
+      "notionTokenHint": "Notion 内部集成令牌。",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "页面或数据库 ID",
+      "notionParentHint": "创建笔记的父页面或数据库的 ID。",
+      "notionParentPlaceholder": "页面或数据库 ID",
+      "notionTest": "测试连接",
+      "notionTestHint": "对照 Notion 检查已保存的令牌。",
+      "notionTestOk": "Notion 连接正常。",
+      "notionTestError": "无法连接到 Notion。请检查令牌。",
+      "pending": "{{count}} 条笔记等待同步",
+      "pendingHint": "本地笔记已保存，仅剩外部同步待完成。",
+      "pendingTitle": "等待同步",
+      "retry": "立即重试",
+      "retryError": "部分笔记仍在等待。请稍后重试。"
     }
   },
   "footer": {

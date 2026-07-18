@@ -16,7 +16,8 @@
     "postProcessing": "Xử lý sau",
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
-    "about": "Giới thiệu"
+    "about": "Giới thiệu",
+    "notes": "Ghi chú"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Phím tắt xử lý sau",
             "description": "Tùy chọn: Phím tắt chuyên dụng luôn áp dụng xử lý sau bằng AI cho bản chuyển đổi của bạn."
+          },
+          "quick_note": {
+            "name": "Phím tắt ghi chú nhanh",
+            "description": "Đọc và lưu thành ghi chú, không dán vào ứng dụng đang hoạt động."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Hiển thị điểm mới",
         "description": "Hiển thị ghi chú phát hành sau khi Dilo cập nhật"
       }
+    },
+    "notes": {
+      "title": "Ghi chú",
+      "shortcut": "Phím tắt ghi chú nhanh",
+      "shortcutHint": "Đọc và lưu thành ghi chú, không dán vào ứng dụng đang hoạt động.",
+      "folder": "Thư mục ghi chú",
+      "folderHint": "Nơi lưu ghi chú markdown cục bộ. Mặc định: ~/Documents/Dilo/Notas.",
+      "folderPick": "Chọn thư mục",
+      "folderReset": "Đặt lại về thư mục mặc định",
+      "folderDefault": "Mặc định (~/Documents/Dilo/Notas)",
+      "sync": "Đồng bộ",
+      "apple": "Ghi chú Apple",
+      "appleHint": "Cũng lưu mỗi ghi chú vào ứng dụng Ghi chú của Apple.",
+      "appleFolder": "Thư mục trong Ghi chú",
+      "appleFolderHint": "Tên thư mục Ghi chú Apple để lưu vào.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Cũng lưu mỗi ghi chú vào một trang hoặc cơ sở dữ liệu Notion.",
+      "notionToken": "Token tích hợp",
+      "notionTokenHint": "Token tích hợp nội bộ của Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ID trang hoặc cơ sở dữ liệu",
+      "notionParentHint": "ID của trang hoặc cơ sở dữ liệu cha nơi tạo ghi chú.",
+      "notionParentPlaceholder": "ID trang hoặc cơ sở dữ liệu",
+      "notionTest": "Kiểm tra kết nối",
+      "notionTestHint": "Kiểm tra token đã lưu với Notion.",
+      "notionTestOk": "Kết nối Notion hoạt động.",
+      "notionTestError": "Không thể kết nối tới Notion. Kiểm tra token.",
+      "pending": "{{count}} ghi chú đang chờ đồng bộ",
+      "pendingHint": "Ghi chú cục bộ đã được lưu; chỉ còn chờ đồng bộ bên ngoài.",
+      "pendingTitle": "Đang chờ đồng bộ",
+      "retry": "Thử lại ngay",
+      "retryError": "Một số ghi chú vẫn đang chờ. Hãy thử lại sau."
     }
   },
   "footer": {

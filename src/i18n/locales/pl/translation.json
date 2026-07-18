@@ -16,7 +16,8 @@
     "postProcessing": "Postproces",
     "history": "Historia",
     "debug": "Debugowanie",
-    "about": "O programie"
+    "about": "O programie",
+    "notes": "Notatki"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Skrót postprocessingu",
             "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze stosuje postprocessing AI do transkrypcji."
+          },
+          "quick_note": {
+            "name": "Skrót szybkiej notatki",
+            "description": "Dyktuj i zapisz jako notatkę, bez wklejania do aktywnej aplikacji."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Pokaż nowości",
         "description": "Pokazuj informacje o wydaniu po aktualizacjach Dilo"
       }
+    },
+    "notes": {
+      "title": "Notatki",
+      "shortcut": "Skrót szybkiej notatki",
+      "shortcutHint": "Dyktuj i zapisz jako notatkę, bez wklejania do aktywnej aplikacji.",
+      "folder": "Folder notatek",
+      "folderHint": "Gdzie zapisywane są lokalne notatki markdown. Domyślnie: ~/Documents/Dilo/Notas.",
+      "folderPick": "Wybierz folder",
+      "folderReset": "Przywróć folder domyślny",
+      "folderDefault": "Domyślnie (~/Documents/Dilo/Notas)",
+      "sync": "Synchronizacja",
+      "apple": "Notatki Apple",
+      "appleHint": "Zapisuj każdą notatkę także w aplikacji Notatki Apple.",
+      "appleFolder": "Folder w Notatkach",
+      "appleFolderHint": "Nazwa folderu Notatek Apple do zapisu.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Zapisuj każdą notatkę także na stronie lub w bazie danych Notion.",
+      "notionToken": "Token integracji",
+      "notionTokenHint": "Wewnętrzny token integracji Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ID strony lub bazy danych",
+      "notionParentHint": "ID nadrzędnej strony lub bazy danych, w której tworzone są notatki.",
+      "notionParentPlaceholder": "ID strony lub bazy danych",
+      "notionTest": "Testuj połączenie",
+      "notionTestHint": "Sprawdź zapisany token w Notion.",
+      "notionTestOk": "Połączenie z Notion działa.",
+      "notionTestError": "Nie można połączyć się z Notion. Sprawdź token.",
+      "pending": "{{count}} notatek oczekuje na synchronizację",
+      "pendingHint": "Lokalna notatka jest już zapisana; oczekuje tylko synchronizacja zewnętrzna.",
+      "pendingTitle": "Oczekująca synchronizacja",
+      "retry": "Ponów teraz",
+      "retryError": "Niektóre notatki wciąż oczekują. Spróbuj ponownie później."
     }
   },
   "footer": {

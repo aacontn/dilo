@@ -16,7 +16,8 @@
     "postProcessing": "Naverwerking",
     "history": "Geschiedenis",
     "debug": "Probleemoplossing",
-    "about": "Over Dilo"
+    "about": "Over Dilo",
+    "notes": "Notities"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "Sneltoets voor naverwerking",
             "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+          },
+          "quick_note": {
+            "name": "Sneltoets snelle notitie",
+            "description": "Dicteer en sla op als notitie, zonder in de actieve app te plakken."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
           "details": "Dilo is een liefdevolle fork van Handy, van CJ Pais (MIT-licentie). Bedankt voor de geweldige basis en voor open source."
         }
       }
+    },
+    "notes": {
+      "title": "Notities",
+      "shortcut": "Sneltoets snelle notitie",
+      "shortcutHint": "Dicteer en sla op als notitie, zonder in de actieve app te plakken.",
+      "folder": "Notitiemap",
+      "folderHint": "Waar lokale markdown-notities worden opgeslagen. Standaard: ~/Documents/Dilo/Notas.",
+      "folderPick": "Map kiezen",
+      "folderReset": "Terug naar standaardmap",
+      "folderDefault": "Standaard (~/Documents/Dilo/Notas)",
+      "sync": "Synchronisatie",
+      "apple": "Apple Notities",
+      "appleHint": "Elke notitie ook opslaan in de Apple Notities-app.",
+      "appleFolder": "Map in Notities",
+      "appleFolderHint": "Naam van de Apple Notities-map om in op te slaan.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Elke notitie ook opslaan in een Notion-pagina of -database.",
+      "notionToken": "Integratietoken",
+      "notionTokenHint": "Interne integratietoken van Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "Pagina- of database-ID",
+      "notionParentHint": "ID van de bovenliggende pagina of database waar notities worden aangemaakt.",
+      "notionParentPlaceholder": "Pagina- of database-ID",
+      "notionTest": "Verbinding testen",
+      "notionTestHint": "Het opgeslagen token bij Notion controleren.",
+      "notionTestOk": "Notion-verbinding werkt.",
+      "notionTestError": "Kan geen verbinding maken met Notion. Controleer het token.",
+      "pending": "{{count}} notities wachten op synchronisatie",
+      "pendingHint": "De lokale notitie is al opgeslagen; alleen de externe synchronisatie staat nog open.",
+      "pendingTitle": "Synchronisatie in behandeling",
+      "retry": "Nu opnieuw proberen",
+      "retryError": "Sommige notities staan nog open. Probeer het later opnieuw."
     }
   },
   "footer": {

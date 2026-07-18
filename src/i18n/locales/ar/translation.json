@@ -16,7 +16,8 @@
     "history": "السجل",
     "debug": "تصحيح الأخطاء",
     "about": "حول",
-    "models": "النماذج"
+    "models": "النماذج",
+    "notes": "الملاحظات"
   },
   "home": {
     "status": {
@@ -297,6 +298,10 @@
           "transcribe_with_post_process": {
             "name": "مفتاح المعالجة اللاحقة",
             "description": "اختياري: مفتاح اختصار مخصص يطبق دائماً المعالجة اللاحقة بالذكاء الاصطناعي على التفريغ الصوتي."
+          },
+          "quick_note": {
+            "name": "اختصار الملاحظة السريعة",
+            "description": "أملِ واحفظ كملاحظة، دون اللصق في التطبيق النشط."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "إعادة الفحص",
         "tooltip": "إعادة الفحص بحثًا عن النماذج المضافة إلى مجلد النماذج أو ذاكرة Hugging Face التخزينية المؤقتة خارج Dilo"
       }
+    },
+    "notes": {
+      "title": "الملاحظات",
+      "shortcut": "اختصار الملاحظة السريعة",
+      "shortcutHint": "أملِ واحفظ كملاحظة، دون اللصق في التطبيق النشط.",
+      "folder": "مجلد الملاحظات",
+      "folderHint": "المكان الذي تُحفظ فيه ملاحظات markdown المحلية. الافتراضي: ~/Documents/Dilo/Notas.",
+      "folderPick": "اختر مجلدًا",
+      "folderReset": "إعادة التعيين إلى المجلد الافتراضي",
+      "folderDefault": "الافتراضي (~/Documents/Dilo/Notas)",
+      "sync": "المزامنة",
+      "apple": "ملاحظات Apple",
+      "appleHint": "احفظ كل ملاحظة أيضًا في تطبيق ملاحظات Apple.",
+      "appleFolder": "المجلد في الملاحظات",
+      "appleFolderHint": "اسم مجلد ملاحظات Apple للحفظ فيه.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "احفظ كل ملاحظة أيضًا في صفحة أو قاعدة بيانات Notion.",
+      "notionToken": "رمز التكامل",
+      "notionTokenHint": "رمز التكامل الداخلي في Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "معرّف الصفحة أو قاعدة البيانات",
+      "notionParentHint": "معرّف الصفحة أو قاعدة البيانات الأصل حيث تُنشأ الملاحظات.",
+      "notionParentPlaceholder": "معرّف الصفحة أو قاعدة البيانات",
+      "notionTest": "اختبار الاتصال",
+      "notionTestHint": "تحقق من الرمز المحفوظ مقابل Notion.",
+      "notionTestOk": "اتصال Notion يعمل.",
+      "notionTestError": "تعذّر الاتصال بـ Notion. تحقق من الرمز.",
+      "pending": "{{count}} ملاحظات بانتظار المزامنة",
+      "pendingHint": "الملاحظة المحلية محفوظة بالفعل؛ تبقى المزامنة الخارجية فقط.",
+      "pendingTitle": "بانتظار المزامنة",
+      "retry": "أعد المحاولة الآن",
+      "retryError": "لا تزال بعض الملاحظات معلقة. حاول لاحقًا."
     }
   },
   "footer": {

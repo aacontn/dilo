@@ -16,7 +16,8 @@
     "postProcessing": "후처리",
     "history": "히스토리",
     "debug": "디버그",
-    "about": "정보"
+    "about": "정보",
+    "notes": "노트"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "후처리 단축키",
             "description": "선택 사항: 항상 AI 후처리를 적용하는 전용 단축키입니다."
+          },
+          "quick_note": {
+            "name": "빠른 노트 단축키",
+            "description": "활성 앱에 붙여넣지 않고 받아써서 노트로 저장합니다."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "새 소식 표시",
         "description": "Dilo 업데이트 후 릴리스 노트를 표시합니다"
       }
+    },
+    "notes": {
+      "title": "노트",
+      "shortcut": "빠른 노트 단축키",
+      "shortcutHint": "활성 앱에 붙여넣지 않고 받아써서 노트로 저장합니다.",
+      "folder": "노트 폴더",
+      "folderHint": "로컬 마크다운 노트가 저장되는 위치. 기본값: ~/Documents/Dilo/Notas.",
+      "folderPick": "폴더 선택",
+      "folderReset": "기본 폴더로 재설정",
+      "folderDefault": "기본값 (~/Documents/Dilo/Notas)",
+      "sync": "동기화",
+      "apple": "Apple 메모",
+      "appleHint": "각 노트를 Apple 메모 앱에도 저장합니다.",
+      "appleFolder": "메모의 폴더",
+      "appleFolderHint": "저장할 Apple 메모 폴더 이름.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "각 노트를 Notion 페이지나 데이터베이스에도 저장합니다.",
+      "notionToken": "통합 토큰",
+      "notionTokenHint": "Notion 내부 통합 토큰.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "페이지 또는 데이터베이스 ID",
+      "notionParentHint": "노트가 생성되는 상위 페이지 또는 데이터베이스의 ID.",
+      "notionParentPlaceholder": "페이지 또는 데이터베이스 ID",
+      "notionTest": "연결 테스트",
+      "notionTestHint": "저장된 토큰을 Notion과 대조하여 확인합니다.",
+      "notionTestOk": "Notion 연결이 정상입니다.",
+      "notionTestError": "Notion에 연결할 수 없습니다. 토큰을 확인하세요.",
+      "pending": "{{count}}개의 노트가 동기화 대기 중",
+      "pendingHint": "로컬 노트는 이미 저장되었으며 외부 동기화만 남았습니다.",
+      "pendingTitle": "동기화 대기 중",
+      "retry": "지금 다시 시도",
+      "retryError": "일부 노트가 아직 대기 중입니다. 나중에 다시 시도하세요."
     }
   },
   "footer": {

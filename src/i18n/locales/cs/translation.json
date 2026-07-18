@@ -16,7 +16,8 @@
     "postProcessing": "Následné zpracování",
     "history": "Historie",
     "debug": "Ladění",
-    "about": "O aplikaci"
+    "about": "O aplikaci",
+    "notes": "Poznámky"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Klávesa pro následné zpracování",
             "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy použije AI následné zpracování na váš přepis."
+          },
+          "quick_note": {
+            "name": "Zkratka rychlé poznámky",
+            "description": "Diktujte a uložte jako poznámku, bez vkládání do aktivní aplikace."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Zobrazovat novinky",
         "description": "Zobrazovat poznámky k vydání po aktualizacích Dilo"
       }
+    },
+    "notes": {
+      "title": "Poznámky",
+      "shortcut": "Zkratka rychlé poznámky",
+      "shortcutHint": "Diktujte a uložte jako poznámku, bez vkládání do aktivní aplikace.",
+      "folder": "Složka poznámek",
+      "folderHint": "Kam se ukládají místní poznámky ve formátu markdown. Výchozí: ~/Documents/Dilo/Notas.",
+      "folderPick": "Vybrat složku",
+      "folderReset": "Obnovit výchozí složku",
+      "folderDefault": "Výchozí (~/Documents/Dilo/Notas)",
+      "sync": "Synchronizace",
+      "apple": "Poznámky Apple",
+      "appleHint": "Ukládat každou poznámku také do aplikace Poznámky Apple.",
+      "appleFolder": "Složka v Poznámkách",
+      "appleFolderHint": "Název složky Poznámek Apple pro ukládání.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Ukládat každou poznámku také na stránku nebo do databáze Notion.",
+      "notionToken": "Integrační token",
+      "notionTokenHint": "Interní integrační token Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ID stránky nebo databáze",
+      "notionParentHint": "ID nadřazené stránky nebo databáze, kde se poznámky vytvářejí.",
+      "notionParentPlaceholder": "ID stránky nebo databáze",
+      "notionTest": "Otestovat připojení",
+      "notionTestHint": "Ověřit uložený token vůči Notion.",
+      "notionTestOk": "Připojení k Notion funguje.",
+      "notionTestError": "Nepodařilo se připojit k Notion. Zkontrolujte token.",
+      "pending": "{{count}} poznámek čeká na synchronizaci",
+      "pendingHint": "Místní poznámka je již uložena; čeká se pouze na externí synchronizaci.",
+      "pendingTitle": "Čeká na synchronizaci",
+      "retry": "Zkusit znovu",
+      "retryError": "Některé poznámky stále čekají. Zkuste to později."
     }
   },
   "footer": {

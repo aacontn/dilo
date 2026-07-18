@@ -16,7 +16,8 @@
     "postProcessing": "Nachbearbeitung",
     "history": "Verlauf",
     "debug": "Debug",
-    "about": "Info"
+    "about": "Info",
+    "notes": "Notizen"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Nachbearbeitungs-Tastenkürzel",
             "description": "Optional: Ein dediziertes Tastenkürzel, das immer die KI-Nachbearbeitung auf deine Transkription anwendet."
+          },
+          "quick_note": {
+            "name": "Kurznotiz-Tastenkürzel",
+            "description": "Diktieren und als Notiz speichern, ohne in die aktive App einzufügen."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Neuerungen anzeigen",
         "description": "Versionshinweise nach Dilo-Updates anzeigen"
       }
+    },
+    "notes": {
+      "title": "Notizen",
+      "shortcut": "Kurznotiz-Tastenkürzel",
+      "shortcutHint": "Diktieren und als Notiz speichern, ohne in die aktive App einzufügen.",
+      "folder": "Notizordner",
+      "folderHint": "Wo lokale Markdown-Notizen gespeichert werden. Standard: ~/Documents/Dilo/Notas.",
+      "folderPick": "Ordner wählen",
+      "folderReset": "Auf Standardordner zurücksetzen",
+      "folderDefault": "Standard (~/Documents/Dilo/Notas)",
+      "sync": "Synchronisierung",
+      "apple": "Apple Notizen",
+      "appleHint": "Jede Notiz zusätzlich in der Apple Notizen-App speichern.",
+      "appleFolder": "Ordner in Notizen",
+      "appleFolderHint": "Name des Apple Notizen-Ordners zum Speichern.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Jede Notiz zusätzlich auf einer Notion-Seite oder -Datenbank speichern.",
+      "notionToken": "Integrations-Token",
+      "notionTokenHint": "Internes Integrations-Token von Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "Seiten- oder Datenbank-ID",
+      "notionParentHint": "ID der übergeordneten Seite oder Datenbank, in der Notizen erstellt werden.",
+      "notionParentPlaceholder": "Seiten- oder Datenbank-ID",
+      "notionTest": "Verbindung testen",
+      "notionTestHint": "Gespeichertes Token gegen Notion prüfen.",
+      "notionTestOk": "Notion-Verbindung funktioniert.",
+      "notionTestError": "Verbindung zu Notion fehlgeschlagen. Token überprüfen.",
+      "pending": "{{count}} Notizen warten auf Synchronisierung",
+      "pendingHint": "Die lokale Notiz ist bereits gespeichert; nur die externe Synchronisierung steht aus.",
+      "pendingTitle": "Ausstehende Synchronisierung",
+      "retry": "Jetzt erneut versuchen",
+      "retryError": "Einige Notizen stehen noch aus. Bitte später erneut versuchen."
     }
   },
   "footer": {

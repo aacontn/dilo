@@ -16,7 +16,8 @@
     "postProcessing": "Son İşlem",
     "history": "Geçmiş",
     "debug": "Hata Ayıklama",
-    "about": "Hakkında"
+    "about": "Hakkında",
+    "notes": "Notlar"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Son İşlem Kısayolu",
             "description": "İsteğe bağlı: Transkripsiyonunuza her zaman AI son işleme uygulayan özel bir kısayol tuşu."
+          },
+          "quick_note": {
+            "name": "Hızlı not kısayolu",
+            "description": "Dikte edin ve not olarak kaydedin, etkin uygulamaya yapıştırmadan."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Yenilikleri Göster",
         "description": "Dilo güncellemelerinden sonra sürüm notlarını göster"
       }
+    },
+    "notes": {
+      "title": "Notlar",
+      "shortcut": "Hızlı not kısayolu",
+      "shortcutHint": "Dikte edin ve not olarak kaydedin, etkin uygulamaya yapıştırmadan.",
+      "folder": "Not klasörü",
+      "folderHint": "Yerel markdown notlarının kaydedildiği yer. Varsayılan: ~/Documents/Dilo/Notas.",
+      "folderPick": "Klasör seç",
+      "folderReset": "Varsayılan klasöre sıfırla",
+      "folderDefault": "Varsayılan (~/Documents/Dilo/Notas)",
+      "sync": "Eşitleme",
+      "apple": "Apple Notlar",
+      "appleHint": "Her notu ayrıca Apple Notlar uygulamasına kaydet.",
+      "appleFolder": "Notlar'daki klasör",
+      "appleFolderHint": "Kaydedilecek Apple Notlar klasörünün adı.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Her notu ayrıca bir Notion sayfasına veya veritabanına kaydet.",
+      "notionToken": "Entegrasyon belirteci",
+      "notionTokenHint": "Notion dahili entegrasyon belirteci.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "Sayfa veya veritabanı kimliği",
+      "notionParentHint": "Notların oluşturulduğu üst sayfanın veya veritabanının kimliği.",
+      "notionParentPlaceholder": "Sayfa veya veritabanı kimliği",
+      "notionTest": "Bağlantıyı test et",
+      "notionTestHint": "Kaydedilen belirteci Notion'a karşı doğrula.",
+      "notionTestOk": "Notion bağlantısı çalışıyor.",
+      "notionTestError": "Notion'a bağlanılamadı. Belirteci kontrol edin.",
+      "pending": "{{count}} not eşitlenmeyi bekliyor",
+      "pendingHint": "Yerel not zaten kaydedildi; yalnızca dış eşitleme bekliyor.",
+      "pendingTitle": "Bekleyen eşitleme",
+      "retry": "Şimdi yeniden dene",
+      "retryError": "Bazı notlar hâlâ bekliyor. Daha sonra tekrar deneyin."
     }
   },
   "footer": {

@@ -16,7 +16,8 @@
     "postProcessing": "עיבוד משלים",
     "history": "היסטוריה",
     "debug": "ניפוי שגיאות",
-    "about": "אודות"
+    "about": "אודות",
+    "notes": "הערות"
   },
   "home": {
     "status": {
@@ -300,6 +301,10 @@
           "transcribe_with_post_process": {
             "name": "קיצור לעיבוד משלים",
             "description": "אופציונלי: קיצור מקשים ייעודי שתמיד מפעיל עיבוד AI על התמלול."
+          },
+          "quick_note": {
+            "name": "קיצור להערה מהירה",
+            "description": "הכתב ושמור כהערה, בלי להדביק ביישום הפעיל."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "הצג מה חדש",
         "description": "הצג הערות גרסה לאחר עדכוני Dilo"
       }
+    },
+    "notes": {
+      "title": "הערות",
+      "shortcut": "קיצור להערה מהירה",
+      "shortcutHint": "הכתב ושמור כהערה, בלי להדביק ביישום הפעיל.",
+      "folder": "תיקיית הערות",
+      "folderHint": "היכן נשמרות הערות markdown מקומיות. ברירת מחדל: ~/Documents/Dilo/Notas.",
+      "folderPick": "בחר תיקייה",
+      "folderReset": "איפוס לתיקיית ברירת המחדל",
+      "folderDefault": "ברירת מחדל (~/Documents/Dilo/Notas)",
+      "sync": "סנכרון",
+      "apple": "הערות Apple",
+      "appleHint": "שמור כל הערה גם ביישום הערות של Apple.",
+      "appleFolder": "תיקייה בהערות",
+      "appleFolderHint": "שם התיקייה בהערות Apple לשמירה.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "שמור כל הערה גם בעמוד או במסד נתונים של Notion.",
+      "notionToken": "אסימון אינטגרציה",
+      "notionTokenHint": "אסימון אינטגרציה פנימי של Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "מזהה עמוד או מסד נתונים",
+      "notionParentHint": "מזהה עמוד האב או מסד הנתונים שבו נוצרות ההערות.",
+      "notionParentPlaceholder": "מזהה עמוד או מסד נתונים",
+      "notionTest": "בדוק חיבור",
+      "notionTestHint": "בדוק את האסימון השמור מול Notion.",
+      "notionTestOk": "החיבור ל-Notion עובד.",
+      "notionTestError": "לא ניתן להתחבר ל-Notion. בדוק את האסימון.",
+      "pending": "{{count}} הערות ממתינות לסנכרון",
+      "pendingHint": "ההערה המקומית כבר נשמרה; נותר רק הסנכרון החיצוני.",
+      "pendingTitle": "ממתין לסנכרון",
+      "retry": "נסה שוב עכשיו",
+      "retryError": "חלק מההערות עדיין ממתינות. נסה שוב מאוחר יותר."
     }
   },
   "footer": {

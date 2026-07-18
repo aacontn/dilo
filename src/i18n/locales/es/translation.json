@@ -16,7 +16,8 @@
     "postProcessing": "Post-proceso",
     "history": "Historial",
     "debug": "Debug",
-    "about": "Acerca de"
+    "about": "Acerca de",
+    "notes": "Notas"
   },
   "home": {
     "status": {
@@ -318,6 +319,10 @@
           "transcribe_with_post_process": {
             "name": "Atajo con post-proceso",
             "description": "Opcional: un atajo dedicado que siempre pasa tu dictado por la IA de post-proceso."
+          },
+          "quick_note": {
+            "name": "Atajo de nota rápida",
+            "description": "Dicta y guarda como nota, sin pegar en la app activa."
           }
         },
         "errors": {
@@ -699,6 +704,39 @@
         "label": "Mostrar novedades",
         "description": "Muestra las notas de versión después de actualizar Dilo"
       }
+    },
+    "notes": {
+      "title": "Notas",
+      "shortcut": "Atajo de nota rápida",
+      "shortcutHint": "Dicta y guarda como nota, sin pegar en la app activa.",
+      "folder": "Carpeta de notas",
+      "folderHint": "Dónde se guardan las notas locales en markdown. Por defecto: ~/Documents/Dilo/Notas.",
+      "folderPick": "Elegir carpeta",
+      "folderReset": "Volver a la carpeta por defecto",
+      "folderDefault": "Por defecto (~/Documents/Dilo/Notas)",
+      "sync": "Sincronización",
+      "apple": "Notas de Apple",
+      "appleHint": "Guarda también cada nota en la app Notas de Apple.",
+      "appleFolder": "Carpeta en Notas",
+      "appleFolderHint": "Nombre de la carpeta en Notas donde se guardan.",
+      "appleFolderPlaceholder": "Dilo",
+      "notion": "Notion",
+      "notionHint": "Guarda también cada nota en una página o base de datos de Notion.",
+      "notionToken": "Token de integración",
+      "notionTokenHint": "Token de integración interna de Notion.",
+      "notionTokenPlaceholder": "secret_...",
+      "notionParent": "ID de página o base de datos",
+      "notionParentHint": "ID de la página o base de datos donde se crean las notas.",
+      "notionParentPlaceholder": "ID de página o base de datos",
+      "notionTest": "Probar conexión",
+      "notionTestHint": "Verifica el token guardado contra Notion.",
+      "notionTestOk": "Conexión con Notion lista.",
+      "notionTestError": "No se pudo conectar con Notion. Revisá el token.",
+      "pending": "{{count}} notas pendientes de sincronizar",
+      "pendingHint": "La nota local ya está guardada; solo falta la sincronización externa.",
+      "pendingTitle": "Pendientes de sincronizar",
+      "retry": "Reintentar ahora",
+      "retryError": "Algunas notas siguen pendientes. Probá de nuevo más tarde."
     }
   },
   "footer": {
