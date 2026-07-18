@@ -736,7 +736,8 @@
       "pendingHint": "La nota locale è già salvata; manca solo la sincronizzazione esterna.",
       "pendingTitle": "In attesa di sincronizzazione",
       "retry": "Riprova ora",
-      "retryError": "Alcune note sono ancora in sospeso. Riprova più tardi."
+      "retryError": "Alcune note sono ancora in sospeso. Riprova più tardi.",
+      "notionTokenSaveError": "Impossibile salvare il token di Notion. Riprova."
     }
   },
   "footer": {

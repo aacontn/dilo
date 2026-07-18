@@ -736,7 +736,8 @@
       "pendingHint": "Ghi chú cục bộ đã được lưu; chỉ còn chờ đồng bộ bên ngoài.",
       "pendingTitle": "Đang chờ đồng bộ",
       "retry": "Thử lại ngay",
-      "retryError": "Một số ghi chú vẫn đang chờ. Hãy thử lại sau."
+      "retryError": "Một số ghi chú vẫn đang chờ. Hãy thử lại sau.",
+      "notionTokenSaveError": "Không thể lưu token Notion. Hãy thử lại."
     }
   },
   "footer": {

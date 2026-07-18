@@ -736,7 +736,8 @@
       "pendingHint": "本地笔记已保存，仅剩外部同步待完成。",
       "pendingTitle": "等待同步",
       "retry": "立即重试",
-      "retryError": "部分笔记仍在等待。请稍后重试。"
+      "retryError": "部分笔记仍在等待。请稍后重试。",
+      "notionTokenSaveError": "无法保存 Notion 令牌。请重试。"
     }
   },
   "footer": {

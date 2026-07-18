@@ -736,7 +736,8 @@
       "pendingHint": "Den lokala anteckningen är redan sparad; endast den externa synkroniseringen återstår.",
       "pendingTitle": "Väntar på synkronisering",
       "retry": "Försök igen nu",
-      "retryError": "Några anteckningar väntar fortfarande. Försök igen senare."
+      "retryError": "Några anteckningar väntar fortfarande. Försök igen senare.",
+      "notionTokenSaveError": "Kunde inte spara Notion-token. Försök igen."
     }
   },
   "footer": {

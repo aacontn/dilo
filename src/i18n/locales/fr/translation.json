@@ -736,7 +736,8 @@
       "pendingHint": "La note locale est déjà enregistrée ; seule la synchronisation externe est en attente.",
       "pendingTitle": "Synchronisation en attente",
       "retry": "Réessayer maintenant",
-      "retryError": "Certaines notes sont encore en attente. Réessayez plus tard."
+      "retryError": "Certaines notes sont encore en attente. Réessayez plus tard.",
+      "notionTokenSaveError": "Impossible d'enregistrer le jeton Notion. Réessayez."
     }
   },
   "footer": {

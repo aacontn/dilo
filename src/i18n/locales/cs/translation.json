@@ -736,7 +736,8 @@
       "pendingHint": "Místní poznámka je již uložena; čeká se pouze na externí synchronizaci.",
       "pendingTitle": "Čeká na synchronizaci",
       "retry": "Zkusit znovu",
-      "retryError": "Některé poznámky stále čekají. Zkuste to později."
+      "retryError": "Některé poznámky stále čekají. Zkuste to později.",
+      "notionTokenSaveError": "Token Notion se nepodařilo uložit. Zkuste to znovu."
     }
   },
   "footer": {

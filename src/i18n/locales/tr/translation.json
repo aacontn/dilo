@@ -736,7 +736,8 @@
       "pendingHint": "Yerel not zaten kaydedildi; yalnızca dış eşitleme bekliyor.",
       "pendingTitle": "Bekleyen eşitleme",
       "retry": "Şimdi yeniden dene",
-      "retryError": "Bazı notlar hâlâ bekliyor. Daha sonra tekrar deneyin."
+      "retryError": "Bazı notlar hâlâ bekliyor. Daha sonra tekrar deneyin.",
+      "notionTokenSaveError": "Notion belirteci kaydedilemedi. Tekrar deneyin."
     }
   },
   "footer": {

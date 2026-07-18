@@ -736,7 +736,8 @@
       "pendingHint": "Lokalna notatka jest już zapisana; oczekuje tylko synchronizacja zewnętrzna.",
       "pendingTitle": "Oczekująca synchronizacja",
       "retry": "Ponów teraz",
-      "retryError": "Niektóre notatki wciąż oczekują. Spróbuj ponownie później."
+      "retryError": "Niektóre notatki wciąż oczekują. Spróbuj ponownie później.",
+      "notionTokenSaveError": "Nie udało się zapisać tokenu Notion. Spróbuj ponownie."
     }
   },
   "footer": {

@@ -736,7 +736,8 @@
       "pendingHint": "Die lokale Notiz ist bereits gespeichert; nur die externe Synchronisierung steht aus.",
       "pendingTitle": "Ausstehende Synchronisierung",
       "retry": "Jetzt erneut versuchen",
-      "retryError": "Einige Notizen stehen noch aus. Bitte später erneut versuchen."
+      "retryError": "Einige Notizen stehen noch aus. Bitte später erneut versuchen.",
+      "notionTokenSaveError": "Notion-Token konnte nicht gespeichert werden. Bitte erneut versuchen."
     }
   },
   "footer": {

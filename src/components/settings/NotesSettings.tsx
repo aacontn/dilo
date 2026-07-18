@@ -23,7 +23,8 @@ import { useOsType } from "../../hooks/useOsType";
  */
 export const NotesSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { settings, updateSetting, isUpdating } = useSettings();
+  const { settings, updateSetting, isUpdating, refreshSettings } =
+    useSettings();
   const osType = useOsType();
   const isMacOS = osType === "macos";
 
@@ -73,14 +74,29 @@ export const NotesSettings: React.FC = () => {
     [updateSetting],
   );
 
+  const [isSavingToken, setIsSavingToken] = useState(false);
+
+  // Mismo patrón que la API key de post-proceso: comando dedicado + refresh
+  // para que el input refleje el valor persistido (SecretMap del backend).
   const handleNotionTokenChange = useCallback(
-    (value: string) => {
-      void updateSetting("notes_secrets", {
-        ...(settings?.notes_secrets ?? {}),
-        notion: value.trim(),
-      });
+    async (value: string) => {
+      const trimmed = value.trim();
+      if (trimmed === notionToken) return;
+      setIsSavingToken(true);
+      try {
+        const result = await commands.changeNotesNotionToken(trimmed);
+        if (result.status === "error") {
+          throw new Error(result.error);
+        }
+        await refreshSettings();
+      } catch (error) {
+        console.error("Failed to save Notion token:", error);
+        toast.error(t("settings.notes.notionTokenSaveError"));
+      } finally {
+        setIsSavingToken(false);
+      }
     },
-    [settings?.notes_secrets, updateSetting],
+    [notionToken, refreshSettings, t],
   );
 
   const handleNotionParentChange = useCallback(
@@ -227,7 +243,7 @@ export const NotesSettings: React.FC = () => {
                   value={notionToken}
                   onBlur={handleNotionTokenChange}
                   placeholder={t("settings.notes.notionTokenPlaceholder")}
-                  disabled={isUpdating("notes_secrets")}
+                  disabled={isSavingToken}
                   className="min-w-[280px]"
                 />
               </div>

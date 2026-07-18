@@ -736,7 +736,8 @@
       "pendingHint": "De lokale notitie is al opgeslagen; alleen de externe synchronisatie staat nog open.",
       "pendingTitle": "Synchronisatie in behandeling",
       "retry": "Nu opnieuw proberen",
-      "retryError": "Sommige notities staan nog open. Probeer het later opnieuw."
+      "retryError": "Sommige notities staan nog open. Probeer het later opnieuw.",
+      "notionTokenSaveError": "Kan het Notion-token niet opslaan. Probeer het opnieuw."
     }
   },
   "footer": {

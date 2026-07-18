@@ -736,7 +736,8 @@
       "pendingHint": "로컬 노트는 이미 저장되었으며 외부 동기화만 남았습니다.",
       "pendingTitle": "동기화 대기 중",
       "retry": "지금 다시 시도",
-      "retryError": "일부 노트가 아직 대기 중입니다. 나중에 다시 시도하세요."
+      "retryError": "일부 노트가 아직 대기 중입니다. 나중에 다시 시도하세요.",
+      "notionTokenSaveError": "Notion 토큰을 저장하지 못했습니다. 다시 시도하세요."
     }
   },
   "footer": {

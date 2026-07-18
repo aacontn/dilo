@@ -692,6 +692,12 @@ pub fn run(cli_args: CliArgs) {
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,
+            notes::change_notes_folder,
+            notes::change_notes_apple_enabled,
+            notes::change_notes_apple_folder,
+            notes::change_notes_notion_enabled,
+            notes::change_notes_notion_parent,
+            notes::change_notes_notion_token,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![

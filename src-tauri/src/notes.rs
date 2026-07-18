@@ -463,6 +463,88 @@ pub async fn flush_pending_notes(app: AppHandle) -> Result<u32, String> {
     Ok(get_settings(&app).notes_pending.len() as u32)
 }
 
+// ---------------------------------------------------------------------------
+// Comandos de persistencia de la configuración de notas.
+//
+// Mismo idioma por-clave del resto del proyecto (get_settings → mutar →
+// write_settings); ver p. ej. `change_app_language_setting`.
+// ---------------------------------------------------------------------------
+
+/// Carpeta local de notas. `None` → volver al default (`~/Documents/Dilo/Notas`).
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_folder(app: AppHandle, folder: Option<String>) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.notes_folder = folder
+        .map(|f| f.trim().to_string())
+        .filter(|f| !f.is_empty());
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// Activa/desactiva la sincronización con Notas de Apple.
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_apple_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.notes_apple_enabled = enabled;
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// Nombre de la carpeta destino dentro de Notas de Apple.
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_apple_folder(app: AppHandle, folder: String) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.notes_apple_folder = folder.trim().to_string();
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// Activa/desactiva la sincronización con Notion.
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_notion_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.notes_notion_enabled = enabled;
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// ID de la página o base de datos padre en Notion.
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_notion_parent(app: AppHandle, parent: String) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.notes_notion_parent = parent.trim().to_string();
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// Aplica el token de Notion sobre los settings: recortado; vacío → se elimina
+/// la clave `"notion"` (no queda un secreto vacío colgando). Puro y testeable.
+fn apply_notion_token(settings: &mut AppSettings, token: &str) {
+    let trimmed = token.trim();
+    if trimmed.is_empty() {
+        settings.notes_secrets.remove("notion");
+    } else {
+        settings
+            .notes_secrets
+            .insert("notion".to_string(), trimmed.to_string());
+    }
+}
+
+/// Guarda (o elimina, si viene vacío) el token de integración de Notion.
+#[tauri::command]
+#[specta::specta]
+pub fn change_notes_notion_token(app: AppHandle, token: String) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    apply_notion_token(&mut settings, &token);
+    write_settings(&app, settings);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -568,5 +650,19 @@ mod tests {
             v["properties"]["title"]["title"][0]["text"]["content"],
             "Titulo"
         );
+    }
+
+    #[test]
+    fn apply_notion_token_trims_and_removes_when_empty() {
+        let mut settings = crate::settings::get_default_settings();
+
+        apply_notion_token(&mut settings, "  secret_abc  ");
+        assert_eq!(
+            settings.notes_secrets.get("notion").map(String::as_str),
+            Some("secret_abc")
+        );
+
+        apply_notion_token(&mut settings, "   ");
+        assert!(settings.notes_secrets.get("notion").is_none());
     }
 }

@@ -736,7 +736,8 @@
       "pendingHint": "本機筆記已儲存，僅剩外部同步待完成。",
       "pendingTitle": "等待同步",
       "retry": "立即重試",
-      "retryError": "部分筆記仍在等待。請稍後再試。"
+      "retryError": "部分筆記仍在等待。請稍後再試。",
+      "notionTokenSaveError": "無法儲存 Notion 權杖。請再試一次。"
     }
   },
   "footer": {
