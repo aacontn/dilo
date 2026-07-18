@@ -289,12 +289,6 @@ impl Drop for FlushGuard {
 /// Apple y página de Notion. Si el archivo local falla, se registra y se emite
 /// `note-error`, pero igual se intentan los syncs (la cola también los protege).
 /// Los destinos que fallen se acumulan en UN `PendingNote` por captura.
-///
-// Consumido por la acción `quick_note` del pipeline (Task 4); hasta que ese
-// call-site aterrice, `capture_note` y sus helpers exclusivos del archivo local
-// (`note_title`, `write_local_note`, `notes_folder`) no tienen consumidor en un
-// build sin tests, así que se permite dead_code de forma acotada aquí.
-#[allow(dead_code)]
 pub async fn capture_note(app: &AppHandle, text: &str) {
     let settings = get_settings(app);
     let title = note_title(&chrono::Local::now());

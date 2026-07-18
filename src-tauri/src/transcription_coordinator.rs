@@ -133,6 +133,7 @@ pub struct TranscriptionCoordinator {
 pub fn is_transcribe_binding(id: &str) -> bool {
     id == "transcribe"
         || id == "transcribe_with_post_process"
+        || id == "quick_note"
         || crate::actions::mode_prompt_id(id).is_some()
 }
 

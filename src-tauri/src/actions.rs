@@ -69,9 +69,18 @@ pub trait ShortcutAction: Send + Sync {
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
 }
 
+/// A dónde va el texto final de un dictado: pegarlo en la app activa (default)
+/// o capturarlo como nota rápida vía `notes::capture_note`.
+#[derive(Clone, Copy, PartialEq)]
+enum OutputDestination {
+    Paste,
+    Note,
+}
+
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    output: OutputDestination,
 }
 
 /// Field name for structured output JSON schema
@@ -689,6 +698,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let output = self.output;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -829,6 +839,17 @@ impl ShortcutAction for TranscribeAction {
                             if processed.final_text.is_empty() {
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
+                            } else if output == OutputDestination::Note {
+                                // Nota rápida: la captura (archivo local + syncs
+                                // con timeouts de red) corre fire-and-forget para
+                                // que el overlay no quede colgado esperando I/O.
+                                let ah_note = ah.clone();
+                                let final_text = processed.final_text;
+                                tauri::async_runtime::spawn(async move {
+                                    crate::notes::capture_note(&ah_note, &final_text).await;
+                                });
+                                utils::hide_recording_overlay(&ah);
+                                change_tray_icon(&ah, TrayIconState::Idle);
                             } else {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();
@@ -952,11 +973,22 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            output: OutputDestination::Paste,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            output: OutputDestination::Paste,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "quick_note".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            output: OutputDestination::Note,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),
@@ -984,6 +1016,14 @@ mod tests {
         assert!(super::resolve_action("transcribe").is_some());
         assert!(super::resolve_action("mode:cualquiera").is_some());
         assert!(super::resolve_action("inexistente").is_none());
+    }
+
+    #[test]
+    fn quick_note_is_a_transcribe_binding_and_resolves() {
+        assert!(crate::transcription_coordinator::is_transcribe_binding(
+            "quick_note"
+        ));
+        assert!(super::resolve_action("quick_note").is_some());
     }
 
     #[test]
