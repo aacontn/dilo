@@ -60,8 +60,18 @@ case "$os" in
     xattr -dr com.apple.quarantine /Applications/Dilo.app 2>/dev/null || \
       sudo xattr -dr com.apple.quarantine /Applications/Dilo.app 2>/dev/null || true
 
+    # Con firma adhoc, cada versión tiene identidad distinta y el permiso de
+    # Accesibilidad de la versión anterior queda huérfano (el switch se ve
+    # activo pero no funciona). Purgar la entrada hace que Dilo lo pida
+    # limpio de nuevo — solo hay que encender el switch cuando aparezca.
+    tccutil reset Accessibility cl.espaciodigital.dilo >/dev/null 2>&1 || true
+
     say "✅ Dilo $tag instalado. Abriendo..."
     open /Applications/Dilo.app
+    say ""
+    say "⚠️  macOS pide re-otorgar Accesibilidad tras instalar o actualizar"
+    say "   (limitación de apps sin firma de Apple): cuando Dilo lo pida,"
+    say "   enciende el switch en Configuración → Privacidad → Accesibilidad."
     say ""
     say "Dicta con tu atajo de siempre. Para actualizar, corre este mismo comando."
     ;;
