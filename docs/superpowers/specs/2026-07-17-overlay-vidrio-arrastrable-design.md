@@ -1,6 +1,12 @@
 # Dilo — Overlay de vidrio arrastrable (rediseño visual + posición libre)
 
-**Fecha:** 2026-07-17 · **Estado:** aprobado por Alfonso · **Base:** overlay actual (`src/overlay/`, `src-tauri/src/overlay.rs`)
+**Fecha:** 2026-07-17 · **Estado:** superado parcialmente (ver iteración 2026-07-18) · **Base:** overlay actual (`src/overlay/`, `src-tauri/src/overlay.rs`)
+
+> **Iteración 2026-07-18 (v0.1.10), decidida por Alfonso tras probar v0.1.9:**
+>
+> 1. **El arrastre se ELIMINÓ.** Probado en vivo no resultó cómodo ("arrastrarla no es tan cómodo") y su código era el principal sospechoso del cuelgue de la v0.1.9 (overlay dejaba de aparecer y el paste moría tras el primer drag). Vuelve el preset Arriba/Abajo, que sigue reconociendo la pantalla del cursor (comportamiento multi-monitor de siempre). Se quitaron: gesto en el webview, comando `start_overlay_drag`, persistencia por `WindowEvent::Moved`, `overlay_custom_positions`, ítem de tray "Restablecer posición" y su clave i18n.
+> 2. **Las ondas ahora viven solas.** La maqueta aprobada tenía ondas bailando; la app real solo se movía con voz y en silencio se veía muerta. Fix: vaivén `scaleY` por barra en CSS (desfasado, multiplicativo sobre la altura que manda el mic) — respiran en silencio, se encienden al hablar. Barras más gruesas (5px), piso 7px, glow un pelo más fuerte. `prefers-reduced-motion` las detiene.
+> 3. Se conservan de la v0.1.9: vidrio simulado, sombra con pad de ventana, gradiente mango→rojo, sin punto rojo, edge en el payload de `show-overlay`.
 
 ## Qué es
 

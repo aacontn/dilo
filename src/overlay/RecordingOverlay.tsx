@@ -151,7 +151,9 @@ const RecordingOverlay: React.FC = () => {
         <i
           key={i}
           style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
+            // Base 7px (el vaivén CSS la mantiene viva en silencio); la voz
+            // empuja hasta 16px y el scaleY multiplica por encima.
+            height: `${Math.max(7, Math.min(16, 6 + Math.pow(v, 0.7) * 11))}px`,
           }}
         />
       ))}

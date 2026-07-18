@@ -1551,6 +1551,4 @@ mod tests {
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
     }
-
-
 }
