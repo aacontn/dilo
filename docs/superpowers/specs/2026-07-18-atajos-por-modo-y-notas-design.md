@@ -60,3 +60,11 @@ Dos features que convergen:
 - OneNote / Microsoft Graph (Windows) — futuro.
 - Nota diaria acumulada, plantillas de nota, post-proceso en notas.
 - Resúmenes/LLM sobre notas (territorio de la app hermana agéntica).
+
+## Addendum (feedback en vivo de Alfonso, 2026-07-18 tarde)
+
+Tres pedidos que entran en la tanda 2 de v0.1.12:
+
+1. **Ventana principal se abrió sola en el primer dictado.** Diagnóstico: el flujo de "usuario que vuelve" revela la ventana al detectar permisos faltantes (App.tsx `checkOnboardingStatus`); el cambio de firma adhoc→estable invalidó los grants y disparó ese camino una única vez. No se cambia el comportamiento (pedir permisos es correcto) pero queda vigilado: si reaparece con permisos OK, es bug nuevo.
+2. **La ventana principal no se puede arrastrar.** Solo existe una franja de arrastre de 36px (macOS, titlebar overlay). Fix: garantizar que la franja funcione y ampliar el arrastre a las zonas vacías del encabezado/sidebar superior.
+3. **Inicio · "Cómo quieres que escriba":** (a) mostrar y poder editar el atajo del modo directamente en cada tarjeta; (b) acción "Personalizar" que navegue a la sección Post-proceso; (c) darle a cada modo un espacio más dedicado — hoy la tarjeta es un botón compacto, los dropdowns de la config se sobreponen y al elegir "literal" los modos de post-proceso desaparecen de la vista. Los modos creados por el usuario también deberían aparecer.
