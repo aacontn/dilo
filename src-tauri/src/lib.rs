@@ -11,9 +11,6 @@ mod helpers;
 mod input;
 mod llm_client;
 mod managers;
-// Las funciones puras de notas se consumen en tareas posteriores (sync +
-// comandos); permitimos dead_code hasta que se conecten.
-#[allow(dead_code)]
 mod notes;
 mod overlay;
 pub mod portable;
@@ -692,6 +689,9 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            notes::test_notion_connection,
+            notes::pending_notes_count,
+            notes::flush_pending_notes,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
@@ -874,6 +874,15 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // Reintentar en segundo plano las notas que quedaron sin sincronizar
+            // en sesiones anteriores (sin red, error del proveedor, etc.).
+            {
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    notes::flush_pending(&app_handle).await;
+                });
+            }
 
             // Populate the overlay-enabled cache from initial settings so the
             // audio path (overlay::emit_levels, called ~24 Hz during recording)
