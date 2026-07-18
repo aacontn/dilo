@@ -73,9 +73,10 @@ jobs:
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
-      # Sin secretos de firma en este fork (v0.1.x se distribuye sin firmar);
-      # ver README para el flujo de instalación por plataforma.
-      sign-binaries: false
+      # Firma macOS con el certificado autofirmado estable "Dilo Signing"
+      # (identidad TCC constante: Accesibilidad sobrevive actualizaciones).
+      # No es Developer ID — Gatekeeper sigue igual; eso lo cubre install.sh.
+      sign-binaries: true
       asset-prefix: "dilo"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}

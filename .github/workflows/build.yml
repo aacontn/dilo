@@ -32,6 +32,13 @@ on:
         required: false
         type: boolean
         default: false
+      # Firma de Windows (Azure Trusted Signing) separada: hoy no hay
+      # credenciales Azure, y activarla junto con la firma de macOS instalaría
+      # trusted-signing-cli en vano en los jobs de Windows.
+      sign-windows:
+        required: false
+        type: boolean
+        default: false
       repository:
         required: false
         type: string
@@ -163,7 +170,7 @@ jobs:
           cache: true
 
       - name: Cache trusted-signing-cli
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries
+        if: contains(inputs.platform, 'windows') && inputs.sign-windows
         id: cache-tsc
         uses: actions/cache@v5
         with:
@@ -171,7 +178,7 @@ jobs:
           key: trusted-signing-cli-${{ env.TSC_VERSION }}-${{ runner.os }}-${{ runner.arch }}
 
       - name: Install trusted-signing-cli
-        if: contains(inputs.platform, 'windows') && inputs.sign-binaries && steps.cache-tsc.outputs.cache-hit != 'true'
+        if: contains(inputs.platform, 'windows') && inputs.sign-windows && steps.cache-tsc.outputs.cache-hit != 'true'
         run: cargo install trusted-signing-cli@${{ env.TSC_VERSION }}
 
       - name: Prepare Vulkan SDK for Ubuntu 24.04
@@ -231,15 +238,31 @@ jobs:
           security set-keychain-settings -t 3600 -u build.keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          # Certificado autofirmado estable (identidad TCC constante entre
+          # versiones): hay que confiarlo explícitamente o codesign no lo
+          # considera identidad válida. Con un Developer ID real de Apple
+          # este paso es inocuo (la cadena ya ancla en Apple).
+          openssl pkcs12 -in certificate.p12 -clcerts -nokeys \
+            -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -out certificate.pem
+          openssl x509 -in certificate.pem -outform der -out certificate.cer
+          sudo security add-trusted-cert -d -r trustRoot \
+            -k /Library/Keychains/System.keychain certificate.cer
           security find-identity -v -p codesigning build.keychain
 
       - name: verify certificate
         if: contains(inputs.platform, 'macos') && inputs.sign-binaries
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          # Developer ID de Apple si existe; si no, la primera identidad válida
+          # (hoy: el certificado autofirmado estable "Dilo Signing").
+          IDENTITIES=$(security find-identity -v -p codesigning build.keychain)
+          CERT_INFO=$(echo "$IDENTITIES" | grep "Developer ID Application" || echo "$IDENTITIES" | grep -m1 '"')
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          if [ -z "$CERT_ID" ]; then
+            echo "No hay ninguna identidad de firma válida en el keychain" >&2
+            exit 1
+          fi
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-          echo "Certificate imported."
+          echo "Certificate imported: $CERT_ID"
 
       - name: Patch asset name pattern
         id: patch-release-name
@@ -489,26 +512,31 @@ jobs:
           sudo cp -vL "$LIBDIR"/libtranscribe.so* "$LIBDIR"/libggml*.so* /usr/local/lib/ 2>/dev/null || true
           sudo ldconfig
 
+      # tauri.conf fija signingIdentity "-" (adhoc) para dev local, y la config
+      # tiene precedencia sobre APPLE_SIGNING_IDENTITY — en el build firmado la
+      # identidad importada debe ganar, así que se parcha el conf solo en CI.
+      - name: Use imported signing identity (macOS)
+        if: contains(inputs.platform, 'macos') && inputs.sign-binaries
+        run: |
+          jq --arg id "$CERT_ID" '.bundle.macOS.signingIdentity = $id' \
+            src-tauri/tauri.conf.json > /tmp/tauri.conf.json
+          mv /tmp/tauri.conf.json src-tauri/tauri.conf.json
+
       # Dos variantes del mismo paso: el bundler de macOS trata APPLE_CERTIFICATE
       # "definida pero vacía" como definida e intenta importarla al keychain
       # (SecKeychainItemImport falla). Sin firma, las vars no deben existir.
+      # La variante firmada es solo-macOS y lleva únicamente las vars del
+      # certificado estable; al comprar el Developer ID de Apple, reponer aquí
+      # APPLE_ID / APPLE_ID_PASSWORD / APPLE_TEAM_ID (notarización) — vacías
+      # gatillan intentos de notarizar con credenciales vacías y rompen el build.
       - name: Build with Tauri (signed)
-        if: inputs.sign-binaries
+        if: inputs.sign-binaries && contains(inputs.platform, 'macos')
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
           releaseName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
@@ -517,7 +545,7 @@ jobs:
           args: ${{ inputs.build-args }}
 
       - name: Build with Tauri (unsigned)
-        if: ${{ !inputs.sign-binaries }}
+        if: ${{ !inputs.sign-binaries || !contains(inputs.platform, 'macos') }}
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
