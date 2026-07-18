@@ -487,6 +487,16 @@ async showMainWindowCommand() : Promise<Result<null, string>> {
 async cancelOperation() : Promise<void> {
     await TAURI_INVOKE("cancel_operation");
 },
+/**
+ * El webview del overlay avisa que sus listeners ya están registrados; recién
+ * entonces es seguro entregarle el estado pendiente del primer show. (Emitir
+ * en on_page_load corría una carrera contra el mount de React: el "page
+ * finished" llega antes de que los `listen()` asíncronos existan, el evento
+ * se perdía y el primer overlay tras abrir la app no aparecía.)
+ */
+async overlayReady() : Promise<void> {
+    await TAURI_INVOKE("overlay_ready");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },

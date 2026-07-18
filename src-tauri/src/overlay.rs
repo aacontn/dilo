@@ -104,10 +104,13 @@ impl MonRect {
 // the fade-out) only fires if its captured generation is still current.
 static OVERLAY_GENERATION: AtomicU64 = AtomicU64::new(0);
 
-// Page-load handshake for the lazily-created webview: the show that creates the
+// Ready handshake for the lazily-created webview: the show that creates the
 // window runs before the overlay page has registered its event listeners, so a
-// plain `show-overlay` emit would be lost. The show path queues the payload here
-// and `on_page_load` re-emits it once the page can hear it.
+// plain `show-overlay` emit would be lost. The show path queues the payload
+// here and el webview lo reclama vía el comando `overlay_ready` cuando sus
+// listeners ya existen. (Antes se re-emitía en on_page_load, pero "página
+// cargada" ≠ "listeners de React registrados" — esa carrera perdía el primer
+// overlay tras abrir la app.)
 #[derive(Clone, serde::Serialize)]
 struct ShowOverlayPayload {
     state: String,
@@ -143,7 +146,24 @@ fn emit_pending_overlay_state(window: &tauri::webview::WebviewWindow) {
         .ok()
         .and_then(|mut pending| pending.take());
     if let Some(payload) = payload {
+        log::debug!(
+            "overlay listo: entregando estado pendiente '{}'",
+            payload.state
+        );
         let _ = window.emit("show-overlay", payload);
+    }
+}
+
+/// El webview del overlay avisa que sus listeners ya están registrados; recién
+/// entonces es seguro entregarle el estado pendiente del primer show. (Emitir
+/// en on_page_load corría una carrera contra el mount de React: el "page
+/// finished" llega antes de que los `listen()` asíncronos existan, el evento
+/// se perdía y el primer overlay tras abrir la app no aparecía.)
+#[tauri::command]
+#[specta::specta]
+pub fn overlay_ready(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("recording_overlay") {
+        emit_pending_overlay_state(&window);
     }
 }
 
@@ -385,12 +405,7 @@ fn create_recording_overlay(app_handle: &AppHandle) {
     .transparent(true)
     .focusable(false)
     .focused(false)
-    .visible(false)
-    .on_page_load(|window, payload| {
-        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-            emit_pending_overlay_state(&window);
-        }
-    });
+    .visible(false);
 
     if let Some(data_dir) = crate::portable::data_dir() {
         builder = builder.data_directory(data_dir.join("webview"));
@@ -441,16 +456,7 @@ fn create_recording_overlay(app_handle: &AppHandle) {
             .no_activate(true)
             .corner_radius(0.0)
             .style_mask(StyleMask::empty().borderless().nonactivating_panel())
-            .with_window(|w| {
-                w.decorations(false)
-                    .transparent(true)
-                    .focusable(false)
-                    .on_page_load(|window, payload| {
-                        if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                            emit_pending_overlay_state(&window);
-                        }
-                    })
-            })
+            .with_window(|w| w.decorations(false).transparent(true).focusable(false))
             .collection_behavior(
                 CollectionBehavior::new()
                     .can_join_all_spaces()

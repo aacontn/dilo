@@ -99,6 +99,11 @@ const RecordingOverlay: React.FC = () => {
         if (payload.kind) setWorkKind(payload.kind);
       });
 
+      // Todos los listeners quedaron registrados: reclamar el estado que el
+      // primer show dejó pendiente (la ventana se crea perezosa y su emit
+      // directo ocurre antes de que este webview pueda escucharlo).
+      void commands.overlayReady();
+
       return () => {
         unlistenShow();
         unlistenHide();
