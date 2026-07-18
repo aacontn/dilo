@@ -36,7 +36,13 @@ Si dictas tus prompts en vez de tipearlos, esto es para ti.
 
 ## Descarga
 
-Baja el instalador para tu sistema desde **[Releases](https://github.com/aacontn/dilo/releases/latest)**.
+**macOS y Linux — un comando y listo** (baja el último release, instala y resuelve los permisos solo; correrlo de nuevo actualiza):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aacontn/dilo/main/install.sh | sh
+```
+
+O baja el instalador para tu sistema desde **[Releases](https://github.com/aacontn/dilo/releases/latest)**.
 
 Los binarios v0.1.x van **sin firma de código** (la firma de Apple cuesta US$99/año; está en el roadmap). Tu sistema te va a advertir la primera vez — así se abre igual:
 
