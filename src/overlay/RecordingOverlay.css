@@ -32,7 +32,10 @@
   --s-border: color-mix(in srgb, var(--color-text) 20%, transparent);
   --s-hair: color-mix(in srgb, var(--color-text) 10%, transparent);
   --s-highlight: color-mix(in srgb, #ffffff 32%, transparent);
-  --s-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  /* La sombra DEBE caber en el pad de 12px de la ventana (.ov-stage padding /
+     OVERLAY_SHADOW_PAD): offset + blur ≤ 12, o se recorta contra el borde
+     rectangular de la ventana transparente y se ve un "slab" fantasma. */
+  --s-shadow: 0 2px 10px rgba(0, 0, 0, 0.42);
 
   /* Card geometry — single source of truth for the visible overlay sizes. The
      native overlay window (overlay.rs) is sized from these PLUS the shadow pad
@@ -59,9 +62,9 @@
       transparent
     );
     /* En dark el highlight superior baja para no verse plateado, y la sombra
-       sube para separarse de fondos ya oscuros. */
+       sube su alfa para separarse de fondos ya oscuros (mismo radio ≤ pad). */
     --s-highlight: color-mix(in srgb, #ffffff 14%, transparent);
-    --s-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+    --s-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
   }
 }
 

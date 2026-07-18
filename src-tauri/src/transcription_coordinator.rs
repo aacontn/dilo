@@ -10,11 +10,40 @@ use tauri::{AppHandle, Manager};
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
 
+// Manos libres (estilo Wispr Flow): un press más corto que TAP_MAX es un
+// "toque"; al soltarlo, el stop espera DOUBLE_TAP_WINDOW por un segundo toque
+// que deja la grabación abierta sin sostener la tecla. AUTOREPEAT_GAP separa
+// ese segundo toque humano del par sintético release+press que emite el
+// auto-repeat de X11 mientras la tecla sigue sostenida (spec:
+// docs/superpowers/specs/2026-07-18-manos-libres-design.md).
+const TAP_MAX: Duration = Duration::from_millis(300);
+const DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(350);
+const AUTOREPEAT_GAP: Duration = Duration::from_millis(80);
+
+/// Estado fino del push-to-talk; dueño exclusivo: el hilo coordinador.
+#[derive(Debug, Default)]
+struct PttState {
+    /// Manos libres activo: doble toque dejó la grabación abierta.
+    locked: bool,
+    /// Instante del press que inició la grabación en curso.
+    press_at: Option<Instant>,
+    /// Instante del release que armó el stop diferido vigente.
+    released_at: Option<Instant>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PttAction {
     Passthrough,
-    DeferRelease,
+    /// Stop diferido; el Duration es la espera (grace normal o ventana de doble toque).
+    DeferRelease(Duration),
+    /// Par sintético del auto-repeat: cancelar el stop y seguir grabando.
     CancelRelease,
+    /// Segundo toque humano dentro de la ventana: entrar a manos libres.
+    LockHandsFree,
+    /// Press estando en manos libres: cortar y transcribir.
+    StopLocked,
+    /// Release estando en manos libres: no hace nada.
+    IgnoreRelease,
 }
 
 struct PendingRelease {
@@ -45,24 +74,50 @@ enum Stage {
 }
 
 fn classify_ptt_event(
+    state: &PttState,
     pending_release_binding: Option<&str>,
     is_pressed: bool,
     push_to_talk: bool,
     binding_id: &str,
     recording_binding: Option<&str>,
+    now: Instant,
 ) -> PttAction {
     if !push_to_talk {
         return PttAction::Passthrough;
     }
 
     if is_pressed {
-        if pending_release_binding == Some(binding_id) {
-            PttAction::CancelRelease
-        } else {
-            PttAction::Passthrough
+        if state.locked && recording_binding == Some(binding_id) {
+            return PttAction::StopLocked;
         }
+        if pending_release_binding == Some(binding_id) {
+            // Un press casi pegado al release es el par sintético del
+            // auto-repeat; con separación humana es el segundo toque. La grace
+            // normal (50ms) es más corta que AUTOREPEAT_GAP, así que un hold
+            // largo jamás puede terminar en lock por esta rama.
+            let synthetic = state
+                .released_at
+                .is_some_and(|t| now.duration_since(t) < AUTOREPEAT_GAP);
+            return if synthetic || recording_binding != Some(binding_id) {
+                // Par sintético del auto-repeat, o ya no hay grabación que
+                // bloquear: solo cancelar el stop pendiente.
+                PttAction::CancelRelease
+            } else {
+                PttAction::LockHandsFree
+            };
+        }
+        PttAction::Passthrough
+    } else if state.locked && recording_binding == Some(binding_id) {
+        PttAction::IgnoreRelease
     } else if recording_binding == Some(binding_id) && pending_release_binding.is_none() {
-        PttAction::DeferRelease
+        let was_tap = state
+            .press_at
+            .is_some_and(|t| now.duration_since(t) <= TAP_MAX);
+        PttAction::DeferRelease(if was_tap {
+            DOUBLE_TAP_WINDOW
+        } else {
+            RELEASE_GRACE
+        })
     } else {
         PttAction::Passthrough
     }
@@ -88,6 +143,7 @@ impl TranscriptionCoordinator {
                 let mut stage = Stage::Idle;
                 let mut last_press: Option<Instant> = None;
                 let mut pending_release: Option<PendingRelease> = None;
+                let mut ptt = PttState::default();
 
                 loop {
                     let cmd = if let Some(pending) = &pending_release {
@@ -133,23 +189,41 @@ impl TranscriptionCoordinator {
                                 _ => None,
                             };
 
+                            let now = Instant::now();
                             match classify_ptt_event(
+                                &ptt,
                                 pending_release_binding,
                                 is_pressed,
                                 push_to_talk,
                                 &binding_id,
                                 recording_binding,
+                                now,
                             ) {
                                 PttAction::CancelRelease => {
                                     pending_release = None;
+                                    ptt.released_at = None;
                                     continue;
                                 }
-                                PttAction::DeferRelease => {
+                                PttAction::LockHandsFree => {
+                                    pending_release = None;
+                                    ptt.released_at = None;
+                                    ptt.locked = true;
+                                    debug!("Manos libres: doble toque de '{binding_id}'");
+                                    continue;
+                                }
+                                PttAction::StopLocked => {
+                                    ptt.locked = false;
+                                    stop(&app, &mut stage, &binding_id, &hotkey_string);
+                                    continue;
+                                }
+                                PttAction::IgnoreRelease => continue,
+                                PttAction::DeferRelease(grace) => {
                                     pending_release = Some(PendingRelease {
                                         binding_id,
                                         hotkey_string,
-                                        deadline: Instant::now() + RELEASE_GRACE,
+                                        deadline: now + grace,
                                     });
+                                    ptt.released_at = Some(now);
                                     continue;
                                 }
                                 PttAction::Passthrough => {}
@@ -169,6 +243,13 @@ impl TranscriptionCoordinator {
                             if push_to_talk {
                                 if is_pressed && matches!(stage, Stage::Idle) {
                                     start(&app, &mut stage, &binding_id, &hotkey_string);
+                                    // Base para distinguir toque (posible doble
+                                    // toque → manos libres) de hold sostenido.
+                                    ptt = PttState {
+                                        locked: false,
+                                        press_at: Some(now),
+                                        released_at: None,
+                                    };
                                 } else if !is_pressed
                                     && matches!(&stage, Stage::Recording(id) if id == &binding_id)
                                 {
@@ -192,6 +273,7 @@ impl TranscriptionCoordinator {
                             recording_was_active,
                         } => {
                             pending_release = None;
+                            ptt = PttState::default();
                             // Don't reset during processing — wait for the pipeline to finish.
                             if !matches!(stage, Stage::Processing)
                                 && (recording_was_active || matches!(stage, Stage::Recording(_)))
@@ -285,55 +367,168 @@ fn stop(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &st
 mod tests {
     use super::*;
 
+    /// PttState con press hace `pressed_ms` y release hace `released_ms`.
+    fn ptt_state(
+        locked: bool,
+        pressed_ms: Option<u64>,
+        released_ms: Option<u64>,
+    ) -> (PttState, Instant) {
+        let now = Instant::now();
+        (
+            PttState {
+                locked,
+                press_at: pressed_ms.map(|ms| now - Duration::from_millis(ms)),
+                released_at: released_ms.map(|ms| now - Duration::from_millis(ms)),
+            },
+            now,
+        )
+    }
+
     #[test]
-    fn push_to_talk_release_while_recording_defers_release() {
+    fn release_after_long_hold_defers_with_normal_grace() {
+        let (state, now) = ptt_state(false, Some(500), None);
         assert_eq!(
-            classify_ptt_event(None, false, true, "transcribe", Some("transcribe")),
-            PttAction::DeferRelease
+            classify_ptt_event(
+                &state,
+                None,
+                false,
+                true,
+                "transcribe",
+                Some("transcribe"),
+                now
+            ),
+            PttAction::DeferRelease(RELEASE_GRACE)
         );
     }
 
     #[test]
-    fn push_to_talk_press_matching_pending_release_cancels_release() {
+    fn release_after_tap_waits_for_a_second_tap() {
+        let (state, now) = ptt_state(false, Some(120), None);
         assert_eq!(
             classify_ptt_event(
+                &state,
+                None,
+                false,
+                true,
+                "transcribe",
+                Some("transcribe"),
+                now
+            ),
+            PttAction::DeferRelease(DOUBLE_TAP_WINDOW)
+        );
+    }
+
+    #[test]
+    fn second_human_tap_within_window_locks_hands_free() {
+        // Segundo press 150ms después del release del toque: humano → lock.
+        let (state, now) = ptt_state(false, Some(300), Some(150));
+        assert_eq!(
+            classify_ptt_event(
+                &state,
                 Some("transcribe"),
                 true,
                 true,
                 "transcribe",
-                Some("transcribe")
+                Some("transcribe"),
+                now
+            ),
+            PttAction::LockHandsFree
+        );
+    }
+
+    #[test]
+    fn autorepeat_pair_cancels_release_without_locking() {
+        // Press 10ms después del release: par sintético del auto-repeat X11.
+        let (state, now) = ptt_state(false, Some(600), Some(10));
+        assert_eq!(
+            classify_ptt_event(
+                &state,
+                Some("transcribe"),
+                true,
+                true,
+                "transcribe",
+                Some("transcribe"),
+                now
             ),
             PttAction::CancelRelease
         );
     }
 
     #[test]
-    fn toggle_mode_press_and_release_pass_through() {
+    fn press_while_hands_free_stops_recording() {
+        let (state, now) = ptt_state(true, Some(5000), None);
         assert_eq!(
             classify_ptt_event(
+                &state,
+                None,
+                true,
+                true,
+                "transcribe",
+                Some("transcribe"),
+                now
+            ),
+            PttAction::StopLocked
+        );
+    }
+
+    #[test]
+    fn release_while_hands_free_is_ignored() {
+        let (state, now) = ptt_state(true, Some(5000), None);
+        assert_eq!(
+            classify_ptt_event(
+                &state,
+                None,
+                false,
+                true,
+                "transcribe",
+                Some("transcribe"),
+                now
+            ),
+            PttAction::IgnoreRelease
+        );
+    }
+
+    #[test]
+    fn toggle_mode_press_and_release_pass_through() {
+        let (state, now) = ptt_state(false, Some(100), Some(150));
+        assert_eq!(
+            classify_ptt_event(
+                &state,
                 Some("transcribe"),
                 true,
                 false,
                 "transcribe",
-                Some("transcribe")
+                Some("transcribe"),
+                now
             ),
             PttAction::Passthrough
         );
         assert_eq!(
-            classify_ptt_event(None, false, false, "transcribe", Some("transcribe")),
+            classify_ptt_event(
+                &state,
+                None,
+                false,
+                false,
+                "transcribe",
+                Some("transcribe"),
+                now
+            ),
             PttAction::Passthrough
         );
     }
 
     #[test]
     fn press_for_different_binding_than_pending_release_passes_through() {
+        let (state, now) = ptt_state(false, Some(300), Some(150));
         assert_eq!(
             classify_ptt_event(
+                &state,
                 Some("transcribe"),
                 true,
                 true,
                 "transcribe_with_post_process",
-                Some("transcribe")
+                Some("transcribe"),
+                now
             ),
             PttAction::Passthrough
         );
@@ -341,8 +536,19 @@ mod tests {
 
     #[test]
     fn press_matching_pending_release_cancels_without_recording_state() {
+        // Sin grabación activa no hay nada que dejar en manos libres, aunque
+        // el gap sea humano: solo se cancela el stop pendiente.
+        let (state, now) = ptt_state(false, Some(300), Some(150));
         assert_eq!(
-            classify_ptt_event(Some("transcribe"), true, true, "transcribe", None),
+            classify_ptt_event(
+                &state,
+                Some("transcribe"),
+                true,
+                true,
+                "transcribe",
+                None,
+                now
+            ),
             PttAction::CancelRelease
         );
     }
@@ -374,8 +580,10 @@ mod tests {
         Press,
         /// A key-up event (synthesized auto-repeat release or the genuine key-up).
         Release,
-        /// The `RELEASE_GRACE` window elapsed with no cancelling press arriving.
+        /// The deferred-stop window elapsed with no cancelling press arriving.
         Grace,
+        /// Avanza el reloj simulado (ms) — separa toques humanos de pares sintéticos.
+        Wait(u64),
     }
 
     #[derive(Debug, PartialEq, Eq)]
@@ -395,6 +603,9 @@ mod tests {
     /// binding: it calls the real `classify_ptt_event` and applies the exact same
     /// Defer / Cancel / debounce / start / stop transitions.
     fn simulate(events: &[Ev]) -> SimResult {
+        let t0 = Instant::now();
+        let at = |ms: u64| t0 + Duration::from_millis(ms);
+
         let mut stage = SimStage::Idle;
         let mut pending: Option<String> = None;
         let mut last_press_ms: Option<u64> = None;
@@ -402,12 +613,19 @@ mod tests {
         let mut starts = 0u32;
         let mut stops = 0u32;
         let debounce_ms = DEBOUNCE.as_millis() as u64;
+        // Espejo del PttState del loop real.
+        let mut locked = false;
+        let mut press_ms: Option<u64> = None;
+        let mut released_ms: Option<u64> = None;
 
         for ev in events {
             // Auto-repeat events arrive a few ms apart, well inside DEBOUNCE.
             clock_ms += 5;
 
             match ev {
+                Ev::Wait(ms) => {
+                    clock_ms += ms;
+                }
                 Ev::Grace => {
                     // Coordinator's `RecvTimeoutError::Timeout` arm: fire the
                     // deferred release iff we are still recording that binding.
@@ -417,6 +635,7 @@ mod tests {
                             stops += 1;
                         }
                     }
+                    released_ms = None;
                 }
                 Ev::Press | Ev::Release => {
                     let is_pressed = matches!(ev, Ev::Press);
@@ -426,20 +645,42 @@ mod tests {
                     } else {
                         None
                     };
+                    let state = PttState {
+                        locked,
+                        press_at: press_ms.map(at),
+                        released_at: released_ms.map(at),
+                    };
 
                     match classify_ptt_event(
+                        &state,
                         pending_binding,
                         is_pressed,
                         true, // push_to_talk
                         BINDING,
                         recording_binding,
+                        at(clock_ms),
                     ) {
                         PttAction::CancelRelease => {
                             pending = None;
+                            released_ms = None;
                             continue;
                         }
-                        PttAction::DeferRelease => {
+                        PttAction::LockHandsFree => {
+                            pending = None;
+                            released_ms = None;
+                            locked = true;
+                            continue;
+                        }
+                        PttAction::StopLocked => {
+                            locked = false;
+                            stage = SimStage::Processing;
+                            stops += 1;
+                            continue;
+                        }
+                        PttAction::IgnoreRelease => continue,
+                        PttAction::DeferRelease(_) => {
                             pending = Some(BINDING.to_string());
+                            released_ms = Some(clock_ms);
                             continue;
                         }
                         PttAction::Passthrough => {}
@@ -455,6 +696,9 @@ mod tests {
                     if is_pressed && stage == SimStage::Idle {
                         stage = SimStage::Recording;
                         starts += 1;
+                        locked = false;
+                        press_ms = Some(clock_ms);
+                        released_ms = None;
                     } else if !is_pressed && stage == SimStage::Recording {
                         stage = SimStage::Processing;
                         stops += 1;
@@ -516,6 +760,40 @@ mod tests {
             result.stops, 1,
             "a genuine release should stop recording exactly once"
         );
+        assert_eq!(result.stage, SimStage::Processing);
+    }
+
+    /// Manos libres: toque, segundo toque dentro de la ventana (gap humano),
+    /// la grabación queda abierta sin tecla sostenida, y un toque final corta.
+    #[test]
+    fn double_tap_enters_hands_free_and_single_tap_stops() {
+        let result = simulate(&[
+            Ev::Press, // toque 1: parte a grabar
+            Ev::Wait(100),
+            Ev::Release, // suelto rápido (< TAP_MAX) → espera segundo toque
+            Ev::Wait(150),
+            Ev::Press, // toque 2 (gap humano > AUTOREPEAT_GAP) → manos libres
+            Ev::Wait(20),
+            Ev::Release,    // release del toque 2: ignorado
+            Ev::Wait(5000), // dicta largo con las manos libres
+            Ev::Press,      // un toque: corta y transcribe
+        ]);
+        assert_eq!(result.starts, 1, "una sola grabación continua");
+        assert_eq!(
+            result.stops,
+            0 + 1,
+            "el toque final corta exactamente una vez"
+        );
+        assert_eq!(result.stage, SimStage::Processing);
+    }
+
+    /// Un toque solitario se comporta como hoy: al vencer la ventana de doble
+    /// toque sin segundo toque, para y transcribe.
+    #[test]
+    fn lone_tap_stops_when_double_tap_window_expires() {
+        let result = simulate(&[Ev::Press, Ev::Wait(100), Ev::Release, Ev::Grace]);
+        assert_eq!(result.starts, 1);
+        assert_eq!(result.stops, 1);
         assert_eq!(result.stage, SimStage::Processing);
     }
 }
