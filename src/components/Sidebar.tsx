@@ -117,7 +117,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className="dilo-sidebar flex flex-col h-full items-center">
-      <Wordmark size="sm" className="dilo-sidebar-wordmark" />
+      {/* Zona de arrastre: la banda del wordmark (decorativo) sobre el primer
+          ítem de navegación. El wordmark queda con pointer-events desactivado
+          (App.css) para que el mousedown lo reciba este contenedor con el
+          atributo, sin envolver ningún control interactivo. */}
+      <div className="dilo-sidebar-dragzone" data-tauri-drag-region>
+        <Wordmark size="sm" className="dilo-sidebar-wordmark" />
+      </div>
       <nav className="dilo-sidebar-nav flex flex-col w-full items-center gap-1">
         {availableSections.map((section) => {
           const Icon = section.icon;

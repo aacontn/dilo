@@ -12,8 +12,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   actions,
 }) => {
   return (
-    <header className="dilo-page-header flex items-start justify-between gap-4">
-      <div className="min-w-0">
+    <header
+      className="dilo-page-header flex items-start justify-between gap-4"
+      data-tauri-drag-region
+    >
+      <div className="dilo-page-header-title min-w-0">
         <h1 className="font-display text-2xl font-semibold tracking-tight text-text">
           {title}
         </h1>

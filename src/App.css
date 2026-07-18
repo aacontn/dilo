@@ -274,6 +274,31 @@
   height: var(--dilo-titlebar-inset);
 }
 
+/* --------------------------------------------------------------------------
+ * Superficie de arrastre ampliada
+ *
+ * `data-tauri-drag-region` solo inicia el arrastre cuando el elemento con el
+ * atributo es el objetivo exacto del mousedown. La franja superior
+ * (.dilo-titlebar-drag-region) cubre los primeros 36px de todo el ancho, pero
+ * es delgada y sin título visible. Para que la ventana se pueda tomar desde
+ * más zonas vacías, marcamos dos contenedores como región de arrastre y
+ * anulamos pointer-events en su contenido puramente decorativo/textual, de
+ * modo que el mousedown recaiga en el contenedor con el atributo. Los
+ * controles interactivos NO se envuelven: conservan pointer-events y siguen
+ * siendo el objetivo del click, así que nunca disparan el arrastre.
+ * ----------------------------------------------------------------------- */
+.dilo-sidebar-dragzone {
+  width: 100%;
+}
+
+.dilo-sidebar-dragzone > * {
+  pointer-events: none;
+}
+
+.dilo-page-header[data-tauri-drag-region] .dilo-page-header-title {
+  pointer-events: none;
+}
+
 .dilo-workspace {
   min-height: 0;
 }
