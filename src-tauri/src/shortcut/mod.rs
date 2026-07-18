@@ -585,9 +585,6 @@ pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Resu
         }
     };
     settings.overlay_position = parsed;
-    // Elegir un preset (aunque sea el mismo valor) descarta las posiciones
-    // arrastradas: es el gesto natural de "resetear" desde Configuración.
-    settings.overlay_custom_positions.clear();
     settings::write_settings(&app, settings);
 
     // Whether the overlay shows at all is owned by overlay_style now; position

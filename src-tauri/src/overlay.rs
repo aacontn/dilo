@@ -46,12 +46,12 @@ tauri_panel! {
 // the window must fit the widest state plus a little slack — PLUS the shadow
 // pad on every side (`.ov-stage` padding = OVERLAY_SHADOW_PAD), which keeps the
 // CSS drop shadow of the glass card from clipping at the window edge.
-const OVERLAY_WIDTH: f64 = 280.0; // 256 + 2*OVERLAY_SHADOW_PAD
-const OVERLAY_HEIGHT: f64 = 70.0; // 46 + 2*OVERLAY_SHADOW_PAD
+const OVERLAY_WIDTH: f64 = 256.0 + 2.0 * OVERLAY_SHADOW_PAD;
+const OVERLAY_HEIGHT: f64 = 46.0 + 2.0 * OVERLAY_SHADOW_PAD;
 
 // Actual is 394x118, just a little extra (+ shadow pad per side)
-const OVERLAY_STREAM_WIDTH: f64 = 424.0; // 400 + 24
-const OVERLAY_STREAM_HEIGHT: f64 = 144.0; // 120 + 24
+const OVERLAY_STREAM_WIDTH: f64 = 400.0 + 2.0 * OVERLAY_SHADOW_PAD;
+const OVERLAY_STREAM_HEIGHT: f64 = 120.0 + 2.0 * OVERLAY_SHADOW_PAD;
 
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
@@ -88,76 +88,6 @@ impl MonRect {
             w: monitor.size().width as f64 / scale,
             h: monitor.size().height as f64 / scale,
         }
-    }
-}
-
-/// Clave estable para el mapa de posiciones custom. Nombre del monitor; si el
-/// backend no lo entrega, tamaño@posición física como fallback.
-fn monitor_key(monitor: &tauri::Monitor) -> String {
-    match monitor.name() {
-        Some(name) if !name.is_empty() => name.clone(),
-        _ => format!(
-            "{}x{}@{},{}",
-            monitor.size().width,
-            monitor.size().height,
-            monitor.position().x,
-            monitor.position().y
-        ),
-    }
-}
-
-/// La tarjeta (ventana inset OVERLAY_SHADOW_PAD) debe quedar completa dentro
-/// del monitor; la ventana puede sobresalir hasta el pad (solo sombra afuera).
-fn clamp_window_to_monitor(mon: &MonRect, x: f64, y: f64, w: f64, h: f64) -> (f64, f64) {
-    let min_x = mon.x - OVERLAY_SHADOW_PAD;
-    let max_x = (mon.x + mon.w) - w + OVERLAY_SHADOW_PAD;
-    let min_y = mon.y - OVERLAY_SHADOW_PAD;
-    let max_y = (mon.y + mon.h) - h + OVERLAY_SHADOW_PAD;
-    (
-        x.clamp(min_x, max_x.max(min_x)),
-        y.clamp(min_y, max_y.max(min_y)),
-    )
-}
-
-/// Posición (lógica) de la ventana para un ancla guardada, clampeada.
-fn resolve_anchor_position(
-    mon: &MonRect,
-    anchor: &crate::settings::OverlayAnchor,
-    w: f64,
-    h: f64,
-) -> (f64, f64) {
-    let x = mon.x + anchor.x_frac * mon.w - w / 2.0;
-    let y = match anchor.edge {
-        OverlayPosition::Top => mon.y + anchor.edge_offset,
-        OverlayPosition::Bottom => mon.y + mon.h - anchor.edge_offset - h,
-    };
-    clamp_window_to_monitor(mon, x, y, w, h)
-}
-
-/// Ancla a partir de dónde quedó la ventana al soltar el arrastre. El borde se
-/// decide por la mitad del monitor en que quedó el centro de la ventana.
-fn anchor_from_drop(
-    mon: &MonRect,
-    x: f64,
-    y: f64,
-    w: f64,
-    h: f64,
-) -> crate::settings::OverlayAnchor {
-    let cx = x + w / 2.0;
-    let cy = y + h / 2.0;
-    let edge = if cy < mon.y + mon.h / 2.0 {
-        OverlayPosition::Top
-    } else {
-        OverlayPosition::Bottom
-    };
-    let edge_offset = match edge {
-        OverlayPosition::Top => (y - mon.y).max(0.0),
-        OverlayPosition::Bottom => ((mon.y + mon.h) - (y + h)).max(0.0),
-    };
-    crate::settings::OverlayAnchor {
-        x_frac: ((cx - mon.x) / mon.w).clamp(0.0, 1.0),
-        edge,
-        edge_offset,
     }
 }
 
@@ -292,10 +222,6 @@ fn init_gtk_layer_shell(overlay_window: &tauri::webview::WebviewWindow) -> bool 
 
         update_gtk_layer_shell_anchors(overlay_window);
 
-        // Con layer-shell el compositor ancla la ventana: el arrastre queda
-        // deshabilitado (ver start_overlay_drag).
-        LAYER_SHELL_ACTIVE.store(true, Ordering::Relaxed);
-
         return true;
     }
     false
@@ -384,8 +310,6 @@ fn is_mouse_within_monitor(
 
 /// Returns overlay position in logical coordinates (points on macOS), plus the
 /// effective edge (drives the Live panel's growth direction in the webview).
-/// A dragged anchor for the cursor's monitor wins; otherwise the Top/Bottom
-/// preset applies.
 ///
 /// Uses monitor position/size directly rather than work_area(), which can
 /// return incorrect coordinates on macOS for monitors with negative positions.
@@ -406,14 +330,6 @@ fn calculate_overlay_position(
         return None;
     }
     let settings = settings::get_settings(app_handle);
-
-    if let Some(anchor) = settings
-        .overlay_custom_positions
-        .get(&monitor_key(&monitor))
-    {
-        let (x, y) = resolve_anchor_position(&mon, anchor, width, height);
-        return Some((x, y, anchor.edge));
-    }
 
     let x = mon.x + (mon.w - width) / 2.0;
     let y = match settings.overlay_position {
@@ -604,10 +520,6 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     #[cfg(target_os = "linux")]
     update_gtk_layer_shell_anchors(&overlay_window);
 
-    // Un show supersede cualquier arrastre a medio camino: los set_size /
-    // set_position de abajo son programáticos y no deben persistirse.
-    cancel_pending_drag();
-
     let size_started = std::time::Instant::now();
     let _ = overlay_window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
     let size_elapsed = size_started.elapsed();
@@ -639,112 +551,6 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
         set_pos_elapsed,
         show_elapsed
     );
-}
-
-// --- Arrastre del overlay ---
-// El frontend invoca `start_overlay_drag` (tras un umbral de 4px); el OS mueve
-// la ventana. Mientras el flag está activo, cada WindowEvent::Moved re-arma un
-// debounce; cuando el movimiento cesa ~500ms se persiste la posición final
-// como ancla del monitor donde quedó el centro de la ventana. Un show
-// programático cancela cualquier drag pendiente (sus set_position no deben
-// persistirse como si fueran del usuario).
-static OVERLAY_DRAGGING: AtomicBool = AtomicBool::new(false);
-static OVERLAY_MOVE_SEQ: AtomicU64 = AtomicU64::new(0);
-const DRAG_SETTLE_MS: u64 = 500;
-
-#[cfg(target_os = "linux")]
-static LAYER_SHELL_ACTIVE: AtomicBool = AtomicBool::new(false);
-
-pub(crate) fn cancel_pending_drag() {
-    OVERLAY_DRAGGING.store(false, Ordering::Relaxed);
-    OVERLAY_MOVE_SEQ.fetch_add(1, Ordering::Relaxed);
-}
-
-/// Inicia el arrastre nativo del overlay. Invocado desde el webview del
-/// overlay con el mouse presionado (requisito de `start_dragging`).
-#[tauri::command]
-#[specta::specta]
-pub fn start_overlay_drag(app: AppHandle) {
-    #[cfg(target_os = "linux")]
-    if LAYER_SHELL_ACTIVE.load(Ordering::Relaxed) {
-        return; // layer-shell ancla la ventana: no hay arrastre posible
-    }
-    if let Some(window) = app.get_webview_window("recording_overlay") {
-        OVERLAY_DRAGGING.store(true, Ordering::Relaxed);
-        if let Err(e) = window.start_dragging() {
-            log::warn!("start_dragging del overlay falló: {}", e);
-            cancel_pending_drag();
-        }
-    }
-}
-
-/// Handler de WindowEvent::Moved del overlay (ver on_window_event en lib.rs).
-pub fn on_overlay_moved(app_handle: &AppHandle) {
-    if !OVERLAY_DRAGGING.load(Ordering::Relaxed) {
-        return; // movimiento programático (show/update), no del usuario
-    }
-    let seq = OVERLAY_MOVE_SEQ.fetch_add(1, Ordering::Relaxed) + 1;
-    let app = app_handle.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(DRAG_SETTLE_MS)).await;
-        if OVERLAY_MOVE_SEQ.load(Ordering::Relaxed) != seq
-            || !OVERLAY_DRAGGING.swap(false, Ordering::Relaxed)
-        {
-            return; // llegó otro Moved (sigue arrastrando) o un show lo canceló
-        }
-        persist_dropped_position(&app);
-    });
-}
-
-/// Lee dónde quedó la ventana y guarda el ancla bajo el monitor que contiene
-/// su centro. Si nada la contiene (soltada entre pantallas), no se guarda.
-fn persist_dropped_position(app_handle: &AppHandle) {
-    let Some(window) = app_handle.get_webview_window("recording_overlay") else {
-        return;
-    };
-    let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) else {
-        return;
-    };
-    let Some((w, h)) = current_overlay_logical_size(&window) else {
-        return;
-    };
-    let x = pos.x as f64 / scale;
-    let y = pos.y as f64 / scale;
-    let (cx, cy) = (x + w / 2.0, y + h / 2.0);
-
-    let Ok(monitors) = app_handle.available_monitors() else {
-        return;
-    };
-    for monitor in monitors {
-        let mon = MonRect::from_monitor(&monitor);
-        if mon.w <= 0.0 || mon.h <= 0.0 {
-            continue;
-        }
-        if cx >= mon.x && cx < mon.x + mon.w && cy >= mon.y && cy < mon.y + mon.h {
-            let anchor = anchor_from_drop(&mon, x, y, w, h);
-            let mut settings = settings::get_settings(app_handle);
-            settings
-                .overlay_custom_positions
-                .insert(monitor_key(&monitor), anchor);
-            settings::write_settings(app_handle, settings);
-            log::debug!("overlay drop persistido en '{}'", monitor_key(&monitor));
-            return;
-        }
-    }
-    log::debug!("overlay drop fuera de todo monitor; no se persiste");
-}
-
-/// Borra las posiciones arrastradas de todas las pantallas; el overlay vuelve
-/// al preset Arriba/Abajo. Lo llaman el tray y el cambio del setting de
-/// posición ("re-elegir Abajo" también resetea).
-pub fn clear_custom_overlay_positions(app_handle: &AppHandle) {
-    let mut settings = settings::get_settings(app_handle);
-    if settings.overlay_custom_positions.is_empty() {
-        return;
-    }
-    settings.overlay_custom_positions.clear();
-    settings::write_settings(app_handle, settings);
-    update_overlay_position(app_handle);
 }
 
 /// Shows the recording overlay window with fade-in animation
@@ -864,62 +670,4 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
     // eval_script call per callback, cutting the per-callback WebKit
     // dispatch work in half.
     let _ = app_handle.emit_to("recording_overlay", "mic-level", levels);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::settings::OverlayAnchor;
-
-    const MON: MonRect = MonRect {
-        x: 0.0,
-        y: 0.0,
-        w: 1440.0,
-        h: 900.0,
-    };
-
-    #[test]
-    fn drop_in_top_half_anchors_to_top_edge() {
-        // Ventana de 280x70 soltada con su centro en y=200 (mitad superior).
-        let a = anchor_from_drop(&MON, 300.0, 165.0, 280.0, 70.0);
-        assert_eq!(a.edge, OverlayPosition::Top);
-        assert!((a.edge_offset - 165.0).abs() < 0.5);
-        // centro x = 300 + 140 = 440 → 440/1440
-        assert!((a.x_frac - 440.0 / 1440.0).abs() < 1e-6);
-    }
-
-    #[test]
-    fn drop_in_bottom_half_anchors_to_bottom_edge() {
-        let a = anchor_from_drop(&MON, 300.0, 700.0, 280.0, 70.0);
-        assert_eq!(a.edge, OverlayPosition::Bottom);
-        // borde inferior ventana = 770 → offset = 900-770 = 130
-        assert!((a.edge_offset - 130.0).abs() < 0.5);
-    }
-
-    #[test]
-    fn resolve_roundtrips_the_drop_position_across_sizes() {
-        // La misma ancla coloca el borde anclado en el mismo lugar aunque la
-        // ventana cambie de alto (compacto 70 vs streaming 144).
-        let a = anchor_from_drop(&MON, 300.0, 700.0, 280.0, 70.0);
-        let (_, y_compact) = resolve_anchor_position(&MON, &a, 280.0, 70.0);
-        let (_, y_stream) = resolve_anchor_position(&MON, &a, 424.0, 144.0);
-        assert!((y_compact + 70.0 - (y_stream + 144.0)).abs() < 0.5); // mismo borde inferior
-        assert!((y_compact - 700.0).abs() < 0.5);
-    }
-
-    #[test]
-    fn resolve_clamps_offscreen_anchor_to_visible_area() {
-        // Ancla corrupta / de otra resolución: la tarjeta (ventana menos el pad
-        // de sombra) debe quedar dentro del monitor.
-        let a = OverlayAnchor {
-            x_frac: 1.4,
-            edge: OverlayPosition::Bottom,
-            edge_offset: 5000.0,
-        };
-        let (x, y) = resolve_anchor_position(&MON, &a, 280.0, 70.0);
-        assert!(x + OVERLAY_SHADOW_PAD >= MON.x - 0.5);
-        assert!(x + 280.0 - OVERLAY_SHADOW_PAD <= MON.x + MON.w + 0.5);
-        assert!(y + OVERLAY_SHADOW_PAD >= MON.y - 0.5);
-        assert!(y + 70.0 - OVERLAY_SHADOW_PAD <= MON.y + MON.h + 0.5);
-    }
 }

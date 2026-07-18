@@ -3,7 +3,6 @@
     "settings": "...الإعدادات",
     "checkUpdates": "...التحقق من وجود تحديثات",
     "copyLastTranscript": "نسخ آخر نص تم تفريغه",
-    "resetOverlayPosition": "إعادة تعيين موضع الشريط",
     "unloadModel": "تفريغ النموذج",
     "model": "النموذج",
     "quit": "إنهاء",

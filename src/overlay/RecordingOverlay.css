@@ -142,7 +142,6 @@
   flex-direction: column;
   flex: none; /* hold our own width; never let the stage flex shrink the card */
   transform-origin: bottom center;
-  cursor: grab; /* toda la tarjeta es zona de agarre (menos ✕ y scroll Live) */
   background: var(--s-surface);
   border: 1px solid var(--s-border);
   box-shadow:
@@ -217,7 +216,6 @@
 }
 .stext-cap {
   max-height: var(--ov-cap-max-h);
-  cursor: auto; /* el texto Live scrollea, no agarra */
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;

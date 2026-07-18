@@ -208,14 +208,6 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
         None::<&str>,
     )
     .expect("failed to create copy last transcript item");
-    let reset_overlay_i = MenuItem::with_id(
-        app,
-        "reset_overlay_position",
-        &strings.reset_overlay_position,
-        true,
-        None::<&str>,
-    )
-    .expect("failed to create reset overlay position item");
     let model_loaded = app.state::<Arc<TranscriptionManager>>().is_model_loaded();
     let quit_i = MenuItem::with_id(app, "quit", &strings.quit, true, quit_accelerator)
         .expect("failed to create quit item");
@@ -272,7 +264,6 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
                     &cancel_i,
                     &separator(),
                     &copy_last_transcript_i,
-                    &reset_overlay_i,
                     &separator(),
                     &settings_i,
                     &check_updates_i,
@@ -288,7 +279,6 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
                 &version_i,
                 &separator(),
                 &copy_last_transcript_i,
-                &reset_overlay_i,
                 &separator(),
                 &model_submenu,
                 &unload_model_i,

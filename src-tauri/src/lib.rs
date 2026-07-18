@@ -280,9 +280,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
             "copy_last_transcript" => {
                 tray::copy_last_transcript(app);
             }
-            "reset_overlay_position" => {
-                overlay::clear_custom_overlay_positions(app);
-            }
             "unload_model" => {
                 let transcription_manager = app.state::<Arc<TranscriptionManager>>();
                 if !transcription_manager.is_model_loaded() {
@@ -641,7 +638,6 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
-            overlay::start_overlay_drag,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,
@@ -942,11 +938,6 @@ pub fn run(cli_args: CliArgs) {
                 log::info!("Theme changed to: {:?}", theme);
                 // Re-apply the current tray state with the new theme's icon set
                 utils::refresh_tray_icon(window.app_handle());
-            }
-            // Persistencia del arrastre del overlay: overlay.rs decide si el
-            // movimiento fue del usuario (flag de drag) o programático.
-            tauri::WindowEvent::Moved(_) if window.label() == "recording_overlay" => {
-                overlay::on_overlay_moved(window.app_handle());
             }
             _ => {}
         })
