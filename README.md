@@ -32,8 +32,6 @@ Si dictas tus prompts en vez de tipearlos, esto es para ti.
 - 🧠 **Post-proceso opcional con IA** — pulir gramática, formato de prompt, lo que quieras
 - 🖥️ **macOS, Windows y Linux**
 
-> Dilo es un **fork con cariño de [Handy](https://github.com/cjpais/Handy)** (CJ Pais, licencia MIT). Le cambiamos la ropa, los defaults y el idioma; el motor probado sigue ahí abajo. Gracias CJ. 💛
-
 ## Descarga
 
 **macOS y Linux — un comando y listo** (baja el último release, instala y resuelve los permisos solo; correrlo de nuevo actualiza):
