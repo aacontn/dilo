@@ -1043,6 +1043,7 @@ pub fn add_post_process_prompt(
         id: id.clone(),
         name,
         prompt,
+        shortcut: None,
     };
 
     settings.post_process_prompts.push(new_prompt.clone());

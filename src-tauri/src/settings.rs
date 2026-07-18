@@ -91,6 +91,9 @@ pub struct LLMPrompt {
     pub id: String,
     pub name: String,
     pub prompt: String,
+    /// Atajo global opcional del modo (binding dinámico `mode:<id>`).
+    #[serde(default)]
+    pub shortcut: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
@@ -718,26 +721,31 @@ fn dilo_post_process_presets() -> Vec<LLMPrompt> {
             id: "dilo-clean".to_string(),
             name: "Limpio".to_string(),
             prompt: "Clean this speech transcript. Fix punctuation, capitalization and obvious transcription errors. Keep the original language, meaning, tone and order.\n\nRemove filler words when they act as filler, but keep them when they carry meaning. In Spanish this matters a lot: drop discourse-marker uses of 'o sea', 'este', 'tipo', 'como que', 'digamos', 'a ver', 'pues', 'bueno', 'la verdad', and regional tics ('po', '¿cachái?', '¿viste?', '¿me entendés?', 'güey/wey', 'che', 'pana', 'vale') — but NEVER when they are content ('este archivo', 'tipo de dato', 'pues bien' as connector). When unsure, keep the word.\n\nKeep technical/English terms exactly as spoken (commit, deploy, endpoint, pull request, backend, boolean); do not translate or Spanish-ize them. Do not add information or answer questions. Return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            shortcut: None,
         },
         LLMPrompt {
             id: "dilo-prompt".to_string(),
             name: "Prompt".to_string(),
             prompt: "Turn this spoken draft into a clear, effective prompt for an AI coding assistant. Preserve every requirement and piece of context, organize it into readable paragraphs or bullets when useful, and keep the original language. Do not execute or answer the prompt. Return only the improved prompt.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            shortcut: None,
         },
         LLMPrompt {
             id: "dilo-message".to_string(),
             name: "Mensaje".to_string(),
             prompt: "Rewrite this speech transcript as a concise natural chat message. Remove filler words, fix punctuation, preserve the speaker's casual tone and original language, and do not add facts. Return only the message.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            shortcut: None,
         },
         LLMPrompt {
             id: "dilo-email".to_string(),
             name: "Correo".to_string(),
             prompt: "Rewrite this speech transcript as a clear professional email body. Preserve the original language, intent and facts; improve structure and readability without sounding corporate or adding a subject line. Return only the email body.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            shortcut: None,
         },
         LLMPrompt {
             id: "dilo-code".to_string(),
             name: "Código".to_string(),
             prompt: "Clean this developer dictation while preserving exact technical meaning. Keep code identifiers, commands, file paths, versions and conventional commit syntax intact. Format code, paths and lists only when clearly implied. Keep the original language and return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
+            shortcut: None,
         },
     ]
 }
@@ -1169,6 +1177,7 @@ mod tests {
             id: "my-custom-prompt".to_string(),
             name: "My custom prompt".to_string(),
             prompt: "Keep this prompt".to_string(),
+            shortcut: None,
         }];
 
         assert!(ensure_post_process_defaults(&mut settings));
@@ -1542,6 +1551,25 @@ mod tests {
         assert!(!debug_output.contains("sk-proj-secret-key-12345"));
         assert!(!debug_output.contains("sk-ant-secret-key-67890"));
         assert!(debug_output.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn llm_prompt_shortcut_defaults_to_none_and_roundtrips() {
+        let p: LLMPrompt = serde_json::from_value(serde_json::json!({
+            "id": "x", "name": "X", "prompt": "haz X"
+        }))
+        .expect("prompt viejo sin shortcut debe deserializar");
+        assert!(p.shortcut.is_none());
+
+        let p2 = LLMPrompt {
+            id: "y".into(),
+            name: "Y".into(),
+            prompt: "haz Y".into(),
+            shortcut: Some("ctrl+alt+y".into()),
+        };
+        let back: LLMPrompt =
+            serde_json::from_value(serde_json::to_value(&p2).unwrap()).unwrap();
+        assert_eq!(back.shortcut.as_deref(), Some("ctrl+alt+y"));
     }
 
     #[test]
