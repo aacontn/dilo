@@ -19,12 +19,32 @@ use log::{debug, error, warn};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::future::Future;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 
 const CANCELLATION_POLL_INTERVAL: Duration = Duration::from_millis(25);
+
+/// Prompt del modo en curso cuando el dictado partió por un atajo `mode:<id>`.
+/// Lo setea TranscribeAction::start en CADA dictado (Some para modo, None para
+/// normal — así un override viejo nunca contamina la siguiente captura) y lo
+/// consume process_transcription_output. El modo seleccionado global no se toca.
+pub static MODE_PROMPT_OVERRIDE: Mutex<Option<String>> = Mutex::new(None);
+
+/// `"mode:<prompt_id>"` → `Some(prompt_id)`.
+pub fn mode_prompt_id(binding_id: &str) -> Option<&str> {
+    binding_id.strip_prefix("mode:").filter(|id| !id.is_empty())
+}
+
+/// Como `ACTION_MAP.get`, pero los bindings dinámicos de modo (`mode:*`)
+/// resuelven al TranscribeAction con post-proceso.
+pub fn resolve_action(binding_id: &str) -> Option<Arc<dyn ShortcutAction>> {
+    if mode_prompt_id(binding_id).is_some() {
+        return ACTION_MAP.get("transcribe_with_post_process").cloned();
+    }
+    ACTION_MAP.get(binding_id).cloned()
+}
 
 #[derive(Clone, serde::Serialize)]
 struct RecordingErrorEvent {
@@ -101,7 +121,11 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
-async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
+async fn post_process_transcription(
+    settings: &AppSettings,
+    transcription: &str,
+    prompt_override: Option<&str>,
+) -> Option<String> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
         return None;
@@ -129,8 +153,12 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         return None;
     }
 
-    let selected_prompt_id = match &settings.post_process_selected_prompt_id {
-        Some(id) => id.clone(),
+    // El override de modo (atajo `mode:<id>`) manda sobre el modo seleccionado.
+    let selected_prompt_id = match prompt_override
+        .map(str::to_string)
+        .or_else(|| settings.post_process_selected_prompt_id.clone())
+    {
+        Some(id) => id,
         None => {
             debug!("Post-processing skipped because no prompt is selected");
             return None;
@@ -434,12 +462,23 @@ pub(crate) async fn process_transcription_output(
         final_text = converted_text;
     }
 
+    // Consumir el override de modo de esta captura (atajo `mode:<id>`), si hay.
+    let mode_override = MODE_PROMPT_OVERRIDE
+        .lock()
+        .ok()
+        .and_then(|mut slot| slot.take());
+
     if post_process {
-        if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
+        if let Some(processed_text) =
+            post_process_transcription(&settings, &final_text, mode_override.as_deref()).await
+        {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
-            if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
+            let used_prompt_id = mode_override
+                .as_ref()
+                .or(settings.post_process_selected_prompt_id.as_ref());
+            if let Some(prompt_id) = used_prompt_id {
                 if let Some(prompt) = settings
                     .post_process_prompts
                     .iter()
@@ -464,6 +503,11 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+
+        // Cada dictado fija (o limpia) el override de modo de esta captura.
+        if let Ok(mut override_slot) = MODE_PROMPT_OVERRIDE.lock() {
+            *override_slot = mode_prompt_id(binding_id).map(str::to_string);
+        }
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -934,6 +978,20 @@ mod tests {
     use std::sync::Arc;
     use std::thread;
     use std::time::Duration;
+
+    #[test]
+    fn mode_binding_ids_resolve_to_transcribe_action() {
+        assert!(super::resolve_action("transcribe").is_some());
+        assert!(super::resolve_action("mode:cualquiera").is_some());
+        assert!(super::resolve_action("inexistente").is_none());
+    }
+
+    #[test]
+    fn mode_prompt_id_parses_only_mode_ids() {
+        assert_eq!(super::mode_prompt_id("mode:abc"), Some("abc"));
+        assert_eq!(super::mode_prompt_id("transcribe"), None);
+        assert_eq!(super::mode_prompt_id("mode:"), None); // vacío no es un modo
+    }
 
     #[test]
     fn blank_transcription_is_detected() {
