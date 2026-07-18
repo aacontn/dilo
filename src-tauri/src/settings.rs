@@ -96,6 +96,18 @@ pub struct LLMPrompt {
     pub shortcut: Option<String>,
 }
 
+/// Una nota dictada que no pudo sincronizarse todavía (sin conexión, error del
+/// proveedor, etc.). Se guarda para reintentar el envío a sus `targets`.
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct PendingNote {
+    pub title: String,
+    pub body: String,
+    /// Destinos pendientes: `"apple"` / `"notion"`.
+    pub targets: Vec<String>,
+    #[serde(default)]
+    pub last_error: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct PostProcessProvider {
     pub id: String,
@@ -467,6 +479,28 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Carpeta donde se guardan las notas rápidas locales. `None` → default
+    /// `~/Documents/Dilo/Notas` (resuelto en el momento de escribir).
+    #[serde(default)]
+    pub notes_folder: Option<String>,
+    /// Sincronizar notas con la app Notas de Apple.
+    #[serde(default)]
+    pub notes_apple_enabled: bool,
+    /// Carpeta destino dentro de Apple Notes.
+    #[serde(default = "default_notes_apple_folder")]
+    pub notes_apple_folder: String,
+    /// Sincronizar notas con Notion.
+    #[serde(default)]
+    pub notes_notion_enabled: bool,
+    /// Página/base padre de Notion donde crear las notas.
+    #[serde(default)]
+    pub notes_notion_parent: String,
+    /// Secretos de sincronización de notas (clave `"notion"` = token).
+    #[serde(default = "default_notes_secrets")]
+    pub notes_secrets: SecretMap,
+    /// Notas dictadas cuya sincronización quedó pendiente de reintento.
+    #[serde(default)]
+    pub notes_pending: Vec<PendingNote>,
 }
 
 fn default_model() -> String {
@@ -762,6 +796,14 @@ fn default_typing_tool() -> TypingTool {
     TypingTool::Auto
 }
 
+fn default_notes_apple_folder() -> String {
+    "Dilo".to_string()
+}
+
+fn default_notes_secrets() -> SecretMap {
+    SecretMap(HashMap::new())
+}
+
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
     for provider in default_post_process_providers() {
@@ -882,6 +924,16 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    bindings.insert(
+        "quick_note".to_string(),
+        ShortcutBinding {
+            id: "quick_note".to_string(),
+            name: "Quick Note".to_string(),
+            description: "Dictates into a local note instead of pasting.".to_string(),
+            default_binding: String::new(),
+            current_binding: String::new(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -941,6 +993,13 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
+        notes_folder: None,
+        notes_apple_enabled: false,
+        notes_apple_folder: default_notes_apple_folder(),
+        notes_notion_enabled: false,
+        notes_notion_parent: String::new(),
+        notes_secrets: default_notes_secrets(),
+        notes_pending: Vec::new(),
     }
 }
 
@@ -1569,6 +1628,21 @@ mod tests {
         };
         let back: LLMPrompt = serde_json::from_value(serde_json::to_value(&p2).unwrap()).unwrap();
         assert_eq!(back.shortcut.as_deref(), Some("ctrl+alt+y"));
+    }
+
+    #[test]
+    fn notes_settings_default_and_roundtrip() {
+        let s = get_default_settings();
+        assert!(s.notes_folder.is_none());
+        assert!(!s.notes_apple_enabled);
+        assert_eq!(s.notes_apple_folder, "Dilo");
+        assert!(!s.notes_notion_enabled);
+        assert!(s.notes_pending.is_empty());
+        assert_eq!(s.bindings["quick_note"].current_binding, "");
+
+        let json = serde_json::to_value(&s).unwrap();
+        let back: AppSettings = serde_json::from_value(json).unwrap();
+        assert_eq!(back.notes_apple_folder, "Dilo");
     }
 
     #[test]
