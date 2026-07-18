@@ -11,6 +11,7 @@ use log::{debug, error, warn};
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
@@ -171,8 +172,9 @@ pub async fn sync_notion(
 }
 
 /// Envía un payload a `POST /v1/pages`. En el `Err`, el `bool` indica si el fallo
-/// parece ser un desajuste del tipo de parent (400 mencionando `parent` /
-/// `page_id` / `database_id`), para decidir el reintento como base de datos.
+/// parece ser un desajuste del tipo de parent — 400 mencionando `parent` /
+/// `page_id` / `database_id`, o 404 (un id de base pasado como `page_id`
+/// responde "Could not find page") — para decidir el reintento como base.
 async fn notion_create_page(
     client: &reqwest::Client,
     token: &str,
@@ -193,8 +195,9 @@ async fn notion_create_page(
     }
 
     let text = resp.text().await.unwrap_or_default();
-    let parent_mismatch = status == reqwest::StatusCode::BAD_REQUEST
-        && (text.contains("database_id") || text.contains("page_id") || text.contains("parent"));
+    let parent_mismatch = (status == reqwest::StatusCode::BAD_REQUEST
+        && (text.contains("database_id") || text.contains("page_id") || text.contains("parent")))
+        || status == reqwest::StatusCode::NOT_FOUND;
     Err((
         parent_mismatch,
         format!("Notion respondió {status}: {text}"),
@@ -239,8 +242,37 @@ async fn sync_target(
 // Orquestación: captura + cola de pendientes.
 // ---------------------------------------------------------------------------
 
-/// Guard simple contra flushes concurrentes: el flush de arranque y el del
-/// comienzo de cada `capture_note` no pueden reenviar la misma nota dos veces.
+/// Serializa todo read-modify-write de `notes_pending`. Los settings se guardan
+/// como un objeto entero (`get_settings` → mutar → `write_settings`), así que un
+/// snapshot tomado antes de I/O de red y escrito después pisaría cualquier
+/// cambio intermedio (una captura concurrente que encoló, un ajuste del
+/// usuario). Regla: la red NUNCA corre dentro de este lock; toda mutación de la
+/// cola pasa por `update_pending`, que lee fresco, muta solo la cola y escribe.
+static NOTES_QUEUE_LOCK: Mutex<()> = Mutex::new(());
+
+/// Read-modify-write atómico de la cola: bajo `NOTES_QUEUE_LOCK`, relee los
+/// settings frescos, aplica `mutate` SOLO sobre `notes_pending` y persiste.
+/// Devuelve el largo resultante de la cola.
+fn update_pending(app: &AppHandle, mutate: impl FnOnce(&mut Vec<PendingNote>)) -> usize {
+    let _lock = NOTES_QUEUE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut settings = get_settings(app);
+    mutate(&mut settings.notes_pending);
+    let len = settings.notes_pending.len();
+    write_settings(app, settings);
+    len
+}
+
+/// Mezcla (pura) de los reintentos fallidos de vuelta a la cola vigente: lo que
+/// ya estaba/entró mientras tanto se conserva primero, y los `remaining` del
+/// flush se re-encolan detrás. Nada se pierde ni se duplica.
+fn merge_remaining(current: &mut Vec<PendingNote>, remaining: Vec<PendingNote>) {
+    current.extend(remaining);
+}
+
+/// Guard simple contra flushes concurrentes: el flush de arranque y el que
+/// dispara cada `capture_note` no pueden reenviar la misma nota dos veces.
 static FLUSHING: AtomicBool = AtomicBool::new(false);
 
 /// Libera el guard `FLUSHING` aunque el flush salga por un `return` temprano o
@@ -264,20 +296,28 @@ impl Drop for FlushGuard {
 // build sin tests, así que se permite dead_code de forma acotada aquí.
 #[allow(dead_code)]
 pub async fn capture_note(app: &AppHandle, text: &str) {
-    // La cola se comparte con esta captura: reintentar antes de empezar.
-    flush_pending(app).await;
-
     let settings = get_settings(app);
     let title = note_title(&chrono::Local::now());
 
-    // 1) Archivo local.
+    // 1) Archivo local PRIMERO: offline-first. Con la red caída, la cola puede
+    //    acumular N×10s de timeouts; eso no puede retrasar el guardado local.
     let folder = notes_folder(&settings);
     if let Err(e) = write_local_note(&folder, &title, text) {
         error!("no se pudo escribir la nota local: {e}");
         let _ = app.emit("note-error", e);
     }
 
-    // 2) Destinos habilitados.
+    // 2) Reintentar la cola en segundo plano, sin bloquear esta captura. El
+    //    guard FLUSHING evita solaparse con el flush de arranque o de otro
+    //    comando; si ya hay uno corriendo, este spawn sale de inmediato.
+    {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            flush_pending(&app).await;
+        });
+    }
+
+    // 3) Destinos habilitados.
     let mut targets = Vec::new();
     if settings.notes_apple_enabled {
         targets.push("apple".to_string());
@@ -296,16 +336,17 @@ pub async fn capture_note(app: &AppHandle, text: &str) {
         }
     }
 
-    // 3) Lo que quedó pendiente: un solo PendingNote con los targets fallidos.
+    // 4) Lo que quedó pendiente: un solo PendingNote con los targets fallidos,
+    //    encolado bajo el lock de la cola (nunca desde un snapshot viejo).
     if !failed.is_empty() {
-        let mut settings = get_settings(app);
-        settings.notes_pending.push(PendingNote {
-            title,
-            body: text.to_string(),
-            targets: failed,
-            last_error,
+        update_pending(app, |queue| {
+            queue.push(PendingNote {
+                title,
+                body: text.to_string(),
+                targets: failed,
+                last_error,
+            });
         });
-        write_settings(app, settings);
     }
 }
 
@@ -319,12 +360,22 @@ pub async fn flush_pending(app: &AppHandle) {
     }
     let _guard = FlushGuard;
 
-    let mut settings = get_settings(app);
-    if settings.notes_pending.is_empty() {
+    // Peek barato: sin nada encolado no hay que reescribir el store.
+    if get_settings(app).notes_pending.is_empty() {
         return;
     }
 
-    let pending = std::mem::take(&mut settings.notes_pending);
+    // Drenar la cola bajo el lock (la red va fuera). Una nota drenada ya no
+    // está persistida, así que ningún otro flush puede reenviarla.
+    let mut pending = Vec::new();
+    update_pending(app, |queue| pending = std::mem::take(queue));
+    if pending.is_empty() {
+        return;
+    }
+
+    // Config de sync fijada al inicio del flush; solo la cola exige frescura.
+    let settings = get_settings(app);
+
     let mut still_pending = Vec::new();
     for note in pending {
         if let Some(remaining) = retry_note(&settings, note).await {
@@ -332,8 +383,11 @@ pub async fn flush_pending(app: &AppHandle) {
         }
     }
 
-    settings.notes_pending = still_pending;
-    write_settings(app, settings);
+    // Re-encolar lo que siga fallando sobre la cola VIGENTE (releída bajo el
+    // lock): capturas que encolaron durante los reintentos se conservan.
+    if !still_pending.is_empty() {
+        update_pending(app, |queue| merge_remaining(queue, still_pending));
+    }
 }
 
 /// Reintenta los targets de un `PendingNote`. Devuelve `None` si todos pasaron,
@@ -477,6 +531,38 @@ mod tests {
             v["properties"]["title"]["title"][0]["text"]["content"],
             "Titulo"
         );
+    }
+
+    fn pending(title: &str) -> PendingNote {
+        PendingNote {
+            title: title.to_string(),
+            body: "cuerpo".to_string(),
+            targets: vec!["notion".to_string()],
+            last_error: None,
+        }
+    }
+
+    /// El re-encolado del flush no puede perder lo que entró a la cola mientras
+    /// los reintentos corrían: la cola vigente queda primero y los fallidos del
+    /// flush se agregan detrás, sin pérdidas.
+    #[test]
+    fn merge_remaining_keeps_current_queue_and_appends_failures() {
+        // Cola vigente: una nota encolada por una captura concurrente.
+        let mut current = vec![pending("nueva-durante-flush")];
+        // Lo que el flush no pudo reenviar.
+        let remaining = vec![pending("vieja-1"), pending("vieja-2")];
+
+        merge_remaining(&mut current, remaining);
+
+        let titles: Vec<&str> = current.iter().map(|n| n.title.as_str()).collect();
+        assert_eq!(titles, ["nueva-durante-flush", "vieja-1", "vieja-2"]);
+    }
+
+    #[test]
+    fn merge_remaining_into_empty_queue_keeps_all_failures() {
+        let mut current = Vec::new();
+        merge_remaining(&mut current, vec![pending("a"), pending("b")]);
+        assert_eq!(current.len(), 2);
     }
 
     #[test]
