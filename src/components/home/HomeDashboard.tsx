@@ -90,8 +90,8 @@ export const HomeDashboard = () => {
 
   return (
     <div className="home-dashboard w-full mx-auto space-y-6">
-      <header className="dilo-page-header">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-text">
+      <header className="dilo-page-header" data-tauri-drag-region>
+        <h1 className="dilo-page-header-title font-display text-2xl font-semibold tracking-tight text-text">
           {t("sidebar.home")}
         </h1>
       </header>

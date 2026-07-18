@@ -288,7 +288,15 @@
  * siendo el objetivo del click, así que nunca disparan el arrastre.
  * ----------------------------------------------------------------------- */
 .dilo-sidebar-dragzone {
+  /* Reproduce el espaciado que tenía .dilo-sidebar-wordmark como flex item
+     (margin 0.3rem 0.75rem 1.35rem + align-self: flex-start): el margen
+     vertical pasa al contenedor y el inline se vuelve padding para no
+     encoger la superficie de arrastre. El span queda alineado al inicio
+     por el flujo normal (text-align: start). */
   width: 100%;
+  margin-block: 0.3rem 1.35rem;
+  padding-inline: 0.75rem;
+  text-align: start;
 }
 
 .dilo-sidebar-dragzone > * {
@@ -314,10 +322,9 @@
   backdrop-filter: blur(24px) saturate(112%);
 }
 
-.dilo-sidebar-wordmark {
-  margin: 0.3rem 0.75rem 1.35rem;
-  align-self: flex-start;
-}
+/* El espaciado del wordmark vive en .dilo-sidebar-dragzone (ver más abajo):
+   el span es inline y dentro del contenedor de arrastre sus márgenes
+   verticales no aplicarían. */
 
 .dilo-sidebar-nav {
   padding-top: 0.9rem;
