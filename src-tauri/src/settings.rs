@@ -1567,8 +1567,7 @@ mod tests {
             prompt: "haz Y".into(),
             shortcut: Some("ctrl+alt+y".into()),
         };
-        let back: LLMPrompt =
-            serde_json::from_value(serde_json::to_value(&p2).unwrap()).unwrap();
+        let back: LLMPrompt = serde_json::from_value(serde_json::to_value(&p2).unwrap()).unwrap();
         assert_eq!(back.shortcut.as_deref(), Some("ctrl+alt+y"));
     }
 

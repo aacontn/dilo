@@ -542,7 +542,11 @@
         "createPrompt": "Create Prompt",
         "cancel": "Cancel",
         "selectToEdit": "Select a prompt above to view and edit its details.",
-        "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt."
+        "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt.",
+        "modeShortcut": "Mode shortcut (optional)",
+        "modeShortcutHint": "Dictate straight into this mode from any app, without changing the selected mode.",
+        "modeShortcutEmpty": "No shortcut",
+        "modeShortcutClear": "Clear shortcut"
       }
     },
     "history": {

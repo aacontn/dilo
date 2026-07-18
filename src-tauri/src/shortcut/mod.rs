@@ -147,9 +147,7 @@ pub fn change_mode_shortcut(
         .cloned()
         .ok_or_else(|| format!("No existe el modo '{prompt_id}'"))?;
 
-    if !shortcut.is_empty()
-        && snapshot.keyboard_implementation == KeyboardImplementation::Tauri
-    {
+    if !shortcut.is_empty() && snapshot.keyboard_implementation == KeyboardImplementation::Tauri {
         tauri_impl::validate_shortcut(&shortcut)?;
     }
 

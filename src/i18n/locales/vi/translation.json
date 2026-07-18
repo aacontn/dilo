@@ -542,7 +542,11 @@
         "createPrompt": "Tạo Prompt",
         "cancel": "Hủy",
         "selectToEdit": "Chọn một prompt ở trên để xem và chỉnh sửa chi tiết.",
-        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn."
+        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn.",
+        "modeShortcut": "Phím tắt của chế độ (tùy chọn)",
+        "modeShortcutHint": "Đọc chính tả trực tiếp bằng chế độ này từ bất kỳ ứng dụng nào mà không đổi chế độ đang chọn.",
+        "modeShortcutEmpty": "Chưa có phím tắt",
+        "modeShortcutClear": "Xóa phím tắt"
       }
     },
     "history": {

@@ -542,7 +542,11 @@
         "createPrompt": "建立提示詞",
         "cancel": "取消",
         "selectToEdit": "選擇上方的提示詞以檢視和編輯其詳細資訊",
-        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個後處理提示詞"
+        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個後處理提示詞",
+        "modeShortcut": "模式快速鍵（選填）",
+        "modeShortcutHint": "在任何應用程式中直接以此模式聽寫，而不改變所選模式。",
+        "modeShortcutEmpty": "無快速鍵",
+        "modeShortcutClear": "清除快速鍵"
       }
     },
     "history": {

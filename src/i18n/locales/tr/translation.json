@@ -542,7 +542,11 @@
         "createPrompt": "Prompt Oluştur",
         "cancel": "İptal",
         "selectToEdit": "Ayrıntılarını görüntülemek ve düzenlemek için yukarıdan bir prompt seçin.",
-        "createFirst": "İlk son işlem prompt'unuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın."
+        "createFirst": "İlk son işlem prompt'unuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın.",
+        "modeShortcut": "Mod kısayolu (isteğe bağlı)",
+        "modeShortcutHint": "Seçili modu değiştirmeden herhangi bir uygulamadan doğrudan bu modla dikte et.",
+        "modeShortcutEmpty": "Kısayol yok",
+        "modeShortcutClear": "Kısayolu kaldır"
       }
     },
     "history": {

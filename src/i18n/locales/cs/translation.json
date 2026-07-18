@@ -542,7 +542,11 @@
         "createPrompt": "Vytvořit prompt",
         "cancel": "Zrušit",
         "selectToEdit": "Vyberte výše prompt, abyste zobrazili a upravili jeho podrobnosti.",
-        "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro následné zpracování."
+        "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro následné zpracování.",
+        "modeShortcut": "Zkratka režimu (volitelné)",
+        "modeShortcutHint": "Diktujte přímo v tomto režimu z jakékoli aplikace beze změny vybraného režimu.",
+        "modeShortcutEmpty": "Žádná zkratka",
+        "modeShortcutClear": "Odebrat zkratku"
       }
     },
     "history": {

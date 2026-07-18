@@ -542,7 +542,11 @@
         "createPrompt": "Skapa prompt",
         "cancel": "Avbryt",
         "selectToEdit": "Välj en prompt ovan för att visa och redigera dess detaljer.",
-        "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för efterbearbetning."
+        "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för efterbearbetning.",
+        "modeShortcut": "Lägesgenväg (valfritt)",
+        "modeShortcutHint": "Diktera direkt med det här läget från vilken app som helst, utan att ändra det valda läget.",
+        "modeShortcutEmpty": "Ingen genväg",
+        "modeShortcutClear": "Ta bort genväg"
       }
     },
     "history": {

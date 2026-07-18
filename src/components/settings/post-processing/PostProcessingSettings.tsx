@@ -20,6 +20,7 @@ import { ApiKeyField } from "../PostProcessingSettingsApi/ApiKeyField";
 import { ModelSelect } from "../PostProcessingSettingsApi/ModelSelect";
 import { usePostProcessProviderState } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 import { ShortcutInput } from "../ShortcutInput";
+import { ModeShortcutInput } from "../ModeShortcutInput";
 import { useSettings } from "../../../hooks/useSettings";
 import { PageHeader } from "../../ui/PageHeader";
 
@@ -323,6 +324,11 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
                 />
               </p>
             </div>
+
+            <ModeShortcutInput
+              promptId={selectedPrompt.id}
+              shortcut={selectedPrompt.shortcut}
+            />
 
             <div className="flex gap-2 pt-2">
               <Button

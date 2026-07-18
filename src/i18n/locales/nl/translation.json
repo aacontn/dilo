@@ -542,7 +542,11 @@
         "createPrompt": "Prompt maken",
         "cancel": "Annuleren",
         "selectToEdit": "Selecteer hierboven een prompt om de details te bekijken en te bewerken.",
-        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken."
+        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken.",
+        "modeShortcut": "Modus-sneltoets (optioneel)",
+        "modeShortcutHint": "Dicteer rechtstreeks met deze modus vanuit elke app, zonder de geselecteerde modus te wijzigen.",
+        "modeShortcutEmpty": "Geen sneltoets",
+        "modeShortcutClear": "Sneltoets wissen"
       }
     },
     "history": {

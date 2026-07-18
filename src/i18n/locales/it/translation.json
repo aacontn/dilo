@@ -542,7 +542,11 @@
         "createPrompt": "Crea Prompt",
         "cancel": "Annulla",
         "selectToEdit": "Scegli un prompt qui sopra per visualizzare o modificare i dettagli.",
-        "createFirst": "Clicca 'Crea un nuovo prompt' qui sopra per creare il tuo primo prompt di post-elaborazione."
+        "createFirst": "Clicca 'Crea un nuovo prompt' qui sopra per creare il tuo primo prompt di post-elaborazione.",
+        "modeShortcut": "Scorciatoia della modalità (opzionale)",
+        "modeShortcutHint": "Detta direttamente con questa modalità da qualsiasi app, senza cambiare la modalità selezionata.",
+        "modeShortcutEmpty": "Nessuna scorciatoia",
+        "modeShortcutClear": "Rimuovi scorciatoia"
       }
     },
     "history": {

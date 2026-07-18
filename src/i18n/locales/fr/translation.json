@@ -542,7 +542,11 @@
         "createPrompt": "Créer le prompt",
         "cancel": "Annuler",
         "selectToEdit": "Sélectionnez un prompt ci-dessus pour voir et modifier ses détails.",
-        "createFirst": "Cliquez sur 'Créer un nouveau prompt' ci-dessus pour créer votre premier prompt de post-traitement."
+        "createFirst": "Cliquez sur 'Créer un nouveau prompt' ci-dessus pour créer votre premier prompt de post-traitement.",
+        "modeShortcut": "Raccourci du mode (optionnel)",
+        "modeShortcutHint": "Dictez directement avec ce mode depuis n'importe quelle app, sans changer le mode sélectionné.",
+        "modeShortcutEmpty": "Aucun raccourci",
+        "modeShortcutClear": "Supprimer le raccourci"
       }
     },
     "history": {
