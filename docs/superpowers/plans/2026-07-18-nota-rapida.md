@@ -212,11 +212,48 @@ fn quick_note_is_a_transcribe_binding_and_resolves() {
 
 ---
 
-### Task 6: Verificación integral (tanda 2 + release v0.1.12)
+### Task 6 (correr al final, tras Tasks 7-8): Verificación integral (tanda 2 + release v0.1.12)
 
 - [ ] **Step 1:** `cargo test --lib && cargo clippy` · `bun run lint && bun run format && bun run build && bun run check:translations` — todo verde.
 - [ ] **Step 2:** Build local firmado, instalar en /Applications; prueba en vivo de Alfonso según spec §Verificación puntos 2–7 (nota local, Obsidian, Apple Notes, Notion, cola sin internet, atajos existentes intactos).
 - [ ] **Step 3:** con su OK: bump a 0.1.12 (tauri.conf.json + Cargo.toml + package.json), notas de release en español (mencionar: primera release firmada — un último re-otorgar de Accesibilidad y no vuelve a pasar), `gh workflow run release.yml`, verificar ambos assets Mac, publicar.
+
+---
+
+### Task 7: Arrastre de la ventana principal
+
+**Files:**
+- Modify: `src/App.css` (región de arrastre), `src/App.tsx` si hace falta
+- Contexto: la ventana macOS usa `TitleBarStyle::Overlay` + `hidden_title` (lib.rs `create_main_window`); el frontend tiene `.dilo-titlebar-drag-region` (`data-tauri-drag-region`, 36px alto, z-20, App.tsx:290) presente en todas las ramas. Alfonso reporta que no puede arrastrar desde ninguna parte.
+
+- [ ] **Step 1:** Reproducir/diagnosticar: correr `bun run tauri dev` (matar Dilo instalado antes; relanzar después) y probar arrastre desde la franja superior. Revisar en el inspector si algún elemento tapa la franja (WhatsNewGate, AccessibilityPermissions, sidebar) o si un ancestro le quita pointer-events.
+- [ ] **Step 2:** Fix mínimo según diagnóstico. Además ampliar superficie: agregar `data-tauri-drag-region` al encabezado vacío del área principal y al tope del sidebar (solo zonas sin controles interactivos — el atributo solo aplica al elemento exacto, no a hijos, así que usar elementos "spacer" dedicados).
+- [ ] **Step 3:** Verificar en dev: arrastre desde franja superior y encabezado; los botones/links de esas zonas siguen cliqueables.
+- [ ] **Step 4:** Commit `fix(ventana): arrastre de la ventana principal`.
+
+---
+
+### Task 8: Inicio — tarjetas de modo con atajo y Personalizar
+
+**Files:**
+- Modify: `src/components/home/DictationModes.tsx`, `src/components/home/HomeDashboard.tsx`, `src/App.tsx` (navegación a sección), CSS del segment en `src/App.css`
+- Modify: `src/i18n/locales/*/translation.json` (22)
+
+**Interfaces:**
+- Consumes: `ModeShortcutInput` (tanda 1, `src/components/settings/ModeShortcutInput.tsx`), `settings.post_process_prompts` (con `shortcut`), navegación por secciones (`currentSection`/`setCurrentSection` viven en App.tsx y Sidebar).
+
+**Diseño (pedido de Alfonso):**
+- Cada modo con un espacio más dedicado: convertir la grilla de botones compactos en tarjetas más altas (label + descripción corta + atajo). El modo "literal" sigue primero; los modos de post-proceso NO desaparecen al elegir literal (siempre visibles, el seleccionado marcado).
+- Incluir también los modos creados por el usuario (hoy solo salen los 5 presets `DICTATION_MODE_PRESETS`): derivar la lista de `settings.post_process_prompts` (presets primero, luego custom).
+- En cada tarjeta (menos literal): el atajo del modo, mostrado y editable con `ModeShortcutInput` (o una variante compacta del mismo componente si el layout lo pide). Cuidado: el click en el input NO debe seleccionar el modo (stopPropagation).
+- Acción "Personalizar" por tarjeta (o un botón general de la sección) que navegue a la sección Post-proceso. Mecanismo: levantar un callback — `DictationModes` recibe `onCustomize: () => void` que HomeDashboard recibe de App (`setCurrentSection("postprocess")` — verificar el id real de la sección en `SECTIONS_CONFIG`/Sidebar).
+- i18n: `home.modes.customize: "Personalizar"` (es) + 21 traducciones; reusar claves de atajo existentes.
+
+- [ ] **Step 1:** Lista de modos desde settings + tarjetas rediseñadas (sin atajo aún); literal no oculta el resto.
+- [ ] **Step 2:** Atajo editable en tarjeta con `ModeShortcutInput` + stopPropagation.
+- [ ] **Step 3:** Botón "Personalizar" → navegación a Post-proceso (prop drilling desde App).
+- [ ] **Step 4:** i18n 22 locales + `bun run check:translations && bun run lint && bunx tsc --noEmit` verdes.
+- [ ] **Step 5:** Commit `feat(inicio): tarjetas de modo con atajo y acceso a personalizar`.
 
 ## Self-review del plan
 
