@@ -852,14 +852,22 @@ impl ShortcutAction for TranscribeAction {
                                 // Feedback breve de éxito: el archivo local ya
                                 // quedó guardado (es lo primero que hace
                                 // capture_note), así que mostramos el estado
-                                // "nota guardada" ~1.2s y recién ahí escondemos el
-                                // overlay. La bandeja vuelve a Idle de inmediato.
-                                show_note_saved_overlay(&ah);
+                                // "nota guardada" ~1.2s y recién ahí escondemos
+                                // el overlay. La bandeja vuelve a Idle de
+                                // inmediato. El hide diferido va condicionado a
+                                // la generación de ESTE show: si otro dictado
+                                // reclamó el overlay durante la espera, no se
+                                // emite nada (un hide-overlay incondicional
+                                // dejaría en blanco el overlay nuevo).
+                                let note_generation = show_note_saved_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
                                 let ah_hide = ah.clone();
                                 tauri::async_runtime::spawn(async move {
                                     tokio::time::sleep(Duration::from_millis(1200)).await;
-                                    utils::hide_recording_overlay(&ah_hide);
+                                    utils::hide_recording_overlay_if_current(
+                                        &ah_hide,
+                                        note_generation,
+                                    );
                                 });
                             } else {
                                 let ah_clone = ah.clone();

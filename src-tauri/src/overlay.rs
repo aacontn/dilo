@@ -474,7 +474,18 @@ fn create_recording_overlay(app_handle: &AppHandle) {
     }
 }
 
-fn show_overlay_state(app_handle: &AppHandle, state: &str) {
+/// Muestra un estado del overlay y devuelve la generación que este show
+/// reclamó, para hides condicionados (`hide_recording_overlay_if_current`).
+///
+/// El bump de `OVERLAY_GENERATION` ocurre AQUÍ, en el hilo del llamador y no en
+/// el cuerpo marshaleado: `run_on_main_thread` es asíncrono, así que si el bump
+/// viviera adentro, el llamador capturaría casi siempre una generación vieja
+/// (carrera contra el main thread) y su hide condicionado nunca dispararía.
+fn show_overlay_state(app_handle: &AppHandle, state: &str) -> u64 {
+    // Invalidate any pending hide timer from an earlier hide, and claim the
+    // generation this show owns.
+    let generation = OVERLAY_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
+
     // La creación del NSPanel (setFloatingPanel/setWindowLevel) y las llamadas
     // crudas de tauri-nspanel exigen el hilo principal de AppKit, pero este
     // show llega desde el hilo del atajo/transcripción — sin el marshal, macOS
@@ -482,18 +493,18 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
     let app = app_handle.clone();
     let state = state.to_string();
     let _ = app_handle.run_on_main_thread(move || show_overlay_state_on_main(&app, &state));
+    generation
 }
 
 fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     // Whether the overlay shows at all is governed by overlay_style; position
     // only chooses Top vs Bottom placement.
+    // (The generation bump for this show already happened in
+    // `show_overlay_state`, on the caller's thread.)
     let settings = settings::get_settings(app_handle);
     if settings.overlay_style == OverlayStyle::None {
         return;
     }
-
-    // Invalidate any pending destroy timer from an earlier hide.
-    OVERLAY_GENERATION.fetch_add(1, Ordering::Relaxed);
 
     // Size for this state (compact vs. streaming) and resolve where the window
     // goes — dragged anchor of the cursor's monitor, or the Top/Bottom preset —
@@ -581,9 +592,11 @@ pub fn show_processing_overlay(app_handle: &AppHandle) {
 
 /// Shows the brief "note saved" success overlay. Same lazily-created,
 /// never-destroyed window as every other state (see the lifecycle note by
-/// `OVERLAY_GENERATION`); the caller hides it after a short delay.
-pub fn show_note_saved_overlay(app_handle: &AppHandle) {
-    show_overlay_state(app_handle, "note-saved");
+/// `OVERLAY_GENERATION`). Devuelve la generación reclamada por este show: el
+/// llamador la pasa a `hide_recording_overlay_if_current` para que su hide
+/// diferido no toque un dictado nuevo que reclamó el overlay mientras tanto.
+pub fn show_note_saved_overlay(app_handle: &AppHandle) -> u64 {
+    show_overlay_state(app_handle, "note-saved")
 }
 
 /// Updates the overlay window position based on current settings
@@ -631,6 +644,19 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
             let _ = window_clone.hide();
         });
     }
+}
+
+/// Como `hide_recording_overlay`, pero solo si el overlay sigue perteneciendo a
+/// la generación capturada en el show correspondiente. Si un show nuevo (otro
+/// dictado) reclamó el overlay mientras tanto, NO hace nada — ni el emit de
+/// `hide-overlay` ni el hide: un emit incondicional pondría `isVisible=false`
+/// en la página y dejaría el overlay del dictado nuevo en blanco (la ventana
+/// seguiría visible pero vacía) por el resto de esa grabación.
+pub fn hide_recording_overlay_if_current(app_handle: &AppHandle, generation: u64) {
+    if OVERLAY_GENERATION.load(Ordering::Relaxed) != generation {
+        return;
+    }
+    hide_recording_overlay(app_handle);
 }
 
 // Cached "overlay is enabled" flag, kept in sync with overlay_style. Avoids

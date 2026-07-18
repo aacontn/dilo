@@ -167,7 +167,7 @@ function App() {
 
   // Listen for local note-write failures and show a toast.
   // The payload is the backend error message (notes.rs emits `note-error` when
-  // the local markdown file can't be written; also logged to handy.log).
+  // the local markdown file can't be written; also logged to dilo.log).
   useEffect(() => {
     const unlisten = listen<string>("note-error", (event) => {
       toast.error(t("errors.noteSaveFailed", { error: event.payload }));
