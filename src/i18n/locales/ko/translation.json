@@ -70,7 +70,8 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode."
+      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "customize": "사용자 지정"
     }
   },
   "onboarding": {

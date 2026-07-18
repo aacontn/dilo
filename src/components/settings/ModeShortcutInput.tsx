@@ -14,6 +14,12 @@ import { useSettings } from "../../hooks/useSettings";
 interface ModeShortcutInputProps {
   promptId: string;
   shortcut: string | null | undefined;
+  /**
+   * Compact variant for embedding inside cards: hides the label and hint and
+   * uses tighter paddings. Clicks are also kept from bubbling so a surrounding
+   * clickable card doesn't react to shortcut edits.
+   */
+  compact?: boolean;
 }
 
 const MODIFIERS = [
@@ -38,6 +44,7 @@ const MODIFIERS = [
 export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
   promptId,
   shortcut,
+  compact = false,
 }) => {
   const { t } = useTranslation();
   const { refreshSettings } = useSettings();
@@ -166,15 +173,23 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
       : t("settings.postProcessing.prompts.modeShortcutEmpty");
 
   return (
-    <div ref={containerRef} className="space-y-2 flex flex-col">
-      <label className="text-sm font-semibold">
-        {t("settings.postProcessing.prompts.modeShortcut")}
-      </label>
+    <div
+      ref={containerRef}
+      onClick={compact ? (e) => e.stopPropagation() : undefined}
+      className={compact ? "flex items-center gap-2" : "space-y-2 flex flex-col"}
+    >
+      {!compact && (
+        <label className="text-sm font-semibold">
+          {t("settings.postProcessing.prompts.modeShortcut")}
+        </label>
+      )}
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => void startEditing()}
-          className={`px-3 py-1.5 rounded-md border text-sm font-mono cursor-pointer transition-colors ${
+          className={`rounded-md border font-mono cursor-pointer transition-colors ${
+            compact ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm"
+          } ${
             editing
               ? "border-logo-primary bg-logo-primary/10"
               : "border-mid-gray/40 bg-mid-gray/5 hover:border-mid-gray/70"
@@ -194,9 +209,11 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
           </button>
         )}
       </div>
-      <p className="text-xs text-muted-text">
-        {t("settings.postProcessing.prompts.modeShortcutHint")}
-      </p>
+      {!compact && (
+        <p className="text-xs text-muted-text">
+          {t("settings.postProcessing.prompts.modeShortcutHint")}
+        </p>
+      )}
     </div>
   );
 };

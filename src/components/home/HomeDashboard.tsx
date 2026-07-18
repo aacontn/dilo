@@ -31,7 +31,11 @@ const ShortcutBadge = ({ binding }: { binding: string }) => {
   );
 };
 
-export const HomeDashboard = () => {
+interface HomeDashboardProps {
+  onCustomize?: () => void;
+}
+
+export const HomeDashboard = ({ onCustomize }: HomeDashboardProps) => {
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
   const { currentModel, models } = useModelStore();
@@ -160,7 +164,7 @@ export const HomeDashboard = () => {
         </div>
       </section>
 
-      <DictationModes />
+      <DictationModes onCustomize={onCustomize ?? (() => {})} />
 
       <section className="home-history-section">
         <div className="mb-3 flex items-end justify-between">

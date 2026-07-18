@@ -16,6 +16,7 @@ import Onboarding, {
   DictationTestOnboarding,
 } from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import { HomeDashboard } from "./components/home";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -26,7 +27,13 @@ import {
   type OnboardingStep,
 } from "@/lib/utils/onboardingFlow";
 
-const renderSettingsContent = (section: SidebarSection) => {
+const renderSettingsContent = (
+  section: SidebarSection,
+  onNavigate: (section: SidebarSection) => void,
+) => {
+  if (section === "home") {
+    return <HomeDashboard onCustomize={() => onNavigate("postprocessing")} />;
+  }
   const ActiveComponent =
     SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;
   return <ActiveComponent />;
@@ -336,7 +343,7 @@ function App() {
             <div className="dilo-scroll flex-1 overflow-y-auto">
               <div className="dilo-page flex flex-col items-center gap-4">
                 <AccessibilityPermissions />
-                {renderSettingsContent(currentSection)}
+                {renderSettingsContent(currentSection, setCurrentSection)}
               </div>
             </div>
           </main>

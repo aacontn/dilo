@@ -70,7 +70,8 @@
         "title": "Código",
         "description": "Respeta rutas, comandos e identificadores"
       },
-      "needsProvider": "Configura un proveedor de post-proceso para usar este modo."
+      "needsProvider": "Configura un proveedor de post-proceso para usar este modo.",
+      "customize": "Personalizar"
     }
   },
   "onboarding": {
