@@ -77,7 +77,9 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.postProcessing",
     icon: Sparkles,
     component: PostProcessingSettings,
-    enabled: (settings) => settings?.post_process_enabled ?? false,
+    // Siempre visible: ocultarla con el modo Literal hacía "desaparecer" los
+    // modos de post-proceso y confundía (feedback de Alfonso, v0.1.12).
+    enabled: () => true,
   },
   notes: {
     labelKey: "sidebar.notes",
