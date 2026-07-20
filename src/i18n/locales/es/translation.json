@@ -17,7 +17,8 @@
     "history": "Historial",
     "debug": "Debug",
     "about": "Acerca de",
-    "notes": "Notas"
+    "notes": "Notas",
+    "voice": "Voz"
   },
   "home": {
     "status": {
@@ -740,6 +741,23 @@
       "retry": "Reintentar ahora",
       "retryError": "Algunas notas siguen pendientes. Prueba de nuevo más tarde.",
       "notionTokenSaveError": "No se pudo guardar el token de Notion. Prueba de nuevo."
+    },
+    "voice": {
+      "title": "Voz",
+      "description": "Dilo puede responder hablando con un modelo de voz local (Supertonic).",
+      "female": "Femenina",
+      "male": "Masculina",
+      "setupTitle": "Configuración",
+      "downloadTitle": "Descargar voces",
+      "downloadHint": "Descarga el modelo de voz de Supertonic (~411 MB) desde Hugging Face. Los pesos tienen licencia OpenRAIL-M: {{url}}",
+      "download": "Descargar voces",
+      "downloading": "Descargando…",
+      "downloadError": "No se pudo descargar el modelo de voz. Revisa tu conexión e intenta de nuevo.",
+      "selectorTitle": "Voz",
+      "selectorHint": "Elige con cuál de las 10 voces de Supertonic habla Dilo.",
+      "selectorPlaceholder": "Elige una voz",
+      "test": "Escuchar un ejemplo",
+      "testError": "No se pudo reproducir el ejemplo. Revisa el dispositivo de salida de audio."
     }
   },
   "footer": {

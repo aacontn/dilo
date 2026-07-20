@@ -17,7 +17,8 @@
     "history": "History",
     "debug": "Debug",
     "about": "About",
-    "notes": "Notes"
+    "notes": "Notes",
+    "voice": "Voice"
   },
   "home": {
     "status": {
@@ -740,6 +741,23 @@
       "retry": "Retry now",
       "retryError": "Some notes are still pending. Try again later.",
       "notionTokenSaveError": "Could not save the Notion token. Try again."
+    },
+    "voice": {
+      "title": "Voice",
+      "description": "Dilo can speak back using a local voice model (Supertonic).",
+      "female": "Female",
+      "male": "Male",
+      "setupTitle": "Setup",
+      "downloadTitle": "Download voices",
+      "downloadHint": "Downloads the Supertonic voice model (~411 MB) from Hugging Face. Weights are OpenRAIL-M licensed: {{url}}",
+      "download": "Download voices",
+      "downloading": "Downloading…",
+      "downloadError": "Couldn't download the voice model. Check your connection and try again.",
+      "selectorTitle": "Voice",
+      "selectorHint": "Choose which of the 10 Supertonic voices Dilo uses to speak.",
+      "selectorPlaceholder": "Choose a voice",
+      "test": "Play a sample",
+      "testError": "Couldn't play the sample. Check the audio output device."
     }
   },
   "footer": {

@@ -167,11 +167,13 @@ const settingUpdaters: {
   notes_folder: (value) => commands.changeNotesFolder(value as string | null),
   notes_apple_enabled: (value) =>
     commands.changeNotesAppleEnabled(value as boolean),
-  notes_apple_folder: (value) => commands.changeNotesAppleFolder(value as string),
+  notes_apple_folder: (value) =>
+    commands.changeNotesAppleFolder(value as string),
   notes_notion_enabled: (value) =>
     commands.changeNotesNotionEnabled(value as boolean),
   notes_notion_parent: (value) =>
     commands.changeNotesNotionParent(value as string),
+  tts_voice: (value) => commands.ttsSetVoice(value as string),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

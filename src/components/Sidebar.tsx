@@ -10,6 +10,7 @@ import {
   Sparkles,
   Cpu,
   NotebookPen,
+  Volume2,
 } from "lucide-react";
 import { Wordmark } from "./shared";
 import { HomeDashboard } from "./home";
@@ -23,6 +24,7 @@ import {
   PostProcessingSettings,
   ModelsSettings,
   NotesSettings,
+  VoiceSettings,
 } from "./settings";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
@@ -85,6 +87,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.notes",
     icon: NotebookPen,
     component: NotesSettings,
+    enabled: () => true,
+  },
+  voice: {
+    labelKey: "sidebar.voice",
+    icon: Volume2,
+    component: VoiceSettings,
     enabled: () => true,
   },
   debug: {

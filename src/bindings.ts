@@ -982,6 +982,60 @@ async isLaptop() : Promise<Result<boolean, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Las 10 voces disponibles, sin necesitar el motor cargado — la UI puede
+ * mostrar el selector antes de sintetizar nada.
+ */
+async ttsListVoices() : Promise<TtsVoiceInfo[]> {
+    return await TAURI_INVOKE("tts_list_voices");
+},
+async ttsWeightsStatus() : Promise<Result<TtsWeightsStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_weights_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Descarga los pesos desde Hugging Face. Llamar solo tras mostrar el aviso
+ * de licencia OpenRAIL-M en la UI — el botón que dispara este comando *es*
+ * la confirmación (ver `tts::supertonic::ensure_weights_downloaded`).
+ */
+async ttsDownloadWeights() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_download_weights") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Persiste la voz elegida por el dueño (settings.tts_voice). No valida
+ * contra el catálogo: una voz desconocida simplemente fallará en
+ * `tts_speak` con `TtsError::UnknownVoice`, igual que cualquier otro id
+ * mal escrito — la UI solo ofrece las 10 de [`tts_list_voices`].
+ */
+async ttsSetVoice(voice: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_set_voice", { voice }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Sintetiza `text` con `voice` (o la voz elegida en settings si se omite) y
+ * lo reproduce por los parlantes. Devuelve una vez terminó de sonar.
+ */
+async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_speak", { text, voice }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -1064,7 +1118,17 @@ notes_secrets?: SecretMap;
 /**
  * Notas dictadas cuya sincronización quedó pendiente de reintento.
  */
-notes_pending?: PendingNote[] }
+notes_pending?: PendingNote[]; 
+/**
+ * Motor de voz de salida activo. Ver [`TtsEngineSetting`].
+ */
+tts_engine?: TtsEngineSetting; 
+/**
+ * Voz elegida dentro del motor activo — id opaco (`"F5"`, `"M2"`, etc.
+ * para Supertonic, ver `tts::VoiceId`). Default de fábrica: F5
+ * (`tts::supertonic::DEFAULT_VOICE`).
+ */
+tts_voice?: string }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1187,6 +1251,26 @@ export type StreamWorkKind = "transcribing" | "polishing"
  */
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
+/**
+ * Motor de síntesis de voz de salida activo. Hoy solo existe `Supertonic`
+ * (local); ya es un `enum` — no un `String` opaco como `VoiceId` — para no
+ * tener que migrar el esquema de settings cuando se sume un proveedor de
+ * nube (Deepgram/ElevenLabs, fase 1b — ver `docs/plans/dilo-v2-voz.md`).
+ */
+export type TtsEngineSetting = "supertonic"
+export type TtsVoiceGender = "female" | "male"
+export type TtsVoiceInfo = { id: string; name: string; gender: TtsVoiceGender }
+export type TtsWeightsStatus = { 
+/**
+ * Si los pesos están listos para sintetizar (en disco, o el desarrollo
+ * apunta a una copia local vía `DILO_SUPERTONIC_MODELS_DIR`).
+ */
+downloaded: boolean; 
+/**
+ * `true` cuando `DILO_SUPERTONIC_MODELS_DIR` está fijada — solo pensada
+ * para desarrollo local, nunca se persiste en settings.
+ */
+dev_override: boolean; license_url: string }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 
