@@ -304,6 +304,17 @@ pub enum TranscribeAcceleratorSetting {
     Gpu,
 }
 
+/// Motor de síntesis de voz de salida activo. Hoy solo existe `Supertonic`
+/// (local); ya es un `enum` — no un `String` opaco como `VoiceId` — para no
+/// tener que migrar el esquema de settings cuando se sume un proveedor de
+/// nube (Deepgram/ElevenLabs, fase 1b — ver `docs/plans/dilo-v2-voz.md`).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TtsEngineSetting {
+    #[default]
+    Supertonic,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum OrtAcceleratorSetting {
@@ -501,6 +512,14 @@ pub struct AppSettings {
     /// Notas dictadas cuya sincronización quedó pendiente de reintento.
     #[serde(default)]
     pub notes_pending: Vec<PendingNote>,
+    /// Motor de voz de salida activo. Ver [`TtsEngineSetting`].
+    #[serde(default)]
+    pub tts_engine: TtsEngineSetting,
+    /// Voz elegida dentro del motor activo — id opaco (`"F5"`, `"M2"`, etc.
+    /// para Supertonic, ver `tts::VoiceId`). Default de fábrica: F5
+    /// (`tts::supertonic::DEFAULT_VOICE`).
+    #[serde(default = "default_tts_voice")]
+    pub tts_voice: String,
 }
 
 fn default_model() -> String {
@@ -804,6 +823,10 @@ fn default_notes_secrets() -> SecretMap {
     SecretMap(HashMap::new())
 }
 
+fn default_tts_voice() -> String {
+    crate::tts::supertonic::DEFAULT_VOICE.to_string()
+}
+
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
     for provider in default_post_process_providers() {
@@ -1000,6 +1023,8 @@ pub fn get_default_settings() -> AppSettings {
         notes_notion_parent: String::new(),
         notes_secrets: default_notes_secrets(),
         notes_pending: Vec::new(),
+        tts_engine: TtsEngineSetting::default(),
+        tts_voice: default_tts_voice(),
     }
 }
 
@@ -1643,6 +1668,38 @@ mod tests {
         let json = serde_json::to_value(&s).unwrap();
         let back: AppSettings = serde_json::from_value(json).unwrap();
         assert_eq!(back.notes_apple_folder, "Dilo");
+    }
+
+    #[test]
+    fn tts_settings_default_and_roundtrip() {
+        let s = get_default_settings();
+        assert_eq!(s.tts_engine, TtsEngineSetting::Supertonic);
+        assert_eq!(s.tts_voice, "F5");
+
+        let json = serde_json::to_value(&s).unwrap();
+        let back: AppSettings = serde_json::from_value(json).unwrap();
+        assert_eq!(back.tts_voice, "F5");
+        assert_eq!(back.tts_engine, TtsEngineSetting::Supertonic);
+    }
+
+    #[test]
+    fn tts_settings_missing_from_a_stored_object_fall_back_to_defaults() {
+        // A store saved before this feature existed simply lacks these keys —
+        // the struct-level `#[serde(default)]` must fill them in without
+        // touching `apply_settings_migrations` (no one-time migration needed,
+        // unlike the schema-version / onboarding cases above).
+        let mut stored = default_settings_json();
+        stored
+            .as_object_mut()
+            .unwrap()
+            .remove("tts_engine")
+            .expect("fixture should have the key to remove");
+        stored.as_object_mut().unwrap().remove("tts_voice");
+
+        let settings: AppSettings = serde_json::from_value(stored)
+            .expect("missing tts_* keys must not fail the whole parse");
+        assert_eq!(settings.tts_engine, TtsEngineSetting::Supertonic);
+        assert_eq!(settings.tts_voice, "F5");
     }
 
     #[test]

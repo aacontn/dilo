@@ -228,6 +228,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+    // Voz de salida: estado del motor TTS, cargado perezosamente en el
+    // primer `tts_speak` (ver `tts::TtsState`).
+    app_handle.manage(tts::TtsState::default());
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -700,6 +703,11 @@ pub fn run(cli_args: CliArgs) {
             notes::change_notes_notion_parent,
             notes::change_notes_notion_token,
             helpers::clamshell::is_laptop,
+            commands::tts::tts_list_voices,
+            commands::tts::tts_weights_status,
+            commands::tts::tts_download_weights,
+            commands::tts::tts_set_voice,
+            commands::tts::tts_speak,
         ])
         .events(collect_events![
             managers::history::HistoryUpdatePayload,

@@ -44,6 +44,19 @@ pub mod streaming;
 pub mod supertonic;
 
 use std::fmt;
+use std::sync::{Arc, Mutex};
+
+/// Estado de Tauri para el motor TTS activo.
+///
+/// Cargado perezosamente en el primer `tts_speak` (ver
+/// `commands/tts.rs`) — evita pagar los ~0,6 s de carga de las 4 sesiones
+/// ONNX al arrancar la app si el dueño nunca usa la voz de salida. Una vez
+/// cargado queda cacheado detrás del `Mutex` para toda la vida de la app:
+/// cambiar de voz no recarga nada (ver `supertonic::SupertonicEngine`).
+#[derive(Default)]
+pub struct TtsState {
+    pub engine: Mutex<Option<Arc<supertonic::SupertonicEngine>>>,
+}
 
 /// Identificador opaco de una voz. Para el motor local (`supertonic.rs`) es
 /// `"F5"`, `"M1"`, etc. Para un proveedor de nube (fase 1b) será el id que

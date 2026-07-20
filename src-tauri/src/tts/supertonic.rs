@@ -692,6 +692,21 @@ fn voice_gender(id: &str) -> VoiceGender {
     }
 }
 
+/// El mismo catálogo que [`TtsEngine::voices`] devuelve, pero sin necesitar
+/// una instancia cargada del motor (las 4 sesiones ONNX, ~408 MB). Los
+/// metadatos de voz son estáticos — no dependen de los pesos en disco — así
+/// que la UI puede mostrar el selector de voces antes de sintetizar nada.
+pub fn voice_catalog() -> Vec<VoiceInfo> {
+    VOICE_IDS
+        .iter()
+        .map(|id| VoiceInfo {
+            id: VoiceId::new(*id),
+            name: format!("Voz {id}"),
+            gender: voice_gender(id),
+        })
+        .collect()
+}
+
 impl TtsEngine for SupertonicEngine {
     fn speak_streaming(
         &self,
@@ -716,14 +731,7 @@ impl TtsEngine for SupertonicEngine {
     }
 
     fn voices(&self) -> Vec<VoiceInfo> {
-        VOICE_IDS
-            .iter()
-            .map(|id| VoiceInfo {
-                id: VoiceId::new(*id),
-                name: format!("Voz {id}"),
-                gender: voice_gender(id),
-            })
-            .collect()
+        voice_catalog()
     }
 }
 
@@ -745,6 +753,24 @@ mod tests {
     fn voice_gender_matches_id_prefix() {
         assert_eq!(voice_gender("F3"), VoiceGender::Female);
         assert_eq!(voice_gender("M1"), VoiceGender::Male);
+    }
+
+    #[test]
+    fn voice_catalog_lists_all_ten_without_loading_the_engine() {
+        // No SupertonicEngine se construye en este test — justo el punto:
+        // la UI puede pedir la lista de voces sin pagar la carga de las 4
+        // sesiones ONNX.
+        let catalog = voice_catalog();
+        assert_eq!(catalog.len(), 10);
+        assert!(catalog.iter().any(|v| v.id == VoiceId::new("F5")));
+        assert_eq!(
+            catalog
+                .iter()
+                .find(|v| v.id == VoiceId::new("M2"))
+                .unwrap()
+                .gender,
+            VoiceGender::Male
+        );
     }
 
     #[test]
