@@ -48,15 +48,26 @@ pub fn split_segments(text: &str) -> Vec<String> {
 
     let mut atoms = Vec::new();
     let mut current = String::new();
-    for ch in text.chars() {
+    let chars: Vec<char> = text.chars().collect();
+    for (i, &ch) in chars.iter().enumerate() {
         current.push(ch);
-        if matches!(ch, '.' | ',' | ';' | ':' | '!' | '?') {
-            let trimmed = current.trim().to_string();
-            if !trimmed.is_empty() {
-                atoms.push(trimmed);
-            }
-            current.clear();
+        if !matches!(ch, '.' | ',' | ';' | ':' | '!' | '?') {
+            continue;
         }
+        // No cortar puntuación que está DENTRO de un número: en español la
+        // coma es separador decimal ("3,5") y el punto separador de miles
+        // ("2.500"); ':' aparece en horas ("14:30"). Cortar ahí parte el
+        // número en dos segmentos y se oye una pausa en medio de la cifra.
+        let previous_is_digit = chars[..i].last().is_some_and(char::is_ascii_digit);
+        let next_is_digit = chars.get(i + 1).is_some_and(char::is_ascii_digit);
+        if previous_is_digit && next_is_digit {
+            continue;
+        }
+        let trimmed = current.trim().to_string();
+        if !trimmed.is_empty() {
+            atoms.push(trimmed);
+        }
+        current.clear();
     }
     let rest = current.trim().to_string();
     if !rest.is_empty() {
@@ -160,6 +171,29 @@ mod tests {
     fn text_without_any_punctuation_stays_a_single_segment() {
         let segments = split_segments("Hola Alfonso como estas hoy");
         assert_eq!(segments, vec!["Hola Alfonso como estas hoy".to_string()]);
+    }
+
+    #[test]
+    fn numbers_are_never_split_in_the_middle() {
+        // La coma decimal y el punto de miles son de uso corriente en es-CL:
+        // cortar ahí mete una pausa audible dentro de la cifra.
+        assert_eq!(
+            split_segments("Son 3,5 horas."),
+            vec!["Son 3,5 horas.".to_string()]
+        );
+        assert_eq!(
+            split_segments("Quedan 2.500 pesos."),
+            vec!["Quedan 2.500 pesos.".to_string()]
+        );
+        assert_eq!(
+            split_segments("La reunión es a las 14:30."),
+            vec!["La reunión es a las 14:30.".to_string()]
+        );
+        // Pero la puntuación normal sigue cortando aunque haya números cerca.
+        assert_eq!(
+            split_segments("Tienes 3 trabajos, revísalos."),
+            vec!["Tienes 3 trabajos,".to_string(), "revísalos.".to_string()]
+        );
     }
 
     #[test]
