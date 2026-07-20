@@ -824,7 +824,9 @@
     "assistantFailedTitle": "Voice Assistant Failed",
     "assistantFailed": "Couldn't get a reply from the LLM. Check your connection and try again.",
     "assistantTtsFailedTitle": "Couldn't Speak the Reply",
-    "assistantTtsFailed": "The reply was ready, but the voice couldn't play it."
+    "assistantTtsFailed": "The reply was ready, but the voice couldn't play it.",
+    "assistantDisabledTitle": "Voice assistant is off",
+    "assistantDisabled": "Turn it on in Settings → Voice to use this shortcut."
   },
   "appLanguage": {
     "title": "Application Language",

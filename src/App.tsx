@@ -187,7 +187,11 @@ function App() {
   useEffect(() => {
     const unlisten = listen<AssistantErrorEvent>("assistant-error", (event) => {
       const { error_type, detail } = event.payload;
-      if (error_type === "not_configured") {
+      if (error_type === "disabled") {
+        toast.error(t("errors.assistantDisabledTitle"), {
+          description: t("errors.assistantDisabled"),
+        });
+      } else if (error_type === "not_configured") {
         toast.error(t("errors.assistantNotConfiguredTitle"), {
           description: t("errors.assistantNotConfigured"),
         });

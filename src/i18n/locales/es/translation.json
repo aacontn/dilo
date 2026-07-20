@@ -821,7 +821,9 @@
     "assistantFailedTitle": "Falló el asistente de voz",
     "assistantFailed": "No se pudo obtener respuesta del LLM. Revisa tu conexión y reintenta.",
     "assistantTtsFailedTitle": "No se pudo decir la respuesta",
-    "assistantTtsFailed": "La respuesta quedó lista, pero la voz no pudo reproducirla."
+    "assistantTtsFailed": "La respuesta quedó lista, pero la voz no pudo reproducirla.",
+    "assistantDisabledTitle": "Modo asistente apagado",
+    "assistantDisabled": "Actívalo en Ajustes → Voz para usar este atajo."
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",

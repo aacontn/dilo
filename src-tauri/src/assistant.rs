@@ -47,6 +47,10 @@ pub enum AssistantError {
     /// No hay proveedor/modelo de post-proceso configurado (o Apple
     /// Intelligence no está disponible en este equipo).
     NotConfigured,
+    /// El atajo está asignado pero el modo asistente está apagado en
+    /// Ajustes > Voz. Quedarse en silencio acá confunde: si el dueño apretó
+    /// la tecla, quiere una respuesta o una explicación, no nada.
+    Disabled,
     /// El LLM falló o devolvió una respuesta vacía.
     Llm(String),
     /// La síntesis de voz falló (motor, dispositivo de audio, pesos no
@@ -58,6 +62,7 @@ impl AssistantError {
     fn error_type(&self) -> &'static str {
         match self {
             AssistantError::Blank => "blank",
+            AssistantError::Disabled => "disabled",
             AssistantError::NotConfigured => "not_configured",
             AssistantError::Llm(_) => "llm_failed",
             AssistantError::Tts(_) => "tts_failed",
@@ -66,7 +71,9 @@ impl AssistantError {
 
     fn detail(&self) -> Option<String> {
         match self {
-            AssistantError::Blank | AssistantError::NotConfigured => None,
+            AssistantError::Blank | AssistantError::NotConfigured | AssistantError::Disabled => {
+                None
+            }
             AssistantError::Llm(msg) | AssistantError::Tts(msg) => Some(msg.clone()),
         }
     }
@@ -76,6 +83,9 @@ impl std::fmt::Display for AssistantError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AssistantError::Blank => write!(f, "transcripción vacía"),
+            AssistantError::Disabled => {
+                write!(f, "modo asistente apagado en ajustes")
+            }
             AssistantError::NotConfigured => {
                 write!(f, "sin proveedor/modelo de LLM configurado")
             }
@@ -236,6 +246,12 @@ struct AssistantErrorEvent {
 /// Notifica el error al frontend (toast) — salvo `Blank`, que no es una
 /// falla real y se maneja en silencio (mismo criterio que
 /// `is_blank_transcription` en el post-proceso normal).
+/// Avisa que el atajo del asistente se apretó con el modo apagado. Lo llama
+/// el guard de `actions.rs` para que la tecla no se sienta rota.
+pub fn notify_disabled(app: &AppHandle) {
+    emit_assistant_error(app, &AssistantError::Disabled);
+}
+
 fn emit_assistant_error(app: &AppHandle, err: &AssistantError) {
     if matches!(err, AssistantError::Blank) {
         debug!("Modo asistente: transcripción vacía, no se llama al LLM");

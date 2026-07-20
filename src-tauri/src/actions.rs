@@ -526,6 +526,9 @@ impl ShortcutAction for TranscribeAction {
                 "Modo asistente hablado desactivado en ajustes; ignorando atajo '{}'",
                 binding_id
             );
+            // Avisar en vez de quedarse mudo: si el dueño apretó la tecla,
+            // quiere una respuesta o una explicación de por qué no la hubo.
+            crate::assistant::notify_disabled(app);
             return;
         }
 
