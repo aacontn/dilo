@@ -307,6 +307,10 @@
           "quick_note": {
             "name": "Quick Note Shortcut",
             "description": "Dictate and save as a note, without pasting into the active app."
+          },
+          "voice_assistant": {
+            "name": "Voice Assistant Shortcut",
+            "description": "Sends the transcription to the configured LLM and reads the reply aloud instead of pasting."
           }
         },
         "errors": {
@@ -758,7 +762,14 @@
       "selectorPlaceholder": "Choose a voice",
       "test": "Play a sample",
       "testing": "Playing…",
-      "testError": "Couldn't play the sample. Check the audio output device."
+      "testError": "Couldn't play the sample. Check the audio output device.",
+      "assistantMode": {
+        "title": "Voice Assistant Mode",
+        "description": "Assign a shortcut, and instead of pasting your dictation, Dilo sends it to the configured LLM (Post-Processing) and reads the reply aloud.",
+        "toggleLabel": "Enable voice assistant mode",
+        "toggleDescription": "Requires an LLM provider and model set up in Post-Processing.",
+        "shortcutHint": "Press to record a question; releasing sends it to the LLM and speaks the reply."
+      }
     }
   },
   "footer": {
@@ -807,7 +818,13 @@
     "pasteFailedTitle": "Failed to Paste Text",
     "pasteFailed": "Text could not be pasted into the active application.",
     "transcriptionFailedTitle": "Transcription Failed",
-    "noteSaveFailed": "Couldn't save the note: {{error}}"
+    "noteSaveFailed": "Couldn't save the note: {{error}}",
+    "assistantNotConfiguredTitle": "Voice Assistant Not Configured",
+    "assistantNotConfigured": "Set up an LLM provider and model in Post-Processing to use the voice assistant.",
+    "assistantFailedTitle": "Voice Assistant Failed",
+    "assistantFailed": "Couldn't get a reply from the LLM. Check your connection and try again.",
+    "assistantTtsFailedTitle": "Couldn't Speak the Reply",
+    "assistantTtsFailed": "The reply was ready, but the voice couldn't play it."
   },
   "appLanguage": {
     "title": "Application Language",
@@ -825,6 +842,7 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
+    "speaking": "Speaking...",
     "noteSaved": "Note saved"
   }
 }

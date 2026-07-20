@@ -1128,7 +1128,15 @@ tts_engine?: TtsEngineSetting;
  * para Supertonic, ver `tts::VoiceId`). Default de fábrica: F5
  * (`tts::supertonic::DEFAULT_VOICE`).
  */
-tts_voice?: string }
+tts_voice?: string;
+/**
+ * Modo asistente hablado: el atajo dedicado (binding `voice_assistant`)
+ * manda la transcripción al LLM de post-proceso configurado y dice la
+ * respuesta en voz alta en vez de pegarla (ver `assistant.rs`). Apagado
+ * por defecto — activarlo es explícito, aunque el atajo ya viene sin
+ * tecla asignada (igual que `quick_note`).
+ */
+voice_assistant_enabled?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

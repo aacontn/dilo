@@ -4,9 +4,10 @@ import { toast } from "sonner";
 import { PlayIcon } from "lucide-react";
 import { commands, type TtsVoiceInfo, type TtsWeightsStatus } from "@/bindings";
 import { PageHeader } from "../ui/PageHeader";
-import { SettingContainer, SettingsGroup } from "../ui";
+import { SettingContainer, SettingsGroup, ToggleSwitch } from "../ui";
 import { Dropdown, type DropdownOption } from "../ui/Dropdown";
 import { Button } from "../ui/Button";
+import { ShortcutInput } from "./ShortcutInput";
 import { useSettings } from "../../hooks/useSettings";
 
 /** Frase de prueba corta con puntuación variada — ejercita la segmentación
@@ -168,6 +169,29 @@ export const VoiceSettings: React.FC = () => {
             </Button>
           </div>
         </SettingContainer>
+      </SettingsGroup>
+
+      <SettingsGroup
+        title={t("settings.voice.assistantMode.title")}
+        description={t("settings.voice.assistantMode.description")}
+      >
+        <ToggleSwitch
+          checked={settings?.voice_assistant_enabled ?? false}
+          onChange={(enabled) =>
+            updateSetting("voice_assistant_enabled", enabled)
+          }
+          isUpdating={isUpdating("voice_assistant_enabled")}
+          label={t("settings.voice.assistantMode.toggleLabel")}
+          description={t("settings.voice.assistantMode.toggleDescription")}
+          descriptionMode="tooltip"
+          grouped
+        />
+        <ShortcutInput
+          shortcutId="voice_assistant"
+          descriptionMode="tooltip"
+          grouped
+          disabled={!(settings?.voice_assistant_enabled ?? false)}
+        />
       </SettingsGroup>
     </div>
   );

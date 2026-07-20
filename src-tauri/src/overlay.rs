@@ -590,6 +590,14 @@ pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
 }
 
+/// Shows the "speaking" overlay window — modo asistente hablado
+/// (`assistant.rs`) reproduciendo la respuesta del LLM en voz alta. Misma
+/// píldora compacta que "processing"/"transcribing", solo cambia la
+/// etiqueta (ver `RecordingOverlay.tsx`).
+pub fn show_speaking_overlay(app_handle: &AppHandle) {
+    show_overlay_state(app_handle, "speaking");
+}
+
 /// Shows the brief "note saved" success overlay. Same lazily-created,
 /// never-destroyed window as every other state (see the lifecycle note by
 /// `OVERLAY_GENERATION`). Devuelve la generación reclamada por este show: el

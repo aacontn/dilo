@@ -7,7 +7,11 @@ import {
   checkAccessibilityPermission,
   checkMicrophonePermission,
 } from "tauri-plugin-macos-permissions-api";
-import { ModelStateEvent, RecordingErrorEvent } from "./lib/types/events";
+import {
+  AssistantErrorEvent,
+  ModelStateEvent,
+  RecordingErrorEvent,
+} from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
@@ -171,6 +175,31 @@ function App() {
   useEffect(() => {
     const unlisten = listen<string>("note-error", (event) => {
       toast.error(t("errors.noteSaveFailed", { error: event.payload }));
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t]);
+
+  // Listen for voice assistant mode failures and show a toast (assistant.rs,
+  // `emit_assistant_error`) — "blank" transcriptions are handled in silence on
+  // the Rust side and never reach this event.
+  useEffect(() => {
+    const unlisten = listen<AssistantErrorEvent>("assistant-error", (event) => {
+      const { error_type, detail } = event.payload;
+      if (error_type === "not_configured") {
+        toast.error(t("errors.assistantNotConfiguredTitle"), {
+          description: t("errors.assistantNotConfigured"),
+        });
+      } else if (error_type === "tts_failed") {
+        toast.error(t("errors.assistantTtsFailedTitle"), {
+          description: detail ?? t("errors.assistantTtsFailed"),
+        });
+      } else {
+        toast.error(t("errors.assistantFailedTitle"), {
+          description: detail ?? t("errors.assistantFailed"),
+        });
+      }
     });
     return () => {
       unlisten.then((fn) => fn());

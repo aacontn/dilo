@@ -70,12 +70,15 @@ pub trait ShortcutAction: Send + Sync {
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
 }
 
-/// A dónde va el texto final de un dictado: pegarlo en la app activa (default)
-/// o capturarlo como nota rápida vía `notes::capture_note`.
+/// A dónde va el texto final de un dictado: pegarlo en la app activa (default),
+/// capturarlo como nota rápida vía `notes::capture_note`, o mandarlo al modo
+/// asistente hablado (`assistant::respond_and_speak`) en vez de cualquiera de
+/// los dos.
 #[derive(Clone, Copy, PartialEq)]
 enum OutputDestination {
     Paste,
     Note,
+    Speak,
 }
 
 // Transcribe Action
@@ -514,6 +517,18 @@ impl ShortcutAction for TranscribeAction {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
 
+        // Modo asistente hablado: se activa explícitamente en Ajustes > Voz.
+        // El atajo puede estar asignado sin que el toggle esté prendido (por
+        // ejemplo si el dueño lo apagó pero dejó la tecla puesta) — en ese
+        // caso el atajo no hace nada, en vez de hablar sin haberlo pedido.
+        if self.output == OutputDestination::Speak && !get_settings(app).voice_assistant_enabled {
+            debug!(
+                "Modo asistente hablado desactivado en ajustes; ignorando atajo '{}'",
+                binding_id
+            );
+            return;
+        }
+
         // Cada dictado fija (o limpia) el override de modo de esta captura.
         if let Ok(mut override_slot) = MODE_PROMPT_OVERRIDE.lock() {
             *override_slot = mode_prompt_id(binding_id).map(str::to_string);
@@ -798,6 +813,24 @@ impl ShortcutAction for TranscribeAction {
                                 transcription
                             );
 
+                            // Modo asistente hablado: reemplaza por completo el
+                            // camino de limpieza+pegado de abajo. Pipeline propio
+                            // en `assistant.rs` (LLM conversacional + TTS), no el
+                            // de post-proceso de dictado.
+                            if output == OutputDestination::Speak {
+                                crate::assistant::respond_and_speak(
+                                    &ah,
+                                    &tm,
+                                    &hm,
+                                    &transcription,
+                                    use_streaming_overlay,
+                                    wav_saved,
+                                    file_name,
+                                )
+                                .await;
+                                return;
+                            }
+
                             if post_process {
                                 if use_streaming_overlay {
                                     tm.emit_stream_working(StreamWorkKind::Polishing);
@@ -1010,6 +1043,16 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
+        "voice_assistant".to_string(),
+        Arc::new(TranscribeAction {
+            // El pipeline de assistant.rs reemplaza la limpieza de
+            // post-proceso por su propio prompt conversacional; ver el branch
+            // `output == OutputDestination::Speak` en `TranscribeAction::stop`.
+            post_process: false,
+            output: OutputDestination::Speak,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
         "cancel".to_string(),
         Arc::new(CancelAction) as Arc<dyn ShortcutAction>,
     );
@@ -1043,6 +1086,14 @@ mod tests {
             "quick_note"
         ));
         assert!(super::resolve_action("quick_note").is_some());
+    }
+
+    #[test]
+    fn voice_assistant_is_a_transcribe_binding_and_resolves() {
+        assert!(crate::transcription_coordinator::is_transcribe_binding(
+            "voice_assistant"
+        ));
+        assert!(super::resolve_action("voice_assistant").is_some());
     }
 
     #[test]

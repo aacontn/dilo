@@ -520,6 +520,13 @@ pub struct AppSettings {
     /// (`tts::supertonic::DEFAULT_VOICE`).
     #[serde(default = "default_tts_voice")]
     pub tts_voice: String,
+    /// Modo asistente hablado: el atajo dedicado (binding `voice_assistant`)
+    /// manda la transcripción al LLM de post-proceso configurado y dice la
+    /// respuesta en voz alta en vez de pegarla (ver `assistant.rs`). Apagado
+    /// por defecto — activarlo es explícito, aunque el atajo ya viene sin
+    /// tecla asignada (igual que `quick_note`).
+    #[serde(default)]
+    pub voice_assistant_enabled: bool,
 }
 
 fn default_model() -> String {
@@ -957,6 +964,16 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: String::new(),
         },
     );
+    bindings.insert(
+        "voice_assistant".to_string(),
+        ShortcutBinding {
+            id: "voice_assistant".to_string(),
+            name: "Voice Assistant".to_string(),
+            description: "Sends the transcription to the configured LLM and reads the reply aloud instead of pasting.".to_string(),
+            default_binding: String::new(),
+            current_binding: String::new(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -1025,6 +1042,7 @@ pub fn get_default_settings() -> AppSettings {
         notes_pending: Vec::new(),
         tts_engine: TtsEngineSetting::default(),
         tts_voice: default_tts_voice(),
+        voice_assistant_enabled: false,
     }
 }
 
@@ -1700,6 +1718,34 @@ mod tests {
             .expect("missing tts_* keys must not fail the whole parse");
         assert_eq!(settings.tts_engine, TtsEngineSetting::Supertonic);
         assert_eq!(settings.tts_voice, "F5");
+    }
+
+    #[test]
+    fn voice_assistant_defaults_off_with_empty_shortcut() {
+        let s = get_default_settings();
+        assert!(!s.voice_assistant_enabled);
+        assert_eq!(s.bindings["voice_assistant"].current_binding, "");
+
+        let json = serde_json::to_value(&s).unwrap();
+        let back: AppSettings = serde_json::from_value(json).unwrap();
+        assert!(!back.voice_assistant_enabled);
+    }
+
+    #[test]
+    fn voice_assistant_enabled_missing_from_a_stored_object_falls_back_to_default() {
+        // Igual que con tts_engine/tts_voice: un store guardado antes de que
+        // este campo existiera simplemente no lo trae — el `#[serde(default)]`
+        // a nivel de struct debe llenarlo sin fallar el parse completo.
+        let mut stored = default_settings_json();
+        stored
+            .as_object_mut()
+            .unwrap()
+            .remove("voice_assistant_enabled")
+            .expect("fixture should have the key to remove");
+
+        let settings: AppSettings = serde_json::from_value(stored)
+            .expect("missing voice_assistant_enabled must not fail the whole parse");
+        assert!(!settings.voice_assistant_enabled);
     }
 
     #[test]

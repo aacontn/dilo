@@ -325,6 +325,10 @@
           "quick_note": {
             "name": "Atajo de nota rápida",
             "description": "Dicta y guarda como nota, sin pegar en la app activa."
+          },
+          "voice_assistant": {
+            "name": "Atajo del asistente de voz",
+            "description": "Manda la transcripción al LLM configurado y dice la respuesta en voz alta, en vez de pegarla."
           }
         },
         "errors": {
@@ -758,7 +762,14 @@
       "selectorPlaceholder": "Elige una voz",
       "test": "Escuchar un ejemplo",
       "testing": "Sonando…",
-      "testError": "No se pudo reproducir el ejemplo. Revisa el dispositivo de salida de audio."
+      "testError": "No se pudo reproducir el ejemplo. Revisa el dispositivo de salida de audio.",
+      "assistantMode": {
+        "title": "Modo asistente hablado",
+        "description": "Asigna un atajo y, en vez de pegar tu dictado, Dilo lo manda al LLM configurado (Post-proceso) y dice la respuesta en voz alta.",
+        "toggleLabel": "Activar el modo asistente hablado",
+        "toggleDescription": "Necesita un proveedor y un modelo de LLM configurados en Post-proceso.",
+        "shortcutHint": "Mantén presionado para grabar una pregunta; al soltar se manda al LLM y se escucha la respuesta."
+      }
     }
   },
   "footer": {
@@ -804,7 +815,13 @@
     "pasteFailedTitle": "No se pudo pegar",
     "pasteFailed": "No se pudo pegar el texto en la app activa.",
     "transcriptionFailedTitle": "Error de transcripción",
-    "noteSaveFailed": "No pude guardar la nota: {{error}}"
+    "noteSaveFailed": "No pude guardar la nota: {{error}}",
+    "assistantNotConfiguredTitle": "Asistente de voz sin configurar",
+    "assistantNotConfigured": "Configura un proveedor y un modelo de LLM en Post-proceso para usar el asistente de voz.",
+    "assistantFailedTitle": "Falló el asistente de voz",
+    "assistantFailed": "No se pudo obtener respuesta del LLM. Revisa tu conexión y reintenta.",
+    "assistantTtsFailedTitle": "No se pudo decir la respuesta",
+    "assistantTtsFailed": "La respuesta quedó lista, pero la voz no pudo reproducirla."
   },
   "appLanguage": {
     "title": "Idioma de la aplicación",
@@ -822,6 +839,7 @@
   "overlay": {
     "transcribing": "Transcribiendo...",
     "processing": "Procesando...",
+    "speaking": "Hablando...",
     "noteSaved": "Nota guardada"
   },
   "whatsNew": {

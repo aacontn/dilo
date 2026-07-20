@@ -134,6 +134,7 @@ pub fn is_transcribe_binding(id: &str) -> bool {
     id == "transcribe"
         || id == "transcribe_with_post_process"
         || id == "quick_note"
+        || id == "voice_assistant"
         || crate::actions::mode_prompt_id(id).is_some()
 }
 
@@ -385,6 +386,14 @@ mod tests {
             },
             now,
         )
+    }
+
+    #[test]
+    fn voice_assistant_is_a_transcribe_binding() {
+        // El modo asistente hablado también arranca/detiene una grabación
+        // (ver `actions.rs`), así que necesita la misma coordinación de
+        // push-to-talk/manos-libres que "transcribe" y "quick_note".
+        assert!(is_transcribe_binding("voice_assistant"));
     }
 
     #[test]
