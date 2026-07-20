@@ -20,6 +20,7 @@ mod signal_handle;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
+pub mod tts;
 mod utils;
 
 pub use cli::CliArgs;

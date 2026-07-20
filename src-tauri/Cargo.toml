@@ -86,6 +86,15 @@ hf-hub = { git = "https://github.com/cjpais/hf-hub", branch = "cancellable-downl
   "tokio",
 ] }
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+# TTS local (src/tts/) — motor Supertonic 3, ONNX vía `ort`. Versión pineada
+# igual que `transcribe-rs` (ver su Cargo.toml) para que Cargo unifique una
+# sola instancia de `ort`/`ndarray` en el build en vez de compilar el
+# runtime de ONNX dos veces.
+ort = "=2.0.0-rc.12"
+ndarray = "0.17"
+rand = "0.8"
+rand_distr = "0.4"
+unicode-normalization = "0.1"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
