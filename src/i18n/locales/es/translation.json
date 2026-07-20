@@ -757,6 +757,7 @@
       "selectorHint": "Elige con cuál de las 10 voces de Supertonic habla Dilo.",
       "selectorPlaceholder": "Elige una voz",
       "test": "Escuchar un ejemplo",
+      "testing": "Sonando…",
       "testError": "No se pudo reproducir el ejemplo. Revisa el dispositivo de salida de audio."
     }
   },

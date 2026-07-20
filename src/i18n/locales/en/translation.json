@@ -757,6 +757,7 @@
       "selectorHint": "Choose which of the 10 Supertonic voices Dilo uses to speak.",
       "selectorPlaceholder": "Choose a voice",
       "test": "Play a sample",
+      "testing": "Playing…",
       "testError": "Couldn't play the sample. Check the audio output device."
     }
   },

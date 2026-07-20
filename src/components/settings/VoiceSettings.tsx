@@ -155,13 +155,16 @@ export const VoiceSettings: React.FC = () => {
               placeholder={t("settings.voice.selectorPlaceholder")}
             />
             <Button
-              variant="ghost"
-              size="sm"
+              variant="secondary"
+              size="md"
               onClick={handleTest}
               disabled={!voicesReady || isTesting}
               title={t("settings.voice.test")}
             >
-              <PlayIcon className="h-4 w-4" />
+              <PlayIcon className="mr-1.5 h-4 w-4" />
+              {isTesting
+                ? t("settings.voice.testing")
+                : t("settings.voice.test")}
             </Button>
           </div>
         </SettingContainer>
