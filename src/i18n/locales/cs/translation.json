@@ -17,7 +17,8 @@
     "history": "Historie",
     "debug": "Ladění",
     "about": "O aplikaci",
-    "notes": "Poznámky"
+    "notes": "Poznámky",
+    "voice": "Hlas"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Zkratka rychlé poznámky",
             "description": "Diktujte a uložte jako poznámku, bez vkládání do aktivní aplikace."
+          },
+          "voice_assistant": {
+            "name": "Zkratka hlasového asistenta",
+            "description": "Odešle přepis nakonfigurovanému LLM a odpověď přečte nahlas, místo aby ji vložil."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Zkusit znovu",
       "retryError": "Některé poznámky stále čekají. Zkuste to později.",
       "notionTokenSaveError": "Token Notion se nepodařilo uložit. Zkuste to znovu."
+    },
+    "voice": {
+      "title": "Hlas",
+      "description": "Dilo umí odpovídat hlasem pomocí lokálního hlasového modelu (Supertonic).",
+      "female": "Ženský",
+      "male": "Mužský",
+      "setupTitle": "Instalace",
+      "downloadTitle": "Stáhnout hlasy",
+      "downloadHint": "Stáhne hlasový model Supertonic (~411 MB) z Hugging Face. Před stažením se zobrazí licence (OpenRAIL-M) k odsouhlasení.",
+      "download": "Stáhnout hlasy",
+      "downloading": "Stahování…",
+      "downloadError": "Hlasový model se nepodařilo stáhnout. Zkontrolujte připojení a zkuste to znovu.",
+      "selectorTitle": "Hlas",
+      "selectorHint": "Vyberte, kterým z 10 hlasů Supertonic bude Dilo mluvit.",
+      "selectorPlaceholder": "Vyberte hlas",
+      "test": "Přehrát ukázku",
+      "testing": "Přehrávání…",
+      "testError": "Ukázku se nepodařilo přehrát. Zkontrolujte výstupní zvukové zařízení.",
+      "assistantMode": {
+        "title": "Režim hlasového asistenta",
+        "description": "Přiřaďte zkratku: místo vložení diktátu jej Dilo odešle nakonfigurovanému LLM (Následné zpracování) a odpověď přečte nahlas.",
+        "toggleLabel": "Zapnout režim hlasového asistenta",
+        "toggleDescription": "Vyžaduje poskytovatele LLM a model nastavené v Následném zpracování.",
+        "shortcutHint": "Stiskněte pro nahrání otázky; po uvolnění se odešle LLM a odpověď se přečte nahlas."
+      },
+      "license": {
+        "title": "Licence hlasového modelu",
+        "intro": "Váhy Supertonic používají licenci OpenRAIL-M, která obsahuje omezení použití (například nevydávat se za osobu bez jejího souhlasu). Před přijetím si ji přečtěte — toto je přesná kopie z právě stahované revize.",
+        "loading": "Načítání licence z Hugging Face…",
+        "fetchError": "Text licence se nepodařilo načíst. Zkontrolujte připojení, nebo si ji přečtěte v prohlížeči.",
+        "retry": "Zkusit znovu",
+        "openInBrowser": "Přečíst v prohlížeči",
+        "accept": "Přijímám licenci — stáhnout",
+        "cancel": "Zrušit"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Vložení textu se nezdařilo",
     "pasteFailed": "Text nebylo možné vložit do aktivní aplikace.",
     "transcriptionFailedTitle": "Přepis selhal",
-    "noteSaveFailed": "Poznámku se nepodařilo uložit: {{error}}"
+    "noteSaveFailed": "Poznámku se nepodařilo uložit: {{error}}",
+    "assistantNotConfiguredTitle": "Hlasový asistent není nakonfigurován",
+    "assistantNotConfigured": "Pro použití hlasového asistenta nastavte poskytovatele LLM a model v Následném zpracování.",
+    "assistantFailedTitle": "Hlasový asistent selhal",
+    "assistantFailed": "Od LLM se nepodařilo získat odpověď. Zkontrolujte připojení a zkuste to znovu.",
+    "assistantTtsFailedTitle": "Odpověď se nepodařilo přečíst nahlas",
+    "assistantTtsFailed": "Odpověď byla připravena, ale hlas ji nedokázal přehrát.",
+    "assistantDisabledTitle": "Hlasový asistent je vypnutý",
+    "assistantDisabled": "Zapněte ho v Nastavení → Hlas, abyste mohli používat tuto zkratku."
   },
   "appLanguage": {
     "title": "Jazyk aplikace",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
+    "speaking": "Mluvím...",
     "noteSaved": "Poznámka uložena"
   },
   "whatsNew": {

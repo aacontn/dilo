@@ -17,7 +17,8 @@
     "history": "Historik",
     "debug": "Felsökning",
     "about": "Om",
-    "notes": "Anteckningar"
+    "notes": "Anteckningar",
+    "voice": "Röst"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "Kortkommando för snabbanteckning",
             "description": "Diktera och spara som anteckning, utan att klistra in i den aktiva appen."
+          },
+          "voice_assistant": {
+            "name": "Kortkommando för röstassistent",
+            "description": "Skickar transkriptionen till den konfigurerade LLM:en och läser upp svaret högt i stället för att klistra in."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Försök igen nu",
       "retryError": "Några anteckningar väntar fortfarande. Försök igen senare.",
       "notionTokenSaveError": "Kunde inte spara Notion-token. Försök igen."
+    },
+    "voice": {
+      "title": "Röst",
+      "description": "Dilo kan svara med tal via en lokal röstmodell (Supertonic).",
+      "female": "Kvinnlig",
+      "male": "Manlig",
+      "setupTitle": "Installation",
+      "downloadTitle": "Ladda ner röster",
+      "downloadHint": "Laddar ner Supertonic-röstmodellen (~411 MB) från Hugging Face. Innan nedladdningen visas licensen (OpenRAIL-M) som du behöver acceptera.",
+      "download": "Ladda ner röster",
+      "downloading": "Laddar ner…",
+      "downloadError": "Det gick inte att ladda ner röstmodellen. Kontrollera din anslutning och försök igen.",
+      "selectorTitle": "Röst",
+      "selectorHint": "Välj vilken av de 10 Supertonic-rösterna Dilo använder för att tala.",
+      "selectorPlaceholder": "Välj en röst",
+      "test": "Spela upp ett exempel",
+      "testing": "Spelar upp…",
+      "testError": "Det gick inte att spela upp exemplet. Kontrollera ljudutgångsenheten.",
+      "assistantMode": {
+        "title": "Röstassistentläge",
+        "description": "Tilldela ett kortkommando: i stället för att klistra in din diktering skickar Dilo den till den konfigurerade LLM:en (Efterbearbetning) och läser upp svaret högt.",
+        "toggleLabel": "Aktivera röstassistentläge",
+        "toggleDescription": "Kräver en LLM-leverantör och modell konfigurerade i Efterbearbetning.",
+        "shortcutHint": "Tryck för att spela in en fråga; när du släpper skickas den till LLM:en och svaret läses upp."
+      },
+      "license": {
+        "title": "Röstmodellens licens",
+        "intro": "Supertonic-vikterna använder licensen OpenRAIL-M, som innehåller användningsbegränsningar (till exempel att inte imitera en person utan dennes samtycke). Läs den innan du accepterar — detta är den exakta kopian från revisionen som laddas ner.",
+        "loading": "Hämtar licensen från Hugging Face…",
+        "fetchError": "Det gick inte att hämta licenstexten. Kontrollera din anslutning eller läs den i webbläsaren.",
+        "retry": "Försök igen",
+        "openInBrowser": "Läs i webbläsaren",
+        "accept": "Jag accepterar licensen — ladda ner",
+        "cancel": "Avbryt"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Det gick inte att klistra in texten",
     "pasteFailed": "Texten kunde inte klistras in i det aktiva programmet.",
     "transcriptionFailedTitle": "Transkriptionen misslyckades",
-    "noteSaveFailed": "Det gick inte att spara anteckningen: {{error}}"
+    "noteSaveFailed": "Det gick inte att spara anteckningen: {{error}}",
+    "assistantNotConfiguredTitle": "Röstassistenten är inte konfigurerad",
+    "assistantNotConfigured": "Konfigurera en LLM-leverantör och modell i Efterbearbetning för att använda röstassistenten.",
+    "assistantFailedTitle": "Röstassistenten misslyckades",
+    "assistantFailed": "Det gick inte att få ett svar från LLM:en. Kontrollera din anslutning och försök igen.",
+    "assistantTtsFailedTitle": "Kunde inte läsa upp svaret",
+    "assistantTtsFailed": "Svaret var klart, men rösten kunde inte spela upp det.",
+    "assistantDisabledTitle": "Röstassistenten är avstängd",
+    "assistantDisabled": "Slå på den i Inställningar → Röst för att använda det här kortkommandot."
   },
   "appLanguage": {
     "title": "Applikationsspråk",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
+    "speaking": "Talar...",
     "noteSaved": "Anteckning sparad"
   },
   "whatsNew": {

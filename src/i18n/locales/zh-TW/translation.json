@@ -17,7 +17,8 @@
     "history": "歷史紀錄",
     "debug": "偵錯",
     "about": "關於",
-    "notes": "筆記"
+    "notes": "筆記",
+    "voice": "語音"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "快速筆記快捷鍵",
             "description": "口述並儲存為筆記，不貼上到目前的應用程式。"
+          },
+          "voice_assistant": {
+            "name": "語音助理快捷鍵",
+            "description": "將轉錄內容傳送給已設定的 LLM，並朗讀回覆而不是貼上。"
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "立即重試",
       "retryError": "部分筆記仍在等待。請稍後再試。",
       "notionTokenSaveError": "無法儲存 Notion 權杖。請再試一次。"
+    },
+    "voice": {
+      "title": "語音",
+      "description": "Dilo 可以透過本機語音模型（Supertonic）開口回應。",
+      "female": "女聲",
+      "male": "男聲",
+      "setupTitle": "安裝",
+      "downloadTitle": "下載語音",
+      "downloadHint": "從 Hugging Face 下載 Supertonic 語音模型（約 411 MB）。下載前會顯示其授權條款（OpenRAIL-M）供你接受。",
+      "download": "下載語音",
+      "downloading": "下載中...",
+      "downloadError": "無法下載語音模型。請檢查網路連線後再試一次。",
+      "selectorTitle": "語音",
+      "selectorHint": "選擇 Dilo 說話時使用 Supertonic 10 種語音中的哪一種。",
+      "selectorPlaceholder": "選擇語音",
+      "test": "播放範例",
+      "testing": "播放中...",
+      "testError": "無法播放範例。請檢查音訊輸出裝置。",
+      "assistantMode": {
+        "title": "語音助理模式",
+        "description": "指定一個快捷鍵後，Dilo 不再貼上你的口述內容，而是將其傳送給已設定的 LLM（後處理）並朗讀回覆。",
+        "toggleLabel": "啟用語音助理模式",
+        "toggleDescription": "需要在後處理中設定 LLM 供應商和模型。",
+        "shortcutHint": "按住以錄製問題；放開後傳送給 LLM 並朗讀回覆。"
+      },
+      "license": {
+        "title": "語音模型授權條款",
+        "intro": "Supertonic 權重使用 OpenRAIL-M 授權條款，其中包含使用限制（例如，未經本人同意不得模仿他人）。請在接受前閱讀——這是正在下載的版本中的原文副本。",
+        "loading": "正在從 Hugging Face 取得授權條款...",
+        "fetchError": "無法取得授權條款內容。請檢查網路連線，或在瀏覽器中閱讀。",
+        "retry": "重試",
+        "openInBrowser": "在瀏覽器中閱讀",
+        "accept": "我接受授權條款——下載",
+        "cancel": "取消"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "貼上文字失敗",
     "pasteFailed": "無法將文字貼上至目前作用中的應用程式。",
     "transcriptionFailedTitle": "轉錄失敗",
-    "noteSaveFailed": "無法儲存筆記：{{error}}"
+    "noteSaveFailed": "無法儲存筆記：{{error}}",
+    "assistantNotConfiguredTitle": "語音助理未設定",
+    "assistantNotConfigured": "請在後處理中設定 LLM 供應商和模型，才能使用語音助理。",
+    "assistantFailedTitle": "語音助理失敗",
+    "assistantFailed": "無法從 LLM 取得回覆。請檢查網路連線後再試一次。",
+    "assistantTtsFailedTitle": "無法朗讀回覆",
+    "assistantTtsFailed": "回覆已產生，但語音無法播放。",
+    "assistantDisabledTitle": "語音助理已關閉",
+    "assistantDisabled": "在設定 → 語音中開啟後即可使用此快捷鍵。"
   },
   "appLanguage": {
     "title": "應用程式語言",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "正在轉錄...",
     "processing": "處理中...",
+    "speaking": "朗讀中...",
     "noteSaved": "筆記已儲存"
   },
   "whatsNew": {

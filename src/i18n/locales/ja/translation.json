@@ -17,7 +17,8 @@
     "history": "履歴",
     "debug": "デバッグ",
     "about": "概要",
-    "notes": "ノート"
+    "notes": "ノート",
+    "voice": "音声"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "クイックノートのショートカット",
             "description": "アクティブなアプリに貼り付けず、口述してノートとして保存します。"
+          },
+          "voice_assistant": {
+            "name": "音声アシスタントのショートカット",
+            "description": "文字起こしを設定済みのLLMに送信し、貼り付ける代わりに返答を読み上げます。"
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "今すぐ再試行",
       "retryError": "一部のノートがまだ保留中です。後でもう一度お試しください。",
       "notionTokenSaveError": "Notion のトークンを保存できませんでした。もう一度お試しください。"
+    },
+    "voice": {
+      "title": "音声",
+      "description": "Diloはローカルの音声モデル（Supertonic）を使って音声で返答できます。",
+      "female": "女性",
+      "male": "男性",
+      "setupTitle": "セットアップ",
+      "downloadTitle": "音声をダウンロード",
+      "downloadHint": "Supertonic音声モデル（約411 MB）をHugging Faceからダウンロードします。ダウンロード前に、承諾のためライセンス（OpenRAIL-M）が表示されます。",
+      "download": "音声をダウンロード",
+      "downloading": "ダウンロード中…",
+      "downloadError": "音声モデルをダウンロードできませんでした。接続を確認してもう一度お試しください。",
+      "selectorTitle": "音声",
+      "selectorHint": "Diloが話すときに使うSupertonicの10種類の音声から選択します。",
+      "selectorPlaceholder": "音声を選択",
+      "test": "サンプルを再生",
+      "testing": "再生中…",
+      "testError": "サンプルを再生できませんでした。音声出力デバイスを確認してください。",
+      "assistantMode": {
+        "title": "音声アシスタントモード",
+        "description": "ショートカットを割り当てると、Diloは口述を貼り付ける代わりに設定済みのLLM（後処理）へ送信し、返答を読み上げます。",
+        "toggleLabel": "音声アシスタントモードを有効にする",
+        "toggleDescription": "後処理でLLMプロバイダーとモデルの設定が必要です。",
+        "shortcutHint": "押している間に質問を録音し、離すとLLMに送信され、返答が読み上げられます。"
+      },
+      "license": {
+        "title": "音声モデルのライセンス",
+        "intro": "Supertonicの重みはOpenRAIL-Mライセンスを使用しており、使用制限が含まれます（例：本人の同意なくその人になりすまさないこと）。承諾する前にお読みください — これはダウンロードされるリビジョンの原文そのままのコピーです。",
+        "loading": "Hugging Faceからライセンスを取得中…",
+        "fetchError": "ライセンスの本文を取得できませんでした。接続を確認するか、ブラウザでお読みください。",
+        "retry": "再試行",
+        "openInBrowser": "ブラウザで読む",
+        "accept": "ライセンスに同意する — ダウンロード",
+        "cancel": "キャンセル"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "テキストの貼り付けに失敗しました",
     "pasteFailed": "アクティブなアプリにテキストを貼り付けられませんでした。",
     "transcriptionFailedTitle": "文字起こしに失敗しました",
-    "noteSaveFailed": "メモを保存できませんでした: {{error}}"
+    "noteSaveFailed": "メモを保存できませんでした: {{error}}",
+    "assistantNotConfiguredTitle": "音声アシスタントが未設定です",
+    "assistantNotConfigured": "音声アシスタントを使うには、後処理でLLMプロバイダーとモデルを設定してください。",
+    "assistantFailedTitle": "音声アシスタントに失敗しました",
+    "assistantFailed": "LLMから返答を取得できませんでした。接続を確認してもう一度お試しください。",
+    "assistantTtsFailedTitle": "返答を読み上げられませんでした",
+    "assistantTtsFailed": "返答は準備できましたが、音声で再生できませんでした。",
+    "assistantDisabledTitle": "音声アシスタントはオフです",
+    "assistantDisabled": "このショートカットを使うには、設定 → 音声でオンにしてください。"
   },
   "appLanguage": {
     "title": "アプリの言語",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "文字起こし中…",
     "processing": "処理中…",
+    "speaking": "読み上げ中…",
     "noteSaved": "メモを保存しました"
   },
   "whatsNew": {

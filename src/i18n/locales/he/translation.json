@@ -17,7 +17,8 @@
     "history": "היסטוריה",
     "debug": "ניפוי שגיאות",
     "about": "אודות",
-    "notes": "הערות"
+    "notes": "הערות",
+    "voice": "קול"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "קיצור להערה מהירה",
             "description": "הכתב ושמור כהערה, בלי להדביק ביישום הפעיל."
+          },
+          "voice_assistant": {
+            "name": "קיצור העוזר הקולי",
+            "description": "שולח את התמלול ל-LLM שהוגדר ומקריא את התשובה בקול במקום להדביק."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "נסה שוב עכשיו",
       "retryError": "חלק מההערות עדיין ממתינות. נסה שוב מאוחר יותר.",
       "notionTokenSaveError": "לא ניתן לשמור את אסימון Notion. נסה שוב."
+    },
+    "voice": {
+      "title": "קול",
+      "description": "Dilo יכול לענות בקול באמצעות מודל קול מקומי (Supertonic).",
+      "female": "נשי",
+      "male": "גברי",
+      "setupTitle": "הגדרה",
+      "downloadTitle": "הורדת קולות",
+      "downloadHint": "מוריד את מודל הקול Supertonic (כ-411 MB) מ-Hugging Face. לפני ההורדה יוצג הרישיון (OpenRAIL-M) לאישור.",
+      "download": "הורדת קולות",
+      "downloading": "מוריד…",
+      "downloadError": "לא ניתן היה להוריד את מודל הקול. בדוק את החיבור ונסה שוב.",
+      "selectorTitle": "קול",
+      "selectorHint": "בחר באיזה מ-10 הקולות של Supertonic ישתמש Dilo כדי לדבר.",
+      "selectorPlaceholder": "בחר קול",
+      "test": "השמע דוגמה",
+      "testing": "משמיע…",
+      "testError": "לא ניתן היה להשמיע את הדוגמה. בדוק את התקן פלט השמע.",
+      "assistantMode": {
+        "title": "מצב עוזר קולי",
+        "description": "הקצה קיצור מקשים, ובמקום להדביק את ההכתבה, Dilo ישלח אותה ל-LLM שהוגדר (עיבוד משלים) ויקריא את התשובה בקול.",
+        "toggleLabel": "הפעל מצב עוזר קולי",
+        "toggleDescription": "דורש ספק LLM ומודל שהוגדרו בעיבוד המשלים.",
+        "shortcutHint": "לחץ כדי להקליט שאלה; בשחרור היא נשלחת ל-LLM והתשובה מוקראת בקול."
+      },
+      "license": {
+        "title": "רישיון מודל הקול",
+        "intro": "משקולות Supertonic משתמשות ברישיון OpenRAIL-M, הכולל מגבלות שימוש (למשל, לא להתחזות לאדם ללא הסכמתו). קרא אותו לפני האישור — זהו העותק המדויק מהגרסה שמורדת.",
+        "loading": "מביא את הרישיון מ-Hugging Face…",
+        "fetchError": "לא ניתן היה להביא את נוסח הרישיון. בדוק את החיבור, או קרא אותו בדפדפן.",
+        "retry": "נסה שוב",
+        "openInBrowser": "קרא בדפדפן",
+        "accept": "אני מקבל את הרישיון — הורדה",
+        "cancel": "ביטול"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "ההדבקה נכשלה",
     "pasteFailed": "לא ניתן היה להדביק את הטקסט ביישום הפעיל.",
     "transcriptionFailedTitle": "התמלול נכשל",
-    "noteSaveFailed": "לא ניתן היה לשמור את ההערה: {{error}}"
+    "noteSaveFailed": "לא ניתן היה לשמור את ההערה: {{error}}",
+    "assistantNotConfiguredTitle": "העוזר הקולי לא הוגדר",
+    "assistantNotConfigured": "הגדר ספק LLM ומודל בעיבוד המשלים כדי להשתמש בעוזר הקולי.",
+    "assistantFailedTitle": "העוזר הקולי נכשל",
+    "assistantFailed": "לא ניתן היה לקבל תשובה מה-LLM. בדוק את החיבור ונסה שוב.",
+    "assistantTtsFailedTitle": "לא ניתן היה להקריא את התשובה",
+    "assistantTtsFailed": "התשובה הייתה מוכנה, אבל הקול לא הצליח להשמיע אותה.",
+    "assistantDisabledTitle": "העוזר הקולי כבוי",
+    "assistantDisabled": "הפעל אותו בהגדרות > קול כדי להשתמש בקיצור הזה."
   },
   "appLanguage": {
     "title": "שפת האפליקציה",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
+    "speaking": "מדבר...",
     "noteSaved": "הערה נשמרה"
   },
   "whatsNew": {

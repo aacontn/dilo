@@ -17,7 +17,8 @@
     "history": "히스토리",
     "debug": "디버그",
     "about": "정보",
-    "notes": "노트"
+    "notes": "노트",
+    "voice": "음성"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "빠른 노트 단축키",
             "description": "활성 앱에 붙여넣지 않고 받아써서 노트로 저장합니다."
+          },
+          "voice_assistant": {
+            "name": "음성 어시스턴트 단축키",
+            "description": "받아쓴 내용을 설정된 LLM으로 보내고, 붙여넣는 대신 답변을 소리 내어 읽어줍니다."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "지금 다시 시도",
       "retryError": "일부 노트가 아직 대기 중입니다. 나중에 다시 시도하세요.",
       "notionTokenSaveError": "Notion 토큰을 저장하지 못했습니다. 다시 시도하세요."
+    },
+    "voice": {
+      "title": "음성",
+      "description": "Dilo는 로컬 음성 모델(Supertonic)로 음성으로 답할 수 있습니다.",
+      "female": "여성",
+      "male": "남성",
+      "setupTitle": "설치",
+      "downloadTitle": "음성 다운로드",
+      "downloadHint": "Hugging Face에서 Supertonic 음성 모델(~411 MB)을 다운로드합니다. 다운로드 전에 동의할 라이선스(OpenRAIL-M)가 표시됩니다.",
+      "download": "음성 다운로드",
+      "downloading": "다운로드 중...",
+      "downloadError": "음성 모델을 다운로드하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+      "selectorTitle": "음성",
+      "selectorHint": "Dilo가 말할 때 사용할 Supertonic 음성 10개 중 하나를 선택하세요.",
+      "selectorPlaceholder": "음성 선택",
+      "test": "샘플 재생",
+      "testing": "재생 중...",
+      "testError": "샘플을 재생하지 못했습니다. 오디오 출력 장치를 확인하세요.",
+      "assistantMode": {
+        "title": "음성 어시스턴트 모드",
+        "description": "단축키를 지정하면 받아쓴 내용을 붙여넣는 대신 Dilo가 설정된 LLM(후처리)으로 보내고 답변을 소리 내어 읽어줍니다.",
+        "toggleLabel": "음성 어시스턴트 모드 켜기",
+        "toggleDescription": "후처리에서 LLM 제공자와 모델 설정이 필요합니다.",
+        "shortcutHint": "눌러서 질문을 녹음하세요. 놓으면 LLM으로 전송되고 답변이 음성으로 재생됩니다."
+      },
+      "license": {
+        "title": "음성 모델 라이선스",
+        "intro": "Supertonic 가중치는 사용 제한이 포함된 OpenRAIL-M 라이선스를 사용합니다(예: 동의 없이 다른 사람을 사칭하지 않기). 동의하기 전에 읽어보세요 — 다운로드되는 리비전의 원본 그대로입니다.",
+        "loading": "Hugging Face에서 라이선스를 가져오는 중...",
+        "fetchError": "라이선스 본문을 가져오지 못했습니다. 연결을 확인하거나 브라우저에서 읽어보세요.",
+        "retry": "다시 시도",
+        "openInBrowser": "브라우저에서 읽기",
+        "accept": "라이선스에 동의합니다 — 다운로드",
+        "cancel": "취소"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "텍스트 붙여넣기 실패",
     "pasteFailed": "활성 애플리케이션에 텍스트를 붙여넣을 수 없습니다.",
     "transcriptionFailedTitle": "음성 인식 실패",
-    "noteSaveFailed": "메모를 저장하지 못했습니다: {{error}}"
+    "noteSaveFailed": "메모를 저장하지 못했습니다: {{error}}",
+    "assistantNotConfiguredTitle": "음성 어시스턴트가 설정되지 않음",
+    "assistantNotConfigured": "음성 어시스턴트를 사용하려면 후처리에서 LLM 제공자와 모델을 설정하세요.",
+    "assistantFailedTitle": "음성 어시스턴트 실패",
+    "assistantFailed": "LLM에서 답변을 받지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+    "assistantTtsFailedTitle": "답변을 읽어주지 못했습니다",
+    "assistantTtsFailed": "답변은 준비되었지만 음성으로 재생하지 못했습니다.",
+    "assistantDisabledTitle": "음성 어시스턴트가 꺼져 있음",
+    "assistantDisabled": "이 단축키를 사용하려면 설정 → 음성에서 켜세요."
   },
   "appLanguage": {
     "title": "애플리케이션 언어",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중...",
+    "speaking": "말하는 중...",
     "noteSaved": "메모 저장됨"
   },
   "whatsNew": {

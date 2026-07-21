@@ -17,7 +17,8 @@
     "debug": "تصحيح الأخطاء",
     "about": "حول",
     "models": "النماذج",
-    "notes": "الملاحظات"
+    "notes": "الملاحظات",
+    "voice": "الصوت"
   },
   "home": {
     "status": {
@@ -303,6 +304,10 @@
           "quick_note": {
             "name": "اختصار الملاحظة السريعة",
             "description": "أملِ واحفظ كملاحظة، دون اللصق في التطبيق النشط."
+          },
+          "voice_assistant": {
+            "name": "اختصار المساعد الصوتي",
+            "description": "يرسل التفريغ إلى نموذج LLM المُهيّأ ويقرأ الرد بصوت عالٍ بدلاً من لصقه."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "أعد المحاولة الآن",
       "retryError": "لا تزال بعض الملاحظات معلقة. حاول لاحقًا.",
       "notionTokenSaveError": "تعذّر حفظ رمز Notion. حاول مرة أخرى."
+    },
+    "voice": {
+      "title": "الصوت",
+      "description": "يستطيع Dilo الرد بالصوت باستخدام نموذج صوتي محلي (Supertonic).",
+      "female": "أنثى",
+      "male": "ذكر",
+      "setupTitle": "الإعداد",
+      "downloadTitle": "تنزيل الأصوات",
+      "downloadHint": "ينزّل نموذج الصوت Supertonic (حوالي 411 ميغابايت) من Hugging Face. قبل التنزيل ستُعرض عليك رخصته (OpenRAIL-M) لقبولها.",
+      "download": "تنزيل الأصوات",
+      "downloading": "…جاري التنزيل",
+      "downloadError": "تعذّر تنزيل نموذج الصوت. تحقق من اتصالك وحاول مرة أخرى.",
+      "selectorTitle": "الصوت",
+      "selectorHint": "اختر أيًا من أصوات Supertonic العشرة يستخدمه Dilo للتحدث.",
+      "selectorPlaceholder": "اختر صوتًا",
+      "test": "تشغيل عيّنة",
+      "testing": "…جاري التشغيل",
+      "testError": "تعذّر تشغيل العيّنة. تحقق من جهاز إخراج الصوت.",
+      "assistantMode": {
+        "title": "وضع المساعد الصوتي",
+        "description": "عيّن اختصارًا، وبدلاً من لصق ما أمليته، يرسله Dilo إلى نموذج LLM المُهيّأ (معالجة لاحقة) ويقرأ الرد بصوت عالٍ.",
+        "toggleLabel": "تفعيل وضع المساعد الصوتي",
+        "toggleDescription": "يتطلب مزود LLM ونموذجًا مُعدّين في المعالجة اللاحقة.",
+        "shortcutHint": "اضغط لتسجيل سؤال؛ وعند الإفلات يُرسل إلى LLM ويُقرأ الرد بصوت عالٍ."
+      },
+      "license": {
+        "title": "رخصة نموذج الصوت",
+        "intro": "تستخدم أوزان Supertonic رخصة OpenRAIL-M التي تتضمن قيودًا على الاستخدام (مثل عدم انتحال شخصية أحد دون موافقته). اقرأها قبل القبول — هذه هي النسخة الحرفية من المراجعة التي يجري تنزيلها.",
+        "loading": "…جاري جلب الرخصة من Hugging Face",
+        "fetchError": "تعذّر جلب نص الرخصة. تحقق من اتصالك أو اقرأها في المتصفح.",
+        "retry": "إعادة المحاولة",
+        "openInBrowser": "القراءة في المتصفح",
+        "accept": "أقبل الرخصة — تنزيل",
+        "cancel": "إلغاء"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "فشل لصق النص",
     "pasteFailed": "تعذر لصق النص في التطبيق النشط.",
     "transcriptionFailedTitle": "فشل التفريغ النصي",
-    "noteSaveFailed": "تعذّر حفظ الملاحظة: {{error}}"
+    "noteSaveFailed": "تعذّر حفظ الملاحظة: {{error}}",
+    "assistantNotConfiguredTitle": "المساعد الصوتي غير مُهيّأ",
+    "assistantNotConfigured": "قم بإعداد مزود LLM ونموذج في المعالجة اللاحقة لاستخدام المساعد الصوتي.",
+    "assistantFailedTitle": "فشل المساعد الصوتي",
+    "assistantFailed": "تعذّر الحصول على رد من LLM. تحقق من اتصالك وحاول مرة أخرى.",
+    "assistantTtsFailedTitle": "تعذّر نطق الرد",
+    "assistantTtsFailed": "كان الرد جاهزًا، لكن الصوت لم يتمكن من تشغيله.",
+    "assistantDisabledTitle": "المساعد الصوتي متوقف",
+    "assistantDisabled": "فعّله من الإعدادات ← الصوت لاستخدام هذا الاختصار."
   },
   "appLanguage": {
     "title": "لغة التطبيق",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "...جاري التفريغ",
     "processing": "...جاري المعالجة",
+    "speaking": "...جاري التحدث",
     "noteSaved": "تم حفظ الملاحظة"
   },
   "whatsNew": {

@@ -17,7 +17,8 @@
     "history": "Historia",
     "debug": "Debugowanie",
     "about": "O programie",
-    "notes": "Notatki"
+    "notes": "Notatki",
+    "voice": "Głos"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Skrót szybkiej notatki",
             "description": "Dyktuj i zapisz jako notatkę, bez wklejania do aktywnej aplikacji."
+          },
+          "voice_assistant": {
+            "name": "Skrót asystenta głosowego",
+            "description": "Wysyła transkrypcję do skonfigurowanego LLM i odczytuje odpowiedź na głos zamiast wklejać."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Ponów teraz",
       "retryError": "Niektóre notatki wciąż oczekują. Spróbuj ponownie później.",
       "notionTokenSaveError": "Nie udało się zapisać tokenu Notion. Spróbuj ponownie."
+    },
+    "voice": {
+      "title": "Głos",
+      "description": "Dilo może odpowiadać głosem, korzystając z lokalnego modelu głosu (Supertonic).",
+      "female": "Żeński",
+      "male": "Męski",
+      "setupTitle": "Konfiguracja",
+      "downloadTitle": "Pobierz głosy",
+      "downloadHint": "Pobiera model głosu Supertonic (~411 MB) z Hugging Face. Przed pobraniem zostanie wyświetlona licencja (OpenRAIL-M) do zaakceptowania.",
+      "download": "Pobierz głosy",
+      "downloading": "Pobieranie…",
+      "downloadError": "Nie udało się pobrać modelu głosu. Sprawdź połączenie i spróbuj ponownie.",
+      "selectorTitle": "Głos",
+      "selectorHint": "Wybierz, którego z 10 głosów Supertonic Dilo używa do mówienia.",
+      "selectorPlaceholder": "Wybierz głos",
+      "test": "Odtwórz próbkę",
+      "testing": "Odtwarzanie…",
+      "testError": "Nie udało się odtworzyć próbki. Sprawdź wyjściowe urządzenie audio.",
+      "assistantMode": {
+        "title": "Tryb asystenta głosowego",
+        "description": "Przypisz skrót: zamiast wklejać dyktowany tekst, Dilo wysyła go do skonfigurowanego LLM (Postproces) i odczytuje odpowiedź na głos.",
+        "toggleLabel": "Włącz tryb asystenta głosowego",
+        "toggleDescription": "Wymaga dostawcy LLM i modelu skonfigurowanych w sekcji Postproces.",
+        "shortcutHint": "Naciśnij, aby nagrać pytanie; po puszczeniu zostanie wysłane do LLM, a odpowiedź odczytana na głos."
+      },
+      "license": {
+        "title": "Licencja modelu głosu",
+        "intro": "Wagi Supertonic są objęte licencją OpenRAIL-M, która zawiera ograniczenia użycia (na przykład zakaz podszywania się pod osobę bez jej zgody). Przeczytaj ją przed zaakceptowaniem — to dokładna kopia z pobieranej rewizji.",
+        "loading": "Pobieranie licencji z Hugging Face…",
+        "fetchError": "Nie udało się pobrać tekstu licencji. Sprawdź połączenie lub przeczytaj ją w przeglądarce.",
+        "retry": "Spróbuj ponownie",
+        "openInBrowser": "Przeczytaj w przeglądarce",
+        "accept": "Akceptuję licencję — pobierz",
+        "cancel": "Anuluj"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Nie udało się wkleić tekstu",
     "pasteFailed": "Nie można było wkleić tekstu do aktywnej aplikacji.",
     "transcriptionFailedTitle": "Transkrypcja nie powiodła się",
-    "noteSaveFailed": "Nie udało się zapisać notatki: {{error}}"
+    "noteSaveFailed": "Nie udało się zapisać notatki: {{error}}",
+    "assistantNotConfiguredTitle": "Asystent głosowy nie jest skonfigurowany",
+    "assistantNotConfigured": "Skonfiguruj dostawcę LLM i model w sekcji Postproces, aby używać asystenta głosowego.",
+    "assistantFailedTitle": "Błąd asystenta głosowego",
+    "assistantFailed": "Nie udało się uzyskać odpowiedzi od LLM. Sprawdź połączenie i spróbuj ponownie.",
+    "assistantTtsFailedTitle": "Nie udało się odczytać odpowiedzi",
+    "assistantTtsFailed": "Odpowiedź była gotowa, ale głos nie mógł jej odtworzyć.",
+    "assistantDisabledTitle": "Asystent głosowy jest wyłączony",
+    "assistantDisabled": "Włącz go w Ustawienia → Głos, aby używać tego skrótu."
   },
   "appLanguage": {
     "title": "Język aplikacji",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie...",
+    "speaking": "Mówienie...",
     "noteSaved": "Zapisano notatkę"
   },
   "whatsNew": {

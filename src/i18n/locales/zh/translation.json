@@ -17,7 +17,8 @@
     "history": "历史记录",
     "debug": "调试",
     "about": "关于",
-    "notes": "笔记"
+    "notes": "笔记",
+    "voice": "语音"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "快速笔记快捷键",
             "description": "口述并保存为笔记，不粘贴到当前应用。"
+          },
+          "voice_assistant": {
+            "name": "语音助手快捷键",
+            "description": "将转录内容发送给已配置的 LLM，并朗读回复而不是粘贴。"
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "立即重试",
       "retryError": "部分笔记仍在等待。请稍后重试。",
       "notionTokenSaveError": "无法保存 Notion 令牌。请重试。"
+    },
+    "voice": {
+      "title": "语音",
+      "description": "Dilo 可以通过本地语音模型（Supertonic）开口回应。",
+      "female": "女声",
+      "male": "男声",
+      "setupTitle": "配置",
+      "downloadTitle": "下载语音",
+      "downloadHint": "从 Hugging Face 下载 Supertonic 语音模型（约 411 MB）。下载前会显示其许可证（OpenRAIL-M）供你接受。",
+      "download": "下载语音",
+      "downloading": "下载中...",
+      "downloadError": "无法下载语音模型。请检查网络连接后重试。",
+      "selectorTitle": "语音",
+      "selectorHint": "选择 Dilo 说话时使用 Supertonic 10 种语音中的哪一种。",
+      "selectorPlaceholder": "选择语音",
+      "test": "播放示例",
+      "testing": "播放中...",
+      "testError": "无法播放示例。请检查音频输出设备。",
+      "assistantMode": {
+        "title": "语音助手模式",
+        "description": "分配一个快捷键后，Dilo 不再粘贴你的口述内容，而是将其发送给已配置的 LLM（后处理）并朗读回复。",
+        "toggleLabel": "启用语音助手模式",
+        "toggleDescription": "需要在后处理中设置 LLM 提供商和模型。",
+        "shortcutHint": "按下以录制问题；松开后发送给 LLM 并朗读回复。"
+      },
+      "license": {
+        "title": "语音模型许可证",
+        "intro": "Supertonic 权重使用 OpenRAIL-M 许可证，其中包含使用限制（例如，未经本人同意不得模仿他人）。请在接受前阅读——这是正在下载的版本中的原文副本。",
+        "loading": "正在从 Hugging Face 获取许可证...",
+        "fetchError": "无法获取许可证文本。请检查网络连接，或在浏览器中阅读。",
+        "retry": "重试",
+        "openInBrowser": "在浏览器中阅读",
+        "accept": "我接受许可证——下载",
+        "cancel": "取消"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "粘贴文本失败",
     "pasteFailed": "无法将文本粘贴到当前活动的应用程序中。",
     "transcriptionFailedTitle": "转录失败",
-    "noteSaveFailed": "无法保存笔记：{{error}}"
+    "noteSaveFailed": "无法保存笔记：{{error}}",
+    "assistantNotConfiguredTitle": "语音助手未配置",
+    "assistantNotConfigured": "请在后处理中设置 LLM 提供商和模型，以使用语音助手。",
+    "assistantFailedTitle": "语音助手失败",
+    "assistantFailed": "无法从 LLM 获取回复。请检查网络连接后重试。",
+    "assistantTtsFailedTitle": "无法朗读回复",
+    "assistantTtsFailed": "回复已生成，但语音无法播放。",
+    "assistantDisabledTitle": "语音助手已关闭",
+    "assistantDisabled": "在设置 → 语音中开启后即可使用此快捷键。"
   },
   "appLanguage": {
     "title": "应用语言",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "正在转录...",
     "processing": "处理中...",
+    "speaking": "朗读中...",
     "noteSaved": "笔记已保存"
   },
   "whatsNew": {

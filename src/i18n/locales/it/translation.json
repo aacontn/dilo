@@ -17,7 +17,8 @@
     "history": "Cronologia",
     "debug": "Debug",
     "about": "Informazioni",
-    "notes": "Note"
+    "notes": "Note",
+    "voice": "Voce"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Scorciatoia nota rapida",
             "description": "Detta e salva come nota, senza incollare nell'app attiva."
+          },
+          "voice_assistant": {
+            "name": "Scorciatoia assistente vocale",
+            "description": "Invia la trascrizione all'LLM configurato e legge la risposta ad alta voce invece di incollarla."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Riprova ora",
       "retryError": "Alcune note sono ancora in sospeso. Riprova più tardi.",
       "notionTokenSaveError": "Impossibile salvare il token di Notion. Riprova."
+    },
+    "voice": {
+      "title": "Voce",
+      "description": "Dilo può risponderti a voce con un modello vocale locale (Supertonic).",
+      "female": "Femminile",
+      "male": "Maschile",
+      "setupTitle": "Configurazione",
+      "downloadTitle": "Scarica le voci",
+      "downloadHint": "Scarica il modello vocale Supertonic (~411 MB) da Hugging Face. Prima del download ti verrà mostrata la licenza (OpenRAIL-M) da accettare.",
+      "download": "Scarica le voci",
+      "downloading": "Download in corso…",
+      "downloadError": "Impossibile scaricare il modello vocale. Controlla la connessione e riprova.",
+      "selectorTitle": "Voce",
+      "selectorHint": "Scegli quale delle 10 voci Supertonic Dilo usa per parlare.",
+      "selectorPlaceholder": "Scegli una voce",
+      "test": "Riproduci un esempio",
+      "testing": "Riproduzione…",
+      "testError": "Impossibile riprodurre l'esempio. Controlla il dispositivo di uscita audio.",
+      "assistantMode": {
+        "title": "Modalità assistente vocale",
+        "description": "Assegna una scorciatoia: invece di incollare la dettatura, Dilo la invia all'LLM configurato (Post-Elaborazione) e legge la risposta ad alta voce.",
+        "toggleLabel": "Attiva la modalità assistente vocale",
+        "toggleDescription": "Richiede un provider LLM e un modello configurati in Post-Elaborazione.",
+        "shortcutHint": "Premi per registrare una domanda; al rilascio viene inviata all'LLM e la risposta viene letta ad alta voce."
+      },
+      "license": {
+        "title": "Licenza del modello vocale",
+        "intro": "I pesi di Supertonic usano la licenza OpenRAIL-M, che include restrizioni d'uso (ad esempio, non impersonare una persona senza il suo consenso). Leggila prima di accettare — questa è la copia esatta della revisione che verrà scaricata.",
+        "loading": "Recupero della licenza da Hugging Face…",
+        "fetchError": "Impossibile recuperare il testo della licenza. Controlla la connessione, oppure leggila nel browser.",
+        "retry": "Riprova",
+        "openInBrowser": "Leggi nel browser",
+        "accept": "Accetto la licenza — scarica",
+        "cancel": "Annulla"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Impossibile incollare il testo",
     "pasteFailed": "Non è stato possibile incollare il testo nell'applicazione attiva.",
     "transcriptionFailedTitle": "Trascrizione non riuscita",
-    "noteSaveFailed": "Impossibile salvare la nota: {{error}}"
+    "noteSaveFailed": "Impossibile salvare la nota: {{error}}",
+    "assistantNotConfiguredTitle": "Assistente vocale non configurato",
+    "assistantNotConfigured": "Configura un provider LLM e un modello in Post-Elaborazione per usare l'assistente vocale.",
+    "assistantFailedTitle": "Assistente vocale non riuscito",
+    "assistantFailed": "Impossibile ottenere una risposta dall'LLM. Controlla la connessione e riprova.",
+    "assistantTtsFailedTitle": "Impossibile leggere la risposta",
+    "assistantTtsFailed": "La risposta era pronta, ma la voce non è riuscita a riprodurla.",
+    "assistantDisabledTitle": "L'assistente vocale è disattivato",
+    "assistantDisabled": "Attivalo in Impostazioni → Voce per usare questa scorciatoia."
   },
   "appLanguage": {
     "title": "Lingua Applicazione",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Trascrizione...",
     "processing": "Elaborazione...",
+    "speaking": "Parlando...",
     "noteSaved": "Nota salvata"
   },
   "whatsNew": {

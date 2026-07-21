@@ -17,7 +17,8 @@
     "history": "Verlauf",
     "debug": "Debug",
     "about": "Info",
-    "notes": "Notizen"
+    "notes": "Notizen",
+    "voice": "Stimme"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Kurznotiz-Tastenkürzel",
             "description": "Diktieren und als Notiz speichern, ohne in die aktive App einzufügen."
+          },
+          "voice_assistant": {
+            "name": "Sprachassistent-Kurzbefehl",
+            "description": "Sendet die Transkription an das konfigurierte LLM und liest die Antwort laut vor, statt sie einzufügen."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Jetzt erneut versuchen",
       "retryError": "Einige Notizen stehen noch aus. Bitte später erneut versuchen.",
       "notionTokenSaveError": "Notion-Token konnte nicht gespeichert werden. Bitte erneut versuchen."
+    },
+    "voice": {
+      "title": "Stimme",
+      "description": "Dilo kann dir mit einem lokalen Stimmmodell (Supertonic) antworten.",
+      "female": "Weiblich",
+      "male": "Männlich",
+      "setupTitle": "Einrichtung",
+      "downloadTitle": "Stimmen herunterladen",
+      "downloadHint": "Lädt das Supertonic-Stimmmodell (~411 MB) von Hugging Face herunter. Vor dem Download wird dir die Lizenz (OpenRAIL-M) zum Akzeptieren angezeigt.",
+      "download": "Stimmen herunterladen",
+      "downloading": "Wird heruntergeladen…",
+      "downloadError": "Das Stimmmodell konnte nicht heruntergeladen werden. Prüfe deine Verbindung und versuche es erneut.",
+      "selectorTitle": "Stimme",
+      "selectorHint": "Wähle, mit welcher der 10 Supertonic-Stimmen Dilo spricht.",
+      "selectorPlaceholder": "Stimme auswählen",
+      "test": "Hörprobe abspielen",
+      "testing": "Wird abgespielt…",
+      "testError": "Die Hörprobe konnte nicht abgespielt werden. Prüfe das Audioausgabegerät.",
+      "assistantMode": {
+        "title": "Sprachassistent-Modus",
+        "description": "Weise ein Tastenkürzel zu: Statt dein Diktat einzufügen, sendet Dilo es an das konfigurierte LLM (Nachbearbeitung) und liest die Antwort laut vor.",
+        "toggleLabel": "Sprachassistent-Modus aktivieren",
+        "toggleDescription": "Erfordert einen LLM-Anbieter und ein Modell in der Nachbearbeitung.",
+        "shortcutHint": "Drücken, um eine Frage aufzunehmen; beim Loslassen wird sie an das LLM gesendet und die Antwort vorgelesen."
+      },
+      "license": {
+        "title": "Lizenz des Stimmmodells",
+        "intro": "Die Supertonic-Gewichte stehen unter der OpenRAIL-M-Lizenz, die Nutzungsbeschränkungen enthält (zum Beispiel, keine Person ohne deren Einwilligung zu imitieren). Lies sie vor dem Akzeptieren — dies ist die exakte Kopie aus der Revision, die heruntergeladen wird.",
+        "loading": "Lizenz wird von Hugging Face geladen…",
+        "fetchError": "Der Lizenztext konnte nicht geladen werden. Prüfe deine Verbindung oder lies ihn im Browser.",
+        "retry": "Erneut versuchen",
+        "openInBrowser": "Im Browser lesen",
+        "accept": "Ich akzeptiere die Lizenz — herunterladen",
+        "cancel": "Abbrechen"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Text konnte nicht eingefügt werden",
     "pasteFailed": "Der Text konnte nicht in die aktive Anwendung eingefügt werden.",
     "transcriptionFailedTitle": "Transkription fehlgeschlagen",
-    "noteSaveFailed": "Notiz konnte nicht gespeichert werden: {{error}}"
+    "noteSaveFailed": "Notiz konnte nicht gespeichert werden: {{error}}",
+    "assistantNotConfiguredTitle": "Sprachassistent nicht konfiguriert",
+    "assistantNotConfigured": "Richte in der Nachbearbeitung einen LLM-Anbieter und ein Modell ein, um den Sprachassistenten zu nutzen.",
+    "assistantFailedTitle": "Sprachassistent fehlgeschlagen",
+    "assistantFailed": "Es konnte keine Antwort vom LLM abgerufen werden. Prüfe deine Verbindung und versuche es erneut.",
+    "assistantTtsFailedTitle": "Antwort konnte nicht vorgelesen werden",
+    "assistantTtsFailed": "Die Antwort war fertig, aber die Stimme konnte sie nicht abspielen.",
+    "assistantDisabledTitle": "Sprachassistent ist aus",
+    "assistantDisabled": "Aktiviere ihn unter Einstellungen → Stimme, um dieses Tastenkürzel zu nutzen."
   },
   "appLanguage": {
     "title": "Anwendungssprache",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transkribiere...",
     "processing": "Verarbeite...",
+    "speaking": "Spreche...",
     "noteSaved": "Notiz gespeichert"
   },
   "whatsNew": {

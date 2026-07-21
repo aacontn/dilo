@@ -17,7 +17,8 @@
     "history": "Geschiedenis",
     "debug": "Probleemoplossing",
     "about": "Over Dilo",
-    "notes": "Notities"
+    "notes": "Notities",
+    "voice": "Stem"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "Sneltoets snelle notitie",
             "description": "Dicteer en sla op als notitie, zonder in de actieve app te plakken."
+          },
+          "voice_assistant": {
+            "name": "Sneltoets spraakassistent",
+            "description": "Stuurt de transcriptie naar de geconfigureerde LLM en leest het antwoord hardop voor in plaats van te plakken."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Nu opnieuw proberen",
       "retryError": "Sommige notities staan nog open. Probeer het later opnieuw.",
       "notionTokenSaveError": "Kan het Notion-token niet opslaan. Probeer het opnieuw."
+    },
+    "voice": {
+      "title": "Stem",
+      "description": "Dilo kan terugpraten met een lokaal stemmodel (Supertonic).",
+      "female": "Vrouwelijk",
+      "male": "Mannelijk",
+      "setupTitle": "Installatie",
+      "downloadTitle": "Stemmen downloaden",
+      "downloadHint": "Downloadt het Supertonic-stemmodel (~411 MB) van Hugging Face. Vóór het downloaden krijg je de licentie (OpenRAIL-M) te zien om te accepteren.",
+      "download": "Stemmen downloaden",
+      "downloading": "Downloaden…",
+      "downloadError": "Kon het stemmodel niet downloaden. Controleer je verbinding en probeer het opnieuw.",
+      "selectorTitle": "Stem",
+      "selectorHint": "Kies welke van de 10 Supertonic-stemmen Dilo gebruikt om te spreken.",
+      "selectorPlaceholder": "Kies een stem",
+      "test": "Voorbeeld afspelen",
+      "testing": "Wordt afgespeeld…",
+      "testError": "Kon het voorbeeld niet afspelen. Controleer het audio-uitvoerapparaat.",
+      "assistantMode": {
+        "title": "Spraakassistentmodus",
+        "description": "Wijs een sneltoets toe: in plaats van je dictaat te plakken, stuurt Dilo het naar de geconfigureerde LLM (Naverwerking) en leest het antwoord hardop voor.",
+        "toggleLabel": "Spraakassistentmodus inschakelen",
+        "toggleDescription": "Vereist een LLM-provider en model ingesteld in Naverwerking.",
+        "shortcutHint": "Druk om een vraag op te nemen; bij loslaten wordt deze naar de LLM gestuurd en wordt het antwoord uitgesproken."
+      },
+      "license": {
+        "title": "Licentie van het stemmodel",
+        "intro": "De Supertonic-gewichten gebruiken de OpenRAIL-M-licentie, die gebruiksbeperkingen bevat (bijvoorbeeld niet iemand imiteren zonder diens toestemming). Lees de licentie voordat je accepteert — dit is de exacte kopie van de revisie die wordt gedownload.",
+        "loading": "Licentie ophalen van Hugging Face…",
+        "fetchError": "Kon de licentietekst niet ophalen. Controleer je verbinding of lees de licentie in de browser.",
+        "retry": "Opnieuw proberen",
+        "openInBrowser": "In browser lezen",
+        "accept": "Ik accepteer de licentie — downloaden",
+        "cancel": "Annuleren"
+      }
     }
   },
   "footer": {
@@ -788,7 +828,15 @@
     "pasteFailedTitle": "Tekst plakken mislukt",
     "pasteFailed": "Tekst kon niet worden geplakt in de actieve applicatie.",
     "transcriptionFailedTitle": "Transcriptie mislukt",
-    "noteSaveFailed": "Kon de notitie niet opslaan: {{error}}"
+    "noteSaveFailed": "Kon de notitie niet opslaan: {{error}}",
+    "assistantNotConfiguredTitle": "Spraakassistent niet geconfigureerd",
+    "assistantNotConfigured": "Stel een LLM-provider en model in bij Naverwerking om de spraakassistent te gebruiken.",
+    "assistantFailedTitle": "Spraakassistent mislukt",
+    "assistantFailed": "Kon geen antwoord van de LLM krijgen. Controleer je verbinding en probeer het opnieuw.",
+    "assistantTtsFailedTitle": "Kon het antwoord niet uitspreken",
+    "assistantTtsFailed": "Het antwoord was klaar, maar de stem kon het niet afspelen.",
+    "assistantDisabledTitle": "Spraakassistent staat uit",
+    "assistantDisabled": "Zet hem aan via Instellingen → Stem om deze sneltoets te gebruiken."
   },
   "appLanguage": {
     "title": "Interfacetaal",
@@ -806,6 +854,7 @@
   "overlay": {
     "transcribing": "Transcriberen...",
     "processing": "Verwerken...",
+    "speaking": "Spreken...",
     "noteSaved": "Notitie opgeslagen"
   }
 }

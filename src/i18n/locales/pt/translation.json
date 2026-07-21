@@ -17,7 +17,8 @@
     "history": "Histórico",
     "debug": "Depuração",
     "about": "Sobre",
-    "notes": "Notas"
+    "notes": "Notas",
+    "voice": "Voz"
   },
   "home": {
     "status": {
@@ -306,6 +307,10 @@
           "quick_note": {
             "name": "Atalho de nota rápida",
             "description": "Dite e salve como nota, sem colar no app ativo."
+          },
+          "voice_assistant": {
+            "name": "Atalho do assistente de voz",
+            "description": "Envia a transcrição para o LLM configurado e lê a resposta em voz alta em vez de colar."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Tentar novamente",
       "retryError": "Algumas notas ainda estão pendentes. Tente novamente mais tarde.",
       "notionTokenSaveError": "Não foi possível salvar o token do Notion. Tente novamente."
+    },
+    "voice": {
+      "title": "Voz",
+      "description": "O Dilo pode responder falando usando um modelo de voz local (Supertonic).",
+      "female": "Feminina",
+      "male": "Masculina",
+      "setupTitle": "Configuração",
+      "downloadTitle": "Baixar vozes",
+      "downloadHint": "Baixa o modelo de voz Supertonic (~411 MB) do Hugging Face. Antes de baixar, a licença (OpenRAIL-M) será exibida para você aceitar.",
+      "download": "Baixar vozes",
+      "downloading": "Baixando…",
+      "downloadError": "Não foi possível baixar o modelo de voz. Verifique sua conexão e tente novamente.",
+      "selectorTitle": "Voz",
+      "selectorHint": "Escolha qual das 10 vozes do Supertonic o Dilo usa para falar.",
+      "selectorPlaceholder": "Escolha uma voz",
+      "test": "Ouvir uma amostra",
+      "testing": "Reproduzindo…",
+      "testError": "Não foi possível reproduzir a amostra. Verifique o dispositivo de saída de áudio.",
+      "assistantMode": {
+        "title": "Modo assistente de voz",
+        "description": "Atribua um atalho e, em vez de colar o ditado, o Dilo o envia para o LLM configurado (Pós-Processamento) e lê a resposta em voz alta.",
+        "toggleLabel": "Ativar modo assistente de voz",
+        "toggleDescription": "Requer um provedor LLM e um modelo configurados no Pós-Processamento.",
+        "shortcutHint": "Pressione para gravar uma pergunta; ao soltar, ela é enviada ao LLM e a resposta é falada."
+      },
+      "license": {
+        "title": "Licença do modelo de voz",
+        "intro": "Os pesos do Supertonic usam a licença OpenRAIL-M, que inclui restrições de uso (por exemplo, não se passar por uma pessoa sem o consentimento dela). Leia antes de aceitar — esta é a cópia exata da revisão que será baixada.",
+        "loading": "Buscando a licença no Hugging Face…",
+        "fetchError": "Não foi possível obter o texto da licença. Verifique sua conexão ou leia no navegador.",
+        "retry": "Tentar novamente",
+        "openInBrowser": "Ler no navegador",
+        "accept": "Aceito a licença — baixar",
+        "cancel": "Cancelar"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Falha ao colar o texto",
     "pasteFailed": "Não foi possível colar o texto no aplicativo ativo.",
     "transcriptionFailedTitle": "Falha na transcrição",
-    "noteSaveFailed": "Não foi possível salvar a nota: {{error}}"
+    "noteSaveFailed": "Não foi possível salvar a nota: {{error}}",
+    "assistantNotConfiguredTitle": "Assistente de voz não configurado",
+    "assistantNotConfigured": "Configure um provedor LLM e um modelo no Pós-Processamento para usar o assistente de voz.",
+    "assistantFailedTitle": "Falha no assistente de voz",
+    "assistantFailed": "Não foi possível obter uma resposta do LLM. Verifique sua conexão e tente novamente.",
+    "assistantTtsFailedTitle": "Não foi possível falar a resposta",
+    "assistantTtsFailed": "A resposta estava pronta, mas a voz não conseguiu reproduzi-la.",
+    "assistantDisabledTitle": "O assistente de voz está desativado",
+    "assistantDisabled": "Ative-o em Ajustes → Voz para usar este atalho."
   },
   "appLanguage": {
     "title": "Idioma da Aplicação",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transcrevendo...",
     "processing": "Processando...",
+    "speaking": "Falando...",
     "noteSaved": "Nota salva"
   },
   "whatsNew": {

@@ -17,7 +17,8 @@
     "history": "Geçmiş",
     "debug": "Hata Ayıklama",
     "about": "Hakkında",
-    "notes": "Notlar"
+    "notes": "Notlar",
+    "voice": "Ses"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Hızlı not kısayolu",
             "description": "Dikte edin ve not olarak kaydedin, etkin uygulamaya yapıştırmadan."
+          },
+          "voice_assistant": {
+            "name": "Sesli Asistan Kısayolu",
+            "description": "Transkripsiyonu yapılandırılmış LLM'e gönderir ve yanıtı yapıştırmak yerine sesli okur."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Şimdi yeniden dene",
       "retryError": "Bazı notlar hâlâ bekliyor. Daha sonra tekrar deneyin.",
       "notionTokenSaveError": "Notion belirteci kaydedilemedi. Tekrar deneyin."
+    },
+    "voice": {
+      "title": "Ses",
+      "description": "Dilo, yerel bir ses modeli (Supertonic) kullanarak sesli yanıt verebilir.",
+      "female": "Kadın",
+      "male": "Erkek",
+      "setupTitle": "Kurulum",
+      "downloadTitle": "Sesleri indir",
+      "downloadHint": "Supertonic ses modelini (~411 MB) Hugging Face'ten indirir. İndirmeden önce kabul etmeniz için lisansı (OpenRAIL-M) gösterilir.",
+      "download": "Sesleri indir",
+      "downloading": "İndiriliyor…",
+      "downloadError": "Ses modeli indirilemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+      "selectorTitle": "Ses",
+      "selectorHint": "Dilo'nun konuşmak için 10 Supertonic sesinden hangisini kullanacağını seçin.",
+      "selectorPlaceholder": "Bir ses seçin",
+      "test": "Örnek çal",
+      "testing": "Çalınıyor…",
+      "testError": "Örnek çalınamadı. Ses çıkış aygıtını kontrol edin.",
+      "assistantMode": {
+        "title": "Sesli Asistan Modu",
+        "description": "Bir kısayol atayın; Dilo dikte ettiğinizi yapıştırmak yerine yapılandırılmış LLM'e (Son İşlem) gönderir ve yanıtı sesli okur.",
+        "toggleLabel": "Sesli asistan modunu etkinleştir",
+        "toggleDescription": "Son İşlem bölümünde ayarlanmış bir LLM sağlayıcısı ve model gerektirir.",
+        "shortcutHint": "Bir soru kaydetmek için basılı tutun; bıraktığınızda LLM'e gönderilir ve yanıt sesli okunur."
+      },
+      "license": {
+        "title": "Ses modeli lisansı",
+        "intro": "Supertonic ağırlıkları, kullanım kısıtlamaları içeren OpenRAIL-M lisansını kullanır (örneğin, bir kişiyi rızası olmadan taklit etmemek). Kabul etmeden önce okuyun — bu, indirilen revizyondaki birebir kopyadır.",
+        "loading": "Lisans Hugging Face'ten alınıyor…",
+        "fetchError": "Lisans metni alınamadı. Bağlantınızı kontrol edin veya tarayıcıda okuyun.",
+        "retry": "Tekrar dene",
+        "openInBrowser": "Tarayıcıda oku",
+        "accept": "Lisansı kabul ediyorum — indir",
+        "cancel": "İptal"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Metin yapıştırılamadı",
     "pasteFailed": "Metin etkin uygulamaya yapıştırılamadı.",
     "transcriptionFailedTitle": "Transkripsiyon başarısız oldu",
-    "noteSaveFailed": "Not kaydedilemedi: {{error}}"
+    "noteSaveFailed": "Not kaydedilemedi: {{error}}",
+    "assistantNotConfiguredTitle": "Sesli Asistan Yapılandırılmamış",
+    "assistantNotConfigured": "Sesli asistanı kullanmak için Son İşlem bölümünde bir LLM sağlayıcısı ve model ayarlayın.",
+    "assistantFailedTitle": "Sesli Asistan Başarısız Oldu",
+    "assistantFailed": "LLM'den yanıt alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
+    "assistantTtsFailedTitle": "Yanıt Sesli Okunamadı",
+    "assistantTtsFailed": "Yanıt hazırdı ancak ses onu çalamadı.",
+    "assistantDisabledTitle": "Sesli asistan kapalı",
+    "assistantDisabled": "Bu kısayolu kullanmak için Ayarlar → Ses bölümünden açın."
   },
   "appLanguage": {
     "title": "Uygulama Dili",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
+    "speaking": "Konuşuyor...",
     "noteSaved": "Not kaydedildi"
   },
   "whatsNew": {

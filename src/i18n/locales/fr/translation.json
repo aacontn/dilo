@@ -17,7 +17,8 @@
     "history": "Historique",
     "debug": "Débogage",
     "about": "À propos",
-    "notes": "Notes"
+    "notes": "Notes",
+    "voice": "Voix"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Raccourci de note rapide",
             "description": "Dictez et enregistrez comme note, sans coller dans l'app active."
+          },
+          "voice_assistant": {
+            "name": "Raccourci assistant vocal",
+            "description": "Envoie la transcription au LLM configuré et lit la réponse à voix haute au lieu de la coller."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Réessayer maintenant",
       "retryError": "Certaines notes sont encore en attente. Réessayez plus tard.",
       "notionTokenSaveError": "Impossible d'enregistrer le jeton Notion. Réessayez."
+    },
+    "voice": {
+      "title": "Voix",
+      "description": "Dilo peut vous répondre à voix haute grâce à un modèle vocal local (Supertonic).",
+      "female": "Féminine",
+      "male": "Masculine",
+      "setupTitle": "Configuration",
+      "downloadTitle": "Télécharger les voix",
+      "downloadHint": "Télécharge le modèle vocal Supertonic (~411 Mo) depuis Hugging Face. Avant le téléchargement, sa licence (OpenRAIL-M) vous sera présentée pour acceptation.",
+      "download": "Télécharger les voix",
+      "downloading": "Téléchargement…",
+      "downloadError": "Impossible de télécharger le modèle vocal. Vérifiez votre connexion et réessayez.",
+      "selectorTitle": "Voix",
+      "selectorHint": "Choisissez laquelle des 10 voix Supertonic Dilo utilise pour parler.",
+      "selectorPlaceholder": "Choisir une voix",
+      "test": "Écouter un extrait",
+      "testing": "Lecture…",
+      "testError": "Impossible de lire l'extrait. Vérifiez le périphérique de sortie audio.",
+      "assistantMode": {
+        "title": "Mode assistant vocal",
+        "description": "Assignez un raccourci : au lieu de coller votre dictée, Dilo l'envoie au LLM configuré (Post-traitement) et lit la réponse à voix haute.",
+        "toggleLabel": "Activer le mode assistant vocal",
+        "toggleDescription": "Nécessite un fournisseur LLM et un modèle configurés dans Post-traitement.",
+        "shortcutHint": "Appuyez pour enregistrer une question ; en relâchant, elle est envoyée au LLM et la réponse est lue à voix haute."
+      },
+      "license": {
+        "title": "Licence du modèle vocal",
+        "intro": "Les poids Supertonic utilisent la licence OpenRAIL-M, qui comporte des restrictions d'usage (par exemple, ne pas imiter une personne sans son consentement). Lisez-la avant d'accepter — il s'agit de la copie exacte de la révision en cours de téléchargement.",
+        "loading": "Récupération de la licence depuis Hugging Face…",
+        "fetchError": "Impossible de récupérer le texte de la licence. Vérifiez votre connexion, ou lisez-la dans le navigateur.",
+        "retry": "Réessayer",
+        "openInBrowser": "Lire dans le navigateur",
+        "accept": "J'accepte la licence — télécharger",
+        "cancel": "Annuler"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Échec du collage du texte",
     "pasteFailed": "Le texte n'a pas pu être collé dans l'application active.",
     "transcriptionFailedTitle": "Échec de la transcription",
-    "noteSaveFailed": "Impossible d'enregistrer la note : {{error}}"
+    "noteSaveFailed": "Impossible d'enregistrer la note : {{error}}",
+    "assistantNotConfiguredTitle": "Assistant vocal non configuré",
+    "assistantNotConfigured": "Configurez un fournisseur LLM et un modèle dans Post-traitement pour utiliser l'assistant vocal.",
+    "assistantFailedTitle": "Échec de l'assistant vocal",
+    "assistantFailed": "Impossible d'obtenir une réponse du LLM. Vérifiez votre connexion et réessayez.",
+    "assistantTtsFailedTitle": "Impossible de lire la réponse à voix haute",
+    "assistantTtsFailed": "La réponse était prête, mais la voix n'a pas pu la lire.",
+    "assistantDisabledTitle": "L'assistant vocal est désactivé",
+    "assistantDisabled": "Activez-le dans Réglages → Voix pour utiliser ce raccourci."
   },
   "appLanguage": {
     "title": "Langue de l'application",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Transcription...",
     "processing": "Traitement...",
+    "speaking": "Synthèse vocale...",
     "noteSaved": "Note enregistrée"
   },
   "whatsNew": {

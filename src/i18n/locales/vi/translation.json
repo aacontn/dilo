@@ -17,7 +17,8 @@
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
     "about": "Giới thiệu",
-    "notes": "Ghi chú"
+    "notes": "Ghi chú",
+    "voice": "Giọng nói"
   },
   "home": {
     "status": {
@@ -324,6 +325,10 @@
           "quick_note": {
             "name": "Phím tắt ghi chú nhanh",
             "description": "Đọc và lưu thành ghi chú, không dán vào ứng dụng đang hoạt động."
+          },
+          "voice_assistant": {
+            "name": "Phím tắt trợ lý giọng nói",
+            "description": "Gửi bản chép lời đến LLM đã cấu hình và đọc to câu trả lời thay vì dán."
           }
         },
         "errors": {
@@ -740,6 +745,41 @@
       "retry": "Thử lại ngay",
       "retryError": "Một số ghi chú vẫn đang chờ. Hãy thử lại sau.",
       "notionTokenSaveError": "Không thể lưu token Notion. Hãy thử lại."
+    },
+    "voice": {
+      "title": "Giọng nói",
+      "description": "Dilo có thể trả lời bằng giọng nói nhờ mô hình giọng nói cục bộ (Supertonic).",
+      "female": "Nữ",
+      "male": "Nam",
+      "setupTitle": "Thiết lập",
+      "downloadTitle": "Tải giọng nói",
+      "downloadHint": "Tải mô hình giọng nói Supertonic (~411 MB) từ Hugging Face. Trước khi tải, giấy phép (OpenRAIL-M) sẽ được hiển thị để bạn chấp nhận.",
+      "download": "Tải giọng nói",
+      "downloading": "Đang tải…",
+      "downloadError": "Không thể tải mô hình giọng nói. Kiểm tra kết nối và thử lại.",
+      "selectorTitle": "Giọng nói",
+      "selectorHint": "Chọn giọng nào trong 10 giọng Supertonic mà Dilo dùng để nói.",
+      "selectorPlaceholder": "Chọn một giọng",
+      "test": "Phát thử một mẫu",
+      "testing": "Đang phát…",
+      "testError": "Không thể phát mẫu. Kiểm tra thiết bị đầu ra âm thanh.",
+      "assistantMode": {
+        "title": "Chế độ trợ lý giọng nói",
+        "description": "Gán một phím tắt, và thay vì dán nội dung bạn đọc, Dilo gửi nó đến LLM đã cấu hình (Xử lý sau) rồi đọc to câu trả lời.",
+        "toggleLabel": "Bật chế độ trợ lý giọng nói",
+        "toggleDescription": "Yêu cầu nhà cung cấp LLM và mô hình được thiết lập trong Xử lý sau.",
+        "shortcutHint": "Nhấn để ghi âm câu hỏi; khi thả, câu hỏi được gửi đến LLM và câu trả lời được đọc to."
+      },
+      "license": {
+        "title": "Giấy phép mô hình giọng nói",
+        "intro": "Trọng số Supertonic dùng giấy phép OpenRAIL-M, bao gồm các hạn chế sử dụng (ví dụ: không mạo danh người khác khi chưa có sự đồng ý). Hãy đọc trước khi chấp nhận — đây là bản sao chính xác từ phiên bản đang được tải.",
+        "loading": "Đang lấy giấy phép từ Hugging Face…",
+        "fetchError": "Không thể lấy nội dung giấy phép. Kiểm tra kết nối, hoặc đọc trong trình duyệt.",
+        "retry": "Thử lại",
+        "openInBrowser": "Đọc trong trình duyệt",
+        "accept": "Tôi chấp nhận giấy phép — tải về",
+        "cancel": "Hủy"
+      }
     }
   },
   "footer": {
@@ -785,7 +825,15 @@
     "pasteFailedTitle": "Không thể dán văn bản",
     "pasteFailed": "Không thể dán văn bản vào ứng dụng đang hoạt động.",
     "transcriptionFailedTitle": "Phiên âm thất bại",
-    "noteSaveFailed": "Không thể lưu ghi chú: {{error}}"
+    "noteSaveFailed": "Không thể lưu ghi chú: {{error}}",
+    "assistantNotConfiguredTitle": "Trợ lý giọng nói chưa được cấu hình",
+    "assistantNotConfigured": "Thiết lập nhà cung cấp LLM và mô hình trong Xử lý sau để dùng trợ lý giọng nói.",
+    "assistantFailedTitle": "Trợ lý giọng nói gặp lỗi",
+    "assistantFailed": "Không nhận được câu trả lời từ LLM. Kiểm tra kết nối và thử lại.",
+    "assistantTtsFailedTitle": "Không thể đọc câu trả lời",
+    "assistantTtsFailed": "Câu trả lời đã sẵn sàng, nhưng giọng nói không phát được.",
+    "assistantDisabledTitle": "Trợ lý giọng nói đang tắt",
+    "assistantDisabled": "Bật trong Cài đặt → Giọng nói để dùng phím tắt này."
   },
   "appLanguage": {
     "title": "Ngôn ngữ ứng dụng",
@@ -803,6 +851,7 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
+    "speaking": "Đang nói...",
     "noteSaved": "Đã lưu ghi chú"
   },
   "whatsNew": {
