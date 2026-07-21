@@ -753,7 +753,7 @@
       "male": "Male",
       "setupTitle": "Setup",
       "downloadTitle": "Download voices",
-      "downloadHint": "Downloads the Supertonic voice model (~411 MB) from Hugging Face. Weights are OpenRAIL-M licensed: {{url}}",
+      "downloadHint": "Downloads the Supertonic voice model (~411 MB) from Hugging Face. Before downloading you'll be shown its license (OpenRAIL-M) to accept.",
       "download": "Download voices",
       "downloading": "Downloading…",
       "downloadError": "Couldn't download the voice model. Check your connection and try again.",
@@ -769,6 +769,16 @@
         "toggleLabel": "Enable voice assistant mode",
         "toggleDescription": "Requires an LLM provider and model set up in Post-Processing.",
         "shortcutHint": "Press to record a question; releasing sends it to the LLM and speaks the reply."
+      },
+      "license": {
+        "title": "Voice model license",
+        "intro": "The Supertonic weights use the OpenRAIL-M license, which includes use restrictions (for example, not impersonating a person without their consent). Read it before accepting — this is the exact copy from the revision being downloaded.",
+        "loading": "Fetching the license from Hugging Face…",
+        "fetchError": "Couldn't fetch the license text. Check your connection, or read it in the browser.",
+        "retry": "Retry",
+        "openInBrowser": "Read in browser",
+        "accept": "I accept the license — download",
+        "cancel": "Cancel"
       }
     }
   },

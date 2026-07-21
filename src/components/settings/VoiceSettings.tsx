@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PlayIcon } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { commands, type TtsVoiceInfo, type TtsWeightsStatus } from "@/bindings";
 import { PageHeader } from "../ui/PageHeader";
 import { SettingContainer, SettingsGroup, ToggleSwitch } from "../ui";
+import { Dialog } from "../ui/Dialog";
 import { Dropdown, type DropdownOption } from "../ui/Dropdown";
 import { Button } from "../ui/Button";
 import { ShortcutInput } from "./ShortcutInput";
@@ -27,6 +29,12 @@ export const VoiceSettings: React.FC = () => {
   const [weights, setWeights] = useState<TtsWeightsStatus | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  // Diálogo de licencia: los pesos son OpenRAIL-M, así que antes de
+  // descargar se muestra la copia REAL del LICENSE (misma revisión pineada
+  // que los pesos, vía `ttsLicenseText`) y recién ahí se puede aceptar.
+  const [licenseOpen, setLicenseOpen] = useState(false);
+  const [licenseText, setLicenseText] = useState<string | null>(null);
+  const [licenseFailed, setLicenseFailed] = useState(false);
 
   const refreshWeightsStatus = useCallback(async () => {
     try {
@@ -88,10 +96,32 @@ export const VoiceSettings: React.FC = () => {
     }
   }, [selectedVoice, t]);
 
-  const handleDownload = useCallback(async () => {
+  const fetchLicense = useCallback(async () => {
+    setLicenseFailed(false);
+    try {
+      const result = await commands.ttsLicenseText();
+      if (result.status === "error") {
+        throw new Error(result.error);
+      }
+      setLicenseText(result.data);
+    } catch (error) {
+      console.error("Failed to fetch TTS license text:", error);
+      setLicenseFailed(true);
+    }
+  }, []);
+
+  const handleOpenLicense = useCallback(() => {
+    setLicenseOpen(true);
+    if (licenseText === null) void fetchLicense();
+  }, [licenseText, fetchLicense]);
+
+  // Solo alcanzable desde el diálogo con la licencia a la vista — por eso
+  // el `true`: acá el usuario ya la leyó y apretó aceptar.
+  const handleAcceptAndDownload = useCallback(async () => {
+    setLicenseOpen(false);
     setIsDownloading(true);
     try {
-      const result = await commands.ttsDownloadWeights();
+      const result = await commands.ttsDownloadWeights(true);
       if (result.status === "error") {
         throw new Error(result.error);
       }
@@ -123,7 +153,7 @@ export const VoiceSettings: React.FC = () => {
             grouped
           >
             <Button
-              onClick={handleDownload}
+              onClick={handleOpenLicense}
               variant="secondary"
               size="md"
               disabled={isDownloading}
@@ -135,6 +165,51 @@ export const VoiceSettings: React.FC = () => {
           </SettingContainer>
         </SettingsGroup>
       )}
+
+      <Dialog
+        open={licenseOpen}
+        onOpenChange={setLicenseOpen}
+        title={t("settings.voice.license.title")}
+        description={t("settings.voice.license.intro")}
+        closeLabel={t("settings.voice.license.cancel")}
+        contentClassName="space-y-3"
+        footer={
+          <div className="flex w-full items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => weights && openUrl(weights.license_url)}
+            >
+              {t("settings.voice.license.openInBrowser")}
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleAcceptAndDownload}
+              disabled={licenseText === null}
+            >
+              {t("settings.voice.license.accept")}
+            </Button>
+          </div>
+        }
+      >
+        {licenseText !== null ? (
+          <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md bg-mid-gray/10 p-3 text-xs leading-relaxed text-text">
+            {licenseText}
+          </pre>
+        ) : licenseFailed ? (
+          <div className="space-y-2 text-sm text-muted-text">
+            <p>{t("settings.voice.license.fetchError")}</p>
+            <Button variant="ghost" size="sm" onClick={() => fetchLicense()}>
+              {t("settings.voice.license.retry")}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-text">
+            {t("settings.voice.license.loading")}
+          </p>
+        )}
+      </Dialog>
 
       <SettingsGroup title={t("settings.voice.selectorTitle")}>
         <SettingContainer

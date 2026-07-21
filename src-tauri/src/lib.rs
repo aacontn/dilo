@@ -706,6 +706,7 @@ pub fn run(cli_args: CliArgs) {
             helpers::clamshell::is_laptop,
             commands::tts::tts_list_voices,
             commands::tts::tts_weights_status,
+            commands::tts::tts_license_text,
             commands::tts::tts_download_weights,
             commands::tts::tts_set_voice,
             commands::tts::tts_set_voice_assistant_enabled,

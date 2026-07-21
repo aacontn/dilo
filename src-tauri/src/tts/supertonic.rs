@@ -70,7 +70,11 @@ const SPEED: f32 = 1.05;
 /// el WER 1.13 en español citado en el plan es de la v3, ver
 /// `spikes/voz/RESULTADOS.md`).
 pub const HF_REPO_ID: &str = "Supertone/supertonic-3";
-pub const HF_REVISION: &str = "main";
+/// Commit exacto, no rama: el upstream no puede cambiarnos pesos ni
+/// licencia bajo los pies (la migración a Xet de HF ya rompió una vez las
+/// descargas de STT apuntando a refs móviles). `LICENSE_NOTICE_SOURCE_URL`
+/// y `license_text()` deben referir SIEMPRE a esta misma revisión.
+pub const HF_REVISION: &str = "3cadd1ee6394adea1bd021217a0e650ede09a323";
 
 /// Los 6 archivos del checkpoint compartido (config + 4 modelos ONNX +
 /// indexador Unicode), relativos a `onnx/` dentro del repo de HF.
@@ -83,16 +87,13 @@ pub const ONNX_FILES: &[&str] = &[
     "vocoder.onnx",
 ];
 
-/// Punto donde debe mostrarse el aviso de licencia OpenRAIL-M antes de
-/// descargar los pesos — la UI que lo muestra viene después (fuera de
-/// alcance de este cambio, ver `docs/plans/dilo-v2-voz.md`). El texto real
-/// de las 13 restricciones de uso debe copiarse desde el archivo LICENSE
-/// del repo de Hugging Face al implementar esa UI; no se reproduce aquí
-/// para no fijar en el código una copia que podría quedar desactualizada.
-/// El código en sí (este motor) es MIT — es solo el checkpoint el que es
-/// OpenRAIL-M.
+/// Enlace legible del LICENSE en la revisión pineada, para "leer en el
+/// navegador" desde el aviso. El texto que la UI muestra en el diálogo no
+/// sale de acá sino de [`license_text`], que lo baja del mismo commit — así
+/// nunca se muestra una copia distinta de lo que se descarga. El código en
+/// sí (este motor) es MIT — es solo el checkpoint el que es OpenRAIL-M.
 pub const LICENSE_NOTICE_SOURCE_URL: &str =
-    "https://huggingface.co/Supertone/supertonic-3/blob/main/LICENSE";
+    "https://huggingface.co/Supertone/supertonic-3/blob/3cadd1ee6394adea1bd021217a0e650ede09a323/LICENSE";
 
 /// Directorio donde viven los pesos dentro del árbol de datos de la app,
 /// mismo patrón que `ModelManager` (`<app_data>/models/...`).
@@ -121,9 +122,31 @@ pub fn is_downloaded(models_dir: &Path) -> bool {
             .all(|v| styles.join(format!("{v}.json")).is_file())
 }
 
+/// Texto del LICENSE (OpenRAIL-M, con sus restricciones de uso) en la
+/// MISMA revisión pineada de la que se descargan los pesos — lo que el
+/// diálogo de la UI muestra es exactamente lo que el usuario acepta. Se
+/// baja por la misma vía que los pesos (`hf_hub`, con su caché); requiere
+/// red la primera vez, igual que la descarga que gatilla.
+pub async fn license_text() -> Result<String> {
+    let api = hf_hub::api::tokio::ApiBuilder::from_env()
+        .with_progress(false)
+        .build()
+        .map_err(|e| anyhow::anyhow!("no se pudo inicializar la API de Hugging Face: {e}"))?;
+    let repo = api.repo(hf_hub::Repo::with_revision(
+        HF_REPO_ID.to_string(),
+        hf_hub::RepoType::Model,
+        HF_REVISION.to_string(),
+    ));
+    let cached = repo
+        .get("LICENSE")
+        .await
+        .map_err(|e| anyhow::anyhow!("descargando LICENSE: {e}"))?;
+    Ok(std::fs::read_to_string(&cached)?)
+}
+
 /// Descarga los pesos desde Hugging Face si faltan. Requiere que el
 /// llamador haya mostrado y confirmado el aviso de licencia OpenRAIL-M
-/// (`license_acknowledged` — ver [`LICENSE_NOTICE_SOURCE_URL`]); rechaza
+/// (`license_acknowledged` — ver [`license_text`]); rechaza
 /// descargar si no.
 ///
 /// No ejercitada por los tests automáticos de este módulo (depende de red
@@ -878,5 +901,40 @@ mod tests {
     fn license_notice_points_at_the_real_openrail_m_license() {
         assert!(LICENSE_NOTICE_SOURCE_URL.contains("supertonic-3"));
         assert!(LICENSE_NOTICE_SOURCE_URL.contains("LICENSE"));
+        // El enlace legible y la descarga deben referir al MISMO commit:
+        // si se repinea HF_REVISION y se olvida la URL, esto revienta.
+        assert!(
+            LICENSE_NOTICE_SOURCE_URL.contains(HF_REVISION),
+            "LICENSE_NOTICE_SOURCE_URL debe apuntar a la revisión pineada"
+        );
+    }
+
+    /// La revisión de HF debe ser un commit exacto, no una rama. Apuntar a
+    /// `main` ya nos costó una vez (la migración a Xet rompió las descargas
+    /// de STT): el upstream puede cambiar pesos o licencia bajo nuestros
+    /// pies, y el aviso de licencia que mostramos debe ser exactamente el
+    /// de la revisión que se descarga.
+    #[test]
+    fn hf_revision_is_pinned_to_a_commit_not_a_branch() {
+        assert_eq!(
+            HF_REVISION.len(),
+            40,
+            "HF_REVISION debe ser un SHA de commit, no '{HF_REVISION}'"
+        );
+        assert!(HF_REVISION.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    /// El gate de licencia corta ANTES de tocar la red: con
+    /// `license_acknowledged = false` debe fallar de inmediato, offline.
+    #[tokio::test]
+    async fn download_is_rejected_without_license_acknowledgment() {
+        let dir = tempfile::tempdir().unwrap();
+        let err = ensure_weights_downloaded(dir.path(), false)
+            .await
+            .expect_err("sin confirmar la licencia no se descarga");
+        assert!(
+            err.to_string().contains("licencia"),
+            "el error debe explicar qué falta: {err}"
+        );
     }
 }

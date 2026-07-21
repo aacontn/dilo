@@ -753,7 +753,7 @@
       "male": "Masculina",
       "setupTitle": "Configuración",
       "downloadTitle": "Descargar voces",
-      "downloadHint": "Descarga el modelo de voz de Supertonic (~411 MB) desde Hugging Face. Los pesos tienen licencia OpenRAIL-M: {{url}}",
+      "downloadHint": "Descarga el modelo de voz de Supertonic (~411 MB) desde Hugging Face. Antes de bajar te mostramos su licencia (OpenRAIL-M) para que la aceptes.",
       "download": "Descargar voces",
       "downloading": "Descargando…",
       "downloadError": "No se pudo descargar el modelo de voz. Revisa tu conexión e intenta de nuevo.",
@@ -769,6 +769,16 @@
         "toggleLabel": "Activar el modo asistente hablado",
         "toggleDescription": "Necesita un proveedor y un modelo de LLM configurados en Post-proceso.",
         "shortcutHint": "Mantén presionado para grabar una pregunta; al soltar se manda al LLM y se escucha la respuesta."
+      },
+      "license": {
+        "title": "Licencia de las voces",
+        "intro": "Los pesos de Supertonic usan la licencia OpenRAIL-M, que incluye restricciones de uso (por ejemplo, no usarlos para suplantar a una persona sin su consentimiento). Léela antes de aceptar — esta es la copia exacta de la revisión que se descarga.",
+        "loading": "Trayendo la licencia desde Hugging Face…",
+        "fetchError": "No se pudo traer el texto de la licencia. Revisa tu conexión, o léela en el navegador.",
+        "retry": "Reintentar",
+        "openInBrowser": "Leer en el navegador",
+        "accept": "Acepto la licencia — descargar",
+        "cancel": "Cancelar"
       }
     }
   },

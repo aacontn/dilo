@@ -999,13 +999,27 @@ async ttsWeightsStatus() : Promise<Result<TtsWeightsStatus, string>> {
 }
 },
 /**
- * Descarga los pesos desde Hugging Face. Llamar solo tras mostrar el aviso
- * de licencia OpenRAIL-M en la UI — el botón que dispara este comando *es*
- * la confirmación (ver `tts::supertonic::ensure_weights_downloaded`).
+ * Texto del LICENSE OpenRAIL-M en la revisión pineada, para que el diálogo
+ * de la UI muestre la copia real (restricciones incluidas) antes de que el
+ * usuario acepte descargar.
  */
-async ttsDownloadWeights() : Promise<Result<null, string>> {
+async ttsLicenseText() : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("tts_download_weights") };
+    return { status: "ok", data: await TAURI_INVOKE("tts_license_text") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Descarga los pesos desde Hugging Face. `licenseAccepted` viene del
+ * diálogo que muestra la licencia (`ttsLicenseText`): solo mandar `true`
+ * después de que el usuario apretó "Aceptar" con el texto a la vista. El
+ * gate real vive en el backend, que rechaza sin él.
+ */
+async ttsDownloadWeights(licenseAccepted: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_download_weights", { licenseAccepted }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

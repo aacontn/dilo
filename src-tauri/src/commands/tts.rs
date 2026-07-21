@@ -110,18 +110,30 @@ pub fn tts_weights_status(app: AppHandle) -> Result<TtsWeightsStatus, String> {
     })
 }
 
-/// Descarga los pesos desde Hugging Face. Llamar solo tras mostrar el aviso
-/// de licencia OpenRAIL-M en la UI — el botón que dispara este comando *es*
-/// la confirmación (ver `tts::supertonic::ensure_weights_downloaded`).
+/// Texto del LICENSE OpenRAIL-M en la revisión pineada, para que el diálogo
+/// de la UI muestre la copia real (restricciones incluidas) antes de que el
+/// usuario acepte descargar.
 #[tauri::command]
 #[specta::specta]
-pub async fn tts_download_weights(app: AppHandle) -> Result<(), String> {
+pub async fn tts_license_text() -> Result<String, String> {
+    supertonic::license_text().await.map_err(|e| e.to_string())
+}
+
+/// Descarga los pesos desde Hugging Face. `license_accepted` viene del
+/// diálogo que muestra la licencia (`tts_license_text`): el frontend solo
+/// puede mandar `true` después de que el usuario apretó "Aceptar" con el
+/// texto a la vista. El gate real vive en
+/// `tts::supertonic::ensure_weights_downloaded`, que rechaza sin él — acá
+/// ya no se hardcodea `true` por nadie.
+#[tauri::command]
+#[specta::specta]
+pub async fn tts_download_weights(app: AppHandle, license_accepted: bool) -> Result<(), String> {
     if std::env::var("DILO_SUPERTONIC_MODELS_DIR").is_ok() {
         // El desarrollo ya apunta a una copia local; no hay nada que bajar.
         return Ok(());
     }
     let models_root = models_root_dir(&app)?;
-    supertonic::ensure_weights_downloaded(&models_root, true)
+    supertonic::ensure_weights_downloaded(&models_root, license_accepted)
         .await
         .map_err(|e| e.to_string())
 }
