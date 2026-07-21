@@ -1,6 +1,14 @@
-# AGENTS.md
+# CLAUDE.md / AGENTS.md
 
 This file provides guidance to AI coding assistants working with code in this repository.
+
+> **`CLAUDE.md` and `AGENTS.md` are byte-identical copies, and `CLAUDE.md` is the
+> source of truth.** Two files exist because different tools look for different
+> names (Claude Code reads `CLAUDE.md`, Codex reads `AGENTS.md`); they are full
+> copies rather than one pointing at the other because not every tool resolves a
+> `Read @file` reference, and a tool that doesn't would end up with no
+> instructions at all. **Edit `CLAUDE.md`, then copy it over `AGENTS.md`** —
+> `tests/unit/agentInstructions.test.ts` fails if they drift apart.
 
 > **Dilo** is a Spanish-first fork of [Handy](https://github.com/cjpais/Handy) (`upstream` remote). Product decisions live in `docs/superpowers/specs/`. Keep the Rust core close to upstream so `git merge upstream/main` stays cheap; brand/UI/default changes go in focused commits. All user-facing copy is Spanish-first (es locale is authored, not machine-translated — keep its voice: tuteo, direct, zero corporate filler).
 
