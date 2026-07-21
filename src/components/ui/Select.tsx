@@ -93,6 +93,15 @@ const selectStyles: StylesConfig<SelectOption, false> = {
       color: "var(--color-accent-text)",
     },
   }),
+  // El menú se rinde en un portal a <body> (ver `menuPortalTarget`), por el
+  // mismo motivo que `Dropdown.tsx`: las tarjetas `.glass-surface` usan
+  // `backdrop-filter` y cada una crea su stacking context, así que un z-index
+  // local nunca alcanzaba para salir de la tarjeta. `menuPortal` es la capa
+  // del portal; necesita el z-index alto porque compite ya en el body.
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 1000,
+  }),
   menu: (provided) => ({
     ...provided,
     zIndex: 30,
@@ -160,6 +169,11 @@ export const Select: React.FC<SelectProps> = React.memo(
       onBlur,
       isClearable,
       styles: selectStyles,
+      menuPortalTarget:
+        typeof document !== "undefined" ? document.body : undefined,
+      // Con el menú en <body>, `absolute` lo posicionaría respecto del
+      // documento y se despegaría del control al hacer scroll.
+      menuPosition: "fixed",
     };
 
     if (isCreatable) {
