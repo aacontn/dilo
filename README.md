@@ -114,6 +114,13 @@ Detalle por plataforma en [BUILD.md](BUILD.md).
 
 ## Roadmap
 
+Las dos apuestas grandes de producto:
+
+- [ ] **Control de agentes por voz** — Dilo como intermediario: le hablas, un agente hace el trabajo (Claude Code y otros) y Dilo te lee la respuesta en voz alta, con palabra de activación. La voz de salida ya llega en v0.1.12; falta conectar el otro extremo.
+- [ ] **Notetaker de reuniones y notas** — transcripción en vivo identificando quién habla, con resumen y acciones, sincronizada con Apple Notes. Pensada también para reuniones **presenciales**, no solo videollamadas.
+
+Empaquetado y sistema:
+
 - [ ] Firma y notarización de binarios (Apple Developer)
 - [ ] Overlay nativo sin webview (menos RAM aún)
 - [ ] Homebrew cask y winget
