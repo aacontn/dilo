@@ -176,7 +176,9 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
     <div
       ref={containerRef}
       onClick={compact ? (e) => e.stopPropagation() : undefined}
-      className={compact ? "flex items-center gap-2" : "space-y-2 flex flex-col"}
+      className={
+        compact ? "flex items-center gap-2" : "space-y-2 flex flex-col"
+      }
     >
       {!compact && (
         <label className="text-sm font-semibold">

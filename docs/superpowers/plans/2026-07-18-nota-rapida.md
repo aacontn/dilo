@@ -34,9 +34,11 @@
 ### Task 1: Settings de notas + binding `quick_note`
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs`
 
 **Interfaces (Produces):**
+
 - `AppSettings.notes_folder: Option<String>` (None → default `~/Documents/Dilo/Notas`)
 - `AppSettings.notes_apple_enabled: bool` (default false), `notes_apple_folder: String` (default `"Dilo"`)
 - `AppSettings.notes_notion_enabled: bool` (default false), `notes_notion_parent: String` (default `""`)
@@ -87,9 +89,11 @@ bindings.insert(
 ### Task 2: `notes.rs` — archivo local puro + cola
 
 **Files:**
+
 - Create: `src-tauri/src/notes.rs` · Modify: `src-tauri/src/lib.rs` (`mod notes;`)
 
 **Interfaces (Produces):**
+
 - `pub fn note_title(now: &chrono::DateTime<chrono::Local>) -> String` → `"AAAA-MM-DD HH.mm.ss — Nota"`
 - `pub fn write_local_note(folder: &Path, title: &str, body: &str) -> Result<PathBuf, String>` — crea carpeta si falta, escribe `<title>.md` con frontmatter `---\nfecha: <ISO>\n---\n\n<body>\n`
 - `pub fn notes_folder(settings: &AppSettings) -> PathBuf` — `notes_folder` o `dirs::document_dir()/Dilo/Notas` (crate `dirs` ya es dependencia transitiva; si no está directa, usar `tauri::Manager::path().document_dir()`)
@@ -122,9 +126,11 @@ fn write_local_note_creates_folder_and_file() {
 ### Task 3: Sync Apple Notes + Notion + cola de pendientes
 
 **Files:**
+
 - Modify: `src-tauri/src/notes.rs`
 
 **Interfaces (Produces):**
+
 - `#[cfg(target_os = "macos")] pub fn sync_apple(folder: &str, title: &str, body: &str) -> Result<(), String>` — osascript: crear carpeta "Dilo" si no existe + `make new note`; escapar comillas del texto.
 - `pub async fn sync_notion(token: &str, parent_id: &str, title: &str, body: &str) -> Result<(), String>` — `POST https://api.notion.com/v1/pages` con `Notion-Version: 2022-06-28`; detectar por forma del id si el parent es página (`parent: {page_id}`) — v1: probar `page_id` y si Notion responde error de tipo de parent reintentar como `database_id` (título en la propiedad `title`).
 - `pub async fn capture_note(app: &AppHandle, text: &str)` — orquestador: escribir local (error → log + `emit("paste-error")` no; usar evento propio `note-error`), luego por destino habilitado intentar sync; fallo → push a `notes_pending` (con `write_settings`); éxito de todo → nada más.
@@ -167,9 +173,11 @@ end tell
 ### Task 4: Acción `quick_note` en el pipeline
 
 **Files:**
+
 - Modify: `src-tauri/src/actions.rs`, `src-tauri/src/transcription_coordinator.rs`
 
 **Interfaces:**
+
 - Consumes: `notes::capture_note(app, text)` (T3).
 - Produces: `ACTION_MAP["quick_note"]`, `TranscribeAction { post_process: false, output: OutputDestination::Note }`.
 
@@ -195,9 +203,11 @@ fn quick_note_is_a_transcribe_binding_and_resolves() {
 ### Task 5: UI "Notas" + i18n
 
 **Files:**
+
 - Create: `src/components/settings/NotesSettings.tsx` · Modify: navegación/rutas de settings (buscar dónde se registra p. ej. la sección de post-proceso y calcar), `src/i18n/locales/*/translation.json` (22). Regenerar `src/bindings.ts` primero.
 
 **Contenido de la sección (usar `SettingContainer`/`SettingsGroup`/`Input`/`Button`/`Dropdown` existentes):**
+
 - Atajo: `<ShortcutInput shortcutId="quick_note" />` (ya funciona: es un binding normal).
 - Carpeta local: ruta actual (o default) + botón "Elegir carpeta" → `open({ directory: true })` de `@tauri-apps/plugin-dialog` → `updateSetting("notes_folder", path)`; botón reset → `null`.
 - Apple Notes (solo si `osType === "macos"`): toggle `notes_apple_enabled` + input `notes_apple_folder`.
@@ -223,6 +233,7 @@ fn quick_note_is_a_transcribe_binding_and_resolves() {
 ### Task 7: Arrastre de la ventana principal
 
 **Files:**
+
 - Modify: `src/App.css` (región de arrastre), `src/App.tsx` si hace falta
 - Contexto: la ventana macOS usa `TitleBarStyle::Overlay` + `hidden_title` (lib.rs `create_main_window`); el frontend tiene `.dilo-titlebar-drag-region` (`data-tauri-drag-region`, 36px alto, z-20, App.tsx:290) presente en todas las ramas. Alfonso reporta que no puede arrastrar desde ninguna parte.
 
@@ -236,13 +247,16 @@ fn quick_note_is_a_transcribe_binding_and_resolves() {
 ### Task 8: Inicio — tarjetas de modo con atajo y Personalizar
 
 **Files:**
+
 - Modify: `src/components/home/DictationModes.tsx`, `src/components/home/HomeDashboard.tsx`, `src/App.tsx` (navegación a sección), CSS del segment en `src/App.css`
 - Modify: `src/i18n/locales/*/translation.json` (22)
 
 **Interfaces:**
+
 - Consumes: `ModeShortcutInput` (tanda 1, `src/components/settings/ModeShortcutInput.tsx`), `settings.post_process_prompts` (con `shortcut`), navegación por secciones (`currentSection`/`setCurrentSection` viven en App.tsx y Sidebar).
 
 **Diseño (pedido de Alfonso):**
+
 - Cada modo con un espacio más dedicado: convertir la grilla de botones compactos en tarjetas más altas (label + descripción corta + atajo). El modo "literal" sigue primero; los modos de post-proceso NO desaparecen al elegir literal (siempre visibles, el seleccionado marcado).
 - Incluir también los modos creados por el usuario (hoy solo salen los 5 presets `DICTATION_MODE_PRESETS`): derivar la lista de `settings.post_process_prompts` (presets primero, luego custom).
 - En cada tarjeta (menos literal): el atajo del modo, mostrado y editable con `ModeShortcutInput` (o una variante compacta del mismo componente si el layout lo pide). Cuidado: el click en el input NO debe seleccionar el modo (stopPropagation).

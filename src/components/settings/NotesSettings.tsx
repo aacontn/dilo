@@ -3,11 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { open } from "@tauri-apps/plugin-dialog";
 import { commands } from "@/bindings";
-import {
-  SettingContainer,
-  SettingsGroup,
-  ToggleSwitch,
-} from "@/components/ui";
+import { SettingContainer, SettingsGroup, ToggleSwitch } from "@/components/ui";
 import { PageHeader } from "../ui/PageHeader";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
