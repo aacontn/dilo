@@ -1026,6 +1026,22 @@ async ttsSetVoice(voice: string) : Promise<Result<null, string>> {
 }
 },
 /**
+ * Enciende o apaga el modo asistente hablado (settings.voice_assistant_enabled),
+ * el toggle de Ajustes > Voz que habilita el atajo `voice_assistant`.
+ *
+ * Existe porque el guard de `actions.rs` lee este valor desde los settings
+ * persistidos: sin un comando que lo escriba, el toggle solo cambiaba el
+ * estado del frontend y el backend seguía viendo `false` para siempre.
+ */
+async ttsSetVoiceAssistantEnabled(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_set_voice_assistant_enabled", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Sintetiza `text` con `voice` (o la voz elegida en settings si se omite) y
  * lo reproduce por los parlantes. Devuelve una vez terminó de sonar.
  */

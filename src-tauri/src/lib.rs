@@ -708,6 +708,7 @@ pub fn run(cli_args: CliArgs) {
             commands::tts::tts_weights_status,
             commands::tts::tts_download_weights,
             commands::tts::tts_set_voice,
+            commands::tts::tts_set_voice_assistant_enabled,
             commands::tts::tts_speak,
         ])
         .events(collect_events![

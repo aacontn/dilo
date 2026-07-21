@@ -208,6 +208,21 @@ pub fn tts_set_voice(app: AppHandle, voice: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Enciende o apaga el modo asistente hablado (settings.voice_assistant_enabled),
+/// el toggle de Ajustes > Voz que habilita el atajo `voice_assistant`.
+///
+/// Existe porque el guard de `actions.rs` lee este valor desde los settings
+/// persistidos: sin un comando que lo escriba, el toggle solo cambiaba el
+/// estado del frontend y el backend seguía viendo `false` para siempre.
+#[tauri::command]
+#[specta::specta]
+pub fn tts_set_voice_assistant_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.voice_assistant_enabled = enabled;
+    write_settings(&app, settings);
+    Ok(())
+}
+
 /// Sintetiza `text` con `voice` (o la voz elegida en settings si se omite) y
 /// lo reproduce por los parlantes. Devuelve una vez terminó de sonar.
 #[tauri::command]

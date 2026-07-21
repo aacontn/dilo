@@ -174,6 +174,8 @@ const settingUpdaters: {
   notes_notion_parent: (value) =>
     commands.changeNotesNotionParent(value as string),
   tts_voice: (value) => commands.ttsSetVoice(value as string),
+  voice_assistant_enabled: (value) =>
+    commands.ttsSetVoiceAssistantEnabled(value as boolean),
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -308,7 +310,13 @@ export const useSettingsStore = create<SettingsStore>()(
         if (updater) {
           await updater(value);
         } else if (key !== "bindings" && key !== "selected_model") {
-          console.warn(`No handler for setting: ${String(key)}`);
+          // Sin updater no hay nada que persista el cambio: el backend sigue
+          // leyendo el valor viejo. Antes esto solo avisaba por consola y el
+          // estado optimista se quedaba puesto, así que la UI mostraba un
+          // toggle encendido que en disco seguía apagado (le pasó a
+          // `voice_assistant_enabled`). Fallar acá revierte la UI y deja el
+          // olvido a la vista en vez de esconderlo.
+          throw new Error(`No handler for setting: ${String(key)}`);
         }
       } catch (error) {
         console.error(`Failed to update setting ${String(key)}:`, error);
