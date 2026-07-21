@@ -771,6 +771,7 @@
         "shortcutHint": "按下以录制问题；松开后发送给 LLM 并朗读回复。"
       },
       "license": {
+        "whatYouDownload": "语音模型约 411 MB。只需下载一次，之后即可离线运行——无需账户，无需密钥。",
         "title": "语音模型许可证",
         "intro": "Supertonic 权重使用 OpenRAIL-M 许可证，其中包含使用限制（例如，未经本人同意不得模仿他人）。请在接受前阅读——这是正在下载的版本中的原文副本。",
         "loading": "正在从 Hugging Face 获取许可证...",

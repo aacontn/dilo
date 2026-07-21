@@ -771,6 +771,7 @@
         "shortcutHint": "Nhấn để ghi âm câu hỏi; khi thả, câu hỏi được gửi đến LLM và câu trả lời được đọc to."
       },
       "license": {
+        "whatYouDownload": "Mô hình giọng nói khoảng ~411 MB. Tải một lần, sau đó chạy ngoại tuyến — không tài khoản, không khóa.",
         "title": "Giấy phép mô hình giọng nói",
         "intro": "Trọng số Supertonic dùng giấy phép OpenRAIL-M, bao gồm các hạn chế sử dụng (ví dụ: không mạo danh người khác khi chưa có sự đồng ý). Hãy đọc trước khi chấp nhận — đây là bản sao chính xác từ phiên bản đang được tải.",
         "loading": "Đang lấy giấy phép từ Hugging Face…",

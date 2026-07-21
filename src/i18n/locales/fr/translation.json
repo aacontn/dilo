@@ -771,6 +771,7 @@
         "shortcutHint": "Appuyez pour enregistrer une question ; en relâchant, elle est envoyée au LLM et la réponse est lue à voix haute."
       },
       "license": {
+        "whatYouDownload": "Le modèle vocal fait ~411 Mo. Il se télécharge une seule fois, puis fonctionne hors ligne — sans compte, sans clé.",
         "title": "Licence du modèle vocal",
         "intro": "Les poids Supertonic utilisent la licence OpenRAIL-M, qui comporte des restrictions d'usage (par exemple, ne pas imiter une personne sans son consentement). Lisez-la avant d'accepter — il s'agit de la copie exacte de la révision en cours de téléchargement.",
         "loading": "Récupération de la licence depuis Hugging Face…",

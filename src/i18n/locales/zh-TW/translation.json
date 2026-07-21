@@ -771,6 +771,7 @@
         "shortcutHint": "按住以錄製問題；放開後傳送給 LLM 並朗讀回覆。"
       },
       "license": {
+        "whatYouDownload": "語音模型約 411 MB。只需下載一次，之後即可離線運行——無需帳戶，無需金鑰。",
         "title": "語音模型授權條款",
         "intro": "Supertonic 權重使用 OpenRAIL-M 授權條款，其中包含使用限制（例如，未經本人同意不得模仿他人）。請在接受前閱讀——這是正在下載的版本中的原文副本。",
         "loading": "正在從 Hugging Face 取得授權條款...",

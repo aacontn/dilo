@@ -193,6 +193,9 @@ export const VoiceSettings: React.FC = () => {
           </div>
         }
       >
+        <p className="rounded-md bg-mid-gray/10 px-3 py-2 text-sm text-text">
+          {t("settings.voice.license.whatYouDownload")}
+        </p>
         {licenseText !== null ? (
           <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-md bg-mid-gray/10 p-3 text-xs leading-relaxed text-text">
             {licenseText}

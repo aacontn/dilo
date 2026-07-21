@@ -771,6 +771,7 @@
         "shortcutHint": "Press to record a question; releasing sends it to the LLM and speaks the reply."
       },
       "license": {
+        "whatYouDownload": "The voice model is ~411 MB. It downloads once, then runs offline — no account, no key.",
         "title": "Voice model license",
         "intro": "The Supertonic weights use the OpenRAIL-M license, which includes use restrictions (for example, not impersonating a person without their consent). Read it before accepting — this is the exact copy from the revision being downloaded.",
         "loading": "Fetching the license from Hugging Face…",

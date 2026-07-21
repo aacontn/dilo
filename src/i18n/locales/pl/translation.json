@@ -771,6 +771,7 @@
         "shortcutHint": "Naciśnij, aby nagrać pytanie; po puszczeniu zostanie wysłane do LLM, a odpowiedź odczytana na głos."
       },
       "license": {
+        "whatYouDownload": "Model głosu ma ~411 MB. Pobiera się raz, a potem działa offline — bez konta, bez klucza.",
         "title": "Licencja modelu głosu",
         "intro": "Wagi Supertonic są objęte licencją OpenRAIL-M, która zawiera ograniczenia użycia (na przykład zakaz podszywania się pod osobę bez jej zgody). Przeczytaj ją przed zaakceptowaniem — to dokładna kopia z pobieranej rewizji.",
         "loading": "Pobieranie licencji z Hugging Face…",

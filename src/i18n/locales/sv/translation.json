@@ -771,6 +771,7 @@
         "shortcutHint": "Tryck för att spela in en fråga; när du släpper skickas den till LLM:en och svaret läses upp."
       },
       "license": {
+        "whatYouDownload": "Röstmodellen är ~411 MB. Den laddas ner en gång och körs sedan offline — inget konto, ingen nyckel.",
         "title": "Röstmodellens licens",
         "intro": "Supertonic-vikterna använder licensen OpenRAIL-M, som innehåller användningsbegränsningar (till exempel att inte imitera en person utan dennes samtycke). Läs den innan du accepterar — detta är den exakta kopian från revisionen som laddas ner.",
         "loading": "Hämtar licensen från Hugging Face…",

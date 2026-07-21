@@ -771,6 +771,7 @@
         "shortcutHint": "Druk om een vraag op te nemen; bij loslaten wordt deze naar de LLM gestuurd en wordt het antwoord uitgesproken."
       },
       "license": {
+        "whatYouDownload": "Het stemmodel is ~411 MB. Het wordt één keer gedownload en werkt daarna offline — geen account, geen sleutel.",
         "title": "Licentie van het stemmodel",
         "intro": "De Supertonic-gewichten gebruiken de OpenRAIL-M-licentie, die gebruiksbeperkingen bevat (bijvoorbeeld niet iemand imiteren zonder diens toestemming). Lees de licentie voordat je accepteert — dit is de exacte kopie van de revisie die wordt gedownload.",
         "loading": "Licentie ophalen van Hugging Face…",

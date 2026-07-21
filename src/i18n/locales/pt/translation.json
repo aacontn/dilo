@@ -771,6 +771,7 @@
         "shortcutHint": "Pressione para gravar uma pergunta; ao soltar, ela é enviada ao LLM e a resposta é falada."
       },
       "license": {
+        "whatYouDownload": "O modelo de voz tem ~411 MB. É baixado uma única vez e depois funciona offline — sem conta, sem chave.",
         "title": "Licença do modelo de voz",
         "intro": "Os pesos do Supertonic usam a licença OpenRAIL-M, que inclui restrições de uso (por exemplo, não se passar por uma pessoa sem o consentimento dela). Leia antes de aceitar — esta é a cópia exata da revisão que será baixada.",
         "loading": "Buscando a licença no Hugging Face…",

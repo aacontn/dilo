@@ -771,6 +771,7 @@
         "shortcutHint": "Stiskněte pro nahrání otázky; po uvolnění se odešle LLM a odpověď se přečte nahlas."
       },
       "license": {
+        "whatYouDownload": "Hlasový model má ~411 MB. Stáhne se jednou a pak běží offline — bez účtu, bez klíče.",
         "title": "Licence hlasového modelu",
         "intro": "Váhy Supertonic používají licenci OpenRAIL-M, která obsahuje omezení použití (například nevydávat se za osobu bez jejího souhlasu). Před přijetím si ji přečtěte — toto je přesná kopie z právě stahované revize.",
         "loading": "Načítání licence z Hugging Face…",

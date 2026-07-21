@@ -771,6 +771,7 @@
         "shortcutHint": "Bir soru kaydetmek için basılı tutun; bıraktığınızda LLM'e gönderilir ve yanıt sesli okunur."
       },
       "license": {
+        "whatYouDownload": "Ses modeli ~411 MB. Bir kez indirilir, sonra çevrimdışı çalışır — hesap yok, anahtar yok.",
         "title": "Ses modeli lisansı",
         "intro": "Supertonic ağırlıkları, kullanım kısıtlamaları içeren OpenRAIL-M lisansını kullanır (örneğin, bir kişiyi rızası olmadan taklit etmemek). Kabul etmeden önce okuyun — bu, indirilen revizyondaki birebir kopyadır.",
         "loading": "Lisans Hugging Face'ten alınıyor…",

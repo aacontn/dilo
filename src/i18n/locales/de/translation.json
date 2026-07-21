@@ -771,6 +771,7 @@
         "shortcutHint": "Drücken, um eine Frage aufzunehmen; beim Loslassen wird sie an das LLM gesendet und die Antwort vorgelesen."
       },
       "license": {
+        "whatYouDownload": "Das Stimmmodell ist ~411 MB groß. Es wird einmal heruntergeladen und läuft dann offline — kein Konto, kein Schlüssel.",
         "title": "Lizenz des Stimmmodells",
         "intro": "Die Supertonic-Gewichte stehen unter der OpenRAIL-M-Lizenz, die Nutzungsbeschränkungen enthält (zum Beispiel, keine Person ohne deren Einwilligung zu imitieren). Lies sie vor dem Akzeptieren — dies ist die exakte Kopie aus der Revision, die heruntergeladen wird.",
         "loading": "Lizenz wird von Hugging Face geladen…",
