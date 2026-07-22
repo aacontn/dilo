@@ -122,6 +122,8 @@ Las dos apuestas grandes de producto:
 
 - [ ] **Control de agentes por voz** — Dilo como intermediario: le hablas, un agente hace el trabajo (Claude Code y otros) y Dilo te lee la respuesta en voz alta, con palabra de activación. La voz de salida ya llega en v0.1.12; falta conectar el otro extremo.
 - [ ] **Notetaker de reuniones y notas** — transcripción en vivo identificando quién habla, con resumen y acciones, sincronizada con Apple Notes. Pensada también para reuniones **presenciales**, no solo videollamadas.
+- [ ] **Modo según la app en la que estás** — Dilo detecta dónde escribes y aplica el modo que corresponde (en el correo escribe como correo, en el editor como código), sin que tengas que acordarte de ningún atajo. Foco en macOS y Windows; en Linux el comportamiento actual se mantiene.
+- [ ] **Diccionario que aprende solo** — Dilo aprende de las correcciones que ya hace la IA y las incorpora al arreglo local, así deja de necesitar la IA para las palabras que usas siempre. Todo en tu equipo.
 
 Empaquetado y sistema:
 
