@@ -12,6 +12,37 @@ This file provides guidance to AI coding assistants working with code in this re
 
 > **Dilo** is a Spanish-first fork of [Handy](https://github.com/cjpais/Handy) (`upstream` remote). Product decisions live in `docs/superpowers/specs/`. Keep the Rust core close to upstream so `git merge upstream/main` stays cheap; brand/UI/default changes go in focused commits. All user-facing copy is Spanish-first (es locale is authored, not machine-translated — keep its voice: tuteo, direct, zero corporate filler).
 
+## Dirección de producto — plataforma conversacional abierta
+
+**Dilo es la pieza central open source**, no el cliente cautivo de un backend,
+agente o producto particular. Su propósito es ser una interfaz conversacional
+universal: recibe voz o texto, transcribe, conversa y presenta la respuesta por
+voz, texto o ambos. Cada persona decide a qué modelo, asistente, automatización
+o sistema conectarlo.
+
+- Dilo sigue siendo plenamente útil sin conexiones externas: dictado,
+  procesamiento local y voz local.
+- Las capacidades externas entran por contratos genéricos y reemplazables:
+  primero un destino asistente configurable; después conectores/adaptadores
+  con permisos explícitos y, cuando corresponda, protocolos como MCP.
+- No introducir en el núcleo nombres, reglas de negocio ni dependencias de un
+  backend particular. Una instalación privada puede ser muy potente sin
+  convertir esa implementación en la arquitectura del producto público.
+- Dilo posee la experiencia conversacional —captura, STT, TTS, sesión,
+  progreso y presentación—; el backend conectado interpreta, planifica y
+  ejecuta. Dilo no se convierte en ERP, orquestador de agentes ni autoridad de
+  negocio.
+- La voz puede proponer una acción, pero nunca autentica ni autoriza una
+  operación sensible. Los conectores declaran permisos y las credenciales no
+  se guardan como texto plano en la configuración.
+- El nombre/persona y el futuro wake word son configurables por cada usuario;
+  ninguna personalidad concreta define el producto.
+
+La dirección aprobada y sus límites están en
+`docs/superpowers/specs/2026-07-22-dilo-plataforma-conversacional-abierta.md`.
+Es una definición de producto, **no autorización para implementar conectores
+sin su diseño técnico y plan correspondientes**.
+
 ## Development Commands
 
 **Prerequisites:**
@@ -61,7 +92,10 @@ For detailed platform-specific build setup, see [BUILD.md](BUILD.md).
 
 ## Architecture Overview
 
-Dilo is a cross-platform desktop speech-to-text application built with Tauri 2.x (Rust backend + React/TypeScript frontend).
+Dilo is a cross-platform open conversational interface built with Tauri 2.x
+(Rust backend + React/TypeScript frontend). Speech-to-text remains its base,
+but the product direction also includes interchangeable assistant destinations
+and spoken/text responses without coupling the core to any particular backend.
 
 ### Backend Structure (src-tauri/src/)
 
