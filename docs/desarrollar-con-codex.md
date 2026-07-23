@@ -1,14 +1,13 @@
-# Desarrollar Dilo con Codex (respaldo a Claude Code)
+# Desarrollar Dilo con Codex
 
-Dilo se desarrolla con asistentes de IA. El principal es **Claude Code**; este
-doc es el **plan B para cuando se te acaben los tokens/límite de Claude** y
-quieras seguir avanzando sin parar.
+Dilo se desarrolla con asistentes de IA — **Claude Code y Codex**, indistintamente.
+Esta guía cubre Codex; las instrucciones de Claude Code están en `CLAUDE.md`.
 
-**Por qué sirve como respaldo:** el CLI de Codex se autentica con tu cuenta de
-**ChatGPT**, no con la de Claude. Son cuotas separadas — si una se agota, la otra
-sigue. Y como Codex lee `AGENTS.md` (que es copia byte a byte de `CLAUDE.md`),
-trabaja con **exactamente las mismas instrucciones** que Claude Code. No hay que
-reconfigurar nada.
+**Por qué conviven bien:** cada CLI se autentica con su propia cuenta (Codex con
+ChatGPT), así que son cuotas independientes — puedes alternar sin que una agote a
+la otra. Y como Codex lee `AGENTS.md` (copia byte a byte de `CLAUDE.md`), ambos
+trabajan con **exactamente las mismas instrucciones y reglas del repo**. No hay
+que reconfigurar nada al cambiar de uno a otro.
 
 ## Requisitos
 

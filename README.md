@@ -104,9 +104,9 @@ bun run tauri build   # producción
 
 Detalle por plataforma en [BUILD.md](BUILD.md).
 
-Dilo se desarrolla con asistentes de IA. Si te quedas sin tokens de Claude,
-puedes seguir con Codex (usa tu cuenta de ChatGPT, cuota aparte, mismas
-instrucciones): ver [Desarrollar con Codex](docs/desarrollar-con-codex.md).
+Dilo se desarrolla con asistentes de IA — Claude Code y Codex, con las mismas
+instrucciones (`CLAUDE.md` = `AGENTS.md`). Guía de Codex:
+[Desarrollar con Codex](docs/desarrollar-con-codex.md).
 
 ## Solución de problemas
 
