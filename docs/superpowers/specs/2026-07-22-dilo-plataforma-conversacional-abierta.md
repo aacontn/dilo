@@ -80,3 +80,38 @@ Dilo.
 Una función pertenece al núcleo sólo si mejora la experiencia conversacional
 para cualquier usuario. Si conoce un negocio, agente o backend específico,
 debe vivir detrás de una conexión reemplazable.
+
+## Nota para continuar — Dilo Online con Nova 2 Sonic
+
+- **Fecha:** 2026-07-24.
+- **Estado:** dirección de exploración acordada con Alfonso; no autoriza
+  implementación sin diseño técnico y plan.
+
+La incorporación que se quiere evaluar para Amazon Nova 2 Sonic no reemplaza el
+dictado local. Es un **upgrade online opcional** para la futura experiencia de
+wake word, conversación natural, Command Center y agentes.
+
+La separación prevista es:
+
+- El wake word se detecta localmente. El micrófono sólo se transmite después de
+  una activación explícita y Dilo muestra claramente que la sesión está online.
+- Dilo conserva la experiencia: captura, sesión, interrupciones, overlay,
+  progreso, texto, voz y solicitudes de aprobación.
+- Nova 2 Sonic es un proveedor reemplazable de conversación speech-to-speech,
+  no la identidad del producto ni una dependencia del dictado base.
+- Command Center interpreta objetivos y coordina agentes y herramientas. Esa
+  lógica vive fuera del núcleo abierto de Dilo.
+- La voz nunca autoriza operaciones sensibles. Dilo puede anunciar o preparar
+  una acción, pero enviar, borrar, comprar o modificar sistemas requiere
+  confirmación visual segura.
+- Sin red, sin cuenta o sin créditos, Dilo sigue funcionando como dictado local.
+
+La exploración comercial contempla dos variantes que deben diseñarse antes de
+elegir: **BYO AWS**, donde una persona o empresa usa su propia cuenta y paga su
+consumo, y **Dilo Online administrado**, con autenticación y minutos incluidos
+por Dilo.
+
+Nota técnica para el futuro diseño: Nova 2 Sonic usa la API bidireccional
+`InvokeModelWithBidirectionalStream`. No debe tratarse como otro modelo de texto
+del conector OpenAI-compatible de Bedrock Mantle que ya existe. Requiere un
+contrato de proveedor conversacional y un adaptador de streaming propios.

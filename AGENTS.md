@@ -43,6 +43,12 @@ La dirección aprobada y sus límites están en
 Es una definición de producto, **no autorización para implementar conectores
 sin su diseño técnico y plan correspondientes**.
 
+La misma especificación incluye una nota del 2026-07-24 para explorar **Dilo
+Online con Nova 2 Sonic**: wake word local y conversación cloud opcional con
+Command Center y agentes. Sonic debe ser un proveedor reemplazable detrás de un
+contrato conversacional propio; no reemplaza el dictado offline ni entra por el
+conector de texto Bedrock Mantle. La nota no autoriza implementación.
+
 ## Development Commands
 
 **Prerequisites:**
