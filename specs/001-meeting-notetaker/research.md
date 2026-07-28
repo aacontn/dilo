@@ -82,6 +82,56 @@ en el **Decision** de arriba?) antes de que T009 arranque. Detalle
 completo, con enlaces a las fuentes, en
 `.superpowers/sdd/task-T002-report.md`.
 
+**Licencias de los modelos ONNX committeados/usados (T008)**: el brief de
+T008 exigía verificar la licencia de los archivos `.onnx` específicos, no
+la licencia genérica del repo `k2-fsa/sherpa-onnx` (Apache-2.0) que los
+sirve. Resultado, con las fuentes primarias usadas:
+
+- **Segmentación** — `sherpa-onnx-pyannote-segmentation-3-0` (archivo
+  `model.onnx` dentro del `.tar.bz2` de esa release, committeado en
+  `src-tauri/resources/models/pyannote_segmentation_3_0.onnx`, 5,992,913
+  bytes, SHA-256
+  `220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079`):
+  **MIT License, Copyright (c) 2022 CNRS**. Verificado leyendo el archivo
+  `LICENSE` bundleado *dentro* del propio `.tar.bz2` de la release (no
+  solo la licencia del repo) — descargado de
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2.
+  El `README.md` bundleado confirma el origen:
+  https://huggingface.co/pyannote/segmentation-3.0 (licencia `mit` en su
+  ficha de HuggingFace también). Sin restricción de uso comercial ni
+  umbral de ingresos.
+- **Embeddings de hablante** —
+  `3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx` (no
+  committeado — se descarga en runtime, ver
+  `src-tauri/src/managers/diarization_models.rs`, 28,281,164 bytes,
+  SHA-256
+  `aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2`):
+  **Apache-2.0** (proyecto 3D-Speaker, Alibaba DAMO Academy / ModelScope).
+  Verificado leyendo el `README.md` real del repo origen
+  (`modelscope/3D-Speaker`, sección "License": *"3D-Speaker is released
+  under the Apache License 2.0"*) y la licencia que GitHub detecta sobre
+  ese repo (`apache-2.0`), con dos mirrors independientes de este mismo
+  checkpoint ONNX en HuggingFace confirmando "License: Apache-2.0
+  (inherited from 3D-Speaker / ModelScope)". Descargado de
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx.
+  Sin restricción de uso comercial ni umbral de ingresos.
+- **Modelo hermano descartado** — la misma release de segmentación
+  (`speaker-segmentation-models`) también publica
+  `sherpa-onnx-reverb-diarization-v1.tar.bz2` y
+  `sherpa-onnx-reverb-diarization-v2.tar.bz2` (Rev.ai). La documentación
+  oficial de sherpa-onnx
+  (https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/models.html)
+  señala que ese modelo tiene licencia **`non-commercial`** —
+  incompatible con distribuir Dilo gratis. No se usó nunca (el research de
+  T002 ya apuntaba a `pyannote-segmentation-3-0`), pero queda documentado
+  acá como evidencia de que la release mezcla modelos con licencias
+  incompatibles y que la verificación por-archivo era necesaria de
+  verdad, no un trámite.
+
+Detalle completo (incluyendo por qué se descartó registrar el modelo de
+embeddings en `managers/model.rs`/`ModelInfo`) en
+`.superpowers/sdd/task-T008-report.md` (gitignored, local).
+
 **Límite honesto a documentar (no ocultar)**: ningún pipeline de
 diarización basado en un solo micrófono resuelve perfectamente la
 superposición de voz total (dos personas hablando exactamente lo mismo,

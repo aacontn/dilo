@@ -41,6 +41,54 @@ use anyhow::{bail, Context, Result};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
+// ============================================================================
+// Modelo de segmentación (pyannote-style) — committeado directo en
+// `resources/models/`, no se descarga en runtime. Estas constantes no las
+// usa ningún código todavía (el archivo se referencia por ruta relativa
+// fija, igual que `silero_vad_v4.onnx` en `managers/audio.rs`) — existen
+// para que la procedencia y la licencia de un binario que se embebe sin
+// condiciones en cada build queden en un lugar tracked por git, no solo en
+// el mensaje de commit o en el reporte gitignored de T008. Registro
+// paralelo (más narrativo) en `specs/001-meeting-notetaker/research.md`
+// §1, "Licencias de los modelos ONNX committeados/usados (T008)".
+// ============================================================================
+
+/// Nombre de archivo del modelo de segmentación, tal como vive en
+/// `resources/models/`.
+pub const SEGMENTATION_MODEL_FILENAME: &str = "pyannote_segmentation_3_0.onnx";
+
+/// URL de origen: archivo `model.onnx` dentro de
+/// `sherpa-onnx-pyannote-segmentation-3-0.tar.bz2`, release
+/// `speaker-segmentation-models` del repo `k2-fsa/sherpa-onnx`.
+/// https://github.com/k2-fsa/sherpa-onnx/releases/tag/speaker-segmentation-models
+pub const SEGMENTATION_MODEL_SOURCE_URL: &str = "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2";
+
+/// SHA-256 del archivo committeado en
+/// `resources/models/pyannote_segmentation_3_0.onnx` (calculado
+/// localmente en T008 sobre el `model.onnx` extraído del `.tar.bz2`
+/// de origen).
+pub const SEGMENTATION_MODEL_SHA256: &str =
+    "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079";
+
+/// Licencia verificada del checkpoint (no la licencia genérica del repo
+/// `k2-fsa/sherpa-onnx` que lo sirve, que es Apache-2.0): **MIT License,
+/// Copyright (c) 2022 CNRS** (Centre National de la Recherche
+/// Scientifique — el laboratorio francés detrás de pyannote). Verificado
+/// leyendo el archivo `LICENSE` bundleado *dentro* del `.tar.bz2` de la
+/// release (no solo la licencia del repo que lo hostea) — texto completo
+/// en `specs/001-meeting-notetaker/research.md` §1. El `README.md`
+/// bundleado en el mismo `.tar.bz2` confirma el origen:
+/// <https://huggingface.co/pyannote/segmentation-3.0> (licencia `mit`
+/// también en su ficha de HuggingFace). Sin restricción de uso comercial
+/// ni umbral de ingresos.
+pub const SEGMENTATION_MODEL_LICENSE: &str =
+    "MIT (pyannote/segmentation-3.0, Copyright (c) 2022 CNRS — ver research.md §1)";
+
+// ============================================================================
+// Modelo de embeddings de hablante (CAM++, 3D-Speaker) — descarga en
+// runtime, ver funciones más abajo.
+// ============================================================================
+
 /// Nombre de archivo del modelo de embeddings de hablante, tal como se
 /// guarda en disco. Mismo nombre que publica sherpa-onnx (no se renombra)
 /// para que el hash de origen (`EMBEDDING_MODEL_SHA256`) sea trivialmente
