@@ -13,11 +13,12 @@ jerárquico/aglomerativo (complete-linkage, distancia coseno, al estilo
 `fastcluster`) para determinar el número de hablantes sin conocerlo de
 antemano (corte del dendrograma por umbral de distancia — ver "Corrección
 encontrada" más abajo).
-Concretamente, el proyecto **sherpa-onnx** (k2-fsa) ya empaqueta este
-pipeline completo (`OfflineSpeakerDiarization`) como modelos ONNX
-descargables + bindings de Rust oficiales, siguiendo el mismo patrón que
-Dilo ya usa para Silero VAD y los motores de transcripción ONNX
-(transcribe-rs).
+Concretamente, el proyecto **sherpa-onnx** (k2-fsa) publica los modelos ONNX
+de este pipeline (`OfflineSpeakerDiarization`: segmentación + embeddings)
+como archivos `.onnx` sueltos, cargables directamente con el `ort` que Dilo
+ya usa para Silero VAD y los motores de transcripción ONNX (transcribe-rs)
+— sin necesidad de sus bindings de Rust completos (confirmado en T002, ver
+"Resultado (T002)" más abajo).
 
 **Rationale**:
 - Encaja con la arquitectura existente: Dilo ya embebe modelos ONNX locales
@@ -25,8 +26,9 @@ Dilo ya usa para Silero VAD y los motores de transcripción ONNX
   modelo de diarización ONNX más sigue el mismo patrón de
   descarga-y-ejecución local, no introduce un runtime nuevo (ej. no hace
   falta empotrar Python/PyTorch).
-- El clustering espectral no requiere saber cuántos hablantes hay de
-  antemano — cumple FR-003 directamente.
+- El corte del dendrograma por umbral de distancia (en vez de por `k` fijo)
+  no requiere saber cuántos hablantes hay de antemano — cumple FR-003
+  directamente.
 - El modelo de segmentación tipo pyannote detecta habla superpuesta como
   parte de su salida nativa (múltiples activaciones de hablante por frame),
   no como un caso especial — es la base técnica más razonable para el
