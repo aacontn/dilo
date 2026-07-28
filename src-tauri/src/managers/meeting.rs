@@ -302,6 +302,27 @@ pub struct MeetingCallEnded {
 // (single meetings, not multi-day always-on capture) the memory cost is
 // real but not disqualifying; flagged here for a follow-up task rather than
 // risking an unverified fix.
+//
+// This bears on SC-004 ("sin degradación de memoria/latencia perceptible
+// en reuniones de más de 2 horas") on **two** axes, not just memory. The
+// `out_buf.extend_from_slice(buf)` call that grows this buffer
+// (`audio_toolkit/audio/recorder.rs`'s `handle_frame`/`emit`) runs
+// synchronously on `run_consumer`'s single thread — the same thread that
+// also resamples every incoming chunk, drives the VAD, and calls this
+// module's `audio_cb` (which is what actually feeds `TurnAccumulator` and,
+// downstream, when a turn gets transcribed). A `Vec<f32>` that has grown to
+// hundreds of MB reallocates (and memcpy's its *entire* existing contents)
+// on an amortized-doubling schedule — infrequent, but each one copies more
+// data than the last as the meeting goes on, so the worst-case stall on
+// that single thread gets *larger*, not smaller, later into a long
+// meeting. Any such stall delays `audio_cb` for whatever frames arrive
+// during it, which delays turn-boundary detection and therefore when a
+// segment reaches the transcriber thread — i.e. a plausible, compounding
+// latency-degradation mechanism over a multi-hour meeting, not just a
+// memory one. I have not measured this (no real multi-hour audio run in
+// this environment) — flagging the mechanism, not a measurement, so
+// whoever runs T053's SC-004 validation knows to watch both memory *and*
+// segment-latency-over-time, not just memory.
 
 /// One completed VAD-detected speech turn, ready to transcribe. `research.md`
 /// §2's "ventanas cortas superpuestas" decision maps one VAD turn to one
@@ -756,11 +777,25 @@ impl MeetingManager {
     /// implement that command itself.
     #[allow(dead_code)]
     pub fn stop_capture(&self, meeting_id: i64) -> Result<()> {
+        // Held for the ENTIRE critical section below — including
+        // recorder.stop(), the thread joins, and the arbiter release at the
+        // end — not dropped early. Dropping it right after `take()` (as an
+        // earlier version of this function did) let a concurrent
+        // `start_capture` see no active session, acquire the arbiter (the
+        // same-owner re-acquire check made that look legitimate), and open a
+        // second `AudioRecorder` on the same device while this teardown was
+        // still in flight; this function's later `release()` would then
+        // wipe out that new session's legitimate claim. That's exactly the
+        // failure mode the arbiter exists to prevent (T012 review finding
+        // #1), so `start_capture`'s own `self.capture.lock()` now blocks
+        // until this whole function — arbiter release included — is done,
+        // mirroring how `AudioRecordingManager::try_start_recording`/
+        // `stop_recording` hold `self.state` across their whole critical
+        // section for the same reason.
         let mut capture_guard = self.capture.lock().unwrap();
         let mut session = capture_guard
             .take()
             .ok_or_else(|| anyhow::anyhow!("no_active_meeting_capture"))?;
-        drop(capture_guard);
 
         if session.meeting_id != meeting_id {
             warn!(

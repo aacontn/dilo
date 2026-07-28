@@ -463,59 +463,95 @@ impl AudioRecordingManager {
             return Ok(());
         }
 
-        let start_time = Instant::now();
+        // Claim the arbiter before actually opening the device. Every caller
+        // of this function — on-demand's `try_start_recording` AND
+        // always-on's startup/mode-switch path — routes through here, so
+        // the arbiter now correctly reflects "is *any* dictation mic stream
+        // open," not just "is a recording active." That closes the gap
+        // where an always-on user's persistently-open idle stream wasn't
+        // gated at all, letting a meeting open a second concurrent stream
+        // on the same device underneath it with no detection (T012 review
+        // finding #2). Released in `stop_microphone_stream` — the
+        // mirror-image "the stream is actually closing" point — not in
+        // `stop_recording`/`cancel_recording`, which only end the
+        // *recording*; always-on mode keeps the stream itself open past
+        // that point, so releasing there used to free the arbiter while the
+        // device was still genuinely open (T012 review finding #1/#2).
+        if let Err(owner) = self.mic_arbiter.try_acquire(MicOwner::Dictation) {
+            anyhow::bail!(
+                "El micrófono está en uso por {} ahora mismo.",
+                owner.label()
+            );
+        }
 
-        // Don't mute immediately - caller will handle muting after audio feedback
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
-        *did_mute_guard = false;
+        let open_result = (|| -> Result<(), anyhow::Error> {
+            let start_time = Instant::now();
 
-        // Get the selected device from settings, considering clamshell mode.
-        // No pre-flight enumeration here: when nothing is configured the
-        // recorder resolves the system default itself, and a machine with no
-        // input devices at all fails inside open() with the same
-        // "No input device found" error this used to check for.
-        let settings = get_settings(&self.app_handle);
-        let resolve_started = Instant::now();
-        let selected_device = self.get_effective_microphone_device(&settings);
-        let resolve_elapsed = resolve_started.elapsed();
+            // Don't mute immediately - caller will handle muting after audio feedback
+            let mut did_mute_guard = self.did_mute.lock().unwrap();
+            *did_mute_guard = false;
+            drop(did_mute_guard);
 
-        // Ensure VAD is loaded if it wasn't for whatever reason
-        let vad_started = Instant::now();
-        self.preload_vad()?;
-        let vad_elapsed = vad_started.elapsed();
+            // Get the selected device from settings, considering clamshell mode.
+            // No pre-flight enumeration here: when nothing is configured the
+            // recorder resolves the system default itself, and a machine with no
+            // input devices at all fails inside open() with the same
+            // "No input device found" error this used to check for.
+            let settings = get_settings(&self.app_handle);
+            let resolve_started = Instant::now();
+            let selected_device = self.get_effective_microphone_device(&settings);
+            let resolve_elapsed = resolve_started.elapsed();
 
-        let open_started = Instant::now();
-        let mut recorder_opt = self.recorder.lock().unwrap();
-        if let Some(rec) = recorder_opt.as_mut() {
-            if let Err(first_err) = rec.open(selected_device.clone()) {
-                // A cached device or config may have gone stale (unplugged,
-                // rate/format changed). Re-resolve from a fresh enumeration and
-                // retry once before surfacing the error.
-                warn!("Recorder open failed ({first_err}); re-resolving device and retrying once");
-                self.invalidate_device_cache();
-                let fresh_device = self.get_effective_microphone_device(&settings);
-                rec.open(fresh_device)
-                    .map_err(|e| anyhow::anyhow!("Failed to open recorder: {}", e))?;
+            // Ensure VAD is loaded if it wasn't for whatever reason
+            let vad_started = Instant::now();
+            self.preload_vad()?;
+            let vad_elapsed = vad_started.elapsed();
+
+            let open_started = Instant::now();
+            let mut recorder_opt = self.recorder.lock().unwrap();
+            if let Some(rec) = recorder_opt.as_mut() {
+                if let Err(first_err) = rec.open(selected_device.clone()) {
+                    // A cached device or config may have gone stale (unplugged,
+                    // rate/format changed). Re-resolve from a fresh enumeration and
+                    // retry once before surfacing the error.
+                    warn!(
+                        "Recorder open failed ({first_err}); re-resolving device and retrying once"
+                    );
+                    self.invalidate_device_cache();
+                    let fresh_device = self.get_effective_microphone_device(&settings);
+                    rec.open(fresh_device)
+                        .map_err(|e| anyhow::anyhow!("Failed to open recorder: {}", e))?;
+                }
+            }
+            debug!(
+                "mic stream breakdown: device_resolve={:?} vad_ensure={:?} open={:?}",
+                resolve_elapsed,
+                vad_elapsed,
+                open_started.elapsed()
+            );
+
+            // This timing covers through cpal's stream.play() returning — i.e. the
+            // point cpal surfaces as "stream running." It does NOT guarantee the
+            // host audio device is producing samples yet; the first input callback
+            // fires asynchronously one buffer period later (hardware dependent,
+            // typically ~10–200ms on macOS, longer on Bluetooth/USB).
+            info!(
+                "Microphone stream initialized in {:?}",
+                start_time.elapsed()
+            );
+            Ok(())
+        })();
+
+        match open_result {
+            Ok(()) => {
+                *open_flag = true;
+                Ok(())
+            }
+            Err(e) => {
+                self.mic_arbiter.release(MicOwner::Dictation);
+                Err(e)
             }
         }
-        debug!(
-            "mic stream breakdown: device_resolve={:?} vad_ensure={:?} open={:?}",
-            resolve_elapsed,
-            vad_elapsed,
-            open_started.elapsed()
-        );
-
-        *open_flag = true;
-        // This timing covers through cpal's stream.play() returning — i.e. the
-        // point cpal surfaces as "stream running." It does NOT guarantee the
-        // host audio device is producing samples yet; the first input callback
-        // fires asynchronously one buffer period later (hardware dependent,
-        // typically ~10–200ms on macOS, longer on Bluetooth/USB).
-        info!(
-            "Microphone stream initialized in {:?}",
-            start_time.elapsed()
-        );
-        Ok(())
     }
 
     pub fn stop_microphone_stream(&self) {
@@ -540,6 +576,11 @@ impl AudioRecordingManager {
         }
 
         *open_flag = false;
+        // Mirror-image of the acquire in `start_microphone_stream`: the
+        // device stream is actually closed now, so release unconditionally
+        // (idempotent/safe even if, somehow, this manager wasn't the
+        // current holder — see `MicrophoneArbiter::release`).
+        self.mic_arbiter.release(MicOwner::Dictation);
         debug!("Microphone stream stopped");
     }
 
@@ -578,23 +619,23 @@ impl AudioRecordingManager {
         if let RecordingState::Idle = *state {
             // Refuse to start if a meeting is currently capturing — the two
             // never record concurrently (see the coexistence note in
-            // `managers/meeting.rs`). Must happen before opening the mic
-            // stream so a blocked attempt never touches the device.
-            if let Err(owner) = self.mic_arbiter.try_acquire(MicOwner::Dictation) {
-                let msg = format!(
-                    "El micrófono está en uso por {} ahora mismo.",
-                    owner.label()
-                );
-                warn!("try_start_recording blocked by mic arbiter: {msg}");
-                return Err(msg);
-            }
+            // `managers/meeting.rs`). The arbiter is claimed/released purely
+            // around the physical device stream being open, not around this
+            // recording state — see `start_microphone_stream`/
+            // `stop_microphone_stream` — so on-demand mode is guarded here
+            // (it opens the stream fresh) and always-on mode is guarded by
+            // construction (its stream, and thus the arbiter claim, has been
+            // held since startup/mode-switch; nothing here needs to
+            // re-check it, and releasing on every stop-recording used to
+            // free the arbiter while the always-on stream was still
+            // genuinely open underneath a meeting — see T012 review finding
+            // #1/#2 for the bug this replaced).
 
             // Ensure microphone is open in on-demand mode
             if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
                 // Cancel any pending lazy close
                 self.close_generation.fetch_add(1, Ordering::SeqCst);
                 if let Err(e) = self.start_microphone_stream() {
-                    self.mic_arbiter.release(MicOwner::Dictation);
                     let msg = format!("{e}");
                     error!("Failed to open microphone stream: {msg}");
                     return Err(msg);
@@ -611,7 +652,10 @@ impl AudioRecordingManager {
                     return Ok(());
                 }
             }
-            self.mic_arbiter.release(MicOwner::Dictation);
+            // The mic stream may still be open here (on-demand open
+            // succeeded but rec.start() itself failed) — deliberately not
+            // releasing the arbiter: it tracks the device stream, which is
+            // still open, not this recording attempt.
             Err("Recorder not available".to_string())
         } else {
             Err("Already recording".to_string())
@@ -687,7 +731,14 @@ impl AudioRecordingManager {
 
                 *self.is_recording.lock().unwrap() = false;
                 *self.state.lock().unwrap() = RecordingState::Idle;
-                self.mic_arbiter.release(MicOwner::Dictation);
+                // Deliberately not releasing the mic arbiter here: it tracks
+                // whether the physical device stream is open
+                // (`start_microphone_stream`/`stop_microphone_stream`), not
+                // whether a recording is in progress. Always-on mode keeps
+                // the stream open after this returns, so releasing here
+                // would free the arbiter while the device is still open
+                // underneath it — exactly the bug T012 review finding #1/#2
+                // flagged.
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
                 if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
@@ -733,7 +784,9 @@ impl AudioRecordingManager {
             RecordingState::Recording { .. } => {
                 *state = RecordingState::Idle;
                 drop(state);
-                self.mic_arbiter.release(MicOwner::Dictation);
+                // See the matching comment in `stop_recording`: the arbiter
+                // tracks the device stream, not this recording, so it isn't
+                // released here either.
 
                 if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
                     let _ = rec.stop(); // Discard the result
