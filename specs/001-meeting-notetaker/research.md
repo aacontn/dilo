@@ -9,7 +9,10 @@ trata como "investigar después" — es la pregunta central de esta fase.
 **Decision**: usar un pipeline de diarización basado en ONNX Runtime —
 modelo de segmentación con detección de habla superpuesta (overlap-aware,
 estilo pyannote) + extracción de embeddings de hablante + clustering
-espectral para determinar el número de hablantes sin conocerlo de antemano.
+jerárquico/aglomerativo (complete-linkage, distancia coseno, al estilo
+`fastcluster`) para determinar el número de hablantes sin conocerlo de
+antemano (corte del dendrograma por umbral de distancia — ver "Corrección
+encontrada" más abajo).
 Concretamente, el proyecto **sherpa-onnx** (k2-fsa) ya empaqueta este
 pipeline completo (`OfflineSpeakerDiarization`) como modelos ONNX
 descargables + bindings de Rust oficiales, siguiendo el mismo patrón que
