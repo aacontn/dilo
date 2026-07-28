@@ -31,6 +31,52 @@ Dilo ya usa para Silero VAD y los motores de transcripción ONNX
 - Rust nativo vía bindings oficiales evita añadir un sidecar en otro
   lenguaje, consistente con el resto del backend.
 
+**Revisión (implementación, T002)**: `src-tauri/Cargo.toml` ya depende de
+`ort = "=2.0.0-rc.12"` (bindings ONNX Runtime en Rust), usado hoy para
+Parakeet/Moonshine/SenseVoice. En vez de sumar el crate/binding completo de
+sherpa-onnx como dependencia nueva, evaluar correr los mismos modelos ONNX
+que sherpa-onnx publica (segmentación + embeddings de hablante) directamente
+sobre el `ort` ya integrado — mismo enfoque técnico de research.md §1, sin
+duplicar bindings de ONNX Runtime en el binario. Si el empaquetado de esos
+modelos específicos hace inviable evitar la dependencia de sherpa-onnx,
+usarla igual está permitido — es una preferencia de consistencia, no un
+bloqueo.
+
+**Resultado (T002)**: confirmado — Ruta A. `ort = "=2.0.0-rc.12"` alcanza
+tal cual, `Cargo.toml` no necesita ninguna dependencia nueva para los
+modelos ONNX en sí. Verificado leyendo el código fuente C++ de sherpa-onnx
+(`k2-fsa/sherpa-onnx`, rama `master`):
+`sherpa-onnx/csrc/offline-speaker-segmentation-pyannote-model.cc` y
+`speaker-embedding-extractor-model.cc` cargan sus modelos con un
+`Ort::Session` plano (`std::make_unique<Ort::Session>(env_, path, opts)` /
+`sess_->Run(...)`), sin operadores ONNX custom — son modelos ONNX
+estándar, publicados como archivos `.onnx` sueltos en GitHub Releases
+(`k2-fsa/sherpa-onnx` releases `speaker-segmentation-models` y
+`speaker-recongition-models`), no en un formato propietario de
+sherpa-onnx. Mismo patrón que `tts/supertonic.rs` ya usa en este repo
+(`ort::session::Session` directo).
+
+**Corrección encontrada (importante para T009)**: este documento describe
+el paso de clustering como "clustering espectral", pero el código fuente
+real de sherpa-onnx (`fast-clustering.cc`) **no usa clustering espectral**
+— usa clustering jerárquico/aglomerativo (complete-linkage, distancia
+coseno) vía una implementación al estilo `fastcluster` (Müllner), cortando
+el dendrograma por umbral de distancia cuando no se conoce el número de
+hablantes (`clustering.cluster-threshold`) o por `k` fijo si se conoce
+(`clustering.num-clusters`). Sigue cumpliendo FR-003 (número de hablantes
+desconocido) — el corte por umbral no necesita saber `k` de antemano —
+pero el algoritmo descrito acá está mal nombrado. El crate Rust `kodama`
+(crates.io, puro Rust) implementa la misma familia de algoritmo
+(inspirado explícitamente en `fastcluster` de Müllner) y es un candidato
+razonable para T009; no se agrega a `Cargo.toml` en T002 porque la
+elección del algoritmo de clustering es tarea de T009, no de esta tarea
+(agregar la dependencia de diarización), y esta corrección recién se
+descubrió en la investigación de T002. Este párrafo debería revisarse
+(¿renombrar "clustering espectral" → "clustering jerárquico/aglomerativo"
+en el **Decision** de arriba?) antes de que T009 arranque. Detalle
+completo, con enlaces a las fuentes, en
+`.superpowers/sdd/task-T002-report.md`.
+
 **Límite honesto a documentar (no ocultar)**: ningún pipeline de
 diarización basado en un solo micrófono resuelve perfectamente la
 superposición de voz total (dos personas hablando exactamente lo mismo,

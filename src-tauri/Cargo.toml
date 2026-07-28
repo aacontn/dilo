@@ -90,6 +90,15 @@ sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 # igual que `transcribe-rs` (ver su Cargo.toml) para que Cargo unifique una
 # sola instancia de `ort`/`ndarray` en el build en vez de compilar el
 # runtime de ONNX dos veces.
+#
+# T002 (notetaker de reuniones, ver specs/001-meeting-notetaker/research.md
+# §1): este mismo `ort` alcanza para correr los modelos ONNX de diarización
+# de sherpa-onnx (segmentación pyannote + embeddings de hablante) cuando
+# lleguen en T009 — no hace falta sumar el crate/binding de sherpa-onnx. El
+# propio sherpa-onnx carga esos modelos con un `Ort::Session` plano, sin ops
+# custom (ver sherpa-onnx/csrc/offline-speaker-segmentation-pyannote-model.cc
+# y speaker-embedding-extractor-model.cc), igual que `tts/supertonic.rs` ya
+# hace acá. Detalle completo en el reporte de T002.
 ort = "=2.0.0-rc.12"
 ndarray = "0.17"
 rand = "0.8"
