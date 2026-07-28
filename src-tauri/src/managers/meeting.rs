@@ -3,11 +3,11 @@
 //! real behavior lands in later tasks (T005 onward).
 
 // Nothing constructs this yet — Tauri state registration happens in T007.
-#![allow(dead_code)]
-
+#[allow(dead_code)]
 pub struct MeetingManager {}
 
 impl MeetingManager {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {}
     }
