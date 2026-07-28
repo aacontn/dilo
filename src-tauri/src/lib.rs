@@ -727,6 +727,13 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
+            managers::meeting::MeetingSegment,
+            managers::meeting::MeetingProgress,
+            managers::meeting::MeetingFinished,
+            managers::meeting::MeetingError,
+            managers::meeting::MeetingInterrupted,
+            managers::meeting::MeetingCallDetected,
+            managers::meeting::MeetingCallEnded,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

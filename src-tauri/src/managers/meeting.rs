@@ -9,6 +9,8 @@ use anyhow::Result;
 use log::{debug, info};
 use rusqlite::Connection;
 use rusqlite_migration::{Migrations, M};
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::path::PathBuf;
 
 /// Database migrations for the meeting notetaker feature.
@@ -95,6 +97,104 @@ const MEETING_TABLES: &[&str] = &[
     "meeting_action_items",
     "meeting_notes",
 ];
+
+// --- Tauri events (T010) -----------------------------------------------
+//
+// Type definitions only — nothing here emits an event yet. Emission starts
+// in Phase 3 (T014+) once the commands that drive a meeting's lifecycle are
+// implemented.
+//
+// A note on event names: `tauri_specta::Event`'s derive macro (pinned at
+// tauri-specta-macros 2.0.0-rc.16 via tauri-specta =2.0.0-rc.21, see
+// Cargo.lock) hardcodes the wire event name to `heck::ToKebabCase` of the
+// Rust struct/enum identifier. It declares `attributes(tauri_specta)` but
+// does not read any value from it in this version — there is no way to
+// override the event name with an attribute, only by naming the type
+// itself. That's also how the existing events in this codebase resolve
+// their names: `HistoryUpdatePayload` -> `history-update-payload`,
+// `StreamTextEvent` -> `stream-text-event` (see `src/bindings.ts`), not the
+// shorter names their doc comments might suggest.
+//
+// Because of this, the 7 event structs below are named to match
+// `specs/001-meeting-notetaker/contracts/tauri-commands.md`'s required
+// wire names exactly (`MeetingSegment` -> `meeting-segment`, etc.) — they
+// do NOT carry an `...Event` suffix the way a first read of the task brief
+// might suggest, since e.g. `MeetingSegmentEvent` would kebab-case to
+// `meeting-segment-event`, not `meeting-segment`.
+//
+// This also means `MeetingSegment` below is the flat, full segment shape
+// from `data-model.md` / `contracts/tauri-commands.md`'s `MeetingSegment`
+// TS interface (no `meeting_id` field — the doc's own wording is "Payload:
+// `MeetingSegment` completo"), not a `{ meeting_id, segment }` wrapper.
+// Keeping it flat also avoids defining a second, differently-shaped
+// `MeetingSegment` type that Phase 3 would collide with when it needs this
+// exact DTO for `Meeting.segments`. Reuse this type there instead of
+// duplicating it.
+
+/// Emitted whenever a new transcript segment is ready (incremental, during
+/// recording).
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingSegment {
+    pub id: i64,
+    pub speaker_id: Option<i64>,
+    pub text: String,
+    pub started_at_ms: i64,
+    pub ended_at_ms: i64,
+    pub overlapped: bool,
+}
+
+/// Phase of post-recording processing (summary generation, diarization when
+/// it runs as a separate step, etc.), reported via [`MeetingProgress`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum MeetingProgressPhase {
+    Transcribing,
+    Diarizing,
+    Summarizing,
+}
+
+/// Emitted while a finished recording is being processed (summary,
+/// diarization if it runs as a separate step, etc.).
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingProgress {
+    pub meeting_id: i64,
+    pub phase: MeetingProgressPhase,
+}
+
+/// The meeting finished processing (`status` -> `ready`).
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingFinished {
+    pub meeting_id: i64,
+}
+
+/// Error during recording or post-processing.
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingError {
+    pub meeting_id: i64,
+    pub error: String,
+}
+
+/// Detected at app startup: a meeting without `ended_at` left over from a
+/// previous session (crash recovery, FR-008).
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingInterrupted {
+    pub meeting_id: i64,
+}
+
+/// An active video call was detected with no recording in progress
+/// (User Story 3, FR-017). `call_source` is the detected app name when it
+/// could be determined.
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingCallDetected {
+    pub call_source: Option<String>,
+}
+
+/// The video call that triggered an auto-detected recording has ended
+/// (User Story 3, FR-018).
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingCallEnded {
+    pub meeting_id: i64,
+}
 
 pub struct MeetingManager {
     db_path: PathBuf,

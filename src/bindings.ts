@@ -1012,10 +1012,12 @@ async ttsLicenseText() : Promise<Result<string, string>> {
 }
 },
 /**
- * Descarga los pesos desde Hugging Face. `licenseAccepted` viene del
- * diálogo que muestra la licencia (`ttsLicenseText`): solo mandar `true`
- * después de que el usuario apretó "Aceptar" con el texto a la vista. El
- * gate real vive en el backend, que rechaza sin él.
+ * Descarga los pesos desde Hugging Face. `license_accepted` viene del
+ * diálogo que muestra la licencia (`tts_license_text`): el frontend solo
+ * puede mandar `true` después de que el usuario apretó "Aceptar" con el
+ * texto a la vista. El gate real vive en
+ * `tts::supertonic::ensure_weights_downloaded`, que rechaza sin él — acá
+ * ya no se hardcodea `true` por nadie.
  */
 async ttsDownloadWeights(licenseAccepted: boolean) : Promise<Result<null, string>> {
     try {
@@ -1042,7 +1044,7 @@ async ttsSetVoice(voice: string) : Promise<Result<null, string>> {
 /**
  * Enciende o apaga el modo asistente hablado (settings.voice_assistant_enabled),
  * el toggle de Ajustes > Voz que habilita el atajo `voice_assistant`.
- *
+ * 
  * Existe porque el guard de `actions.rs` lee este valor desde los settings
  * persistidos: sin un comando que lo escriba, el toggle solo cambiaba el
  * estado del frontend y el backend seguía viendo `false` para siempre.
@@ -1074,10 +1076,24 @@ async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+meetingCallDetected: MeetingCallDetected,
+meetingCallEnded: MeetingCallEnded,
+meetingError: MeetingError,
+meetingFinished: MeetingFinished,
+meetingInterrupted: MeetingInterrupted,
+meetingProgress: MeetingProgress,
+meetingSegment: MeetingSegment,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
+meetingCallDetected: "meeting-call-detected",
+meetingCallEnded: "meeting-call-ended",
+meetingError: "meeting-error",
+meetingFinished: "meeting-finished",
+meetingInterrupted: "meeting-interrupted",
+meetingProgress: "meeting-progress",
+meetingSegment: "meeting-segment",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -1158,7 +1174,7 @@ tts_engine?: TtsEngineSetting;
  * para Supertonic, ver `tts::VoiceId`). Default de fábrica: F5
  * (`tts::supertonic::DEFAULT_VOICE`).
  */
-tts_voice?: string;
+tts_voice?: string; 
 /**
  * Modo asistente hablado: el atajo dedicado (binding `voice_assistant`)
  * manda la transcripción al LLM de post-proceso configurado y dice la
@@ -1198,6 +1214,45 @@ export type LLMPrompt = { id: string; name: string; prompt: string;
  */
 shortcut?: string | null }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+/**
+ * An active video call was detected with no recording in progress
+ * (User Story 3, FR-017). `call_source` is the detected app name when it
+ * could be determined.
+ */
+export type MeetingCallDetected = { call_source: string | null }
+/**
+ * The video call that triggered an auto-detected recording has ended
+ * (User Story 3, FR-018).
+ */
+export type MeetingCallEnded = { meeting_id: number }
+/**
+ * Error during recording or post-processing.
+ */
+export type MeetingError = { meeting_id: number; error: string }
+/**
+ * The meeting finished processing (`status` -> `ready`).
+ */
+export type MeetingFinished = { meeting_id: number }
+/**
+ * Detected at app startup: a meeting without `ended_at` left over from a
+ * previous session (crash recovery, FR-008).
+ */
+export type MeetingInterrupted = { meeting_id: number }
+/**
+ * Emitted while a finished recording is being processed (summary,
+ * diarization if it runs as a separate step, etc.).
+ */
+export type MeetingProgress = { meeting_id: number; phase: MeetingProgressPhase }
+/**
+ * Phase of post-recording processing (summary generation, diarization when
+ * it runs as a separate step, etc.), reported via [`MeetingProgress`].
+ */
+export type MeetingProgressPhase = "transcribing" | "diarizing" | "summarizing"
+/**
+ * Emitted whenever a new transcript segment is ready (incremental, during
+ * recording).
+ */
+export type MeetingSegment = { id: number; speaker_id: number | null; text: string; started_at_ms: number; ended_at_ms: number; overlapped: boolean }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
