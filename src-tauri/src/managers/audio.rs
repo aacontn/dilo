@@ -18,7 +18,6 @@ use std::time::{Duration, Instant};
 use tauri::Manager;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
-const VAD_THRESHOLD: f32 = 0.3;
 
 fn set_mute(mute: bool) {
     // Expected behavior:
@@ -128,6 +127,90 @@ pub enum MicrophoneMode {
 
 /* ──────────────────────────────────────────────────────────────── */
 
+/// Which subsystem currently holds the exclusive right to open/drive the
+/// physical microphone via its own `AudioRecorder`. Dictation
+/// (`AudioRecordingManager`) and the meeting notetaker (`MeetingManager`,
+/// `managers/meeting.rs`) each build and open an independent `AudioRecorder`
+/// — see the coexistence decision documented at the top of
+/// `managers/meeting.rs` for why the two must not record at the same time.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MicOwner {
+    Dictation,
+    // Constructed by `MeetingManager::start_capture`/`stop_capture`
+    // (managers/meeting.rs, T012), which aren't called from a Tauri command
+    // yet — see the coexistence note there for the full picture.
+    #[allow(dead_code)]
+    Meeting,
+}
+
+impl MicOwner {
+    /// Human-readable label for error messages surfaced to the user.
+    pub fn label(self) -> &'static str {
+        match self {
+            MicOwner::Dictation => "el dictado",
+            MicOwner::Meeting => "una reunión grabando",
+        }
+    }
+}
+
+/// Cross-manager exclusive gate on the physical microphone.
+///
+/// Created once in `initialize_core_logic` and cloned into both
+/// `AudioRecordingManager` and `MeetingManager` — neither manager imports
+/// the other's types, avoiding a dependency cycle between `audio.rs` and
+/// `meeting.rs`. Guards only the *actively recording/capturing* window
+/// (dictation's `RecordingState::Recording`, a meeting's `CaptureSession`),
+/// not an always-on dictation stream sitting idle — see the coexistence
+/// note in `managers/meeting.rs` for the reasoning and its known gap.
+#[derive(Clone)]
+pub struct MicrophoneArbiter {
+    owner: Arc<Mutex<Option<MicOwner>>>,
+}
+
+impl MicrophoneArbiter {
+    pub fn new() -> Self {
+        Self {
+            owner: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Claim the microphone for `owner`. Fails with the current holder if
+    /// someone else already has it; succeeds (idempotently) if `owner`
+    /// already holds it.
+    pub fn try_acquire(&self, owner: MicOwner) -> Result<(), MicOwner> {
+        let mut guard = self.owner.lock().unwrap();
+        match *guard {
+            None => {
+                *guard = Some(owner);
+                Ok(())
+            }
+            Some(current) if current == owner => Ok(()),
+            Some(current) => Err(current),
+        }
+    }
+
+    /// Release the microphone, but only if `owner` is still the current
+    /// holder — a stale release from an already-superseded session is a
+    /// harmless no-op rather than clobbering a newer holder's claim.
+    pub fn release(&self, owner: MicOwner) {
+        let mut guard = self.owner.lock().unwrap();
+        if *guard == Some(owner) {
+            *guard = None;
+        }
+    }
+}
+
+impl Default for MicrophoneArbiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Onset detection threshold for the Silero VAD engine, shared by dictation's
+/// recorder and the meeting notetaker's own recorder (`managers/meeting.rs`)
+/// so both apply the same speech-detection sensitivity.
+pub(crate) const VAD_THRESHOLD: f32 = 0.3;
+
 fn create_audio_recorder(
     vad_path: &Path,
     app_handle: &tauri::AppHandle,
@@ -193,6 +276,11 @@ pub struct AudioRecordingManager {
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
+    /// Cross-manager gate shared with `MeetingManager` so a meeting recording
+    /// and a dictation recording can't both drive the physical microphone at
+    /// once. See [`MicrophoneArbiter`] and the coexistence note in
+    /// `managers/meeting.rs`.
+    mic_arbiter: MicrophoneArbiter,
 }
 
 impl AudioRecordingManager {
@@ -201,6 +289,7 @@ impl AudioRecordingManager {
     pub fn new(
         app: &tauri::AppHandle,
         stream_router: Arc<StreamRouter>,
+        mic_arbiter: MicrophoneArbiter,
     ) -> Result<Self, anyhow::Error> {
         let settings = get_settings(app);
         let mode = if settings.always_on_microphone {
@@ -222,6 +311,7 @@ impl AudioRecordingManager {
             cancel_generation: Arc::new(AtomicU64::new(0)),
             stream_router,
             cached_device: Arc::new(Mutex::new(None)),
+            mic_arbiter,
         };
 
         // Always-on?  Open immediately.
@@ -486,11 +576,25 @@ impl AudioRecordingManager {
         let mut state = self.state.lock().unwrap();
 
         if let RecordingState::Idle = *state {
+            // Refuse to start if a meeting is currently capturing — the two
+            // never record concurrently (see the coexistence note in
+            // `managers/meeting.rs`). Must happen before opening the mic
+            // stream so a blocked attempt never touches the device.
+            if let Err(owner) = self.mic_arbiter.try_acquire(MicOwner::Dictation) {
+                let msg = format!(
+                    "El micrófono está en uso por {} ahora mismo.",
+                    owner.label()
+                );
+                warn!("try_start_recording blocked by mic arbiter: {msg}");
+                return Err(msg);
+            }
+
             // Ensure microphone is open in on-demand mode
             if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
                 // Cancel any pending lazy close
                 self.close_generation.fetch_add(1, Ordering::SeqCst);
                 if let Err(e) = self.start_microphone_stream() {
+                    self.mic_arbiter.release(MicOwner::Dictation);
                     let msg = format!("{e}");
                     error!("Failed to open microphone stream: {msg}");
                     return Err(msg);
@@ -507,6 +611,7 @@ impl AudioRecordingManager {
                     return Ok(());
                 }
             }
+            self.mic_arbiter.release(MicOwner::Dictation);
             Err("Recorder not available".to_string())
         } else {
             Err("Already recording".to_string())
@@ -582,6 +687,7 @@ impl AudioRecordingManager {
 
                 *self.is_recording.lock().unwrap() = false;
                 *self.state.lock().unwrap() = RecordingState::Idle;
+                self.mic_arbiter.release(MicOwner::Dictation);
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
                 if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
@@ -627,6 +733,7 @@ impl AudioRecordingManager {
             RecordingState::Recording { .. } => {
                 *state = RecordingState::Idle;
                 drop(state);
+                self.mic_arbiter.release(MicOwner::Dictation);
 
                 if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
                     let _ = rec.stop(); // Discard the result
@@ -648,5 +755,71 @@ impl AudioRecordingManager {
             }
             RecordingState::Idle => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MicOwner, MicrophoneArbiter};
+
+    #[test]
+    fn free_arbiter_grants_either_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        assert!(arbiter.try_acquire(MicOwner::Dictation).is_ok());
+        arbiter.release(MicOwner::Dictation);
+        assert!(arbiter.try_acquire(MicOwner::Meeting).is_ok());
+        arbiter.release(MicOwner::Meeting);
+    }
+
+    #[test]
+    fn held_arbiter_blocks_the_other_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter
+            .try_acquire(MicOwner::Meeting)
+            .expect("first claim should succeed");
+
+        let err = arbiter
+            .try_acquire(MicOwner::Dictation)
+            .expect_err("dictation must not be able to claim a mic a meeting already holds");
+        assert_eq!(err, MicOwner::Meeting);
+    }
+
+    #[test]
+    fn reacquiring_the_same_owner_is_idempotent() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Dictation).unwrap();
+        assert!(
+            arbiter.try_acquire(MicOwner::Dictation).is_ok(),
+            "the same owner re-claiming should not be treated as a conflict"
+        );
+    }
+
+    #[test]
+    fn release_only_clears_the_matching_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Meeting).unwrap();
+
+        // A stale release from a superseded/mismatched owner must not clobber
+        // the real holder's claim.
+        arbiter.release(MicOwner::Dictation);
+        assert_eq!(
+            arbiter.try_acquire(MicOwner::Dictation).unwrap_err(),
+            MicOwner::Meeting,
+            "meeting's claim should still be held after an unrelated release"
+        );
+
+        arbiter.release(MicOwner::Meeting);
+        assert!(
+            arbiter.try_acquire(MicOwner::Dictation).is_ok(),
+            "releasing the real holder should free the arbiter"
+        );
+    }
+
+    #[test]
+    fn after_release_the_other_owner_can_acquire() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Dictation).unwrap();
+        arbiter.release(MicOwner::Dictation);
+        assert!(arbiter.try_acquire(MicOwner::Meeting).is_ok());
     }
 }

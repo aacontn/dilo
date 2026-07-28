@@ -211,9 +211,17 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         TranscriptionManager::new(app_handle, model_manager.clone())
             .expect("Failed to initialize transcription manager"),
     );
+    // Shared exclusive gate on the physical microphone between dictation and
+    // meeting capture — see the coexistence decision documented above
+    // `MeetingManager::start_capture` in managers/meeting.rs (T012).
+    let mic_arbiter = managers::audio::MicrophoneArbiter::new();
     let recording_manager = Arc::new(
-        AudioRecordingManager::new(app_handle, transcription_manager.stream_router())
-            .expect("Failed to initialize recording manager"),
+        AudioRecordingManager::new(
+            app_handle,
+            transcription_manager.stream_router(),
+            mic_arbiter.clone(),
+        )
+        .expect("Failed to initialize recording manager"),
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
@@ -221,7 +229,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         .expect("Failed to resolve app data dir for meeting manager")
         .join("meetings.db");
     let meeting_manager = Arc::new(
-        MeetingManager::new(meeting_db_path).expect("Failed to initialize meeting manager"),
+        MeetingManager::new(meeting_db_path)
+            .expect("Failed to initialize meeting manager")
+            .with_capture_deps(
+                app_handle.clone(),
+                transcription_manager.clone(),
+                mic_arbiter,
+            ),
     );
     let diarization_engine = Arc::new(DiarizationEngine::new());
 
