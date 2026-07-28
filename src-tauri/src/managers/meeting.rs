@@ -1,7 +1,9 @@
 //! Manages the lifecycle of a meeting notetaker session: recording, live
 //! transcription, and speaker diarization. This is currently a skeleton —
-//! real behavior lands in later tasks (T006/T011 onward). T005 adds the
-//! SQLite schema (migrations only, no business logic yet).
+//! real business logic lands in T011 onward. T005 added the SQLite schema
+//! (migrations), and T006 added `get_connection()` so later tasks can open
+//! per-operation connections against the migrated database, mirroring
+//! `HistoryManager`'s pattern.
 
 use anyhow::Result;
 use log::{debug, info};
@@ -146,6 +148,15 @@ impl MeetingManager {
 
         Ok(())
     }
+
+    /// Open a new connection to the meeting database. Mirrors
+    /// `HistoryManager::get_connection`: the manager does not keep a
+    /// persistent connection in the struct, so each operation opens its own
+    /// short-lived connection against `db_path`.
+    #[allow(dead_code)]
+    fn get_connection(&self) -> Result<Connection> {
+        Ok(Connection::open(&self.db_path)?)
+    }
 }
 
 #[cfg(test)]
@@ -241,6 +252,35 @@ mod tests {
 
         drop(manager);
         drop(conn);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn get_connection_returns_a_valid_connection_against_migrated_db() {
+        let dir = std::env::temp_dir().join(format!(
+            "dilo-meeting-test-get-connection-{}-{}.db",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
+
+        let conn = manager
+            .get_connection()
+            .expect("get_connection should open a connection");
+        for table in MEETING_TABLES {
+            assert!(
+                table_exists(&conn, table),
+                "expected table {} to be visible via get_connection",
+                table
+            );
+        }
+
+        drop(conn);
+        drop(manager);
         let _ = std::fs::remove_file(&dir);
     }
 }
