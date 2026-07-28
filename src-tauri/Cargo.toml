@@ -104,6 +104,23 @@ ndarray = "0.17"
 rand = "0.8"
 rand_distr = "0.4"
 unicode-normalization = "0.1"
+# T009 (diarización, ver managers/diarization.rs y research.md §1 "Corrección
+# encontrada"): dos dependencias nuevas, ambas puro Rust.
+#
+# `kaldi-native-fbank` computa los features Fbank (80-dim log-mel) que el
+# modelo de embeddings de hablante (CAM++/3D-Speaker) espera como entrada.
+# Es un port directo de la MISMA librería C++ `kaldi-native-fbank` que
+# sherpa-onnx vendorea internamente (confirmado leyendo
+# sherpa-onnx/csrc/features.cc, que incluye literalmente
+# "kaldi-native-fbank/csrc/online-feature.h") — no es una reimplementación
+# aproximada de Fbank, es el mismo algoritmo de origen.
+kaldi-native-fbank = "0.1"
+# `kodama` implementa clustering jerárquico/aglomerativo puro Rust, inspirado
+# explícitamente en `fastcluster` (Müllner) — la misma familia de algoritmo
+# que usa sherpa-onnx/csrc/fast-clustering.cc (confirmado leyendo ese
+# archivo: usa un vendored `fastcluster-all-in-one.h`). Candidato que ya
+# había identificado T002 en research.md; T009 lo confirma y lo agrega.
+kodama = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
