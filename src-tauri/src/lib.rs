@@ -31,7 +31,9 @@ use tauri_specta::{collect_commands, collect_events, Builder};
 
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
+use managers::diarization::DiarizationEngine;
 use managers::history::HistoryManager;
+use managers::meeting::MeetingManager;
 use managers::model::ModelManager;
 use managers::transcription::TranscriptionManager;
 #[cfg(unix)]
@@ -215,6 +217,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let meeting_db_path = crate::portable::app_data_dir(app_handle)
+        .expect("Failed to resolve app data dir for meeting manager")
+        .join("meetings.db");
+    let meeting_manager = Arc::new(
+        MeetingManager::new(meeting_db_path).expect("Failed to initialize meeting manager"),
+    );
+    let diarization_engine = Arc::new(DiarizationEngine::new());
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -228,6 +237,8 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(meeting_manager.clone());
+    app_handle.manage(diarization_engine.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
     // Voz de salida: estado del motor TTS, cargado perezosamente en el
     // primer `tts_speak` (ver `tts::TtsState`).

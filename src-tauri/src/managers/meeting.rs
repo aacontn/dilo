@@ -96,7 +96,6 @@ const MEETING_TABLES: &[&str] = &[
     "meeting_notes",
 ];
 
-#[allow(dead_code)]
 pub struct MeetingManager {
     db_path: PathBuf,
 }
@@ -106,7 +105,6 @@ impl MeetingManager {
     /// pending migrations. Mirrors `HistoryManager::new` /
     /// `HistoryManager::init_database`, minus the tauri-plugin-sql legacy
     /// migration path (there is no pre-existing meeting data to carry over).
-    #[allow(dead_code)]
     pub fn new(db_path: PathBuf) -> Result<Self> {
         let manager = Self { db_path };
         manager.init_database()?;
@@ -153,6 +151,11 @@ impl MeetingManager {
     /// `HistoryManager::get_connection`: the manager does not keep a
     /// persistent connection in the struct, so each operation opens its own
     /// short-lived connection against `db_path`.
+    ///
+    /// Still unused outside `#[cfg(test)]` as of T007 — no command handler
+    /// calls it yet (that lands in T011+). `#[allow(dead_code)]` stays until
+    /// then; confirmed via `cargo clippy` that removing it re-triggers the
+    /// warning.
     #[allow(dead_code)]
     fn get_connection(&self) -> Result<Connection> {
         Ok(Connection::open(&self.db_path)?)
