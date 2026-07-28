@@ -9,9 +9,11 @@ generados vía `tauri-specta` como el resto de `bindings.ts`.
 ### `start_meeting`
 
 - **Input**: `{ kind: "presencial" | "virtual" }`
-- **Output**: `{ meetingId: number }`
-- **Errores**: `recording_busy` si ya hay una reunión o dictado usando el
-  micrófono de forma exclusiva.
+- **Output**: `number` (el `id` de la nueva reunión)
+- **Errores**: `recording_busy` si ya hay otra reunión con
+  `status = 'recording'` (T011: el chequeo es solo contra otras reuniones,
+  no contra el dictado normal — la convivencia con
+  `AudioRecordingManager` queda para T012).
 - Corresponde a Historias 1 y 2, escenario 1.
 
 ### `stop_meeting`

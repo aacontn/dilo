@@ -876,6 +876,26 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 }
 },
 /**
+ * Start a new meeting recording: inserts a `meetings` row with
+ * `status = "recording"` and returns its `id`.
+ * 
+ * This command deliberately does not touch the microphone or start any
+ * audio capture — that's a separate, later task (T012) that needs to
+ * understand how `AudioRecordingManager`'s dictation recording works
+ * before deciding how the two coexist. It also does not check for a
+ * dictation recording in progress, only for another meeting already
+ * recording (`meetings.status = 'recording'`), per
+ * `specs/001-meeting-notetaker/contracts/tauri-commands.md#start_meeting`.
+ */
+async startMeeting(kind: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_meeting", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {
