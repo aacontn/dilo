@@ -1,13 +1,15 @@
 //! Manages the lifecycle of a meeting notetaker session: recording, live
-//! transcription, and speaker diarization. This is currently a skeleton —
-//! real business logic lands in T011 onward. T005 added the SQLite schema
+//! transcription, and speaker diarization. T005 added the SQLite schema
 //! (migrations), and T006 added `get_connection()` so later tasks can open
 //! per-operation connections against the migrated database, mirroring
-//! `HistoryManager`'s pattern.
+//! `HistoryManager`'s pattern. T011 added the first real business logic,
+//! `start_meeting()` — it only creates the `meetings` row; wiring real audio
+//! capture is a later task (T012).
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use chrono::{Local, Utc};
 use log::{debug, info};
-use rusqlite::Connection;
+use rusqlite::{params, Connection, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -251,20 +253,70 @@ impl MeetingManager {
     /// `HistoryManager::get_connection`: the manager does not keep a
     /// persistent connection in the struct, so each operation opens its own
     /// short-lived connection against `db_path`.
-    ///
-    /// Still unused outside `#[cfg(test)]` as of T007 — no command handler
-    /// calls it yet (that lands in T011+). `#[allow(dead_code)]` stays until
-    /// then; confirmed via `cargo clippy` that removing it re-triggers the
-    /// warning.
-    #[allow(dead_code)]
     fn get_connection(&self) -> Result<Connection> {
         Ok(Connection::open(&self.db_path)?)
+    }
+
+    /// Start a new meeting: inserts a `meetings` row with `status =
+    /// "recording"` and returns its `id`. This is the only business logic
+    /// behind the `start_meeting` Tauri command (T011) — it does not touch
+    /// the microphone or any recording pipeline, that's T012's job.
+    ///
+    /// Fails with `"recording_busy"` if another meeting already has
+    /// `status = 'recording'` (contract: `specs/001-meeting-notetaker/
+    /// contracts/tauri-commands.md#start_meeting`). The check-then-insert
+    /// runs inside a single `IMMEDIATE` transaction so two overlapping
+    /// calls can't both observe "no meeting recording" and both insert.
+    ///
+    /// `title` defaults to a timestamp derived from the current local time
+    /// (e.g. "Reunión 28/07 10:30"); the user can rename it later via the
+    /// future `rename_meeting` command.
+    pub fn start_meeting(&self, kind: &str) -> Result<i64> {
+        let mut conn = self.get_connection()?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+
+        let already_recording: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM meetings WHERE status = 'recording')",
+            [],
+            |row| row.get(0),
+        )?;
+        if already_recording {
+            bail!("recording_busy");
+        }
+
+        let started_at = Utc::now().timestamp();
+        let title = format!("Reunión {}", Local::now().format("%d/%m %H:%M"));
+
+        tx.execute(
+            "INSERT INTO meetings (title, kind, started_at, status) VALUES (?1, ?2, ?3, 'recording')",
+            params![title, kind, started_at],
+        )?;
+        let id = tx.last_insert_rowid();
+        tx.commit()?;
+
+        info!("Started meeting {} (kind={})", id, kind);
+        Ok(id)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Unique temp db path for a test (mirrors the inline pattern the
+    /// existing T007 tests below already use, factored out so the new
+    /// `start_meeting` tests don't duplicate it a third/fourth time).
+    fn temp_db_path(label: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "dilo-meeting-test-{}-{}-{}.db",
+            label,
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ))
+    }
 
     fn apply_migrations(conn: &mut Connection) {
         let migrations = Migrations::new(MIGRATIONS.to_vec());
@@ -381,6 +433,87 @@ mod tests {
                 table
             );
         }
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn start_meeting_inserts_a_recording_row_with_expected_fields() {
+        let dir = temp_db_path("start-meeting-basic");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
+
+        let before = Utc::now().timestamp();
+        let id = manager
+            .start_meeting("presencial")
+            .expect("start_meeting should succeed");
+        let after = Utc::now().timestamp();
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (title, kind, started_at, ended_at, status): (
+            String,
+            String,
+            i64,
+            Option<i64>,
+            String,
+        ) = conn
+            .query_row(
+                "SELECT title, kind, started_at, ended_at, status FROM meetings WHERE id = ?1",
+                [id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("the inserted row should be readable back");
+
+        assert_eq!(kind, "presencial");
+        assert_eq!(status, "recording");
+        assert!(
+            ended_at.is_none(),
+            "ended_at must be NULL while status = recording"
+        );
+        assert!(
+            (before..=after).contains(&started_at),
+            "started_at ({started_at}) should fall within [{before}, {after}]"
+        );
+        assert!(
+            title.starts_with("Reunión "),
+            "unexpected default title: {title:?}"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn start_meeting_fails_when_a_meeting_is_already_recording() {
+        let dir = temp_db_path("start-meeting-conflict");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
+
+        manager
+            .start_meeting("presencial")
+            .expect("the first start_meeting should succeed");
+
+        let second = manager.start_meeting("presencial");
+        assert!(
+            second.is_err(),
+            "a second start_meeting should fail while the first meeting is still recording"
+        );
+        assert_eq!(second.unwrap_err().to_string(), "recording_busy");
+
+        let conn = manager.get_connection().expect("get_connection");
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meetings", [], |row| row.get(0))
+            .expect("count meetings");
+        assert_eq!(count, 1, "the rejected second call must not insert a row");
 
         drop(conn);
         drop(manager);

@@ -705,6 +705,7 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::meeting::start_meeting,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,
