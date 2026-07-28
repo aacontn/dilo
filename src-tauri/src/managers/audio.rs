@@ -158,10 +158,17 @@ impl MicOwner {
 /// Created once in `initialize_core_logic` and cloned into both
 /// `AudioRecordingManager` and `MeetingManager` — neither manager imports
 /// the other's types, avoiding a dependency cycle between `audio.rs` and
-/// `meeting.rs`. Guards only the *actively recording/capturing* window
-/// (dictation's `RecordingState::Recording`, a meeting's `CaptureSession`),
-/// not an always-on dictation stream sitting idle — see the coexistence
-/// note in `managers/meeting.rs` for the reasoning and its known gap.
+/// `meeting.rs`. Tracks whether *any* dictation mic stream is open, not
+/// just whether a recording is active: claimed in `start_microphone_stream`
+/// (before the device is opened — covers on-demand recording AND
+/// always-on's persistent idle stream, since every caller routes through
+/// that one function) and released in `stop_microphone_stream` (when the
+/// device is actually closed); `MeetingManager::start_capture`/
+/// `stop_capture` mirror this around their own `AudioRecorder`. See the
+/// coexistence note in `managers/meeting.rs` for the full reasoning,
+/// including the deliberate `lazy_stream_close` grace-window gap (dictation
+/// keeps holding this for up to `STREAM_IDLE_TIMEOUT` after a recording
+/// ends, since the stream itself stays open that long).
 #[derive(Clone)]
 pub struct MicrophoneArbiter {
     owner: Arc<Mutex<Option<MicOwner>>>,
@@ -388,6 +395,11 @@ impl AudioRecordingManager {
         device
     }
 
+    // Note: while this grace window is pending, the mic stream stays open,
+    // so `MicrophoneArbiter` keeps holding `MicOwner::Dictation` too — a
+    // meeting can't start during this ~30s tail even though nothing is
+    // actively being dictated. Deliberate consequence of the arbiter
+    // tracking the stream, not the recording; see `MicrophoneArbiter`'s doc.
     fn schedule_lazy_close(&self) {
         let gen = self.close_generation.fetch_add(1, Ordering::SeqCst) + 1;
         let app = self.app_handle.clone();

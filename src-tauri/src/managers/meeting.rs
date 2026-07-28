@@ -251,28 +251,34 @@ pub struct MeetingCallEnded {
 // `initialize_core_logic` and shared (cloned) into both
 // `AudioRecordingManager` and `MeetingManager` — neither module imports the
 // other's types, so there's no dependency cycle between `audio.rs` and
-// `meeting.rs`. `AudioRecordingManager::try_start_recording` claims
-// `MicOwner::Dictation` before opening its mic stream and releases it when
-// the recording ends/cancels; `MeetingManager::start_capture`/
-// `stop_capture` do the same for `MicOwner::Meeting`. Whichever side is
-// active blocks the other with a message naming the current holder.
+// `meeting.rs`. The arbiter tracks "is *any* dictation mic stream open,"
+// not just "is a recording active": `AudioRecordingManager::
+// start_microphone_stream` claims `MicOwner::Dictation` right before it
+// actually opens the device (covering both on-demand recording and
+// always-on's persistent idle stream — every caller of that function routes
+// through the same check, startup/mode-switch included), and
+// `AudioRecordingManager::stop_microphone_stream` releases it at the
+// mirror-image point, when the device is actually closed.
+// `MeetingManager::start_capture`/`stop_capture` do the same for
+// `MicOwner::Meeting` around opening/closing their own `AudioRecorder`.
+// Whichever side is active blocks the other with a message naming the
+// current holder — including the always-on case: while always-on mode is
+// enabled, `start_capture` deterministically fails with a clear error
+// (the device stream never stops being open, so the arbiter never frees up)
+// instead of silently opening a second concurrent stream. This closes what
+// was originally flagged here as an open gap; see the T012 review report
+// (`.superpowers/sdd/task-T012-report.md`, "Review fixes (round 2)") for
+// the full before/after.
 //
-// **Known gap, documented rather than hidden**: the arbiter guards the
-// *actively recording/capturing* window, not dictation's "always-on
-// microphone" idle stream (`AudioRecordingManager::start_microphone_stream`,
-// which some users leave open continuously for lower on-demand latency).
-// If always-on mode is enabled, that idle stream stays open on the device
-// without claiming the arbiter, so a meeting's own `AudioRecorder::open()`
-// could attempt to open the *same* device concurrently with it — the exact
-// "open the same input device twice" scenario flagged above, just without a
-// active dictation *recording* to conflict with (the idle stream isn't
-// "recording", it's just resolving VAD/level callbacks that go nowhere
-// while `RecordingState::Idle`). This combination is untested (no hardware
-// in this environment) and is called out here explicitly as a follow-up:
-// either fold always-on's idle stream into the arbiter too (at the cost of
-// blocking all meetings whenever always-on mode is on, which is a real UX
-// regression for those users), or verify empirically that a second
-// concurrent open is safe on the affected backends and leave it as is.
+// **Residual, deliberate gap**: with the `lazy_stream_close` setting
+// enabled, `AudioRecordingManager` keeps an on-demand mic stream open for
+// `STREAM_IDLE_TIMEOUT` (30s) after a recording ends, in case another
+// recording starts again soon (`schedule_lazy_close`). Since the arbiter
+// now tracks the *stream*, not the *recording*, dictation keeps holding it
+// for that full 30s grace window too — a meeting can't start during that
+// window even though nothing is actively being dictated. This is the
+// correct, honest consequence of the fix above (the device genuinely is
+// still open), not a new bug — noted here so it isn't mistaken for one.
 //
 // # "Hours, not seconds" and the underlying `AudioRecorder`'s buffer
 //
