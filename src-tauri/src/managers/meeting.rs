@@ -26,7 +26,7 @@ use crate::managers::transcription::TranscriptionManager;
 use anyhow::{bail, Result};
 use chrono::{Local, Utc};
 use log::{debug, error, info, warn};
-use rusqlite::{params, Connection, TransactionBehavior};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -822,6 +822,40 @@ fn l2_normalize(v: &[f32]) -> Vec<f32> {
     v.iter().map(|x| x / norm).collect()
 }
 
+/// Sigue la cadena de `merged_into_id` hasta el hablante que realmente
+/// representa a `speaker_id` hoy (`data-model.md`: "segmentos apuntando a un
+/// hablante fusionado se resuelven al destino"). Un hablante sin fusionar se
+/// resuelve a sí mismo.
+///
+/// La cota de saltos no es paranoia decorativa: [`MeetingManager::merge_speakers`]
+/// ya rechaza los ciclos al escribir y comprime las cadenas a profundidad 1,
+/// pero esta función también corre sobre datos que pudieron quedar de una
+/// versión anterior o de una escritura a mano, y un ciclo ahí colgaría la
+/// lectura del transcript para siempre. Ante una cadena absurda corta y avisa
+/// en vez de girar.
+fn resolve_speaker(conn: &Connection, speaker_id: i64) -> Result<i64> {
+    const MAX_HOPS: usize = 32;
+
+    let mut current = speaker_id;
+    for _ in 0..MAX_HOPS {
+        let next: Option<i64> = conn
+            .query_row(
+                "SELECT merged_into_id FROM meeting_speakers WHERE id = ?1",
+                params![current],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("speaker_not_found"))?;
+
+        match next {
+            None => return Ok(current),
+            Some(target) => current = target,
+        }
+    }
+
+    bail!("speaker_merge_chain_too_long")
+}
+
 /// Crea la fila de un hablante nuevo para `meeting_id` con la etiqueta por
 /// defecto `Hablante N` (`data-model.md`), donde N es el siguiente número
 /// libre en ESA reunión. El número sale de la base y no del largo del
@@ -1528,6 +1562,140 @@ impl MeetingManager {
                 warn!("Failed to emit meeting-error for {}: {}", meeting_id, e);
             }
         }
+    }
+
+    /// Nombre que el usuario le pone a un hablante detectado (FR-005). Un
+    /// nombre vacío (o sólo espacios) **borra** el nombre y deja la etiqueta
+    /// automática `Hablante N` — es la forma natural de deshacer, sin
+    /// necesitar un comando aparte.
+    ///
+    /// Falla con `"speaker_merged"` si el hablante fue fusionado dentro de
+    /// otro: renombrarlo no tendría efecto visible (todo lo suyo se muestra
+    /// bajo el destino), así que es mejor un error claro que un cambio que el
+    /// usuario no ve. La UI debe ofrecer renombrar el destino.
+    pub fn assign_speaker_name(&self, speaker_id: i64, display_name: &str) -> Result<()> {
+        let conn = self.get_connection()?;
+
+        let merged_into: Option<i64> = conn
+            .query_row(
+                "SELECT merged_into_id FROM meeting_speakers WHERE id = ?1",
+                params![speaker_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("speaker_not_found"))?;
+        if merged_into.is_some() {
+            bail!("speaker_merged");
+        }
+
+        let trimmed = display_name.trim();
+        let value = if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        };
+        conn.execute(
+            "UPDATE meeting_speakers SET display_name = ?2 WHERE id = ?1",
+            params![speaker_id, value],
+        )?;
+
+        Ok(())
+    }
+
+    /// Fusiona dos identificadores de hablante que el sistema separó de más
+    /// (FR-005): `source` pasa a apuntar a `target` vía `merged_into_id`.
+    ///
+    /// **Los segmentos NO se repuntan.** `data-model.md` define que los
+    /// segmentos que apuntan a un hablante fusionado "se resuelven al
+    /// destino" al leerlos, y eso tiene dos ventajas concretas sobre reescribir
+    /// `meeting_segments.speaker_id`: (1) la fusión es un dato reversible en
+    /// vez de una migración destructiva sobre el transcript, y (2) si la
+    /// reunión sigue grabando, el registro de hablantes en memoria (T013)
+    /// conserva el centroide del hablante fusionado y va a seguir atribuyéndole
+    /// turnos nuevos — que se resuelven solos al destino, sin que la fusión
+    /// tenga que comunicarse con el hilo transcriptor.
+    ///
+    /// Detalles de integridad:
+    ///
+    /// - Ambos hablantes deben pertenecer a `meeting_id` (`speaker_not_in_meeting`):
+    ///   un hablante es local a una reunión, fusionar entre reuniones no
+    ///   significa nada.
+    /// - Fusionar algo consigo mismo falla (`cannot_merge_into_itself`).
+    /// - Si `target` ya está fusionado, se usa su destino final: las cadenas
+    ///   se comprimen a profundidad 1 (acá y en los que ya apuntaban a
+    ///   `source`), así ninguna lectura futura tiene que caminar una cadena
+    ///   larga.
+    /// - Un ciclo se rechaza (`merge_would_create_a_cycle`) en vez de dejar la
+    ///   base en un estado donde resolver un hablante nunca termina.
+    /// - Si el destino no tiene nombre y el origen sí, el nombre se lleva al
+    ///   destino: el usuario ya se tomó el trabajo de nombrar a esa persona y
+    ///   perder el nombre por fusionar "en la dirección equivocada" sería
+    ///   hostil.
+    pub fn merge_speakers(
+        &self,
+        meeting_id: i64,
+        source_speaker_id: i64,
+        target_speaker_id: i64,
+    ) -> Result<()> {
+        if source_speaker_id == target_speaker_id {
+            bail!("cannot_merge_into_itself");
+        }
+
+        let mut conn = self.get_connection()?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+
+        for id in [source_speaker_id, target_speaker_id] {
+            let belongs: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM meeting_speakers WHERE id = ?1 AND meeting_id = ?2)",
+                params![id, meeting_id],
+                |row| row.get(0),
+            )?;
+            if !belongs {
+                bail!("speaker_not_in_meeting");
+            }
+        }
+
+        let final_target = resolve_speaker(&tx, target_speaker_id)?;
+        if final_target == source_speaker_id {
+            bail!("merge_would_create_a_cycle");
+        }
+
+        tx.execute(
+            "UPDATE meeting_speakers SET merged_into_id = ?2 WHERE id = ?1",
+            params![source_speaker_id, final_target],
+        )?;
+        // Compresión de cadenas: quienes ya apuntaban al origen pasan a
+        // apuntar directo al destino final.
+        tx.execute(
+            "UPDATE meeting_speakers SET merged_into_id = ?2 WHERE merged_into_id = ?1",
+            params![source_speaker_id, final_target],
+        )?;
+
+        let source_name: Option<String> = tx.query_row(
+            "SELECT display_name FROM meeting_speakers WHERE id = ?1",
+            params![source_speaker_id],
+            |row| row.get(0),
+        )?;
+        let target_name: Option<String> = tx.query_row(
+            "SELECT display_name FROM meeting_speakers WHERE id = ?1",
+            params![final_target],
+            |row| row.get(0),
+        )?;
+        if target_name.is_none() {
+            if let Some(name) = source_name {
+                tx.execute(
+                    "UPDATE meeting_speakers SET display_name = ?2 WHERE id = ?1",
+                    params![final_target, name],
+                )?;
+            }
+        }
+
+        tx.commit()?;
+        info!(
+            "Meeting {}: hablante {} fusionado en {}",
+            meeting_id, source_speaker_id, final_target
+        );
+        Ok(())
     }
 
     /// Secuencia completa de detención, pensada para correr fuera del hilo
@@ -2466,6 +2634,221 @@ mod tests {
             .expect("readable back");
         assert_eq!(stored_speaker, Some(speaker_id));
         assert!(stored_overlap);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // T016: nombres y fusión de hablantes (FR-005) — la contraparte humana
+    // de la atribución automática de T013.
+    // ------------------------------------------------------------------
+
+    /// Reunión con dos hablantes, que es el escenario mínimo donde fusionar
+    /// significa algo.
+    fn meeting_with_two_speakers(manager: &MeetingManager) -> (i64, i64, i64, Connection) {
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+        let a = insert_speaker(&conn, meeting_id).expect("hablante 1");
+        let b = insert_speaker(&conn, meeting_id).expect("hablante 2");
+        (meeting_id, a, b, conn)
+    }
+
+    fn display_name_of(conn: &Connection, speaker_id: i64) -> Option<String> {
+        conn.query_row(
+            "SELECT display_name FROM meeting_speakers WHERE id = ?1",
+            [speaker_id],
+            |row| row.get(0),
+        )
+        .expect("el hablante debe existir")
+    }
+
+    #[test]
+    fn assign_speaker_name_sets_trims_and_clears() {
+        let dir = temp_db_path("assign-speaker-name");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (_meeting_id, speaker, _b, conn) = meeting_with_two_speakers(&manager);
+
+        manager
+            .assign_speaker_name(speaker, "  Alfonso  ")
+            .expect("asignar nombre");
+        assert_eq!(
+            display_name_of(&conn, speaker),
+            Some("Alfonso".to_string()),
+            "el nombre se guarda sin espacios de sobra"
+        );
+
+        manager
+            .assign_speaker_name(speaker, "Ana")
+            .expect("renombrar");
+        assert_eq!(display_name_of(&conn, speaker), Some("Ana".to_string()));
+
+        manager
+            .assign_speaker_name(speaker, "   ")
+            .expect("borrar nombre");
+        assert_eq!(
+            display_name_of(&conn, speaker),
+            None,
+            "un nombre vacío devuelve al hablante a su etiqueta automática"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn assign_speaker_name_fails_for_unknown_or_merged_speakers() {
+        let dir = temp_db_path("assign-speaker-name-errors");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+
+        let err = manager
+            .assign_speaker_name(9_999, "Nadie")
+            .expect_err("un hablante inexistente no se puede nombrar");
+        assert!(err.to_string().contains("speaker_not_found"));
+
+        manager.merge_speakers(meeting_id, a, b).expect("fusionar");
+        let err = manager
+            .assign_speaker_name(a, "Ana")
+            .expect_err("renombrar un hablante fusionado no tendría efecto visible");
+        assert!(err.to_string().contains("speaker_merged"));
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn merging_resolves_segments_without_rewriting_them() {
+        let dir = temp_db_path("merge-resolves");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+
+        // Un segmento atribuido al hablante que se va a fusionar.
+        let turn = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 900,
+        };
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("hola".to_string());
+        let segment =
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, Some(a), false, transcribe)
+                .expect("persistir")
+                .expect("segmento");
+
+        manager.merge_speakers(meeting_id, a, b).expect("fusionar");
+
+        let stored: Option<i64> = conn
+            .query_row(
+                "SELECT speaker_id FROM meeting_segments WHERE id = ?1",
+                [segment.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            stored,
+            Some(a),
+            "el transcript no se reescribe: la fusión es un dato reversible, no una migración"
+        );
+        assert_eq!(
+            resolve_speaker(&conn, a).unwrap(),
+            b,
+            "al leerlo, ese segmento se resuelve al destino"
+        );
+        assert_eq!(
+            resolve_speaker(&conn, b).unwrap(),
+            b,
+            "un hablante sin fusionar se resuelve a sí mismo"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn merge_rejects_itself_cross_meeting_and_cycles() {
+        let dir = temp_db_path("merge-guards");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+
+        let err = manager
+            .merge_speakers(meeting_id, a, a)
+            .expect_err("fusionar algo consigo mismo");
+        assert!(err.to_string().contains("cannot_merge_into_itself"));
+
+        // Otra reunión, otro hablante: un hablante es local a su reunión.
+        manager.stop_meeting(meeting_id).expect("stop");
+        let other_meeting = manager.start_meeting("presencial").expect("start_meeting");
+        let foreign = insert_speaker(&conn, other_meeting).expect("hablante ajeno");
+        let err = manager
+            .merge_speakers(meeting_id, a, foreign)
+            .expect_err("fusionar entre reuniones no significa nada");
+        assert!(err.to_string().contains("speaker_not_in_meeting"));
+
+        manager.merge_speakers(meeting_id, a, b).expect("fusionar");
+        let err = manager
+            .merge_speakers(meeting_id, b, a)
+            .expect_err("la vuelta cerraría un ciclo");
+        assert!(err.to_string().contains("merge_would_create_a_cycle"));
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn merging_compresses_chains_to_a_single_hop() {
+        let dir = temp_db_path("merge-chain");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+        let c = insert_speaker(&conn, meeting_id).expect("hablante 3");
+
+        manager.merge_speakers(meeting_id, a, b).expect("a -> b");
+        manager.merge_speakers(meeting_id, b, c).expect("b -> c");
+
+        let direct: Option<i64> = conn
+            .query_row(
+                "SELECT merged_into_id FROM meeting_speakers WHERE id = ?1",
+                [a],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            direct,
+            Some(c),
+            "al fusionar b en c, quien ya apuntaba a b pasa a apuntar directo a c"
+        );
+        assert_eq!(resolve_speaker(&conn, a).unwrap(), c);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn merging_carries_the_name_over_when_the_target_has_none() {
+        let dir = temp_db_path("merge-names");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+
+        manager.assign_speaker_name(a, "Ana").expect("nombrar a");
+        manager.merge_speakers(meeting_id, a, b).expect("fusionar");
+        assert_eq!(
+            display_name_of(&conn, b),
+            Some("Ana".to_string()),
+            "el usuario ya nombró a esa persona: fusionar 'al revés' no debe perder el nombre"
+        );
+
+        // Si el destino YA tenía nombre, gana el del destino.
+        let c = insert_speaker(&conn, meeting_id).expect("hablante 3");
+        let d = insert_speaker(&conn, meeting_id).expect("hablante 4");
+        manager.assign_speaker_name(c, "Caro").expect("nombrar c");
+        manager.assign_speaker_name(d, "Dani").expect("nombrar d");
+        manager.merge_speakers(meeting_id, c, d).expect("fusionar");
+        assert_eq!(display_name_of(&conn, d), Some("Dani".to_string()));
 
         drop(conn);
         drop(manager);

@@ -729,6 +729,8 @@ pub fn run(cli_args: CliArgs) {
             commands::history::update_recording_retention_period,
             commands::meeting::start_meeting,
             commands::meeting::stop_meeting,
+            commands::meeting::assign_speaker_name,
+            commands::meeting::merge_speakers,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,

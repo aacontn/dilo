@@ -926,6 +926,35 @@ async stopMeeting(meetingId: number) : Promise<Result<null, string>> {
 }
 },
 /**
+ * Ponerle nombre a un hablante detectado, o renombrarlo (FR-005). Mandar un
+ * nombre vacío borra el nombre y deja la etiqueta automática `Hablante N`.
+ */
+async assignSpeakerName(speakerId: number, displayName: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("assign_speaker_name", { speakerId, displayName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Fusionar dos hablantes que el sistema separó de más (FR-005): todo lo de
+ * `sourceSpeakerId` pasa a mostrarse bajo `targetSpeakerId`.
+ * 
+ * Es la contraparte necesaria de la atribución automática: el registro de
+ * hablantes prefiere no asignar antes que adivinar (FR-004), pero cuando de
+ * todos modos separa a una misma persona en dos, corregirlo es del usuario y
+ * no de un re-clustering silencioso del transcript que ya vio.
+ */
+async mergeSpeakers(meetingId: number, sourceSpeakerId: number, targetSpeakerId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("merge_speakers", { meetingId, sourceSpeakerId, targetSpeakerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {

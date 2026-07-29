@@ -67,3 +67,37 @@ pub async fn stop_meeting(
 
     Ok(())
 }
+
+/// Ponerle nombre a un hablante detectado, o renombrarlo (FR-005). Mandar un
+/// nombre vacío borra el nombre y deja la etiqueta automática `Hablante N`.
+#[tauri::command]
+#[specta::specta]
+pub async fn assign_speaker_name(
+    meeting_manager: State<'_, Arc<MeetingManager>>,
+    speaker_id: i64,
+    display_name: String,
+) -> Result<(), String> {
+    meeting_manager
+        .assign_speaker_name(speaker_id, &display_name)
+        .map_err(|e| e.to_string())
+}
+
+/// Fusionar dos hablantes que el sistema separó de más (FR-005): todo lo de
+/// `sourceSpeakerId` pasa a mostrarse bajo `targetSpeakerId`.
+///
+/// Es la contraparte necesaria de la atribución automática: el registro de
+/// hablantes prefiere no asignar antes que adivinar (FR-004), pero cuando de
+/// todos modos separa a una misma persona en dos, corregirlo es del usuario y
+/// no de un re-clustering silencioso del transcript que ya vio.
+#[tauri::command]
+#[specta::specta]
+pub async fn merge_speakers(
+    meeting_manager: State<'_, Arc<MeetingManager>>,
+    meeting_id: i64,
+    source_speaker_id: i64,
+    target_speaker_id: i64,
+) -> Result<(), String> {
+    meeting_manager
+        .merge_speakers(meeting_id, source_speaker_id, target_speaker_id)
+        .map_err(|e| e.to_string())
+}
