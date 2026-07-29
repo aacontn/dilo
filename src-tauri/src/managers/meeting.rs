@@ -1564,6 +1564,79 @@ impl MeetingManager {
         }
     }
 
+    /// Recuperación ante interrupción (FR-008): al arrancar la app, marca
+    /// como `interrupted` toda reunión que quedó a medio camino y emite
+    /// `meeting-interrupted` por cada una. Devuelve los ids recuperados.
+    ///
+    /// **Barre dos estados, no uno.** El obvio es `recording`: la app murió
+    /// grabando. El otro es `processing`, que existe desde que
+    /// [`Self::stop_meeting`] devuelve antes de terminar de drenar la cola —
+    /// si el proceso muere en esa ventana, la reunión queda para siempre
+    /// "procesando" y ningún otro camino la toca. Sin este barrido, apretar
+    /// detener y que se caiga la app dejaba una reunión zombi.
+    ///
+    /// **Por qué `interrupted` y no `ready` para las de `processing`.** El
+    /// transcript de una reunión que se cayó drenando puede estar completo o
+    /// puede faltarle los últimos turnos que quedaron en la cola (ese audio
+    /// vivía en memoria y se fue con el proceso) — y desde acá **no hay forma
+    /// de distinguir un caso del otro**. Marcarla `ready` afirmaría una
+    /// completitud que no podemos verificar; `interrupted` dice lo que
+    /// realmente sabemos: esto quedó a medias. Cuando exista T037 (resumen),
+    /// vale reconsiderarlo: ahí una reunión en `processing` podría retomar el
+    /// post-proceso en vez de darse por interrumpida.
+    ///
+    /// **`ended_at` sale del transcript, no del reloj.** La reunión terminó
+    /// cuando murió el proceso, no cuando el usuario reabrió la app días
+    /// después. El último `ended_at_ms` de sus segmentos, sumado a
+    /// `started_at`, es la mejor aproximación disponible; sin segmentos, la
+    /// reunión duró efectivamente cero. Las de `processing` ya lo tienen
+    /// sellado por `stop_meeting` y no se pisa.
+    pub fn recover_interrupted_meetings(&self) -> Result<Vec<i64>> {
+        let conn = self.get_connection()?;
+
+        let pending: Vec<(i64, i64)> = {
+            let mut stmt = conn.prepare(
+                "SELECT id, started_at FROM meetings \
+                 WHERE status IN ('recording', 'processing')",
+            )?;
+            let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()?
+        };
+
+        let mut recovered = Vec::new();
+        for (meeting_id, started_at) in pending {
+            let last_segment_ms: Option<i64> = conn.query_row(
+                "SELECT MAX(ended_at_ms) FROM meeting_segments WHERE meeting_id = ?1",
+                params![meeting_id],
+                |row| row.get(0),
+            )?;
+            let derived_ended_at = started_at + last_segment_ms.unwrap_or(0) / 1000;
+
+            conn.execute(
+                "UPDATE meetings SET status = 'interrupted', \
+                 ended_at = COALESCE(ended_at, ?2) WHERE id = ?1",
+                params![meeting_id, derived_ended_at],
+            )?;
+
+            warn!(
+                "Reunión {} quedó a medias en una sesión anterior: marcada como interrumpida",
+                meeting_id
+            );
+            recovered.push(meeting_id);
+
+            if let Some(app) = &self.app_handle {
+                if let Err(e) = (MeetingInterrupted { meeting_id }).emit(app) {
+                    warn!(
+                        "Failed to emit meeting-interrupted for {}: {}",
+                        meeting_id, e
+                    );
+                }
+            }
+        }
+
+        Ok(recovered)
+    }
+
     /// Borra una reunión que nunca llegó a grabar nada. Sólo para el camino
     /// de error de `start_meeting`: si abrir el micrófono falla, la fila
     /// recién creada no representa ninguna grabación, y dejarla ahí
@@ -2696,6 +2769,165 @@ mod tests {
             |row| row.get(0),
         )
         .expect("el hablante debe existir")
+    }
+
+    // ------------------------------------------------------------------
+    // T021: recuperación ante interrupción (FR-008).
+    // ------------------------------------------------------------------
+
+    /// Simula el crash: la app muere sin pasar por `stop_meeting`, así que la
+    /// fila queda tal cual la dejó `start_meeting`. Se reabre el manager
+    /// sobre la misma base, que es exactamente lo que pasa al reabrir Dilo.
+    #[test]
+    fn recovery_marks_a_meeting_that_died_recording() {
+        let dir = temp_db_path("recovery-recording");
+        let meeting_id;
+        {
+            let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+            meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+            let conn = manager.get_connection().expect("get_connection");
+            let turn = CompletedTurn {
+                samples: vec![0.0; 20_000],
+                started_at_ms: 0,
+                ended_at_ms: 30_000, // 30 s hablados antes del crash
+            };
+            let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
+                &|_| Ok("alcanzó a decir esto".to_string());
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
+                .expect("persistir")
+                .expect("segmento");
+        } // <- acá "muere" el proceso
+
+        let manager = MeetingManager::new(dir.clone()).expect("reabrir");
+        let recovered = manager
+            .recover_interrupted_meetings()
+            .expect("recuperación");
+        assert_eq!(recovered, vec![meeting_id]);
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, started_at) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "interrupted");
+        assert_eq!(
+            ended_at,
+            Some(started_at + 30),
+            "el fin sale del último segmento, no del reloj de cuando se reabrió la app"
+        );
+
+        let segmentos: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            segmentos, 1,
+            "FR-007/SC-003: el transcript parcial sobrevive a la interrupción"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn recovery_also_sweeps_a_meeting_that_died_while_processing() {
+        let dir = temp_db_path("recovery-processing");
+        let meeting_id;
+        let ended_at_before;
+        {
+            let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+            meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+            // El usuario apretó detener y la app murió drenando la cola.
+            manager.stop_meeting(meeting_id).expect("stop_meeting");
+            let conn = manager.get_connection().expect("get_connection");
+            ended_at_before = meeting_row(&conn, meeting_id).1;
+        }
+
+        let manager = MeetingManager::new(dir.clone()).expect("reabrir");
+        let recovered = manager
+            .recover_interrupted_meetings()
+            .expect("recuperación");
+        assert_eq!(
+            recovered,
+            vec![meeting_id],
+            "sin este barrido, una reunión detenida justo antes del crash queda zombi en \
+             'processing' para siempre"
+        );
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, _) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "interrupted");
+        assert_eq!(
+            ended_at, ended_at_before,
+            "el fin ya lo había sellado stop_meeting: no se pisa"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn recovery_leaves_finished_meetings_alone_and_frees_the_slot() {
+        let dir = temp_db_path("recovery-idempotent");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+
+        let ready = manager.start_meeting("presencial").expect("start_meeting");
+        manager.stop_meeting(ready).expect("stop");
+        manager.finalize_meeting(ready).expect("finalize");
+
+        let crashed = manager.start_meeting("presencial").expect("start_meeting");
+
+        let recovered = manager
+            .recover_interrupted_meetings()
+            .expect("recuperación");
+        assert_eq!(
+            recovered,
+            vec![crashed],
+            "una reunión ya cerrada no se toca"
+        );
+
+        let conn = manager.get_connection().expect("get_connection");
+        assert_eq!(meeting_row(&conn, ready).0, "ready");
+
+        // Correr la recuperación de nuevo (otro arranque) no cambia nada.
+        assert!(manager
+            .recover_interrupted_meetings()
+            .expect("segunda recuperación")
+            .is_empty());
+
+        // Y lo más importante para el usuario: puede volver a grabar.
+        assert!(
+            manager.start_meeting("presencial").is_ok(),
+            "recuperar debe liberar el slot: si no, la reunión zombi bloquea todas las próximas"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn recovery_of_a_meeting_without_segments_uses_its_start_time() {
+        let dir = temp_db_path("recovery-empty");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+
+        manager
+            .recover_interrupted_meetings()
+            .expect("recuperación");
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, started_at) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "interrupted");
+        assert_eq!(
+            ended_at,
+            Some(started_at),
+            "sin nada transcrito, la reunión duró efectivamente cero"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
     }
 
     #[test]

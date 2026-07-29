@@ -259,6 +259,14 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    // FR-008: reuniones que quedaron a medias en una sesión anterior. Corre
+    // después de `with_capture_deps` porque necesita el `AppHandle` para
+    // emitir `meeting-interrupted`, y nunca aborta el arranque: no poder
+    // recuperar una reunión vieja no es motivo para que la app no abra.
+    if let Err(e) = meeting_manager.recover_interrupted_meetings() {
+        log::warn!("No se pudieron recuperar reuniones interrumpidas: {}", e);
+    }
+
     app_handle.manage(meeting_manager.clone());
     app_handle.manage(diarization_engine.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
