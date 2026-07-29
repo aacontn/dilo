@@ -149,11 +149,16 @@ interface Meeting extends MeetingSummary {
 }
 
 interface MeetingSegment {
+  // OJO (verificado en T014, con un test sobre el bus de eventos real):
+  // el payload que viaja por el cable usa snake_case, no camelCase — es lo
+  // que serializa serde y lo que tauri-specta genera en `src/bindings.ts`,
+  // que es la fuente de verdad para el frontend. El resto de las interfaces
+  // de este documento describen la forma de los datos, no su casing.
   id: number;
-  speakerId: number | null;
+  speaker_id: number | null;
   text: string;
-  startedAtMs: number;
-  endedAtMs: number;
+  started_at_ms: number;
+  ended_at_ms: number;
   overlapped: boolean;
 }
 

@@ -190,6 +190,10 @@ tauri-utils = { git = "https://github.com/cjpais/tauri.git", branch = "handy-2.1
 
 [dev-dependencies]
 tempfile = "3"
+# Runtime mock de Tauri (`tauri::test::mock_app`): sin esto no hay forma de
+# probar que un evento backend->frontend realmente se emite — un `AppHandle`
+# real necesita event loop y ventana. Sólo dev: no entra en el binario.
+tauri = { version = "2.10.2", features = ["test"] }
 
 [profile.release]
 lto = true

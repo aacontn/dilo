@@ -848,16 +848,24 @@ fn insert_speaker(conn: &Connection, meeting_id: i64) -> Result<i64> {
 ///
 /// `transcribe` is injected so this whole persist+emit path is testable
 /// without a loaded ML model: production passes a closure around
-/// `TranscriptionManager::transcribe`, tests pass a stub. `app_handle` is
-/// `None` in tests, which skips the Tauri emit — the returned segment (or
-/// the DB row directly) is what tests assert against instead.
+/// `TranscriptionManager::transcribe`, tests pass a stub. Most tests pass
+/// `None` for `app_handle`, which skips the Tauri emit and asserts against
+/// the returned segment (or the DB row) instead.
+///
+/// Generic over the Tauri runtime (`R`) purely so the emission itself can be
+/// tested: production always instantiates it with `Wry`, while T014's test
+/// drives it with `tauri::test::mock_app`'s `MockRuntime` — a real
+/// `AppHandle<Wry>` needs an event loop and a window, so without this the
+/// "does the event actually reach the frontend bus" question could only be
+/// answered by hand. This is the generalization Tauri's own testing docs
+/// recommend for exactly this reason.
 ///
 /// Returns `Ok(None)` when the transcription came back empty (silence/noise
 /// the VAD let through) — nothing is persisted or emitted for it.
 #[allow(dead_code)]
-fn persist_and_emit_segment(
+fn persist_and_emit_segment<R: tauri::Runtime>(
     conn: &Connection,
-    app_handle: Option<&AppHandle>,
+    app_handle: Option<&AppHandle<R>>,
     meeting_id: i64,
     turn: CompletedTurn,
     speaker_id: Option<i64>,
@@ -1434,6 +1442,12 @@ impl MeetingManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tauri::Listener;
+
+    /// `None` con runtime explícito: `persist_and_emit_segment` es genérica
+    /// sobre el runtime de Tauri (ver su doc comment), así que los tests que
+    /// no verifican la emisión tienen que decir de qué runtime hablan.
+    const NO_APP: Option<&AppHandle> = None;
 
     /// Unique temp db path for a test (mirrors the inline pattern the
     /// existing T007 tests below already use, factored out so the new
@@ -1742,7 +1756,7 @@ mod tests {
             &|_samples| Ok("hola, esto es una prueba".to_string());
 
         let segment =
-            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
                 .expect("persisting should succeed")
                 .expect("non-empty transcription should produce a segment");
 
@@ -1810,7 +1824,7 @@ mod tests {
             Ok("ok".to_string())
         };
 
-        persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
             .expect("persisting should succeed");
 
         assert_eq!(
@@ -1842,7 +1856,7 @@ mod tests {
         let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("   ".to_string());
 
         let result =
-            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
                 .expect("an empty transcription is not an error");
         assert!(
             result.is_none(),
@@ -1882,7 +1896,7 @@ mod tests {
             &|_| Err(anyhow::anyhow!("engine exploded"));
 
         let result =
-            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe);
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe);
         assert!(result.is_err());
 
         let count: i64 = conn
@@ -1999,7 +2013,7 @@ mod tests {
         for turn in turns {
             let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
                 &move |samples| Ok(format!("[turno con {} muestras]", samples.len()));
-            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
                 .expect("persisting a real-audio turn should succeed");
         }
 
@@ -2317,7 +2331,7 @@ mod tests {
 
         let segment = persist_and_emit_segment(
             &conn,
-            None,
+            NO_APP,
             meeting_id,
             turn,
             Some(speaker_id),
@@ -2339,6 +2353,140 @@ mod tests {
             .expect("readable back");
         assert_eq!(stored_speaker, Some(speaker_id));
         assert!(stored_overlap);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // T014: emisión incremental de `meeting-segment` (FR-002).
+    //
+    // El camino de emisión ya existía (T012 lo cableó, T013 le agregó
+    // hablante y superposición), pero hasta acá NINGÚN test lo ejercitaba:
+    // todos pasaban `app_handle: None`. Estos dos tests cierran esa brecha
+    // con el runtime mock de Tauri, que es la única forma de tener un
+    // `AppHandle` sin event loop ni ventana.
+    // ------------------------------------------------------------------
+
+    /// App mock con el registro de eventos de tauri-specta montado, igual
+    /// que hace `lib.rs` con `specta_builder.mount_events(app)`. Sin ese
+    /// montaje `Event::emit` entra en pánico ("EventRegistry not found in
+    /// Tauri state") — o sea que este helper también documenta que la
+    /// emisión depende de que el evento esté en el `collect_events!` de
+    /// `lib.rs`, no sólo de que el struct derive `tauri_specta::Event`.
+    fn mock_app_with_events() -> tauri::App<tauri::test::MockRuntime> {
+        let app = tauri::test::mock_app();
+        let builder = tauri_specta::Builder::<tauri::test::MockRuntime>::new()
+            .events(tauri_specta::collect_events![MeetingSegment]);
+        builder.mount_events(app.handle());
+        app
+    }
+
+    #[test]
+    fn each_persisted_segment_emits_meeting_segment_incrementally() {
+        let app = mock_app_with_events();
+        let handle = app.handle().clone();
+
+        let received = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
+        let received_cb = Arc::clone(&received);
+        handle.listen("meeting-segment", move |event| {
+            let payload: serde_json::Value =
+                serde_json::from_str(event.payload()).expect("payload JSON");
+            received_cb.lock().unwrap().push(payload);
+        });
+
+        let dir = temp_db_path("emit-incremental");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+        let speaker_id = insert_speaker(&conn, meeting_id).expect("insert_speaker");
+
+        // Tres turnos consecutivos, como los que produce la captura en vivo.
+        for i in 0..3 {
+            let turn = CompletedTurn {
+                samples: vec![0.0; 20_000],
+                started_at_ms: i * 1_000,
+                ended_at_ms: i * 1_000 + 800,
+            };
+            let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
+                &move |_| Ok(format!("turno {i}"));
+            persist_and_emit_segment(
+                &conn,
+                Some(&handle),
+                meeting_id,
+                turn,
+                Some(speaker_id),
+                false,
+                transcribe,
+            )
+            .expect("persisting should succeed")
+            .expect("non-empty transcription");
+        }
+
+        let received = received.lock().unwrap();
+        assert_eq!(
+            received.len(),
+            3,
+            "FR-002: un evento por segmento, a medida que se insertan — no uno solo al final"
+        );
+
+        // El contrato (`contracts/tauri-commands.md`) dice payload =
+        // `MeetingSegment` completo; verificarlo campo por campo evita que
+        // un rename silencioso rompa al frontend sin romper ningún test.
+        let first = &received[0];
+        assert_eq!(first["text"], "turno 0");
+        assert_eq!(first["speaker_id"], speaker_id);
+        assert_eq!(first["started_at_ms"], 0);
+        assert_eq!(first["ended_at_ms"], 800);
+        assert_eq!(first["overlapped"], false);
+        assert!(first["id"].is_number());
+        assert_eq!(received[2]["text"], "turno 2");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn an_empty_transcription_emits_nothing() {
+        let app = mock_app_with_events();
+        let handle = app.handle().clone();
+
+        let received = Arc::new(Mutex::new(0usize));
+        let received_cb = Arc::clone(&received);
+        handle.listen("meeting-segment", move |_| {
+            *received_cb.lock().unwrap() += 1;
+        });
+
+        let dir = temp_db_path("emit-empty");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let turn = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 500,
+        };
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("   ".to_string());
+        let result = persist_and_emit_segment(
+            &conn,
+            Some(&handle),
+            meeting_id,
+            turn,
+            None,
+            false,
+            transcribe,
+        )
+        .expect("persisting should succeed");
+
+        assert!(result.is_none());
+        assert_eq!(
+            *received.lock().unwrap(),
+            0,
+            "el ruido que el VAD deja pasar no debe ensuciar el transcript en vivo"
+        );
 
         drop(conn);
         drop(manager);
