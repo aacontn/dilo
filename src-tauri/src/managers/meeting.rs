@@ -1437,6 +1437,119 @@ impl MeetingManager {
         info!("Started meeting {} (kind={})", id, kind);
         Ok(id)
     }
+
+    /// Cierra la grabación de una reunión: `recording → processing`, con
+    /// `ended_at` puesto (a partir de acá la validación de `data-model.md`
+    /// exige que no sea NULL). Sólo mueve el estado — detener el micrófono y
+    /// terminar el post-proceso son pasos separados, ver
+    /// [`Self::finalize_meeting`] y el comando `stop_meeting`.
+    ///
+    /// Falla con `"meeting_not_recording"` si la reunión no existe o no está
+    /// grabando, para que un doble click en "detener" no arrastre una reunión
+    /// ya terminada de vuelta a `processing`. El chequeo y el update van en
+    /// una sola transacción `IMMEDIATE`, misma razón que en
+    /// [`Self::start_meeting`].
+    pub fn stop_meeting(&self, meeting_id: i64) -> Result<()> {
+        let mut conn = self.get_connection()?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+
+        let updated = tx.execute(
+            "UPDATE meetings SET status = 'processing', ended_at = ?2 \
+             WHERE id = ?1 AND status = 'recording'",
+            params![meeting_id, Utc::now().timestamp()],
+        )?;
+        if updated == 0 {
+            bail!("meeting_not_recording");
+        }
+        tx.commit()?;
+
+        // Los turnos que quedaron en la cola se siguen transcribiendo
+        // mientras el estado ya es `processing` — el evento lo dice tal cual
+        // en vez de anunciar una fase que todavía no corre.
+        if let Some(app) = &self.app_handle {
+            let progress = MeetingProgress {
+                meeting_id,
+                phase: MeetingProgressPhase::Transcribing,
+            };
+            if let Err(e) = progress.emit(app) {
+                warn!("Failed to emit meeting-progress for {}: {}", meeting_id, e);
+            }
+        }
+
+        info!("Meeting {} stopped: recording -> processing", meeting_id);
+        Ok(())
+    }
+
+    /// Termina el post-proceso de una reunión: `processing → ready` y evento
+    /// `meeting-finished`.
+    ///
+    /// **Alcance deliberado (Principio VI, no es un atajo silencioso)**: hoy
+    /// el post-proceso de la Historia 1 no tiene ningún paso propio — cuando
+    /// `stop_capture` terminó de drenar la cola, el transcript diarizado ya
+    /// está completo y persistido. La generación de resumen y pendientes es
+    /// T037 (Historia 4) y se engancha exactamente acá, antes de marcar
+    /// `ready`: emitir `MeetingProgressPhase::Summarizing`, generar con
+    /// `llm_client.rs`, guardar `summary` + `meeting_action_items`.
+    ///
+    /// Hasta entonces una reunión llega a `ready` con `summary = NULL`, que
+    /// significa "transcript listo, sin resumen todavía" — no "resumen
+    /// vacío". Dejarla clavada en `processing` para siempre habría sido peor:
+    /// rompe el checkpoint de la Historia 1 (que es testeable de forma
+    /// independiente sin resumen, ver `quickstart.md` Escenario 1) y le
+    /// miente al usuario sobre que algo está corriendo.
+    pub fn finalize_meeting(&self, meeting_id: i64) -> Result<()> {
+        let conn = self.get_connection()?;
+        let updated = conn.execute(
+            "UPDATE meetings SET status = 'ready' WHERE id = ?1 AND status = 'processing'",
+            params![meeting_id],
+        )?;
+        if updated == 0 {
+            bail!("meeting_not_processing");
+        }
+
+        if let Some(app) = &self.app_handle {
+            if let Err(e) = (MeetingFinished { meeting_id }).emit(app) {
+                warn!("Failed to emit meeting-finished for {}: {}", meeting_id, e);
+            }
+        }
+
+        info!("Meeting {} finished: processing -> ready", meeting_id);
+        Ok(())
+    }
+
+    /// Reporta un error de post-proceso al frontend (`meeting-error`). La
+    /// reunión queda en `processing`: el transcript ya persistido no se
+    /// pierde (FR-007) y un reintento futuro puede retomarla desde ahí.
+    fn report_meeting_error(&self, meeting_id: i64, error: String) {
+        error!("Meeting {}: {}", meeting_id, error);
+        if let Some(app) = &self.app_handle {
+            let payload = MeetingError { meeting_id, error };
+            if let Err(e) = payload.emit(app) {
+                warn!("Failed to emit meeting-error for {}: {}", meeting_id, e);
+            }
+        }
+    }
+
+    /// Secuencia completa de detención, pensada para correr fuera del hilo
+    /// del comando: detiene la captura (bloquea hasta que el hilo
+    /// transcriptor drena y persiste los turnos en cola — puede tardar
+    /// segundos) y recién ahí marca la reunión como lista.
+    ///
+    /// Que no haya captura activa NO es un error acá: la reunión pudo
+    /// haberse creado sin abrir el micrófono (o el proceso pudo perderla), y
+    /// el estado igual tiene que poder cerrarse.
+    pub fn drain_and_finalize(&self, meeting_id: i64) {
+        if let Err(e) = self.stop_capture(meeting_id) {
+            debug!(
+                "Meeting {}: no había captura activa que detener ({})",
+                meeting_id, e
+            );
+        }
+
+        if let Err(e) = self.finalize_meeting(meeting_id) {
+            self.report_meeting_error(meeting_id, format!("no se pudo cerrar la reunión: {e}"));
+        }
+    }
 }
 
 #[cfg(test)]
@@ -2353,6 +2466,164 @@ mod tests {
             .expect("readable back");
         assert_eq!(stored_speaker, Some(speaker_id));
         assert!(stored_overlap);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // T015: máquina de estados del cierre (recording -> processing -> ready).
+    //
+    // Los eventos que emiten estos métodos (`meeting-progress`,
+    // `meeting-finished`) NO están cubiertos acá: `MeetingManager` guarda un
+    // `AppHandle<Wry>` concreto, y hacerlo genérico sobre el runtime sólo
+    // para estos tests sería un refactor grande de producción. El mecanismo
+    // de emisión en sí ya está probado en los tests de T014; lo que se prueba
+    // acá es la parte que puede corromper datos: las transiciones.
+    // ------------------------------------------------------------------
+
+    fn meeting_row(conn: &Connection, meeting_id: i64) -> (String, Option<i64>, i64) {
+        conn.query_row(
+            "SELECT status, ended_at, started_at FROM meetings WHERE id = ?1",
+            [meeting_id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .expect("la reunión debe existir")
+    }
+
+    #[test]
+    fn stop_meeting_moves_to_processing_and_stamps_ended_at() {
+        let dir = temp_db_path("stop-meeting-basic");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+
+        manager.stop_meeting(meeting_id).expect("stop_meeting");
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, started_at) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "processing");
+        let ended_at = ended_at.expect("data-model.md: ended_at deja de ser NULL al detener");
+        assert!(ended_at >= started_at);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn stopping_twice_fails_without_touching_the_row() {
+        let dir = temp_db_path("stop-meeting-twice");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        manager.stop_meeting(meeting_id).expect("primer stop");
+
+        let conn = manager.get_connection().expect("get_connection");
+        let before = meeting_row(&conn, meeting_id);
+
+        let err = manager
+            .stop_meeting(meeting_id)
+            .expect_err("un segundo stop no debe pasar");
+        assert!(err.to_string().contains("meeting_not_recording"));
+
+        assert_eq!(
+            meeting_row(&conn, meeting_id),
+            before,
+            "un doble click en detener no debe re-timestampear ni revivir la reunión"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn stop_meeting_fails_for_an_unknown_meeting() {
+        let dir = temp_db_path("stop-meeting-unknown");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+
+        let err = manager
+            .stop_meeting(9_999)
+            .expect_err("una reunión inexistente no se puede detener");
+        assert!(err.to_string().contains("meeting_not_recording"));
+
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn stopping_a_meeting_frees_the_slot_for_the_next_one() {
+        let dir = temp_db_path("stop-meeting-frees-slot");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let first = manager.start_meeting("presencial").expect("start_meeting");
+
+        assert!(
+            manager.start_meeting("presencial").is_err(),
+            "con una reunión grabando, otra no debe poder empezar (recording_busy)"
+        );
+
+        manager.stop_meeting(first).expect("stop_meeting");
+        let second = manager
+            .start_meeting("presencial")
+            .expect("detenida la primera, la siguiente sí debe poder empezar");
+        assert_ne!(first, second);
+
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn finalize_meeting_moves_processing_to_ready() {
+        let dir = temp_db_path("finalize-meeting");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+
+        // Sin pasar por processing no se puede terminar.
+        let err = manager
+            .finalize_meeting(meeting_id)
+            .expect_err("una reunión grabando no está lista para cerrarse");
+        assert!(err.to_string().contains("meeting_not_processing"));
+
+        manager.stop_meeting(meeting_id).expect("stop_meeting");
+        manager.finalize_meeting(meeting_id).expect("finalize");
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, _) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "ready");
+        assert!(ended_at.is_some());
+
+        let summary: Option<String> = conn
+            .query_row(
+                "SELECT summary FROM meetings WHERE id = ?1",
+                [meeting_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            summary, None,
+            "la Historia 1 llega a ready sin resumen: eso lo agrega T037, y NULL significa \
+             'sin resumen todavía', no 'resumen vacío'"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn drain_and_finalize_reaches_ready_without_an_active_capture() {
+        let dir = temp_db_path("drain-no-capture");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        manager.stop_meeting(meeting_id).expect("stop_meeting");
+
+        // No hay micrófono abierto (este manager ni siquiera tiene deps de
+        // captura): que no haya nada que drenar no debe impedir cerrar.
+        manager.drain_and_finalize(meeting_id);
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, _, _) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "ready");
 
         drop(conn);
         drop(manager);

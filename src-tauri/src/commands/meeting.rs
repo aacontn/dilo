@@ -1,6 +1,7 @@
 //! Tauri commands for the meeting notetaker feature. `start_meeting` (T011)
 //! is the first one — see `specs/001-meeting-notetaker/contracts/
 //! tauri-commands.md` for the full contract this feature will grow into.
+//! `stop_meeting` (T015) es el segundo.
 
 use crate::managers::meeting::MeetingManager;
 use std::sync::Arc;
@@ -29,4 +30,40 @@ pub async fn start_meeting(
     meeting_manager
         .start_meeting(&kind)
         .map_err(|e| e.to_string())
+}
+
+/// Detener una reunión en curso: `recording → processing` (contrato:
+/// `tauri-commands.md#stop_meeting`, output `void` — el progreso llega por
+/// evento).
+///
+/// El comando devuelve apenas la transición de estado está confirmada, y deja
+/// el resto corriendo en background por dos razones:
+///
+/// 1. Detener la captura **bloquea**: `stop_capture` junta los hilos de
+///    watchdog y transcripción, que antes de salir drenan la cola de turnos
+///    pendientes (transcribir cada uno puede tardar segundos). Hacer eso en el
+///    hilo del comando congelaría la UI justo cuando el usuario apretó
+///    "detener".
+/// 2. El contrato ya dice que el progreso viaja por eventos
+///    (`meeting-progress`, `meeting-finished`, `meeting-error`), así que la
+///    UI no necesita que el comando espere.
+///
+/// El estado se mueve a `processing` **antes** de devolver: si la app se cae
+/// mientras se drena la cola, la reunión no queda como `recording` sin
+/// `ended_at` y la recuperación de T021 no la confunde con una sesión
+/// interrumpida de verdad.
+#[tauri::command]
+#[specta::specta]
+pub async fn stop_meeting(
+    meeting_manager: State<'_, Arc<MeetingManager>>,
+    meeting_id: i64,
+) -> Result<(), String> {
+    meeting_manager
+        .stop_meeting(meeting_id)
+        .map_err(|e| e.to_string())?;
+
+    let manager = Arc::clone(&meeting_manager);
+    tauri::async_runtime::spawn_blocking(move || manager.drain_and_finalize(meeting_id));
+
+    Ok(())
 }

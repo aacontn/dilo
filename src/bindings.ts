@@ -896,6 +896,36 @@ async startMeeting(kind: string) : Promise<Result<number, string>> {
 }
 },
 /**
+ * Detener una reunión en curso: `recording → processing` (contrato:
+ * `tauri-commands.md#stop_meeting`, output `void` — el progreso llega por
+ * evento).
+ * 
+ * El comando devuelve apenas la transición de estado está confirmada, y deja
+ * el resto corriendo en background por dos razones:
+ * 
+ * 1. Detener la captura **bloquea**: `stop_capture` junta los hilos de
+ * watchdog y transcripción, que antes de salir drenan la cola de turnos
+ * pendientes (transcribir cada uno puede tardar segundos). Hacer eso en el
+ * hilo del comando congelaría la UI justo cuando el usuario apretó
+ * "detener".
+ * 2. El contrato ya dice que el progreso viaja por eventos
+ * (`meeting-progress`, `meeting-finished`, `meeting-error`), así que la
+ * UI no necesita que el comando espere.
+ * 
+ * El estado se mueve a `processing` **antes** de devolver: si la app se cae
+ * mientras se drena la cola, la reunión no queda como `recording` sin
+ * `ended_at` y la recuperación de T021 no la confunde con una sesión
+ * interrumpida de verdad.
+ */
+async stopMeeting(meetingId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_meeting", { meetingId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {
