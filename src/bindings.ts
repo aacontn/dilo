@@ -877,15 +877,18 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 },
 /**
  * Start a new meeting recording: inserts a `meetings` row with
- * `status = "recording"` and returns its `id`.
+ * `status = "recording"`, abre el micrófono y devuelve el `id`.
  * 
- * This command deliberately does not touch the microphone or start any
- * audio capture — that's a separate, later task (T012) that needs to
- * understand how `AudioRecordingManager`'s dictation recording works
- * before deciding how the two coexist. It also does not check for a
- * dictation recording in progress, only for another meeting already
- * recording (`meetings.status = 'recording'`), per
- * `specs/001-meeting-notetaker/contracts/tauri-commands.md#start_meeting`.
+ * T011 dejó este comando creando sólo la fila, porque la captura real
+ * (T012) todavía no existía; T017 la enchufa acá, que es el único lugar
+ * donde el usuario puede pedirla. Sin esto, apretar "grabar" creaba una
+ * reunión que no escuchaba nada.
+ * 
+ * **Si abrir el micrófono falla, la fila se borra.** Los motivos típicos
+ * son que el micrófono esté tomado por un dictado en curso o que falten
+ * permisos — casos donde no se grabó ni un segundo de audio. Dejar la
+ * reunión creada obligaría al usuario a lidiar con una reunión fantasma
+ * vacía, y peor: bloquearía la siguiente con `recording_busy`.
  */
 async startMeeting(kind: string) : Promise<Result<number, string>> {
     try {

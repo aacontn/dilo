@@ -18,7 +18,8 @@
     "debug": "Hata Ayıklama",
     "about": "Hakkında",
     "notes": "Notlar",
-    "voice": "Ses"
+    "voice": "Ses",
+    "meetings": "Toplantılar"
   },
   "home": {
     "status": {
@@ -857,5 +858,57 @@
   },
   "whatsNew": {
     "title": "Dilo v{{version}} yenilikleri"
+  },
+  "meeting": {
+    "page": {
+      "title": "Toplantılar",
+      "description": "Yüz yüze bir toplantıyı kaydet ve her sesi ayrı ayrı gösteren döküm oluşurken izle. Her şey kendi bilgisayarında olur."
+    },
+    "controls": {
+      "stateIdle": "Kayda hazır",
+      "stateRecording": "Kaydediliyor",
+      "stateProcessing": "Tamamlanıyor",
+      "idleTitle": "Bir sonraki toplantını kaydet",
+      "idleDescription": "Dilo mikrofondan dinler, kimin konuştuğunu ayırt eder ve toplantı sürerken yazar.",
+      "recordingTitle": "Kayıt sürüyor",
+      "recordingDescription": "Herkes konuşmasını bitirdikçe metin aşağıda beliriyor.",
+      "processingTitle": "Döküm tamamlanıyor",
+      "processingDescription": "Son konuşmalar hâlâ yazıya dökülüyor. Birkaç saniye içinde hazır.",
+      "start": "Toplantıyı kaydet",
+      "starting": "Mikrofon açılıyor…",
+      "stop": "Durdur",
+      "finishing": "Tamamlanıyor…",
+      "kindPresencial": "Yüz yüze, bu cihazın mikrofonuyla",
+      "privacy": "Ses bilgisayarından çıkmaz: döküm ve ses ayrıştırma burada yapılır.",
+      "startFailed": "Kayıt başlatılamadı",
+      "stopFailed": "Toplantı durdurulamadı"
+    },
+    "transcript": {
+      "title": "Canlı döküm",
+      "subtitle": "Her konuşma, yazıya döküldüğü anda kaydedilir.",
+      "empty": "Konuşulanlar burada görünecek.",
+      "listening": "Dinleniyor… biri konuşur konuşmaz metin burada belirir.",
+      "speakerLabel": "Konuşmacı {{number}}",
+      "unknownSpeaker": "Belirlenmedi",
+      "overlapped": "sesler üst üste",
+      "speakerCount_one": "{{count}} ses",
+      "speakerCount_other": "{{count}} ses"
+    },
+    "speakers": {
+      "title": "Kim kim",
+      "subtitle": "Her sese bir ad ver. Dilo aynı kişiyi ikiye ayırdıysa onları birleştir.",
+      "save": "Kaydet",
+      "interventions_one": "{{count}} konuşma",
+      "interventions_other": "{{count}} konuşma",
+      "nameFailed": "Ad kaydedilemedi",
+      "mergeLabel": "İki sesi birleştir",
+      "mergeHelp": "İki konuşmacı aynı kişiyse hangisinin hangisine katılacağını seç. Döküm kendiliğinden güncellenir.",
+      "mergeSource": "Bu ses…",
+      "mergeInto": "şu kişidir:",
+      "mergeTarget": "…bu kişi",
+      "mergeAction": "Birleştir",
+      "mergeDone": "Tamam, artık tek kişiler",
+      "mergeFailed": "Birleştirilemedi"
+    }
   }
 }

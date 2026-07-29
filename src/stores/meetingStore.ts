@@ -1,15 +1,16 @@
 import { create } from "zustand";
+import { commands, type MeetingSegment } from "@/bindings";
 
-// Placeholder types for the meeting notetaker feature.
-//
-// These mirror the "Tipos compartidos" section of
-// `specs/001-meeting-notetaker/contracts/tauri-commands.md` (not exhaustive
-// there either). There are no real `meetings` commands in `bindings.ts` yet
-// (the first one, `start_meeting`, lands in T011) — once tauri-specta
-// generates them, these local types should be dropped in favor of the
-// generated ones, the same way `useSettings`/`settingsStore` consume
-// `AppSettings` from `@/bindings`.
-export type MeetingStatus = "recording" | "processing" | "ready" | "interrupted";
+// Tipos que todavía no vienen de `bindings.ts` porque sus comandos no
+// existen (`get_meeting`/`list_meetings` son T035). Los que sí existen se
+// importan del binding generado — `MeetingSegment` arriba — en vez de
+// redeclararlos acá, que es como se entera el frontend cuando el backend
+// cambia de forma.
+export type MeetingStatus =
+  | "recording"
+  | "processing"
+  | "ready"
+  | "interrupted";
 export type MeetingKind = "presencial" | "virtual";
 
 export interface MeetingSummary {
@@ -27,15 +28,6 @@ export interface MeetingSpeaker {
   displayName: string | null;
 }
 
-export interface MeetingSegment {
-  id: number;
-  speakerId: number | null;
-  text: string;
-  startedAtMs: number;
-  endedAtMs: number;
-  overlapped: boolean;
-}
-
 export interface ActionItem {
   id: number;
   text: string;
@@ -50,49 +42,104 @@ export interface Meeting extends MeetingSummary {
   actionItems: ActionItem[];
 }
 
+/**
+ * Estado de la sesión de reunión en curso.
+ *
+ * Vive en memoria a propósito: mientras no exista `list_meetings` (T035) no
+ * hay forma de preguntarle al backend "¿hay una reunión grabando?", así que
+ * cerrar y reabrir la ventana durante una reunión pierde de vista la sesión
+ * aunque la grabación siga corriendo. La consecuencia está acotada: el
+ * backend rechaza empezar otra con `recording_busy` y ese mensaje se muestra
+ * tal cual. Cuando llegue T035 esto se hidrata al montar.
+ */
 interface MeetingStore {
-  meetings: MeetingSummary[];
-  activeMeeting: Meeting | null;
-  isLoading: boolean;
+  /** `null` = no hay ninguna reunión en curso en esta ventana. */
+  activeMeetingId: number | null;
+  status: MeetingStatus | null;
+  /** Segmentos de la sesión en curso, en el orden en que llegaron. */
+  segments: MeetingSegment[];
+  /** Nombres puestos por el usuario, por id de hablante. */
+  speakerNames: Record<number, string>;
+  isStarting: boolean;
+  isStopping: boolean;
 
-  // Actions
-  //
-  // Skeleton only — no Tauri commands exist for meetings yet (T011+ adds
-  // `start_meeting`, `stop_meeting`, `list_meetings`, etc., see
-  // `specs/001-meeting-notetaker/contracts/tauri-commands.md`). These are
-  // no-ops so real UI work in Phase 3 has a stable store API to build
-  // against without inventing calls to commands that don't exist.
-  refreshMeetings: () => Promise<void>;
-  setActiveMeeting: (meeting: Meeting | null) => void;
   startMeeting: (kind: MeetingKind) => Promise<void>;
-  stopMeeting: (meetingId: number) => Promise<void>;
-
-  // Internal state setters
-  setMeetings: (meetings: MeetingSummary[]) => void;
-  setLoading: (loading: boolean) => void;
+  stopMeeting: () => Promise<void>;
+  appendSegment: (segment: MeetingSegment) => void;
+  markFinished: () => void;
+  setSpeakerName: (speakerId: number, name: string) => void;
+  reset: () => void;
 }
 
-export const useMeetingStore = create<MeetingStore>()((set) => ({
-  meetings: [],
-  activeMeeting: null,
-  isLoading: false,
+export const useMeetingStore = create<MeetingStore>()((set, get) => ({
+  activeMeetingId: null,
+  status: null,
+  segments: [],
+  speakerNames: {},
+  isStarting: false,
+  isStopping: false,
 
-  setMeetings: (meetings) => set({ meetings }),
-  setLoading: (isLoading) => set({ isLoading }),
-
-  refreshMeetings: async () => {
-    // TODO(T011+): call commands.listMeetings() once it exists and normalize
-    // the result into `meetings`, following the pattern of
-    // `refreshSettings` in settingsStore.ts.
+  startMeeting: async (kind) => {
+    if (get().isStarting || get().activeMeetingId !== null) return;
+    set({ isStarting: true });
+    try {
+      const result = await commands.startMeeting(kind);
+      if (result.status === "error") throw new Error(result.error);
+      set({
+        activeMeetingId: result.data,
+        status: "recording",
+        segments: [],
+        speakerNames: {},
+      });
+    } finally {
+      set({ isStarting: false });
+    }
   },
 
-  setActiveMeeting: (meeting) => set({ activeMeeting: meeting }),
-
-  startMeeting: async (_kind) => {
-    // TODO(T011+): call commands.startMeeting({ kind }) once it exists.
+  stopMeeting: async () => {
+    const meetingId = get().activeMeetingId;
+    if (meetingId === null || get().isStopping) return;
+    set({ isStopping: true });
+    try {
+      const result = await commands.stopMeeting(meetingId);
+      if (result.status === "error") throw new Error(result.error);
+      // No se limpia la sesión acá: el backend sigue transcribiendo lo que
+      // quedó en la cola y esos segmentos llegan después de detener. La
+      // sesión se cierra con `meeting-finished` (markFinished).
+      set({ status: "processing" });
+    } finally {
+      set({ isStopping: false });
+    }
   },
 
-  stopMeeting: async (_meetingId) => {
-    // TODO(T011+): call commands.stopMeeting({ meetingId }) once it exists.
-  },
+  // Ignora un id que ya está: React monta los efectos dos veces en
+  // StrictMode, y un segmento repetido en el transcript se lee como si
+  // alguien hubiera dicho la misma frase dos veces.
+  appendSegment: (segment) =>
+    set((state) =>
+      state.segments.some((existing) => existing.id === segment.id)
+        ? state
+        : { segments: [...state.segments, segment] },
+    ),
+
+  markFinished: () => set({ status: "ready" }),
+
+  setSpeakerName: (speakerId, name) =>
+    set((state) => {
+      const speakerNames = { ...state.speakerNames };
+      if (name.trim() === "") {
+        delete speakerNames[speakerId];
+      } else {
+        speakerNames[speakerId] = name.trim();
+      }
+      return { speakerNames };
+    }),
+
+  reset: () =>
+    set({
+      activeMeetingId: null,
+      status: null,
+      segments: [],
+      speakerNames: {},
+    }),
 }));

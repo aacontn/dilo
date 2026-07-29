@@ -1,44 +1,90 @@
-import { useEffect } from "react";
-import { useMeetingStore } from "../stores/meetingStore";
-import type {
-  Meeting,
-  MeetingKind,
-  MeetingSummary,
-} from "../stores/meetingStore";
+import { useCallback, useEffect } from "react";
+import { events, type MeetingSegment } from "@/bindings";
+import { useMeetingStore, type MeetingKind } from "../stores/meetingStore";
 
 interface UseMeetingsReturn {
-  // State
-  meetings: MeetingSummary[];
-  activeMeeting: Meeting | null;
-  isLoading: boolean;
+  activeMeetingId: number | null;
+  isRecording: boolean;
+  isProcessing: boolean;
+  isStarting: boolean;
+  isStopping: boolean;
+  segments: MeetingSegment[];
+  speakerNames: Record<number, string>;
 
-  // Actions
-  refreshMeetings: () => Promise<void>;
-  setActiveMeeting: (meeting: Meeting | null) => void;
   startMeeting: (kind: MeetingKind) => Promise<void>;
-  stopMeeting: (meetingId: number) => Promise<void>;
+  stopMeeting: () => Promise<void>;
+  setSpeakerName: (speakerId: number, name: string) => void;
+  reset: () => void;
 }
 
-// Skeleton hook for the meeting notetaker feature, following the shape of
-// `useSettings.ts`. There is no real data behind it yet — `meetingStore`'s
-// actions are no-ops until the backend commands from T011+ exist. Real UI
-// (Phase 3, Historia 1, T017+) can depend on this API without changing its
-// shape once the store is wired up to actual Tauri commands.
-export const useMeetings = (): UseMeetingsReturn => {
-  const store = useMeetingStore();
+/**
+ * Suscripción a los eventos de reunión del backend.
+ *
+ * **Va en UN solo componente** (hoy `MeetingSession`), no en `useMeetings`:
+ * si viviera en el hook de estado, cada componente que lo usa montaría su
+ * propio listener y cada segmento entraría al transcript tantas veces como
+ * componentes haya en pantalla. El transcript mostraba cada línea tres
+ * veces por exactamente eso.
+ *
+ * El transcript llega por `meeting-segment` a medida que cada turno se
+ * transcribe (FR-002), y los segmentos que quedaron en la cola siguen
+ * llegando **después** de apretar detener, hasta que `meeting-finished`
+ * cierra la sesión.
+ */
+export const useMeetingEvents = (): void => {
+  const appendSegment = useMeetingStore((state) => state.appendSegment);
+  const markFinished = useMeetingStore((state) => state.markFinished);
 
-  // Initialize on first mount
   useEffect(() => {
-    store.refreshMeetings();
-  }, [store.refreshMeetings]);
+    const unlistenSegment = events.meetingSegment.listen((event) => {
+      appendSegment(event.payload);
+    });
+    const unlistenFinished = events.meetingFinished.listen(() => {
+      markFinished();
+    });
+    const unlistenError = events.meetingError.listen((event) => {
+      console.error("Meeting error:", event.payload.error);
+    });
+
+    return () => {
+      void unlistenSegment.then((fn) => fn());
+      void unlistenFinished.then((fn) => fn());
+      void unlistenError.then((fn) => fn());
+    };
+  }, [appendSegment, markFinished]);
+};
+
+/** Estado y acciones de la sesión en curso. No suscribe a nada. */
+export const useMeetings = (): UseMeetingsReturn => {
+  const {
+    activeMeetingId,
+    status,
+    segments,
+    speakerNames,
+    isStarting,
+    isStopping,
+    startMeeting,
+    stopMeeting,
+    setSpeakerName,
+    reset,
+  } = useMeetingStore();
+
+  const start = useCallback(
+    (kind: MeetingKind) => startMeeting(kind),
+    [startMeeting],
+  );
 
   return {
-    meetings: store.meetings,
-    activeMeeting: store.activeMeeting,
-    isLoading: store.isLoading,
-    refreshMeetings: store.refreshMeetings,
-    setActiveMeeting: store.setActiveMeeting,
-    startMeeting: store.startMeeting,
-    stopMeeting: store.stopMeeting,
+    activeMeetingId,
+    isRecording: status === "recording",
+    isProcessing: status === "processing",
+    isStarting,
+    isStopping,
+    segments,
+    speakerNames,
+    startMeeting: start,
+    stopMeeting,
+    setSpeakerName,
+    reset,
   };
 };

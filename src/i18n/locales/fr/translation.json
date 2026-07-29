@@ -18,7 +18,8 @@
     "debug": "Débogage",
     "about": "À propos",
     "notes": "Notes",
-    "voice": "Voix"
+    "voice": "Voix",
+    "meetings": "Réunions"
   },
   "home": {
     "status": {
@@ -857,5 +858,57 @@
   },
   "whatsNew": {
     "title": "Nouveautés de Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Réunions",
+      "description": "Enregistre une réunion en présentiel et vois la transcription apparaître, chaque voix séparée. Tout se passe sur ton ordinateur."
+    },
+    "controls": {
+      "stateIdle": "Prêt à enregistrer",
+      "stateRecording": "Enregistrement",
+      "stateProcessing": "Finalisation",
+      "idleTitle": "Enregistre ta prochaine réunion",
+      "idleDescription": "Dilo écoute par le micro, distingue les voix et écrit pendant que la réunion se déroule.",
+      "recordingTitle": "Enregistrement en cours",
+      "recordingDescription": "Le texte apparaît ci-dessous dès que quelqu'un finit de parler.",
+      "processingTitle": "Transcription en cours de finalisation",
+      "processingDescription": "Il reste les derniers passages à transcrire. Ce sera prêt dans quelques secondes.",
+      "start": "Enregistrer la réunion",
+      "starting": "Ouverture du micro…",
+      "stop": "Arrêter",
+      "finishing": "Finalisation…",
+      "kindPresencial": "En présentiel, avec le micro de cet appareil",
+      "privacy": "L'audio ne quitte pas ton ordinateur : la transcription et la séparation des voix se font ici.",
+      "startFailed": "Impossible de démarrer l'enregistrement",
+      "stopFailed": "Impossible d'arrêter la réunion"
+    },
+    "transcript": {
+      "title": "Transcription en direct",
+      "subtitle": "Chaque intervention est enregistrée dès qu'elle est transcrite.",
+      "empty": "Ce qui sera dit apparaîtra ici.",
+      "listening": "À l'écoute… dès que quelqu'un parle, le texte apparaît ici.",
+      "speakerLabel": "Interlocuteur {{number}}",
+      "unknownSpeaker": "Non identifié",
+      "overlapped": "voix superposées",
+      "speakerCount_one": "{{count}} voix",
+      "speakerCount_other": "{{count}} voix"
+    },
+    "speakers": {
+      "title": "Qui est qui",
+      "subtitle": "Donne un nom à chaque voix. Si Dilo a coupé la même personne en deux, fusionne-les.",
+      "save": "Enregistrer",
+      "interventions_one": "{{count}} intervention",
+      "interventions_other": "{{count}} interventions",
+      "nameFailed": "Impossible d'enregistrer le nom",
+      "mergeLabel": "Fusionner deux voix",
+      "mergeHelp": "Si deux interlocuteurs sont la même personne, choisis lequel rejoint lequel. La transcription se met à jour toute seule.",
+      "mergeSource": "Cette voix…",
+      "mergeInto": "est",
+      "mergeTarget": "…cette personne",
+      "mergeAction": "Fusionner",
+      "mergeDone": "C'est fait, ils ne font plus qu'un",
+      "mergeFailed": "Fusion impossible"
+    }
   }
 }

@@ -18,7 +18,8 @@
     "debug": "Debug",
     "about": "About",
     "notes": "Notes",
-    "voice": "Voice"
+    "voice": "Voice",
+    "meetings": "Meetings"
   },
   "home": {
     "status": {
@@ -75,7 +76,58 @@
       "customize": "Customize"
     }
   },
-  "meeting": {},
+  "meeting": {
+    "page": {
+      "title": "Meetings",
+      "description": "Record an in-person meeting and watch the transcript appear, with each voice kept apart. Everything runs on your computer."
+    },
+    "controls": {
+      "stateIdle": "Ready to record",
+      "stateRecording": "Recording",
+      "stateProcessing": "Wrapping up",
+      "idleTitle": "Record your next meeting",
+      "idleDescription": "Dilo listens through the microphone, tells voices apart, and writes as the meeting happens.",
+      "recordingTitle": "Recording now",
+      "recordingDescription": "Text shows up below as each person finishes speaking.",
+      "processingTitle": "Finishing the transcript",
+      "processingDescription": "Still transcribing the last few turns. It'll be ready in seconds.",
+      "start": "Record meeting",
+      "starting": "Opening the microphone…",
+      "stop": "Stop",
+      "finishing": "Wrapping up…",
+      "kindPresencial": "In person, using this computer's microphone",
+      "privacy": "Audio never leaves your computer: transcription and speaker separation happen right here.",
+      "startFailed": "Couldn't start recording",
+      "stopFailed": "Couldn't stop the meeting"
+    },
+    "transcript": {
+      "title": "Live transcript",
+      "subtitle": "Every turn is saved as soon as it's transcribed.",
+      "empty": "What gets said will show up here.",
+      "listening": "Listening… as soon as someone speaks, the text appears here.",
+      "speakerLabel": "Speaker {{number}}",
+      "unknownSpeaker": "Unidentified",
+      "overlapped": "voices overlapped",
+      "speakerCount_one": "{{count}} voice",
+      "speakerCount_other": "{{count}} voices"
+    },
+    "speakers": {
+      "title": "Who's who",
+      "subtitle": "Name each voice. If Dilo split the same person in two, merge them.",
+      "save": "Save",
+      "interventions_one": "{{count}} turn",
+      "interventions_other": "{{count}} turns",
+      "nameFailed": "Couldn't save the name",
+      "mergeLabel": "Merge two voices",
+      "mergeHelp": "If two speakers are the same person, pick which one folds into which. The transcript updates on its own.",
+      "mergeSource": "This voice…",
+      "mergeInto": "is",
+      "mergeTarget": "…this person",
+      "mergeAction": "Merge",
+      "mergeDone": "Done, they're one person now",
+      "mergeFailed": "Couldn't merge them"
+    }
+  },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
     "existingModelsTitle": "Compatible Models",

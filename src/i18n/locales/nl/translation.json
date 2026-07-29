@@ -18,7 +18,8 @@
     "debug": "Probleemoplossing",
     "about": "Over Dilo",
     "notes": "Notities",
-    "voice": "Stem"
+    "voice": "Stem",
+    "meetings": "Vergaderingen"
   },
   "home": {
     "status": {
@@ -857,5 +858,57 @@
     "processing": "Verwerken...",
     "speaking": "Spreken...",
     "noteSaved": "Notitie opgeslagen"
+  },
+  "meeting": {
+    "page": {
+      "title": "Vergaderingen",
+      "description": "Neem een fysieke vergadering op en zie het transcript verschijnen, met elke stem apart. Alles gebeurt op je eigen computer."
+    },
+    "controls": {
+      "stateIdle": "Klaar om op te nemen",
+      "stateRecording": "Aan het opnemen",
+      "stateProcessing": "Afronden",
+      "idleTitle": "Neem je volgende vergadering op",
+      "idleDescription": "Dilo luistert mee via de microfoon, houdt stemmen uit elkaar en schrijft mee terwijl de vergadering loopt.",
+      "recordingTitle": "We nemen op",
+      "recordingDescription": "De tekst verschijnt hieronder zodra iemand is uitgesproken.",
+      "processingTitle": "Transcript wordt afgemaakt",
+      "processingDescription": "De laatste stukken worden nog getranscribeerd. Over een paar seconden is het klaar.",
+      "start": "Vergadering opnemen",
+      "starting": "Microfoon wordt geopend…",
+      "stop": "Stoppen",
+      "finishing": "Afronden…",
+      "kindPresencial": "Fysiek, met de microfoon van dit apparaat",
+      "privacy": "De audio verlaat je computer niet: transcriptie en het scheiden van stemmen gebeuren hier.",
+      "startFailed": "Opnemen kon niet starten",
+      "stopFailed": "Vergadering kon niet gestopt worden"
+    },
+    "transcript": {
+      "title": "Live transcript",
+      "subtitle": "Elke bijdrage wordt opgeslagen zodra die is getranscribeerd.",
+      "empty": "Hier verschijnt wat er gezegd wordt.",
+      "listening": "Aan het luisteren… zodra iemand praat, verschijnt de tekst hier.",
+      "speakerLabel": "Spreker {{number}}",
+      "unknownSpeaker": "Niet toegewezen",
+      "overlapped": "stemmen door elkaar",
+      "speakerCount_one": "{{count}} stem",
+      "speakerCount_other": "{{count}} stemmen"
+    },
+    "speakers": {
+      "title": "Wie is wie",
+      "subtitle": "Geef elke stem een naam. Heeft Dilo dezelfde persoon in tweeën gesplitst, voeg ze dan samen.",
+      "save": "Opslaan",
+      "interventions_one": "{{count}} bijdrage",
+      "interventions_other": "{{count}} bijdragen",
+      "nameFailed": "Naam kon niet opgeslagen worden",
+      "mergeLabel": "Twee stemmen samenvoegen",
+      "mergeHelp": "Zijn twee sprekers dezelfde persoon, kies dan wie in wie opgaat. Het transcript past zich vanzelf aan.",
+      "mergeSource": "Deze stem…",
+      "mergeInto": "is",
+      "mergeTarget": "…deze persoon",
+      "mergeAction": "Samenvoegen",
+      "mergeDone": "Klaar, ze zijn nu één persoon",
+      "mergeFailed": "Samenvoegen mislukt"
+    }
   }
 }

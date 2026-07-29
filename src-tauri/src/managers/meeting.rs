@@ -1564,6 +1564,40 @@ impl MeetingManager {
         }
     }
 
+    /// Borra una reunión que nunca llegó a grabar nada. Sólo para el camino
+    /// de error de `start_meeting`: si abrir el micrófono falla, la fila
+    /// recién creada no representa ninguna grabación, y dejarla ahí
+    /// bloquearía la siguiente reunión con `recording_busy` además de
+    /// ensuciar el listado con una reunión vacía.
+    ///
+    /// Deliberadamente **no** borra segmentos ni hablantes: si llegó a
+    /// existir aunque sea uno, esto no es el caso de uso correcto y hay que
+    /// cerrar la reunión por el camino normal (`stop_meeting`). Por eso el
+    /// DELETE exige que no haya segmentos.
+    pub fn discard_meeting(&self, meeting_id: i64) {
+        let conn = match self.get_connection() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("No se pudo descartar la reunión {}: {}", meeting_id, e);
+                return;
+            }
+        };
+
+        let result = conn.execute(
+            "DELETE FROM meetings WHERE id = ?1 AND status = 'recording' \
+             AND NOT EXISTS (SELECT 1 FROM meeting_segments WHERE meeting_id = ?1)",
+            params![meeting_id],
+        );
+        match result {
+            Ok(1) => info!("Reunión {} descartada: nunca llegó a grabar", meeting_id),
+            Ok(_) => warn!(
+                "Reunión {} no se descartó: ya tenía contenido o no estaba grabando",
+                meeting_id
+            ),
+            Err(e) => warn!("No se pudo descartar la reunión {}: {}", meeting_id, e),
+        }
+    }
+
     /// Nombre que el usuario le pone a un hablante detectado (FR-005). Un
     /// nombre vacío (o sólo espacios) **borra** el nombre y deja la etiqueta
     /// automática `Hablante N` — es la forma natural de deshacer, sin
@@ -2662,6 +2696,63 @@ mod tests {
             |row| row.get(0),
         )
         .expect("el hablante debe existir")
+    }
+
+    #[test]
+    fn discard_meeting_removes_an_empty_one_but_keeps_one_with_content() {
+        let dir = temp_db_path("discard-meeting");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+
+        // Caso real: abrir el micrófono falló, la reunión no grabó nada.
+        let empty = manager.start_meeting("presencial").expect("start_meeting");
+        manager.discard_meeting(empty);
+        let conn = manager.get_connection().expect("get_connection");
+        let left: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meetings", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            left, 0,
+            "una reunión que nunca grabó no debe quedar dando vueltas"
+        );
+        assert!(
+            manager.start_meeting("presencial").is_ok(),
+            "y no debe dejar bloqueada la siguiente con recording_busy"
+        );
+
+        // Con un solo segmento ya hay transcript: descartar no puede tocarla.
+        let with_content: i64 = conn
+            .query_row(
+                "SELECT id FROM meetings ORDER BY id DESC LIMIT 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let turn = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 500,
+        };
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("algo".to_string());
+        persist_and_emit_segment(&conn, NO_APP, with_content, turn, None, false, transcribe)
+            .expect("persistir")
+            .expect("segmento");
+
+        manager.discard_meeting(with_content);
+        let still_there: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM meetings WHERE id = ?1",
+                [with_content],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            still_there, 1,
+            "si ya hay transcript, descartar sería perder lo grabado (FR-007)"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
     }
 
     #[test]
