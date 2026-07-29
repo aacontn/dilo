@@ -6,7 +6,9 @@
 //! `start_meeting()` — it only creates the `meetings` row. T012 (this task)
 //! wires real microphone capture + VAD + incremental transcription into a
 //! meeting session — see [`MeetingManager::start_capture`] and the
-//! coexistence-with-dictation decision documented just above it.
+//! coexistence-with-dictation decision documented just above it. T013 adds
+//! per-turn speaker attribution on top of that pipeline — see the
+//! "T013: diarización incremental" section below.
 
 use crate::audio_toolkit::{
     vad::{
@@ -16,6 +18,10 @@ use crate::audio_toolkit::{
     AudioRecorder, SileroVad, VadPolicy,
 };
 use crate::managers::audio::{MicOwner, MicrophoneArbiter, VAD_THRESHOLD};
+use crate::managers::diarization::{
+    cosine_similarity, DiarizationEngine, DiarizedSegment, CLUSTER_THRESHOLD,
+};
+use crate::managers::diarization_models;
 use crate::managers::transcription::TranscriptionManager;
 use anyhow::{bail, Result};
 use chrono::{Local, Utc};
@@ -24,6 +30,7 @@ use rusqlite::{params, Connection, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -459,12 +466,385 @@ fn build_meeting_recorder(
     Ok(recorder)
 }
 
+// --- T013: diarización incremental (atribución de hablante por turno) ---
+//
+// # Por qué un registro incremental y no una diarización al final
+//
+// `DiarizationEngine::diarize` (T009) es un pipeline offline: recibe UN
+// audio completo y devuelve segmentos cuyos índices de hablante son locales
+// a esa llamada — el clustering que decide "estas voces son la misma
+// persona" corre sobre todos los embeddings de ese audio junto. Una reunión
+// en vivo no tiene ese audio completo hasta que termina, y FR-002/FR-007
+// exigen persistir cada segmento apenas se transcribe, con su hablante, no
+// al final. Correr `diarize` por turno resuelve la parte local (¿cuántas
+// voces hay en este turno? ¿se pisaron?) pero NO la identidad entre turnos:
+// el "hablante 0" de un turno no tiene ninguna relación con el "hablante 0"
+// del siguiente.
+//
+// La pieza que cierra esa brecha es [`SpeakerRegistry`]: por cada turno se
+// calcula un embedding de voz (`DiarizationEngine::embed`, el mismo vector
+// CAM++ de 192 dims que el pipeline usa para clusterizar) y se compara por
+// similitud coseno contra los centroides de los hablantes ya vistos EN ESTA
+// reunión. Es la versión incremental del mismo juicio que hace el
+// clustering aglomerativo de T009, por eso sus umbrales se derivan de
+// `CLUSTER_THRESHOLD` en vez de ser números nuevos: el mismo par de voces
+// debe agruparse igual por los dos caminos.
+//
+// # Cómo se cumple FR-004 (marcar incierto en vez de adivinar)
+//
+// Hay cuatro caminos distintos a `speaker_id = NULL`, todos deliberados:
+//
+// 1. **El turno tiene dos voces** (`mixed`): dos hablantes locales con
+//    duración comparable dentro del mismo turno. El texto transcrito es de
+//    los dos, así que no hay un hablante correcto que asignar.
+// 2. **Hubo habla superpuesta** (`overlapped` del propio motor, FR-004):
+//    los tramos superpuestos se excluyen del audio que va al embedding, y
+//    si no queda suficiente audio limpio el turno queda sin atribuir.
+// 3. **Poco audio limpio** (< [`MIN_EMBED_SAMPLES`]): un embedding sobre
+//    medio segundo de voz no es confiable; preferimos no atribuir.
+// 4. **Similitud ambigua**: la mejor coincidencia cae en la banda de
+//    incertidumbre alrededor del umbral, o hay dos hablantes conocidos casi
+//    igual de parecidos (margen chico). Asignar el "menos malo" es
+//    justamente lo que FR-004 prohíbe.
+//
+// Un turno sin atribuir NO actualiza ningún centroide ni crea un hablante
+// nuevo: un caso dudoso no debe mover la referencia contra la que se
+// comparan los turnos siguientes.
+//
+// # Degradación honesta cuando el motor no está listo
+//
+// El modelo de embeddings (~27 MB) se descarga en runtime (T008) y ambos
+// modelos tardan en cargar. `start_capture` dispara esa preparación en un
+// hilo aparte y NO bloquea el micrófono esperándola: los turnos que
+// completen antes de que el motor esté listo se persisten con
+// `speaker_id = NULL` (incierto), que es exactamente lo que significa. La
+// alternativa —demorar el inicio de la grabación hasta tener los modelos—
+// perdería audio real de la reunión, que es peor que perder la atribución
+// de los primeros segundos.
+
+/// Sample rate que exigen tanto el modelo de segmentación como el de
+/// embeddings (`DiarizationEngine::diarize` rechaza cualquier otro), y que
+/// es también el que entrega `AudioRecorder` — no hace falta resamplear.
+const DIARIZATION_SAMPLE_RATE: u32 = crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE;
+
+/// Similitud coseno equivalente al corte del dendrograma de T009
+/// (`CLUSTER_THRESHOLD` es una DISimilitud: `1 - cos`). Los dos umbrales de
+/// abajo abren una banda de incertidumbre alrededor de este punto.
+const SAME_SPEAKER_SIMILARITY: f32 = 1.0 - CLUSTER_THRESHOLD;
+
+/// Media banda de incertidumbre alrededor de [`SAME_SPEAKER_SIMILARITY`].
+/// Dentro de `±UNCERTAIN_BAND` el motor no se compromete: ni asigna ni crea
+/// hablante nuevo (FR-004). Fuera de esa banda se comporta exactamente como
+/// el clustering de T009 con el mismo audio.
+const UNCERTAIN_BAND: f32 = 0.05;
+
+/// Por encima de esto, el turno es del hablante conocido más parecido.
+const ASSIGN_MIN_SIMILARITY: f32 = SAME_SPEAKER_SIMILARITY + UNCERTAIN_BAND;
+
+/// Por debajo de esto, el turno es de alguien que no habíamos oído: se crea
+/// un hablante nuevo (FR-003 — nunca se fija un número de hablantes de
+/// antemano).
+const NEW_SPEAKER_MAX_SIMILARITY: f32 = SAME_SPEAKER_SIMILARITY - UNCERTAIN_BAND;
+
+/// Ventaja mínima que el mejor candidato le tiene que sacar al segundo para
+/// que la asignación cuente como confiable. Sin esto, dos personas de voz
+/// parecida se roban turnos entre sí de forma alternada y el transcript
+/// queda peor que sin atribuir.
+const MIN_SIMILARITY_MARGIN: f32 = 0.05;
+
+/// Mínimo de audio limpio (un solo hablante, sin superposición) que un turno
+/// necesita para calcular un embedding en el que valga la pena confiar:
+/// 0.5 s a 16 kHz.
+const MIN_EMBED_SAMPLES: usize = 8_000;
+
+/// Si el segundo hablante local de un turno acumula al menos esta fracción
+/// de la duración del dominante, el turno se considera de dos voces
+/// (`mixed`) y queda sin atribuir.
+const SECONDARY_SPEAKER_RATIO: f32 = 0.25;
+
+/// El hablante dominante de un turno y el audio limpio que le pertenece.
+#[derive(Debug, PartialEq)]
+struct DominantSpeaker {
+    /// Índice de hablante local a la llamada de `diarize` de ESTE turno —
+    /// sirve para recortar audio, no como identidad entre turnos.
+    speaker: usize,
+    /// Rangos `[inicio, fin)` en milisegundos, relativos al turno, del
+    /// hablante dominante y sin superposición.
+    clean_ranges: Vec<(u64, u64)>,
+    /// Hubo habla superpuesta en algún punto del turno (FR-004).
+    overlapped: bool,
+    /// Dos hablantes con presencia comparable en el mismo turno.
+    mixed: bool,
+}
+
+/// Elige el hablante dominante de los segmentos que devolvió `diarize` para
+/// un turno, y marca superposición/mezcla. Función pura: es la parte de la
+/// atribución que se puede testear sin cargar 34 MB de modelos ONNX.
+fn choose_dominant_speaker(segments: &[DiarizedSegment]) -> Option<DominantSpeaker> {
+    if segments.is_empty() {
+        return None;
+    }
+
+    let mut duration_by_speaker: HashMap<usize, u64> = HashMap::new();
+    for seg in segments {
+        let duration = seg.end_ms.saturating_sub(seg.start_ms);
+        *duration_by_speaker.entry(seg.speaker).or_insert(0) += duration;
+    }
+
+    let mut ranked: Vec<(usize, u64)> = duration_by_speaker.into_iter().collect();
+    // Desempate por índice de hablante para que la elección sea
+    // determinista (el orden de un HashMap no lo es).
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+
+    let (speaker, dominant_duration) = ranked[0];
+    if dominant_duration == 0 {
+        return None;
+    }
+
+    let mixed = ranked
+        .get(1)
+        .is_some_and(|(_, d)| *d as f32 >= dominant_duration as f32 * SECONDARY_SPEAKER_RATIO);
+
+    let overlapped = segments.iter().any(|s| s.overlapped);
+
+    let clean_ranges = segments
+        .iter()
+        .filter(|s| s.speaker == speaker && !s.overlapped && s.end_ms > s.start_ms)
+        .map(|s| (s.start_ms, s.end_ms))
+        .collect();
+
+    Some(DominantSpeaker {
+        speaker,
+        clean_ranges,
+        overlapped,
+        mixed,
+    })
+}
+
+/// Recorta y concatena los `ranges` (en ms) del audio de un turno. Los
+/// rangos que caen fuera del audio se ignoran en vez de entrar en pánico:
+/// `diarize` trabaja con frames redondeados, así que el último rango puede
+/// terminar unos milisegundos después del final real del buffer.
+fn extract_ranges(samples: &[f32], ranges: &[(u64, u64)], sample_rate: u32) -> Vec<f32> {
+    let mut out = Vec::new();
+    for &(start_ms, end_ms) in ranges {
+        let start = (start_ms as usize * sample_rate as usize) / 1000;
+        let end = (end_ms as usize * sample_rate as usize) / 1000;
+        let start = start.min(samples.len());
+        let end = end.min(samples.len());
+        if end > start {
+            out.extend_from_slice(&samples[start..end]);
+        }
+    }
+    out
+}
+
+/// Resultado de diarizar UN turno: el embedding del hablante dominante
+/// (cuando se pudo calcular con confianza) y si hubo superposición.
+#[derive(Debug, Default)]
+struct TurnAttribution {
+    embedding: Option<Vec<f32>>,
+    overlapped: bool,
+}
+
+/// Diariza el audio de un turno y devuelve, si corresponde, el embedding de
+/// voz de su hablante dominante. `None` en `embedding` significa "incierto"
+/// (FR-004) — ver los cuatro caminos documentados arriba.
+///
+/// Nunca devuelve error: una falla del motor de diarización degrada a
+/// "segmento sin hablante", que es un transcript peor pero correcto,
+/// mientras que propagar el error perdería el segmento entero (el texto ya
+/// transcrito) por un problema de atribución.
+fn attribute_turn(engine: &DiarizationEngine, samples: &[f32]) -> TurnAttribution {
+    let segments = match engine.diarize(samples, DIARIZATION_SAMPLE_RATE) {
+        Ok(s) => s,
+        Err(e) => {
+            warn!("Diarización del turno falló, queda sin atribuir: {}", e);
+            return TurnAttribution::default();
+        }
+    };
+
+    let Some(dominant) = choose_dominant_speaker(&segments) else {
+        return TurnAttribution::default();
+    };
+
+    if dominant.mixed {
+        debug!("Turno con dos voces de duración comparable: queda sin atribuir (FR-004)");
+        return TurnAttribution {
+            embedding: None,
+            // Dos voces en el mismo turno ES el caso de superposición que la
+            // UI tiene que mostrar como incierto.
+            overlapped: true,
+        };
+    }
+
+    let clean = extract_ranges(samples, &dominant.clean_ranges, DIARIZATION_SAMPLE_RATE);
+    if clean.len() < MIN_EMBED_SAMPLES {
+        debug!(
+            "Turno con sólo {} samples limpios del hablante local {}: queda sin atribuir",
+            clean.len(),
+            dominant.speaker
+        );
+        return TurnAttribution {
+            embedding: None,
+            overlapped: dominant.overlapped,
+        };
+    }
+
+    match engine.embed(&clean, DIARIZATION_SAMPLE_RATE) {
+        Ok(embedding) => TurnAttribution {
+            embedding: Some(embedding),
+            overlapped: dominant.overlapped,
+        },
+        Err(e) => {
+            warn!("Embedding del turno falló, queda sin atribuir: {}", e);
+            TurnAttribution {
+                embedding: None,
+                overlapped: dominant.overlapped,
+            }
+        }
+    }
+}
+
+/// Qué decidió el registro sobre un embedding de turno.
+#[derive(Debug, PartialEq)]
+enum SpeakerMatch {
+    /// Índice dentro de `SpeakerRegistry::entries` (no el id de la base).
+    Existing(usize),
+    New,
+    Uncertain,
+}
+
+struct SpeakerEntry {
+    /// `meeting_speakers.id`.
+    id: i64,
+    /// Media de los embeddings normalizados atribuidos a este hablante.
+    centroid: Vec<f32>,
+    turns: u32,
+}
+
+/// Los hablantes vistos hasta ahora EN ESTA reunión, con su centroide de voz.
+/// Vive en el hilo transcriptor de una sesión de captura: un hablante es
+/// local a una reunión (`data-model.md`), no una identidad de voz persistente
+/// entre reuniones.
+#[derive(Default)]
+struct SpeakerRegistry {
+    entries: Vec<SpeakerEntry>,
+}
+
+impl SpeakerRegistry {
+    /// Decisión pura (sin base de datos) sobre un embedding: hablante
+    /// conocido, hablante nuevo, o incierto.
+    fn classify(&self, embedding: &[f32]) -> SpeakerMatch {
+        if self.entries.is_empty() {
+            return SpeakerMatch::New;
+        }
+
+        let mut sims: Vec<(usize, f32)> = self
+            .entries
+            .iter()
+            .enumerate()
+            .map(|(i, e)| (i, cosine_similarity(embedding, &e.centroid)))
+            .collect();
+        sims.sort_by(|a, b| b.1.total_cmp(&a.1));
+
+        let (best_index, best) = sims[0];
+        let runner_up = sims.get(1).map(|(_, s)| *s).unwrap_or(f32::NEG_INFINITY);
+
+        if best >= ASSIGN_MIN_SIMILARITY {
+            if best - runner_up < MIN_SIMILARITY_MARGIN {
+                // Dos hablantes conocidos casi igual de parecidos: asignar
+                // al mejor por una diferencia despreciable es adivinar.
+                return SpeakerMatch::Uncertain;
+            }
+            return SpeakerMatch::Existing(best_index);
+        }
+
+        if best <= NEW_SPEAKER_MAX_SIMILARITY {
+            return SpeakerMatch::New;
+        }
+
+        SpeakerMatch::Uncertain
+    }
+
+    /// Actualiza el centroide de un hablante con un turno nuevo (media
+    /// corrida sobre embeddings normalizados, para que un turno largo no
+    /// pese más que uno corto sólo por magnitud).
+    fn reinforce(&mut self, index: usize, embedding: &[f32]) {
+        let entry = &mut self.entries[index];
+        let normalized = l2_normalize(embedding);
+        if normalized.len() != entry.centroid.len() {
+            return;
+        }
+        let n = entry.turns as f32;
+        for (c, v) in entry.centroid.iter_mut().zip(&normalized) {
+            *c = (*c * n + v) / (n + 1.0);
+        }
+        entry.turns += 1;
+    }
+
+    /// Resuelve el `speaker_id` que le corresponde a un turno y persiste el
+    /// hablante nuevo cuando hace falta. `None` = incierto (FR-004).
+    fn resolve(
+        &mut self,
+        conn: &Connection,
+        meeting_id: i64,
+        embedding: Option<&[f32]>,
+    ) -> Result<Option<i64>> {
+        let Some(embedding) = embedding else {
+            return Ok(None);
+        };
+
+        match self.classify(embedding) {
+            SpeakerMatch::Existing(index) => {
+                self.reinforce(index, embedding);
+                Ok(Some(self.entries[index].id))
+            }
+            SpeakerMatch::New => {
+                let id = insert_speaker(conn, meeting_id)?;
+                self.entries.push(SpeakerEntry {
+                    id,
+                    centroid: l2_normalize(embedding),
+                    turns: 1,
+                });
+                Ok(Some(id))
+            }
+            SpeakerMatch::Uncertain => Ok(None),
+        }
+    }
+}
+
+fn l2_normalize(v: &[f32]) -> Vec<f32> {
+    let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm == 0.0 {
+        return v.to_vec();
+    }
+    v.iter().map(|x| x / norm).collect()
+}
+
+/// Crea la fila de un hablante nuevo para `meeting_id` con la etiqueta por
+/// defecto `Hablante N` (`data-model.md`), donde N es el siguiente número
+/// libre en ESA reunión. El número sale de la base y no del largo del
+/// registro en memoria para que una segunda sesión de captura sobre la misma
+/// reunión no reutilice etiquetas ya usadas.
+fn insert_speaker(conn: &Connection, meeting_id: i64) -> Result<i64> {
+    let existing: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM meeting_speakers WHERE meeting_id = ?1",
+        params![meeting_id],
+        |row| row.get(0),
+    )?;
+    let label = format!("Hablante {}", existing + 1);
+    conn.execute(
+        "INSERT INTO meeting_speakers (meeting_id, label) VALUES (?1, ?2)",
+        params![meeting_id, label],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
 /// Transcribe one completed turn, insert it into `meeting_segments`, and
-/// (when `app_handle` is given) emit `meeting-segment`. `speaker_id` is
-/// always `None` from `start_capture` today — T013's diarization is meant
-/// to slot in right here, computing a real speaker id (or leaving it `None`
-/// when uncertain, FR-004) before this function is called, without needing
-/// to touch the capture/segmentation plumbing above it.
+/// (when `app_handle` is given) emit `meeting-segment`. `speaker_id` comes
+/// from T013's [`SpeakerRegistry::resolve`] — `None` means "uncertain"
+/// (FR-004), not "not implemented".
 ///
 /// `transcribe` is injected so this whole persist+emit path is testable
 /// without a loaded ML model: production passes a closure around
@@ -481,6 +861,7 @@ fn persist_and_emit_segment(
     meeting_id: i64,
     turn: CompletedTurn,
     speaker_id: Option<i64>,
+    overlapped: bool,
     transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
 ) -> Result<Option<MeetingSegment>> {
     let mut samples = turn.samples;
@@ -499,13 +880,14 @@ fn persist_and_emit_segment(
 
     conn.execute(
         "INSERT INTO meeting_segments (meeting_id, speaker_id, text, started_at_ms, ended_at_ms, overlapped) \
-         VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![
             meeting_id,
             speaker_id,
             text,
             turn.started_at_ms,
-            turn.ended_at_ms
+            turn.ended_at_ms,
+            overlapped
         ],
     )?;
     let id = conn.last_insert_rowid();
@@ -516,7 +898,7 @@ fn persist_and_emit_segment(
         text,
         started_at_ms: turn.started_at_ms,
         ended_at_ms: turn.ended_at_ms,
-        overlapped: false,
+        overlapped,
     };
 
     if let Some(app) = app_handle {
@@ -562,6 +944,13 @@ pub struct MeetingManager {
     app_handle: Option<AppHandle>,
     transcription_manager: Option<Arc<TranscriptionManager>>,
     mic_arbiter: Option<MicrophoneArbiter>,
+    /// Motor de diarización compartido con el estado de Tauri (T007/T009).
+    /// Se carga perezosamente en el primer `start_capture` (T013) — el `Arc`
+    /// existe desde el arranque de la app, pero sin modelos adentro.
+    diarization_engine: Option<Arc<DiarizationEngine>>,
+    /// Mismo directorio de modelos que usa `ModelManager`: es donde vive (o
+    /// se descarga) el modelo de embeddings de hablante.
+    models_dir: Option<PathBuf>,
     #[allow(dead_code)]
     capture: Mutex<Option<CaptureSession>>,
 }
@@ -583,6 +972,8 @@ impl MeetingManager {
             app_handle: None,
             transcription_manager: None,
             mic_arbiter: None,
+            diarization_engine: None,
+            models_dir: None,
             capture: Mutex::new(None),
         };
         manager.init_database()?;
@@ -597,11 +988,78 @@ impl MeetingManager {
         app_handle: AppHandle,
         transcription_manager: Arc<TranscriptionManager>,
         mic_arbiter: MicrophoneArbiter,
+        diarization_engine: Arc<DiarizationEngine>,
+        models_dir: PathBuf,
     ) -> Self {
         self.app_handle = Some(app_handle);
         self.transcription_manager = Some(transcription_manager);
         self.mic_arbiter = Some(mic_arbiter);
+        self.diarization_engine = Some(diarization_engine);
+        self.models_dir = Some(models_dir);
         self
+    }
+
+    /// Deja los modelos de diarización listos en un hilo aparte: descarga el
+    /// de embeddings si falta (~27 MB, una sola vez en la vida del equipo) y
+    /// carga ambos en el motor compartido. No bloquea el arranque de la
+    /// grabación — ver la nota de "degradación honesta" en la sección T013.
+    fn spawn_diarization_warmup(&self, app_handle: &AppHandle) {
+        let (Some(engine), Some(models_dir)) =
+            (self.diarization_engine.clone(), self.models_dir.clone())
+        else {
+            return;
+        };
+        if engine.is_loaded() {
+            return;
+        }
+
+        let segmentation_path = match app_handle.path().resolve(
+            format!(
+                "resources/models/{}",
+                diarization_models::SEGMENTATION_MODEL_FILENAME
+            ),
+            tauri::path::BaseDirectory::Resource,
+        ) {
+            Ok(p) => p,
+            Err(e) => {
+                warn!(
+                    "No se pudo resolver el modelo de segmentación; la reunión quedará sin \
+                     hablantes: {}",
+                    e
+                );
+                return;
+            }
+        };
+
+        tauri::async_runtime::spawn(async move {
+            let embedding_path =
+                match diarization_models::ensure_embedding_model_downloaded(&models_dir).await {
+                    Ok(p) => p,
+                    Err(e) => {
+                        warn!(
+                            "No se pudo obtener el modelo de embeddings de hablante; la reunión \
+                             quedará sin hablantes: {}",
+                            e
+                        );
+                        return;
+                    }
+                };
+
+            // Cargar ~34 MB de sesiones ONNX es trabajo bloqueante: fuera
+            // del executor async, como hace el resto del código con las
+            // operaciones pesadas de modelo.
+            let _ = tauri::async_runtime::spawn_blocking(move || {
+                match engine.ensure_loaded(&segmentation_path, &embedding_path) {
+                    Ok(()) => info!("Motor de diarización listo para la reunión en curso"),
+                    Err(e) => warn!(
+                        "No se pudieron cargar los modelos de diarización; la reunión quedará \
+                         sin hablantes: {}",
+                        e
+                    ),
+                }
+            })
+            .await;
+        });
     }
 
     /// Start capturing audio for `meeting_id` (a row already created by
@@ -713,6 +1171,7 @@ impl MeetingManager {
                 let db_path = self.db_path.clone();
                 let app_handle = app_handle.clone();
                 let transcription_manager = Arc::clone(&transcription_manager);
+                let diarization_engine = self.diarization_engine.clone();
                 thread::spawn(move || {
                     let conn = match Connection::open(&db_path) {
                         Ok(c) => c,
@@ -724,7 +1183,41 @@ impl MeetingManager {
                             return;
                         }
                     };
+                    // El registro de hablantes vive acá, en el único hilo que
+                    // atribuye segmentos de esta sesión: sin locks, y sin
+                    // sobrevivir a la sesión (un hablante es local a una
+                    // reunión, `data-model.md`).
+                    let mut registry = SpeakerRegistry::default();
                     while let Ok(turn) = turn_rx.recv() {
+                        // Diarizar ANTES de transcribir: `persist_and_emit_segment`
+                        // consume `turn` (y le agrega padding a los turnos
+                        // cortos, que falsearía la duración del audio que ve
+                        // el motor de diarización).
+                        let attribution = match diarization_engine.as_deref() {
+                            Some(engine) if engine.is_loaded() => {
+                                attribute_turn(engine, &turn.samples)
+                            }
+                            // Motor todavía cargando (o no disponible): el
+                            // segmento se guarda sin hablante, que es
+                            // exactamente lo que significa `NULL`.
+                            _ => TurnAttribution::default(),
+                        };
+                        let speaker_id = match registry.resolve(
+                            &conn,
+                            meeting_id,
+                            attribution.embedding.as_deref(),
+                        ) {
+                            Ok(id) => id,
+                            Err(e) => {
+                                warn!(
+                                    "Meeting {}: no se pudo resolver el hablante del turno, \
+                                     queda sin atribuir: {}",
+                                    meeting_id, e
+                                );
+                                None
+                            }
+                        };
+
                         let transcribe =
                             |samples: Vec<f32>| transcription_manager.transcribe(samples);
                         match persist_and_emit_segment(
@@ -732,7 +1225,8 @@ impl MeetingManager {
                             Some(&app_handle),
                             meeting_id,
                             turn,
-                            None, // T013 extension point: run diarization here
+                            speaker_id,
+                            attribution.overlapped,
                             &transcribe,
                         ) {
                             Ok(_) => {}
@@ -759,6 +1253,9 @@ impl MeetingManager {
 
         match start_result {
             Ok(session) => {
+                // Recién con el micrófono ya abierto: preparar los modelos de
+                // diarización nunca debe demorar el inicio de la grabación.
+                self.spawn_diarization_warmup(&app_handle);
                 info!("Meeting {} capture started", meeting_id);
                 *capture_guard = Some(session);
                 Ok(())
@@ -1244,9 +1741,10 @@ mod tests {
         let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
             &|_samples| Ok("hola, esto es una prueba".to_string());
 
-        let segment = persist_and_emit_segment(&conn, None, meeting_id, turn, None, transcribe)
-            .expect("persisting should succeed")
-            .expect("non-empty transcription should produce a segment");
+        let segment =
+            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+                .expect("persisting should succeed")
+                .expect("non-empty transcription should produce a segment");
 
         assert_eq!(segment.text, "hola, esto es una prueba");
         assert_eq!(segment.speaker_id, None);
@@ -1280,7 +1778,7 @@ mod tests {
         assert_eq!(text, "hola, esto es una prueba");
         assert_eq!(
             speaker_id, None,
-            "T013 fills this in; T012 always leaves it NULL"
+            "un turno sin atribución confiable se persiste con speaker_id NULL (FR-004)"
         );
         assert_eq!(started_at_ms, 1_000);
         assert_eq!(ended_at_ms, 3_500);
@@ -1312,7 +1810,7 @@ mod tests {
             Ok("ok".to_string())
         };
 
-        persist_and_emit_segment(&conn, None, meeting_id, turn, None, transcribe)
+        persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
             .expect("persisting should succeed");
 
         assert_eq!(
@@ -1343,8 +1841,9 @@ mod tests {
         };
         let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("   ".to_string());
 
-        let result = persist_and_emit_segment(&conn, None, meeting_id, turn, None, transcribe)
-            .expect("an empty transcription is not an error");
+        let result =
+            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
+                .expect("an empty transcription is not an error");
         assert!(
             result.is_none(),
             "a blank transcription should not produce a segment"
@@ -1382,7 +1881,8 @@ mod tests {
         let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
             &|_| Err(anyhow::anyhow!("engine exploded"));
 
-        let result = persist_and_emit_segment(&conn, None, meeting_id, turn, None, transcribe);
+        let result =
+            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe);
         assert!(result.is_err());
 
         let count: i64 = conn
@@ -1499,7 +1999,7 @@ mod tests {
         for turn in turns {
             let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
                 &move |samples| Ok(format!("[turno con {} muestras]", samples.len()));
-            persist_and_emit_segment(&conn, None, meeting_id, turn, None, transcribe)
+            persist_and_emit_segment(&conn, None, meeting_id, turn, None, false, transcribe)
                 .expect("persisting a real-audio turn should succeed");
         }
 
@@ -1515,7 +2015,10 @@ mod tests {
         );
 
         // FR-002/research.md §2: segments carry increasing timestamps, one
-        // VAD turn per row, speaker_id NULL until T013 runs diarization.
+        // VAD turn per row. This test drives the persist path directly with
+        // `speaker_id = None`, so the rows come back unattributed — the real
+        // attribution path (T013) is covered by the `SpeakerRegistry` tests
+        // below and by the `#[ignore]`d end-to-end test.
         let mut stmt = conn
             .prepare(
                 "SELECT speaker_id, started_at_ms, ended_at_ms, overlapped \
@@ -1539,6 +2042,425 @@ mod tests {
         }
 
         drop(stmt);
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // T013: atribución de hablante por turno.
+    //
+    // Las dos mitades de la atribución se testean por separado y sin
+    // modelos ONNX: `choose_dominant_speaker`/`extract_ranges` (qué audio
+    // representa al hablante de este turno) son funciones puras sobre los
+    // `DiarizedSegment` que devuelve el motor, y `SpeakerRegistry` (¿ya
+    // habíamos oído esta voz?) es aritmética de coseno sobre embeddings.
+    // Los embeddings sintéticos de acá abajo son vectores unitarios en 2D
+    // con ángulos elegidos para caer a propósito en cada lado de los
+    // umbrales; el camino con voces reales lo cubre el test `#[ignore]`
+    // del final, que sí carga los dos modelos.
+    // ------------------------------------------------------------------
+
+    fn seg(speaker: usize, start_ms: u64, end_ms: u64, overlapped: bool) -> DiarizedSegment {
+        DiarizedSegment {
+            start_ms,
+            end_ms,
+            speaker,
+            overlapped,
+        }
+    }
+
+    /// Vector unitario a `degrees` grados del eje x: `cos(ángulo entre dos)`
+    /// es exactamente su similitud coseno, así que los umbrales se pueden
+    /// apuntar con precisión.
+    fn unit_at(degrees: f32) -> Vec<f32> {
+        let rad = degrees.to_radians();
+        vec![rad.cos(), rad.sin()]
+    }
+
+    #[test]
+    fn choose_dominant_speaker_is_none_without_segments() {
+        assert!(choose_dominant_speaker(&[]).is_none());
+    }
+
+    #[test]
+    fn choose_dominant_speaker_picks_the_longest_and_keeps_only_its_clean_audio() {
+        let segments = vec![
+            seg(0, 0, 3_000, false),
+            seg(1, 3_000, 3_200, false),
+            seg(0, 3_200, 5_000, false),
+        ];
+
+        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
+        assert_eq!(dominant.speaker, 0);
+        assert_eq!(dominant.clean_ranges, vec![(0, 3_000), (3_200, 5_000)]);
+        assert!(!dominant.overlapped);
+        assert!(
+            !dominant.mixed,
+            "200ms contra 4800ms no es una segunda voz con presencia comparable"
+        );
+    }
+
+    #[test]
+    fn choose_dominant_speaker_marks_two_comparable_voices_as_mixed() {
+        let segments = vec![seg(0, 0, 2_000, false), seg(1, 2_000, 3_800, false)];
+
+        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
+        assert!(
+            dominant.mixed,
+            "dos voces de duración comparable en el mismo turno deben marcarlo como mezclado"
+        );
+    }
+
+    #[test]
+    fn choose_dominant_speaker_excludes_overlapped_audio_from_the_embedding() {
+        let segments = vec![
+            seg(0, 0, 2_000, false),
+            seg(0, 2_000, 2_500, true),
+            seg(0, 2_500, 4_000, false),
+        ];
+
+        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
+        assert!(dominant.overlapped, "FR-004: la superposición se propaga");
+        assert_eq!(
+            dominant.clean_ranges,
+            vec![(0, 2_000), (2_500, 4_000)],
+            "el tramo superpuesto tiene dos voces mezcladas: no puede alimentar el embedding"
+        );
+    }
+
+    #[test]
+    fn extract_ranges_concatenates_and_clamps_out_of_bounds() {
+        let samples: Vec<f32> = (0..16_000).map(|i| i as f32).collect(); // 1s a 16kHz
+        let extracted = extract_ranges(&samples, &[(0, 250), (500, 750)], 16_000);
+        assert_eq!(extracted.len(), 8_000);
+        assert_eq!(extracted[0], 0.0);
+        assert_eq!(extracted[4_000], 8_000.0);
+
+        // Un rango que se pasa del final del buffer se recorta en vez de
+        // entrar en pánico (diarize trabaja con frames redondeados).
+        let clamped = extract_ranges(&samples, &[(900, 5_000)], 16_000);
+        assert_eq!(clamped.len(), 1_600);
+    }
+
+    #[test]
+    fn speaker_registry_creates_a_speaker_for_the_first_voice_it_hears() {
+        let dir = temp_db_path("registry-first-voice");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let mut registry = SpeakerRegistry::default();
+        let id = registry
+            .resolve(&conn, meeting_id, Some(&unit_at(0.0)))
+            .expect("resolve")
+            .expect("la primera voz siempre estrena hablante");
+
+        let (label, display_name): (String, Option<String>) = conn
+            .query_row(
+                "SELECT label, display_name FROM meeting_speakers WHERE id = ?1",
+                [id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("la fila del hablante debe existir");
+        assert_eq!(label, "Hablante 1");
+        assert_eq!(display_name, None, "el nombre lo pone el usuario (FR-005)");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn speaker_registry_reuses_a_known_voice_and_creates_one_for_a_new_voice() {
+        let dir = temp_db_path("registry-two-voices");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let mut registry = SpeakerRegistry::default();
+        let first = registry
+            .resolve(&conn, meeting_id, Some(&unit_at(0.0)))
+            .unwrap()
+            .unwrap();
+        // 10° -> cos = 0.985: claramente la misma voz.
+        let again = registry
+            .resolve(&conn, meeting_id, Some(&unit_at(10.0)))
+            .unwrap()
+            .unwrap();
+        // 90° -> cos = 0: claramente otra persona.
+        let other = registry
+            .resolve(&conn, meeting_id, Some(&unit_at(90.0)))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(first, again, "la misma voz no debe estrenar hablante");
+        assert_ne!(other, first, "una voz distinta debe estrenar hablante");
+
+        let labels: Vec<String> = {
+            let mut stmt = conn
+                .prepare("SELECT label FROM meeting_speakers WHERE meeting_id = ?1 ORDER BY id")
+                .unwrap();
+            let rows = stmt
+                .query_map([meeting_id], |row| row.get(0))
+                .unwrap()
+                .map(|r| r.unwrap())
+                .collect();
+            rows
+        };
+        assert_eq!(labels, vec!["Hablante 1", "Hablante 2"]);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn speaker_registry_leaves_an_ambiguous_voice_unattributed() {
+        let mut registry = SpeakerRegistry::default();
+        registry.entries.push(SpeakerEntry {
+            id: 1,
+            centroid: unit_at(0.0),
+            turns: 1,
+        });
+
+        // 60° -> cos = 0.5, justo en el medio de la banda de
+        // incertidumbre: ni se asigna al conocido ni se inventa uno nuevo.
+        assert_eq!(
+            registry.classify(&unit_at(60.0)),
+            SpeakerMatch::Uncertain,
+            "FR-004: en la duda, ningún hablante"
+        );
+    }
+
+    #[test]
+    fn speaker_registry_refuses_to_pick_between_two_equally_close_speakers() {
+        let mut registry = SpeakerRegistry::default();
+        registry.entries.push(SpeakerEntry {
+            id: 1,
+            centroid: unit_at(20.0), // cos(20°) = 0.940 contra el turno
+            turns: 1,
+        });
+        registry.entries.push(SpeakerEntry {
+            id: 2,
+            centroid: unit_at(25.0), // cos(25°) = 0.906 -> margen 0.034
+            turns: 1,
+        });
+
+        assert_eq!(
+            registry.classify(&unit_at(0.0)),
+            SpeakerMatch::Uncertain,
+            "dos hablantes conocidos casi igual de parecidos: asignar al mejor es adivinar"
+        );
+    }
+
+    #[test]
+    fn speaker_registry_reinforce_moves_the_centroid_toward_the_new_turn() {
+        let mut registry = SpeakerRegistry::default();
+        registry.entries.push(SpeakerEntry {
+            id: 1,
+            centroid: unit_at(0.0),
+            turns: 1,
+        });
+
+        registry.reinforce(0, &unit_at(20.0));
+
+        let centroid = &registry.entries[0].centroid;
+        let sim_new = cosine_similarity(centroid, &unit_at(20.0));
+        let sim_old = cosine_similarity(centroid, &unit_at(0.0));
+        assert!(
+            (sim_new - sim_old).abs() < 1e-5,
+            "la media de dos turnos debe quedar equidistante de ambos, quedó {sim_old} vs {sim_new}"
+        );
+        assert_eq!(registry.entries[0].turns, 2);
+    }
+
+    #[test]
+    fn speaker_registry_resolve_is_none_without_an_embedding() {
+        let dir = temp_db_path("registry-no-embedding");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let mut registry = SpeakerRegistry::default();
+        assert_eq!(registry.resolve(&conn, meeting_id, None).unwrap(), None);
+
+        let speakers: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_speakers", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            speakers, 0,
+            "un turno incierto no debe estrenar un hablante fantasma"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn persist_and_emit_segment_stores_speaker_and_overlap() {
+        let dir = temp_db_path("persist-segment-speaker");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let speaker_id = insert_speaker(&conn, meeting_id).expect("insert_speaker");
+        let turn = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 1_200,
+        };
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("dale".to_string());
+
+        let segment = persist_and_emit_segment(
+            &conn,
+            None,
+            meeting_id,
+            turn,
+            Some(speaker_id),
+            true,
+            transcribe,
+        )
+        .expect("persisting should succeed")
+        .expect("non-empty transcription");
+
+        assert_eq!(segment.speaker_id, Some(speaker_id));
+        assert!(segment.overlapped);
+
+        let (stored_speaker, stored_overlap): (Option<i64>, bool) = conn
+            .query_row(
+                "SELECT speaker_id, overlapped FROM meeting_segments WHERE id = ?1",
+                [segment.id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("readable back");
+        assert_eq!(stored_speaker, Some(speaker_id));
+        assert!(stored_overlap);
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // End-to-end de la atribución con AMBOS modelos reales, sobre el mismo
+    // fixture de 4 hablantes que usa `managers/diarization.rs`. Requiere red
+    // (baja el modelo de embeddings ~27MB y el wav ~1.8MB), por eso
+    // `#[ignore]` — mismo criterio que el test end-to-end de T009. Se corrió
+    // a mano en esta tarea; el resultado está en el reporte.
+    //
+    // Lo que verifica es justo lo que los tests sintéticos NO pueden: que
+    // turnos SEPARADOS de la misma persona real caigan en el mismo
+    // `speaker_id`, que es la propiedad que hace útil al registro.
+    // ------------------------------------------------------------------
+    #[tokio::test]
+    #[ignore = "requiere red: descarga el modelo de embeddings y un wav de prueba reales"]
+    async fn attribution_reidentifies_the_same_real_voice_across_turns() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let embedding_path =
+            crate::managers::diarization_models::ensure_embedding_model_downloaded(tmp.path())
+                .await
+                .expect("modelo de embeddings");
+        let segmentation_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources/models/pyannote_segmentation_3_0.onnx");
+
+        let wav_bytes = reqwest::get(
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/0-four-speakers-zh.wav",
+        )
+        .await
+        .expect("descargando el wav")
+        .bytes()
+        .await
+        .expect("leyendo el wav");
+        let wav_path = tmp.path().join("0-four-speakers-zh.wav");
+        std::fs::write(&wav_path, &wav_bytes).expect("escribiendo el wav");
+        let mut reader = hound::WavReader::open(&wav_path).expect("abriendo el wav");
+        let samples: Vec<f32> = reader
+            .samples::<i16>()
+            .map(|s| s.expect("sample") as f32 / i16::MAX as f32)
+            .collect();
+
+        let engine = DiarizationEngine::load(&segmentation_path, &embedding_path)
+            .expect("ambos modelos deben cargar");
+
+        // Diarizar el audio completo da la verdad de referencia: quién habla
+        // en cada tramo. Cada tramo se vuelve a alimentar como si fuera un
+        // turno independiente del pipeline en vivo.
+        let truth = engine
+            .diarize(&samples, DIARIZATION_SAMPLE_RATE)
+            .expect("diarize completo");
+        assert!(!truth.is_empty());
+
+        let dir = temp_db_path("attribution-e2e");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+        let mut registry = SpeakerRegistry::default();
+
+        let mut assigned: HashMap<usize, Vec<Option<i64>>> = HashMap::new();
+        let mut processed = 0usize;
+        for turn in &truth {
+            let audio = extract_ranges(
+                &samples,
+                &[(turn.start_ms, turn.end_ms)],
+                DIARIZATION_SAMPLE_RATE,
+            );
+            if audio.len() < MIN_EMBED_SAMPLES {
+                continue;
+            }
+            processed += 1;
+            let attribution = attribute_turn(&engine, &audio);
+            let speaker_id = registry
+                .resolve(&conn, meeting_id, attribution.embedding.as_deref())
+                .expect("resolve");
+            assigned.entry(turn.speaker).or_default().push(speaker_id);
+        }
+
+        let attributed_total: usize = assigned.values().flatten().flatten().count();
+        eprintln!(
+            "turnos procesados: {processed}, atribuidos: {attributed_total}, hablantes creados: {}",
+            registry.entries.len()
+        );
+
+        assert!(
+            assigned.len() >= 2,
+            "el fixture tiene 4 voces reales: la referencia debe traer al menos 2"
+        );
+        // Sin esto, el test pasaría en vacío si TODO quedara incierto —
+        // que es justo el modo de falla más plausible de este diseño.
+        assert!(
+            attributed_total * 2 >= processed,
+            "al menos la mitad de los turnos debería quedar atribuida, quedaron \
+             {attributed_total}/{processed}"
+        );
+        assert!(
+            registry.entries.len() >= 2,
+            "el registro debe distinguir al menos dos voces, distinguió {}",
+            registry.entries.len()
+        );
+
+        for (truth_speaker, ids) in &assigned {
+            let attributed: Vec<i64> = ids.iter().flatten().copied().collect();
+            if attributed.is_empty() {
+                continue;
+            }
+            let modal = attributed
+                .iter()
+                .max_by_key(|id| attributed.iter().filter(|x| x == id).count())
+                .copied()
+                .unwrap();
+            let consistent = attributed.iter().filter(|id| **id == modal).count();
+            assert!(
+                consistent * 100 / attributed.len() >= 80,
+                "los turnos del hablante real {truth_speaker} deberían caer mayoritariamente en \
+                 un mismo speaker_id (SC-001: >80%), cayeron {consistent}/{}",
+                attributed.len()
+            );
+        }
+
         drop(conn);
         drop(manager);
         let _ = std::fs::remove_file(&dir);

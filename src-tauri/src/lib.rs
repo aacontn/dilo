@@ -228,6 +228,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     let meeting_db_path = crate::portable::app_data_dir(app_handle)
         .expect("Failed to resolve app data dir for meeting manager")
         .join("meetings.db");
+    // Creado sin modelos: `MeetingManager` los carga perezosamente en el
+    // primer `start_capture` (T013) sobre este mismo `Arc`, así que la app
+    // no paga ~34 MB de sesiones ONNX en cada arranque.
+    let diarization_engine = Arc::new(DiarizationEngine::new());
+    let meeting_models_dir = crate::portable::app_data_dir(app_handle)
+        .expect("Failed to resolve app data dir for meeting manager")
+        .join("models");
     let meeting_manager = Arc::new(
         MeetingManager::new(meeting_db_path)
             .expect("Failed to initialize meeting manager")
@@ -235,9 +242,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 app_handle.clone(),
                 transcription_manager.clone(),
                 mic_arbiter,
+                diarization_engine.clone(),
+                meeting_models_dir,
             ),
     );
-    let diarization_engine = Arc::new(DiarizationEngine::new());
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.

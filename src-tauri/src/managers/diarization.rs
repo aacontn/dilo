@@ -204,7 +204,7 @@ use ort::session::Session;
 use ort::value::Value;
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Mutex, RwLock};
 
 // ============================================================================
 // Constantes del algoritmo — valores por defecto de sherpa-onnx, no
@@ -231,7 +231,14 @@ const MIN_DURATION_OFF_S: f32 = 0.5;
 /// fusionar dos clusters en el corte del dendrograma. Más alto = menos
 /// hablantes; más bajo = más hablantes. Este es el mecanismo que cumple
 /// FR-003 (no hace falta conocer `k` de antemano).
-const CLUSTER_THRESHOLD: f32 = 0.5;
+///
+/// `pub(crate)` porque T013 (`managers/meeting.rs`) deriva de este mismo
+/// número los umbrales de su registro de hablantes en vivo: la atribución
+/// turno-a-turno de una reunión es el mismo juicio "¿estos dos embeddings son
+/// la misma persona?" que hace este corte, sólo que incremental — tenerlos
+/// desacoplados haría que un mismo audio se agrupe distinto según por dónde
+/// entró.
+pub(crate) const CLUSTER_THRESHOLD: f32 = 0.5;
 
 /// `GetChunkSpeakerSampleIndexes`: un tramo de actividad local más corto que
 /// esto (en frames de segmentación, no en samples de audio) se descarta
@@ -662,6 +669,26 @@ fn subtract_global_mean(features: &mut [Vec<f32>], feat_dim: usize) {
 /// solo pase: para cuando se procesa un step con altura <= threshold, todos
 /// los steps que lo preceden topológicamente (y por lo tanto tienen altura
 /// <= la suya) ya fueron procesados.
+/// Similitud coseno entre dos embeddings de hablante, en `[-1, 1]`. Es la
+/// misma métrica que usa [`cluster_embeddings`] (que trabaja con su
+/// disimilitud, `max(0, 1 - cos)`), expuesta como función suelta para el
+/// registro incremental de hablantes de T013, que compara de a un embedding
+/// contra centroides ya acumulados en vez de armar una matriz condensada
+/// completa. Devuelve `0.0` si alguno de los dos vectores es nulo o si las
+/// dimensiones no coinciden — un "no se parecen" neutro, nunca un pánico.
+pub(crate) fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+    if a.len() != b.len() {
+        return 0.0;
+    }
+    let dot: f32 = a.iter().zip(b).map(|(x, y)| x * y).sum();
+    let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
+    let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm_a == 0.0 || norm_b == 0.0 {
+        return 0.0;
+    }
+    dot / (norm_a * norm_b)
+}
+
 fn cluster_embeddings(embeddings: &[Vec<f32>], threshold: f32) -> Vec<usize> {
     let n = embeddings.len();
     if n == 0 {
@@ -1262,28 +1289,98 @@ struct LoadedModels {
 /// cómo invocar (carga perezosa en el primer `start_meeting`, mismo patrón
 /// que `tts::TtsState` ya usa para Supertonic).
 pub struct DiarizationEngine {
-    models: Option<LoadedModels>,
+    /// `RwLock` (y no un simple `Option`) porque la instancia real vive
+    /// detrás de un `Arc` compartido creado en `lib.rs` al arrancar la app,
+    /// antes de que exista ninguna reunión: sin interior mutability, cargar
+    /// los modelos más tarde obligaría a reemplazar ese `Arc` —
+    /// imposible una vez repartido a `MeetingManager` y al estado de Tauri.
+    /// Ver [`Self::ensure_loaded`].
+    models: RwLock<Option<LoadedModels>>,
 }
 
 impl DiarizationEngine {
     /// Constructor barato: no carga ningún modelo. Ver el doc comment de la
     /// struct.
     pub fn new() -> Self {
-        Self { models: None }
+        Self {
+            models: RwLock::new(None),
+        }
     }
 
     /// Carga ambos modelos ONNX (segmentación + embeddings) desde disco.
     /// Este es el constructor "real" que habilita [`Self::diarize`] —
     /// [`Self::new`] por sí sola no alcanza.
     pub fn load(segmentation_model_path: &Path, embedding_model_path: &Path) -> Result<Self> {
+        let engine = Self::new();
+        engine.ensure_loaded(segmentation_model_path, embedding_model_path)?;
+        Ok(engine)
+    }
+
+    /// Carga perezosa e idempotente sobre una instancia ya compartida: si los
+    /// modelos ya están cargados no hace nada, si no los carga y los deja
+    /// disponibles para todos los `Arc` que apunten acá. Pensada para
+    /// llamarse fuera del hilo de captura (cargar ~34 MB de sesiones ONNX
+    /// tarda), en paralelo con el arranque de la grabación.
+    ///
+    /// La carga ocurre FUERA del lock de escritura a propósito: así un
+    /// `diarize()`/`embed()` en curso (que sólo toma el lock de lectura) no
+    /// queda bloqueado durante todo el tiempo de carga. La consecuencia
+    /// aceptada es que dos llamadas concurrentes con los modelos aún sin
+    /// cargar pueden cargar ambas y una descartar su copia; en la práctica
+    /// sólo la llamada de `start_capture` lo invoca.
+    pub fn ensure_loaded(
+        &self,
+        segmentation_model_path: &Path,
+        embedding_model_path: &Path,
+    ) -> Result<()> {
+        if self.is_loaded() {
+            return Ok(());
+        }
+
         let segmentation = SegmentationModel::load(segmentation_model_path)?;
         let embedding = EmbeddingModel::load(embedding_model_path)?;
-        Ok(Self {
-            models: Some(LoadedModels {
+
+        let mut guard = self.models.write().unwrap();
+        if guard.is_none() {
+            *guard = Some(LoadedModels {
                 segmentation,
                 embedding,
-            }),
-        })
+            });
+        }
+        Ok(())
+    }
+
+    /// Si [`Self::ensure_loaded`]/[`Self::load`] ya dejaron los modelos
+    /// disponibles. El llamador en vivo (T013) lo consulta por turno para
+    /// decidir si puede atribuir hablante o si todavía tiene que dejar el
+    /// segmento sin atribuir.
+    pub fn is_loaded(&self) -> bool {
+        self.models.read().unwrap().is_some()
+    }
+
+    /// Embedding de hablante (192 dims, CAM++) de un tramo de audio de UN
+    /// solo hablante — el mismo vector que [`Self::diarize`] usa
+    /// internamente para clusterizar, expuesto para la atribución
+    /// incremental de T013: en una reunión en vivo cada turno se diariza por
+    /// separado, así que los índices de hablante locales a cada llamada no
+    /// alcanzan para saber si "el hablante 0 de este turno" es el mismo que
+    /// "el hablante 0 del turno anterior". Comparar embeddings contra un
+    /// registro acumulado sí lo resuelve.
+    ///
+    /// `samples` debe ser audio de un solo hablante ya recortado (concatenar
+    /// varios rangos disjuntos del mismo hablante es válido y es lo que hace
+    /// el pipeline interno); mezclar dos voces acá produce un embedding a
+    /// medio camino entre ambas, que es exactamente la clase de atribución
+    /// falsa que FR-004 pide evitar.
+    pub fn embed(&self, samples: &[f32], sample_rate: u32) -> Result<Vec<f32>> {
+        let guard = self.models.read().unwrap();
+        let models = guard.as_ref().ok_or_else(|| {
+            anyhow!(
+                "DiarizationEngine: modelos no cargados -- llamá a DiarizationEngine::load(...) \
+                 o ensure_loaded(...) antes de embed()"
+            )
+        })?;
+        models.embedding.compute(samples, sample_rate)
     }
 
     /// Diariza `audio` (mono, f32, normalizado a `[-1, 1]`) a `sample_rate`
@@ -1294,7 +1391,8 @@ impl DiarizationEngine {
     /// sherpa-onnx, este método no resamplea internamente; resamplear antes
     /// de llamar es responsabilidad del llamador.
     pub fn diarize(&self, audio: &[f32], sample_rate: u32) -> Result<Vec<DiarizedSegment>> {
-        let models = self.models.as_ref().ok_or_else(|| {
+        let guard = self.models.read().unwrap();
+        let models = guard.as_ref().ok_or_else(|| {
             anyhow!(
                 "DiarizationEngine: modelos no cargados -- llamá a DiarizationEngine::load(...) \
                  antes de diarize()"
