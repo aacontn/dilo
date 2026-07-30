@@ -119,6 +119,11 @@ pub struct PostProcessProvider {
     pub models_endpoint: Option<String>,
     #[serde(default)]
     pub supports_structured_output: bool,
+    /// Calculado al cargar settings (ver `ensure_post_process_defaults`), no
+    /// editable por el usuario. Está en la struct para que el frontend lo lea
+    /// del binding en vez de repetir la regla en TypeScript.
+    #[serde(default)]
+    pub is_local: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
@@ -658,6 +663,35 @@ fn default_post_process_provider_id() -> String {
     "openai".to_string()
 }
 
+/// Si el destino de un proveedor es la propia máquina del usuario.
+///
+/// **Se calcula, no se guarda como verdad.** Apple Intelligence lo es por
+/// definición (corre en el chip). `custom` es el único cuyo destino define el
+/// usuario: viene apuntando a Ollama en `localhost:11434`, pero si lo cambia a
+/// un servidor remoto tiene que dejar de decir LOCAL sin depender de que
+/// alguien se acuerde de actualizar una bandera.
+pub fn provider_is_local(provider: &PostProcessProvider) -> bool {
+    if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
+        return true;
+    }
+    is_loopback_url(&provider.base_url)
+}
+
+fn is_loopback_url(base_url: &str) -> bool {
+    let lowered = base_url.to_ascii_lowercase();
+    let host = lowered
+        .split("://")
+        .nth(1)
+        .unwrap_or(&lowered)
+        .split('/')
+        .next()
+        .unwrap_or("");
+    let host = host.rsplit_once(':').map_or(host, |(h, _)| h);
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+
+    host == "localhost" || host == "127.0.0.1" || host == "::1" || host == "0.0.0.0"
+}
+
 fn default_post_process_providers() -> Vec<PostProcessProvider> {
     let mut providers = vec![
         PostProcessProvider {
@@ -667,6 +701,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
+            is_local: false,
         },
         PostProcessProvider {
             id: "zai".to_string(),
@@ -675,6 +710,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
+            is_local: false,
         },
         PostProcessProvider {
             id: "openrouter".to_string(),
@@ -683,6 +719,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
+            is_local: false,
         },
         PostProcessProvider {
             id: "anthropic".to_string(),
@@ -691,6 +728,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: false,
+            is_local: false,
         },
         PostProcessProvider {
             id: "groq".to_string(),
@@ -699,6 +737,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: false,
+            is_local: false,
         },
         PostProcessProvider {
             id: "cerebras".to_string(),
@@ -707,6 +746,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
+            is_local: false,
         },
         // Gemini vía su capa de compatibilidad con OpenAI, así que entra por
         // el mismo cliente que el resto (nada de SDK propio de Google).
@@ -717,6 +757,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
             supports_structured_output: true,
+            is_local: false,
         },
     ];
 
@@ -733,6 +774,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             allow_base_url_edit: false,
             models_endpoint: None,
             supports_structured_output: true,
+            is_local: true,
         });
     }
 
@@ -744,6 +786,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         allow_base_url_edit: false,
         models_endpoint: Some("/models".to_string()),
         supports_structured_output: true,
+        is_local: false,
     });
 
     // Custom provider always comes last
@@ -754,6 +797,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         allow_base_url_edit: true,
         models_endpoint: Some("/models".to_string()),
         supports_structured_output: false,
+        is_local: false,
     });
 
     providers
@@ -863,6 +907,14 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
                         provider.supports_structured_output
                     );
                     existing.supports_structured_output = provider.supports_structured_output;
+                    changed = true;
+                }
+
+                // `is_local` se recalcula siempre: el usuario pudo cambiar la
+                // base_url de `custom`, y un settings.json viejo no lo trae.
+                let computed = provider_is_local(existing);
+                if existing.is_local != computed {
+                    existing.is_local = computed;
                     changed = true;
                 }
             }
@@ -1309,6 +1361,78 @@ mod tests {
         ] {
             assert!(ids.contains(preset_id), "missing preset {preset_id}");
         }
+    }
+
+    #[test]
+    fn apple_intelligence_is_local_and_the_cloud_providers_are_not() {
+        let providers = default_post_process_providers();
+        let find = |id: &str| providers.iter().find(|p| p.id == id).cloned();
+
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            let apple =
+                find(APPLE_INTELLIGENCE_PROVIDER_ID).expect("Apple Intelligence en el catálogo");
+            assert!(
+                provider_is_local(&apple),
+                "corre en el chip, no sale del equipo"
+            );
+        }
+
+        let openai = find("openai").expect("openai en el catálogo");
+        assert!(!provider_is_local(&openai));
+        let gemini = find("google").expect("google en el catálogo");
+        assert!(!provider_is_local(&gemini));
+    }
+
+    #[test]
+    fn custom_provider_is_local_only_while_it_points_at_this_machine() {
+        let mut custom = default_post_process_providers()
+            .into_iter()
+            .find(|p| p.id == "custom")
+            .expect("custom en el catálogo");
+
+        // Viene apuntando a Ollama en la propia máquina.
+        assert!(provider_is_local(&custom), "el default apunta a localhost");
+
+        for url in [
+            "http://127.0.0.1:1234/v1",
+            "http://[::1]:11434/v1",
+            "http://LOCALHOST:11434/v1",
+        ] {
+            custom.base_url = url.to_string();
+            assert!(provider_is_local(&custom), "{url} es esta máquina");
+        }
+
+        // Si el usuario lo apunta afuera, deja de ser local solo.
+        custom.base_url = "https://api.midominio.com/v1".to_string();
+        assert!(
+            !provider_is_local(&custom),
+            "un servidor remoto no puede seguir diciendo LOCAL"
+        );
+    }
+
+    #[test]
+    fn loading_recomputes_is_local_for_a_settings_file_without_the_field() {
+        let mut settings = get_default_settings();
+        // Simula un settings.json de v0.1.13: el campo no existía.
+        for provider in settings.post_process_providers.iter_mut() {
+            provider.is_local = false;
+        }
+        settings
+            .post_process_providers
+            .iter_mut()
+            .find(|p| p.id == "custom")
+            .expect("custom")
+            .base_url = "http://localhost:11434/v1".to_string();
+
+        assert!(ensure_post_process_defaults(&mut settings));
+
+        let custom = settings
+            .post_process_providers
+            .iter()
+            .find(|p| p.id == "custom")
+            .unwrap();
+        assert!(custom.is_local, "apunta a esta máquina: es local");
     }
 
     /// Every field must survive a partial store: a missing key must never fail
