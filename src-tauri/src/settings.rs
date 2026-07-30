@@ -94,6 +94,15 @@ pub struct LLMPrompt {
     /// Atajo global opcional del modo (binding dinámico `mode:<id>`).
     #[serde(default)]
     pub shortcut: Option<String>,
+    /// Proveedor propio de este modo. `None` = usa el global
+    /// (`post_process_provider_id`), que es el comportamiento histórico y por
+    /// eso no necesita migración.
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// Modelo propio de este modo. `None` = el que esté configurado para su
+    /// proveedor en `post_process_models`.
+    #[serde(default)]
+    pub model: Option<String>,
 }
 
 /// Una nota dictada que no pudo sincronizarse todavía (sin conexión, error del
@@ -836,30 +845,40 @@ fn dilo_post_process_presets() -> Vec<LLMPrompt> {
             name: "Limpio".to_string(),
             prompt: "Clean this speech transcript. Fix punctuation, capitalization and obvious transcription errors. Keep the original language, meaning, tone and order.\n\nRemove filler words when they act as filler, but keep them when they carry meaning. In Spanish this matters a lot: drop discourse-marker uses of 'o sea', 'este', 'tipo', 'como que', 'digamos', 'a ver', 'pues', 'bueno', 'la verdad', and regional tics ('po', '¿cachái?', '¿viste?', '¿me entendés?', 'güey/wey', 'che', 'pana', 'vale') — but NEVER when they are content ('este archivo', 'tipo de dato', 'pues bien' as connector). When unsure, keep the word.\n\nKeep technical/English terms exactly as spoken (commit, deploy, endpoint, pull request, backend, boolean); do not translate or Spanish-ize them. Do not add information or answer questions. Return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         },
         LLMPrompt {
             id: "dilo-prompt".to_string(),
             name: "Prompt".to_string(),
             prompt: "Turn this spoken draft into a clear, effective prompt for an AI coding assistant. Preserve every requirement and piece of context, organize it into readable paragraphs or bullets when useful, and keep the original language. Do not execute or answer the prompt. Return only the improved prompt.\n\n<transcript>\n${output}\n</transcript>".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         },
         LLMPrompt {
             id: "dilo-message".to_string(),
             name: "Mensaje".to_string(),
             prompt: "Rewrite this speech transcript as a concise natural chat message. Remove filler words, fix punctuation, preserve the speaker's casual tone and original language, and do not add facts. Return only the message.\n\n<transcript>\n${output}\n</transcript>".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         },
         LLMPrompt {
             id: "dilo-email".to_string(),
             name: "Correo".to_string(),
             prompt: "Rewrite this speech transcript as a clear professional email body. Preserve the original language, intent and facts; improve structure and readability without sounding corporate or adding a subject line. Return only the email body.\n\n<transcript>\n${output}\n</transcript>".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         },
         LLMPrompt {
             id: "dilo-code".to_string(),
             name: "Código".to_string(),
             prompt: "Clean this developer dictation while preserving exact technical meaning. Keep code identifiers, commands, file paths, versions and conventional commit syntax intact. Format code, paths and lists only when clearly implied. Keep the original language and return only the cleaned text.\n\n<transcript>\n${output}\n</transcript>".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         },
     ]
 }
@@ -1137,6 +1156,65 @@ impl AppSettings {
     }
 }
 
+/// Qué IA le toca a un modo, ya resuelta contra el catálogo y los modelos
+/// configurados.
+///
+/// `#[allow(dead_code)]`: nadie la construye todavía. La tarea siguiente del
+/// plan (llamar al proveedor del modo con fallback al global) es quien la va
+/// a usar; este crate no es una lib externa, así que sin esa tarea rustc la
+/// marca como código muerto pese a ser `pub`.
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct ResolvedProvider {
+    pub provider: PostProcessProvider,
+    pub model: String,
+    pub is_local: bool,
+    /// `true` si salió del proveedor global en vez del propio del modo.
+    pub inherited: bool,
+}
+
+/// Resuelve el proveedor de un modo. `None` significa "no hay nada a qué
+/// llamar" (sin proveedor global válido, o sin modelo configurado), que el
+/// llamador trata como proveedor no disponible.
+///
+/// Un modo que apunta a un proveedor inexistente —el usuario lo borró— cae al
+/// global **en silencio**: eso no es una falla, es configuración vieja.
+#[allow(dead_code)]
+pub fn resolve_mode_provider(
+    settings: &AppSettings,
+    prompt: &LLMPrompt,
+) -> Option<ResolvedProvider> {
+    let own = prompt
+        .provider_id
+        .as_deref()
+        .and_then(|id| settings.post_process_provider(id));
+
+    let (provider, inherited) = match own {
+        Some(provider) => (provider, false),
+        None => (settings.active_post_process_provider()?, true),
+    };
+
+    let model = if inherited {
+        settings.post_process_models.get(&provider.id).cloned()
+    } else {
+        prompt
+            .model
+            .clone()
+            .or_else(|| settings.post_process_models.get(&provider.id).cloned())
+    }?;
+
+    if model.trim().is_empty() {
+        return None;
+    }
+
+    Some(ResolvedProvider {
+        is_local: provider_is_local(provider),
+        provider: provider.clone(),
+        model,
+        inherited,
+    })
+}
+
 /// Startup entry point. Same load-or-create/salvage/migrate behavior as
 /// `get_settings`; kept as a named alias for call-site clarity, plus a
 /// one-time debug dump of the loaded settings.
@@ -1342,6 +1420,8 @@ mod tests {
             name: "My custom prompt".to_string(),
             prompt: "Keep this prompt".to_string(),
             shortcut: None,
+            provider_id: None,
+            model: None,
         }];
 
         assert!(ensure_post_process_defaults(&mut settings));
@@ -1802,6 +1882,8 @@ mod tests {
             name: "Y".into(),
             prompt: "haz Y".into(),
             shortcut: Some("ctrl+alt+y".into()),
+            provider_id: None,
+            model: None,
         };
         let back: LLMPrompt = serde_json::from_value(serde_json::to_value(&p2).unwrap()).unwrap();
         assert_eq!(back.shortcut.as_deref(), Some("ctrl+alt+y"));
@@ -1888,5 +1970,91 @@ mod tests {
         let out = format!("{:?}", map);
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
+    }
+
+    fn settings_with_mode(provider_id: Option<&str>, model: Option<&str>) -> AppSettings {
+        let mut settings = get_default_settings();
+        settings.post_process_provider_id = "openai".to_string();
+        settings
+            .post_process_models
+            .insert("openai".to_string(), "gpt-4o-mini".to_string());
+        settings
+            .post_process_models
+            .insert("google".to_string(), "gemini-2.5-flash".to_string());
+        let prompt = settings
+            .post_process_prompts
+            .iter_mut()
+            .find(|p| p.id == "dilo-code")
+            .expect("el modo Código viene de fábrica");
+        prompt.provider_id = provider_id.map(str::to_string);
+        prompt.model = model.map(str::to_string);
+        settings
+    }
+
+    fn code_mode(settings: &AppSettings) -> LLMPrompt {
+        settings
+            .post_process_prompts
+            .iter()
+            .find(|p| p.id == "dilo-code")
+            .cloned()
+            .unwrap()
+    }
+
+    #[test]
+    fn a_mode_without_its_own_provider_inherits_the_global_one() {
+        let settings = settings_with_mode(None, None);
+        let resolved = resolve_mode_provider(&settings, &code_mode(&settings)).expect("resuelve");
+
+        assert_eq!(resolved.provider.id, "openai");
+        assert_eq!(resolved.model, "gpt-4o-mini");
+        assert!(
+            resolved.inherited,
+            "hereda: la UI lo muestra como 'General'"
+        );
+    }
+
+    #[test]
+    fn a_mode_with_its_own_provider_uses_it() {
+        let settings = settings_with_mode(Some("google"), Some("gemini-2.5-pro"));
+        let resolved = resolve_mode_provider(&settings, &code_mode(&settings)).expect("resuelve");
+
+        assert_eq!(resolved.provider.id, "google");
+        assert_eq!(resolved.model, "gemini-2.5-pro", "el modelo del modo manda");
+        assert!(!resolved.inherited);
+        assert!(!resolved.is_local);
+    }
+
+    #[test]
+    fn a_mode_without_its_own_model_falls_back_to_the_provider_default_model() {
+        let settings = settings_with_mode(Some("google"), None);
+        let resolved = resolve_mode_provider(&settings, &code_mode(&settings)).expect("resuelve");
+
+        assert_eq!(resolved.provider.id, "google");
+        assert_eq!(
+            resolved.model, "gemini-2.5-flash",
+            "sin modelo propio usa el que ya está configurado para ese proveedor"
+        );
+    }
+
+    #[test]
+    fn a_mode_pointing_at_a_deleted_provider_falls_back_to_the_global_one() {
+        let settings = settings_with_mode(Some("proveedor-que-el-usuario-borro"), None);
+        let resolved = resolve_mode_provider(&settings, &code_mode(&settings)).expect("resuelve");
+
+        assert_eq!(
+            resolved.provider.id, "openai",
+            "configuración vieja no es una falla: se usa el general en silencio"
+        );
+        assert!(resolved.inherited);
+    }
+
+    #[test]
+    fn a_provider_without_any_model_configured_does_not_resolve() {
+        let mut settings = settings_with_mode(Some("anthropic"), None);
+        settings.post_process_models.remove("anthropic");
+        assert!(
+            resolve_mode_provider(&settings, &code_mode(&settings)).is_none(),
+            "sin modelo no hay a qué llamar: cuenta como no disponible"
+        );
     }
 }

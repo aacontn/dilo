@@ -1153,6 +1153,8 @@ pub fn add_post_process_prompt(
         name,
         prompt,
         shortcut: None,
+        provider_id: None,
+        model: None,
     };
 
     settings.post_process_prompts.push(new_prompt.clone());
