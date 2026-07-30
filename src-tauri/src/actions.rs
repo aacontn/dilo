@@ -7,7 +7,9 @@ use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{
+    get_settings, AppSettings, OverlayStyle, PostProcessProvider, APPLE_INTELLIGENCE_PROVIDER_ID,
+};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{
@@ -18,6 +20,8 @@ use crate::TranscriptionCoordinator;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error, warn};
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
@@ -134,35 +138,52 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
+/// Datos del aviso cuando la caída al proveedor global mandó a la nube un
+/// texto que el modo quería procesar localmente.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct PostProcessFallback {
+    pub mode_name: String,
+    pub provider_label: String,
+}
+
+/// El aviso sale **sólo** cuando se cruzó de local a nube. Caer entre dos
+/// proveedores online no cambia nada para el usuario, y caer hacia uno local
+/// tampoco es noticia: lo único que hay que contar es que un texto que iba a
+/// quedarse en el equipo terminó saliendo.
+fn crossing_to_report(
+    mode_was_local: bool,
+    fallback_is_local: bool,
+    mode_name: &str,
+    provider_label: &str,
+) -> Option<PostProcessFallback> {
+    if mode_was_local && !fallback_is_local {
+        return Some(PostProcessFallback {
+            mode_name: mode_name.to_string(),
+            provider_label: provider_label.to_string(),
+        });
+    }
+    None
+}
+
+/// Resultado de post-procesar: el texto, qué proveedor terminó respondiendo, y
+/// si esa respuesta implicó un cruce de local a nube que hay que avisar.
+pub struct PostProcessOutcome {
+    pub text: String,
+    /// Parte de la interfaz pública de esta función; el llamador actual no lo
+    /// necesita, pero queda disponible para cuando el historial o la UI
+    /// quieran mostrar qué proveedor respondió realmente.
+    #[allow(dead_code)]
+    pub used_provider_id: String,
+    pub crossed_to_cloud: Option<PostProcessFallback>,
+}
+
 async fn post_process_transcription(
     settings: &AppSettings,
     transcription: &str,
     prompt_override: Option<&str>,
-) -> Option<String> {
+) -> Option<PostProcessOutcome> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
-        return None;
-    }
-
-    let provider = match settings.active_post_process_provider().cloned() {
-        Some(provider) => provider,
-        None => {
-            debug!("Post-processing enabled but no provider is selected");
-            return None;
-        }
-    };
-
-    let model = settings
-        .post_process_models
-        .get(&provider.id)
-        .cloned()
-        .unwrap_or_default();
-
-    if model.trim().is_empty() {
-        debug!(
-            "Post-processing skipped because provider '{}' has no model configured",
-            provider.id
-        );
         return None;
     }
 
@@ -178,12 +199,13 @@ async fn post_process_transcription(
         }
     };
 
-    let prompt = match settings
+    // El proveedor depende del modo, así que primero hay que saber qué modo es.
+    let mode = match settings
         .post_process_prompts
         .iter()
-        .find(|prompt| prompt.id == selected_prompt_id)
+        .find(|p| p.id == selected_prompt_id)
     {
-        Some(prompt) => prompt.prompt.clone(),
+        Some(mode) => mode.clone(),
         None => {
             debug!(
                 "Post-processing skipped because prompt '{}' was not found",
@@ -193,11 +215,85 @@ async fn post_process_transcription(
         }
     };
 
+    let prompt = mode.prompt.clone();
     if prompt.trim().is_empty() {
         debug!("Post-processing skipped because the selected prompt is empty");
         return None;
     }
 
+    let resolved = crate::settings::resolve_mode_provider(settings, &mode);
+    let global = settings
+        .active_post_process_provider()
+        .cloned()
+        .and_then(|provider| {
+            let model = settings.post_process_models.get(&provider.id).cloned()?;
+            Some((provider, model))
+        });
+
+    if let Some(resolved) = &resolved {
+        if let Some(text) = run_post_process_with(
+            settings,
+            &resolved.provider,
+            &resolved.model,
+            &prompt,
+            transcription,
+        )
+        .await
+        {
+            return Some(PostProcessOutcome {
+                text,
+                used_provider_id: resolved.provider.id.clone(),
+                crossed_to_cloud: None,
+            });
+        }
+        warn!(
+            "El proveedor '{}' del modo '{}' no pudo procesar; se reintenta con el general",
+            resolved.provider.id, mode.name
+        );
+    }
+
+    // Caída al general. Si el modo ya usaba el general, no hay nada que
+    // reintentar: sería llamar dos veces al mismo proveedor caído.
+    let (global_provider, global_model) = global?;
+    if resolved
+        .as_ref()
+        .is_some_and(|r| r.provider.id == global_provider.id)
+    {
+        return None;
+    }
+
+    let text = run_post_process_with(
+        settings,
+        &global_provider,
+        &global_model,
+        &prompt,
+        transcription,
+    )
+    .await?;
+    let crossed_to_cloud = crossing_to_report(
+        resolved.as_ref().is_some_and(|r| r.is_local),
+        crate::settings::provider_is_local(&global_provider),
+        &mode.name,
+        &global_provider.label,
+    );
+    Some(PostProcessOutcome {
+        text,
+        used_provider_id: global_provider.id,
+        crossed_to_cloud,
+    })
+}
+
+/// Llama al LLM de un proveedor concreto con un modelo y prompt ya resueltos.
+/// Sin lógica de resolución de proveedor/modo: eso lo decide el llamador, esta
+/// función sólo ejecuta la llamada (structured output, Apple Intelligence,
+/// fallback legacy) contra lo que se le pasó.
+async fn run_post_process_with(
+    settings: &AppSettings,
+    provider: &PostProcessProvider,
+    model: &str,
+    prompt: &str,
+    transcription: &str,
+) -> Option<String> {
     debug!(
         "Starting LLM post-processing with provider '{}' (model: {})",
         provider.id, model
@@ -228,7 +324,7 @@ async fn post_process_transcription(
     if provider.supports_structured_output {
         debug!("Using structured outputs for provider '{}'", provider.id);
 
-        let system_prompt = build_system_prompt(&prompt);
+        let system_prompt = build_system_prompt(prompt);
         let user_content = transcription.to_string();
 
         // Handle Apple Intelligence separately since it uses native Swift APIs
@@ -289,9 +385,9 @@ async fn post_process_transcription(
         });
 
         match crate::llm_client::send_chat_completion_with_schema(
-            &provider,
+            provider,
             api_key.clone(),
-            &model,
+            model,
             user_content,
             Some(system_prompt),
             Some(json_schema),
@@ -347,9 +443,9 @@ async fn post_process_transcription(
     debug!("Processed prompt length: {} chars", processed_prompt.len());
 
     match crate::llm_client::send_chat_completion(
-        &provider,
+        provider,
         api_key,
-        &model,
+        model,
         processed_prompt,
         reasoning_effort,
         reasoning,
@@ -482,9 +578,16 @@ pub(crate) async fn process_transcription_output(
         .and_then(|mut slot| slot.take());
 
     if post_process {
-        if let Some(processed_text) =
+        if let Some(outcome) =
             post_process_transcription(&settings, &final_text, mode_override.as_deref()).await
         {
+            if let Some(crossing) = outcome.crossed_to_cloud.clone() {
+                use tauri_specta::Event as _;
+                if let Err(e) = crossing.emit(app) {
+                    warn!("No se pudo avisar del cruce a la nube: {}", e);
+                }
+            }
+            let processed_text = outcome.text;
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
@@ -1153,5 +1256,28 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Live, false));
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
+    }
+
+    #[test]
+    fn crossing_is_reported_only_when_a_local_mode_ends_up_in_the_cloud() {
+        // Modo local que terminó procesándose en la nube: hay que avisar.
+        assert!(super::crossing_to_report(true, false, "Código", "Google Gemini").is_some());
+
+        // Modo local que cayó a otro proveedor local: no salió nada del equipo.
+        assert!(super::crossing_to_report(true, true, "Código", "Ollama").is_none());
+
+        // El modo ya era online: caer a otro online no cambia nada para el usuario.
+        assert!(super::crossing_to_report(false, false, "Correo", "OpenAI").is_none());
+
+        // Un modo online que cae a uno local tampoco es noticia.
+        assert!(super::crossing_to_report(false, true, "Correo", "Apple Intelligence").is_none());
+    }
+
+    #[test]
+    fn the_crossing_report_names_the_mode_and_the_provider_that_ran() {
+        let crossing = super::crossing_to_report(true, false, "Código", "Google Gemini")
+            .expect("hay cruce que reportar");
+        assert_eq!(crossing.mode_name, "Código");
+        assert_eq!(crossing.provider_label, "Google Gemini");
     }
 }

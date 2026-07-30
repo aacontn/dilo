@@ -1158,18 +1158,16 @@ impl AppSettings {
 
 /// Qué IA le toca a un modo, ya resuelta contra el catálogo y los modelos
 /// configurados.
-///
-/// `#[allow(dead_code)]`: nadie la construye todavía. La tarea siguiente del
-/// plan (llamar al proveedor del modo con fallback al global) es quien la va
-/// a usar; este crate no es una lib externa, así que sin esa tarea rustc la
-/// marca como código muerto pese a ser `pub`.
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ResolvedProvider {
     pub provider: PostProcessProvider,
     pub model: String,
     pub is_local: bool,
     /// `true` si salió del proveedor global en vez del propio del modo.
+    /// Lo verifican los tests de esta función; el llamador de producción
+    /// (la caída a la Task 3) distingue por id de proveedor en vez de por
+    /// esta bandera, así que queda sin lector fuera de tests.
+    #[allow(dead_code)]
     pub inherited: bool,
 }
 
@@ -1179,7 +1177,6 @@ pub struct ResolvedProvider {
 ///
 /// Un modo que apunta a un proveedor inexistente —el usuario lo borró— cae al
 /// global **en silencio**: eso no es una falla, es configuración vieja.
-#[allow(dead_code)]
 pub fn resolve_mode_provider(
     settings: &AppSettings,
     prompt: &LLMPrompt,

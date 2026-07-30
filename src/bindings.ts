@@ -1012,10 +1012,12 @@ async ttsLicenseText() : Promise<Result<string, string>> {
 }
 },
 /**
- * Descarga los pesos desde Hugging Face. `licenseAccepted` viene del
- * diálogo que muestra la licencia (`ttsLicenseText`): solo mandar `true`
- * después de que el usuario apretó "Aceptar" con el texto a la vista. El
- * gate real vive en el backend, que rechaza sin él.
+ * Descarga los pesos desde Hugging Face. `license_accepted` viene del
+ * diálogo que muestra la licencia (`tts_license_text`): el frontend solo
+ * puede mandar `true` después de que el usuario apretó "Aceptar" con el
+ * texto a la vista. El gate real vive en
+ * `tts::supertonic::ensure_weights_downloaded`, que rechaza sin él — acá
+ * ya no se hardcodea `true` por nadie.
  */
 async ttsDownloadWeights(licenseAccepted: boolean) : Promise<Result<null, string>> {
     try {
@@ -1042,7 +1044,7 @@ async ttsSetVoice(voice: string) : Promise<Result<null, string>> {
 /**
  * Enciende o apaga el modo asistente hablado (settings.voice_assistant_enabled),
  * el toggle de Ajustes > Voz que habilita el atajo `voice_assistant`.
- *
+ * 
  * Existe porque el guard de `actions.rs` lee este valor desde los settings
  * persistidos: sin un comando que lo escriba, el toggle solo cambiaba el
  * estado del frontend y el backend seguía viendo `false` para siempre.
@@ -1074,10 +1076,12 @@ async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+postProcessFallback: PostProcessFallback,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
+postProcessFallback: "post-process-fallback",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -1158,7 +1162,7 @@ tts_engine?: TtsEngineSetting;
  * para Supertonic, ver `tts::VoiceId`). Default de fábrica: F5
  * (`tts::supertonic::DEFAULT_VOICE`).
  */
-tts_voice?: string;
+tts_voice?: string; 
 /**
  * Modo asistente hablado: el atajo dedicado (binding `voice_assistant`)
  * manda la transcripción al LLM de post-proceso configurado y dice la
@@ -1196,7 +1200,18 @@ export type LLMPrompt = { id: string; name: string; prompt: string;
 /**
  * Atajo global opcional del modo (binding dinámico `mode:<id>`).
  */
-shortcut?: string | null }
+shortcut?: string | null; 
+/**
+ * Proveedor propio de este modo. `None` = usa el global
+ * (`post_process_provider_id`), que es el comportamiento histórico y por
+ * eso no necesita migración.
+ */
+provider_id?: string | null; 
+/**
+ * Modelo propio de este modo. `None` = el que esté configurado para su
+ * proveedor en `post_process_models`.
+ */
+model?: string | null }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
@@ -1246,7 +1261,18 @@ export type PendingNote = { title: string; body: string;
  */
 targets: string[]; last_error?: string | null }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+/**
+ * Datos del aviso cuando la caída al proveedor global mandó a la nube un
+ * texto que el modo quería procesar localmente.
+ */
+export type PostProcessFallback = { mode_name: string; provider_label: string }
+export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean; 
+/**
+ * Calculado al cargar settings (ver `ensure_post_process_defaults`), no
+ * editable por el usuario. Está en la struct para que el frontend lo lea
+ * del binding en vez de repetir la regla en TypeScript.
+ */
+is_local?: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
