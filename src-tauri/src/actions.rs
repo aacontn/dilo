@@ -165,6 +165,52 @@ fn crossing_to_report(
     None
 }
 
+/// Resuelve el proveedor general (y su modelo) para la caída del modo. `None`
+/// si no hay proveedor activo, o si lo tiene pero sin modelo configurado.
+///
+/// El modelo vacío importa: `ensure_post_process_defaults` deja una entrada
+/// `""` en `post_process_models` para cada proveedor sin configurar, así que
+/// "la clave existe" no basta — hay que filtrar el valor vacío o se termina
+/// llamando al proveedor sin modelo (y, en proveedores online, mandando la
+/// transcripción a la nube sin que el usuario haya elegido nada ahí).
+fn resolve_global_provider(settings: &AppSettings) -> Option<(PostProcessProvider, String)> {
+    let provider = match settings.active_post_process_provider().cloned() {
+        Some(provider) => provider,
+        None => {
+            debug!("Post-processing enabled but no provider is selected");
+            return None;
+        }
+    };
+
+    let model = settings
+        .post_process_models
+        .get(&provider.id)
+        .cloned()
+        .unwrap_or_default();
+
+    if model.trim().is_empty() {
+        debug!(
+            "Post-processing skipped because provider '{}' has no model configured",
+            provider.id
+        );
+        return None;
+    }
+
+    Some((provider, model))
+}
+
+/// Si la caída al general repetiría exactamente el mismo proveedor+modelo que
+/// ya falló, no hay nada que reintentar. Compara el par completo, no sólo el
+/// id del proveedor: un modo puede compartir proveedor con el general pero
+/// tener su propio modelo, y esa caída sí es un reintento legítimo.
+fn already_tried_this_pair(
+    resolved: Option<&crate::settings::ResolvedProvider>,
+    global_provider_id: &str,
+    global_model: &str,
+) -> bool {
+    resolved.is_some_and(|r| r.provider.id == global_provider_id && r.model == global_model)
+}
+
 /// Resultado de post-procesar: el texto, qué proveedor terminó respondiendo, y
 /// si esa respuesta implicó un cruce de local a nube que hay que avisar.
 pub struct PostProcessOutcome {
@@ -222,13 +268,7 @@ async fn post_process_transcription(
     }
 
     let resolved = crate::settings::resolve_mode_provider(settings, &mode);
-    let global = settings
-        .active_post_process_provider()
-        .cloned()
-        .and_then(|provider| {
-            let model = settings.post_process_models.get(&provider.id).cloned()?;
-            Some((provider, model))
-        });
+    let global = resolve_global_provider(settings);
 
     if let Some(resolved) = &resolved {
         if let Some(text) = run_post_process_with(
@@ -252,13 +292,10 @@ async fn post_process_transcription(
         );
     }
 
-    // Caída al general. Si el modo ya usaba el general, no hay nada que
-    // reintentar: sería llamar dos veces al mismo proveedor caído.
+    // Caída al general. Si el modo ya usaba exactamente el mismo proveedor y
+    // modelo, no hay nada que reintentar: sería llamar dos veces a lo mismo.
     let (global_provider, global_model) = global?;
-    if resolved
-        .as_ref()
-        .is_some_and(|r| r.provider.id == global_provider.id)
-    {
+    if already_tried_this_pair(resolved.as_ref(), &global_provider.id, &global_model) {
         return None;
     }
 
@@ -1279,5 +1316,84 @@ mod tests {
             .expect("hay cruce que reportar");
         assert_eq!(crossing.mode_name, "Código");
         assert_eq!(crossing.provider_label, "Google Gemini");
+    }
+
+    // Regresión Q1 (revisión de la Task 3): `ensure_post_process_defaults` deja
+    // un modelo "" para cada proveedor hasta que el usuario elige uno — ese es
+    // el estado de fábrica en `get_default_settings()`. Antes del arreglo, la
+    // caída al general sólo miraba si la *clave* existía en el mapa, no si el
+    // valor estaba vacío, así que este estado de fábrica pasaba el filtro y
+    // terminaba llamando al proveedor sin modelo (con la transcripción en el
+    // body, hacia un proveedor online por defecto).
+    #[test]
+    fn global_provider_with_the_factory_empty_model_does_not_resolve() {
+        let settings = crate::settings::get_default_settings();
+        assert!(
+            super::resolve_global_provider(&settings).is_none(),
+            "modelo vacío es el estado de fábrica, no una configuración válida"
+        );
+    }
+
+    #[test]
+    fn global_provider_with_a_real_model_resolves() {
+        let mut settings = crate::settings::get_default_settings();
+        settings
+            .post_process_models
+            .insert("openai".to_string(), "gpt-4o-mini".to_string());
+        let (provider, model) =
+            super::resolve_global_provider(&settings).expect("modelo configurado, sí resuelve");
+        assert_eq!(provider.id, "openai");
+        assert_eq!(model, "gpt-4o-mini");
+    }
+
+    fn resolved_provider_for_test(
+        provider_id: &str,
+        model: &str,
+    ) -> crate::settings::ResolvedProvider {
+        crate::settings::ResolvedProvider {
+            provider: crate::settings::PostProcessProvider {
+                id: provider_id.to_string(),
+                label: provider_id.to_string(),
+                base_url: "https://example.invalid".to_string(),
+                allow_base_url_edit: false,
+                models_endpoint: None,
+                supports_structured_output: true,
+                is_local: false,
+            },
+            model: model.to_string(),
+            is_local: false,
+            inherited: false,
+        }
+    }
+
+    // Regresión Q2 (revisión de la Task 3): el dedup de "no reintentar el
+    // mismo proveedor caído" comparaba sólo el id del proveedor. Un modo puede
+    // compartir proveedor con el general pero tener su propio modelo — esa
+    // caída es distinta (llama con otro modelo) y sí hay que intentarla.
+    #[test]
+    fn same_provider_but_different_model_is_not_deduped() {
+        let resolved = resolved_provider_for_test("openai", "gpt-4o-mini");
+        assert!(
+            !super::already_tried_this_pair(Some(&resolved), "openai", "gpt-4o"),
+            "mismo proveedor, modelo propio distinto: es un reintento legítimo"
+        );
+    }
+
+    #[test]
+    fn same_provider_and_same_model_is_deduped() {
+        let resolved = resolved_provider_for_test("openai", "gpt-4o-mini");
+        assert!(
+            super::already_tried_this_pair(Some(&resolved), "openai", "gpt-4o-mini"),
+            "mismo proveedor y mismo modelo: sería llamar dos veces a lo mismo"
+        );
+    }
+
+    #[test]
+    fn no_resolved_provider_is_never_deduped() {
+        assert!(!super::already_tried_this_pair(
+            None,
+            "openai",
+            "gpt-4o-mini"
+        ));
     }
 }
