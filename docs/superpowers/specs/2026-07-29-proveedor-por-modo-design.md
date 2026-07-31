@@ -109,3 +109,41 @@ Va en rama propia desde `main`, fuera del worktree del notetaker.
 2. Un modo sin proveedor propio sigue usando el general.
 3. Modo Código apuntando a Ollama con Ollama apagado → el texto sale procesado por el general y aparece el aviso de que cruzó a la nube.
 4. Las etiquetas LOCAL/ONLINE en Inicio coinciden con lo configurado en cada modo.
+
+---
+
+## Cambios durante la implementación (2026-07-29)
+
+El diseño se implementó completo. Cuatro cosas se apartaron de lo escrito acá,
+todas descubiertas por las revisiones de cada tarea:
+
+1. **El guard de "proveedor sin modelo" hay que conservarlo explícitamente.**
+   La caída al proveedor general, tal como estaba redactada en el plan, perdía
+   una comprobación que ya existía en el código: los settings de fábrica
+   insertan modelo vacío (`""`) para cada proveedor, así que un dictado podía
+   terminar haciendo un POST con la transcripción a `api.openai.com` sin modelo
+   ni clave — una llamada que antes no existía. La resolución del proveedor
+   global corta ahora con `model.trim().is_empty()`.
+
+2. **El "no reintentar el mismo proveedor" compara el par (proveedor, modelo),
+   no sólo el id.** Un modo que apunta al mismo proveedor que el general pero
+   con modelo propio distinto sí merece la caída: es una llamada distinta.
+
+3. **Elegir un lado vacío no cambia el estado.** Si el usuario elige Local u
+   Online y no hay ningún proveedor de ese tipo, el segmentado **no se mueve** y
+   aparece un aviso (`emptySide`). Mover el control sin persistir nada dejaría
+   la pantalla diciendo "Local" mientras el modo sigue enrutando a la nube —
+   exactamente la confusión que este bloque existe para evitar. Por la misma
+   razón, el segmentado sólo se mueve después de confirmar que el guardado no
+   falló.
+
+4. **`PostProcessOutcome.used_provider_id` no lo lee nadie.** Se definió en este
+   diseño pensando en el historial, pero ningún consumidor lo usa todavía.
+   Queda señalado para eliminarlo (YAGNI) o para darle uso cuando el historial
+   registre con qué proveedor se procesó cada dictado.
+
+**Pendiente conocido:** un modo local cuyo proveedor no resuelve (fue borrado o
+quedó sin modelo) cae al general en la nube **sin mostrar el aviso**, porque
+"era local" se deduce de la resolución, que en ese caso está vacía. Es
+justamente uno de los casos que el aviso existe para cubrir; el arreglo es
+deducirlo de `provider_id` del modo cuando la resolución falla.
