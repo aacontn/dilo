@@ -10,7 +10,42 @@ Alfonso probó la Historia 1 en una reunión real: **transcribe y separa voces**
 
 Cuatro cosas, dos de ellas ya previstas en el plan original (el hub es Historia 4, la reunión virtual es Historia 2) y dos nuevas (la ventana flotante y el streaming). Este documento cubre las cuatro como un solo cambio, porque juntas son "que la feature se pueda usar".
 
-## 1 · La ventana flotante
+## 1 · El módulo de reuniones vive en su propia ventana
+
+**Corrección de Alfonso (2026-07-31), después de leer el primer diseño:** no es
+una ventanita flotante con el botón de detener. Es **el módulo completo en una
+segunda ventana**, como hace Wispr Flow: la app con su configuración por un
+lado, y los transcripts y las reuniones por otro. Grabar, ver el transcript en
+vivo, nombrar hablantes y revisar reuniones pasadas: todo eso deja de vivir
+dentro del panel de ajustes de Dilo.
+
+Es mejor que lo que este documento proponía antes, y de paso resuelve un
+problema que apareció al revisar el registro: con todo en el mismo panel, al
+abrir una reunión pasada seguías viendo arriba "Graba tu próxima reunión" y un
+transcript en vivo vacío. Ese ruido desaparece solo cuando cada cosa está en su
+ventana.
+
+### Cómo se construye
+
+Dilo ya tiene una segunda ventana —el overlay— y el camino está trillado:
+entrada propia en Vite (`src/overlay/index.html`) y creación desde Rust con
+`WebviewWindowBuilder`. La de reuniones repite ese patrón con su propia entrada.
+
+**Diferencia importante con el overlay:** el overlay es un NSPanel flotante sin
+foco, y de ahí viene la regla de "crear perezosamente una vez y **jamás**
+destruir" (destruir una ventana convertida a NSPanel revienta la app; costó una
+tarde entera en la v0.1.4). La de reuniones es una **ventana normal**:
+redimensionable, con foco, en el Dock, que el usuario puede cerrar y reabrir.
+Esa regla no aplica, pero sí la de reusar la ventana si ya está abierta en vez
+de crear una segunda.
+
+### Qué queda en el panel principal
+
+La sección Reuniones del sidebar deja de ser una pantalla y pasa a ser el
+**lanzador** de la ventana. Los ajustes del notetaker que existan a futuro sí
+viven en el panel; la actividad vive en su ventana.
+
+## 1b · Lo que el primer diseño decía de la ventana flotante
 
 **El problema:** hoy grabar una reunión vive dentro del panel de ajustes de Dilo. Eso es un error de encuadre: configurar la app y grabar una reunión no son la misma actividad. Mientras grabas estás trabajando en otra ventana, y la de Dilo te estorba.
 
