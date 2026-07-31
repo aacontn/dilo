@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dicta directo con este modo desde cualquier app, sin cambiar el modo seleccionado.",
         "modeShortcutEmpty": "Sin atajo",
         "modeShortcutClear": "Quitar atajo"
+      },
+      "modeProvider": {
+        "label": "IA de este modo",
+        "scope": {
+          "general": "General",
+          "local": "Local",
+          "online": "Online"
+        },
+        "inherits": "Usa el proveedor general: {{provider}}.",
+        "hint": {
+          "local": "Corre en tu computador. El texto no sale de acá.",
+          "online": "El texto viaja al servidor del proveedor."
+        },
+        "model": "Modelo: {{model}}",
+        "badgeLocal": "Local",
+        "badgeOnline": "Online",
+        "missingKey": "A este proveedor le falta la clave de API. Ponla en la pestaña de API para que el modo funcione.",
+        "saveFailed": "No se pudo guardar la IA de este modo",
+        "fallbackNotice": "{{mode}} se procesó con {{provider}} porque su IA local no respondió.",
+        "emptySide": "No tienes ningún proveedor {{scope}}. Agrégalo en la pestaña de API."
       }
     },
     "history": {

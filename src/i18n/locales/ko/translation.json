@@ -558,6 +558,26 @@
         "modeShortcutHint": "선택된 모드를 바꾸지 않고 어떤 앱에서든 이 모드로 바로 받아쓰기할 수 있습니다.",
         "modeShortcutEmpty": "단축키 없음",
         "modeShortcutClear": "단축키 제거"
+      },
+      "modeProvider": {
+        "label": "이 모드의 AI",
+        "scope": {
+          "general": "일반",
+          "local": "로컬",
+          "online": "온라인"
+        },
+        "inherits": "일반 제공자를 사용합니다: {{provider}}",
+        "hint": {
+          "local": "컴퓨터에서 실행됩니다. 텍스트가 밖으로 나가지 않습니다.",
+          "online": "텍스트가 제공자의 서버로 전송됩니다."
+        },
+        "model": "모델: {{model}}",
+        "badgeLocal": "로컬",
+        "badgeOnline": "온라인",
+        "missingKey": "이 제공자에는 아직 API 키가 없습니다. 이 모드가 작동하도록 API 탭에서 추가하세요.",
+        "saveFailed": "이 모드의 AI를 저장하지 못했습니다",
+        "fallbackNotice": "로컬 AI가 응답하지 않아 {{mode}}가 {{provider}}로 처리되었습니다.",
+        "emptySide": "{{scope}} 제공자가 없습니다. API 탭에서 추가하세요."
       }
     },
     "history": {

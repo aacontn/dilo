@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dictez directement avec ce mode depuis n'importe quelle app, sans changer le mode sélectionné.",
         "modeShortcutEmpty": "Aucun raccourci",
         "modeShortcutClear": "Supprimer le raccourci"
+      },
+      "modeProvider": {
+        "label": "IA de ce mode",
+        "scope": {
+          "general": "Général",
+          "local": "Local",
+          "online": "En ligne"
+        },
+        "inherits": "Utilise le fournisseur général : {{provider}}.",
+        "hint": {
+          "local": "Fonctionne sur ton ordinateur. Le texte n'en sort jamais.",
+          "online": "Le texte est envoyé au serveur du fournisseur."
+        },
+        "model": "Modèle : {{model}}",
+        "badgeLocal": "Local",
+        "badgeOnline": "En ligne",
+        "missingKey": "Ce fournisseur n'a pas encore de clé API. Ajoute-la dans l'onglet API pour que ce mode fonctionne.",
+        "saveFailed": "Impossible d'enregistrer l'IA de ce mode",
+        "fallbackNotice": "{{mode}} a été traité avec {{provider}}, car son IA locale n'a pas répondu.",
+        "emptySide": "Aucun fournisseur {{scope}} disponible. Ajoutes-en un dans l'onglet API."
       }
     },
     "history": {

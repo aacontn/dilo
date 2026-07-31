@@ -558,6 +558,26 @@
         "modeShortcutHint": "Detta direttamente con questa modalità da qualsiasi app, senza cambiare la modalità selezionata.",
         "modeShortcutEmpty": "Nessuna scorciatoia",
         "modeShortcutClear": "Rimuovi scorciatoia"
+      },
+      "modeProvider": {
+        "label": "IA di questa modalità",
+        "scope": {
+          "general": "Generale",
+          "local": "Locale",
+          "online": "Online"
+        },
+        "inherits": "Usa il provider generale: {{provider}}.",
+        "hint": {
+          "local": "Funziona sul tuo computer. Il testo non esce da lì.",
+          "online": "Il testo viaggia verso il server del provider."
+        },
+        "model": "Modello: {{model}}",
+        "badgeLocal": "Locale",
+        "badgeOnline": "Online",
+        "missingKey": "A questo provider manca ancora la chiave API. Aggiungila nella scheda API perché la modalità funzioni.",
+        "saveFailed": "Impossibile salvare l'IA di questa modalità",
+        "fallbackNotice": "{{mode}} è stato elaborato con {{provider}} perché la sua IA locale non ha risposto.",
+        "emptySide": "Nessun provider {{scope}} disponibile. Aggiungine uno nella scheda API."
       }
     },
     "history": {

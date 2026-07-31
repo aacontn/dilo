@@ -558,6 +558,26 @@
         "modeShortcutHint": "Diktujte přímo v tomto režimu z jakékoli aplikace beze změny vybraného režimu.",
         "modeShortcutEmpty": "Žádná zkratka",
         "modeShortcutClear": "Odebrat zkratku"
+      },
+      "modeProvider": {
+        "label": "AI pro tento režim",
+        "scope": {
+          "general": "Obecné",
+          "local": "Lokální",
+          "online": "Online"
+        },
+        "inherits": "Používá obecného poskytovatele: {{provider}}.",
+        "hint": {
+          "local": "Běží na tvém počítači. Text z něj neodejde.",
+          "online": "Text putuje na server poskytovatele."
+        },
+        "model": "Model: {{model}}",
+        "badgeLocal": "Lokální",
+        "badgeOnline": "Online",
+        "missingKey": "Tomuto poskytovateli chybí API klíč. Přidej ho v záložce API, aby režim fungoval.",
+        "saveFailed": "Nepodařilo se uložit AI pro tento režim",
+        "fallbackNotice": "{{mode}} byl zpracován pomocí {{provider}}, protože jeho lokální AI neodpověděla.",
+        "emptySide": "Poskytovatel {{scope}} není k dispozici. Přidej ho v záložce API."
       }
     },
     "history": {

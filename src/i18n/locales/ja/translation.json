@@ -558,6 +558,26 @@
         "modeShortcutHint": "選択中のモードを変えずに、どのアプリからでもこのモードで直接音声入力できます。",
         "modeShortcutEmpty": "ショートカットなし",
         "modeShortcutClear": "ショートカットを削除"
+      },
+      "modeProvider": {
+        "label": "このモードのAI",
+        "scope": {
+          "general": "共通",
+          "local": "ローカル",
+          "online": "オンライン"
+        },
+        "inherits": "共通のプロバイダー（{{provider}}）を使用します。",
+        "hint": {
+          "local": "パソコン内で処理されます。テキストは外部に送信されません。",
+          "online": "テキストはプロバイダーのサーバーに送信されます。"
+        },
+        "model": "モデル: {{model}}",
+        "badgeLocal": "ローカル",
+        "badgeOnline": "オンライン",
+        "missingKey": "このプロバイダーにはまだAPIキーが設定されていません。APIタブで追加すると、このモードが使えます。",
+        "saveFailed": "このモードのAIを保存できませんでした",
+        "fallbackNotice": "{{mode}}はローカルAIが応答しなかったため、{{provider}}で処理されました。",
+        "emptySide": "{{scope}}のプロバイダーがありません。APIタブで追加してください。"
       }
     },
     "history": {

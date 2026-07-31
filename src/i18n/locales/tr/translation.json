@@ -558,6 +558,26 @@
         "modeShortcutHint": "Seçili modu değiştirmeden herhangi bir uygulamadan doğrudan bu modla dikte et.",
         "modeShortcutEmpty": "Kısayol yok",
         "modeShortcutClear": "Kısayolu kaldır"
+      },
+      "modeProvider": {
+        "label": "Bu modun yapay zekâsı",
+        "scope": {
+          "general": "Genel",
+          "local": "Yerel",
+          "online": "Online"
+        },
+        "inherits": "Genel sağlayıcıyı kullanır: {{provider}}.",
+        "hint": {
+          "local": "Bilgisayarında çalışır. Metin dışarı çıkmaz.",
+          "online": "Metin, sağlayıcının sunucusuna gider."
+        },
+        "model": "Model: {{model}}",
+        "badgeLocal": "Yerel",
+        "badgeOnline": "Online",
+        "missingKey": "Bu sağlayıcının henüz API anahtarı yok. Modun çalışması için API sekmesinden ekle.",
+        "saveFailed": "Bu modun yapay zekâsı kaydedilemedi",
+        "fallbackNotice": "{{mode}}, yerel yapay zekâ yanıt vermediği için {{provider}} ile işlendi.",
+        "emptySide": "{{scope}} sağlayıcı yok. API sekmesinden birini ekle."
       }
     },
     "history": {

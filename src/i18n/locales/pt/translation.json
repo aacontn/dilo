@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dite diretamente com este modo a partir de qualquer app, sem mudar o modo selecionado.",
         "modeShortcutEmpty": "Sem atalho",
         "modeShortcutClear": "Remover atalho"
+      },
+      "modeProvider": {
+        "label": "IA deste modo",
+        "scope": {
+          "general": "Geral",
+          "local": "Local",
+          "online": "Online"
+        },
+        "inherits": "Usa o provedor geral: {{provider}}.",
+        "hint": {
+          "local": "Roda no seu computador. O texto não sai dele.",
+          "online": "O texto vai para o servidor do provedor."
+        },
+        "model": "Modelo: {{model}}",
+        "badgeLocal": "Local",
+        "badgeOnline": "Online",
+        "missingKey": "Este provedor ainda não tem uma chave de API. Adicione-a na aba API para que o modo funcione.",
+        "saveFailed": "Não foi possível salvar a IA deste modo",
+        "fallbackNotice": "{{mode}} foi processado com {{provider}} porque a IA local não respondeu.",
+        "emptySide": "Nenhum provedor {{scope}} disponível. Adicione um na aba API."
       }
     },
     "history": {

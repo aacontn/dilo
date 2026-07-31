@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dictate straight into this mode from any app, without changing the selected mode.",
         "modeShortcutEmpty": "No shortcut",
         "modeShortcutClear": "Clear shortcut"
+      },
+      "modeProvider": {
+        "label": "This mode's AI",
+        "scope": {
+          "general": "General",
+          "local": "Local",
+          "online": "Online"
+        },
+        "inherits": "Uses the general provider: {{provider}}.",
+        "hint": {
+          "local": "Runs on your computer. The text never leaves it.",
+          "online": "The text travels to the provider's server."
+        },
+        "model": "Model: {{model}}",
+        "badgeLocal": "Local",
+        "badgeOnline": "Online",
+        "missingKey": "This provider has no API key yet. Add it in the API tab so the mode works.",
+        "saveFailed": "Couldn't save this mode's AI",
+        "fallbackNotice": "{{mode}} was processed with {{provider}} because its local AI didn't respond.",
+        "emptySide": "There's no {{scope}} provider yet. Add one in the API tab."
       }
     },
     "history": {

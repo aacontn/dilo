@@ -558,6 +558,26 @@
         "modeShortcutHint": "在任何应用中直接用此模式听写，而不改变所选模式。",
         "modeShortcutEmpty": "无快捷键",
         "modeShortcutClear": "清除快捷键"
+      },
+      "modeProvider": {
+        "label": "此模式的 AI",
+        "scope": {
+          "general": "通用",
+          "local": "本地",
+          "online": "在线"
+        },
+        "inherits": "使用通用提供商：{{provider}}。",
+        "hint": {
+          "local": "在你的电脑上运行，文本不会离开设备。",
+          "online": "文本会发送到提供商的服务器。"
+        },
+        "model": "模型：{{model}}",
+        "badgeLocal": "本地",
+        "badgeOnline": "在线",
+        "missingKey": "这个提供商还没有设置 API 密钥。请在 API 标签页中添加，模式才能正常工作。",
+        "saveFailed": "无法保存此模式的 AI",
+        "fallbackNotice": "由于本地 AI 没有响应，{{mode}} 改用 {{provider}} 处理。",
+        "emptySide": "没有可用的{{scope}}提供商。请在 API 标签页中添加一个。"
       }
     },
     "history": {

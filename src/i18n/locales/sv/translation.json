@@ -558,6 +558,26 @@
         "modeShortcutHint": "Diktera direkt med det här läget från vilken app som helst, utan att ändra det valda läget.",
         "modeShortcutEmpty": "Ingen genväg",
         "modeShortcutClear": "Ta bort genväg"
+      },
+      "modeProvider": {
+        "label": "AI för det här läget",
+        "scope": {
+          "general": "Allmän",
+          "local": "Lokal",
+          "online": "Online"
+        },
+        "inherits": "Använder den allmänna leverantören: {{provider}}.",
+        "hint": {
+          "local": "Körs på din dator. Texten lämnar den aldrig.",
+          "online": "Texten skickas till leverantörens server."
+        },
+        "model": "Modell: {{model}}",
+        "badgeLocal": "Lokal",
+        "badgeOnline": "Online",
+        "missingKey": "Den här leverantören saknar API-nyckel. Lägg till den under fliken API för att läget ska fungera.",
+        "saveFailed": "Det gick inte att spara AI:n för det här läget",
+        "fallbackNotice": "{{mode}} bearbetades med {{provider}} eftersom den lokala AI:n inte svarade.",
+        "emptySide": "Det finns ingen {{scope}} leverantör än. Lägg till en under fliken API."
       }
     },
     "history": {

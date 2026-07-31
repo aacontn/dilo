@@ -558,6 +558,26 @@
         "modeShortcutHint": "Diktiere direkt mit diesem Modus aus jeder App, ohne den ausgewählten Modus zu ändern.",
         "modeShortcutEmpty": "Kein Kurzbefehl",
         "modeShortcutClear": "Kurzbefehl entfernen"
+      },
+      "modeProvider": {
+        "label": "KI für diesen Modus",
+        "scope": {
+          "general": "Allgemein",
+          "local": "Lokal",
+          "online": "Online"
+        },
+        "inherits": "Verwendet den allgemeinen Anbieter: {{provider}}.",
+        "hint": {
+          "local": "Läuft auf deinem Computer. Der Text verlässt ihn nicht.",
+          "online": "Der Text wird an den Server des Anbieters gesendet."
+        },
+        "model": "Modell: {{model}}",
+        "badgeLocal": "Lokal",
+        "badgeOnline": "Online",
+        "missingKey": "Diesem Anbieter fehlt noch ein API-Schlüssel. Füge ihn im API-Tab hinzu, damit der Modus funktioniert.",
+        "saveFailed": "Die KI für diesen Modus konnte nicht gespeichert werden",
+        "fallbackNotice": "{{mode}} wurde mit {{provider}} verarbeitet, weil die lokale KI nicht geantwortet hat.",
+        "emptySide": "{{scope}}: kein Anbieter vorhanden. Füge einen im API-Tab hinzu."
       }
     },
     "history": {

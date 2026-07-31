@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dicteer rechtstreeks met deze modus vanuit elke app, zonder de geselecteerde modus te wijzigen.",
         "modeShortcutEmpty": "Geen sneltoets",
         "modeShortcutClear": "Sneltoets wissen"
+      },
+      "modeProvider": {
+        "label": "AI voor deze modus",
+        "scope": {
+          "general": "Algemeen",
+          "local": "Lokaal",
+          "online": "Online"
+        },
+        "inherits": "Gebruikt de algemene provider: {{provider}}.",
+        "hint": {
+          "local": "Draait op je computer. De tekst verlaat hem niet.",
+          "online": "De tekst gaat naar de server van de provider."
+        },
+        "model": "Model: {{model}}",
+        "badgeLocal": "Lokaal",
+        "badgeOnline": "Online",
+        "missingKey": "Deze provider heeft nog geen API-sleutel. Voeg die toe op het API-tabblad zodat de modus werkt.",
+        "saveFailed": "De AI voor deze modus kon niet worden opgeslagen",
+        "fallbackNotice": "{{mode}} is verwerkt met {{provider}} omdat de lokale AI niet reageerde.",
+        "emptySide": "{{scope}}: geen provider beschikbaar. Voeg er een toe op het API-tabblad."
       }
     },
     "history": {

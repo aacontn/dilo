@@ -558,6 +558,26 @@
         "modeShortcutHint": "在任何應用程式中直接以此模式聽寫，而不改變所選模式。",
         "modeShortcutEmpty": "無快速鍵",
         "modeShortcutClear": "清除快速鍵"
+      },
+      "modeProvider": {
+        "label": "此模式的 AI",
+        "scope": {
+          "general": "一般",
+          "local": "本機",
+          "online": "線上"
+        },
+        "inherits": "使用一般供應商：{{provider}}。",
+        "hint": {
+          "local": "在你的電腦上執行，文字不會離開裝置。",
+          "online": "文字會傳送到供應商的伺服器。"
+        },
+        "model": "模型：{{model}}",
+        "badgeLocal": "本機",
+        "badgeOnline": "線上",
+        "missingKey": "這個供應商還沒有設定 API 金鑰。請在 API 分頁中新增，模式才能正常運作。",
+        "saveFailed": "無法儲存此模式的 AI",
+        "fallbackNotice": "由於本機 AI 沒有回應，{{mode}} 改用 {{provider}} 處理。",
+        "emptySide": "沒有可用的{{scope}}供應商。請在 API 分頁中新增一個。"
       }
     },
     "history": {

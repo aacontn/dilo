@@ -558,6 +558,26 @@
         "modeShortcutHint": "Đọc chính tả trực tiếp bằng chế độ này từ bất kỳ ứng dụng nào mà không đổi chế độ đang chọn.",
         "modeShortcutEmpty": "Chưa có phím tắt",
         "modeShortcutClear": "Xóa phím tắt"
+      },
+      "modeProvider": {
+        "label": "AI của chế độ này",
+        "scope": {
+          "general": "Chung",
+          "local": "Cục bộ",
+          "online": "Trực tuyến"
+        },
+        "inherits": "Dùng nhà cung cấp chung: {{provider}}.",
+        "hint": {
+          "local": "Chạy trên máy tính của bạn. Văn bản không rời khỏi đó.",
+          "online": "Văn bản được gửi đến máy chủ của nhà cung cấp."
+        },
+        "model": "Mô hình: {{model}}",
+        "badgeLocal": "Cục bộ",
+        "badgeOnline": "Trực tuyến",
+        "missingKey": "Nhà cung cấp này chưa có khóa API. Thêm khóa trong tab API để chế độ này hoạt động.",
+        "saveFailed": "Không thể lưu AI của chế độ này",
+        "fallbackNotice": "{{mode}} đã được xử lý bằng {{provider}} vì AI cục bộ của nó không phản hồi.",
+        "emptySide": "Không có nhà cung cấp {{scope}} nào. Thêm một cái trong tab API."
       }
     },
     "history": {

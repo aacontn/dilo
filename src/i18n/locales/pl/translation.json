@@ -558,6 +558,26 @@
         "modeShortcutHint": "Dyktuj bezpośrednio w tym trybie z dowolnej aplikacji, bez zmiany wybranego trybu.",
         "modeShortcutEmpty": "Brak skrótu",
         "modeShortcutClear": "Usuń skrót"
+      },
+      "modeProvider": {
+        "label": "AI tego trybu",
+        "scope": {
+          "general": "Ogólny",
+          "local": "Lokalny",
+          "online": "Online"
+        },
+        "inherits": "Używa ogólnego dostawcy: {{provider}}.",
+        "hint": {
+          "local": "Działa na twoim komputerze. Tekst go nie opuszcza.",
+          "online": "Tekst trafia na serwer dostawcy."
+        },
+        "model": "Model: {{model}}",
+        "badgeLocal": "Lokalny",
+        "badgeOnline": "Online",
+        "missingKey": "Ten dostawca nie ma jeszcze klucza API. Dodaj go w zakładce API, aby tryb działał.",
+        "saveFailed": "Nie udało się zapisać AI dla tego trybu",
+        "fallbackNotice": "{{mode}} przetworzono za pomocą {{provider}}, bo lokalna AI nie odpowiedziała.",
+        "emptySide": "Dostawca {{scope}} nie jest dostępny. Dodaj go w zakładce API."
       }
     },
     "history": {
