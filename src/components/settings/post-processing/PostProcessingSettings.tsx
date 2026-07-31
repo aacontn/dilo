@@ -21,6 +21,7 @@ import { ModelSelect } from "../PostProcessingSettingsApi/ModelSelect";
 import { usePostProcessProviderState } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 import { ShortcutInput } from "../ShortcutInput";
 import { ModeShortcutInput } from "../ModeShortcutInput";
+import { ModeProviderSelect } from "./ModeProviderSelect";
 import { useSettings } from "../../../hooks/useSettings";
 import { PageHeader } from "../../ui/PageHeader";
 
@@ -328,6 +329,17 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
             <ModeShortcutInput
               promptId={selectedPrompt.id}
               shortcut={selectedPrompt.shortcut}
+            />
+
+            {/* `key` fuerza un remount al cambiar de modo seleccionado: el
+                segmentado guarda su lado (General/Local/Online) en estado
+                local derivado del `providerId` inicial, y sin esto quedaría
+                pegado al lado del modo anterior. */}
+            <ModeProviderSelect
+              key={selectedPrompt.id}
+              promptId={selectedPrompt.id}
+              providerId={selectedPrompt.provider_id}
+              model={selectedPrompt.model}
             />
 
             <div className="flex gap-2 pt-2">
