@@ -34,12 +34,13 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
   const normalizedProviderId = providerId ?? null;
 
   const current = providers.find((p) => p.id === normalizedProviderId) ?? null;
+  // `current === null` cubre dos casos que el backend trata igual (`own` en
+  // `resolve_mode_provider`): sin proveedor propio, o apuntando a uno que ya
+  // no está en el catálogo (por ejemplo `apple_intelligence` en una máquina
+  // que no es Mac ARM). En ambos el modo hereda el general, así que el
+  // segmentado tiene que arrancar en "General" y no en "Online".
   const [scope, setScope] = useState<Scope>(
-    normalizedProviderId === null
-      ? "general"
-      : current?.is_local
-        ? "local"
-        : "online",
+    current === null ? "general" : current.is_local ? "local" : "online",
   );
   // Lado que el usuario intentó activar pero no tenía ningún proveedor
   // (ver `handleScope`). Sólo sirve para mostrar el aviso; no es el `scope`
@@ -51,6 +52,18 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
   const globalProvider = providers.find(
     (p) => p.id === settings?.post_process_provider_id,
   );
+
+  // El modelo por modo (`LLMPrompt.model`) todavía no se elige desde esta UI
+  // (no hay flujo de listar modelos por proveedor). Mientras tanto, mostrar
+  // el modelo efectivo con el que en realidad va a correr el modo: el propio
+  // si lo tiene, si no el heredado del proveedor elegido. Cadena vacía cuenta
+  // como "no tiene".
+  const effectiveModel =
+    model?.trim() ||
+    (normalizedProviderId
+      ? settings?.post_process_models?.[normalizedProviderId]?.trim()
+      : undefined) ||
+    null;
 
   const options = useMemo(
     () =>
@@ -164,9 +177,11 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
             )}
             {t(`settings.postProcessing.modeProvider.hint.${scope}`)}
           </p>
-          {model && (
+          {effectiveModel && (
             <p className="text-xs text-muted-text">
-              {t("settings.postProcessing.modeProvider.model", { model })}
+              {t("settings.postProcessing.modeProvider.model", {
+                model: effectiveModel,
+              })}
             </p>
           )}
           {/* Aviso, no bloqueo: el modo queda configurado igual y el usuario

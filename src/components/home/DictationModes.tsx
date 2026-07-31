@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import {
   DICTATION_MODE_PRESETS,
   getActiveDictationMode,
+  resolveModeProviderId,
 } from "@/lib/postProcessPresets";
 import { useSettings } from "@/hooks/useSettings";
 import { ModeShortcutInput } from "@/components/settings/ModeShortcutInput";
@@ -92,13 +93,15 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
     ...customModes,
   ];
 
-  // Etiqueta LOCAL/ONLINE según el proveedor efectivo del modo (propio o
-  // heredado del global). "literal" no pasa por IA, así que no lleva etiqueta.
+  // Etiqueta LOCAL/ONLINE según el proveedor efectivo del modo: la misma
+  // regla que usa el backend para resolverlo (`resolveModeProviderId`), no
+  // sólo el `provider_id` crudo — si ese proveedor no existe o no tiene
+  // modelo utilizable, el modo en realidad corre con el general.
+  // "literal" no pasa por IA, así que no lleva etiqueta.
   const providerBadgeFor = (promptId: string | null) => {
     if (promptId === null) return null;
     const prompt = prompts.find((p) => p.id === promptId);
-    const modeProviderId =
-      prompt?.provider_id ?? settings.post_process_provider_id;
+    const modeProviderId = resolveModeProviderId(prompt, settings);
     const provider = settings.post_process_providers?.find(
       (p) => p.id === modeProviderId,
     );
@@ -130,6 +133,7 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
         {modes.map((mode) => {
           const Icon = mode.icon;
           const selected = activeMode === mode.id;
+          const providerBadge = providerBadgeFor(mode.promptId);
           return (
             <div
               key={mode.id}
@@ -157,9 +161,9 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
                     {mode.label}
                   </span>
-                  {providerBadgeFor(mode.promptId) && (
+                  {providerBadge && (
                     <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
-                      {providerBadgeFor(mode.promptId)}
+                      {providerBadge}
                     </span>
                   )}
                   {selected && (
