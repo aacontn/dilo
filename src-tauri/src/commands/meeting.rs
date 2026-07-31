@@ -1,9 +1,11 @@
 //! Tauri commands for the meeting notetaker feature. `start_meeting` (T011)
 //! is the first one — see `specs/001-meeting-notetaker/contracts/
 //! tauri-commands.md` for the full contract this feature will grow into.
-//! `stop_meeting` (T015) es el segundo.
+//! `stop_meeting` (T015) es el segundo. `list_meetings`/`get_meeting` (T035)
+//! son los que por fin dejan leer lo que ya se graba y se guarda: hasta acá
+//! ninguna pantalla podía mostrar una reunión pasada.
 
-use crate::managers::meeting::MeetingManager;
+use crate::managers::meeting::{Meeting, MeetingManager, PaginatedMeetings};
 use std::sync::Arc;
 use tauri::State;
 
@@ -109,5 +111,37 @@ pub async fn merge_speakers(
 ) -> Result<(), String> {
     meeting_manager
         .merge_speakers(meeting_id, source_speaker_id, target_speaker_id)
+        .map_err(|e| e.to_string())
+}
+
+/// Listado paginado de reuniones pasadas, de más reciente a más antigua
+/// (contrato: `tauri-commands.md#list_meetings`). No implementa la búsqueda
+/// de texto (`query`) del contrato — eso es Historia 5, ver
+/// `specs/001-meeting-notetaker/tasks.md` T041; este comando cubre sólo el
+/// listado simple que Historia 4 necesita.
+#[tauri::command]
+#[specta::specta]
+pub async fn list_meetings(
+    meeting_manager: State<'_, Arc<MeetingManager>>,
+    limit: i64,
+    offset: i64,
+) -> Result<PaginatedMeetings, String> {
+    meeting_manager
+        .list_meetings(limit, offset)
+        .map_err(|e| e.to_string())
+}
+
+/// Reunión completa para leerla: datos, transcript en orden cronológico (con
+/// los hablantes fusionados ya resueltos al destino) y la lista de hablantes
+/// vigente. Alimenta las pestañas de Historia 3 (contrato:
+/// `tauri-commands.md#get_meeting`).
+#[tauri::command]
+#[specta::specta]
+pub async fn get_meeting(
+    meeting_manager: State<'_, Arc<MeetingManager>>,
+    meeting_id: i64,
+) -> Result<Meeting, String> {
+    meeting_manager
+        .get_meeting(meeting_id)
         .map_err(|e| e.to_string())
 }

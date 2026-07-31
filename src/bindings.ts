@@ -970,6 +970,35 @@ async mergeSpeakers(meetingId: number, sourceSpeakerId: number, targetSpeakerId:
 }
 },
 /**
+ * Listado paginado de reuniones pasadas, de más reciente a más antigua
+ * (contrato: `tauri-commands.md#list_meetings`). No implementa la búsqueda
+ * de texto (`query`) del contrato — eso es Historia 5, ver
+ * `specs/001-meeting-notetaker/tasks.md` T041; este comando cubre sólo el
+ * listado simple que Historia 4 necesita.
+ */
+async listMeetings(limit: number, offset: number) : Promise<Result<PaginatedMeetings, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_meetings", { limit, offset }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Reunión completa para leerla: datos, transcript en orden cronológico (con
+ * los hablantes fusionados ya resueltos al destino) y la lista de hablantes
+ * vigente. Alimenta las pestañas de Historia 3 (contrato:
+ * `tauri-commands.md#get_meeting`).
+ */
+async getMeeting(meetingId: number) : Promise<Result<Meeting, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_meeting", { meetingId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {
@@ -1322,6 +1351,12 @@ provider_id?: string | null;
 model?: string | null }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 /**
+ * Reunión completa para leerla (`get_meeting`): sus datos, su transcript en
+ * orden cronológico y sus hablantes vigentes. Ver la nota de alcance arriba
+ * sobre por qué no incluye `notes` ni `actionItems` todavía.
+ */
+export type Meeting = { id: number; title: string; kind: string; started_at: number; ended_at: number | null; status: string; summary: string | null; segments: MeetingSegment[]; speakers: MeetingSpeaker[] }
+/**
  * An active video call was detected with no recording in progress
  * (User Story 3, FR-017). `call_source` is the detected app name when it
  * could be determined.
@@ -1360,6 +1395,19 @@ export type MeetingProgressPhase = "transcribing" | "diarizing" | "summarizing"
  * recording).
  */
 export type MeetingSegment = { id: number; speaker_id: number | null; text: string; started_at_ms: number; ended_at_ms: number; overlapped: boolean }
+/**
+ * Un hablante tal como lo debe ver el usuario: nunca incluye a los que
+ * fueron fusionados dentro de otro (`get_meeting` los filtra al armar esta
+ * lista) — para el usuario esas voces ya son la misma persona.
+ */
+export type MeetingSpeaker = { id: number; label: string; display_name: string | null }
+/**
+ * Resumen liviano de una reunión para el listado — a propósito NO trae
+ * `segments` ni `speakers`: el listado se pinta con una sola fila por
+ * reunión, cargar el transcript completo de todas para mostrar una lista
+ * sería desperdiciar memoria y tiempo por algo que la UI ni muestra ahí.
+ */
+export type MeetingSummary = { id: number; title: string; kind: string; started_at: number; ended_at: number | null; status: string }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
@@ -1397,6 +1445,11 @@ export type OverlayPosition = "top" | "bottom"
  */
 export type OverlayStyle = "none" | "minimal" | "live"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
+/**
+ * Página de resultados de `list_meetings`, mismo patrón que
+ * `history::PaginatedHistory`.
+ */
+export type PaginatedMeetings = { meetings: MeetingSummary[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 /**
  * Una nota dictada que no pudo sincronizarse todavía (sin conexión, error del

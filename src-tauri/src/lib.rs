@@ -740,6 +740,8 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::stop_meeting,
             commands::meeting::assign_speaker_name,
             commands::meeting::merge_speakers,
+            commands::meeting::list_meetings,
+            commands::meeting::get_meeting,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,

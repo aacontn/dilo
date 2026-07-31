@@ -955,6 +955,69 @@ fn persist_and_emit_segment<R: tauri::Runtime>(
     Ok(Some(segment))
 }
 
+// --- T035: listado y detalle de reuniones pasadas ----------------------
+//
+// Hasta acá el backend graba y persiste, pero ninguna pantalla puede leer lo
+// grabado: `start_meeting`/`stop_meeting` devuelven sólo un id, y los únicos
+// tipos de lectura que existen (`MeetingSegment`) son para el evento en vivo.
+// `list_meetings` y `get_meeting` son los dos comandos que le faltan a
+// Historia 4 (`contracts/tauri-commands.md`).
+//
+// **Alcance deliberadamente acotado**: `list_meetings` no implementa la
+// búsqueda de texto (`query` en el contrato) — eso es Historia 5 (T041). Y
+// `Meeting` no trae `notes` ni `actionItems`: ninguna de las dos tiene
+// todavía una fuente de datos real en este alcance (`save_meeting_notes` y la
+// generación de resumen/pendientes son tareas aparte), así que agregar esos
+// campos hoy sólo devolvería `null`/`[]` disfrazado de contrato cumplido.
+
+/// Resumen liviano de una reunión para el listado — a propósito NO trae
+/// `segments` ni `speakers`: el listado se pinta con una sola fila por
+/// reunión, cargar el transcript completo de todas para mostrar una lista
+/// sería desperdiciar memoria y tiempo por algo que la UI ni muestra ahí.
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct MeetingSummary {
+    pub id: i64,
+    pub title: String,
+    pub kind: String,
+    pub started_at: i64,
+    pub ended_at: Option<i64>,
+    pub status: String,
+}
+
+/// Página de resultados de `list_meetings`, mismo patrón que
+/// `history::PaginatedHistory`.
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct PaginatedMeetings {
+    pub meetings: Vec<MeetingSummary>,
+    pub has_more: bool,
+}
+
+/// Un hablante tal como lo debe ver el usuario: nunca incluye a los que
+/// fueron fusionados dentro de otro (`get_meeting` los filtra al armar esta
+/// lista) — para el usuario esas voces ya son la misma persona.
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct MeetingSpeaker {
+    pub id: i64,
+    pub label: String,
+    pub display_name: Option<String>,
+}
+
+/// Reunión completa para leerla (`get_meeting`): sus datos, su transcript en
+/// orden cronológico y sus hablantes vigentes. Ver la nota de alcance arriba
+/// sobre por qué no incluye `notes` ni `actionItems` todavía.
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct Meeting {
+    pub id: i64,
+    pub title: String,
+    pub kind: String,
+    pub started_at: i64,
+    pub ended_at: Option<i64>,
+    pub status: String,
+    pub summary: Option<String>,
+    pub segments: Vec<MeetingSegment>,
+    pub speakers: Vec<MeetingSpeaker>,
+}
+
 /// State for one in-progress meeting capture session — the microphone-open,
 /// VAD-active window between `start_capture` and `stop_capture`. Deliberately
 /// separate from dictation's `RecordingState` (see the coexistence note
@@ -1803,6 +1866,171 @@ impl MeetingManager {
             meeting_id, source_speaker_id, final_target
         );
         Ok(())
+    }
+
+    /// Listado paginado de reuniones para el hub (T035, Historia 4), de más
+    /// reciente a más antigua. Sólo trae `MeetingSummary` — ver la nota de
+    /// alcance de la sección T035 sobre por qué no carga segmentos/hablantes
+    /// acá.
+    ///
+    /// `limit` se acota a `[1, 200]` (mismo espíritu que el `.min(100)` de
+    /// `HistoryManager::get_history_entries`: un límite sin techo es una
+    /// forma fácil de que un bug de la UI pida "todas las reuniones" de
+    /// golpe) y `offset` a `>= 0`. `has_more` sale de pedir una fila de más:
+    /// si vuelven `limit + 1` filas, sobra al menos una más allá de esta
+    /// página.
+    ///
+    /// Empatar por `started_at DESC` solo no alcanza: dos reuniones creadas
+    /// dentro del mismo segundo (`started_at` es un timestamp Unix en
+    /// segundos) quedarían en un orden indefinido de una llamada a la
+    /// siguiente. `id DESC` como desempate hace el orden determinista y
+    /// coincide con "más reciente primero" porque el id es autoincremental.
+    pub fn list_meetings(&self, limit: i64, offset: i64) -> Result<PaginatedMeetings> {
+        let limit = limit.clamp(1, 200);
+        let offset = offset.max(0);
+        let conn = self.get_connection()?;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, title, kind, started_at, ended_at, status FROM meetings \
+             ORDER BY started_at DESC, id DESC LIMIT ?1 OFFSET ?2",
+        )?;
+        let mut meetings: Vec<MeetingSummary> = stmt
+            .query_map(params![limit + 1, offset], |row| {
+                Ok(MeetingSummary {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    kind: row.get(2)?,
+                    started_at: row.get(3)?,
+                    ended_at: row.get(4)?,
+                    status: row.get(5)?,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        let has_more = meetings.len() as i64 > limit;
+        if has_more {
+            meetings.pop();
+        }
+
+        Ok(PaginatedMeetings { meetings, has_more })
+    }
+
+    /// Reunión completa para leerla (T035, Historia 4): sus datos, su
+    /// transcript en orden cronológico y sus hablantes vigentes.
+    ///
+    /// **Lo crítico acá es la resolución de hablantes fusionados**
+    /// (`data-model.md`: "segmentos apuntando a un hablante fusionado se
+    /// resuelven al destino" — ver también el doc comment de
+    /// [`merge_speakers`] sobre por qué los segmentos no se repuntan al
+    /// fusionar). Esta función es la lectura que cumple esa promesa:
+    ///
+    /// - Cada segmento con `speaker_id` se pasa por [`resolve_speaker`], que
+    ///   sigue la cadena `merged_into_id` hasta el destino final. Un segmento
+    ///   `speaker_id = NULL` (incierto, FR-004) se deja tal cual — resolver
+    ///   `None` no tiene sentido y romperlo sería peor que dejarlo incierto.
+    /// - La lista de hablantes filtra `merged_into_id IS NOT NULL`: el
+    ///   usuario fusionó esas voces a propósito para dejar de verlas como
+    ///   personas separadas, así que no deben reaparecer en la lista aunque
+    ///   sigan existiendo como filas (la fusión es reversible, no destructiva).
+    ///
+    /// Falla con `"meeting_not_found"` en vez de entrar en pánico cuando el
+    /// id no existe — un id vencido (reunión borrada, o un link viejo) es un
+    /// caso esperable, no un bug.
+    pub fn get_meeting(&self, meeting_id: i64) -> Result<Meeting> {
+        let conn = self.get_connection()?;
+
+        let (title, kind, started_at, ended_at, status, summary): (
+            String,
+            String,
+            i64,
+            Option<i64>,
+            String,
+            Option<String>,
+        ) = conn
+            .query_row(
+                "SELECT title, kind, started_at, ended_at, status, summary \
+                 FROM meetings WHERE id = ?1",
+                params![meeting_id],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .optional()?
+            .ok_or_else(|| anyhow::anyhow!("meeting_not_found"))?;
+
+        let raw_segments: Vec<(i64, Option<i64>, String, i64, i64, bool)> = {
+            let mut stmt = conn.prepare(
+                "SELECT id, speaker_id, text, started_at_ms, ended_at_ms, overlapped \
+                 FROM meeting_segments WHERE meeting_id = ?1 \
+                 ORDER BY started_at_ms ASC, id ASC",
+            )?;
+            let rows = stmt
+                .query_map(params![meeting_id], |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            rows
+        };
+
+        let mut segments = Vec::with_capacity(raw_segments.len());
+        for (id, speaker_id, text, started_at_ms, ended_at_ms, overlapped) in raw_segments {
+            let resolved_speaker_id = match speaker_id {
+                Some(raw_id) => Some(resolve_speaker(&conn, raw_id)?),
+                None => None,
+            };
+            segments.push(MeetingSegment {
+                id,
+                speaker_id: resolved_speaker_id,
+                text,
+                started_at_ms,
+                ended_at_ms,
+                overlapped,
+            });
+        }
+
+        let speakers: Vec<MeetingSpeaker> = {
+            let mut stmt = conn.prepare(
+                "SELECT id, label, display_name FROM meeting_speakers \
+                 WHERE meeting_id = ?1 AND merged_into_id IS NULL \
+                 ORDER BY id ASC",
+            )?;
+            let rows = stmt
+                .query_map(params![meeting_id], |row| {
+                    Ok(MeetingSpeaker {
+                        id: row.get(0)?,
+                        label: row.get(1)?,
+                        display_name: row.get(2)?,
+                    })
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            rows
+        };
+
+        Ok(Meeting {
+            id: meeting_id,
+            title,
+            kind,
+            started_at,
+            ended_at,
+            status,
+            summary,
+            segments,
+            speakers,
+        })
     }
 
     /// Secuencia completa de detención, pensada para correr fuera del hilo
@@ -3466,6 +3694,221 @@ mod tests {
         );
 
         drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // T035: `list_meetings` / `get_meeting` — el registro de reuniones
+    // pasadas, hasta ahora ilegible desde ninguna pantalla.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn list_meetings_orders_newest_first_and_reports_has_more() {
+        let dir = temp_db_path("list-meetings-order");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let mut ids = Vec::new();
+        for i in 0..3 {
+            let id = manager.start_meeting("presencial").expect("start_meeting");
+            manager.stop_meeting(id).expect("stop_meeting");
+            // `started_at` a segundos distintos y crecientes a propósito: sin
+            // esto, tres reuniones creadas en el mismo test podrían caer en
+            // el mismo segundo de reloj y el orden "más reciente primero"
+            // quedaría indefinido en vez de probado.
+            conn.execute(
+                "UPDATE meetings SET started_at = ?2 WHERE id = ?1",
+                params![id, 1_000_000_i64 + i],
+            )
+            .expect("set started_at");
+            ids.push(id);
+        }
+        // started_at creciente -> ids[2] es la más nueva, ids[0] la más vieja.
+
+        let page1 = manager.list_meetings(2, 0).expect("list_meetings page 1");
+        assert_eq!(page1.meetings.len(), 2);
+        assert_eq!(
+            page1.meetings[0].id, ids[2],
+            "la más reciente debe ir primero"
+        );
+        assert_eq!(page1.meetings[1].id, ids[1]);
+        assert!(
+            page1.has_more,
+            "queda una reunión más allá de esta página de 2"
+        );
+
+        let page2 = manager.list_meetings(2, 2).expect("list_meetings page 2");
+        assert_eq!(page2.meetings.len(), 1);
+        assert_eq!(page2.meetings[0].id, ids[0], "la más vieja va al final");
+        assert!(!page2.has_more, "no queda nada después de esta página");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn list_meetings_on_empty_database_returns_empty_list() {
+        let dir = temp_db_path("list-meetings-empty");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+
+        let page = manager
+            .list_meetings(20, 0)
+            .expect("list_meetings sobre una base vacía no debe fallar");
+        assert!(page.meetings.is_empty());
+        assert!(!page.has_more);
+
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn get_meeting_returns_segments_in_chronological_order() {
+        let dir = temp_db_path("get-meeting-chrono");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("segmento".to_string());
+        // Persistidos fuera de orden a propósito: lo que tiene que ordenar
+        // `get_meeting` es `started_at_ms`, no el orden de inserción (que acá
+        // es justo el contrario).
+        let turn_b = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 5_000,
+            ended_at_ms: 6_000,
+        };
+        let turn_a = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 1_000,
+        };
+        let turn_c = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 10_000,
+            ended_at_ms: 11_000,
+        };
+        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_b, None, false, transcribe)
+            .expect("persistir b")
+            .expect("segmento b");
+        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_a, None, false, transcribe)
+            .expect("persistir a")
+            .expect("segmento a");
+        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_c, None, false, transcribe)
+            .expect("persistir c")
+            .expect("segmento c");
+
+        let meeting = manager.get_meeting(meeting_id).expect("get_meeting");
+        let starts: Vec<i64> = meeting.segments.iter().map(|s| s.started_at_ms).collect();
+        assert_eq!(
+            starts,
+            vec![0, 5_000, 10_000],
+            "los segmentos deben salir en orden cronológico, no de inserción"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    /// El test más importante de esta tarea: un hablante fusionado dentro de
+    /// otro tiene que desaparecer como persona separada, pero sus segmentos
+    /// no deben perderse — se resuelven al destino de la fusión. De paso
+    /// verifica que un segmento incierto (`speaker_id = NULL`) no se rompe al
+    /// resolver: sigue incierto, no se le inventa un hablante.
+    #[test]
+    fn get_meeting_resolves_merged_speakers_and_hides_them_from_the_list() {
+        let dir = temp_db_path("get-meeting-merge");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
+
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("hola".to_string());
+        let turn_a = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 0,
+            ended_at_ms: 1_000,
+        };
+        let turn_uncertain = CompletedTurn {
+            samples: vec![0.0; 20_000],
+            started_at_ms: 2_000,
+            ended_at_ms: 3_000,
+        };
+        let segment_a = persist_and_emit_segment(
+            &conn,
+            NO_APP,
+            meeting_id,
+            turn_a,
+            Some(a),
+            false,
+            transcribe,
+        )
+        .expect("persistir")
+        .expect("segmento de A");
+        let segment_uncertain = persist_and_emit_segment(
+            &conn,
+            NO_APP,
+            meeting_id,
+            turn_uncertain,
+            None,
+            false,
+            transcribe,
+        )
+        .expect("persistir")
+        .expect("segmento incierto");
+
+        manager
+            .merge_speakers(meeting_id, a, b)
+            .expect("fusionar A en B");
+
+        let meeting = manager.get_meeting(meeting_id).expect("get_meeting");
+
+        let resolved_a = meeting
+            .segments
+            .iter()
+            .find(|s| s.id == segment_a.id)
+            .expect("el segmento de A sigue presente");
+        assert_eq!(
+            resolved_a.speaker_id,
+            Some(b),
+            "el segmento que apuntaba a A debe salir resuelto a B, el destino de la fusión"
+        );
+
+        let still_uncertain = meeting
+            .segments
+            .iter()
+            .find(|s| s.id == segment_uncertain.id)
+            .expect("el segmento incierto sigue presente");
+        assert_eq!(
+            still_uncertain.speaker_id, None,
+            "un segmento sin hablante (incierto) no debe salir con uno inventado al resolver"
+        );
+
+        let speaker_ids: Vec<i64> = meeting.speakers.iter().map(|s| s.id).collect();
+        assert!(
+            speaker_ids.contains(&b),
+            "B sigue siendo un hablante vigente de la reunión"
+        );
+        assert!(
+            !speaker_ids.contains(&a),
+            "A fue fusionado dentro de B: el usuario ya no debe verlo como persona separada"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn get_meeting_fails_clearly_for_unknown_id() {
+        let dir = temp_db_path("get-meeting-missing");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+
+        let err = manager
+            .get_meeting(9_999)
+            .expect_err("un id que no existe no debe devolver una reunión");
+        assert!(err.to_string().contains("meeting_not_found"));
+
         drop(manager);
         let _ = std::fs::remove_file(&dir);
     }
