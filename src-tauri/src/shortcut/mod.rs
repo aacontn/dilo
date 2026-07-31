@@ -1517,6 +1517,39 @@ mod tests {
         assert_eq!(prompt.model, None);
     }
 
+    /// Misma asimetría que arriba, pero con un `model` presente en la
+    /// llamada aunque `provider_id` sea `None`: un modelo sin proveedor no
+    /// significa nada, así que ambos deben quedar en `None` — el llamador no
+    /// puede colar un modelo "huérfano" ni por accidente.
+    #[test]
+    fn apply_post_process_prompt_provider_dropping_provider_ignores_a_model_argument() {
+        let prompt = LLMPrompt {
+            provider_id: Some("openai".to_string()),
+            model: Some("gpt-4o".to_string()),
+            ..test_prompt("prompt_1")
+        };
+        let mut settings = settings_with_prompt(prompt);
+
+        apply_post_process_prompt_provider(
+            &mut settings,
+            "prompt_1",
+            None,
+            Some("gpt-4o".to_string()),
+        )
+        .expect("prompt existente debe aceptar el cambio");
+
+        let prompt = settings
+            .post_process_prompts
+            .iter()
+            .find(|p| p.id == "prompt_1")
+            .expect("prompt debe seguir existiendo");
+        assert_eq!(prompt.provider_id, None);
+        assert_eq!(
+            prompt.model, None,
+            "un modelo sin proveedor no significa nada"
+        );
+    }
+
     #[test]
     fn apply_post_process_prompt_provider_unknown_id_errors() {
         let mut settings = settings_with_prompt(test_prompt("prompt_1"));

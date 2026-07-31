@@ -798,15 +798,20 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         is_local: false,
     });
 
-    // Custom provider always comes last
+    // Custom provider always comes last. Su default apunta a Ollama en
+    // localhost, así que `is_local` se calcula del mismo `base_url` en vez de
+    // hardcodearse en falso — si no, un settings.json nuevo (sin pasar por
+    // `ensure_post_process_defaults`, que sí lo recalcula) mostraría Custom
+    // como online cuando en realidad corre en la propia máquina.
+    let custom_base_url = "http://localhost:11434/v1".to_string();
     providers.push(PostProcessProvider {
         id: "custom".to_string(),
         label: "Custom".to_string(),
-        base_url: "http://localhost:11434/v1".to_string(),
+        is_local: is_loopback_url(&custom_base_url),
+        base_url: custom_base_url,
         allow_base_url_edit: true,
         models_endpoint: Some("/models".to_string()),
         supports_structured_output: false,
-        is_local: false,
     });
 
     providers
@@ -1485,6 +1490,24 @@ mod tests {
         assert!(
             !provider_is_local(&custom),
             "un servidor remoto no puede seguir diciendo LOCAL"
+        );
+    }
+
+    // Regresión minor del review final: el literal de `custom` en
+    // `default_post_process_providers()` traía `is_local: false` hardcodeado
+    // aunque su `base_url` por defecto es `localhost`. `ensure_post_process_defaults`
+    // lo recalcula al cargar settings existentes, pero una instalación nueva
+    // usa el literal tal cual (ver `get_default_settings`), así que el campo
+    // en sí tiene que nacer correcto, no sólo lo que calcula `provider_is_local`.
+    #[test]
+    fn fresh_install_custom_provider_field_is_already_local() {
+        let custom = default_post_process_providers()
+            .into_iter()
+            .find(|p| p.id == "custom")
+            .expect("custom en el catálogo");
+        assert!(
+            custom.is_local,
+            "el campo is_local del literal debe nacer en true: el default apunta a localhost"
         );
     }
 

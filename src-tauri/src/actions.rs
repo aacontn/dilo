@@ -211,16 +211,40 @@ fn already_tried_this_pair(
     resolved.is_some_and(|r| r.provider.id == global_provider_id && r.model == global_model)
 }
 
-/// Resultado de post-procesar: el texto, qué proveedor terminó respondiendo, y
-/// si esa respuesta implicó un cruce de local a nube que hay que avisar.
+/// Resultado de post-procesar: el texto, y si esa respuesta implicó un cruce
+/// de local a nube que hay que avisar.
 pub struct PostProcessOutcome {
     pub text: String,
-    /// Parte de la interfaz pública de esta función; el llamador actual no lo
-    /// necesita, pero queda disponible para cuando el historial o la UI
-    /// quieran mostrar qué proveedor respondió realmente.
-    #[allow(dead_code)]
-    pub used_provider_id: String,
     pub crossed_to_cloud: Option<PostProcessFallback>,
+}
+
+/// Si el modo *quería* un proveedor local, para decidir si la caída al
+/// general merece el aviso de cruce a la nube.
+///
+/// Cuando `resolve_mode_provider` sí resolvió algo, la resolución ya trae
+/// `is_local`. Pero también devuelve `None` cuando el modo apunta a un
+/// proveedor que no tiene modelo utilizable — por ejemplo `custom`, cuyo
+/// modelo de fábrica es `""` (ver `ensure_post_process_defaults`), así que
+/// "Local → Custom" es un estado alcanzable con dos clics sin configurar
+/// nada más. En ese caso no hay `ResolvedProvider` del que leer `is_local`,
+/// pero la intención del modo sigue viva en `provider_id`: si apuntaba a un
+/// proveedor local, el cruce a la nube igual hay que avisarlo. Separada del
+/// resto de `post_process_transcription` para poder testear esta decisión
+/// sola — es la pieza que faltaba cubrir y por la que el bug pasó las
+/// revisiones anteriores.
+fn mode_was_local(
+    resolved: Option<&crate::settings::ResolvedProvider>,
+    settings: &AppSettings,
+    mode: &crate::settings::LLMPrompt,
+) -> bool {
+    match resolved {
+        Some(r) => r.is_local,
+        None => mode
+            .provider_id
+            .as_deref()
+            .and_then(|id| settings.post_process_provider(id))
+            .is_some_and(crate::settings::provider_is_local),
+    }
 }
 
 async fn post_process_transcription(
@@ -282,7 +306,6 @@ async fn post_process_transcription(
         {
             return Some(PostProcessOutcome {
                 text,
-                used_provider_id: resolved.provider.id.clone(),
                 crossed_to_cloud: None,
             });
         }
@@ -308,14 +331,13 @@ async fn post_process_transcription(
     )
     .await?;
     let crossed_to_cloud = crossing_to_report(
-        resolved.as_ref().is_some_and(|r| r.is_local),
+        mode_was_local(resolved.as_ref(), settings, &mode),
         crate::settings::provider_is_local(&global_provider),
         &mode.name,
         &global_provider.label,
     );
     Some(PostProcessOutcome {
         text,
-        used_provider_id: global_provider.id,
         crossed_to_cloud,
     })
 }
@@ -1395,5 +1417,76 @@ mod tests {
             "openai",
             "gpt-4o-mini"
         ));
+    }
+
+    fn mode_pointing_at(provider_id: &str) -> crate::settings::LLMPrompt {
+        crate::settings::LLMPrompt {
+            id: "code".to_string(),
+            name: "Código".to_string(),
+            prompt: "prompt".to_string(),
+            shortcut: None,
+            provider_id: Some(provider_id.to_string()),
+            model: None,
+        }
+    }
+
+    // Regresión Critical 1 (review final): "Local → Custom" es alcanzable con
+    // dos clics porque `custom` viene con modelo "" de fábrica. Antes del
+    // arreglo, `resolve_mode_provider` devolvía `None` ahí y el cruce se
+    // reportaba con `is_local = false` sin mirar nunca el `provider_id` del
+    // modo — así que la caída a la nube pasaba sin avisar, justo el caso que
+    // el aviso existe para cubrir.
+    #[test]
+    fn mode_pointing_at_an_unresolved_local_provider_still_counts_as_local() {
+        let settings = crate::settings::get_default_settings();
+        let mode = mode_pointing_at("custom"); // catálogo de fábrica: is_local true, modelo ""
+
+        assert!(
+            crate::settings::resolve_mode_provider(&settings, &mode).is_none(),
+            "precondición: custom sin modelo no resuelve"
+        );
+        assert!(
+            super::mode_was_local(None, &settings, &mode),
+            "el modo apuntaba a un proveedor local; la caída a la nube debe avisarse"
+        );
+    }
+
+    #[test]
+    fn mode_pointing_at_an_unresolved_online_provider_is_not_local() {
+        let settings = crate::settings::get_default_settings();
+        let mode = mode_pointing_at("openai"); // sin modelo configurado: tampoco resuelve
+
+        assert!(
+            crate::settings::resolve_mode_provider(&settings, &mode).is_none(),
+            "precondición: openai sin modelo no resuelve"
+        );
+        assert!(
+            !super::mode_was_local(None, &settings, &mode),
+            "el modo ya apuntaba a un proveedor online: no hay nada que avisar"
+        );
+    }
+
+    #[test]
+    fn mode_pointing_at_a_deleted_provider_is_not_local() {
+        let settings = crate::settings::get_default_settings();
+        let mode = mode_pointing_at("no_existe");
+
+        assert!(
+            !super::mode_was_local(None, &settings, &mode),
+            "proveedor borrado: no hay intención local que deducir"
+        );
+    }
+
+    #[test]
+    fn resolved_provider_wins_over_the_mode_when_present() {
+        let settings = crate::settings::get_default_settings();
+        // El modo apunta a un proveedor online, pero la resolución ya trae
+        // `is_local: true` (por ejemplo, una migración rara) — la resolución
+        // manda porque es la fuente de verdad de con qué se llamó de verdad.
+        let mode = mode_pointing_at("openai");
+        let mut resolved = resolved_provider_for_test("openai", "gpt-4o");
+        resolved.is_local = true;
+
+        assert!(super::mode_was_local(Some(&resolved), &settings, &mode));
     }
 }
