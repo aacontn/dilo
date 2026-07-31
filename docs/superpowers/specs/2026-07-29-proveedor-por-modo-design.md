@@ -147,3 +147,20 @@ quedó sin modelo) cae al general en la nube **sin mostrar el aviso**, porque
 "era local" se deduce de la resolución, que en ese caso está vacía. Es
 justamente uno de los casos que el aviso existe para cubrir; el arreglo es
 deducirlo de `provider_id` del modo cuando la resolución falla.
+
+## Cambios durante la ola de arreglos del review final (2026-07-30)
+
+El pendiente de arriba, y otros tres hallazgos del review final antes de
+mergear, se arreglaron en esta ola. Uno es una desviación del diseño que
+conviene dejar anotada:
+
+5. **El bloque "IA de este modo" no trae selector de modelo** — el diagrama
+   de la sección 3 muestra `Modelo: gemini-2.5-flash ▾`, pero implementarlo de
+   verdad necesita un flujo de listar modelos por proveedor que no entró en
+   esta rama (es trabajo aparte). `LLMPrompt.model` existe en el backend
+   (`set_post_process_prompt_provider` ya lo acepta) pero ninguna UI lo
+   escribe todavía: siempre se guarda `null`. En vez de mostrar ese campo casi
+   siempre vacío, el bloque ahora muestra el **modelo efectivo** con el que el
+   modo va a correr — el propio si lo tuviera, si no el heredado de
+   `post_process_models[provider_id]` — y no dibuja la línea si tampoco hay
+   ninguno. El selector en sí queda pendiente para cuando exista ese flujo.
