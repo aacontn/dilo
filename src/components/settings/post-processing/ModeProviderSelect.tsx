@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { Dropdown } from "../../ui/Dropdown";
 import { useSettings } from "../../../hooks/useSettings";
+import { APPLE_PROVIDER_ID } from "../PostProcessingSettingsApi/usePostProcessProviderState";
 
 type Scope = "general" | "local" | "online";
 
@@ -40,6 +41,12 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
         ? "local"
         : "online",
   );
+  // Lado que el usuario intentó activar pero no tenía ningún proveedor
+  // (ver `handleScope`). Sólo sirve para mostrar el aviso; no es el `scope`
+  // visible, que nunca se mueve hacia un lado vacío.
+  const [emptyScopeAttempt, setEmptyScopeAttempt] = useState<Scope | null>(
+    null,
+  );
 
   const globalProvider = providers.find(
     (p) => p.id === settings?.post_process_provider_id,
@@ -53,10 +60,12 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
     [providers, scope],
   );
 
+  // Devuelve si el guardado fue exitoso: quien llama decide qué hacer con el
+  // estado visual (segmentado) según el resultado, en vez de asumir éxito.
   const save = async (
     nextProviderId: string | null,
     nextModel: string | null,
-  ) => {
+  ): Promise<boolean> => {
     const result = await commands.setPostProcessPromptProvider(
       promptId,
       nextProviderId,
@@ -66,24 +75,39 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
       toast.error(t("settings.postProcessing.modeProvider.saveFailed"), {
         description: result.error,
       });
-      return;
+      return false;
     }
+    // Un guardado exitoso por cualquier vía (segmentado o dropdown) resuelve
+    // el aviso de "lado vacío" si estaba mostrándose.
+    setEmptyScopeAttempt(null);
     await refreshSettings();
+    return true;
   };
 
   const handleScope = async (next: Scope) => {
-    setScope(next);
     if (next === "general") {
-      await save(null, null);
+      const saved = await save(null, null);
+      // El segmentado sólo se mueve si el guardado se confirmó: si falla,
+      // debe seguir mostrando el lado que realmente quedó persistido.
+      if (saved) setScope(next);
       return;
     }
     // Al cambiar de lado, se preselecciona el primero de ese lado para que el
     // bloque nunca quede en un estado a medias (elegido "Local" pero sin
-    // proveedor).
+    // proveedor). Si ese lado no tiene ningún proveedor (p. ej. Local en una
+    // máquina sin Apple Intelligence y con Custom apuntando a un servidor
+    // remoto), no hay nada que preseleccionar: no movemos el segmentado,
+    // porque hacerlo sin guardar dejaría al usuario creyendo que activó ese
+    // lado cuando el modo sigue enrutando al proveedor anterior.
     const first = providers.find((p) =>
       next === "local" ? p.is_local : !p.is_local,
     );
-    if (first) await save(first.id, null);
+    if (!first) {
+      setEmptyScopeAttempt(next);
+      return;
+    }
+    const saved = await save(first.id, null);
+    if (saved) setScope(next);
   };
 
   return (
@@ -108,6 +132,16 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
           </button>
         ))}
       </div>
+
+      {emptyScopeAttempt && (
+        <p className="text-xs text-warning-text">
+          {t("settings.postProcessing.modeProvider.emptySide", {
+            scope: t(
+              `settings.postProcessing.modeProvider.scope.${emptyScopeAttempt}`,
+            ),
+          })}
+        </p>
+      )}
 
       {scope === "general" ? (
         <p className="text-xs text-muted-text">
@@ -139,7 +173,7 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
               decide cuándo ir a poner la clave. Apple Intelligence no lleva
               clave, así que se excluye del chequeo. */}
           {normalizedProviderId !== null &&
-            normalizedProviderId !== "apple_intelligence" &&
+            normalizedProviderId !== APPLE_PROVIDER_ID &&
             !(
               settings?.post_process_api_keys?.[normalizedProviderId] ?? ""
             ).trim() && (

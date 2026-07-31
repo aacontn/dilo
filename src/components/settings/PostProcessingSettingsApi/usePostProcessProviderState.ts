@@ -28,7 +28,9 @@ type PostProcessProviderState = {
   handleRefreshModels: () => void;
 };
 
-const APPLE_PROVIDER_ID = "apple_intelligence";
+// Exportado para que otros componentes (p. ej. `ModeProviderSelect`) no
+// repitan el literal y se desalineen si este id cambia algún día.
+export const APPLE_PROVIDER_ID = "apple_intelligence";
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
