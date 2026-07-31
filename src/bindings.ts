@@ -285,6 +285,18 @@ async updatePostProcessPrompt(id: string, name: string, prompt: string) : Promis
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Guarda el proveedor/modelo propio de un modo. `None` en `provider_id`
+ * devuelve el modo a heredar el proveedor general.
+ */
+async setPostProcessPromptProvider(id: string, providerId: string | null, model: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_post_process_prompt_provider", { id, providerId, model }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async deletePostProcessPrompt(id: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_post_process_prompt", { id }) };
@@ -1165,6 +1177,7 @@ meetingFinished: MeetingFinished,
 meetingInterrupted: MeetingInterrupted,
 meetingProgress: MeetingProgress,
 meetingSegment: MeetingSegment,
+postProcessFallback: PostProcessFallback,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
@@ -1176,6 +1189,7 @@ meetingFinished: "meeting-finished",
 meetingInterrupted: "meeting-interrupted",
 meetingProgress: "meeting-progress",
 meetingSegment: "meeting-segment",
+postProcessFallback: "post-process-fallback",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -1294,7 +1308,18 @@ export type LLMPrompt = { id: string; name: string; prompt: string;
 /**
  * Atajo global opcional del modo (binding dinámico `mode:<id>`).
  */
-shortcut?: string | null }
+shortcut?: string | null; 
+/**
+ * Proveedor propio de este modo. `None` = usa el global
+ * (`post_process_provider_id`), que es el comportamiento histórico y por
+ * eso no necesita migración.
+ */
+provider_id?: string | null; 
+/**
+ * Modelo propio de este modo. `None` = el que esté configurado para su
+ * proveedor en `post_process_models`.
+ */
+model?: string | null }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 /**
  * An active video call was detected with no recording in progress
@@ -1383,7 +1408,18 @@ export type PendingNote = { title: string; body: string;
  */
 targets: string[]; last_error?: string | null }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+/**
+ * Datos del aviso cuando la caída al proveedor global mandó a la nube un
+ * texto que el modo quería procesar localmente.
+ */
+export type PostProcessFallback = { mode_name: string; provider_label: string }
+export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean; 
+/**
+ * Calculado al cargar settings (ver `ensure_post_process_defaults`), no
+ * editable por el usuario. Está en la struct para que el frontend lo lea
+ * del binding en vez de repetir la regla en TypeScript.
+ */
+is_local?: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
