@@ -92,6 +92,22 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
     ...customModes,
   ];
 
+  // Etiqueta LOCAL/ONLINE según el proveedor efectivo del modo (propio o
+  // heredado del global). "literal" no pasa por IA, así que no lleva etiqueta.
+  const providerBadgeFor = (promptId: string | null) => {
+    if (promptId === null) return null;
+    const prompt = prompts.find((p) => p.id === promptId);
+    const modeProviderId =
+      prompt?.provider_id ?? settings.post_process_provider_id;
+    const provider = settings.post_process_providers?.find(
+      (p) => p.id === modeProviderId,
+    );
+    if (!provider) return null;
+    return provider.is_local
+      ? t("settings.postProcessing.modeProvider.badgeLocal")
+      : t("settings.postProcessing.modeProvider.badgeOnline");
+  };
+
   return (
     <section className="dictation-modes-section">
       <div className="mb-3 flex items-end justify-between gap-3">
@@ -141,6 +157,11 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
                     {mode.label}
                   </span>
+                  {providerBadgeFor(mode.promptId) && (
+                    <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
+                      {providerBadgeFor(mode.promptId)}
+                    </span>
+                  )}
                   {selected && (
                     <Check className="size-3.5 shrink-0 text-accent-text" />
                   )}

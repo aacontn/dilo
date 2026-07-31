@@ -24,7 +24,7 @@ import { HomeDashboard } from "./components/home";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
-import { commands } from "@/bindings";
+import { commands, events } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 import {
   getNextOnboardingStep,
@@ -135,6 +135,23 @@ function App() {
           t("errors.recordingFailed", { error: detail ?? "Unknown error" }),
         );
       }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t]);
+
+  // Avisa cuando la caída al proveedor general cruzó de local a la nube: el
+  // dictado sí se procesó, pero por un camino que el usuario debía conocer.
+  useEffect(() => {
+    const unlisten = events.postProcessFallback.listen((event) => {
+      const { mode_name, provider_label } = event.payload;
+      toast.info(
+        t("settings.postProcessing.modeProvider.fallbackNotice", {
+          mode: mode_name,
+          provider: provider_label,
+        }),
+      );
     });
     return () => {
       unlisten.then((fn) => fn());
