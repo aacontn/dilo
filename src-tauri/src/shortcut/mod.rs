@@ -1187,6 +1187,56 @@ pub fn update_post_process_prompt(
     }
 }
 
+/// Aplica el proveedor/modelo propio de un modo sobre `settings` ya cargado.
+/// Extraído de `set_post_process_prompt_provider` para poder testear la
+/// asimetría (soltar el proveedor también suelta el modelo) sin `AppHandle`.
+fn apply_post_process_prompt_provider(
+    settings: &mut settings::AppSettings,
+    id: &str,
+    provider_id: Option<String>,
+    model: Option<String>,
+) -> Result<(), String> {
+    match settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|p| p.id == id)
+    {
+        Some(prompt) => {
+            // Heredar el general implica soltar también el modelo propio: un
+            // modelo sin proveedor no significa nada.
+            if provider_id.is_none() {
+                prompt.model = None;
+            } else {
+                prompt.model = model;
+            }
+            prompt.provider_id = provider_id;
+            Ok(())
+        }
+        None => Err(format!("Prompt with id '{}' not found", id)),
+    }
+}
+
+/// Guarda el proveedor/modelo propio de un modo. `None` en `provider_id`
+/// devuelve el modo a heredar el proveedor general.
+#[tauri::command]
+#[specta::specta]
+pub fn set_post_process_prompt_provider(
+    app: AppHandle,
+    id: String,
+    provider_id: Option<String>,
+    model: Option<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+
+    if let Some(provider_id) = provider_id.as_deref() {
+        validate_provider_exists(&settings, provider_id)?;
+    }
+
+    apply_post_process_prompt_provider(&mut settings, &id, provider_id, model)?;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn delete_post_process_prompt(app: AppHandle, id: String) -> Result<(), String> {
@@ -1398,4 +1448,86 @@ pub async fn get_available_accelerators() -> crate::managers::transcription::Ava
     tauri::async_runtime::spawn_blocking(crate::managers::transcription::get_available_accelerators)
         .await
         .expect("get_available_accelerators panicked")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_prompt(id: &str) -> LLMPrompt {
+        LLMPrompt {
+            id: id.to_string(),
+            name: "Modo de prueba".to_string(),
+            prompt: "prompt".to_string(),
+            shortcut: None,
+            provider_id: None,
+            model: None,
+        }
+    }
+
+    fn settings_with_prompt(prompt: LLMPrompt) -> settings::AppSettings {
+        settings::AppSettings {
+            post_process_prompts: vec![prompt],
+            ..settings::AppSettings::default()
+        }
+    }
+
+    /// Fijar un proveedor propio guarda tanto `provider_id` como `model`.
+    #[test]
+    fn apply_post_process_prompt_provider_sets_provider_and_model() {
+        let mut settings = settings_with_prompt(test_prompt("prompt_1"));
+
+        apply_post_process_prompt_provider(
+            &mut settings,
+            "prompt_1",
+            Some("openai".to_string()),
+            Some("gpt-4o".to_string()),
+        )
+        .expect("prompt existente debe aceptar el cambio");
+
+        let prompt = settings
+            .post_process_prompts
+            .iter()
+            .find(|p| p.id == "prompt_1")
+            .expect("prompt debe seguir existiendo");
+        assert_eq!(prompt.provider_id.as_deref(), Some("openai"));
+        assert_eq!(prompt.model.as_deref(), Some("gpt-4o"));
+    }
+
+    /// Volver a `None` (heredar el general) borra también el modelo propio:
+    /// un modelo sin proveedor no significa nada.
+    #[test]
+    fn apply_post_process_prompt_provider_clearing_provider_also_clears_model() {
+        let prompt = LLMPrompt {
+            provider_id: Some("openai".to_string()),
+            model: Some("gpt-4o".to_string()),
+            ..test_prompt("prompt_1")
+        };
+        let mut settings = settings_with_prompt(prompt);
+
+        apply_post_process_prompt_provider(&mut settings, "prompt_1", None, None)
+            .expect("prompt existente debe aceptar el cambio");
+
+        let prompt = settings
+            .post_process_prompts
+            .iter()
+            .find(|p| p.id == "prompt_1")
+            .expect("prompt debe seguir existiendo");
+        assert_eq!(prompt.provider_id, None);
+        assert_eq!(prompt.model, None);
+    }
+
+    #[test]
+    fn apply_post_process_prompt_provider_unknown_id_errors() {
+        let mut settings = settings_with_prompt(test_prompt("prompt_1"));
+
+        let result = apply_post_process_prompt_provider(
+            &mut settings,
+            "no_existe",
+            Some("openai".to_string()),
+            None,
+        );
+
+        assert!(result.is_err());
+    }
 }

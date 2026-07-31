@@ -285,6 +285,18 @@ async updatePostProcessPrompt(id: string, name: string, prompt: string) : Promis
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Guarda el proveedor/modelo propio de un modo. `None` en `provider_id`
+ * devuelve el modo a heredar el proveedor general.
+ */
+async setPostProcessPromptProvider(id: string, providerId: string | null, model: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_post_process_prompt_provider", { id, providerId, model }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async deletePostProcessPrompt(id: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_post_process_prompt", { id }) };
