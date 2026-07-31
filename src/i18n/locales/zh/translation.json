@@ -929,6 +929,27 @@
       "mergeAction": "合并",
       "mergeDone": "完成，现在是同一个人了",
       "mergeFailed": "无法合并"
+    },
+    "list": {
+      "title": "过去的会议",
+      "subtitle": "选一场，阅读完整的转录。",
+      "loading": "正在加载会议…",
+      "empty": "你还没有录制过任何会议。",
+      "loadMore": "加载更多",
+      "loadingMore": "加载中…",
+      "loadFailed": "无法加载会议列表",
+      "status": {
+        "recording": "录制中",
+        "processing": "处理中",
+        "interrupted": "已中断"
+      }
+    },
+    "detail": {
+      "back": "返回列表",
+      "loading": "正在加载会议…",
+      "loadFailed": "无法打开该会议",
+      "emptyTranscript": "这场会议没有留下任何记录。",
+      "interruptedBanner": "这场会议在结束前被中断——转录内容可能不完整。"
     }
   }
 }

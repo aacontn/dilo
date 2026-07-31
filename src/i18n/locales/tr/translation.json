@@ -929,6 +929,27 @@
       "mergeAction": "Birleştir",
       "mergeDone": "Tamam, artık tek kişiler",
       "mergeFailed": "Birleştirilemedi"
+    },
+    "list": {
+      "title": "Geçmiş toplantılar",
+      "subtitle": "Tam dökümünü okumak için birini seç.",
+      "loading": "Toplantılar yükleniyor…",
+      "empty": "Henüz hiç toplantı kaydetmedin.",
+      "loadMore": "Daha fazla yükle",
+      "loadingMore": "Yükleniyor…",
+      "loadFailed": "Toplantılar yüklenemedi",
+      "status": {
+        "recording": "Kaydediliyor",
+        "processing": "İşleniyor",
+        "interrupted": "Yarıda kesildi"
+      }
+    },
+    "detail": {
+      "back": "Listeye dön",
+      "loading": "Toplantı yükleniyor…",
+      "loadFailed": "Toplantı açılamadı",
+      "emptyTranscript": "Bu toplantıda hiçbir şey kaydedilmedi.",
+      "interruptedBanner": "Bu toplantı bitmeden yarıda kesildi — döküm eksik olabilir."
     }
   }
 }

@@ -929,6 +929,27 @@
       "mergeAction": "합치기",
       "mergeDone": "완료했습니다. 이제 한 사람입니다",
       "mergeFailed": "합치지 못했습니다"
+    },
+    "list": {
+      "title": "지난 회의",
+      "subtitle": "하나를 골라 전체 스크립트를 읽어보세요.",
+      "loading": "회의 목록을 불러오는 중…",
+      "empty": "아직 녹음한 회의가 없어요.",
+      "loadMore": "더 불러오기",
+      "loadingMore": "불러오는 중…",
+      "loadFailed": "회의 목록을 불러오지 못했어요",
+      "status": {
+        "recording": "녹음 중",
+        "processing": "처리 중",
+        "interrupted": "중단됨"
+      }
+    },
+    "detail": {
+      "back": "목록으로 돌아가기",
+      "loading": "회의를 불러오는 중…",
+      "loadFailed": "회의를 열지 못했어요",
+      "emptyTranscript": "이 회의에서는 아무것도 녹음되지 않았어요.",
+      "interruptedBanner": "이 회의는 끝나기 전에 중단됐어요 — 스크립트가 완전하지 않을 수 있어요."
     }
   }
 }

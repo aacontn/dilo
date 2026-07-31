@@ -929,6 +929,27 @@
       "mergeAction": "Juntar",
       "mergeDone": "Listo, quedaron como una sola persona",
       "mergeFailed": "No se pudieron juntar"
+    },
+    "list": {
+      "title": "Reuniones pasadas",
+      "subtitle": "Elige una para leer su transcript completo.",
+      "loading": "Cargando reuniones…",
+      "empty": "Todavía no grabaste ninguna reunión.",
+      "loadMore": "Cargar más",
+      "loadingMore": "Cargando…",
+      "loadFailed": "No se pudieron cargar las reuniones",
+      "status": {
+        "recording": "Grabando",
+        "processing": "Procesando",
+        "interrupted": "Interrumpida"
+      }
+    },
+    "detail": {
+      "back": "Volver a la lista",
+      "loading": "Cargando la reunión…",
+      "loadFailed": "No se pudo abrir la reunión",
+      "emptyTranscript": "No quedó ningún tramo grabado en esta reunión.",
+      "interruptedBanner": "Esta reunión se cortó antes de terminar — el transcript puede estar incompleto."
     }
   }
 }

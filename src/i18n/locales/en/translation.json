@@ -126,6 +126,27 @@
       "mergeAction": "Merge",
       "mergeDone": "Done, they're one person now",
       "mergeFailed": "Couldn't merge them"
+    },
+    "list": {
+      "title": "Past meetings",
+      "subtitle": "Pick one to read its full transcript.",
+      "loading": "Loading meetings…",
+      "empty": "You haven't recorded any meetings yet.",
+      "loadMore": "Load more",
+      "loadingMore": "Loading…",
+      "loadFailed": "Couldn't load meetings",
+      "status": {
+        "recording": "Recording",
+        "processing": "Processing",
+        "interrupted": "Interrupted"
+      }
+    },
+    "detail": {
+      "back": "Back to the list",
+      "loading": "Loading the meeting…",
+      "loadFailed": "Couldn't open the meeting",
+      "emptyTranscript": "Nothing got recorded in this meeting.",
+      "interruptedBanner": "This meeting was cut short — the transcript may be incomplete."
     }
   },
   "onboarding": {

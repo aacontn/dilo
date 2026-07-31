@@ -929,6 +929,27 @@
       "mergeAction": "Zusammenführen",
       "mergeDone": "Fertig, jetzt sind sie eine Person",
       "mergeFailed": "Zusammenführen fehlgeschlagen"
+    },
+    "list": {
+      "title": "Vergangene Meetings",
+      "subtitle": "Wähle eins aus, um das vollständige Transkript zu lesen.",
+      "loading": "Meetings werden geladen…",
+      "empty": "Du hast noch keine Meetings aufgenommen.",
+      "loadMore": "Mehr laden",
+      "loadingMore": "Wird geladen…",
+      "loadFailed": "Meetings konnten nicht geladen werden",
+      "status": {
+        "recording": "Wird aufgenommen",
+        "processing": "Wird verarbeitet",
+        "interrupted": "Unterbrochen"
+      }
+    },
+    "detail": {
+      "back": "Zurück zur Liste",
+      "loading": "Meeting wird geladen…",
+      "loadFailed": "Meeting konnte nicht geöffnet werden",
+      "emptyTranscript": "In diesem Meeting wurde nichts aufgezeichnet.",
+      "interruptedBanner": "Dieses Meeting wurde vorzeitig abgebrochen — das Transkript ist möglicherweise unvollständig."
     }
   }
 }

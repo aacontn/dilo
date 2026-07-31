@@ -929,6 +929,27 @@
       "mergeAction": "合併",
       "mergeDone": "完成，現在是同一個人了",
       "mergeFailed": "無法合併"
+    },
+    "list": {
+      "title": "過去的會議",
+      "subtitle": "選一場，閱讀完整的逐字稿。",
+      "loading": "正在載入會議…",
+      "empty": "你還沒有錄製過任何會議。",
+      "loadMore": "載入更多",
+      "loadingMore": "載入中…",
+      "loadFailed": "無法載入會議列表",
+      "status": {
+        "recording": "錄製中",
+        "processing": "處理中",
+        "interrupted": "已中斷"
+      }
+    },
+    "detail": {
+      "back": "返回列表",
+      "loading": "正在載入會議…",
+      "loadFailed": "無法開啟該會議",
+      "emptyTranscript": "這場會議沒有留下任何紀錄。",
+      "interruptedBanner": "這場會議在結束前被中斷——逐字稿可能不完整。"
     }
   }
 }

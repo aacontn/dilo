@@ -929,6 +929,27 @@
       "mergeAction": "Unisci",
       "mergeDone": "Fatto, ora sono una persona sola",
       "mergeFailed": "Impossibile unirle"
+    },
+    "list": {
+      "title": "Riunioni passate",
+      "subtitle": "Scegline una per leggere la trascrizione completa.",
+      "loading": "Caricamento riunioni…",
+      "empty": "Non hai ancora registrato nessuna riunione.",
+      "loadMore": "Carica altre",
+      "loadingMore": "Caricamento…",
+      "loadFailed": "Impossibile caricare le riunioni",
+      "status": {
+        "recording": "Registrazione in corso",
+        "processing": "Elaborazione in corso",
+        "interrupted": "Interrotta"
+      }
+    },
+    "detail": {
+      "back": "Torna all'elenco",
+      "loading": "Caricamento della riunione…",
+      "loadFailed": "Impossibile aprire la riunione",
+      "emptyTranscript": "Non è stato registrato nulla in questa riunione.",
+      "interruptedBanner": "Questa riunione si è interrotta prima della fine — la trascrizione potrebbe essere incompleta."
     }
   }
 }

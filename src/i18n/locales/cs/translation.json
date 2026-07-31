@@ -929,6 +929,27 @@
       "mergeAction": "Spojit",
       "mergeDone": "Hotovo, teď je to jeden člověk",
       "mergeFailed": "Spojení se nezdařilo"
+    },
+    "list": {
+      "title": "Předchozí schůzky",
+      "subtitle": "Vyber jednu a přečti si celý přepis.",
+      "loading": "Načítání schůzek…",
+      "empty": "Zatím jsi nenahrál žádnou schůzku.",
+      "loadMore": "Načíst další",
+      "loadingMore": "Načítání…",
+      "loadFailed": "Schůzky se nepodařilo načíst",
+      "status": {
+        "recording": "Nahrává se",
+        "processing": "Zpracovává se",
+        "interrupted": "Přerušeno"
+      }
+    },
+    "detail": {
+      "back": "Zpět na seznam",
+      "loading": "Načítání schůzky…",
+      "loadFailed": "Schůzku se nepodařilo otevřít",
+      "emptyTranscript": "V této schůzce se nic nenahrálo.",
+      "interruptedBanner": "Tato schůzka byla předčasně přerušena — přepis může být neúplný."
     }
   }
 }

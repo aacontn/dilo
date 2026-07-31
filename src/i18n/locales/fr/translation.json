@@ -929,6 +929,27 @@
       "mergeAction": "Fusionner",
       "mergeDone": "C'est fait, ils ne font plus qu'un",
       "mergeFailed": "Fusion impossible"
+    },
+    "list": {
+      "title": "Réunions passées",
+      "subtitle": "Choisis-en une pour lire sa transcription complète.",
+      "loading": "Chargement des réunions…",
+      "empty": "Tu n'as encore enregistré aucune réunion.",
+      "loadMore": "Charger plus",
+      "loadingMore": "Chargement…",
+      "loadFailed": "Impossible de charger les réunions",
+      "status": {
+        "recording": "Enregistrement",
+        "processing": "Traitement en cours",
+        "interrupted": "Interrompue"
+      }
+    },
+    "detail": {
+      "back": "Retour à la liste",
+      "loading": "Chargement de la réunion…",
+      "loadFailed": "Impossible d'ouvrir la réunion",
+      "emptyTranscript": "Rien n'a été enregistré pour cette réunion.",
+      "interruptedBanner": "Cette réunion s'est arrêtée avant la fin — la transcription peut être incomplète."
     }
   }
 }

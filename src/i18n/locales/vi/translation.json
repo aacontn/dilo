@@ -929,6 +929,27 @@
       "mergeAction": "Gộp",
       "mergeDone": "Xong, giờ chỉ còn một người",
       "mergeFailed": "Không gộp được"
+    },
+    "list": {
+      "title": "Cuộc họp trước đây",
+      "subtitle": "Chọn một cuộc để đọc toàn bộ bản ghi.",
+      "loading": "Đang tải các cuộc họp…",
+      "empty": "Bạn chưa ghi âm cuộc họp nào.",
+      "loadMore": "Tải thêm",
+      "loadingMore": "Đang tải…",
+      "loadFailed": "Không tải được danh sách cuộc họp",
+      "status": {
+        "recording": "Đang ghi âm",
+        "processing": "Đang xử lý",
+        "interrupted": "Bị gián đoạn"
+      }
+    },
+    "detail": {
+      "back": "Quay lại danh sách",
+      "loading": "Đang tải cuộc họp…",
+      "loadFailed": "Không mở được cuộc họp",
+      "emptyTranscript": "Cuộc họp này không ghi lại được gì.",
+      "interruptedBanner": "Cuộc họp này đã bị gián đoạn trước khi kết thúc — bản ghi có thể chưa đầy đủ."
     }
   }
 }

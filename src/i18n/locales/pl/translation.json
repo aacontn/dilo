@@ -929,6 +929,27 @@
       "mergeAction": "Połącz",
       "mergeDone": "Gotowe, teraz to jedna osoba",
       "mergeFailed": "Nie udało się połączyć"
+    },
+    "list": {
+      "title": "Poprzednie spotkania",
+      "subtitle": "Wybierz jedno, żeby przeczytać cały zapis.",
+      "loading": "Wczytywanie spotkań…",
+      "empty": "Nie nagrałeś jeszcze żadnego spotkania.",
+      "loadMore": "Wczytaj więcej",
+      "loadingMore": "Wczytywanie…",
+      "loadFailed": "Nie udało się wczytać spotkań",
+      "status": {
+        "recording": "Nagrywanie",
+        "processing": "Przetwarzanie",
+        "interrupted": "Przerwane"
+      }
+    },
+    "detail": {
+      "back": "Wróć do listy",
+      "loading": "Wczytywanie spotkania…",
+      "loadFailed": "Nie udało się otworzyć spotkania",
+      "emptyTranscript": "W tym spotkaniu nic nie zostało nagrane.",
+      "interruptedBanner": "To spotkanie zostało przerwane przed zakończeniem — zapis może być niekompletny."
     }
   }
 }

@@ -929,6 +929,27 @@
       "mergeAction": "Samenvoegen",
       "mergeDone": "Klaar, ze zijn nu één persoon",
       "mergeFailed": "Samenvoegen mislukt"
+    },
+    "list": {
+      "title": "Eerdere vergaderingen",
+      "subtitle": "Kies er een om het volledige transcript te lezen.",
+      "loading": "Vergaderingen laden…",
+      "empty": "Je hebt nog geen vergaderingen opgenomen.",
+      "loadMore": "Meer laden",
+      "loadingMore": "Laden…",
+      "loadFailed": "Vergaderingen konden niet worden geladen",
+      "status": {
+        "recording": "Bezig met opnemen",
+        "processing": "Bezig met verwerken",
+        "interrupted": "Onderbroken"
+      }
+    },
+    "detail": {
+      "back": "Terug naar de lijst",
+      "loading": "Vergadering laden…",
+      "loadFailed": "Vergadering kon niet worden geopend",
+      "emptyTranscript": "Er is niets opgenomen in deze vergadering.",
+      "interruptedBanner": "Deze vergadering werd voortijdig afgebroken — het transcript kan onvolledig zijn."
     }
   }
 }

@@ -1,26 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../ui/PageHeader";
 import { useMeetingEvents } from "../../hooks/useMeetings";
 import { RecordingControls } from "./RecordingControls";
 import { LiveTranscript } from "./LiveTranscript";
 import { SpeakerAssignment } from "./SpeakerAssignment";
+import { MeetingsList } from "./MeetingsList";
+import { MeetingDetail } from "./MeetingDetail";
 
 /**
- * Sección "Reuniones": la superficie desde la que se graba una reunión y se
- * la sigue en vivo.
+ * Sección "Reuniones": el registro completo — grabar una nueva arriba, leer
+ * las pasadas abajo (Historia 4). Antes de esto la app grababa y guardaba en
+ * SQLite pero ninguna pantalla lo leía; ésta es la casa que le faltaba.
  *
- * Es la casa mínima de los componentes de la Historia 1 — sin esto, T017-T019
- * existirían sin forma de llegar a ellos y el Escenario 1 de `quickstart.md`
- * no se podría probar a mano. Cuando llegue T039 (`MeetingsHub`, Historia 4),
- * esta pantalla pasa a ser la vista de "reunión en curso" dentro del hub, con
- * el listado de reuniones pasadas arriba.
+ * `selectedMeetingId` decide qué se ve debajo de los controles: la lista, o
+ * el detalle de la que se eligió. La reunión en curso no aparece ahí — ya la
+ * muestran los controles de arriba (decisión de producto).
  */
 export const MeetingSession: React.FC = () => {
   const { t } = useTranslation();
   // Un solo punto de suscripción para toda la pantalla — ver el doc comment
   // de `useMeetingEvents`.
   useMeetingEvents();
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(
+    null,
+  );
 
   return (
     <div className="w-full mx-auto space-y-6">
@@ -31,6 +35,14 @@ export const MeetingSession: React.FC = () => {
       <RecordingControls />
       <LiveTranscript />
       <SpeakerAssignment />
+      {selectedMeetingId === null ? (
+        <MeetingsList onSelect={setSelectedMeetingId} />
+      ) : (
+        <MeetingDetail
+          meetingId={selectedMeetingId}
+          onBack={() => setSelectedMeetingId(null)}
+        />
+      )}
     </div>
   );
 };

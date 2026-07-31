@@ -929,6 +929,27 @@
       "mergeAction": "Slå ihop",
       "mergeDone": "Klart, nu är de en person",
       "mergeFailed": "Kunde inte slå ihop"
+    },
+    "list": {
+      "title": "Tidigare möten",
+      "subtitle": "Välj ett för att läsa hela transkriptionen.",
+      "loading": "Laddar möten…",
+      "empty": "Du har inte spelat in några möten än.",
+      "loadMore": "Ladda fler",
+      "loadingMore": "Laddar…",
+      "loadFailed": "Kunde inte ladda mötena",
+      "status": {
+        "recording": "Spelar in",
+        "processing": "Bearbetar",
+        "interrupted": "Avbrutet"
+      }
+    },
+    "detail": {
+      "back": "Tillbaka till listan",
+      "loading": "Laddar mötet…",
+      "loadFailed": "Kunde inte öppna mötet",
+      "emptyTranscript": "Inget spelades in i det här mötet.",
+      "interruptedBanner": "Det här mötet avbröts i förtid — transkriptionen kan vara ofullständig."
     }
   }
 }

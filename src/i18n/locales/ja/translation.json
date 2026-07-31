@@ -929,6 +929,27 @@
       "mergeAction": "まとめる",
       "mergeDone": "完了しました。1人にまとまりました",
       "mergeFailed": "まとめられませんでした"
+    },
+    "list": {
+      "title": "過去のミーティング",
+      "subtitle": "選ぶと文字起こし全文を読めます。",
+      "loading": "ミーティングを読み込み中…",
+      "empty": "まだミーティングを録音していません。",
+      "loadMore": "もっと読み込む",
+      "loadingMore": "読み込み中…",
+      "loadFailed": "ミーティングを読み込めませんでした",
+      "status": {
+        "recording": "録音中",
+        "processing": "処理中",
+        "interrupted": "中断"
+      }
+    },
+    "detail": {
+      "back": "一覧に戻る",
+      "loading": "ミーティングを読み込み中…",
+      "loadFailed": "ミーティングを開けませんでした",
+      "emptyTranscript": "このミーティングは何も記録されていません。",
+      "interruptedBanner": "このミーティングは終了前に中断されました。文字起こしが不完全な場合があります。"
     }
   }
 }
