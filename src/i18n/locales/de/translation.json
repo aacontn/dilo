@@ -880,6 +880,13 @@
     "title": "Neu in Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Meetings",
+      "description": "Vergangene Meetings aufnehmen und lesen läuft in einem eigenen Fenster.",
+      "hint": "Es öffnet sich von selbst. Falls du es geschlossen hast oder es hinter einem anderen Fenster liegt, hol es mit dem Button zurück.",
+      "openButton": "Meeting-Fenster öffnen",
+      "openFailed": "Das Meeting-Fenster konnte nicht geöffnet werden"
+    },
     "page": {
       "title": "Meetings",
       "description": "Nimm ein Meeting vor Ort auf und sieh das Transkript entstehen, mit getrennten Stimmen. Alles läuft auf deinem Rechner."

@@ -880,6 +880,13 @@
     "title": "Nowości w Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Spotkania",
+      "description": "Nagrywanie i czytanie poprzednich spotkań odbywa się w osobnym oknie.",
+      "hint": "Otwiera się samo. Jeśli je zamknąłeś albo schowało się za innym oknem, przywróć je przyciskiem.",
+      "openButton": "Otwórz okno spotkań",
+      "openFailed": "Nie udało się otworzyć okna spotkań"
+    },
     "page": {
       "title": "Spotkania",
       "description": "Nagraj spotkanie na żywo i patrz, jak powstaje transkrypcja z rozdzielonymi głosami. Wszystko dzieje się na twoim komputerze."

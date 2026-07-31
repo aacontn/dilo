@@ -880,6 +880,13 @@
     "title": "Dilo v{{version}} 新功能"
   },
   "meeting": {
+    "launcher": {
+      "title": "会议",
+      "description": "录制和查看过往会议在独立的窗口中进行。",
+      "hint": "它会自动打开。如果你关闭了它，或者它被其他窗口挡住了，用按钮把它找回来。",
+      "openButton": "打开会议窗口",
+      "openFailed": "无法打开会议窗口"
+    },
     "page": {
       "title": "会议",
       "description": "录制一场线下会议，看着转写逐句出现，并且区分每个人的声音。一切都在你自己的电脑上完成。"

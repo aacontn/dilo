@@ -12,6 +12,7 @@ mod helpers;
 mod input;
 mod llm_client;
 mod managers;
+mod meeting_window;
 mod notes;
 mod overlay;
 pub mod portable;
@@ -742,6 +743,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::merge_speakers,
             commands::meeting::list_meetings,
             commands::meeting::get_meeting,
+            meeting_window::open_meetings_window,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,

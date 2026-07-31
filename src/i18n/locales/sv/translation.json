@@ -880,6 +880,13 @@
     "title": "Nytt i Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Möten",
+      "description": "Att spela in och läsa tidigare möten sker i ett eget fönster.",
+      "hint": "Det öppnas av sig själv. Om du stängde det eller det hamnade bakom ett annat fönster, ta fram det med knappen.",
+      "openButton": "Öppna mötesfönstret",
+      "openFailed": "Det gick inte att öppna mötesfönstret"
+    },
     "page": {
       "title": "Möten",
       "description": "Spela in ett fysiskt möte och se transkriptet växa fram, med varje röst för sig. Allt sker på din dator."

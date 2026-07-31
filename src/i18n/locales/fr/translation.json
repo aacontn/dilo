@@ -880,6 +880,13 @@
     "title": "Nouveautés de Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Réunions",
+      "description": "Enregistrer et relire vos réunions passées se passe dans sa propre fenêtre.",
+      "hint": "Elle s'ouvre toute seule. Si vous l'avez fermée ou qu'elle est derrière une autre fenêtre, rouvrez-la avec le bouton.",
+      "openButton": "Ouvrir la fenêtre des réunions",
+      "openFailed": "Impossible d'ouvrir la fenêtre des réunions"
+    },
     "page": {
       "title": "Réunions",
       "description": "Enregistre une réunion en présentiel et vois la transcription apparaître, chaque voix séparée. Tout se passe sur ton ordinateur."

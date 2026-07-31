@@ -880,6 +880,13 @@
     "title": "Dilo v{{version}} yenilikleri"
   },
   "meeting": {
+    "launcher": {
+      "title": "Toplantılar",
+      "description": "Geçmiş toplantıları kaydetmek ve okumak kendi penceresinde olur.",
+      "hint": "Kendiliğinden açılır. Kapattıysan ya da başka bir pencerenin arkasında kaldıysa, düğmeyle geri getir.",
+      "openButton": "Toplantılar penceresini aç",
+      "openFailed": "Toplantılar penceresi açılamadı"
+    },
     "page": {
       "title": "Toplantılar",
       "description": "Yüz yüze bir toplantıyı kaydet ve her sesi ayrı ayrı gösteren döküm oluşurken izle. Her şey kendi bilgisayarında olur."

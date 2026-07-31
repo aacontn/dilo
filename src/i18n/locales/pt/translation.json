@@ -880,6 +880,13 @@
     "title": "Novidades no Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Reuniões",
+      "description": "Gravar e reler suas reuniões passadas acontece em uma janela própria.",
+      "hint": "Ela abre sozinha. Se você fechou ou ela ficou atrás de outra janela, traga-a de volta com o botão.",
+      "openButton": "Abrir a janela de reuniões",
+      "openFailed": "Não foi possível abrir a janela de reuniões"
+    },
     "page": {
       "title": "Reuniões",
       "description": "Grave uma reunião presencial e veja a transcrição aparecer, com cada voz separada. Tudo acontece no seu computador."

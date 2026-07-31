@@ -880,6 +880,13 @@
     "title": "Điểm mới trong Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Cuộc họp",
+      "description": "Ghi âm và xem lại các cuộc họp trước đây diễn ra trong cửa sổ riêng.",
+      "hint": "Cửa sổ tự mở. Nếu bạn đã đóng nó hoặc nó bị khuất sau cửa sổ khác, hãy mở lại bằng nút này.",
+      "openButton": "Mở cửa sổ cuộc họp",
+      "openFailed": "Không mở được cửa sổ cuộc họp"
+    },
     "page": {
       "title": "Cuộc họp",
       "description": "Ghi âm một cuộc họp trực tiếp và xem bản ghi hiện ra, tách riêng từng giọng nói. Mọi thứ diễn ra trên máy của bạn."

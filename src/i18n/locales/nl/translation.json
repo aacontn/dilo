@@ -880,6 +880,13 @@
     "noteSaved": "Notitie opgeslagen"
   },
   "meeting": {
+    "launcher": {
+      "title": "Vergaderingen",
+      "description": "Vergaderingen opnemen en teruglezen gebeurt in een eigen venster.",
+      "hint": "Het opent vanzelf. Heb je het gesloten of staat het achter een ander venster, haal het terug met de knop.",
+      "openButton": "Vergaderingenvenster openen",
+      "openFailed": "Het vergaderingenvenster kon niet worden geopend"
+    },
     "page": {
       "title": "Vergaderingen",
       "description": "Neem een fysieke vergadering op en zie het transcript verschijnen, met elke stem apart. Alles gebeurt op je eigen computer."

@@ -880,6 +880,13 @@
     "title": "Dilo v{{version}} 新功能"
   },
   "meeting": {
+    "launcher": {
+      "title": "會議",
+      "description": "錄製與查看過往會議在獨立的視窗中進行。",
+      "hint": "它會自動開啟。如果你關掉了它，或者它被其他視窗擋住了，用按鈕把它找回來。",
+      "openButton": "開啟會議視窗",
+      "openFailed": "無法開啟會議視窗"
+    },
     "page": {
       "title": "會議",
       "description": "錄下一場實體會議，看著逐字稿一句句出現，並且區分每個人的聲音。一切都在你自己的電腦上完成。"

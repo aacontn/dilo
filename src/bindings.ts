@@ -999,6 +999,19 @@ async getMeeting(meetingId: number) : Promise<Result<Meeting, string>> {
 }
 },
 /**
+ * Abre la ventana de reuniones, o la trae al frente si ya está abierta
+ * (escondida tras un cierre anterior, o simplemente detrás de otras
+ * ventanas). Nunca crea una segunda.
+ */
+async openMeetingsWindow() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_meetings_window") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {

@@ -880,6 +880,13 @@
     "title": "Novità in Dilo v{{version}}"
   },
   "meeting": {
+    "launcher": {
+      "title": "Riunioni",
+      "description": "Registrare e rivedere le riunioni passate avviene in una finestra a parte.",
+      "hint": "Si apre da sola. Se l'hai chiusa o è finita dietro un'altra finestra, riportala in primo piano con il pulsante.",
+      "openButton": "Apri la finestra delle riunioni",
+      "openFailed": "Impossibile aprire la finestra delle riunioni"
+    },
     "page": {
       "title": "Riunioni",
       "description": "Registra una riunione in presenza e guarda la trascrizione comparire, con ogni voce separata. Tutto succede sul tuo computer."

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Wordmark } from "./shared";
 import { HomeDashboard } from "./home";
-import { MeetingSession } from "./meeting";
+import { MeetingsLauncher } from "./meeting";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -94,7 +94,9 @@ export const SECTIONS_CONFIG = {
   meetings: {
     labelKey: "sidebar.meetings",
     icon: Users,
-    component: MeetingSession,
+    // La actividad de reuniones vive en su propia ventana (diseño
+    // 2026-07-31-notetaker-usable-design.md §1); acá sólo queda el lanzador.
+    component: MeetingsLauncher,
     enabled: () => true,
   },
   voice: {
