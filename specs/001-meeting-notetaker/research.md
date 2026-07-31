@@ -9,12 +9,16 @@ trata como "investigar después" — es la pregunta central de esta fase.
 **Decision**: usar un pipeline de diarización basado en ONNX Runtime —
 modelo de segmentación con detección de habla superpuesta (overlap-aware,
 estilo pyannote) + extracción de embeddings de hablante + clustering
-espectral para determinar el número de hablantes sin conocerlo de antemano.
-Concretamente, el proyecto **sherpa-onnx** (k2-fsa) ya empaqueta este
-pipeline completo (`OfflineSpeakerDiarization`) como modelos ONNX
-descargables + bindings de Rust oficiales, siguiendo el mismo patrón que
-Dilo ya usa para Silero VAD y los motores de transcripción ONNX
-(transcribe-rs).
+jerárquico/aglomerativo (complete-linkage, distancia coseno, al estilo
+`fastcluster`) para determinar el número de hablantes sin conocerlo de
+antemano (corte del dendrograma por umbral de distancia — ver "Corrección
+encontrada" más abajo).
+Concretamente, el proyecto **sherpa-onnx** (k2-fsa) publica los modelos ONNX
+de este pipeline (`OfflineSpeakerDiarization`: segmentación + embeddings)
+como archivos `.onnx` sueltos, cargables directamente con el `ort` que Dilo
+ya usa para Silero VAD y los motores de transcripción ONNX (transcribe-rs)
+— sin necesidad de sus bindings de Rust completos (confirmado en T002, ver
+"Resultado (T002)" más abajo).
 
 **Rationale**:
 - Encaja con la arquitectura existente: Dilo ya embebe modelos ONNX locales
@@ -22,14 +26,111 @@ Dilo ya usa para Silero VAD y los motores de transcripción ONNX
   modelo de diarización ONNX más sigue el mismo patrón de
   descarga-y-ejecución local, no introduce un runtime nuevo (ej. no hace
   falta empotrar Python/PyTorch).
-- El clustering espectral no requiere saber cuántos hablantes hay de
-  antemano — cumple FR-003 directamente.
+- El corte del dendrograma por umbral de distancia (en vez de por `k` fijo)
+  no requiere saber cuántos hablantes hay de antemano — cumple FR-003
+  directamente.
 - El modelo de segmentación tipo pyannote detecta habla superpuesta como
   parte de su salida nativa (múltiples activaciones de hablante por frame),
   no como un caso especial — es la base técnica más razonable para el
   requisito de FR-004 (marcar segmentos inciertos en vez de adivinar).
 - Rust nativo vía bindings oficiales evita añadir un sidecar en otro
   lenguaje, consistente con el resto del backend.
+
+**Revisión (implementación, T002)**: `src-tauri/Cargo.toml` ya depende de
+`ort = "=2.0.0-rc.12"` (bindings ONNX Runtime en Rust), usado hoy para
+Parakeet/Moonshine/SenseVoice. En vez de sumar el crate/binding completo de
+sherpa-onnx como dependencia nueva, evaluar correr los mismos modelos ONNX
+que sherpa-onnx publica (segmentación + embeddings de hablante) directamente
+sobre el `ort` ya integrado — mismo enfoque técnico de research.md §1, sin
+duplicar bindings de ONNX Runtime en el binario. Si el empaquetado de esos
+modelos específicos hace inviable evitar la dependencia de sherpa-onnx,
+usarla igual está permitido — es una preferencia de consistencia, no un
+bloqueo.
+
+**Resultado (T002)**: confirmado — Ruta A. `ort = "=2.0.0-rc.12"` alcanza
+tal cual, `Cargo.toml` no necesita ninguna dependencia nueva para los
+modelos ONNX en sí. Verificado leyendo el código fuente C++ de sherpa-onnx
+(`k2-fsa/sherpa-onnx`, rama `master`):
+`sherpa-onnx/csrc/offline-speaker-segmentation-pyannote-model.cc` y
+`speaker-embedding-extractor-model.cc` cargan sus modelos con un
+`Ort::Session` plano (`std::make_unique<Ort::Session>(env_, path, opts)` /
+`sess_->Run(...)`), sin operadores ONNX custom — son modelos ONNX
+estándar, publicados como archivos `.onnx` sueltos en GitHub Releases
+(`k2-fsa/sherpa-onnx` releases `speaker-segmentation-models` y
+`speaker-recongition-models`), no en un formato propietario de
+sherpa-onnx. Mismo patrón que `tts/supertonic.rs` ya usa en este repo
+(`ort::session::Session` directo).
+
+**Corrección encontrada (importante para T009)**: este documento describe
+el paso de clustering como "clustering espectral", pero el código fuente
+real de sherpa-onnx (`fast-clustering.cc`) **no usa clustering espectral**
+— usa clustering jerárquico/aglomerativo (complete-linkage, distancia
+coseno) vía una implementación al estilo `fastcluster` (Müllner), cortando
+el dendrograma por umbral de distancia cuando no se conoce el número de
+hablantes (`clustering.cluster-threshold`) o por `k` fijo si se conoce
+(`clustering.num-clusters`). Sigue cumpliendo FR-003 (número de hablantes
+desconocido) — el corte por umbral no necesita saber `k` de antemano —
+pero el algoritmo descrito acá está mal nombrado. El crate Rust `kodama`
+(crates.io, puro Rust) implementa la misma familia de algoritmo
+(inspirado explícitamente en `fastcluster` de Müllner) y es un candidato
+razonable para T009; no se agrega a `Cargo.toml` en T002 porque la
+elección del algoritmo de clustering es tarea de T009, no de esta tarea
+(agregar la dependencia de diarización), y esta corrección recién se
+descubrió en la investigación de T002. Este párrafo debería revisarse
+(¿renombrar "clustering espectral" → "clustering jerárquico/aglomerativo"
+en el **Decision** de arriba?) antes de que T009 arranque. Detalle
+completo, con enlaces a las fuentes, en
+`.superpowers/sdd/task-T002-report.md`.
+
+**Licencias de los modelos ONNX committeados/usados (T008)**: el brief de
+T008 exigía verificar la licencia de los archivos `.onnx` específicos, no
+la licencia genérica del repo `k2-fsa/sherpa-onnx` (Apache-2.0) que los
+sirve. Resultado, con las fuentes primarias usadas:
+
+- **Segmentación** — `sherpa-onnx-pyannote-segmentation-3-0` (archivo
+  `model.onnx` dentro del `.tar.bz2` de esa release, committeado en
+  `src-tauri/resources/models/pyannote_segmentation_3_0.onnx`, 5,992,913
+  bytes, SHA-256
+  `220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079`):
+  **MIT License, Copyright (c) 2022 CNRS**. Verificado leyendo el archivo
+  `LICENSE` bundleado *dentro* del propio `.tar.bz2` de la release (no
+  solo la licencia del repo) — descargado de
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2.
+  El `README.md` bundleado confirma el origen:
+  https://huggingface.co/pyannote/segmentation-3.0 (licencia `mit` en su
+  ficha de HuggingFace también). Sin restricción de uso comercial ni
+  umbral de ingresos.
+- **Embeddings de hablante** —
+  `3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx` (no
+  committeado — se descarga en runtime, ver
+  `src-tauri/src/managers/diarization_models.rs`, 28,281,164 bytes,
+  SHA-256
+  `aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2`):
+  **Apache-2.0** (proyecto 3D-Speaker, Alibaba DAMO Academy / ModelScope).
+  Verificado leyendo el `README.md` real del repo origen
+  (`modelscope/3D-Speaker`, sección "License": *"3D-Speaker is released
+  under the Apache License 2.0"*) y la licencia que GitHub detecta sobre
+  ese repo (`apache-2.0`), con dos mirrors independientes de este mismo
+  checkpoint ONNX en HuggingFace confirmando "License: Apache-2.0
+  (inherited from 3D-Speaker / ModelScope)". Descargado de
+  https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx.
+  Sin restricción de uso comercial ni umbral de ingresos.
+- **Modelo hermano descartado** — la misma release de segmentación
+  (`speaker-segmentation-models`) también publica
+  `sherpa-onnx-reverb-diarization-v1.tar.bz2` y
+  `sherpa-onnx-reverb-diarization-v2.tar.bz2` (Rev.ai). La documentación
+  oficial de sherpa-onnx
+  (https://k2-fsa.github.io/sherpa/onnx/speaker-diarization/models.html)
+  señala que ese modelo tiene licencia **`non-commercial`** —
+  incompatible con distribuir Dilo gratis. No se usó nunca (el research de
+  T002 ya apuntaba a `pyannote-segmentation-3-0`), pero queda documentado
+  acá como evidencia de que la release mezcla modelos con licencias
+  incompatibles y que la verificación por-archivo era necesaria de
+  verdad, no un trámite.
+
+Detalle completo (incluyendo por qué se descartó registrar el modelo de
+embeddings en `managers/model.rs`/`ModelInfo`) en
+`.superpowers/sdd/task-T008-report.md` (gitignored, local).
 
 **Límite honesto a documentar (no ocultar)**: ningún pipeline de
 diarización basado en un solo micrófono resuelve perfectamente la

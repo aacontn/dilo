@@ -18,7 +18,8 @@
     "about": "حول",
     "models": "النماذج",
     "notes": "الملاحظات",
-    "voice": "الصوت"
+    "voice": "الصوت",
+    "meetings": "الاجتماعات"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "الجديد في Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "الاجتماعات",
+      "description": "سجّل اجتماعًا حضوريًا وشاهد النص وهو يظهر، مع فصل كل صوت عن الآخر. كل شيء يجري على جهازك."
+    },
+    "controls": {
+      "stateIdle": "جاهز للتسجيل",
+      "stateRecording": "جارٍ التسجيل",
+      "stateProcessing": "جارٍ الإنهاء",
+      "idleTitle": "سجّل اجتماعك القادم",
+      "idleDescription": "يستمع Dilo عبر الميكروفون، ويميّز بين الأصوات، ويكتب أثناء سير الاجتماع.",
+      "recordingTitle": "التسجيل جارٍ",
+      "recordingDescription": "يظهر النص في الأسفل كلما انتهى أحدهم من الكلام.",
+      "processingTitle": "جارٍ إكمال النص",
+      "processingDescription": "بقيت آخر المداخلات قيد التفريغ. ستجهز خلال ثوانٍ.",
+      "start": "تسجيل الاجتماع",
+      "starting": "جارٍ فتح الميكروفون…",
+      "stop": "إيقاف",
+      "finishing": "جارٍ الإنهاء…",
+      "kindPresencial": "حضوريًا، بميكروفون هذا الجهاز",
+      "privacy": "الصوت لا يغادر جهازك: التفريغ وفصل الأصوات يحدثان هنا.",
+      "startFailed": "تعذّر بدء التسجيل",
+      "stopFailed": "تعذّر إيقاف الاجتماع"
+    },
+    "transcript": {
+      "title": "النص المباشر",
+      "subtitle": "تُحفظ كل مداخلة فور تفريغها.",
+      "empty": "سيظهر هنا ما يُقال.",
+      "listening": "جارٍ الاستماع… ما إن يتكلم أحد حتى يظهر النص هنا.",
+      "speakerLabel": "المتحدث {{number}}",
+      "unknownSpeaker": "غير محدّد",
+      "overlapped": "أصوات متداخلة",
+      "speakerCount_one": "صوت واحد",
+      "speakerCount_other": "{{count}} أصوات"
+    },
+    "speakers": {
+      "title": "من هو من",
+      "subtitle": "سمِّ كل صوت. وإذا فصل Dilo الشخص نفسه إلى اثنين، ادمجهما.",
+      "save": "حفظ",
+      "interventions_one": "مداخلة واحدة",
+      "interventions_other": "{{count}} مداخلات",
+      "nameFailed": "تعذّر حفظ الاسم",
+      "mergeLabel": "دمج صوتين",
+      "mergeHelp": "إذا كان المتحدثان شخصًا واحدًا، اختر أيهما يندمج في الآخر. سيتحدّث النص تلقائيًا.",
+      "mergeSource": "هذا الصوت…",
+      "mergeInto": "هو",
+      "mergeTarget": "…هذا الشخص",
+      "mergeAction": "دمج",
+      "mergeDone": "تم، صارا شخصًا واحدًا",
+      "mergeFailed": "تعذّر الدمج"
+    }
   }
 }

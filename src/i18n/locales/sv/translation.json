@@ -18,7 +18,8 @@
     "debug": "Felsökning",
     "about": "Om",
     "notes": "Anteckningar",
-    "voice": "Röst"
+    "voice": "Röst",
+    "meetings": "Möten"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Nytt i Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Möten",
+      "description": "Spela in ett fysiskt möte och se transkriptet växa fram, med varje röst för sig. Allt sker på din dator."
+    },
+    "controls": {
+      "stateIdle": "Redo att spela in",
+      "stateRecording": "Spelar in",
+      "stateProcessing": "Avslutar",
+      "idleTitle": "Spela in ditt nästa möte",
+      "idleDescription": "Dilo lyssnar via mikrofonen, skiljer rösterna åt och skriver medan mötet pågår.",
+      "recordingTitle": "Vi spelar in",
+      "recordingDescription": "Texten dyker upp nedan så fort någon talat färdigt.",
+      "processingTitle": "Avslutar transkriptet",
+      "processingDescription": "De sista inläggen transkriberas fortfarande. Klart om några sekunder.",
+      "start": "Spela in möte",
+      "starting": "Öppnar mikrofonen…",
+      "stop": "Stoppa",
+      "finishing": "Avslutar…",
+      "kindPresencial": "På plats, med den här datorns mikrofon",
+      "privacy": "Ljudet lämnar aldrig din dator: transkribering och röstseparering sker här.",
+      "startFailed": "Kunde inte börja spela in",
+      "stopFailed": "Kunde inte stoppa mötet"
+    },
+    "transcript": {
+      "title": "Direkttranskript",
+      "subtitle": "Varje inlägg sparas så fort det transkriberats.",
+      "empty": "Här dyker det upp som sägs.",
+      "listening": "Lyssnar… så fort någon talar dyker texten upp här.",
+      "speakerLabel": "Talare {{number}}",
+      "unknownSpeaker": "Oidentifierad",
+      "overlapped": "röster överlappade",
+      "speakerCount_one": "{{count}} röst",
+      "speakerCount_other": "{{count}} röster"
+    },
+    "speakers": {
+      "title": "Vem är vem",
+      "subtitle": "Ge varje röst ett namn. Om Dilo delat samma person i två, slå ihop dem.",
+      "save": "Spara",
+      "interventions_one": "{{count}} inlägg",
+      "interventions_other": "{{count}} inlägg",
+      "nameFailed": "Kunde inte spara namnet",
+      "mergeLabel": "Slå ihop två röster",
+      "mergeHelp": "Om två talare är samma person, välj vilken som går in i vilken. Transkriptet uppdateras av sig självt.",
+      "mergeSource": "Den här rösten…",
+      "mergeInto": "är",
+      "mergeTarget": "…den här personen",
+      "mergeAction": "Slå ihop",
+      "mergeDone": "Klart, nu är de en person",
+      "mergeFailed": "Kunde inte slå ihop"
+    }
   }
 }

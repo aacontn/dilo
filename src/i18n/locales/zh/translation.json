@@ -18,7 +18,8 @@
     "debug": "调试",
     "about": "关于",
     "notes": "笔记",
-    "voice": "语音"
+    "voice": "语音",
+    "meetings": "会议"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Dilo v{{version}} 新功能"
+  },
+  "meeting": {
+    "page": {
+      "title": "会议",
+      "description": "录制一场线下会议，看着转写逐句出现，并且区分每个人的声音。一切都在你自己的电脑上完成。"
+    },
+    "controls": {
+      "stateIdle": "准备录制",
+      "stateRecording": "录制中",
+      "stateProcessing": "收尾中",
+      "idleTitle": "录下你的下一场会议",
+      "idleDescription": "Dilo 通过麦克风聆听，分辨谁在说话，并在会议进行时同步记录。",
+      "recordingTitle": "正在录制",
+      "recordingDescription": "每当有人说完，文字就会出现在下面。",
+      "processingTitle": "正在完成转写",
+      "processingDescription": "还剩最后几段在转写，几秒钟就好。",
+      "start": "录制会议",
+      "starting": "正在打开麦克风…",
+      "stop": "停止",
+      "finishing": "收尾中…",
+      "kindPresencial": "线下，使用本机麦克风",
+      "privacy": "音频不会离开你的电脑：转写和区分声音都在本地完成。",
+      "startFailed": "无法开始录制",
+      "stopFailed": "无法停止会议"
+    },
+    "transcript": {
+      "title": "实时转写",
+      "subtitle": "每段发言一转写完就会保存。",
+      "empty": "说过的话会显示在这里。",
+      "listening": "正在聆听……只要有人开口，文字就会出现在这里。",
+      "speakerLabel": "发言人 {{number}}",
+      "unknownSpeaker": "未识别",
+      "overlapped": "声音重叠",
+      "speakerCount_one": "{{count}} 个声音",
+      "speakerCount_other": "{{count}} 个声音"
+    },
+    "speakers": {
+      "title": "谁是谁",
+      "subtitle": "给每个声音起个名字。如果 Dilo 把同一个人拆成了两个，把他们合并即可。",
+      "save": "保存",
+      "interventions_one": "{{count}} 次发言",
+      "interventions_other": "{{count}} 次发言",
+      "nameFailed": "无法保存名字",
+      "mergeLabel": "合并两个声音",
+      "mergeHelp": "如果两位发言人其实是同一个人，选择谁并入谁。转写会自动更新。",
+      "mergeSource": "这个声音…",
+      "mergeInto": "就是",
+      "mergeTarget": "…这个人",
+      "mergeAction": "合并",
+      "mergeDone": "完成，现在是同一个人了",
+      "mergeFailed": "无法合并"
+    }
   }
 }

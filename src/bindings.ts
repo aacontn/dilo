@@ -285,18 +285,6 @@ async updatePostProcessPrompt(id: string, name: string, prompt: string) : Promis
     else return { status: "error", error: e  as any };
 }
 },
-/**
- * Guarda el proveedor/modelo propio de un modo. `None` en `provider_id`
- * devuelve el modo a heredar el proveedor general.
- */
-async setPostProcessPromptProvider(id: string, providerId: string | null, model: string | null) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("set_post_process_prompt_provider", { id, providerId, model }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async deletePostProcessPrompt(id: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("delete_post_process_prompt", { id }) };
@@ -888,6 +876,88 @@ async updateRecordingRetentionPeriod(period: string) : Promise<Result<null, stri
 }
 },
 /**
+ * Start a new meeting recording: inserts a `meetings` row with
+ * `status = "recording"`, abre el micrófono y devuelve el `id`.
+ * 
+ * T011 dejó este comando creando sólo la fila, porque la captura real
+ * (T012) todavía no existía; T017 la enchufa acá, que es el único lugar
+ * donde el usuario puede pedirla. Sin esto, apretar "grabar" creaba una
+ * reunión que no escuchaba nada.
+ * 
+ * **Si abrir el micrófono falla, la fila se borra.** Los motivos típicos
+ * son que el micrófono esté tomado por un dictado en curso o que falten
+ * permisos — casos donde no se grabó ni un segundo de audio. Dejar la
+ * reunión creada obligaría al usuario a lidiar con una reunión fantasma
+ * vacía, y peor: bloquearía la siguiente con `recording_busy`.
+ */
+async startMeeting(kind: string) : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_meeting", { kind }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Detener una reunión en curso: `recording → processing` (contrato:
+ * `tauri-commands.md#stop_meeting`, output `void` — el progreso llega por
+ * evento).
+ * 
+ * El comando devuelve apenas la transición de estado está confirmada, y deja
+ * el resto corriendo en background por dos razones:
+ * 
+ * 1. Detener la captura **bloquea**: `stop_capture` junta los hilos de
+ * watchdog y transcripción, que antes de salir drenan la cola de turnos
+ * pendientes (transcribir cada uno puede tardar segundos). Hacer eso en el
+ * hilo del comando congelaría la UI justo cuando el usuario apretó
+ * "detener".
+ * 2. El contrato ya dice que el progreso viaja por eventos
+ * (`meeting-progress`, `meeting-finished`, `meeting-error`), así que la
+ * UI no necesita que el comando espere.
+ * 
+ * El estado se mueve a `processing` **antes** de devolver: si la app se cae
+ * mientras se drena la cola, la reunión no queda como `recording` sin
+ * `ended_at` y la recuperación de T021 no la confunde con una sesión
+ * interrumpida de verdad.
+ */
+async stopMeeting(meetingId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_meeting", { meetingId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Ponerle nombre a un hablante detectado, o renombrarlo (FR-005). Mandar un
+ * nombre vacío borra el nombre y deja la etiqueta automática `Hablante N`.
+ */
+async assignSpeakerName(speakerId: number, displayName: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("assign_speaker_name", { speakerId, displayName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Fusionar dos hablantes que el sistema separó de más (FR-005): todo lo de
+ * `sourceSpeakerId` pasa a mostrarse bajo `targetSpeakerId`.
+ * 
+ * Es la contraparte necesaria de la atribución automática: el registro de
+ * hablantes prefiere no asignar antes que adivinar (FR-004), pero cuando de
+ * todos modos separa a una misma persona en dos, corregirlo es del usuario y
+ * no de un re-clustering silencioso del transcript que ya vio.
+ */
+async mergeSpeakers(meetingId: number, sourceSpeakerId: number, targetSpeakerId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("merge_speakers", { meetingId, sourceSpeakerId, targetSpeakerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {
@@ -1088,12 +1158,24 @@ async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
-postProcessFallback: PostProcessFallback,
+meetingCallDetected: MeetingCallDetected,
+meetingCallEnded: MeetingCallEnded,
+meetingError: MeetingError,
+meetingFinished: MeetingFinished,
+meetingInterrupted: MeetingInterrupted,
+meetingProgress: MeetingProgress,
+meetingSegment: MeetingSegment,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
-postProcessFallback: "post-process-fallback",
+meetingCallDetected: "meeting-call-detected",
+meetingCallEnded: "meeting-call-ended",
+meetingError: "meeting-error",
+meetingFinished: "meeting-finished",
+meetingInterrupted: "meeting-interrupted",
+meetingProgress: "meeting-progress",
+meetingSegment: "meeting-segment",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -1212,19 +1294,47 @@ export type LLMPrompt = { id: string; name: string; prompt: string;
 /**
  * Atajo global opcional del modo (binding dinámico `mode:<id>`).
  */
-shortcut?: string | null; 
-/**
- * Proveedor propio de este modo. `None` = usa el global
- * (`post_process_provider_id`), que es el comportamiento histórico y por
- * eso no necesita migración.
- */
-provider_id?: string | null; 
-/**
- * Modelo propio de este modo. `None` = el que esté configurado para su
- * proveedor en `post_process_models`.
- */
-model?: string | null }
+shortcut?: string | null }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+/**
+ * An active video call was detected with no recording in progress
+ * (User Story 3, FR-017). `call_source` is the detected app name when it
+ * could be determined.
+ */
+export type MeetingCallDetected = { call_source: string | null }
+/**
+ * The video call that triggered an auto-detected recording has ended
+ * (User Story 3, FR-018).
+ */
+export type MeetingCallEnded = { meeting_id: number }
+/**
+ * Error during recording or post-processing.
+ */
+export type MeetingError = { meeting_id: number; error: string }
+/**
+ * The meeting finished processing (`status` -> `ready`).
+ */
+export type MeetingFinished = { meeting_id: number }
+/**
+ * Detected at app startup: a meeting without `ended_at` left over from a
+ * previous session (crash recovery, FR-008).
+ */
+export type MeetingInterrupted = { meeting_id: number }
+/**
+ * Emitted while a finished recording is being processed (summary,
+ * diarization if it runs as a separate step, etc.).
+ */
+export type MeetingProgress = { meeting_id: number; phase: MeetingProgressPhase }
+/**
+ * Phase of post-recording processing (summary generation, diarization when
+ * it runs as a separate step, etc.), reported via [`MeetingProgress`].
+ */
+export type MeetingProgressPhase = "transcribing" | "diarizing" | "summarizing"
+/**
+ * Emitted whenever a new transcript segment is ready (incremental, during
+ * recording).
+ */
+export type MeetingSegment = { id: number; speaker_id: number | null; text: string; started_at_ms: number; ended_at_ms: number; overlapped: boolean }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
@@ -1273,18 +1383,7 @@ export type PendingNote = { title: string; body: string;
  */
 targets: string[]; last_error?: string | null }
 export type PermissionAccess = "allowed" | "denied" | "unknown"
-/**
- * Datos del aviso cuando la caída al proveedor global mandó a la nube un
- * texto que el modo quería procesar localmente.
- */
-export type PostProcessFallback = { mode_name: string; provider_label: string }
-export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean; 
-/**
- * Calculado al cargar settings (ver `ensure_post_process_defaults`), no
- * editable por el usuario. Está en la struct para que el frontend lo lea
- * del binding en vez de repetir la regla en TypeScript.
- */
-is_local?: boolean }
+export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }

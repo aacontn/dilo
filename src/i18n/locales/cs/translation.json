@@ -18,7 +18,8 @@
     "debug": "Ladění",
     "about": "O aplikaci",
     "notes": "Poznámky",
-    "voice": "Hlas"
+    "voice": "Hlas",
+    "meetings": "Schůzky"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Novinky v Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Schůzky",
+      "description": "Nahraj schůzku naživo a sleduj, jak vzniká přepis s oddělenými hlasy. Všechno běží na tvém počítači."
+    },
+    "controls": {
+      "stateIdle": "Připraveno k nahrávání",
+      "stateRecording": "Nahrává se",
+      "stateProcessing": "Dokončuje se",
+      "idleTitle": "Nahraj svou další schůzku",
+      "idleDescription": "Dilo poslouchá přes mikrofon, rozlišuje hlasy a průběžně zapisuje.",
+      "recordingTitle": "Nahráváme",
+      "recordingDescription": "Text se objevuje níže, jakmile někdo domluví.",
+      "processingTitle": "Dokončujeme přepis",
+      "processingDescription": "Zbývají poslední promluvy. Za pár vteřin je hotovo.",
+      "start": "Nahrát schůzku",
+      "starting": "Otevírám mikrofon…",
+      "stop": "Zastavit",
+      "finishing": "Dokončuji…",
+      "kindPresencial": "Naživo, mikrofonem tohoto zařízení",
+      "privacy": "Zvuk neopouští tvůj počítač: přepis i rozdělení hlasů probíhá tady.",
+      "startFailed": "Nahrávání se nepodařilo spustit",
+      "stopFailed": "Schůzku se nepodařilo zastavit"
+    },
+    "transcript": {
+      "title": "Živý přepis",
+      "subtitle": "Každá promluva se uloží hned po přepsání.",
+      "empty": "Tady se objeví, co se bude mluvit.",
+      "listening": "Poslouchám… jakmile někdo promluví, text se objeví tady.",
+      "speakerLabel": "Mluvčí {{number}}",
+      "unknownSpeaker": "Neurčeno",
+      "overlapped": "hlasy přes sebe",
+      "speakerCount_one": "{{count}} hlas",
+      "speakerCount_other": "{{count}} hlasů"
+    },
+    "speakers": {
+      "title": "Kdo je kdo",
+      "subtitle": "Pojmenuj každý hlas. Pokud Dilo rozdělil jednoho člověka na dva, spoj je.",
+      "save": "Uložit",
+      "interventions_one": "{{count}} promluva",
+      "interventions_other": "{{count}} promluv",
+      "nameFailed": "Jméno se nepodařilo uložit",
+      "mergeLabel": "Spojit dva hlasy",
+      "mergeHelp": "Pokud jsou dva mluvčí tentýž člověk, vyber, kdo se do koho sloučí. Přepis se opraví sám.",
+      "mergeSource": "Tento hlas…",
+      "mergeInto": "je",
+      "mergeTarget": "…tento člověk",
+      "mergeAction": "Spojit",
+      "mergeDone": "Hotovo, teď je to jeden člověk",
+      "mergeFailed": "Spojení se nezdařilo"
+    }
   }
 }

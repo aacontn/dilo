@@ -31,7 +31,9 @@ use tauri_specta::{collect_commands, collect_events, Builder};
 
 use env_filter::Builder as EnvFilterBuilder;
 use managers::audio::AudioRecordingManager;
+use managers::diarization::DiarizationEngine;
 use managers::history::HistoryManager;
+use managers::meeting::MeetingManager;
 use managers::model::ModelManager;
 use managers::transcription::TranscriptionManager;
 #[cfg(unix)]
@@ -209,12 +211,41 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         TranscriptionManager::new(app_handle, model_manager.clone())
             .expect("Failed to initialize transcription manager"),
     );
+    // Shared exclusive gate on the physical microphone between dictation and
+    // meeting capture — see the coexistence decision documented above
+    // `MeetingManager::start_capture` in managers/meeting.rs (T012).
+    let mic_arbiter = managers::audio::MicrophoneArbiter::new();
     let recording_manager = Arc::new(
-        AudioRecordingManager::new(app_handle, transcription_manager.stream_router())
-            .expect("Failed to initialize recording manager"),
+        AudioRecordingManager::new(
+            app_handle,
+            transcription_manager.stream_router(),
+            mic_arbiter.clone(),
+        )
+        .expect("Failed to initialize recording manager"),
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let meeting_db_path = crate::portable::app_data_dir(app_handle)
+        .expect("Failed to resolve app data dir for meeting manager")
+        .join("meetings.db");
+    // Creado sin modelos: `MeetingManager` los carga perezosamente en el
+    // primer `start_capture` (T013) sobre este mismo `Arc`, así que la app
+    // no paga ~34 MB de sesiones ONNX en cada arranque.
+    let diarization_engine = Arc::new(DiarizationEngine::new());
+    let meeting_models_dir = crate::portable::app_data_dir(app_handle)
+        .expect("Failed to resolve app data dir for meeting manager")
+        .join("models");
+    let meeting_manager = Arc::new(
+        MeetingManager::new(meeting_db_path)
+            .expect("Failed to initialize meeting manager")
+            .with_capture_deps(
+                app_handle.clone(),
+                transcription_manager.clone(),
+                mic_arbiter,
+                diarization_engine.clone(),
+                meeting_models_dir,
+            ),
+    );
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -228,6 +259,16 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    // FR-008: reuniones que quedaron a medias en una sesión anterior. Corre
+    // después de `with_capture_deps` porque necesita el `AppHandle` para
+    // emitir `meeting-interrupted`, y nunca aborta el arranque: no poder
+    // recuperar una reunión vieja no es motivo para que la app no abra.
+    if let Err(e) = meeting_manager.recover_interrupted_meetings() {
+        log::warn!("No se pudieron recuperar reuniones interrumpidas: {}", e);
+    }
+
+    app_handle.manage(meeting_manager.clone());
+    app_handle.manage(diarization_engine.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
     // Voz de salida: estado del motor TTS, cargado perezosamente en el
     // primer `tts_speak` (ver `tts::TtsState`).
@@ -695,6 +736,10 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::meeting::start_meeting,
+            commands::meeting::stop_meeting,
+            commands::meeting::assign_speaker_name,
+            commands::meeting::merge_speakers,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,
@@ -718,6 +763,13 @@ pub fn run(cli_args: CliArgs) {
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
             actions::PostProcessFallback,
+            managers::meeting::MeetingSegment,
+            managers::meeting::MeetingProgress,
+            managers::meeting::MeetingFinished,
+            managers::meeting::MeetingError,
+            managers::meeting::MeetingInterrupted,
+            managers::meeting::MeetingCallDetected,
+            managers::meeting::MeetingCallEnded,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

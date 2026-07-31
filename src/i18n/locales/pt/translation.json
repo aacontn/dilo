@@ -18,7 +18,8 @@
     "debug": "Depuração",
     "about": "Sobre",
     "notes": "Notas",
-    "voice": "Voz"
+    "voice": "Voz",
+    "meetings": "Reuniões"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Novidades no Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Reuniões",
+      "description": "Grave uma reunião presencial e veja a transcrição aparecer, com cada voz separada. Tudo acontece no seu computador."
+    },
+    "controls": {
+      "stateIdle": "Pronto para gravar",
+      "stateRecording": "Gravando",
+      "stateProcessing": "Finalizando",
+      "idleTitle": "Grave sua próxima reunião",
+      "idleDescription": "O Dilo escuta pelo microfone, separa quem fala e vai escrevendo enquanto a reunião acontece.",
+      "recordingTitle": "Estamos gravando",
+      "recordingDescription": "O texto vai aparecendo abaixo conforme cada um termina de falar.",
+      "processingTitle": "Terminando a transcrição",
+      "processingDescription": "Faltam as últimas falas. Em alguns segundos fica pronto.",
+      "start": "Gravar reunião",
+      "starting": "Abrindo o microfone…",
+      "stop": "Parar",
+      "finishing": "Finalizando…",
+      "kindPresencial": "Presencial, com o microfone deste aparelho",
+      "privacy": "O áudio não sai do seu computador: a transcrição e a separação de vozes acontecem aqui.",
+      "startFailed": "Não foi possível começar a gravar",
+      "stopFailed": "Não foi possível parar a reunião"
+    },
+    "transcript": {
+      "title": "Transcrição ao vivo",
+      "subtitle": "Cada fala é salva assim que é transcrita.",
+      "empty": "Aqui vai aparecer o que for falado.",
+      "listening": "Escutando… assim que alguém falar, o texto aparece aqui.",
+      "speakerLabel": "Falante {{number}}",
+      "unknownSpeaker": "Não identificado",
+      "overlapped": "vozes sobrepostas",
+      "speakerCount_one": "{{count}} voz",
+      "speakerCount_other": "{{count}} vozes"
+    },
+    "speakers": {
+      "title": "Quem é quem",
+      "subtitle": "Dê um nome a cada voz. Se o Dilo dividiu a mesma pessoa em duas, junte-as.",
+      "save": "Salvar",
+      "interventions_one": "{{count}} fala",
+      "interventions_other": "{{count}} falas",
+      "nameFailed": "Não foi possível salvar o nome",
+      "mergeLabel": "Juntar duas vozes",
+      "mergeHelp": "Se dois falantes são a mesma pessoa, escolha qual entra em qual. A transcrição se reorganiza sozinha.",
+      "mergeSource": "Esta voz…",
+      "mergeInto": "é",
+      "mergeTarget": "…esta pessoa",
+      "mergeAction": "Juntar",
+      "mergeDone": "Pronto, viraram uma pessoa só",
+      "mergeFailed": "Não foi possível juntar"
+    }
   }
 }

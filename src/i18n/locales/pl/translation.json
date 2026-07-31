@@ -18,7 +18,8 @@
     "debug": "Debugowanie",
     "about": "O programie",
     "notes": "Notatki",
-    "voice": "Głos"
+    "voice": "Głos",
+    "meetings": "Spotkania"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Nowości w Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Spotkania",
+      "description": "Nagraj spotkanie na żywo i patrz, jak powstaje transkrypcja z rozdzielonymi głosami. Wszystko dzieje się na twoim komputerze."
+    },
+    "controls": {
+      "stateIdle": "Gotowe do nagrywania",
+      "stateRecording": "Nagrywanie",
+      "stateProcessing": "Kończenie",
+      "idleTitle": "Nagraj swoje następne spotkanie",
+      "idleDescription": "Dilo słucha przez mikrofon, rozróżnia głosy i zapisuje w trakcie spotkania.",
+      "recordingTitle": "Nagrywamy",
+      "recordingDescription": "Tekst pojawia się poniżej, gdy ktoś skończy mówić.",
+      "processingTitle": "Kończymy transkrypcję",
+      "processingDescription": "Zostały ostatnie wypowiedzi. Za kilka sekund będzie gotowe.",
+      "start": "Nagraj spotkanie",
+      "starting": "Otwieram mikrofon…",
+      "stop": "Zatrzymaj",
+      "finishing": "Kończenie…",
+      "kindPresencial": "Na żywo, mikrofonem tego urządzenia",
+      "privacy": "Dźwięk nie opuszcza twojego komputera: transkrypcja i rozdzielanie głosów dzieją się tutaj.",
+      "startFailed": "Nie udało się rozpocząć nagrywania",
+      "stopFailed": "Nie udało się zatrzymać spotkania"
+    },
+    "transcript": {
+      "title": "Transkrypcja na żywo",
+      "subtitle": "Każda wypowiedź zapisuje się od razu po transkrypcji.",
+      "empty": "Tutaj pojawi się to, co zostanie powiedziane.",
+      "listening": "Słucham… gdy ktoś się odezwie, tekst pojawi się tutaj.",
+      "speakerLabel": "Mówca {{number}}",
+      "unknownSpeaker": "Nierozpoznany",
+      "overlapped": "głosy nałożone",
+      "speakerCount_one": "{{count}} głos",
+      "speakerCount_other": "{{count}} głosy"
+    },
+    "speakers": {
+      "title": "Kto jest kim",
+      "subtitle": "Nadaj nazwę każdemu głosowi. Jeśli Dilo rozdzielił jedną osobę na dwie, połącz je.",
+      "save": "Zapisz",
+      "interventions_one": "{{count}} wypowiedź",
+      "interventions_other": "{{count}} wypowiedzi",
+      "nameFailed": "Nie udało się zapisać nazwy",
+      "mergeLabel": "Połącz dwa głosy",
+      "mergeHelp": "Jeśli dwaj mówcy to ta sama osoba, wybierz, który dołącza do którego. Transkrypcja poprawi się sama.",
+      "mergeSource": "Ten głos…",
+      "mergeInto": "to",
+      "mergeTarget": "…ta osoba",
+      "mergeAction": "Połącz",
+      "mergeDone": "Gotowe, teraz to jedna osoba",
+      "mergeFailed": "Nie udało się połączyć"
+    }
   }
 }

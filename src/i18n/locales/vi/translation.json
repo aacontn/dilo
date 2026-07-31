@@ -18,7 +18,8 @@
     "debug": "Gỡ lỗi",
     "about": "Giới thiệu",
     "notes": "Ghi chú",
-    "voice": "Giọng nói"
+    "voice": "Giọng nói",
+    "meetings": "Cuộc họp"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Điểm mới trong Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Cuộc họp",
+      "description": "Ghi âm một cuộc họp trực tiếp và xem bản ghi hiện ra, tách riêng từng giọng nói. Mọi thứ diễn ra trên máy của bạn."
+    },
+    "controls": {
+      "stateIdle": "Sẵn sàng ghi",
+      "stateRecording": "Đang ghi",
+      "stateProcessing": "Đang hoàn tất",
+      "idleTitle": "Ghi lại cuộc họp tiếp theo",
+      "idleDescription": "Dilo nghe qua micrô, phân biệt ai đang nói và viết ngay trong lúc họp.",
+      "recordingTitle": "Đang ghi âm",
+      "recordingDescription": "Văn bản hiện ra bên dưới mỗi khi có người nói xong.",
+      "processingTitle": "Đang hoàn tất bản ghi",
+      "processingDescription": "Còn vài câu cuối đang được chuyển thành văn bản. Vài giây nữa là xong.",
+      "start": "Ghi cuộc họp",
+      "starting": "Đang mở micrô…",
+      "stop": "Dừng",
+      "finishing": "Đang kết thúc…",
+      "kindPresencial": "Trực tiếp, dùng micrô của máy này",
+      "privacy": "Âm thanh không rời khỏi máy của bạn: việc chuyển lời và tách giọng đều làm tại đây.",
+      "startFailed": "Không thể bắt đầu ghi",
+      "stopFailed": "Không thể dừng cuộc họp"
+    },
+    "transcript": {
+      "title": "Bản ghi trực tiếp",
+      "subtitle": "Mỗi lượt nói được lưu ngay khi chuyển thành văn bản.",
+      "empty": "Nội dung được nói sẽ hiện ở đây.",
+      "listening": "Đang nghe… có người nói là văn bản hiện ra ngay.",
+      "speakerLabel": "Người nói {{number}}",
+      "unknownSpeaker": "Chưa xác định",
+      "overlapped": "giọng chồng nhau",
+      "speakerCount_one": "{{count}} giọng",
+      "speakerCount_other": "{{count}} giọng"
+    },
+    "speakers": {
+      "title": "Ai là ai",
+      "subtitle": "Đặt tên cho từng giọng. Nếu Dilo tách nhầm một người thành hai, hãy gộp lại.",
+      "save": "Lưu",
+      "interventions_one": "{{count}} lượt nói",
+      "interventions_other": "{{count}} lượt nói",
+      "nameFailed": "Không lưu được tên",
+      "mergeLabel": "Gộp hai giọng",
+      "mergeHelp": "Nếu hai người nói thật ra là một, chọn giọng nào gộp vào giọng nào. Bản ghi tự cập nhật.",
+      "mergeSource": "Giọng này…",
+      "mergeInto": "chính là",
+      "mergeTarget": "…người này",
+      "mergeAction": "Gộp",
+      "mergeDone": "Xong, giờ chỉ còn một người",
+      "mergeFailed": "Không gộp được"
+    }
   }
 }

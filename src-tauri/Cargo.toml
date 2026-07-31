@@ -90,11 +90,37 @@ sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 # igual que `transcribe-rs` (ver su Cargo.toml) para que Cargo unifique una
 # sola instancia de `ort`/`ndarray` en el build en vez de compilar el
 # runtime de ONNX dos veces.
+#
+# T002 (notetaker de reuniones, ver specs/001-meeting-notetaker/research.md
+# §1): este mismo `ort` alcanza para correr los modelos ONNX de diarización
+# de sherpa-onnx (segmentación pyannote + embeddings de hablante) cuando
+# lleguen en T009 — no hace falta sumar el crate/binding de sherpa-onnx. El
+# propio sherpa-onnx carga esos modelos con un `Ort::Session` plano, sin ops
+# custom (ver sherpa-onnx/csrc/offline-speaker-segmentation-pyannote-model.cc
+# y speaker-embedding-extractor-model.cc), igual que `tts/supertonic.rs` ya
+# hace acá. Detalle completo en el reporte de T002.
 ort = "=2.0.0-rc.12"
 ndarray = "0.17"
 rand = "0.8"
 rand_distr = "0.4"
 unicode-normalization = "0.1"
+# T009 (diarización, ver managers/diarization.rs y research.md §1 "Corrección
+# encontrada"): dos dependencias nuevas, ambas puro Rust.
+#
+# `kaldi-native-fbank` computa los features Fbank (80-dim log-mel) que el
+# modelo de embeddings de hablante (CAM++/3D-Speaker) espera como entrada.
+# Es un port directo de la MISMA librería C++ `kaldi-native-fbank` que
+# sherpa-onnx vendorea internamente (confirmado leyendo
+# sherpa-onnx/csrc/features.cc, que incluye literalmente
+# "kaldi-native-fbank/csrc/online-feature.h") — no es una reimplementación
+# aproximada de Fbank, es el mismo algoritmo de origen.
+kaldi-native-fbank = "0.1"
+# `kodama` implementa clustering jerárquico/aglomerativo puro Rust, inspirado
+# explícitamente en `fastcluster` (Müllner) — la misma familia de algoritmo
+# que usa sherpa-onnx/csrc/fast-clustering.cc (confirmado leyendo ese
+# archivo: usa un vendored `fastcluster-all-in-one.h`). Candidato que ya
+# había identificado T002 en research.md; T009 lo confirma y lo agrega.
+kodama = "0.3"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
@@ -164,6 +190,10 @@ tauri-utils = { git = "https://github.com/cjpais/tauri.git", branch = "handy-2.1
 
 [dev-dependencies]
 tempfile = "3"
+# Runtime mock de Tauri (`tauri::test::mock_app`): sin esto no hay forma de
+# probar que un evento backend->frontend realmente se emite — un `AppHandle`
+# real necesita event loop y ventana. Sólo dev: no entra en el binario.
+tauri = { version = "2.10.2", features = ["test"] }
 
 [profile.release]
 lto = true

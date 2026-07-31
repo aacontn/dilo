@@ -18,7 +18,8 @@
     "debug": "デバッグ",
     "about": "概要",
     "notes": "ノート",
-    "voice": "音声"
+    "voice": "音声",
+    "meetings": "ミーティング"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Dilo v{{version}} の新機能"
+  },
+  "meeting": {
+    "page": {
+      "title": "ミーティング",
+      "description": "対面のミーティングを録音して、話者ごとに分かれた文字起こしが増えていくのを見られます。すべて自分のパソコンの中で動きます。"
+    },
+    "controls": {
+      "stateIdle": "録音の準備完了",
+      "stateRecording": "録音中",
+      "stateProcessing": "仕上げ中",
+      "idleTitle": "次のミーティングを録音",
+      "idleDescription": "Diloがマイクから聞き取り、話者を聞き分けて、進行中に書き起こします。",
+      "recordingTitle": "録音しています",
+      "recordingDescription": "誰かが話し終えるたびに、下にテキストが出てきます。",
+      "processingTitle": "文字起こしを仕上げています",
+      "processingDescription": "最後の発言をまだ書き起こし中です。数秒で終わります。",
+      "start": "ミーティングを録音",
+      "starting": "マイクを開いています…",
+      "stop": "停止",
+      "finishing": "仕上げ中…",
+      "kindPresencial": "対面、この端末のマイクを使用",
+      "privacy": "音声はパソコンの外に出ません。文字起こしも話者の分離もここで行われます。",
+      "startFailed": "録音を開始できませんでした",
+      "stopFailed": "ミーティングを停止できませんでした"
+    },
+    "transcript": {
+      "title": "ライブ文字起こし",
+      "subtitle": "発言は書き起こされ次第、その都度保存されます。",
+      "empty": "話された内容がここに出てきます。",
+      "listening": "聞いています… 誰かが話し始めると、ここにテキストが出ます。",
+      "speakerLabel": "話者 {{number}}",
+      "unknownSpeaker": "未特定",
+      "overlapped": "声が重なりました",
+      "speakerCount_one": "{{count}} 人の声",
+      "speakerCount_other": "{{count}} 人の声"
+    },
+    "speakers": {
+      "title": "誰が誰か",
+      "subtitle": "それぞれの声に名前を付けましょう。同じ人が2つに分かれてしまったら、まとめられます。",
+      "save": "保存",
+      "interventions_one": "{{count}} 回の発言",
+      "interventions_other": "{{count}} 回の発言",
+      "nameFailed": "名前を保存できませんでした",
+      "mergeLabel": "2つの声をまとめる",
+      "mergeHelp": "2人の話者が同じ人なら、どちらをどちらにまとめるか選んでください。文字起こしは自動で更新されます。",
+      "mergeSource": "この声は…",
+      "mergeInto": "＝",
+      "mergeTarget": "…この人",
+      "mergeAction": "まとめる",
+      "mergeDone": "完了しました。1人にまとまりました",
+      "mergeFailed": "まとめられませんでした"
+    }
   }
 }

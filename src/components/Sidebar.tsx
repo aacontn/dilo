@@ -10,10 +10,12 @@ import {
   Sparkles,
   Cpu,
   NotebookPen,
+  Users,
   Volume2,
 } from "lucide-react";
 import { Wordmark } from "./shared";
 import { HomeDashboard } from "./home";
+import { MeetingSession } from "./meeting";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -87,6 +89,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.notes",
     icon: NotebookPen,
     component: NotesSettings,
+    enabled: () => true,
+  },
+  meetings: {
+    labelKey: "sidebar.meetings",
+    icon: Users,
+    component: MeetingSession,
     enabled: () => true,
   },
   voice: {

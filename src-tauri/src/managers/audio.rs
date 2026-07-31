@@ -18,7 +18,6 @@ use std::time::{Duration, Instant};
 use tauri::Manager;
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
-const VAD_THRESHOLD: f32 = 0.3;
 
 fn set_mute(mute: bool) {
     // Expected behavior:
@@ -128,6 +127,97 @@ pub enum MicrophoneMode {
 
 /* ──────────────────────────────────────────────────────────────── */
 
+/// Which subsystem currently holds the exclusive right to open/drive the
+/// physical microphone via its own `AudioRecorder`. Dictation
+/// (`AudioRecordingManager`) and the meeting notetaker (`MeetingManager`,
+/// `managers/meeting.rs`) each build and open an independent `AudioRecorder`
+/// — see the coexistence decision documented at the top of
+/// `managers/meeting.rs` for why the two must not record at the same time.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MicOwner {
+    Dictation,
+    // Constructed by `MeetingManager::start_capture`/`stop_capture`
+    // (managers/meeting.rs, T012), which aren't called from a Tauri command
+    // yet — see the coexistence note there for the full picture.
+    #[allow(dead_code)]
+    Meeting,
+}
+
+impl MicOwner {
+    /// Human-readable label for error messages surfaced to the user.
+    pub fn label(self) -> &'static str {
+        match self {
+            MicOwner::Dictation => "el dictado",
+            MicOwner::Meeting => "una reunión grabando",
+        }
+    }
+}
+
+/// Cross-manager exclusive gate on the physical microphone.
+///
+/// Created once in `initialize_core_logic` and cloned into both
+/// `AudioRecordingManager` and `MeetingManager` — neither manager imports
+/// the other's types, avoiding a dependency cycle between `audio.rs` and
+/// `meeting.rs`. Tracks whether *any* dictation mic stream is open, not
+/// just whether a recording is active: claimed in `start_microphone_stream`
+/// (before the device is opened — covers on-demand recording AND
+/// always-on's persistent idle stream, since every caller routes through
+/// that one function) and released in `stop_microphone_stream` (when the
+/// device is actually closed); `MeetingManager::start_capture`/
+/// `stop_capture` mirror this around their own `AudioRecorder`. See the
+/// coexistence note in `managers/meeting.rs` for the full reasoning,
+/// including the deliberate `lazy_stream_close` grace-window gap (dictation
+/// keeps holding this for up to `STREAM_IDLE_TIMEOUT` after a recording
+/// ends, since the stream itself stays open that long).
+#[derive(Clone)]
+pub struct MicrophoneArbiter {
+    owner: Arc<Mutex<Option<MicOwner>>>,
+}
+
+impl MicrophoneArbiter {
+    pub fn new() -> Self {
+        Self {
+            owner: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// Claim the microphone for `owner`. Fails with the current holder if
+    /// someone else already has it; succeeds (idempotently) if `owner`
+    /// already holds it.
+    pub fn try_acquire(&self, owner: MicOwner) -> Result<(), MicOwner> {
+        let mut guard = self.owner.lock().unwrap();
+        match *guard {
+            None => {
+                *guard = Some(owner);
+                Ok(())
+            }
+            Some(current) if current == owner => Ok(()),
+            Some(current) => Err(current),
+        }
+    }
+
+    /// Release the microphone, but only if `owner` is still the current
+    /// holder — a stale release from an already-superseded session is a
+    /// harmless no-op rather than clobbering a newer holder's claim.
+    pub fn release(&self, owner: MicOwner) {
+        let mut guard = self.owner.lock().unwrap();
+        if *guard == Some(owner) {
+            *guard = None;
+        }
+    }
+}
+
+impl Default for MicrophoneArbiter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Onset detection threshold for the Silero VAD engine, shared by dictation's
+/// recorder and the meeting notetaker's own recorder (`managers/meeting.rs`)
+/// so both apply the same speech-detection sensitivity.
+pub(crate) const VAD_THRESHOLD: f32 = 0.3;
+
 fn create_audio_recorder(
     vad_path: &Path,
     app_handle: &tauri::AppHandle,
@@ -193,6 +283,11 @@ pub struct AudioRecordingManager {
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
+    /// Cross-manager gate shared with `MeetingManager` so a meeting recording
+    /// and a dictation recording can't both drive the physical microphone at
+    /// once. See [`MicrophoneArbiter`] and the coexistence note in
+    /// `managers/meeting.rs`.
+    mic_arbiter: MicrophoneArbiter,
 }
 
 impl AudioRecordingManager {
@@ -201,6 +296,7 @@ impl AudioRecordingManager {
     pub fn new(
         app: &tauri::AppHandle,
         stream_router: Arc<StreamRouter>,
+        mic_arbiter: MicrophoneArbiter,
     ) -> Result<Self, anyhow::Error> {
         let settings = get_settings(app);
         let mode = if settings.always_on_microphone {
@@ -222,6 +318,7 @@ impl AudioRecordingManager {
             cancel_generation: Arc::new(AtomicU64::new(0)),
             stream_router,
             cached_device: Arc::new(Mutex::new(None)),
+            mic_arbiter,
         };
 
         // Always-on?  Open immediately.
@@ -298,6 +395,11 @@ impl AudioRecordingManager {
         device
     }
 
+    // Note: while this grace window is pending, the mic stream stays open,
+    // so `MicrophoneArbiter` keeps holding `MicOwner::Dictation` too — a
+    // meeting can't start during this ~30s tail even though nothing is
+    // actively being dictated. Deliberate consequence of the arbiter
+    // tracking the stream, not the recording; see `MicrophoneArbiter`'s doc.
     fn schedule_lazy_close(&self) {
         let gen = self.close_generation.fetch_add(1, Ordering::SeqCst) + 1;
         let app = self.app_handle.clone();
@@ -373,59 +475,95 @@ impl AudioRecordingManager {
             return Ok(());
         }
 
-        let start_time = Instant::now();
+        // Claim the arbiter before actually opening the device. Every caller
+        // of this function — on-demand's `try_start_recording` AND
+        // always-on's startup/mode-switch path — routes through here, so
+        // the arbiter now correctly reflects "is *any* dictation mic stream
+        // open," not just "is a recording active." That closes the gap
+        // where an always-on user's persistently-open idle stream wasn't
+        // gated at all, letting a meeting open a second concurrent stream
+        // on the same device underneath it with no detection (T012 review
+        // finding #2). Released in `stop_microphone_stream` — the
+        // mirror-image "the stream is actually closing" point — not in
+        // `stop_recording`/`cancel_recording`, which only end the
+        // *recording*; always-on mode keeps the stream itself open past
+        // that point, so releasing there used to free the arbiter while the
+        // device was still genuinely open (T012 review finding #1/#2).
+        if let Err(owner) = self.mic_arbiter.try_acquire(MicOwner::Dictation) {
+            anyhow::bail!(
+                "El micrófono está en uso por {} ahora mismo.",
+                owner.label()
+            );
+        }
 
-        // Don't mute immediately - caller will handle muting after audio feedback
-        let mut did_mute_guard = self.did_mute.lock().unwrap();
-        *did_mute_guard = false;
+        let open_result = (|| -> Result<(), anyhow::Error> {
+            let start_time = Instant::now();
 
-        // Get the selected device from settings, considering clamshell mode.
-        // No pre-flight enumeration here: when nothing is configured the
-        // recorder resolves the system default itself, and a machine with no
-        // input devices at all fails inside open() with the same
-        // "No input device found" error this used to check for.
-        let settings = get_settings(&self.app_handle);
-        let resolve_started = Instant::now();
-        let selected_device = self.get_effective_microphone_device(&settings);
-        let resolve_elapsed = resolve_started.elapsed();
+            // Don't mute immediately - caller will handle muting after audio feedback
+            let mut did_mute_guard = self.did_mute.lock().unwrap();
+            *did_mute_guard = false;
+            drop(did_mute_guard);
 
-        // Ensure VAD is loaded if it wasn't for whatever reason
-        let vad_started = Instant::now();
-        self.preload_vad()?;
-        let vad_elapsed = vad_started.elapsed();
+            // Get the selected device from settings, considering clamshell mode.
+            // No pre-flight enumeration here: when nothing is configured the
+            // recorder resolves the system default itself, and a machine with no
+            // input devices at all fails inside open() with the same
+            // "No input device found" error this used to check for.
+            let settings = get_settings(&self.app_handle);
+            let resolve_started = Instant::now();
+            let selected_device = self.get_effective_microphone_device(&settings);
+            let resolve_elapsed = resolve_started.elapsed();
 
-        let open_started = Instant::now();
-        let mut recorder_opt = self.recorder.lock().unwrap();
-        if let Some(rec) = recorder_opt.as_mut() {
-            if let Err(first_err) = rec.open(selected_device.clone()) {
-                // A cached device or config may have gone stale (unplugged,
-                // rate/format changed). Re-resolve from a fresh enumeration and
-                // retry once before surfacing the error.
-                warn!("Recorder open failed ({first_err}); re-resolving device and retrying once");
-                self.invalidate_device_cache();
-                let fresh_device = self.get_effective_microphone_device(&settings);
-                rec.open(fresh_device)
-                    .map_err(|e| anyhow::anyhow!("Failed to open recorder: {}", e))?;
+            // Ensure VAD is loaded if it wasn't for whatever reason
+            let vad_started = Instant::now();
+            self.preload_vad()?;
+            let vad_elapsed = vad_started.elapsed();
+
+            let open_started = Instant::now();
+            let mut recorder_opt = self.recorder.lock().unwrap();
+            if let Some(rec) = recorder_opt.as_mut() {
+                if let Err(first_err) = rec.open(selected_device.clone()) {
+                    // A cached device or config may have gone stale (unplugged,
+                    // rate/format changed). Re-resolve from a fresh enumeration and
+                    // retry once before surfacing the error.
+                    warn!(
+                        "Recorder open failed ({first_err}); re-resolving device and retrying once"
+                    );
+                    self.invalidate_device_cache();
+                    let fresh_device = self.get_effective_microphone_device(&settings);
+                    rec.open(fresh_device)
+                        .map_err(|e| anyhow::anyhow!("Failed to open recorder: {}", e))?;
+                }
+            }
+            debug!(
+                "mic stream breakdown: device_resolve={:?} vad_ensure={:?} open={:?}",
+                resolve_elapsed,
+                vad_elapsed,
+                open_started.elapsed()
+            );
+
+            // This timing covers through cpal's stream.play() returning — i.e. the
+            // point cpal surfaces as "stream running." It does NOT guarantee the
+            // host audio device is producing samples yet; the first input callback
+            // fires asynchronously one buffer period later (hardware dependent,
+            // typically ~10–200ms on macOS, longer on Bluetooth/USB).
+            info!(
+                "Microphone stream initialized in {:?}",
+                start_time.elapsed()
+            );
+            Ok(())
+        })();
+
+        match open_result {
+            Ok(()) => {
+                *open_flag = true;
+                Ok(())
+            }
+            Err(e) => {
+                self.mic_arbiter.release(MicOwner::Dictation);
+                Err(e)
             }
         }
-        debug!(
-            "mic stream breakdown: device_resolve={:?} vad_ensure={:?} open={:?}",
-            resolve_elapsed,
-            vad_elapsed,
-            open_started.elapsed()
-        );
-
-        *open_flag = true;
-        // This timing covers through cpal's stream.play() returning — i.e. the
-        // point cpal surfaces as "stream running." It does NOT guarantee the
-        // host audio device is producing samples yet; the first input callback
-        // fires asynchronously one buffer period later (hardware dependent,
-        // typically ~10–200ms on macOS, longer on Bluetooth/USB).
-        info!(
-            "Microphone stream initialized in {:?}",
-            start_time.elapsed()
-        );
-        Ok(())
     }
 
     pub fn stop_microphone_stream(&self) {
@@ -450,6 +588,11 @@ impl AudioRecordingManager {
         }
 
         *open_flag = false;
+        // Mirror-image of the acquire in `start_microphone_stream`: the
+        // device stream is actually closed now, so release unconditionally
+        // (idempotent/safe even if, somehow, this manager wasn't the
+        // current holder — see `MicrophoneArbiter::release`).
+        self.mic_arbiter.release(MicOwner::Dictation);
         debug!("Microphone stream stopped");
     }
 
@@ -486,6 +629,20 @@ impl AudioRecordingManager {
         let mut state = self.state.lock().unwrap();
 
         if let RecordingState::Idle = *state {
+            // Refuse to start if a meeting is currently capturing — the two
+            // never record concurrently (see the coexistence note in
+            // `managers/meeting.rs`). The arbiter is claimed/released purely
+            // around the physical device stream being open, not around this
+            // recording state — see `start_microphone_stream`/
+            // `stop_microphone_stream` — so on-demand mode is guarded here
+            // (it opens the stream fresh) and always-on mode is guarded by
+            // construction (its stream, and thus the arbiter claim, has been
+            // held since startup/mode-switch; nothing here needs to
+            // re-check it, and releasing on every stop-recording used to
+            // free the arbiter while the always-on stream was still
+            // genuinely open underneath a meeting — see T012 review finding
+            // #1/#2 for the bug this replaced).
+
             // Ensure microphone is open in on-demand mode
             if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
                 // Cancel any pending lazy close
@@ -507,6 +664,10 @@ impl AudioRecordingManager {
                     return Ok(());
                 }
             }
+            // The mic stream may still be open here (on-demand open
+            // succeeded but rec.start() itself failed) — deliberately not
+            // releasing the arbiter: it tracks the device stream, which is
+            // still open, not this recording attempt.
             Err("Recorder not available".to_string())
         } else {
             Err("Already recording".to_string())
@@ -582,6 +743,14 @@ impl AudioRecordingManager {
 
                 *self.is_recording.lock().unwrap() = false;
                 *self.state.lock().unwrap() = RecordingState::Idle;
+                // Deliberately not releasing the mic arbiter here: it tracks
+                // whether the physical device stream is open
+                // (`start_microphone_stream`/`stop_microphone_stream`), not
+                // whether a recording is in progress. Always-on mode keeps
+                // the stream open after this returns, so releasing here
+                // would free the arbiter while the device is still open
+                // underneath it — exactly the bug T012 review finding #1/#2
+                // flagged.
 
                 // In on-demand mode, close the mic (lazily if the setting is enabled)
                 if matches!(*self.mode.lock().unwrap(), MicrophoneMode::OnDemand) {
@@ -627,6 +796,9 @@ impl AudioRecordingManager {
             RecordingState::Recording { .. } => {
                 *state = RecordingState::Idle;
                 drop(state);
+                // See the matching comment in `stop_recording`: the arbiter
+                // tracks the device stream, not this recording, so it isn't
+                // released here either.
 
                 if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
                     let _ = rec.stop(); // Discard the result
@@ -648,5 +820,71 @@ impl AudioRecordingManager {
             }
             RecordingState::Idle => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MicOwner, MicrophoneArbiter};
+
+    #[test]
+    fn free_arbiter_grants_either_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        assert!(arbiter.try_acquire(MicOwner::Dictation).is_ok());
+        arbiter.release(MicOwner::Dictation);
+        assert!(arbiter.try_acquire(MicOwner::Meeting).is_ok());
+        arbiter.release(MicOwner::Meeting);
+    }
+
+    #[test]
+    fn held_arbiter_blocks_the_other_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter
+            .try_acquire(MicOwner::Meeting)
+            .expect("first claim should succeed");
+
+        let err = arbiter
+            .try_acquire(MicOwner::Dictation)
+            .expect_err("dictation must not be able to claim a mic a meeting already holds");
+        assert_eq!(err, MicOwner::Meeting);
+    }
+
+    #[test]
+    fn reacquiring_the_same_owner_is_idempotent() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Dictation).unwrap();
+        assert!(
+            arbiter.try_acquire(MicOwner::Dictation).is_ok(),
+            "the same owner re-claiming should not be treated as a conflict"
+        );
+    }
+
+    #[test]
+    fn release_only_clears_the_matching_owner() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Meeting).unwrap();
+
+        // A stale release from a superseded/mismatched owner must not clobber
+        // the real holder's claim.
+        arbiter.release(MicOwner::Dictation);
+        assert_eq!(
+            arbiter.try_acquire(MicOwner::Dictation).unwrap_err(),
+            MicOwner::Meeting,
+            "meeting's claim should still be held after an unrelated release"
+        );
+
+        arbiter.release(MicOwner::Meeting);
+        assert!(
+            arbiter.try_acquire(MicOwner::Dictation).is_ok(),
+            "releasing the real holder should free the arbiter"
+        );
+    }
+
+    #[test]
+    fn after_release_the_other_owner_can_acquire() {
+        let arbiter = MicrophoneArbiter::new();
+        arbiter.try_acquire(MicOwner::Dictation).unwrap();
+        arbiter.release(MicOwner::Dictation);
+        assert!(arbiter.try_acquire(MicOwner::Meeting).is_ok());
     }
 }

@@ -18,7 +18,8 @@
     "debug": "ניפוי שגיאות",
     "about": "אודות",
     "notes": "הערות",
-    "voice": "קול"
+    "voice": "קול",
+    "meetings": "פגישות"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "חדש ב-Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "פגישות",
+      "description": "הקלט פגישה פרונטלית וראה את התמלול נבנה, כשכל קול מופרד. הכול קורה במחשב שלך."
+    },
+    "controls": {
+      "stateIdle": "מוכן להקלטה",
+      "stateRecording": "מקליט",
+      "stateProcessing": "מסיים",
+      "idleTitle": "הקלט את הפגישה הבאה שלך",
+      "idleDescription": "Dilo מאזין דרך המיקרופון, מבחין בין הדוברים וכותב תוך כדי הפגישה.",
+      "recordingTitle": "מקליטים עכשיו",
+      "recordingDescription": "הטקסט מופיע למטה ברגע שמישהו מסיים לדבר.",
+      "processingTitle": "משלימים את התמלול",
+      "processingDescription": "נותרו המשפטים האחרונים לתמלול. עוד כמה שניות והכול מוכן.",
+      "start": "הקלט פגישה",
+      "starting": "פותח את המיקרופון…",
+      "stop": "עצור",
+      "finishing": "מסיים…",
+      "kindPresencial": "פרונטלית, עם המיקרופון של המחשב הזה",
+      "privacy": "האודיו לא יוצא מהמחשב שלך: התמלול והפרדת הקולות קורים כאן.",
+      "startFailed": "לא ניתן היה להתחיל להקליט",
+      "stopFailed": "לא ניתן היה לעצור את הפגישה"
+    },
+    "transcript": {
+      "title": "תמלול חי",
+      "subtitle": "כל אמירה נשמרת ברגע שהיא מתומללת.",
+      "empty": "כאן יופיע מה שייאמר.",
+      "listening": "מאזין… ברגע שמישהו ידבר, הטקסט יופיע כאן.",
+      "speakerLabel": "דובר {{number}}",
+      "unknownSpeaker": "לא זוהה",
+      "overlapped": "קולות חופפים",
+      "speakerCount_one": "קול {{count}}",
+      "speakerCount_other": "{{count}} קולות"
+    },
+    "speakers": {
+      "title": "מי זה מי",
+      "subtitle": "תן שם לכל קול. אם Dilo פיצל את אותו אדם לשניים, אחד אותם.",
+      "save": "שמור",
+      "interventions_one": "אמירה {{count}}",
+      "interventions_other": "{{count}} אמירות",
+      "nameFailed": "לא ניתן היה לשמור את השם",
+      "mergeLabel": "איחוד שני קולות",
+      "mergeHelp": "אם שני דוברים הם אותו אדם, בחר מי מתמזג לתוך מי. התמלול יתעדכן מעצמו.",
+      "mergeSource": "הקול הזה…",
+      "mergeInto": "הוא",
+      "mergeTarget": "…האדם הזה",
+      "mergeAction": "אחד",
+      "mergeDone": "מוכן, עכשיו הם אדם אחד",
+      "mergeFailed": "האיחוד נכשל"
+    }
   }
 }

@@ -18,7 +18,8 @@
     "debug": "Debug",
     "about": "Info",
     "notes": "Notizen",
-    "voice": "Stimme"
+    "voice": "Stimme",
+    "meetings": "Meetings"
   },
   "home": {
     "status": {
@@ -877,5 +878,57 @@
   },
   "whatsNew": {
     "title": "Neu in Dilo v{{version}}"
+  },
+  "meeting": {
+    "page": {
+      "title": "Meetings",
+      "description": "Nimm ein Meeting vor Ort auf und sieh das Transkript entstehen, mit getrennten Stimmen. Alles läuft auf deinem Rechner."
+    },
+    "controls": {
+      "stateIdle": "Bereit zur Aufnahme",
+      "stateRecording": "Nimmt auf",
+      "stateProcessing": "Wird abgeschlossen",
+      "idleTitle": "Nimm dein nächstes Meeting auf",
+      "idleDescription": "Dilo hört über das Mikrofon mit, unterscheidet die Stimmen und schreibt mit, während das Meeting läuft.",
+      "recordingTitle": "Aufnahme läuft",
+      "recordingDescription": "Der Text erscheint unten, sobald jemand ausgesprochen hat.",
+      "processingTitle": "Transkript wird fertiggestellt",
+      "processingDescription": "Die letzten Beiträge werden noch transkribiert. In wenigen Sekunden ist alles fertig.",
+      "start": "Meeting aufnehmen",
+      "starting": "Mikrofon wird geöffnet…",
+      "stop": "Stoppen",
+      "finishing": "Wird beendet…",
+      "kindPresencial": "Vor Ort, über das Mikrofon dieses Geräts",
+      "privacy": "Das Audio verlässt deinen Rechner nicht: Transkription und Stimmentrennung passieren hier.",
+      "startFailed": "Aufnahme konnte nicht gestartet werden",
+      "stopFailed": "Meeting konnte nicht gestoppt werden"
+    },
+    "transcript": {
+      "title": "Live-Transkript",
+      "subtitle": "Jeder Beitrag wird gespeichert, sobald er transkribiert ist.",
+      "empty": "Hier erscheint, was gesprochen wird.",
+      "listening": "Höre zu… sobald jemand spricht, erscheint der Text hier.",
+      "speakerLabel": "Sprecher {{number}}",
+      "unknownSpeaker": "Nicht zugeordnet",
+      "overlapped": "Stimmen überlagert",
+      "speakerCount_one": "{{count}} Stimme",
+      "speakerCount_other": "{{count}} Stimmen"
+    },
+    "speakers": {
+      "title": "Wer ist wer",
+      "subtitle": "Gib jeder Stimme einen Namen. Wenn Dilo dieselbe Person zweimal angelegt hat, führ sie zusammen.",
+      "save": "Speichern",
+      "interventions_one": "{{count}} Beitrag",
+      "interventions_other": "{{count}} Beiträge",
+      "nameFailed": "Name konnte nicht gespeichert werden",
+      "mergeLabel": "Zwei Stimmen zusammenführen",
+      "mergeHelp": "Wenn zwei Sprecher dieselbe Person sind, wähle, wer in wen übergeht. Das Transkript aktualisiert sich von selbst.",
+      "mergeSource": "Diese Stimme…",
+      "mergeInto": "ist",
+      "mergeTarget": "…diese Person",
+      "mergeAction": "Zusammenführen",
+      "mergeDone": "Fertig, jetzt sind sie eine Person",
+      "mergeFailed": "Zusammenführen fehlgeschlagen"
+    }
   }
 }

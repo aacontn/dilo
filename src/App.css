@@ -621,4 +621,28 @@
   .dictation-modes-customize {
     transition: none;
   }
+
+  /* El punto queda encendido y quieto: sigue diciendo "grabando" sin
+     latir. Misma política que las ondas del overlay. */
+  .dilo-meeting-pulse {
+    animation: none;
+  }
+}
+
+/* Latido del punto mientras una reunión graba. Sutil a propósito: es un
+   indicador de estado, no una alarma. */
+@keyframes dilo-meeting-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+.dilo-meeting-pulse {
+  animation: dilo-meeting-pulse 1.8s ease-in-out infinite;
 }
