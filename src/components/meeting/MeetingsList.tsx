@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { commands, events, type MeetingSummary } from "@/bindings";
 import { formatRelativeTime } from "@/utils/dateFormat";
 import { Button } from "../ui/Button";
-import { formatDuration } from "./meetingFormat";
+import { appendMeetingPage, formatDuration } from "./meetingFormat";
 
 const PAGE_SIZE = 10;
 
@@ -137,10 +137,9 @@ export const MeetingsList: React.FC<MeetingsListProps> = ({ onSelect }) => {
     try {
       const result = await commands.listMeetings(PAGE_SIZE, rawCount);
       if (result.status === "ok") {
-        setEntries((prev) => [
-          ...prev,
-          ...result.data.meetings.filter(isPastMeeting),
-        ]);
+        setEntries((prev) =>
+          appendMeetingPage(prev, result.data.meetings.filter(isPastMeeting)),
+        );
         setRawCount((prev) => prev + result.data.meetings.length);
         setHasMore(result.data.has_more);
       } else {

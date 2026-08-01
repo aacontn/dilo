@@ -910,6 +910,9 @@
       "startFailed": "Impossibile avviare la registrazione",
       "stopFailed": "Impossibile fermare la riunione"
     },
+    "errors": {
+      "sessionFailed": "La riunione si è interrotta per un errore"
+    },
     "transcript": {
       "title": "Trascrizione dal vivo",
       "subtitle": "Ogni intervento viene salvato appena trascritto.",

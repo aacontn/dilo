@@ -910,6 +910,9 @@
       "startFailed": "録音を開始できませんでした",
       "stopFailed": "ミーティングを停止できませんでした"
     },
+    "errors": {
+      "sessionFailed": "エラーで会議の記録が停止しました"
+    },
     "transcript": {
       "title": "ライブ文字起こし",
       "subtitle": "発言は書き起こされ次第、その都度保存されます。",

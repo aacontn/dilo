@@ -910,6 +910,9 @@
       "startFailed": "Không thể bắt đầu ghi",
       "stopFailed": "Không thể dừng cuộc họp"
     },
+    "errors": {
+      "sessionFailed": "Cuộc họp đã dừng do lỗi"
+    },
     "transcript": {
       "title": "Bản ghi trực tiếp",
       "subtitle": "Mỗi lượt nói được lưu ngay khi chuyển thành văn bản.",

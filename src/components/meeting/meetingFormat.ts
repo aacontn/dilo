@@ -1,3 +1,23 @@
+import type { MeetingSummary } from "@/bindings";
+
+/**
+ * Anexa una página del listado a lo que ya se mostraba, salteando las
+ * reuniones que ya están.
+ *
+ * `list_meetings` pagina por posición (`offset`), así que una reunión nueva
+ * insertada arriba corre todas las demás una fila hacia abajo: "cargar más"
+ * volvía a traer la última fila de la página anterior y aparecía dos veces
+ * (con la misma `key` de React, además). Filtrar por id es barato y arregla
+ * el síntoma; la paginación por cursor sería el arreglo de fondo.
+ */
+export const appendMeetingPage = (
+  shown: MeetingSummary[],
+  page: MeetingSummary[],
+): MeetingSummary[] => {
+  const known = new Set(shown.map((meeting) => meeting.id));
+  return [...shown, ...page.filter((meeting) => !known.has(meeting.id))];
+};
+
 /**
  * Segundos -> `m:ss` o `h:mm:ss`. Igual criterio que `formatOffset` de
  * `TranscriptList` (sin palabras, sólo dígitos) para no sumar claves i18n

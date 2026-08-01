@@ -910,6 +910,9 @@
       "startFailed": "Nie udało się rozpocząć nagrywania",
       "stopFailed": "Nie udało się zatrzymać spotkania"
     },
+    "errors": {
+      "sessionFailed": "Spotkanie zostało przerwane z powodu błędu"
+    },
     "transcript": {
       "title": "Transkrypcja na żywo",
       "subtitle": "Każda wypowiedź zapisuje się od razu po transkrypcji.",

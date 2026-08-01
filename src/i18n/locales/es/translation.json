@@ -910,6 +910,9 @@
       "startFailed": "No se pudo empezar a grabar",
       "stopFailed": "No se pudo detener la reunión"
     },
+    "errors": {
+      "sessionFailed": "La reunión se detuvo por un error"
+    },
     "transcript": {
       "title": "Transcript en vivo",
       "subtitle": "Cada intervención se guarda apenas se transcribe.",

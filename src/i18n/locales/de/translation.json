@@ -910,6 +910,9 @@
       "startFailed": "Aufnahme konnte nicht gestartet werden",
       "stopFailed": "Meeting konnte nicht gestoppt werden"
     },
+    "errors": {
+      "sessionFailed": "Das Meeting wurde durch einen Fehler gestoppt"
+    },
     "transcript": {
       "title": "Live-Transkript",
       "subtitle": "Jeder Beitrag wird gespeichert, sobald er transkribiert ist.",

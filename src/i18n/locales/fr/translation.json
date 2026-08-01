@@ -910,6 +910,9 @@
       "startFailed": "Impossible de démarrer l'enregistrement",
       "stopFailed": "Impossible d'arrêter la réunion"
     },
+    "errors": {
+      "sessionFailed": "La réunion s'est arrêtée à cause d'une erreur"
+    },
     "transcript": {
       "title": "Transcription en direct",
       "subtitle": "Chaque intervention est enregistrée dès qu'elle est transcrite.",

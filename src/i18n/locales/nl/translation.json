@@ -910,6 +910,9 @@
       "startFailed": "Opnemen kon niet starten",
       "stopFailed": "Vergadering kon niet gestopt worden"
     },
+    "errors": {
+      "sessionFailed": "De vergadering is gestopt door een fout"
+    },
     "transcript": {
       "title": "Live transcript",
       "subtitle": "Elke bijdrage wordt opgeslagen zodra die is getranscribeerd.",

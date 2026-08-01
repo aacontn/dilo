@@ -40,6 +40,7 @@ interface MeetingStore {
   stopMeeting: () => Promise<void>;
   appendSegment: (segment: MeetingSegment) => void;
   markFinished: () => void;
+  markErrored: () => void;
   setSpeakerName: (speakerId: number, name: string) => void;
   reset: () => void;
 }
@@ -96,6 +97,16 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
     ),
 
   markFinished: () => set({ status: "ready" }),
+
+  // La sesión murió (falla del pipeline de captura o del cierre). Vuelve a
+  // "listo para grabar" — sin esto la pantalla quedaba clavada en "Cerrando…"
+  // para siempre y `startMeeting` retornaba en silencio por su guard, así que
+  // no había forma de grabar otra sin reiniciar la app.
+  //
+  // Los segmentos ya mostrados NO se borran: el backend los tiene
+  // persistidos (FR-007) y borrarlos de la pantalla haría parecer que se
+  // perdió lo que sí se guardó.
+  markErrored: () => set({ activeMeetingId: null, status: null }),
 
   setSpeakerName: (speakerId, name) =>
     set((state) => {

@@ -1,4 +1,6 @@
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { events, type MeetingSegment } from "@/bindings";
 import { useMeetingStore, type MeetingKind } from "../stores/meetingStore";
 
@@ -32,8 +34,10 @@ interface UseMeetingsReturn {
  * cierra la sesión.
  */
 export const useMeetingEvents = (): void => {
+  const { t } = useTranslation();
   const appendSegment = useMeetingStore((state) => state.appendSegment);
   const markFinished = useMeetingStore((state) => state.markFinished);
+  const markErrored = useMeetingStore((state) => state.markErrored);
 
   useEffect(() => {
     const unlistenSegment = events.meetingSegment.listen((event) => {
@@ -42,8 +46,15 @@ export const useMeetingEvents = (): void => {
     const unlistenFinished = events.meetingFinished.listen(() => {
       markFinished();
     });
+    // Un `meeting-error` era sólo un console.error: la pantalla quedaba en
+    // "Cerrando…" para siempre y no se podía grabar otra reunión. Ahora se
+    // dice lo que pasó y la sesión vuelve a estar disponible.
     const unlistenError = events.meetingError.listen((event) => {
       console.error("Meeting error:", event.payload.error);
+      toast.error(t("meeting.errors.sessionFailed"), {
+        description: event.payload.error,
+      });
+      markErrored();
     });
 
     return () => {
@@ -51,7 +62,7 @@ export const useMeetingEvents = (): void => {
       void unlistenFinished.then((fn) => fn());
       void unlistenError.then((fn) => fn());
     };
-  }, [appendSegment, markFinished]);
+  }, [appendSegment, markFinished, markErrored, t]);
 };
 
 /** Estado y acciones de la sesión en curso. No suscribe a nada. */

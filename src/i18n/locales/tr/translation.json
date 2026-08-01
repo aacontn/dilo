@@ -910,6 +910,9 @@
       "startFailed": "Kayıt başlatılamadı",
       "stopFailed": "Toplantı durdurulamadı"
     },
+    "errors": {
+      "sessionFailed": "Toplantı bir hata nedeniyle durdu"
+    },
     "transcript": {
       "title": "Canlı döküm",
       "subtitle": "Her konuşma, yazıya döküldüğü anda kaydedilir.",

@@ -910,6 +910,9 @@
       "startFailed": "无法开始录制",
       "stopFailed": "无法停止会议"
     },
+    "errors": {
+      "sessionFailed": "会议因错误而停止"
+    },
     "transcript": {
       "title": "实时转写",
       "subtitle": "每段发言一转写完就会保存。",

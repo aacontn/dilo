@@ -910,6 +910,9 @@
       "startFailed": "Nahrávání se nepodařilo spustit",
       "stopFailed": "Schůzku se nepodařilo zastavit"
     },
+    "errors": {
+      "sessionFailed": "Schůzka se zastavila kvůli chybě"
+    },
     "transcript": {
       "title": "Živý přepis",
       "subtitle": "Každá promluva se uloží hned po přepsání.",

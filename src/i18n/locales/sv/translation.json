@@ -910,6 +910,9 @@
       "startFailed": "Kunde inte börja spela in",
       "stopFailed": "Kunde inte stoppa mötet"
     },
+    "errors": {
+      "sessionFailed": "Mötet stoppades på grund av ett fel"
+    },
     "transcript": {
       "title": "Direkttranskript",
       "subtitle": "Varje inlägg sparas så fort det transkriberats.",

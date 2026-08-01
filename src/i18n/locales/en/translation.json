@@ -107,6 +107,9 @@
       "startFailed": "Couldn't start recording",
       "stopFailed": "Couldn't stop the meeting"
     },
+    "errors": {
+      "sessionFailed": "The meeting stopped because of an error"
+    },
     "transcript": {
       "title": "Live transcript",
       "subtitle": "Every turn is saved as soon as it's transcribed.",

@@ -910,6 +910,9 @@
       "startFailed": "녹음을 시작하지 못했습니다",
       "stopFailed": "회의를 중지하지 못했습니다"
     },
+    "errors": {
+      "sessionFailed": "오류로 회의 기록이 중단되었습니다"
+    },
     "transcript": {
       "title": "실시간 대화록",
       "subtitle": "모든 발언은 받아 적히는 즉시 저장됩니다.",

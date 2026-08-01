@@ -910,6 +910,9 @@
       "startFailed": "無法開始錄製",
       "stopFailed": "無法停止會議"
     },
+    "errors": {
+      "sessionFailed": "會議因錯誤而停止"
+    },
     "transcript": {
       "title": "即時逐字稿",
       "subtitle": "每段發言一轉寫完就會儲存。",
