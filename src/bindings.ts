@@ -530,6 +530,16 @@ async overlayReady() : Promise<void> {
 async takePendingFallbackNotices() : Promise<PostProcessFallback[]> {
     return await TAURI_INVOKE("take_pending_fallback_notices");
 },
+/**
+ * Avisos del modo asistente (proveedor sin configurar, LLM caído, TTS
+ * caído, atajo apretado con el modo apagado) que ocurrieron sin ninguna
+ * ventana escuchando el evento `assistant-error` — el caso normal al usar
+ * el atajo del asistente, que abre la ventana principal cerrada. Ver
+ * `assistant::PendingAssistantNotices`.
+ */
+async takePendingAssistantNotices() : Promise<AssistantErrorEvent[]> {
+    return await TAURI_INVOKE("take_pending_assistant_notices");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },
@@ -1331,6 +1341,15 @@ tts_voice?: string;
  * tecla asignada (igual que `quick_note`).
  */
 voice_assistant_enabled?: boolean }
+/**
+ * Payload de `assistant-error` — espejo de `AssistantErrorEvent` en
+ * `src/lib/types/events.ts` (evento plano, no tauri-specta, para no tocar el
+ * listener del frontend que ya lo consume). `Type` (specta) es lo que sí
+ * necesita: viaja también como elemento de retorno de
+ * `take_pending_assistant_notices`, un comando normal que sí pasa por el
+ * builder de bindings.
+ */
+export type AssistantErrorEvent = { error_type: string; detail: string | null }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

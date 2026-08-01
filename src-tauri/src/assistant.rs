@@ -21,7 +21,10 @@ use crate::settings::{
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils;
 use log::{debug, error};
-use tauri::{AppHandle, Emitter};
+use serde::{Deserialize, Serialize};
+use specta::Type;
+use std::sync::Mutex;
+use tauri::{AppHandle, Emitter, Manager};
 
 /// System prompt del asistente — conversacional, es-CL, tuteo, breve porque
 /// la respuesta se ESCUCHA, no se lee. Fijo y propio de este modo: no toca
@@ -237,33 +240,81 @@ pub async fn ask_llm(
     }
 }
 
-#[derive(Clone, serde::Serialize)]
-struct AssistantErrorEvent {
-    error_type: String,
-    detail: Option<String>,
+/// Payload de `assistant-error` — espejo de `AssistantErrorEvent` en
+/// `src/lib/types/events.ts` (evento plano, no tauri-specta, para no tocar el
+/// listener del frontend que ya lo consume). `Type` (specta) es lo que sí
+/// necesita: viaja también como elemento de retorno de
+/// `take_pending_assistant_notices`, un comando normal que sí pasa por el
+/// builder de bindings.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct AssistantErrorEvent {
+    pub error_type: String,
+    pub detail: Option<String>,
 }
 
-/// Notifica el error al frontend (toast) — salvo `Blank`, que no es una
-/// falla real y se maneja en silencio (mismo criterio que
-/// `is_blank_transcription` en el post-proceso normal).
+/// Cuántos avisos del asistente se guardan mientras no haya ventana que los
+/// muestre. Mismo límite y mismo motivo que `MAX_PENDING_FALLBACK_NOTICES`
+/// en `actions.rs`: un proveedor sin configurar de forma permanente generaría
+/// uno por cada apretón del atajo.
+const MAX_PENDING_ASSISTANT_NOTICES: usize = 10;
+
+/// Cola de avisos del asistente pendientes de mostrar.
+///
+/// El evento `assistant-error` sólo llega si hay una ventana escuchando, y el
+/// caso normal al usar el atajo del asistente es con la ventana principal
+/// **cerrada** — es justo lo que le pasó a Alfonso: apretó el atajo, no pasó
+/// nada en pantalla, y la única pista quedó en el log. Mismo mecanismo que
+/// `actions::PendingFallbackNotices`: el frontend la vacía al montar
+/// (`take_pending_assistant_notices`), así el aviso se ve tarde pero se ve.
+#[derive(Default)]
+pub struct PendingAssistantNotices(Mutex<Vec<AssistantErrorEvent>>);
+
+impl PendingAssistantNotices {
+    pub fn push(&self, notice: AssistantErrorEvent) {
+        let mut queue = match self.0.lock() {
+            Ok(q) => q,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        while queue.len() >= MAX_PENDING_ASSISTANT_NOTICES {
+            queue.remove(0);
+        }
+        queue.push(notice);
+    }
+
+    /// Devuelve los avisos pendientes y deja la cola vacía.
+    pub fn take_all(&self) -> Vec<AssistantErrorEvent> {
+        let mut queue = match self.0.lock() {
+            Ok(q) => q,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        std::mem::take(&mut *queue)
+    }
+}
+
 /// Avisa que el atajo del asistente se apretó con el modo apagado. Lo llama
 /// el guard de `actions.rs` para que la tecla no se sienta rota.
 pub fn notify_disabled(app: &AppHandle) {
     emit_assistant_error(app, &AssistantError::Disabled);
 }
 
+/// Notifica el error al frontend (toast) — salvo `Blank`, que no es una
+/// falla real y se maneja en silencio (mismo criterio que
+/// `is_blank_transcription` en el post-proceso normal). Siempre se encola
+/// además de emitirse: si hay una ventana escuchando lo muestra al toque; si
+/// no, `take_pending_assistant_notices` lo entrega cuando se abra una.
 fn emit_assistant_error(app: &AppHandle, err: &AssistantError) {
     if matches!(err, AssistantError::Blank) {
         debug!("Modo asistente: transcripción vacía, no se llama al LLM");
         return;
     }
-    let _ = app.emit(
-        "assistant-error",
-        AssistantErrorEvent {
-            error_type: err.error_type().to_string(),
-            detail: err.detail(),
-        },
-    );
+    let event = AssistantErrorEvent {
+        error_type: err.error_type().to_string(),
+        detail: err.detail(),
+    };
+    if let Some(pending) = app.try_state::<PendingAssistantNotices>() {
+        pending.push(event.clone());
+    }
+    let _ = app.emit("assistant-error", event);
 }
 
 /// Orquesta el modo asistente hablado completo tras una transcripción:
@@ -360,6 +411,33 @@ mod tests {
             .post_process_models
             .insert("openai".to_string(), model.to_string());
         settings
+    }
+
+    #[test]
+    fn pending_assistant_notices_are_drained_once_and_capped() {
+        let pending = PendingAssistantNotices::default();
+        for i in 0..(MAX_PENDING_ASSISTANT_NOTICES + 3) {
+            pending.push(AssistantErrorEvent {
+                error_type: "not_configured".to_string(),
+                detail: Some(format!("intento {i}")),
+            });
+        }
+
+        let drained = pending.take_all();
+        assert_eq!(
+            drained.len(),
+            MAX_PENDING_ASSISTANT_NOTICES,
+            "una falla permanente no puede acumular avisos sin tope"
+        );
+        assert_eq!(
+            drained.first().and_then(|n| n.detail.as_deref()),
+            Some("intento 3"),
+            "al llegar al tope se descartan los más viejos, no los nuevos"
+        );
+        assert!(
+            pending.take_all().is_empty(),
+            "vaciar la cola dos veces no puede repetir los mismos toasts"
+        );
     }
 
     #[test]

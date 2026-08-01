@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { listen } from "@tauri-apps/api/event";
 import { platform } from "@tauri-apps/plugin-os";
 import {
@@ -30,6 +31,38 @@ import {
   getNextOnboardingStep,
   type OnboardingStep,
 } from "@/lib/utils/onboardingFlow";
+
+// Un solo toast para los cuatro tipos de `AssistantErrorEvent` — lo usan
+// tanto el listener en vivo (ventana abierta) como el vaciado de la cola de
+// pendientes (ver `commands.takePendingAssistantNotices`) al montar, así el
+// aviso se ve igual llegue por el camino que llegue.
+// Tipo laxo a propósito: lo alimentan tanto el evento en vivo
+// (`AssistantErrorEvent` de `lib/types/events.ts`, `error_type` como unión
+// literal) como `commands.takePendingAssistantNotices()` (bindings.ts
+// generado por specta, `error_type: string`) — ambos calzan acá sin castear.
+const showAssistantErrorToast = (
+  t: TFunction,
+  event: { error_type: string; detail?: string | null },
+) => {
+  const { error_type, detail } = event;
+  if (error_type === "disabled") {
+    toast.error(t("errors.assistantDisabledTitle"), {
+      description: t("errors.assistantDisabled"),
+    });
+  } else if (error_type === "not_configured") {
+    toast.error(t("errors.assistantNotConfiguredTitle"), {
+      description: t("errors.assistantNotConfigured"),
+    });
+  } else if (error_type === "tts_failed") {
+    toast.error(t("errors.assistantTtsFailedTitle"), {
+      description: detail ?? t("errors.assistantTtsFailed"),
+    });
+  } else {
+    toast.error(t("errors.assistantFailedTitle"), {
+      description: detail ?? t("errors.assistantFailed"),
+    });
+  }
+};
 
 const renderSettingsContent = (
   section: SidebarSection,
@@ -227,29 +260,32 @@ function App() {
   // the Rust side and never reach this event.
   useEffect(() => {
     const unlisten = listen<AssistantErrorEvent>("assistant-error", (event) => {
-      const { error_type, detail } = event.payload;
-      if (error_type === "disabled") {
-        toast.error(t("errors.assistantDisabledTitle"), {
-          description: t("errors.assistantDisabled"),
-        });
-      } else if (error_type === "not_configured") {
-        toast.error(t("errors.assistantNotConfiguredTitle"), {
-          description: t("errors.assistantNotConfigured"),
-        });
-      } else if (error_type === "tts_failed") {
-        toast.error(t("errors.assistantTtsFailedTitle"), {
-          description: detail ?? t("errors.assistantTtsFailed"),
-        });
-      } else {
-        toast.error(t("errors.assistantFailedTitle"), {
-          description: detail ?? t("errors.assistantFailed"),
-        });
-      }
+      showAssistantErrorToast(t, event.payload);
     });
     return () => {
       unlisten.then((fn) => fn());
     };
   }, [t]);
+
+  // Y los avisos del asistente que pasaron con esta ventana cerrada: usar el
+  // atajo del asistente es justo lo NORMAL con la ventana principal cerrada
+  // (dictar no necesita tenerla abierta), así que sin esto el aviso más
+  // importante —"apretaste la tecla y no pasó nada, acá está el porqué"— se
+  // perdía en el caso común. Mismo patrón que el vaciado de
+  // `takePendingFallbackNotices` de abajo. Sólo al montar: la cola es
+  // justamente lo que pasó mientras no había ventana.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const pending = await commands.takePendingAssistantNotices();
+        for (const notice of pending) {
+          showAssistantErrorToast(t, notice);
+        }
+      } catch (error) {
+        console.error("No se pudieron leer los avisos del asistente pendientes:", error);
+      }
+    })();
+  }, []);
 
   // Listen for model loading failures and show a toast
   useEffect(() => {

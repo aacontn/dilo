@@ -27,6 +27,20 @@ pub fn take_pending_fallback_notices(app: AppHandle) -> Vec<crate::actions::Post
         .take_all()
 }
 
+/// Avisos del modo asistente (proveedor sin configurar, LLM caído, TTS
+/// caído, atajo apretado con el modo apagado) que ocurrieron sin ninguna
+/// ventana escuchando el evento `assistant-error` — el caso normal al usar
+/// el atajo del asistente, que abre la ventana principal cerrada. Ver
+/// `assistant::PendingAssistantNotices`.
+#[tauri::command]
+#[specta::specta]
+pub fn take_pending_assistant_notices(
+    app: AppHandle,
+) -> Vec<crate::assistant::AssistantErrorEvent> {
+    app.state::<crate::assistant::PendingAssistantNotices>()
+        .take_all()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn is_portable() -> bool {

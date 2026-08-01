@@ -274,6 +274,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Avisos de cruce a la nube que ocurrieron sin ninguna ventana abierta —
     // ver `actions::PendingFallbackNotices`.
     app_handle.manage(actions::PendingFallbackNotices::default());
+    // Avisos del modo asistente (proveedor sin configurar, LLM/TTS caídos,
+    // atajo apretado con el modo apagado) que ocurrieron sin ninguna ventana
+    // abierta — ver `assistant::PendingAssistantNotices`.
+    app_handle.manage(assistant::PendingAssistantNotices::default());
     // Voz de salida: estado del motor TTS, cargado perezosamente en el
     // primer `tts_speak` (ver `tts::TtsState`).
     app_handle.manage(tts::TtsState::default());
@@ -693,6 +697,7 @@ pub fn run(cli_args: CliArgs) {
             commands::cancel_operation,
             overlay::overlay_ready,
             commands::take_pending_fallback_notices,
+            commands::take_pending_assistant_notices,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,
