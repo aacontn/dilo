@@ -911,7 +911,8 @@
       "stopFailed": "無法停止會議"
     },
     "errors": {
-      "sessionFailed": "會議因錯誤而停止"
+      "sessionFailed": "會議因錯誤而停止",
+      "turnFailed": "有一段沒能儲存，會議仍在錄製"
     },
     "transcript": {
       "title": "即時逐字稿",

@@ -911,7 +911,8 @@
       "stopFailed": "회의를 중지하지 못했습니다"
     },
     "errors": {
-      "sessionFailed": "오류로 회의 기록이 중단되었습니다"
+      "sessionFailed": "오류로 회의 기록이 중단되었습니다",
+      "turnFailed": "일부를 저장하지 못했지만 회의는 계속 녹음 중입니다"
     },
     "transcript": {
       "title": "실시간 대화록",

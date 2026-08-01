@@ -194,8 +194,28 @@ pub struct MeetingFinished {
 }
 
 /// Error during recording or post-processing.
+///
+/// **Significa que la sesión terminó.** El frontend lo trata como fin de
+/// sesión (limpia la sesión en curso y vuelve a "listo para grabar"), así que
+/// sólo puede emitirse cuando la captura efectivamente ya no está corriendo o
+/// se está cerrando — de lo contrario la pantalla pierde el botón de detener
+/// mientras el micrófono sigue abierto. Para un fallo del que la sesión se
+/// recupera, ver [`MeetingTurnFailed`].
 #[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
 pub struct MeetingError {
+    pub meeting_id: i64,
+    pub error: String,
+}
+
+/// Un turno se perdió (no se pudo transcribir o guardar) **pero la reunión
+/// sigue grabando**.
+///
+/// Existe para no mentirle al frontend: mandar `MeetingError` acá terminaba
+/// la sesión en pantalla mientras el backend seguía capturando, y sin botón
+/// de detener el micrófono y el árbitro quedaban tomados hasta reiniciar la
+/// app. Esto se muestra como aviso y no toca el estado de la sesión.
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingTurnFailed {
     pub meeting_id: i64,
     pub error: String,
 }
@@ -476,15 +496,37 @@ fn transcribe_with_reload(
     }
 }
 
-/// Avisa al frontend del primer fallo del pipeline de captura de esta sesión
-/// (`meeting-error`) y sólo loggea los siguientes.
+/// Avisa al frontend de un fallo que **mata la sesión** (`meeting-error`).
 ///
 /// Sin esto una reunión podía "grabar" horas con cero segmentos y sin decir
 /// nada: los errores del hilo transcriptor terminaban únicamente en
-/// `handy.log`. Se emite sólo el primero porque el modo de falla típico es
-/// permanente (la DB no abre, el disco está lleno) y se repetiría en cada
-/// turno — un aviso sirve, doscientos son ruido.
-fn report_capture_failure<R: tauri::Runtime>(
+/// `handy.log`. Quien lo llama tiene que dejar además la captura cerrada
+/// (ver `spawn_capture_abort`): el frontend lee este evento como fin de
+/// sesión, y anunciar el fin mientras el micrófono sigue abierto le deja la
+/// app trancada al usuario.
+fn report_fatal_capture_failure<R: tauri::Runtime>(
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    error: String,
+) {
+    error!("Meeting {}: {}", meeting_id, error);
+    if let Some(app) = app_handle {
+        let payload = MeetingError { meeting_id, error };
+        if let Err(e) = payload.emit(app) {
+            warn!("Failed to emit meeting-error for {}: {}", meeting_id, e);
+        }
+    }
+}
+
+/// Avisa del primer turno perdido de esta sesión (`meeting-turn-failed`) y
+/// sólo loggea los siguientes. **La reunión sigue grabando**: un turno que
+/// falla no la termina, y el usuario tiene que conservar su botón de
+/// detener.
+///
+/// Se emite sólo el primero porque el modo de falla típico es permanente (el
+/// disco está lleno, el engine quedó roto) y se repetiría en cada turno — un
+/// aviso sirve, doscientos son ruido.
+fn report_turn_failure<R: tauri::Runtime>(
     app_handle: Option<&AppHandle<R>>,
     meeting_id: i64,
     already_reported: &mut bool,
@@ -496,11 +538,41 @@ fn report_capture_failure<R: tauri::Runtime>(
     }
     *already_reported = true;
     if let Some(app) = app_handle {
-        let payload = MeetingError { meeting_id, error };
+        let payload = MeetingTurnFailed { meeting_id, error };
         if let Err(e) = payload.emit(app) {
-            warn!("Failed to emit meeting-error for {}: {}", meeting_id, e);
+            warn!(
+                "Failed to emit meeting-turn-failed for {}: {}",
+                meeting_id, e
+            );
         }
     }
+}
+
+/// Cierra la captura de una sesión que no puede continuar, desde afuera del
+/// hilo transcriptor.
+///
+/// Va por el estado de Tauri porque ese hilo no tiene el `MeetingManager`, y
+/// **en otro hilo** porque `stop_capture` une justamente al hilo que la
+/// llamaría: hacerlo en línea sería un join sobre sí mismo. Sin esto, un
+/// fallo fatal dejaba el micrófono y el árbitro tomados (dictado incluido)
+/// hasta reiniciar la app.
+fn spawn_capture_abort(app_handle: &AppHandle, meeting_id: i64) {
+    let Some(manager) = app_handle.try_state::<Arc<MeetingManager>>() else {
+        warn!(
+            "Meeting {}: no hay MeetingManager en el estado para cerrar la captura",
+            meeting_id
+        );
+        return;
+    };
+    let manager = Arc::clone(&manager);
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Err(e) = manager.stop_capture(meeting_id) {
+            warn!(
+                "Meeting {}: no se pudo cerrar la captura tras el fallo fatal ({})",
+                meeting_id, e
+            );
+        }
+    });
 }
 
 /// Build the `AudioRecorder` a meeting capture session uses: same reusable
@@ -1377,21 +1449,25 @@ impl MeetingManager {
                 let diarization_engine = self.diarization_engine.clone();
                 let queue_depth = Arc::clone(&queue_depth);
                 thread::spawn(move || {
-                    // Un solo aviso por sesión de captura, ver
-                    // `report_capture_failure`.
-                    let mut failure_reported = false;
+                    // Un solo aviso de turno perdido por sesión de captura,
+                    // ver `report_turn_failure`.
+                    let mut turn_failure_reported = false;
                     let conn = match Connection::open(&db_path) {
                         Ok(c) => c,
                         Err(e) => {
-                            report_capture_failure(
+                            // Fatal: sin conexión no hay nada que guardar en
+                            // toda la sesión. Se avisa como fin de sesión Y
+                            // se cierra la captura, para que lo que ve el
+                            // usuario y lo que hace el micrófono coincidan.
+                            report_fatal_capture_failure(
                                 Some(&app_handle),
                                 meeting_id,
-                                &mut failure_reported,
                                 format!(
                                     "no se pudo abrir la base de datos para transcribir la \
                                      reunión, no se va a guardar nada de lo que se hable: {e}"
                                 ),
                             );
+                            spawn_capture_abort(&app_handle, meeting_id);
                             return;
                         }
                     };
@@ -1463,10 +1539,14 @@ impl MeetingManager {
                             &transcribe,
                         ) {
                             Ok(_) => {}
-                            Err(e) => report_capture_failure(
+                            // Se perdió ESTE turno, no la reunión: la captura
+                            // sigue abierta y detenible. Por eso el aviso es
+                            // `meeting-turn-failed` y no `meeting-error`, que
+                            // el frontend lee como fin de sesión.
+                            Err(e) => report_turn_failure(
                                 Some(&app_handle),
                                 meeting_id,
-                                &mut failure_reported,
+                                &mut turn_failure_reported,
                                 format!("no se pudo guardar un segmento transcrito: {e}"),
                             ),
                         }
@@ -3752,8 +3832,9 @@ mod tests {
     /// `lib.rs`, no sólo de que el struct derive `tauri_specta::Event`.
     fn mock_app_with_events() -> tauri::App<tauri::test::MockRuntime> {
         let app = tauri::test::mock_app();
-        let builder = tauri_specta::Builder::<tauri::test::MockRuntime>::new()
-            .events(tauri_specta::collect_events![MeetingSegment, MeetingError]);
+        let builder = tauri_specta::Builder::<tauri::test::MockRuntime>::new().events(
+            tauri_specta::collect_events![MeetingSegment, MeetingError, MeetingTurnFailed],
+        );
         builder.mount_events(app.handle());
         app
     }
@@ -4271,47 +4352,86 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
-    // Los fallos del pipeline de captura dejan de ser mudos: el primero de
-    // cada sesión sale por `meeting-error`, los siguientes sólo al log.
+    // Los fallos del pipeline de captura dejan de ser mudos, pero cada uno
+    // por su canal: el que mata la sesión por `meeting-error` (que el
+    // frontend lee como fin de sesión), el que pierde un turno por
+    // `meeting-turn-failed` (la reunión sigue grabando y detenible).
     // ------------------------------------------------------------------
 
-    #[test]
-    fn the_first_capture_failure_of_a_session_reaches_the_frontend() {
-        let app = mock_app_with_events();
-        let handle = app.handle().clone();
-
+    /// Junta lo emitido en un evento, para poder afirmar también sobre el
+    /// que NO se emitió.
+    fn collect_event(
+        handle: &AppHandle<tauri::test::MockRuntime>,
+        name: &str,
+    ) -> Arc<Mutex<Vec<serde_json::Value>>> {
         let received = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
         let received_cb = Arc::clone(&received);
-        handle.listen("meeting-error", move |event| {
+        handle.listen(name.to_string(), move |event| {
             let payload: serde_json::Value =
                 serde_json::from_str(event.payload()).expect("payload JSON");
             received_cb.lock().unwrap().push(payload);
         });
+        received
+    }
+
+    #[test]
+    fn a_fatal_capture_failure_is_reported_as_the_end_of_the_session() {
+        let app = mock_app_with_events();
+        let handle = app.handle().clone();
+        let errors = collect_event(&handle, "meeting-error");
+
+        report_fatal_capture_failure(
+            Some(&handle),
+            42,
+            "no se pudo abrir la base de datos: disco lleno".to_string(),
+        );
+
+        let errors = errors.lock().unwrap();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0]["meeting_id"], 42);
+        assert_eq!(
+            errors[0]["error"],
+            "no se pudo abrir la base de datos: disco lleno"
+        );
+    }
+
+    #[test]
+    fn a_failed_turn_never_reports_the_end_of_the_session() {
+        let app = mock_app_with_events();
+        let handle = app.handle().clone();
+        let errors = collect_event(&handle, "meeting-error");
+        let turn_failures = collect_event(&handle, "meeting-turn-failed");
 
         let mut reported = false;
-        report_capture_failure(
+        report_turn_failure(
             Some(&handle),
             42,
             &mut reported,
             "no se pudo guardar un segmento transcrito: disco lleno".to_string(),
         );
-        report_capture_failure(
+        report_turn_failure(
             Some(&handle),
             42,
             &mut reported,
             "no se pudo guardar un segmento transcrito: disco lleno".to_string(),
         );
-        report_capture_failure(Some(&handle), 42, &mut reported, "y otro más".to_string());
+        report_turn_failure(Some(&handle), 42, &mut reported, "y otro más".to_string());
 
-        let received = received.lock().unwrap();
+        assert!(
+            errors.lock().unwrap().is_empty(),
+            "perder un turno NO termina la reunión: con `meeting-error` el frontend limpia la \
+             sesión, se lleva el botón de detener y deja el micrófono abierto sin forma de cerrarlo"
+        );
+
+        let turn_failures = turn_failures.lock().unwrap();
         assert_eq!(
-            received.len(),
+            turn_failures.len(),
             1,
             "un aviso por sesión: el modo de falla típico es permanente y se repite en cada turno"
         );
-        assert_eq!(received[0]["meeting_id"], 42);
+        assert_eq!(turn_failures[0]["meeting_id"], 42);
         assert_eq!(
-            received[0]["error"],
+            turn_failures[0]["error"],
             "no se pudo guardar un segmento transcrito: disco lleno"
         );
     }

@@ -911,7 +911,8 @@
       "stopFailed": "Não foi possível parar a reunião"
     },
     "errors": {
-      "sessionFailed": "A reunião parou por causa de um erro"
+      "sessionFailed": "A reunião parou por causa de um erro",
+      "turnFailed": "Um trecho não foi salvo; a reunião continua gravando"
     },
     "transcript": {
       "title": "Transcrição ao vivo",

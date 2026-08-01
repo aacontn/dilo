@@ -911,7 +911,8 @@
       "stopFailed": "Meeting konnte nicht gestoppt werden"
     },
     "errors": {
-      "sessionFailed": "Das Meeting wurde durch einen Fehler gestoppt"
+      "sessionFailed": "Das Meeting wurde durch einen Fehler gestoppt",
+      "turnFailed": "Ein Teil wurde nicht gespeichert; das Meeting wird weiter aufgezeichnet"
     },
     "transcript": {
       "title": "Live-Transkript",

@@ -911,7 +911,8 @@
       "stopFailed": "Toplantı durdurulamadı"
     },
     "errors": {
-      "sessionFailed": "Toplantı bir hata nedeniyle durdu"
+      "sessionFailed": "Toplantı bir hata nedeniyle durdu",
+      "turnFailed": "Bir bölüm kaydedilemedi; toplantı kaydı sürüyor"
     },
     "transcript": {
       "title": "Canlı döküm",

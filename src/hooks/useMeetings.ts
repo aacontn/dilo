@@ -49,6 +49,10 @@ export const useMeetingEvents = (): void => {
     // Un `meeting-error` era sólo un console.error: la pantalla quedaba en
     // "Cerrando…" para siempre y no se podía grabar otra reunión. Ahora se
     // dice lo que pasó y la sesión vuelve a estar disponible.
+    //
+    // Este evento significa que la sesión terminó: el backend sólo lo emite
+    // cuando la captura ya no corre o se está cerrando. Por eso acá sí
+    // corresponde limpiar la sesión.
     const unlistenError = events.meetingError.listen((event) => {
       console.error("Meeting error:", event.payload.error);
       toast.error(t("meeting.errors.sessionFailed"), {
@@ -56,11 +60,21 @@ export const useMeetingEvents = (): void => {
       });
       markErrored();
     });
+    // Un turno perdido NO termina la reunión: se avisa y listo. Limpiar la
+    // sesión acá le sacaba al usuario el botón de detener mientras el
+    // micrófono seguía abierto, sin más salida que reiniciar la app.
+    const unlistenTurnFailed = events.meetingTurnFailed.listen((event) => {
+      console.error("Meeting turn failed:", event.payload.error);
+      toast.warning(t("meeting.errors.turnFailed"), {
+        description: event.payload.error,
+      });
+    });
 
     return () => {
       void unlistenSegment.then((fn) => fn());
       void unlistenFinished.then((fn) => fn());
       void unlistenError.then((fn) => fn());
+      void unlistenTurnFailed.then((fn) => fn());
     };
   }, [appendSegment, markFinished, markErrored, t]);
 };

@@ -911,7 +911,8 @@
       "stopFailed": "Impossible d'arrêter la réunion"
     },
     "errors": {
-      "sessionFailed": "La réunion s'est arrêtée à cause d'une erreur"
+      "sessionFailed": "La réunion s'est arrêtée à cause d'une erreur",
+      "turnFailed": "Un passage n'a pas été enregistré ; la réunion continue"
     },
     "transcript": {
       "title": "Transcription en direct",

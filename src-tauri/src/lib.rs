@@ -775,6 +775,7 @@ pub fn run(cli_args: CliArgs) {
             managers::meeting::MeetingProgress,
             managers::meeting::MeetingFinished,
             managers::meeting::MeetingError,
+            managers::meeting::MeetingTurnFailed,
             managers::meeting::MeetingInterrupted,
             managers::meeting::MeetingCallDetected,
             managers::meeting::MeetingCallEnded,

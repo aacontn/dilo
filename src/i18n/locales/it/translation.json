@@ -911,7 +911,8 @@
       "stopFailed": "Impossibile fermare la riunione"
     },
     "errors": {
-      "sessionFailed": "La riunione si è interrotta per un errore"
+      "sessionFailed": "La riunione si è interrotta per un errore",
+      "turnFailed": "Un tratto non è stato salvato; la riunione continua a registrare"
     },
     "transcript": {
       "title": "Trascrizione dal vivo",

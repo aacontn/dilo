@@ -911,7 +911,8 @@
       "stopFailed": "No se pudo detener la reunión"
     },
     "errors": {
-      "sessionFailed": "La reunión se detuvo por un error"
+      "sessionFailed": "La reunión se detuvo por un error",
+      "turnFailed": "No se pudo guardar un tramo; la reunión sigue grabando"
     },
     "transcript": {
       "title": "Transcript en vivo",

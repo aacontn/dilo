@@ -108,7 +108,8 @@
       "stopFailed": "Couldn't stop the meeting"
     },
     "errors": {
-      "sessionFailed": "The meeting stopped because of an error"
+      "sessionFailed": "The meeting stopped because of an error",
+      "turnFailed": "Part of the meeting wasn't saved; it's still recording"
     },
     "transcript": {
       "title": "Live transcript",

@@ -911,7 +911,8 @@
       "stopFailed": "Không thể dừng cuộc họp"
     },
     "errors": {
-      "sessionFailed": "Cuộc họp đã dừng do lỗi"
+      "sessionFailed": "Cuộc họp đã dừng do lỗi",
+      "turnFailed": "Một đoạn không được lưu; cuộc họp vẫn đang ghi"
     },
     "transcript": {
       "title": "Bản ghi trực tiếp",

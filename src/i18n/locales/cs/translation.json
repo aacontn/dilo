@@ -911,7 +911,8 @@
       "stopFailed": "Schůzku se nepodařilo zastavit"
     },
     "errors": {
-      "sessionFailed": "Schůzka se zastavila kvůli chybě"
+      "sessionFailed": "Schůzka se zastavila kvůli chybě",
+      "turnFailed": "Část se nepodařilo uložit; schůzka se stále nahrává"
     },
     "transcript": {
       "title": "Živý přepis",

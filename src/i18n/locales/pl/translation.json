@@ -911,7 +911,8 @@
       "stopFailed": "Nie udało się zatrzymać spotkania"
     },
     "errors": {
-      "sessionFailed": "Spotkanie zostało przerwane z powodu błędu"
+      "sessionFailed": "Spotkanie zostało przerwane z powodu błędu",
+      "turnFailed": "Nie zapisano fragmentu; spotkanie nadal się nagrywa"
     },
     "transcript": {
       "title": "Transkrypcja na żywo",

@@ -911,7 +911,8 @@
       "stopFailed": "Kunde inte stoppa mötet"
     },
     "errors": {
-      "sessionFailed": "Mötet stoppades på grund av ett fel"
+      "sessionFailed": "Mötet stoppades på grund av ett fel",
+      "turnFailed": "En del sparades inte; mötet spelas fortfarande in"
     },
     "transcript": {
       "title": "Direkttranskript",

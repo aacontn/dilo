@@ -911,7 +911,8 @@
       "stopFailed": "ミーティングを停止できませんでした"
     },
     "errors": {
-      "sessionFailed": "エラーで会議の記録が停止しました"
+      "sessionFailed": "エラーで会議の記録が停止しました",
+      "turnFailed": "一部を保存できませんでしたが、会議の録音は続いています"
     },
     "transcript": {
       "title": "ライブ文字起こし",

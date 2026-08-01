@@ -911,7 +911,8 @@
       "stopFailed": "Vergadering kon niet gestopt worden"
     },
     "errors": {
-      "sessionFailed": "De vergadering is gestopt door een fout"
+      "sessionFailed": "De vergadering is gestopt door een fout",
+      "turnFailed": "Een deel is niet opgeslagen; de vergadering neemt nog op"
     },
     "transcript": {
       "title": "Live transcript",

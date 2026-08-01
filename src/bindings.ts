@@ -1227,6 +1227,7 @@ meetingFinished: MeetingFinished,
 meetingInterrupted: MeetingInterrupted,
 meetingProgress: MeetingProgress,
 meetingSegment: MeetingSegment,
+meetingTurnFailed: MeetingTurnFailed,
 postProcessFallback: PostProcessFallback,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
@@ -1239,6 +1240,7 @@ meetingFinished: "meeting-finished",
 meetingInterrupted: "meeting-interrupted",
 meetingProgress: "meeting-progress",
 meetingSegment: "meeting-segment",
+meetingTurnFailed: "meeting-turn-failed",
 postProcessFallback: "post-process-fallback",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
@@ -1390,6 +1392,13 @@ export type MeetingCallDetected = { call_source: string | null }
 export type MeetingCallEnded = { meeting_id: number }
 /**
  * Error during recording or post-processing.
+ * 
+ * **Significa que la sesión terminó.** El frontend lo trata como fin de
+ * sesión (limpia la sesión en curso y vuelve a "listo para grabar"), así que
+ * sólo puede emitirse cuando la captura efectivamente ya no está corriendo o
+ * se está cerrando — de lo contrario la pantalla pierde el botón de detener
+ * mientras el micrófono sigue abierto. Para un fallo del que la sesión se
+ * recupera, ver [`MeetingTurnFailed`].
  */
 export type MeetingError = { meeting_id: number; error: string }
 /**
@@ -1429,6 +1438,16 @@ export type MeetingSpeaker = { id: number; label: string; display_name: string |
  * sería desperdiciar memoria y tiempo por algo que la UI ni muestra ahí.
  */
 export type MeetingSummary = { id: number; title: string; kind: string; started_at: number; ended_at: number | null; status: string }
+/**
+ * Un turno se perdió (no se pudo transcribir o guardar) **pero la reunión
+ * sigue grabando**.
+ * 
+ * Existe para no mentirle al frontend: mandar `MeetingError` acá terminaba
+ * la sesión en pantalla mientras el backend seguía capturando, y sin botón
+ * de detener el micrófono y el árbitro quedaban tomados hasta reiniciar la
+ * app. Esto se muestra como aviso y no toca el estado de la sesión.
+ */
+export type MeetingTurnFailed = { meeting_id: number; error: string }
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**

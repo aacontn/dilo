@@ -911,7 +911,8 @@
       "stopFailed": "无法停止会议"
     },
     "errors": {
-      "sessionFailed": "会议因错误而停止"
+      "sessionFailed": "会议因错误而停止",
+      "turnFailed": "有一段没能保存，会议仍在录制"
     },
     "transcript": {
       "title": "实时转写",

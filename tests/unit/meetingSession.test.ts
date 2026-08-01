@@ -59,6 +59,37 @@ describe("meetingStore.markErrored", () => {
   });
 });
 
+describe("un turno perdido no termina la sesión en la ventana", () => {
+  // Regresión: mandar `meeting-error` por un turno fallido hacía que el
+  // store limpiara la sesión mientras el backend seguía capturando. Sin
+  // `isRecording`/`isProcessing`, `RecordingControls` deja de dibujar el
+  // botón de detener y el micrófono (y el árbitro, o sea también el dictado)
+  // quedan tomados hasta reiniciar la app.
+  const listenerBlock = (source: string, event: string): string => {
+    const start = source.indexOf(`events.${event}.listen(`);
+    expect(start).toBeGreaterThan(-1);
+    const rest = source.slice(start);
+    const end = rest.indexOf("\n    });");
+    expect(end).toBeGreaterThan(-1);
+    return rest.slice(0, end);
+  };
+
+  test("el listener de meeting-turn-failed avisa pero no limpia la sesión", async () => {
+    const source = await Bun.file("src/hooks/useMeetings.ts").text();
+    const handler = listenerBlock(source, "meetingTurnFailed");
+
+    expect(handler).not.toContain("markErrored");
+    expect(handler).toContain("meeting.errors.turnFailed");
+  });
+
+  test("markErrored se llama sólo desde el listener de fin de sesión", async () => {
+    const source = await Bun.file("src/hooks/useMeetings.ts").text();
+
+    expect(listenerBlock(source, "meetingError")).toContain("markErrored()");
+    expect(source.match(/markErrored\(\)/g)).toHaveLength(1);
+  });
+});
+
 describe("appendMeetingPage", () => {
   test("no repite una reunión que ya estaba en la lista", () => {
     // El caso real: se grabó una reunión nueva entre la primera página y el
