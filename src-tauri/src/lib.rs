@@ -412,6 +412,29 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // keeps no overlay webview in memory.
 }
 
+/// Ventanas "de verdad" de la app para efectos del ícono del Dock — main y
+/// reuniones. El overlay de grabación (`recording_overlay`) es un panel
+/// flotante transitorio, no una ventana que el usuario "tiene abierta", así
+/// que su visibilidad no debe impedir (ni forzar) el paso a Accessory.
+const DOCK_RELEVANT_WINDOW_LABELS: [&str; 2] = ["main", "meetings"];
+
+/// True cuando ninguna ventana relevante (`DOCK_RELEVANT_WINDOW_LABELS`)
+/// sigue visible — la señal correcta para esconder el ícono del Dock
+/// (`ActivationPolicy::Accessory`) en macOS. Pura y testeable: recibe la
+/// visibilidad ya resuelta (label, visible) en vez de un `AppHandle`, para no
+/// arrastrar Tauri a un test unitario.
+///
+/// Antes la guarda sólo miraba si la ventana que se acababa de cerrar era
+/// `"main"`, así que cerrar Ajustes con Reuniones todavía abierta (o
+/// viceversa) mandaba la app entera a Accessory con una ventana normal
+/// seguía en pantalla — invisible al Dock y al Cmd-Tab pero con una ventana
+/// inalcanzable desde ahí.
+fn no_relevant_window_visible<'a>(windows: impl IntoIterator<Item = (&'a str, bool)>) -> bool {
+    !windows
+        .into_iter()
+        .any(|(label, visible)| visible && DOCK_RELEVANT_WINDOW_LABELS.contains(&label))
+}
+
 #[tauri::command]
 #[specta::specta]
 fn trigger_update_check(app: AppHandle) -> Result<(), String> {
@@ -1018,17 +1041,33 @@ pub fn run(cli_args: CliArgs) {
                     let _res = window.hide();
                 }
 
-                // Esconder la app del Dock/Cmd-Tab sólo al cerrar la ventana
-                // principal. Corriendo para CUALQUIER ventana, cerrar
-                // Reuniones con Ajustes abierta mandaba la app entera a
-                // Accessory y dejaba Ajustes visible pero inalcanzable.
+                // Esconder la app del Dock/Cmd-Tab sólo cuando NINGUNA
+                // ventana relevante (main, reuniones) sigue visible — nunca
+                // sólo por el label de la que se acaba de cerrar (ver
+                // `no_relevant_window_visible`).
                 #[cfg(target_os = "macos")]
-                if window.label() == "main" {
+                if DOCK_RELEVANT_WINDOW_LABELS.contains(&window.label()) {
                     let settings = get_settings(window.app_handle());
                     let tray_visible =
                         settings.show_tray_icon && !window.app_handle().state::<CliArgs>().no_tray;
-                    if tray_visible {
-                        // Tray is available: hide the dock icon, app lives in the tray
+                    let visibility: Vec<(String, bool)> = window
+                        .app_handle()
+                        .webview_windows()
+                        .iter()
+                        .map(|(label, w)| {
+                            // Si no se puede saber, se asume visible: es más
+                            // seguro dejar el ícono del Dock puesto de más
+                            // que esconderlo con una ventana en pantalla.
+                            (label.clone(), w.is_visible().unwrap_or(true))
+                        })
+                        .collect();
+                    if tray_visible
+                        && no_relevant_window_visible(
+                            visibility.iter().map(|(label, v)| (label.as_str(), *v)),
+                        )
+                    {
+                        // Tray is available and no relevant window is left visible:
+                        // hide the dock icon, app lives in the tray.
                         let res = window
                             .app_handle()
                             .set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -1036,7 +1075,8 @@ pub fn run(cli_args: CliArgs) {
                             log::error!("Failed to set activation policy: {}", e);
                         }
                     }
-                    // No tray: keep the dock icon visible so the user can reopen
+                    // No tray, or another relevant window is still visible:
+                    // keep the dock icon visible.
                 }
             }
             tauri::WindowEvent::ThemeChanged(theme) => {
@@ -1070,4 +1110,44 @@ pub fn run(cli_args: CliArgs) {
             }
             _ => {}
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::no_relevant_window_visible;
+
+    #[test]
+    fn hides_dock_icon_when_no_relevant_window_is_visible() {
+        assert!(no_relevant_window_visible([]));
+        assert!(no_relevant_window_visible([("main", false)]));
+        assert!(no_relevant_window_visible([
+            ("main", false),
+            ("meetings", false),
+        ]));
+    }
+
+    #[test]
+    fn keeps_dock_icon_if_main_is_still_visible() {
+        assert!(!no_relevant_window_visible([
+            ("main", true),
+            ("meetings", false),
+        ]));
+    }
+
+    #[test]
+    fn keeps_dock_icon_if_meetings_is_still_visible() {
+        // El bug que motivó esta guarda: cerrar "main" con "meetings" abierta
+        // no debe esconder el ícono del Dock.
+        assert!(!no_relevant_window_visible([
+            ("main", false),
+            ("meetings", true),
+        ]));
+    }
+
+    #[test]
+    fn ignores_non_relevant_windows_like_the_recording_overlay() {
+        // El overlay de grabación es un panel flotante transitorio, no
+        // cuenta como "ventana abierta" para esta decisión.
+        assert!(no_relevant_window_visible([("recording_overlay", true)]));
+    }
 }
