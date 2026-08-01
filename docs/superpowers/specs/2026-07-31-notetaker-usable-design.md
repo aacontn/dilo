@@ -106,3 +106,8 @@ Los cuatro son independientes y cada uno deja algo usable.
 - La ventana: que no estorbe mientras trabajas en otra app, que se pueda arrastrar entera, y que sobreviva a cerrar y reabrir.
 - El streaming: ver el texto crecer mientras se habla, y que al cerrar el turno lo reemplace la versión buena. Medir memoria con las dos vías activas.
 - La virtual: transcribir una videollamada de prueba y confirmar que aparecen las dos partes de la conversación.
+
+## Addendum 2026-08-01 · Corte por voz, la versión real del "transcript vivo" v1
+
+Antes de tener streaming (§2), el síntoma más grave era otro: sin tope, un turno crece mientras haya voz, y una reunión de 3 personas en conversación fluida (sin pausas de 200ms) colapsaba en un solo bloque de 18,7s sin hablante — verificado con datos reales. Eso se arregló primero, sin esperar a Nemotron:
+un tope duro de 8s por turno (cabe en la ventana de 10s del modelo de segmentación, su caso más preciso) más un corte por voz *dentro* de cada trozo (`split_turn_into_pieces` en `managers/meeting.rs`), que separa por cambio de hablante, funde solapes menores y descarta como mezclada la voz que se pisa más del 60%. El streaming de Nemotron sigue siendo la mejora de percepción pendiente; esto es la mejora de corrección que la precede.

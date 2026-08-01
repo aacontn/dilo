@@ -30,7 +30,6 @@ use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -416,6 +415,28 @@ impl TurnAccumulator {
         self.take_remaining(now_ms)
     }
 
+    /// Si hay un turno en curso y acumuló al menos `max_ms` de audio, lo
+    /// cierra aunque siga entrando voz — a diferencia de `take_if_silent`,
+    /// que nunca dispara en conversación continua porque nunca hay
+    /// `TURN_SILENCE_GAP` de silencio real. Es el tope duro que evita que un
+    /// turno crezca sin límite (ver `MAX_TURN_MS`).
+    ///
+    /// La duración se mide por samples acumulados a 16 kHz, no por reloj de
+    /// pared: es la misma unidad que usa `split_turn_into_pieces` (y, debajo,
+    /// el motor de diarización) para sus propios offsets, así que un turno
+    /// cerrado por tope mide exactamente lo mismo aquí y allá.
+    #[allow(dead_code)]
+    fn take_if_over(&mut self, max_ms: u64, now_ms: i64) -> Option<CompletedTurn> {
+        if self.buffer.is_empty() {
+            return None;
+        }
+        let duration_ms = (self.buffer.len() as u64 * 1000) / DIARIZATION_SAMPLE_RATE as u64;
+        if duration_ms < max_ms {
+            return None;
+        }
+        self.take_remaining(now_ms)
+    }
+
     /// Unconditionally take whatever is buffered, regardless of silence
     /// gap. Used by tests (driven off real VAD Speech->Noise transitions
     /// instead of wall-clock silence) and by `stop_capture` to flush a
@@ -442,6 +463,19 @@ impl TurnAccumulator {
 /// hangover (which has already elapsed by the time frames stop arriving).
 #[allow(dead_code)]
 const TURN_SILENCE_GAP: Duration = Duration::from_millis(200);
+/// Tope duro de duración de un turno. En conversación continua nunca hay
+/// `TURN_SILENCE_GAP` de silencio real, así que sin este tope un turno crece
+/// sin límite y colapsa una reunión de varias personas en un solo bloque sin
+/// hablante — el problema real que este cambio arregla (18.7s de una
+/// reunión de 3 personas en un turno, cero hablantes).
+///
+/// 8s y no más: el modelo de segmentación usa una ventana de 10s
+/// (`SegmentationModel`, `diarization.rs`) y, con una sola ventana de
+/// audio, `run_pipeline` corre su caso especial de un solo chunk
+/// (`HandleOneChunkSpecialCase`) — el camino más preciso, sin clustering
+/// entre ventanas. Un turno de hasta 8s cabe siempre en esa única ventana.
+#[allow(dead_code)]
+const MAX_TURN_MS: u64 = 8_000;
 /// How often the watchdog thread checks for a silence gap.
 #[allow(dead_code)]
 const WATCHDOG_POLL_INTERVAL: Duration = Duration::from_millis(100);
@@ -610,7 +644,7 @@ fn build_meeting_recorder(
     Ok(recorder)
 }
 
-// --- T013: diarización incremental (atribución de hablante por turno) ---
+// --- T013/T014: diarización incremental + corte por voz dentro del turno --
 //
 // # Por qué un registro incremental y no una diarización al final
 //
@@ -625,43 +659,59 @@ fn build_meeting_recorder(
 // el "hablante 0" de un turno no tiene ninguna relación con el "hablante 0"
 // del siguiente.
 //
-// La pieza que cierra esa brecha es [`SpeakerRegistry`]: por cada turno se
-// calcula un embedding de voz (`DiarizationEngine::embed`, el mismo vector
-// CAM++ de 192 dims que el pipeline usa para clusterizar) y se compara por
-// similitud coseno contra los centroides de los hablantes ya vistos EN ESTA
-// reunión. Es la versión incremental del mismo juicio que hace el
-// clustering aglomerativo de T009, por eso sus umbrales se derivan de
-// `CLUSTER_THRESHOLD` en vez de ser números nuevos: el mismo par de voces
-// debe agruparse igual por los dos caminos.
+// La pieza que cierra esa brecha es [`SpeakerRegistry`]: por cada pieza (ver
+// más abajo) se calcula un embedding de voz (`DiarizationEngine::embed`, el
+// mismo vector CAM++ de 192 dims que el pipeline usa para clusterizar) y se
+// compara por similitud coseno contra los centroides de los hablantes ya
+// vistos EN ESTA reunión. Es la versión incremental del mismo juicio que
+// hace el clustering aglomerativo de T009, por eso sus umbrales se derivan
+// de `CLUSTER_THRESHOLD` en vez de ser números nuevos: el mismo par de
+// voces debe agruparse igual por los dos caminos.
+//
+// # Corte por voz dentro de un turno (T014)
+//
+// Un turno (`CompletedTurn`) es sólo un tramo de audio con voz continua —
+// puede tener varios hablantes adentro, sobre todo ahora que `MAX_TURN_MS`
+// puede cortarlo a mitad de conversación en vez de esperar un silencio real.
+// [`split_turn_into_pieces`] es la función pura que toma los
+// `DiarizedSegment` que devolvió UNA llamada a `diarize` sobre el turno
+// entero y los convierte en [`TurnPiece`]s: tramos disjuntos, cada uno con
+// UN hablante local (o `None` cuando dos voces se pisaron demasiado para
+// separarlas). [`process_turn_pieces`] hace lo mismo que antes hacía
+// `attribute_turn` por turno, pero por pieza: extrae su audio
+// (`extract_ranges`), calcula su embedding y lo resuelve contra
+// `SpeakerRegistry`, y persiste una fila por pieza con offsets absolutos
+// (`turn.started_at_ms + pieza.start_ms`).
 //
 // # Cómo se cumple FR-004 (marcar incierto en vez de adivinar)
 //
-// Hay cuatro caminos distintos a `speaker_id = NULL`, todos deliberados:
+// Hay tres caminos distintos a `speaker_id = NULL`, todos deliberados:
 //
-// 1. **El turno tiene dos voces** (`mixed`): dos hablantes locales con
-//    duración comparable dentro del mismo turno. El texto transcrito es de
-//    los dos, así que no hay un hablante correcto que asignar.
-// 2. **Hubo habla superpuesta** (`overlapped` del propio motor, FR-004):
-//    los tramos superpuestos se excluyen del audio que va al embedding, y
-//    si no queda suficiente audio limpio el turno queda sin atribuir.
-// 3. **Poco audio limpio** (< [`MIN_EMBED_SAMPLES`]): un embedding sobre
+// 1. **La pieza es de voz mezclada** (`TurnPiece.speaker == None`,
+//    `overlapped == true`): `split_turn_into_pieces` fusionó dos segmentos
+//    de hablantes distintos que se solapaban más del 60% del más corto — no
+//    hay forma de separar esa voz con un solo micrófono, así que ni se
+//    calcula su embedding ni se compara contra el registro.
+// 2. **Poco audio limpio** (< [`MIN_EMBED_SAMPLES`]): un embedding sobre
 //    medio segundo de voz no es confiable; preferimos no atribuir.
-// 4. **Similitud ambigua**: la mejor coincidencia cae en la banda de
+// 3. **Similitud ambigua**: la mejor coincidencia cae en la banda de
 //    incertidumbre alrededor del umbral, o hay dos hablantes conocidos casi
 //    igual de parecidos (margen chico). Asignar el "menos malo" es
 //    justamente lo que FR-004 prohíbe.
 //
-// Un turno sin atribuir NO actualiza ningún centroide ni crea un hablante
+// Una pieza sin atribuir NO actualiza ningún centroide ni crea un hablante
 // nuevo: un caso dudoso no debe mover la referencia contra la que se
-// comparan los turnos siguientes.
+// comparan las piezas siguientes.
 //
 // # Degradación honesta cuando el motor no está listo
 //
 // El modelo de embeddings (~27 MB) se descarga en runtime (T008) y ambos
 // modelos tardan en cargar. `start_capture` dispara esa preparación en un
 // hilo aparte y NO bloquea el micrófono esperándola: los turnos que
-// completen antes de que el motor esté listo se persisten con
-// `speaker_id = NULL` (incierto), que es exactamente lo que significa. La
+// completen antes de que el motor esté listo (o cuya diarización falle) se
+// persisten enteros, en una sola fila, con `speaker_id = NULL` (incierto) —
+// exactamente el comportamiento de antes de T014, ver el `if
+// segments.is_empty()` en el hilo transcriptor de `start_capture`. La
 // alternativa —demorar el inicio de la grabación hasta tener los modelos—
 // perdería audio real de la reunión, que es peor que perder la atribución
 // de los primeros segundos.
@@ -701,68 +751,156 @@ const MIN_SIMILARITY_MARGIN: f32 = 0.05;
 /// 0.5 s a 16 kHz.
 const MIN_EMBED_SAMPLES: usize = 8_000;
 
-/// Si el segundo hablante local de un turno acumula al menos esta fracción
-/// de la duración del dominante, el turno se considera de dos voces
-/// (`mixed`) y queda sin atribuir.
-const SECONDARY_SPEAKER_RATIO: f32 = 0.25;
+/// Fracción del segmento más corto que dos segmentos consecutivos tienen
+/// que solaparse para considerarse "la misma voz mezclada" en vez de un
+/// simple empalme entre hablantes que se turnan rápido. Por encima de esto
+/// no hay forma de separar limpiamente esa voz con un solo micrófono.
+const OVERLAP_MERGE_RATIO: f32 = 0.6;
 
-/// El hablante dominante de un turno y el audio limpio que le pertenece.
-#[derive(Debug, PartialEq)]
-struct DominantSpeaker {
-    /// Índice de hablante local a la llamada de `diarize` de ESTE turno —
-    /// sirve para recortar audio, no como identidad entre turnos.
-    speaker: usize,
-    /// Rangos `[inicio, fin)` en milisegundos, relativos al turno, del
-    /// hablante dominante y sin superposición.
-    clean_ranges: Vec<(u64, u64)>,
-    /// Hubo habla superpuesta en algún punto del turno (FR-004).
+/// Piezas más cortas que esto se fusionan con la vecina (ver
+/// `split_turn_into_pieces`): un fragmento de menos de 700ms casi nunca es
+/// una frase completa, y suele ser ruido del corte entre hablantes en vez
+/// de una voz real e independiente.
+const MIN_PIECE_MS: u64 = 700;
+
+/// Un tramo disjunto dentro de un turno, ya resuelto de solapes: el
+/// resultado de `split_turn_into_pieces`. `speaker` es un índice local a la
+/// llamada de `diarize` de ESTE turno (igual que `DiarizedSegment::speaker`)
+/// — `process_turn_pieces` es quien lo traduce a un `speaker_id` de verdad
+/// vía `SpeakerRegistry`.
+#[derive(Debug, Clone, PartialEq)]
+struct TurnPiece {
+    /// Offset de inicio en milisegundos, relativo al turno (mismo sistema
+    /// de coordenadas que `DiarizedSegment`).
+    start_ms: u64,
+    end_ms: u64,
+    /// `None` = voz mezclada o sin diarización (FR-004): no se embebe ni se
+    /// compara contra el registro de hablantes.
+    speaker: Option<usize>,
+    /// Dos hablantes se solaparon más del `OVERLAP_MERGE_RATIO` del más
+    /// corto en esta pieza.
     overlapped: bool,
-    /// Dos hablantes con presencia comparable en el mismo turno.
-    mixed: bool,
 }
 
-/// Elige el hablante dominante de los segmentos que devolvió `diarize` para
-/// un turno, y marca superposición/mezcla. Función pura: es la parte de la
-/// atribución que se puede testear sin cargar 34 MB de modelos ONNX.
-fn choose_dominant_speaker(segments: &[DiarizedSegment]) -> Option<DominantSpeaker> {
+/// Corta los `DiarizedSegment`s de UN turno ya diarizado en `TurnPiece`s
+/// disjuntas, una por cambio de hablante. Función pura: es la parte del
+/// corte por voz que se puede testear sin cargar 34 MB de modelos ONNX.
+///
+/// Reglas (en este orden):
+/// 1. Ordenar por `start_ms`.
+/// 2. Dos segmentos consecutivos que se solapan más del
+///    `OVERLAP_MERGE_RATIO` del más corto se fusionan en UNA pieza
+///    `speaker: None, overlapped: true` — voz mezclada, no separable.
+/// 3. Un solape menor recorta el inicio del segmento posterior al fin del
+///    anterior.
+/// 4. Una pieza resultante más corta que `MIN_PIECE_MS` se fusiona con la
+///    anterior (o la siguiente si es la primera), conservando el hablante
+///    de la pieza más larga de las dos.
+/// 5. Lista vacía -> una sola pieza `[0, turn_len_ms)` sin hablante, igual
+///    que el comportamiento sin diarización.
+fn split_turn_into_pieces(segments: &[DiarizedSegment], turn_len_ms: u64) -> Vec<TurnPiece> {
     if segments.is_empty() {
-        return None;
+        return vec![TurnPiece {
+            start_ms: 0,
+            end_ms: turn_len_ms,
+            speaker: None,
+            overlapped: false,
+        }];
     }
 
-    let mut duration_by_speaker: HashMap<usize, u64> = HashMap::new();
-    for seg in segments {
-        let duration = seg.end_ms.saturating_sub(seg.start_ms);
-        *duration_by_speaker.entry(seg.speaker).or_insert(0) += duration;
+    let mut sorted: Vec<&DiarizedSegment> = segments.iter().collect();
+    sorted.sort_by_key(|s| s.start_ms);
+
+    let mut pieces: Vec<TurnPiece> = Vec::with_capacity(sorted.len());
+    for seg in sorted {
+        if seg.end_ms <= seg.start_ms {
+            continue; // segmento degenerado (duración cero o negativa): se ignora
+        }
+        let mut piece = TurnPiece {
+            start_ms: seg.start_ms,
+            end_ms: seg.end_ms,
+            speaker: Some(seg.speaker),
+            overlapped: seg.overlapped,
+        };
+
+        if let Some(prev) = pieces.last_mut() {
+            if piece.start_ms < prev.end_ms {
+                let overlap_len = prev.end_ms.min(piece.end_ms).saturating_sub(piece.start_ms);
+                let shorter_len = (prev.end_ms - prev.start_ms).min(piece.end_ms - piece.start_ms);
+                if shorter_len > 0 && overlap_len as f32 > OVERLAP_MERGE_RATIO * shorter_len as f32
+                {
+                    // Solape mayor: una sola voz mezclada, no separable.
+                    prev.end_ms = prev.end_ms.max(piece.end_ms);
+                    prev.speaker = None;
+                    prev.overlapped = true;
+                    continue;
+                }
+                // Solape menor: el posterior cede el tramo pisado.
+                piece.start_ms = prev.end_ms;
+                if piece.start_ms >= piece.end_ms {
+                    continue; // el recorte lo dejó vacío
+                }
+            }
+        }
+        pieces.push(piece);
     }
 
-    let mut ranked: Vec<(usize, u64)> = duration_by_speaker.into_iter().collect();
-    // Desempate por índice de hablante para que la elección sea
-    // determinista (el orden de un HashMap no lo es).
-    ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-
-    let (speaker, dominant_duration) = ranked[0];
-    if dominant_duration == 0 {
-        return None;
+    if pieces.is_empty() {
+        return vec![TurnPiece {
+            start_ms: 0,
+            end_ms: turn_len_ms,
+            speaker: None,
+            overlapped: false,
+        }];
     }
 
-    let mixed = ranked
-        .get(1)
-        .is_some_and(|(_, d)| *d as f32 >= dominant_duration as f32 * SECONDARY_SPEAKER_RATIO);
+    merge_tiny_pieces(pieces)
+}
 
-    let overlapped = segments.iter().any(|s| s.overlapped);
+/// Combina `b` dentro de `a`: extiende el rango, conserva el hablante de la
+/// pieza más larga de las dos y propaga `overlapped`. Usado tanto para
+/// fusionar solapes grandes como piezas diminutas.
+fn merge_piece_into(a: &mut TurnPiece, b: &TurnPiece) {
+    let a_len = a.end_ms.saturating_sub(a.start_ms);
+    let b_len = b.end_ms.saturating_sub(b.start_ms);
+    a.start_ms = a.start_ms.min(b.start_ms);
+    a.end_ms = a.end_ms.max(b.end_ms);
+    if b_len > a_len {
+        a.speaker = b.speaker;
+    }
+    a.overlapped = a.overlapped || b.overlapped;
+}
 
-    let clean_ranges = segments
-        .iter()
-        .filter(|s| s.speaker == speaker && !s.overlapped && s.end_ms > s.start_ms)
-        .map(|s| (s.start_ms, s.end_ms))
-        .collect();
+/// Fusiona piezas más cortas que `MIN_PIECE_MS` con su vecina — la anterior
+/// normalmente, o la siguiente si la diminuta es la primera de la lista (no
+/// hay anterior con la que fusionarla).
+fn merge_tiny_pieces(pieces: Vec<TurnPiece>) -> Vec<TurnPiece> {
+    if pieces.len() <= 1 {
+        return pieces;
+    }
 
-    Some(DominantSpeaker {
-        speaker,
-        clean_ranges,
-        overlapped,
-        mixed,
-    })
+    let mut result: Vec<TurnPiece> = Vec::with_capacity(pieces.len());
+    for piece in pieces {
+        let len = piece.end_ms.saturating_sub(piece.start_ms);
+        if len < MIN_PIECE_MS && !result.is_empty() {
+            let prev = result.last_mut().expect("checked not empty above");
+            merge_piece_into(prev, &piece);
+        } else {
+            result.push(piece);
+        }
+    }
+
+    // La primera pieza no tuvo anterior con la que fusionarse arriba: si
+    // sigue siendo diminuta, se funde hacia adelante con la que le sigue.
+    if result.len() > 1 {
+        let first_len = result[0].end_ms.saturating_sub(result[0].start_ms);
+        if first_len < MIN_PIECE_MS {
+            let first = result.remove(0);
+            merge_piece_into(&mut result[0], &first);
+        }
+    }
+
+    result
 }
 
 /// Recorta y concatena los `ranges` (en ms) del audio de un turno. Los
@@ -783,69 +921,27 @@ fn extract_ranges(samples: &[f32], ranges: &[(u64, u64)], sample_rate: u32) -> V
     out
 }
 
-/// Resultado de diarizar UN turno: el embedding del hablante dominante
-/// (cuando se pudo calcular con confianza) y si hubo superposición.
-#[derive(Debug, Default)]
-struct TurnAttribution {
-    embedding: Option<Vec<f32>>,
-    overlapped: bool,
-}
-
-/// Diariza el audio de un turno y devuelve, si corresponde, el embedding de
-/// voz de su hablante dominante. `None` en `embedding` significa "incierto"
-/// (FR-004) — ver los cuatro caminos documentados arriba.
+/// Calcula el embedding de voz de UNA pieza ya extraída (un solo hablante,
+/// sin superposición) si hay audio suficiente para confiar en él. `None` es
+/// "incierto" (FR-004), ya sea por poco audio o porque el motor falló.
 ///
-/// Nunca devuelve error: una falla del motor de diarización degrada a
-/// "segmento sin hablante", que es un transcript peor pero correcto,
-/// mientras que propagar el error perdería el segmento entero (el texto ya
-/// transcrito) por un problema de atribución.
-fn attribute_turn(engine: &DiarizationEngine, samples: &[f32]) -> TurnAttribution {
-    let segments = match engine.diarize(samples, DIARIZATION_SAMPLE_RATE) {
-        Ok(s) => s,
-        Err(e) => {
-            warn!("Diarización del turno falló, queda sin atribuir: {}", e);
-            return TurnAttribution::default();
-        }
-    };
-
-    let Some(dominant) = choose_dominant_speaker(&segments) else {
-        return TurnAttribution::default();
-    };
-
-    if dominant.mixed {
-        debug!("Turno con dos voces de duración comparable: queda sin atribuir (FR-004)");
-        return TurnAttribution {
-            embedding: None,
-            // Dos voces en el mismo turno ES el caso de superposición que la
-            // UI tiene que mostrar como incierto.
-            overlapped: true,
-        };
-    }
-
-    let clean = extract_ranges(samples, &dominant.clean_ranges, DIARIZATION_SAMPLE_RATE);
-    if clean.len() < MIN_EMBED_SAMPLES {
+/// Nunca devuelve error: una falla acá degrada a "pieza sin hablante", que
+/// es un transcript peor pero correcto, mientras que propagar el error
+/// perdería la pieza entera (el texto ya transcrito) por un problema de
+/// atribución.
+fn embed_piece(engine: &DiarizationEngine, samples: &[f32]) -> Option<Vec<f32>> {
+    if samples.len() < MIN_EMBED_SAMPLES {
         debug!(
-            "Turno con sólo {} samples limpios del hablante local {}: queda sin atribuir",
-            clean.len(),
-            dominant.speaker
+            "Pieza con sólo {} samples: muy poco audio para un embedding confiable",
+            samples.len()
         );
-        return TurnAttribution {
-            embedding: None,
-            overlapped: dominant.overlapped,
-        };
+        return None;
     }
-
-    match engine.embed(&clean, DIARIZATION_SAMPLE_RATE) {
-        Ok(embedding) => TurnAttribution {
-            embedding: Some(embedding),
-            overlapped: dominant.overlapped,
-        },
+    match engine.embed(samples, DIARIZATION_SAMPLE_RATE) {
+        Ok(embedding) => Some(embedding),
         Err(e) => {
-            warn!("Embedding del turno falló, queda sin atribuir: {}", e);
-            TurnAttribution {
-                embedding: None,
-                overlapped: dominant.overlapped,
-            }
+            warn!("Embedding de una pieza falló, queda sin atribuir: {}", e);
+            None
         }
     }
 }
@@ -1017,6 +1113,99 @@ fn insert_speaker(conn: &Connection, meeting_id: i64) -> Result<i64> {
         params![meeting_id, label],
     )?;
     Ok(conn.last_insert_rowid())
+}
+
+/// Procesa UN turno ya diarizado: lo corta en [`TurnPiece`]s
+/// (`split_turn_into_pieces`) y persiste una fila por pieza, con offsets
+/// absolutos (`turn.started_at_ms + pieza.start_ms`). Es el reemplazo de
+/// T014 a "un turno, un segmento" — la contraparte de
+/// `persist_and_emit_segment` a nivel de turno completo.
+///
+/// `embed` y `transcribe` están inyectados por la misma razón: poder
+/// testear el flujo completo de piezas sin cargar los ~34 MB de modelos
+/// ONNX de diarización ni un motor de transcripción real. Sólo se llama a
+/// `embed` para piezas con hablante local conocido (`piece.speaker.is_some()`)
+/// — las piezas `None` (mezcla/superposición) NO se embeben ni tocan el
+/// registro (FR-004, vigente).
+///
+/// Llamar sólo cuando `segments` no está vacío: con `segments` vacío
+/// (motor no cargado o `diarize` falló) el llamador debe seguir usando
+/// `persist_and_emit_segment` directo sobre el turno entero, que es el
+/// comportamiento anterior a T014 exacto (ver `start_capture`).
+///
+/// Devuelve un resultado por pieza, en orden, para que el llamador decida
+/// cómo reportar cada fallo (mismo criterio por turno que ya usa
+/// `start_capture`: una pieza perdida no debe tumbar las siguientes).
+#[allow(dead_code, clippy::too_many_arguments)]
+fn process_turn_pieces<R: tauri::Runtime>(
+    conn: &Connection,
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    turn: &CompletedTurn,
+    segments: &[DiarizedSegment],
+    registry: &mut SpeakerRegistry,
+    embed: &dyn Fn(&[f32]) -> Option<Vec<f32>>,
+    transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
+) -> Vec<Result<Option<MeetingSegment>>> {
+    // Mismo sistema de coordenadas que los `DiarizedSegment`: ambos se
+    // miden sobre `turn.samples` a `DIARIZATION_SAMPLE_RATE`, no sobre el
+    // reloj de pared que cerró el turno.
+    let turn_len_ms = (turn.samples.len() as u64 * 1000) / DIARIZATION_SAMPLE_RATE as u64;
+    let pieces = split_turn_into_pieces(segments, turn_len_ms);
+
+    let mut results = Vec::with_capacity(pieces.len());
+    for piece in pieces {
+        let piece_samples = extract_ranges(
+            &turn.samples,
+            &[(piece.start_ms, piece.end_ms)],
+            DIARIZATION_SAMPLE_RATE,
+        );
+
+        let embedding = if piece.speaker.is_some() {
+            embed(&piece_samples)
+        } else {
+            None
+        };
+        let speaker_id = match registry.resolve(conn, meeting_id, embedding.as_deref()) {
+            Ok(id) => id,
+            Err(e) => {
+                warn!(
+                    "Meeting {}: no se pudo resolver el hablante de una pieza, queda sin \
+                     atribuir: {}",
+                    meeting_id, e
+                );
+                None
+            }
+        };
+
+        let piece_turn = CompletedTurn {
+            samples: piece_samples,
+            started_at_ms: turn.started_at_ms + piece.start_ms as i64,
+            ended_at_ms: turn.started_at_ms + piece.end_ms as i64,
+        };
+        let piece_audio_ms = piece_turn.ended_at_ms - piece_turn.started_at_ms;
+        let started = Instant::now();
+        let result = persist_and_emit_segment(
+            conn,
+            app_handle,
+            meeting_id,
+            piece_turn,
+            speaker_id,
+            piece.overlapped,
+            transcribe,
+        );
+        if let Ok(Some(_)) = &result {
+            debug!(
+                "Meeting {}: pieza de {} ms transcrita en {:?}",
+                meeting_id,
+                piece_audio_ms,
+                started.elapsed()
+            );
+        }
+        results.push(result);
+    }
+
+    results
 }
 
 /// Transcribe one completed turn, insert it into `meeting_segments`, and
@@ -1422,10 +1611,14 @@ impl MeetingManager {
                         // el modelo, todos los turnos siguientes fallan.
                         transcription_manager.touch_activity();
                         let now_ms = capture_started.elapsed().as_millis() as i64;
-                        let completed = accumulator
-                            .lock()
-                            .unwrap()
-                            .take_if_silent(TURN_SILENCE_GAP, now_ms);
+                        // Tope duro primero: en conversación continua nunca
+                        // hay silencio, así que `take_if_silent` solo no
+                        // basta para cerrar el turno (ver MAX_TURN_MS).
+                        let completed = {
+                            let mut acc = accumulator.lock().unwrap();
+                            acc.take_if_over(MAX_TURN_MS, now_ms)
+                                .or_else(|| acc.take_if_silent(TURN_SILENCE_GAP, now_ms))
+                        };
                         if let Some(turn) = completed {
                             let depth = queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
                             if depth == QUEUE_DEPTH_WARN_THRESHOLD {
@@ -1486,39 +1679,11 @@ impl MeetingManager {
                             Ordering::Relaxed,
                             |depth| depth.checked_sub(1),
                         );
-                        // Diarizar ANTES de transcribir: `persist_and_emit_segment`
-                        // consume `turn` (y le agrega padding a los turnos
-                        // cortos, que falsearía la duración del audio que ve
-                        // el motor de diarización).
-                        let attribution = match diarization_engine.as_deref() {
-                            Some(engine) if engine.is_loaded() => {
-                                attribute_turn(engine, &turn.samples)
-                            }
-                            // Motor todavía cargando (o no disponible): el
-                            // segmento se guarda sin hablante, que es
-                            // exactamente lo que significa `NULL`.
-                            _ => TurnAttribution::default(),
-                        };
-                        let speaker_id = match registry.resolve(
-                            &conn,
-                            meeting_id,
-                            attribution.embedding.as_deref(),
-                        ) {
-                            Ok(id) => id,
-                            Err(e) => {
-                                warn!(
-                                    "Meeting {}: no se pudo resolver el hablante del turno, \
-                                     queda sin atribuir: {}",
-                                    meeting_id, e
-                                );
-                                None
-                            }
-                        };
 
                         // Si el modelo se descargó mientras la reunión seguía
                         // (watcher de inactividad, cambio de modelo), este
-                        // turno lo recarga y se reintenta una vez en vez de
-                        // perderse — y con él todos los que vinieran atrás.
+                        // turno/pieza lo recarga y se reintenta una vez en vez
+                        // de perderse — y con él todos los que vinieran atrás.
                         let transcribe = |samples: Vec<f32>| {
                             transcribe_with_reload(
                                 samples,
@@ -1529,26 +1694,84 @@ impl MeetingManager {
                                 },
                             )
                         };
-                        match persist_and_emit_segment(
+
+                        // Diarizar ANTES de transcribir: `persist_and_emit_segment`
+                        // consume el audio (y le agrega padding a los turnos
+                        // cortos, que falsearía la duración del audio que ve
+                        // el motor de diarización).
+                        let segments: Vec<DiarizedSegment> = match diarization_engine.as_deref() {
+                            Some(engine) if engine.is_loaded() => {
+                                match engine.diarize(&turn.samples, DIARIZATION_SAMPLE_RATE) {
+                                    Ok(segs) => segs,
+                                    Err(e) => {
+                                        warn!(
+                                            "Meeting {}: diarización del turno falló, se \
+                                             transcribe entero sin hablante: {}",
+                                            meeting_id, e
+                                        );
+                                        Vec::new()
+                                    }
+                                }
+                            }
+                            // Motor todavía cargando (o no disponible).
+                            _ => Vec::new(),
+                        };
+
+                        if segments.is_empty() {
+                            // Sin diarización disponible: comportamiento
+                            // anterior a T014 exacto, un solo segmento para
+                            // todo el turno, sin hablante.
+                            if let Err(e) = persist_and_emit_segment(
+                                &conn,
+                                Some(&app_handle),
+                                meeting_id,
+                                turn,
+                                None,
+                                false,
+                                &transcribe,
+                            ) {
+                                // Se perdió ESTE turno, no la reunión: la
+                                // captura sigue abierta y detenible. Por eso
+                                // el aviso es `meeting-turn-failed` y no
+                                // `meeting-error`, que el frontend lee como
+                                // fin de sesión.
+                                report_turn_failure(
+                                    Some(&app_handle),
+                                    meeting_id,
+                                    &mut turn_failure_reported,
+                                    format!("no se pudo guardar un segmento transcrito: {e}"),
+                                );
+                            }
+                            continue;
+                        }
+
+                        // Corte por voz: una fila por pieza, con offsets
+                        // absolutos. `segments` no vacío implica que el
+                        // motor de diarización está cargado (única rama de
+                        // arriba que lo llena).
+                        let engine = diarization_engine
+                            .as_deref()
+                            .expect("segments no vacíos implica motor de diarización cargado");
+                        let embed = |samples: &[f32]| embed_piece(engine, samples);
+                        let piece_results = process_turn_pieces(
                             &conn,
                             Some(&app_handle),
                             meeting_id,
-                            turn,
-                            speaker_id,
-                            attribution.overlapped,
+                            &turn,
+                            &segments,
+                            &mut registry,
+                            &embed,
                             &transcribe,
-                        ) {
-                            Ok(_) => {}
-                            // Se perdió ESTE turno, no la reunión: la captura
-                            // sigue abierta y detenible. Por eso el aviso es
-                            // `meeting-turn-failed` y no `meeting-error`, que
-                            // el frontend lee como fin de sesión.
-                            Err(e) => report_turn_failure(
-                                Some(&app_handle),
-                                meeting_id,
-                                &mut turn_failure_reported,
-                                format!("no se pudo guardar un segmento transcrito: {e}"),
-                            ),
+                        );
+                        for result in piece_results {
+                            if let Err(e) = result {
+                                report_turn_failure(
+                                    Some(&app_handle),
+                                    meeting_id,
+                                    &mut turn_failure_reported,
+                                    format!("no se pudo guardar una pieza transcrita: {e}"),
+                                );
+                            }
                         }
                     }
                 })
@@ -2308,6 +2531,7 @@ impl MeetingManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use tauri::Listener;
 
     /// `None` con runtime explícito: `persist_and_emit_segment` es genérica
@@ -2597,6 +2821,55 @@ mod tests {
     fn turn_accumulator_take_if_silent_is_none_with_nothing_buffered() {
         let mut acc = TurnAccumulator::default();
         assert!(acc.take_if_silent(Duration::from_millis(0), 0).is_none());
+    }
+
+    // ------------------------------------------------------------------
+    // T014: take_if_over — el tope duro de MAX_TURN_MS, independiente de
+    // take_if_silent (arriba). La duración se mide en samples (16kHz), no
+    // en reloj de pared, así que estos tests no necesitan `sleep`.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn turn_accumulator_take_if_over_does_not_fire_before_the_cap() {
+        let mut acc = TurnAccumulator::default();
+        // 7999ms de audio a 16kHz: justo bajo el tope de 8000ms.
+        acc.push_speech(&vec![0.0; 127_999], 0);
+
+        assert!(
+            acc.take_if_over(8_000, 8_000).is_none(),
+            "el tope no se superó todavía"
+        );
+        // take_if_silent tampoco debe verse afectado por este chequeo: el
+        // turno sigue intacto y disponible.
+        assert!(acc
+            .take_if_silent(Duration::from_millis(0), 8_000)
+            .is_some());
+    }
+
+    #[test]
+    fn turn_accumulator_take_if_over_closes_the_turn_once_the_cap_is_reached() {
+        let mut acc = TurnAccumulator::default();
+        // 8000ms exactos de audio a 16kHz (128_000 samples): en el punto
+        // justo del tope, ya debe cerrar.
+        acc.push_speech(&vec![0.5; 128_000], 100);
+
+        let turn = acc
+            .take_if_over(8_000, 8_100)
+            .expect("el tope se alcanzó, el turno debe cerrarse aunque siga habiendo voz");
+        assert_eq!(turn.samples.len(), 128_000);
+        assert_eq!(turn.started_at_ms, 100);
+        assert_eq!(turn.ended_at_ms, 8_100);
+
+        assert!(
+            acc.take_remaining(9_000).is_none(),
+            "el turno ya se tomó; no debe quedar nada en el buffer"
+        );
+    }
+
+    #[test]
+    fn turn_accumulator_take_if_over_is_none_with_nothing_buffered() {
+        let mut acc = TurnAccumulator::default();
+        assert!(acc.take_if_over(0, 0).is_none());
     }
 
     // ------------------------------------------------------------------
@@ -2928,17 +3201,15 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
-    // T013: atribución de hablante por turno.
+    // T014: corte por voz dentro de un turno (`split_turn_into_pieces`) y
+    // resolución de hablante por pieza (`process_turn_pieces`).
     //
-    // Las dos mitades de la atribución se testean por separado y sin
-    // modelos ONNX: `choose_dominant_speaker`/`extract_ranges` (qué audio
-    // representa al hablante de este turno) son funciones puras sobre los
-    // `DiarizedSegment` que devuelve el motor, y `SpeakerRegistry` (¿ya
-    // habíamos oído esta voz?) es aritmética de coseno sobre embeddings.
+    // `split_turn_into_pieces` es una función pura sobre los
+    // `DiarizedSegment` que devuelve el motor -- se testea sin modelos ONNX.
     // Los embeddings sintéticos de acá abajo son vectores unitarios en 2D
     // con ángulos elegidos para caer a propósito en cada lado de los
-    // umbrales; el camino con voces reales lo cubre el test `#[ignore]`
-    // del final, que sí carga los dos modelos.
+    // umbrales de `SpeakerRegistry`; el camino con voces reales lo cubre el
+    // test `#[ignore]` del final, que sí carga los dos modelos.
     // ------------------------------------------------------------------
 
     fn seg(speaker: usize, start_ms: u64, end_ms: u64, overlapped: bool) -> DiarizedSegment {
@@ -2959,53 +3230,143 @@ mod tests {
     }
 
     #[test]
-    fn choose_dominant_speaker_is_none_without_segments() {
-        assert!(choose_dominant_speaker(&[]).is_none());
-    }
-
-    #[test]
-    fn choose_dominant_speaker_picks_the_longest_and_keeps_only_its_clean_audio() {
-        let segments = vec![
-            seg(0, 0, 3_000, false),
-            seg(1, 3_000, 3_200, false),
-            seg(0, 3_200, 5_000, false),
-        ];
-
-        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
-        assert_eq!(dominant.speaker, 0);
-        assert_eq!(dominant.clean_ranges, vec![(0, 3_000), (3_200, 5_000)]);
-        assert!(!dominant.overlapped);
-        assert!(
-            !dominant.mixed,
-            "200ms contra 4800ms no es una segunda voz con presencia comparable"
-        );
-    }
-
-    #[test]
-    fn choose_dominant_speaker_marks_two_comparable_voices_as_mixed() {
-        let segments = vec![seg(0, 0, 2_000, false), seg(1, 2_000, 3_800, false)];
-
-        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
-        assert!(
-            dominant.mixed,
-            "dos voces de duración comparable en el mismo turno deben marcarlo como mezclado"
-        );
-    }
-
-    #[test]
-    fn choose_dominant_speaker_excludes_overlapped_audio_from_the_embedding() {
-        let segments = vec![
-            seg(0, 0, 2_000, false),
-            seg(0, 2_000, 2_500, true),
-            seg(0, 2_500, 4_000, false),
-        ];
-
-        let dominant = choose_dominant_speaker(&segments).expect("hay segmentos");
-        assert!(dominant.overlapped, "FR-004: la superposición se propaga");
+    fn split_turn_into_pieces_returns_one_open_piece_when_there_is_no_diarization() {
         assert_eq!(
-            dominant.clean_ranges,
-            vec![(0, 2_000), (2_500, 4_000)],
-            "el tramo superpuesto tiene dos voces mezcladas: no puede alimentar el embedding"
+            split_turn_into_pieces(&[], 5_000),
+            vec![TurnPiece {
+                start_ms: 0,
+                end_ms: 5_000,
+                speaker: None,
+                overlapped: false,
+            }],
+            "sin diarización, el corte por voz debe equivaler al comportamiento sin diarizar: \
+             una sola pieza para todo el turno"
+        );
+    }
+
+    #[test]
+    fn split_turn_into_pieces_splits_a_clean_speaker_change_and_sorts_by_start() {
+        // A propósito fuera de orden: la regla 1 (ordenar por start_ms) se
+        // testea acá en vez de con un test aparte.
+        let segments = vec![seg(1, 3_000, 6_000, false), seg(0, 0, 3_000, false)];
+
+        let pieces = split_turn_into_pieces(&segments, 6_000);
+
+        assert_eq!(
+            pieces,
+            vec![
+                TurnPiece {
+                    start_ms: 0,
+                    end_ms: 3_000,
+                    speaker: Some(0),
+                    overlapped: false,
+                },
+                TurnPiece {
+                    start_ms: 3_000,
+                    end_ms: 6_000,
+                    speaker: Some(1),
+                    overlapped: false,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn split_turn_into_pieces_merges_a_major_overlap_into_one_mixed_piece() {
+        // A = [0, 2000), B = [500, 2500): se pisan 1500ms de los 2000ms de
+        // cada una -- 75% > OVERLAP_MERGE_RATIO (60%).
+        let segments = vec![seg(0, 0, 2_000, false), seg(1, 500, 2_500, false)];
+
+        let pieces = split_turn_into_pieces(&segments, 2_500);
+
+        assert_eq!(
+            pieces,
+            vec![TurnPiece {
+                start_ms: 0,
+                end_ms: 2_500,
+                speaker: None,
+                overlapped: true,
+            }],
+            "un solape mayor al 60% del más corto es voz mezclada: no separable con un mic"
+        );
+    }
+
+    #[test]
+    fn split_turn_into_pieces_trims_a_minor_overlap_between_speakers() {
+        // A = [0, 3000), B = [2800, 5000): se pisan 200ms de los 2200ms de
+        // B -- 9%, muy por debajo del 60%.
+        let segments = vec![seg(0, 0, 3_000, false), seg(1, 2_800, 5_000, false)];
+
+        let pieces = split_turn_into_pieces(&segments, 5_000);
+
+        assert_eq!(
+            pieces,
+            vec![
+                TurnPiece {
+                    start_ms: 0,
+                    end_ms: 3_000,
+                    speaker: Some(0),
+                    overlapped: false,
+                },
+                TurnPiece {
+                    start_ms: 3_000,
+                    end_ms: 5_000,
+                    speaker: Some(1),
+                    overlapped: false,
+                },
+            ],
+            "un solape chico recorta el inicio del posterior al fin del anterior"
+        );
+    }
+
+    #[test]
+    fn split_turn_into_pieces_merges_a_tiny_piece_into_the_larger_previous_one() {
+        let segments = vec![
+            seg(0, 0, 3_000, false),     // 3000ms, la más larga
+            seg(1, 3_000, 3_400, false), // 400ms, < MIN_PIECE_MS (700ms)
+            seg(0, 3_400, 6_000, false), // 2600ms
+        ];
+
+        let pieces = split_turn_into_pieces(&segments, 6_000);
+
+        assert_eq!(
+            pieces,
+            vec![
+                TurnPiece {
+                    start_ms: 0,
+                    end_ms: 3_400,
+                    speaker: Some(0),
+                    overlapped: false,
+                },
+                TurnPiece {
+                    start_ms: 3_400,
+                    end_ms: 6_000,
+                    speaker: Some(0),
+                    overlapped: false,
+                },
+            ],
+            "la pieza diminuta se funde con la anterior, conservando el hablante de la mayor"
+        );
+    }
+
+    #[test]
+    fn split_turn_into_pieces_merges_a_leading_tiny_piece_with_the_next_one() {
+        let segments = vec![
+            seg(0, 0, 300, false),     // 300ms, primera pieza, diminuta
+            seg(1, 300, 4_000, false), // 3700ms
+        ];
+
+        let pieces = split_turn_into_pieces(&segments, 4_000);
+
+        assert_eq!(
+            pieces,
+            vec![TurnPiece {
+                start_ms: 0,
+                end_ms: 4_000,
+                speaker: Some(1),
+                overlapped: false,
+            }],
+            "sin pieza anterior, la diminuta se funde con la siguiente"
         );
     }
 
@@ -3021,6 +3382,102 @@ mod tests {
         // entrar en pánico (diarize trabaja con frames redondeados).
         let clamped = extract_ranges(&samples, &[(900, 5_000)], 16_000);
         assert_eq!(clamped.len(), 1_600);
+    }
+
+    // ------------------------------------------------------------------
+    // T014: process_turn_pieces con stubs -- integra split_turn_into_pieces
+    // + extract_ranges + SpeakerRegistry + persist_and_emit_segment sin
+    // cargar ningún modelo real, con un turno sintético de 2 hablantes.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn process_turn_pieces_persists_one_row_per_piece_with_absolute_offsets() {
+        let dir = temp_db_path("process-turn-pieces");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        // 6000ms de audio a 16kHz: los primeros 3000ms "son" el hablante 0
+        // (valor 0.1), los últimos 3000ms el hablante 1 (valor 0.9) -- el
+        // stub de embed de abajo lee ese valor para decidir qué vector
+        // devolver, así el test no depende de ningún modelo real.
+        let mut samples = vec![0.1_f32; 48_000];
+        samples.extend(vec![0.9_f32; 48_000]);
+        let turn = CompletedTurn {
+            samples,
+            started_at_ms: 10_000,
+            ended_at_ms: 16_000,
+        };
+        let segments = vec![seg(0, 0, 3_000, false), seg(1, 3_000, 6_000, false)];
+
+        let embed: &dyn Fn(&[f32]) -> Option<Vec<f32>> = &|samples: &[f32]| {
+            if samples.first().copied().unwrap_or(0.0) < 0.5 {
+                Some(unit_at(0.0))
+            } else {
+                Some(unit_at(90.0)) // bien lejos del primero: otra voz
+            }
+        };
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
+            &|samples: Vec<f32>| Ok(format!("pieza de {} samples", samples.len()));
+
+        let mut registry = SpeakerRegistry::default();
+        let results = process_turn_pieces(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &turn,
+            &segments,
+            &mut registry,
+            embed,
+            transcribe,
+        );
+
+        assert_eq!(results.len(), 2, "un turno de 2 hablantes -> 2 piezas");
+        for result in &results {
+            assert!(
+                matches!(result, Ok(Some(_))),
+                "cada pieza debería persistirse: {:?}",
+                result.as_ref().err()
+            );
+        }
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT speaker_id, started_at_ms, ended_at_ms FROM meeting_segments \
+                 ORDER BY id",
+            )
+            .unwrap();
+        let rows: Vec<(Option<i64>, i64, i64)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+
+        assert_eq!(
+            rows.len(),
+            2,
+            "dos filas en meeting_segments, una por pieza"
+        );
+        assert_eq!(
+            (rows[0].1, rows[0].2),
+            (10_000, 13_000),
+            "offsets absolutos = turn.started_at_ms + límites de la pieza"
+        );
+        assert_eq!((rows[1].1, rows[1].2), (13_000, 16_000));
+        assert!(
+            rows[0].0.is_some() && rows[1].0.is_some(),
+            "ambas piezas tienen suficiente audio limpio para atribuirse"
+        );
+        assert_ne!(
+            rows[0].0, rows[1].0,
+            "dos voces bien distintas deben terminar en dos hablantes distintos"
+        );
+        assert_eq!(registry.entries.len(), 2);
+
+        drop(stmt);
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
     }
 
     #[test]
@@ -4231,9 +4688,9 @@ mod tests {
                 continue;
             }
             processed += 1;
-            let attribution = attribute_turn(&engine, &audio);
+            let embedding = embed_piece(&engine, &audio);
             let speaker_id = registry
-                .resolve(&conn, meeting_id, attribution.embedding.as_deref())
+                .resolve(&conn, meeting_id, embedding.as_deref())
                 .expect("resolve");
             assigned.entry(turn.speaker).or_default().push(speaker_id);
         }
