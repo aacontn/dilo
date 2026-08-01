@@ -906,6 +906,8 @@
       "stop": "Zastavit",
       "finishing": "Dokončuji…",
       "kindPresencial": "Naživo, mikrofonem tohoto zařízení",
+      "model": "Přepis pomocí {{name}}",
+      "modelLoading": "Načítání modelu…",
       "privacy": "Zvuk neopouští tvůj počítač: přepis i rozdělení hlasů probíhá tady.",
       "startFailed": "Nahrávání se nepodařilo spustit",
       "stopFailed": "Schůzku se nepodařilo zastavit"

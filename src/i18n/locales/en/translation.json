@@ -103,6 +103,8 @@
       "stop": "Stop",
       "finishing": "Wrapping up…",
       "kindPresencial": "In person, using this computer's microphone",
+      "model": "Transcribing with {{name}}",
+      "modelLoading": "Loading the model…",
       "privacy": "Audio never leaves your computer: transcription and speaker separation happen right here.",
       "startFailed": "Couldn't start recording",
       "stopFailed": "Couldn't stop the meeting"

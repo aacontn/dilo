@@ -906,6 +906,8 @@
       "stop": "Stoppen",
       "finishing": "Wird beendet…",
       "kindPresencial": "Vor Ort, über das Mikrofon dieses Geräts",
+      "model": "Transkribiert mit {{name}}",
+      "modelLoading": "Modell wird geladen…",
       "privacy": "Das Audio verlässt deinen Rechner nicht: Transkription und Stimmentrennung passieren hier.",
       "startFailed": "Aufnahme konnte nicht gestartet werden",
       "stopFailed": "Meeting konnte nicht gestoppt werden"

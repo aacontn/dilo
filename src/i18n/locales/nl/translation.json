@@ -906,6 +906,8 @@
       "stop": "Stoppen",
       "finishing": "Afronden…",
       "kindPresencial": "Fysiek, met de microfoon van dit apparaat",
+      "model": "Transcriberen met {{name}}",
+      "modelLoading": "Model laden…",
       "privacy": "De audio verlaat je computer niet: transcriptie en het scheiden van stemmen gebeuren hier.",
       "startFailed": "Opnemen kon niet starten",
       "stopFailed": "Vergadering kon niet gestopt worden"

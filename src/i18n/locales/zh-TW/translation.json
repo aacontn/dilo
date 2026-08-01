@@ -906,6 +906,8 @@
       "stop": "停止",
       "finishing": "收尾中…",
       "kindPresencial": "實體，使用本機麥克風",
+      "model": "正在使用 {{name}} 轉錄",
+      "modelLoading": "正在載入模型…",
       "privacy": "音訊不會離開你的電腦：轉寫和區分聲音都在本機完成。",
       "startFailed": "無法開始錄製",
       "stopFailed": "無法停止會議"

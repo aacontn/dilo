@@ -906,6 +906,8 @@
       "stop": "Arrêter",
       "finishing": "Finalisation…",
       "kindPresencial": "En présentiel, avec le micro de cet appareil",
+      "model": "Transcription avec {{name}}",
+      "modelLoading": "Chargement du modèle…",
       "privacy": "L'audio ne quitte pas ton ordinateur : la transcription et la séparation des voix se font ici.",
       "startFailed": "Impossible de démarrer l'enregistrement",
       "stopFailed": "Impossible d'arrêter la réunion"

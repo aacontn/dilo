@@ -906,6 +906,8 @@
       "stop": "停止",
       "finishing": "仕上げ中…",
       "kindPresencial": "対面、この端末のマイクを使用",
+      "model": "{{name}} で文字起こし中",
+      "modelLoading": "モデルを読み込み中…",
       "privacy": "音声はパソコンの外に出ません。文字起こしも話者の分離もここで行われます。",
       "startFailed": "録音を開始できませんでした",
       "stopFailed": "ミーティングを停止できませんでした"

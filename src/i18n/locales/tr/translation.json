@@ -906,6 +906,8 @@
       "stop": "Durdur",
       "finishing": "Tamamlanıyor…",
       "kindPresencial": "Yüz yüze, bu cihazın mikrofonuyla",
+      "model": "{{name}} ile yazıya dökülüyor",
+      "modelLoading": "Model yükleniyor…",
       "privacy": "Ses bilgisayarından çıkmaz: döküm ve ses ayrıştırma burada yapılır.",
       "startFailed": "Kayıt başlatılamadı",
       "stopFailed": "Toplantı durdurulamadı"

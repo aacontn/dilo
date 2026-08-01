@@ -906,6 +906,8 @@
       "stop": "Detener",
       "finishing": "Cerrando…",
       "kindPresencial": "Presencial, con el micrófono de este equipo",
+      "model": "Transcribiendo con {{name}}",
+      "modelLoading": "Cargando el modelo…",
       "privacy": "El audio no sale de tu computador: se transcribe y se separan las voces acá mismo.",
       "startFailed": "No se pudo empezar a grabar",
       "stopFailed": "No se pudo detener la reunión"

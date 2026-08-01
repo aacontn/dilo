@@ -906,6 +906,8 @@
       "stop": "停止",
       "finishing": "收尾中…",
       "kindPresencial": "线下，使用本机麦克风",
+      "model": "正在使用 {{name}} 转录",
+      "modelLoading": "正在加载模型…",
       "privacy": "音频不会离开你的电脑：转写和区分声音都在本地完成。",
       "startFailed": "无法开始录制",
       "stopFailed": "无法停止会议"

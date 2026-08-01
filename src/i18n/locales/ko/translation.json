@@ -906,6 +906,8 @@
       "stop": "중지",
       "finishing": "마무리 중…",
       "kindPresencial": "대면, 이 기기의 마이크 사용",
+      "model": "{{name}}(으)로 전사 중",
+      "modelLoading": "모델 불러오는 중…",
       "privacy": "오디오는 컴퓨터 밖으로 나가지 않습니다. 받아쓰기와 화자 분리 모두 여기서 처리됩니다.",
       "startFailed": "녹음을 시작하지 못했습니다",
       "stopFailed": "회의를 중지하지 못했습니다"

@@ -906,6 +906,8 @@
       "stop": "Ferma",
       "finishing": "Chiusura…",
       "kindPresencial": "In presenza, con il microfono di questo dispositivo",
+      "model": "Trascrizione con {{name}}",
+      "modelLoading": "Caricamento del modello…",
       "privacy": "L'audio non esce dal tuo computer: trascrizione e separazione delle voci avvengono qui.",
       "startFailed": "Impossibile avviare la registrazione",
       "stopFailed": "Impossibile fermare la riunione"

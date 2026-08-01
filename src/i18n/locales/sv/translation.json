@@ -906,6 +906,8 @@
       "stop": "Stoppa",
       "finishing": "Avslutar…",
       "kindPresencial": "På plats, med den här datorns mikrofon",
+      "model": "Transkriberar med {{name}}",
+      "modelLoading": "Läser in modellen…",
       "privacy": "Ljudet lämnar aldrig din dator: transkribering och röstseparering sker här.",
       "startFailed": "Kunde inte börja spela in",
       "stopFailed": "Kunde inte stoppa mötet"

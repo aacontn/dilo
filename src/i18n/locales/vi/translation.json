@@ -906,6 +906,8 @@
       "stop": "Dừng",
       "finishing": "Đang kết thúc…",
       "kindPresencial": "Trực tiếp, dùng micrô của máy này",
+      "model": "Đang phiên âm bằng {{name}}",
+      "modelLoading": "Đang tải mô hình…",
       "privacy": "Âm thanh không rời khỏi máy của bạn: việc chuyển lời và tách giọng đều làm tại đây.",
       "startFailed": "Không thể bắt đầu ghi",
       "stopFailed": "Không thể dừng cuộc họp"

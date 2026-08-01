@@ -906,6 +906,8 @@
       "stop": "Zatrzymaj",
       "finishing": "Kończenie…",
       "kindPresencial": "Na żywo, mikrofonem tego urządzenia",
+      "model": "Transkrypcja przy użyciu {{name}}",
+      "modelLoading": "Ładowanie modelu…",
       "privacy": "Dźwięk nie opuszcza twojego komputera: transkrypcja i rozdzielanie głosów dzieją się tutaj.",
       "startFailed": "Nie udało się rozpocząć nagrywania",
       "stopFailed": "Nie udało się zatrzymać spotkania"

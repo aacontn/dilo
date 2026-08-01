@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LockKeyhole, Mic, Square, Users } from "lucide-react";
+import { Cpu, LockKeyhole, Mic, Square, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/Button";
 import { useMeetings } from "../../hooks/useMeetings";
+import { useModelStore } from "../../stores/modelStore";
 
 /**
  * Controles de grabación de una reunión presencial (T017).
@@ -25,6 +26,16 @@ export const RecordingControls: React.FC = () => {
     stopMeeting,
   } = useMeetings();
   const [elapsedLabel, setElapsedLabel] = useState<string | null>(null);
+
+  // Qué modelo STT graba la reunión — mismo modelo que el dictado normal
+  // (managers/meeting.rs reusa el TranscriptionManager compartido, no uno
+  // propio de reuniones). Alfonso no sabía qué modelo estaba usando al
+  // grabar; esto lo deja a la vista sin abrir Ajustes.
+  const { currentModel, models } = useModelStore();
+  const activeModelName = useMemo(
+    () => models.find((model) => model.id === currentModel)?.name,
+    [currentModel, models],
+  );
 
   // Cronómetro simple mientras graba: el tiempo lo marca el propio
   // transcript (último segmento recibido), no un timer propio — así lo que
@@ -141,6 +152,13 @@ export const RecordingControls: React.FC = () => {
             <Users className="size-4 shrink-0" />
             {t("meeting.controls.kindPresencial")}
           </span>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-text">
+          <Cpu className="size-4 shrink-0" />
+          {activeModelName
+            ? t("meeting.controls.model", { name: activeModelName })
+            : t("meeting.controls.modelLoading")}
         </div>
 
         <div className="mt-5 flex items-center gap-2 text-xs text-muted-text">

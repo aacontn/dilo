@@ -23,6 +23,12 @@ syncThemeFromSettings();
 // Initialize i18n
 import "@/i18n";
 
+// Ventana propia = runtime de JS propio: el store de modelos de la ventana
+// principal no llega acá solo. Se necesita para mostrar qué modelo STT está
+// activo en los controles de grabación (RecordingControls.tsx).
+import { useModelStore } from "@/stores/modelStore";
+useModelStore.getState().initialize();
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <MeetingsWindow />
