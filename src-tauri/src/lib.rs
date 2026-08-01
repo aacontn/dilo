@@ -1008,8 +1008,12 @@ pub fn run(cli_args: CliArgs) {
                     let _res = window.hide();
                 }
 
+                // Esconder la app del Dock/Cmd-Tab sólo al cerrar la ventana
+                // principal. Corriendo para CUALQUIER ventana, cerrar
+                // Reuniones con Ajustes abierta mandaba la app entera a
+                // Accessory y dejaba Ajustes visible pero inalcanzable.
                 #[cfg(target_os = "macos")]
-                {
+                if window.label() == "main" {
                     let settings = get_settings(window.app_handle());
                     let tray_visible =
                         settings.show_tray_icon && !window.app_handle().state::<CliArgs>().no_tray;
