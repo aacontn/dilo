@@ -271,6 +271,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(meeting_manager.clone());
     app_handle.manage(diarization_engine.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+    // Avisos de cruce a la nube que ocurrieron sin ninguna ventana abierta —
+    // ver `actions::PendingFallbackNotices`.
+    app_handle.manage(actions::PendingFallbackNotices::default());
     // Voz de salida: estado del motor TTS, cargado perezosamente en el
     // primer `tts_speak` (ver `tts::TtsState`).
     app_handle.manage(tts::TtsState::default());
@@ -689,6 +692,7 @@ pub fn run(cli_args: CliArgs) {
             show_main_window_command,
             commands::cancel_operation,
             overlay::overlay_ready,
+            commands::take_pending_fallback_notices,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,

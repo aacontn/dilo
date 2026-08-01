@@ -522,6 +522,14 @@ async cancelOperation() : Promise<void> {
 async overlayReady() : Promise<void> {
     await TAURI_INVOKE("overlay_ready");
 },
+/**
+ * Avisos de cruce a la nube que ocurrieron sin ninguna ventana escuchando
+ * el evento. La ventana los pide al montar y los muestra como toasts; la
+ * llamada los consume, así que no se repiten al reabrir.
+ */
+async takePendingFallbackNotices() : Promise<PostProcessFallback[]> {
+    return await TAURI_INVOKE("take_pending_fallback_notices");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },

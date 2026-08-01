@@ -158,6 +158,30 @@ function App() {
     };
   }, [t]);
 
+  // Y los cruces que pasaron con esta ventana cerrada: dictar con la ventana
+  // cerrada es lo NORMAL, y al cerrarla se destruye el webview con su
+  // listener, así que sin esto el aviso se perdía justo en el caso común.
+  // La llamada consume la cola: se muestran una vez, no en cada apertura.
+  // Sólo al montar: la cola es justamente lo que pasó mientras no había
+  // ventana.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const pending = await commands.takePendingFallbackNotices();
+        for (const notice of pending) {
+          toast.info(
+            t("settings.postProcessing.modeProvider.fallbackNotice", {
+              mode: notice.mode_name,
+              provider: notice.provider_label,
+            }),
+          );
+        }
+      } catch (error) {
+        console.error("No se pudieron leer los avisos pendientes:", error);
+      }
+    })();
+  }, []);
+
   // Listen for paste failures and show a toast.
   // The technical error detail is logged to handy.log on the Rust side
   // (see actions.rs `error!("Failed to paste transcription: ...")`),

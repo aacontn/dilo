@@ -17,6 +17,16 @@ pub fn cancel_operation(app: AppHandle) {
     cancel_current_operation(&app);
 }
 
+/// Avisos de cruce a la nube que ocurrieron sin ninguna ventana escuchando
+/// el evento. La ventana los pide al montar y los muestra como toasts; la
+/// llamada los consume, así que no se repiten al reabrir.
+#[tauri::command]
+#[specta::specta]
+pub fn take_pending_fallback_notices(app: AppHandle) -> Vec<crate::actions::PostProcessFallback> {
+    app.state::<crate::actions::PendingFallbackNotices>()
+        .take_all()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn is_portable() -> bool {

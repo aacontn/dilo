@@ -146,6 +146,48 @@ pub struct PostProcessFallback {
     pub provider_label: String,
 }
 
+/// Cuántos avisos de cruce a la nube se guardan mientras no haya ventana
+/// que los muestre. Con un modo local en falla permanente (Apple
+/// Intelligence no disponible, por ejemplo) cada dictado genera uno: sin
+/// tope, abrir la ventana después de un día de trabajo escupiría cientos de
+/// toasts. Al llegar al tope se descartan los más viejos — enterarse de los
+/// últimos diez cruces alcanza para saber que esto está pasando.
+const MAX_PENDING_FALLBACK_NOTICES: usize = 10;
+
+/// Cola de avisos de cruce a la nube pendientes de mostrar.
+///
+/// El evento `post-process-fallback` sólo llega si hay una ventana escuchando,
+/// y el estado normal al dictar es con la ventana principal **cerrada** (al
+/// cerrarla se destruye el webview, y con él su listener). Sin esta cola el
+/// aviso más importante que da la app —"tu texto local salió a la nube"— se
+/// perdía justo en el caso normal. El frontend la vacía al montar
+/// (`take_pending_fallback_notices`), así el usuario se entera tarde pero se
+/// entera.
+#[derive(Default)]
+pub struct PendingFallbackNotices(Mutex<Vec<PostProcessFallback>>);
+
+impl PendingFallbackNotices {
+    pub fn push(&self, notice: PostProcessFallback) {
+        let mut queue = match self.0.lock() {
+            Ok(q) => q,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        while queue.len() >= MAX_PENDING_FALLBACK_NOTICES {
+            queue.remove(0);
+        }
+        queue.push(notice);
+    }
+
+    /// Devuelve los avisos pendientes y deja la cola vacía.
+    pub fn take_all(&self) -> Vec<PostProcessFallback> {
+        let mut queue = match self.0.lock() {
+            Ok(q) => q,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        std::mem::take(&mut *queue)
+    }
+}
+
 /// El aviso sale **sólo** cuando se cruzó de local a nube. Caer entre dos
 /// proveedores online no cambia nada para el usuario, y caer hacia uno local
 /// tampoco es noticia: lo único que hay que contar es que un texto que iba a
@@ -642,6 +684,17 @@ pub(crate) async fn process_transcription_output(
         {
             if let Some(crossing) = outcome.crossed_to_cloud.clone() {
                 use tauri_specta::Event as _;
+                // Siempre al log: es la única constancia que queda si el
+                // usuario nunca abre la ventana.
+                warn!(
+                    "El modo '{}' cayó a un proveedor de nube ({}): el texto salió del equipo",
+                    crossing.mode_name, crossing.provider_label
+                );
+                // Y a la cola, para la ventana que se abra después: al dictar
+                // lo normal es no tener ninguna ventana escuchando el evento.
+                if let Some(pending) = app.try_state::<PendingFallbackNotices>() {
+                    pending.push(crossing.clone());
+                }
                 if let Err(e) = crossing.emit(app) {
                     warn!("No se pudo avisar del cruce a la nube: {}", e);
                 }
@@ -1237,6 +1290,35 @@ mod tests {
     use std::sync::Arc;
     use std::thread;
     use std::time::Duration;
+
+    #[test]
+    fn pending_fallback_notices_are_drained_once_and_capped() {
+        use super::{PendingFallbackNotices, PostProcessFallback, MAX_PENDING_FALLBACK_NOTICES};
+
+        let pending = PendingFallbackNotices::default();
+        for i in 0..(MAX_PENDING_FALLBACK_NOTICES + 3) {
+            pending.push(PostProcessFallback {
+                mode_name: format!("modo {i}"),
+                provider_label: "OpenAI".to_string(),
+            });
+        }
+
+        let drained = pending.take_all();
+        assert_eq!(
+            drained.len(),
+            MAX_PENDING_FALLBACK_NOTICES,
+            "una falla permanente no puede acumular avisos sin tope"
+        );
+        assert_eq!(
+            drained.first().map(|n| n.mode_name.as_str()),
+            Some("modo 3"),
+            "al llegar al tope se descartan los más viejos, no los nuevos"
+        );
+        assert!(
+            pending.take_all().is_empty(),
+            "vaciar la cola dos veces no puede repetir los mismos toasts"
+        );
+    }
 
     #[test]
     fn mode_binding_ids_resolve_to_transcribe_action() {
