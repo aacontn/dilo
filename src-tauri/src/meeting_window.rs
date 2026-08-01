@@ -41,6 +41,22 @@ pub fn open_meetings_window(app: AppHandle) -> Result<(), String> {
         let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     }
 
+    // Reuniones toma el relevo: la ventana de ajustes se esconde para no
+    // dejar dos ventanas de Dilo compitiendo en pantalla mientras grabas.
+    // Se **esconde**, no se destruye: así vuelve entera desde la bandeja o
+    // el Dock, sin perder la sección en la que estabas.
+    //
+    // Es seguro para el ícono del Dock: la guarda de `CloseRequested` en
+    // `lib.rs` sólo pasa a `Accessory` cuando no queda ninguna ventana
+    // relevante visible, y ésta acaba de quedar visible (ver
+    // `no_relevant_window_visible`).
+    if let Some(main) = app.get_webview_window("main") {
+        if let Err(e) = main.hide() {
+            // No es fatal: la de reuniones ya está arriba y usable.
+            log::warn!("No se pudo esconder la ventana principal: {e}");
+        }
+    }
+
     Ok(())
 }
 
