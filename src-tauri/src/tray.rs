@@ -5,6 +5,7 @@ use crate::settings;
 use crate::tray_i18n::get_tray_translations;
 use log::{debug, error, info, warn};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
@@ -111,9 +112,52 @@ pub fn get_icon_path(theme: AppTheme, state: TrayIconState) -> &'static str {
     }
 }
 
+/// True mientras una reunión está capturando audio. Ver
+/// [`set_meeting_recording`].
+static MEETING_RECORDING: AtomicBool = AtomicBool::new(false);
+
+/// Qué ícono corresponde de verdad: mientras una reunión graba, gana la
+/// reunión.
+///
+/// Los dos caminos escriben el mismo estado de bandeja y el del dictado
+/// vuelve a `Idle` al terminar cada dictado (y `utils::reset` lo pone en
+/// `Idle` en varios caminos de error). Como la reunión puede durar horas sin
+/// ninguna ventana abierta, dejar que esos `Idle` la pisen borraría la única
+/// señal de que el micrófono sigue abierto. El dictado y la reunión no
+/// pueden coexistir de todos modos (el árbitro del micrófono lo impide), así
+/// que esta preferencia no le saca ninguna indicación al dictado.
+fn effective_tray_state(requested: TrayIconState, meeting_recording: bool) -> TrayIconState {
+    if meeting_recording {
+        TrayIconState::Recording
+    } else {
+        requested
+    }
+}
+
+/// Enciende (o apaga) la señal de "hay una reunión grabando" en la bandeja.
+/// Es el único indicador que queda cuando la ventana de reuniones está
+/// cerrada y el micrófono sigue abierto.
+pub fn set_meeting_recording(app: &AppHandle, recording: bool) {
+    MEETING_RECORDING.store(recording, Ordering::Relaxed);
+    if app.try_state::<TrayIcon>().is_none() {
+        // Sin bandeja (--no-tray, o un arranque headless) no hay ícono que
+        // cambiar; la marca igual queda puesta para el resto.
+        return;
+    }
+    change_tray_icon(
+        app,
+        if recording {
+            TrayIconState::Recording
+        } else {
+            TrayIconState::Idle
+        },
+    );
+}
+
 pub fn change_tray_icon(app: &AppHandle, icon: TrayIconState) {
     let tray = app.state::<TrayIcon>();
     let theme = get_current_theme(app);
+    let icon = effective_tray_state(icon, MEETING_RECORDING.load(Ordering::Relaxed));
 
     // Store current state
     app.state::<CurrentTrayIconState>().set(icon);
@@ -347,7 +391,7 @@ pub fn copy_last_transcript(app: &AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::{last_transcript_text, load_tray_icon};
+    use super::{effective_tray_state, last_transcript_text, load_tray_icon, TrayIconState};
     use crate::managers::history::HistoryEntry;
 
     fn build_entry(transcription: &str, post_processed: Option<&str>) -> HistoryEntry {
@@ -374,6 +418,30 @@ mod tests {
     fn falls_back_to_raw_transcription() {
         let entry = build_entry("raw", None);
         assert_eq!(last_transcript_text(&entry), "raw");
+    }
+
+    #[test]
+    fn a_meeting_keeps_the_recording_icon_even_when_dictation_asks_for_idle() {
+        assert_eq!(
+            effective_tray_state(TrayIconState::Idle, true),
+            TrayIconState::Recording
+        );
+        assert_eq!(
+            effective_tray_state(TrayIconState::Transcribing, true),
+            TrayIconState::Recording
+        );
+    }
+
+    #[test]
+    fn without_a_meeting_the_requested_state_is_respected() {
+        assert_eq!(
+            effective_tray_state(TrayIconState::Idle, false),
+            TrayIconState::Idle
+        );
+        assert_eq!(
+            effective_tray_state(TrayIconState::Transcribing, false),
+            TrayIconState::Transcribing
+        );
     }
 
     #[test]

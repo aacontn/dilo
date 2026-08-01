@@ -70,14 +70,20 @@ pub async fn stop_meeting(
     meeting_manager: State<'_, Arc<MeetingManager>>,
     meeting_id: i64,
 ) -> Result<(), String> {
-    meeting_manager
+    let transition = meeting_manager
         .stop_meeting(meeting_id)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string());
 
+    // El cierre se despacha **pase lo que pase** con la transición de
+    // estado, sin `?` de por medio. Si la fila no estaba en `recording` (una
+    // reunión recuperada como `interrupted`, un doble click), `stop_meeting`
+    // falla — pero la captura y el micrófono siguen tomados igual, y
+    // devolver acá los dejaba tomados hasta reiniciar la app.
     let manager = Arc::clone(&meeting_manager);
-    tauri::async_runtime::spawn_blocking(move || manager.drain_and_finalize(meeting_id));
+    let transition_ok = transition.is_ok();
+    tauri::async_runtime::spawn_blocking(move || manager.finish_stop(meeting_id, transition_ok));
 
-    Ok(())
+    transition
 }
 
 /// Ponerle nombre a un hablante detectado, o renombrarlo (FR-005). Mandar un

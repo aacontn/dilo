@@ -17,7 +17,7 @@ use crate::audio_toolkit::{
     },
     AudioRecorder, SileroVad, VadPolicy,
 };
-use crate::managers::audio::{MicOwner, MicrophoneArbiter, VAD_THRESHOLD};
+use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter, VAD_THRESHOLD};
 use crate::managers::diarization::{
     cosine_similarity, DiarizationEngine, DiarizedSegment, CLUSTER_THRESHOLD,
 };
@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -430,6 +430,78 @@ const WATCHDOG_POLL_INTERVAL: Duration = Duration::from_millis(100);
 /// engines need a minimum input duration to run at all).
 #[allow(dead_code)]
 const MIN_TURN_SAMPLES: usize = 16_000; // 1s @ 16kHz
+/// A partir de cuántos turnos encolados sin transcribir se avisa en el log.
+/// La cola (`mpsc`) no tiene cota: si transcribir va más lento que hablar,
+/// crece sin freno y el audio pendiente se acumula en memoria. La
+/// backpressure real es trabajo aparte; esto al menos deja rastro en
+/// `handy.log` de que pasó, en vez de un consumo de memoria inexplicable.
+const QUEUE_DEPTH_WARN_THRESHOLD: usize = 50;
+
+/// ¿Este error dice "el modelo no está cargado"? Los dos mensajes salen de
+/// `TranscriptionManager::transcribe` y son los únicos que un reintento con
+/// recarga puede arreglar; cualquier otro (audio inválido, motor que explotó)
+/// volvería a fallar igual.
+fn is_model_not_loaded_error(error: &anyhow::Error) -> bool {
+    let message = error.to_string();
+    message.contains("Model is not loaded") || message.contains("Model failed to load")
+}
+
+/// Transcribe un turno y, si falló **porque el modelo no estaba cargado**,
+/// lo recarga y reintenta ese mismo turno UNA vez.
+///
+/// El modelo se puede descargar en medio de una reunión (watcher de
+/// inactividad, cambio de modelo, descarga manual desde la bandeja). Sin este
+/// reintento el turno se perdía en silencio y —peor— todos los siguientes,
+/// porque nadie volvía a cargar el modelo: la reunión seguía "grabando" horas
+/// sin producir un solo segmento.
+///
+/// Un solo reintento a propósito: si tras recargar sigue fallando, el
+/// problema no es la descarga y reintentar en bucle sólo trabaría la cola de
+/// turnos detrás de éste.
+fn transcribe_with_reload(
+    samples: Vec<f32>,
+    transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
+    reload: &dyn Fn(),
+) -> Result<String> {
+    // La copia es para poder reintentar: `transcribe` consume las muestras.
+    // Un turno son segundos de audio a 16 kHz, un par de MB en el peor caso.
+    let retry_samples = samples.clone();
+    match transcribe(samples) {
+        Err(e) if is_model_not_loaded_error(&e) => {
+            warn!("El modelo se había descargado; recargando y reintentando el turno: {e}");
+            reload();
+            transcribe(retry_samples)
+        }
+        other => other,
+    }
+}
+
+/// Avisa al frontend del primer fallo del pipeline de captura de esta sesión
+/// (`meeting-error`) y sólo loggea los siguientes.
+///
+/// Sin esto una reunión podía "grabar" horas con cero segmentos y sin decir
+/// nada: los errores del hilo transcriptor terminaban únicamente en
+/// `handy.log`. Se emite sólo el primero porque el modo de falla típico es
+/// permanente (la DB no abre, el disco está lleno) y se repetiría en cada
+/// turno — un aviso sirve, doscientos son ruido.
+fn report_capture_failure<R: tauri::Runtime>(
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    already_reported: &mut bool,
+    error: String,
+) {
+    error!("Meeting {}: {}", meeting_id, error);
+    if *already_reported {
+        return;
+    }
+    *already_reported = true;
+    if let Some(app) = app_handle {
+        let payload = MeetingError { meeting_id, error };
+        if let Err(e) = payload.emit(app) {
+            warn!("Failed to emit meeting-error for {}: {}", meeting_id, e);
+        }
+    }
+}
 
 /// Build the `AudioRecorder` a meeting capture session uses: same reusable
 /// building blocks as dictation's `create_audio_recorder` in
@@ -1233,6 +1305,9 @@ impl MeetingManager {
             let accumulator = Arc::new(Mutex::new(TurnAccumulator::default()));
             let capture_started = Instant::now();
             let (turn_tx, turn_rx) = mpsc::channel::<CompletedTurn>();
+            // Profundidad de la cola de turnos pendientes de transcribir,
+            // sólo para poder avisarlo (ver `QUEUE_DEPTH_WARN_THRESHOLD`).
+            let queue_depth = Arc::new(AtomicUsize::new(0));
 
             let audio_cb = {
                 let accumulator = Arc::clone(&accumulator);
@@ -1243,8 +1318,14 @@ impl MeetingManager {
             };
 
             let mut recorder = build_meeting_recorder(&vad_path, audio_cb)?;
+            // El micrófono elegido en Ajustes, igual que el dictado: la
+            // reunión tiene su propio `AudioRecorder`, así que sin esto
+            // abría el default del sistema e ignoraba el ajuste en silencio.
+            let selected_device = app_handle
+                .try_state::<Arc<AudioRecordingManager>>()
+                .and_then(|manager| manager.selected_input_device());
             recorder
-                .open(None)
+                .open(selected_device)
                 .map_err(|e| anyhow::anyhow!("Failed to open microphone for meeting: {}", e))?;
             if let Err(e) = recorder.start(VadPolicy::Offline) {
                 let _ = recorder.close();
@@ -1257,15 +1338,32 @@ impl MeetingManager {
                 let accumulator = Arc::clone(&accumulator);
                 let shutdown = Arc::clone(&shutdown);
                 let turn_tx = turn_tx.clone();
+                let transcription_manager = Arc::clone(&transcription_manager);
+                let queue_depth = Arc::clone(&queue_depth);
                 thread::spawn(move || {
                     while !shutdown.load(Ordering::Relaxed) {
                         thread::sleep(WATCHDOG_POLL_INTERVAL);
+                        // Mantener vivo el reloj de inactividad del modelo:
+                        // el watcher de `TranscriptionManager` sólo mira el
+                        // dictado, y un tramo callado de la reunión (una
+                        // pausa, un break) le parece inactividad. Si descarga
+                        // el modelo, todos los turnos siguientes fallan.
+                        transcription_manager.touch_activity();
                         let now_ms = capture_started.elapsed().as_millis() as i64;
                         let completed = accumulator
                             .lock()
                             .unwrap()
                             .take_if_silent(TURN_SILENCE_GAP, now_ms);
                         if let Some(turn) = completed {
+                            let depth = queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
+                            if depth == QUEUE_DEPTH_WARN_THRESHOLD {
+                                warn!(
+                                    "Meeting {}: {} turnos esperando transcripción — transcribir \
+                                     va más lento que hablar y el audio pendiente se acumula en \
+                                     memoria",
+                                    meeting_id, depth
+                                );
+                            }
                             let _ = turn_tx.send(turn);
                         }
                     }
@@ -1277,13 +1375,22 @@ impl MeetingManager {
                 let app_handle = app_handle.clone();
                 let transcription_manager = Arc::clone(&transcription_manager);
                 let diarization_engine = self.diarization_engine.clone();
+                let queue_depth = Arc::clone(&queue_depth);
                 thread::spawn(move || {
+                    // Un solo aviso por sesión de captura, ver
+                    // `report_capture_failure`.
+                    let mut failure_reported = false;
                     let conn = match Connection::open(&db_path) {
                         Ok(c) => c,
                         Err(e) => {
-                            error!(
-                                "Meeting {}: failed to open db connection for transcriber thread: {}",
-                                meeting_id, e
+                            report_capture_failure(
+                                Some(&app_handle),
+                                meeting_id,
+                                &mut failure_reported,
+                                format!(
+                                    "no se pudo abrir la base de datos para transcribir la \
+                                     reunión, no se va a guardar nada de lo que se hable: {e}"
+                                ),
                             );
                             return;
                         }
@@ -1294,6 +1401,15 @@ impl MeetingManager {
                     // reunión, `data-model.md`).
                     let mut registry = SpeakerRegistry::default();
                     while let Ok(turn) = turn_rx.recv() {
+                        // `fetch_update` y no `fetch_sub`: el turno final que
+                        // empuja `stop_capture` no pasó por el watchdog y no
+                        // sumó, así que restar a ciegas daría la vuelta el
+                        // contador sin signo.
+                        let _ = queue_depth.fetch_update(
+                            Ordering::Relaxed,
+                            Ordering::Relaxed,
+                            |depth| depth.checked_sub(1),
+                        );
                         // Diarizar ANTES de transcribir: `persist_and_emit_segment`
                         // consume `turn` (y le agrega padding a los turnos
                         // cortos, que falsearía la duración del audio que ve
@@ -1323,8 +1439,20 @@ impl MeetingManager {
                             }
                         };
 
-                        let transcribe =
-                            |samples: Vec<f32>| transcription_manager.transcribe(samples);
+                        // Si el modelo se descargó mientras la reunión seguía
+                        // (watcher de inactividad, cambio de modelo), este
+                        // turno lo recarga y se reintenta una vez en vez de
+                        // perderse — y con él todos los que vinieran atrás.
+                        let transcribe = |samples: Vec<f32>| {
+                            transcribe_with_reload(
+                                samples,
+                                &|s| transcription_manager.transcribe(s),
+                                &|| {
+                                    transcription_manager.initiate_model_load();
+                                    transcription_manager.wait_for_model_load();
+                                },
+                            )
+                        };
                         match persist_and_emit_segment(
                             &conn,
                             Some(&app_handle),
@@ -1335,9 +1463,11 @@ impl MeetingManager {
                             &transcribe,
                         ) {
                             Ok(_) => {}
-                            Err(e) => error!(
-                                "Meeting {}: failed to persist a transcribed segment: {}",
-                                meeting_id, e
+                            Err(e) => report_capture_failure(
+                                Some(&app_handle),
+                                meeting_id,
+                                &mut failure_reported,
+                                format!("no se pudo guardar un segmento transcrito: {e}"),
                             ),
                         }
                     }
@@ -1361,6 +1491,13 @@ impl MeetingManager {
                 // Recién con el micrófono ya abierto: preparar los modelos de
                 // diarización nunca debe demorar el inicio de la grabación.
                 self.spawn_diarization_warmup(&app_handle);
+                // Que nadie descargue el modelo mientras dure la reunión:
+                // con "Descargar de inmediato" se descargaba después de cada
+                // turno y el siguiente fallaba.
+                transcription_manager.set_meeting_capture_active(true);
+                // Única señal visible de que el micrófono está abierto cuando
+                // la ventana de reuniones está cerrada.
+                crate::tray::set_meeting_recording(&app_handle, true);
                 info!("Meeting {} capture started", meeting_id);
                 *capture_guard = Some(session);
                 Ok(())
@@ -1441,6 +1578,15 @@ impl MeetingManager {
         }
 
         let _ = session.recorder.close();
+
+        // Recién acá, con los hilos ya unidos: mientras se drenaba la cola
+        // los turnos pendientes todavía necesitaban el modelo cargado.
+        if let Some(tm) = &self.transcription_manager {
+            tm.set_meeting_capture_active(false);
+        }
+        if let Some(app) = &self.app_handle {
+            crate::tray::set_meeting_recording(app, false);
+        }
 
         if let Some(arbiter) = &self.mic_arbiter {
             arbiter.release(MicOwner::Meeting);
@@ -2041,6 +2187,30 @@ impl MeetingManager {
     /// Que no haya captura activa NO es un error acá: la reunión pudo
     /// haberse creado sin abrir el micrófono (o el proceso pudo perderla), y
     /// el estado igual tiene que poder cerrarse.
+    /// Segunda mitad de detener una reunión, para correr fuera del hilo del
+    /// comando. `transition_ok` dice si la fila llegó a `processing`.
+    ///
+    /// **El micrófono se suelta en los dos casos.** Cuando la transición
+    /// falla (la reunión no estaba `recording`: recuperada como
+    /// `interrupted`, ya detenida) la captura puede seguir abierta igual, y
+    /// dejarla tomada significa el micrófono ocupado y el dictado bloqueado
+    /// hasta reiniciar la app. Lo que sí se saltea es `finalize_meeting`:
+    /// marcar `ready` una reunión que nunca pasó por `processing` sería
+    /// mentir sobre su estado, y sólo generaría un `meeting-error` de más.
+    pub fn finish_stop(&self, meeting_id: i64, transition_ok: bool) {
+        if transition_ok {
+            self.drain_and_finalize(meeting_id);
+            return;
+        }
+
+        if let Err(e) = self.stop_capture(meeting_id) {
+            debug!(
+                "Meeting {}: no había captura activa que soltar tras una detención fallida ({})",
+                meeting_id, e
+            );
+        }
+    }
+
     pub fn drain_and_finalize(&self, meeting_id: i64) {
         if let Err(e) = self.stop_capture(meeting_id) {
             debug!(
@@ -3583,7 +3753,7 @@ mod tests {
     fn mock_app_with_events() -> tauri::App<tauri::test::MockRuntime> {
         let app = tauri::test::mock_app();
         let builder = tauri_specta::Builder::<tauri::test::MockRuntime>::new()
-            .events(tauri_specta::collect_events![MeetingSegment]);
+            .events(tauri_specta::collect_events![MeetingSegment, MeetingError]);
         builder.mount_events(app.handle());
         app
     }
@@ -4028,6 +4198,176 @@ mod tests {
                 attributed.len()
             );
         }
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // El modelo se descarga en medio de la reunión: el turno se recarga y
+    // se reintenta UNA vez, en vez de perderse en silencio (y con él todos
+    // los siguientes, que es lo que pasaba).
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn a_turn_is_retried_once_after_reloading_an_unloaded_model() {
+        let attempts = Arc::new(Mutex::new(Vec::<usize>::new()));
+        let reloads = Arc::new(Mutex::new(0usize));
+
+        let attempts_cb = Arc::clone(&attempts);
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &move |samples: Vec<f32>| {
+            let mut attempts = attempts_cb.lock().unwrap();
+            attempts.push(samples.len());
+            if attempts.len() == 1 {
+                Err(anyhow::anyhow!("Model is not loaded for transcription."))
+            } else {
+                Ok("lo que se dijo".to_string())
+            }
+        };
+        let reloads_cb = Arc::clone(&reloads);
+        let reload: &dyn Fn() = &move || *reloads_cb.lock().unwrap() += 1;
+
+        let text = transcribe_with_reload(vec![0.5; 1234], transcribe, reload)
+            .expect("el reintento tras recargar debería transcribir el turno");
+
+        assert_eq!(text, "lo que se dijo");
+        assert_eq!(*reloads.lock().unwrap(), 1, "hay que recargar el modelo");
+        assert_eq!(
+            *attempts.lock().unwrap(),
+            vec![1234, 1234],
+            "el reintento tiene que llevar el MISMO audio, no un turno vacío"
+        );
+    }
+
+    #[test]
+    fn a_second_model_failure_is_not_retried_forever() {
+        let attempts = Arc::new(Mutex::new(0usize));
+        let attempts_cb = Arc::clone(&attempts);
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &move |_| {
+            *attempts_cb.lock().unwrap() += 1;
+            Err(anyhow::anyhow!("Model is not loaded for transcription."))
+        };
+        let reload: &dyn Fn() = &|| {};
+
+        assert!(transcribe_with_reload(vec![0.0; 10], transcribe, reload).is_err());
+        assert_eq!(
+            *attempts.lock().unwrap(),
+            2,
+            "un reintento por turno: reintentar en bucle trabaría la cola detrás de éste"
+        );
+    }
+
+    #[test]
+    fn an_error_that_is_not_about_the_model_does_not_reload_anything() {
+        let reloads = Arc::new(Mutex::new(0usize));
+        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
+            &|_| Err(anyhow::anyhow!("el motor explotó"));
+        let reloads_cb = Arc::clone(&reloads);
+        let reload: &dyn Fn() = &move || *reloads_cb.lock().unwrap() += 1;
+
+        assert!(transcribe_with_reload(vec![0.0; 10], transcribe, reload).is_err());
+        assert_eq!(*reloads.lock().unwrap(), 0);
+    }
+
+    // ------------------------------------------------------------------
+    // Los fallos del pipeline de captura dejan de ser mudos: el primero de
+    // cada sesión sale por `meeting-error`, los siguientes sólo al log.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn the_first_capture_failure_of_a_session_reaches_the_frontend() {
+        let app = mock_app_with_events();
+        let handle = app.handle().clone();
+
+        let received = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
+        let received_cb = Arc::clone(&received);
+        handle.listen("meeting-error", move |event| {
+            let payload: serde_json::Value =
+                serde_json::from_str(event.payload()).expect("payload JSON");
+            received_cb.lock().unwrap().push(payload);
+        });
+
+        let mut reported = false;
+        report_capture_failure(
+            Some(&handle),
+            42,
+            &mut reported,
+            "no se pudo guardar un segmento transcrito: disco lleno".to_string(),
+        );
+        report_capture_failure(
+            Some(&handle),
+            42,
+            &mut reported,
+            "no se pudo guardar un segmento transcrito: disco lleno".to_string(),
+        );
+        report_capture_failure(Some(&handle), 42, &mut reported, "y otro más".to_string());
+
+        let received = received.lock().unwrap();
+        assert_eq!(
+            received.len(),
+            1,
+            "un aviso por sesión: el modo de falla típico es permanente y se repite en cada turno"
+        );
+        assert_eq!(received[0]["meeting_id"], 42);
+        assert_eq!(
+            received[0]["error"],
+            "no se pudo guardar un segmento transcrito: disco lleno"
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Detener una reunión que ya no estaba `recording` igual tiene que
+    // soltar el micrófono; lo que no corresponde es marcarla lista.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn a_failed_stop_still_releases_the_capture_without_finalizing() {
+        let dir = temp_db_path("finish-stop-failed-transition");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+
+        // La reunión quedó `interrupted` (recuperada de una sesión que
+        // murió), así que la transición de `stop_meeting` falla.
+        let conn = manager.get_connection().expect("get_connection");
+        conn.execute(
+            "UPDATE meetings SET status = 'interrupted' WHERE id = ?1",
+            params![meeting_id],
+        )
+        .expect("marcar interrupted");
+        assert!(
+            manager.stop_meeting(meeting_id).is_err(),
+            "una reunión que no está grabando no puede transicionar"
+        );
+
+        // El camino que el comando despacha igual: suelta la captura (acá no
+        // hay ninguna abierta, así que sólo loggea) y NO finaliza.
+        manager.finish_stop(meeting_id, false);
+
+        let (status, _, _) = meeting_row(&conn, meeting_id);
+        assert_eq!(
+            status, "interrupted",
+            "sin transición no hay `ready`: marcarla lista mentiría sobre su estado"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn a_successful_stop_still_finalizes_the_meeting() {
+        let dir = temp_db_path("finish-stop-ok");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        manager.stop_meeting(meeting_id).expect("stop_meeting");
+
+        manager.finish_stop(meeting_id, true);
+
+        let conn = manager.get_connection().expect("get_connection");
+        let (status, ended_at, _) = meeting_row(&conn, meeting_id);
+        assert_eq!(status, "ready");
+        assert!(ended_at.is_some());
 
         drop(conn);
         drop(manager);

@@ -350,6 +350,19 @@ impl AudioRecordingManager {
         settings.selected_microphone.clone()
     }
 
+    /// El micrófono que el usuario eligió en Ajustes (con la regla de
+    /// clamshell incluida), o `None` para el default del sistema.
+    ///
+    /// Existe para que la captura de reunión abra EL MISMO micrófono que el
+    /// dictado: tiene su propio `AudioRecorder`, así que sin esto abría
+    /// siempre el default del sistema e ignoraba el ajuste en silencio.
+    /// Comparte la caché de dispositivo con el dictado, que es justamente lo
+    /// que la hace barata.
+    pub fn selected_input_device(&self) -> Option<cpal::Device> {
+        let settings = get_settings(&self.app_handle);
+        self.get_effective_microphone_device(&settings)
+    }
+
     pub fn invalidate_device_cache(&self) {
         *self.cached_device.lock().unwrap() = None;
     }

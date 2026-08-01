@@ -257,6 +257,13 @@ pub struct TranscriptionManager {
     /// `is_model_loaded()` consults this so the model still reports "loaded"
     /// while the worker holds it.
     active_engine_lease: Arc<AtomicU64>,
+    /// True mientras una reunión tiene el micrófono abierto. La captura de
+    /// reunión no pasa por `AudioRecordingManager`, así que las dos rutas de
+    /// descarga del modelo (el watcher de inactividad y
+    /// [`Self::maybe_unload_immediately`]) no la ven — y descargar el modelo
+    /// en medio de una reunión hace perder cada turno posterior. La marca la
+    /// pone y la saca `MeetingManager::start_capture`/`stop_capture`.
+    meeting_capture_active: Arc<AtomicBool>,
 }
 
 impl TranscriptionManager {
@@ -277,6 +284,7 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
+            meeting_capture_active: Arc::new(AtomicBool::new(false)),
         };
 
         // Start the idle watcher
@@ -305,10 +313,16 @@ impl TranscriptionManager {
                     }
 
                     // While recording, keep the idle timer fresh so the
-                    // model is never unloaded mid-session.
-                    let is_recording = app_handle_cloned
-                        .try_state::<Arc<AudioRecordingManager>>()
-                        .is_some_and(|a| a.is_recording());
+                    // model is never unloaded mid-session. La captura de
+                    // reunión no pasa por `AudioRecordingManager` y sería
+                    // invisible acá: sin ese segundo chequeo, un silencio
+                    // largo en medio de una reunión (una pausa, un café)
+                    // cuenta como inactividad, el modelo se descarga y cada
+                    // turno posterior falla.
+                    let is_recording = manager_cloned.is_meeting_capture_active()
+                        || app_handle_cloned
+                            .try_state::<Arc<AudioRecordingManager>>()
+                            .is_some_and(|a| a.is_recording());
                     if is_recording {
                         manager_cloned.touch_activity();
                         continue;
@@ -430,13 +444,49 @@ impl TranscriptionManager {
             .as_millis() as u64
     }
 
-    /// Reset the idle timer to now.
-    fn touch_activity(&self) {
+    /// Reset the idle timer to now. Pública porque la captura de reunión la
+    /// llama desde su propio watchdog: sus turnos no pasan por el camino de
+    /// dictado, así que es la única forma de que el watcher de inactividad
+    /// sepa que el micrófono está trabajando.
+    pub fn touch_activity(&self) {
         self.last_activity.store(Self::now_ms(), Ordering::Relaxed);
+    }
+
+    /// Marca (o desmarca) que hay una reunión capturando audio. Ver el campo
+    /// `meeting_capture_active`.
+    pub fn set_meeting_capture_active(&self, active: bool) {
+        self.meeting_capture_active.store(active, Ordering::Release);
+    }
+
+    pub fn is_meeting_capture_active(&self) -> bool {
+        self.meeting_capture_active.load(Ordering::Acquire)
+    }
+
+    /// Espera a que termine una carga de modelo en curso. Mismo patrón que
+    /// usa `run_stream_worker`: el condvar avisa cuando el hilo de carga
+    /// terminó (haya cargado o haya fallado), sin sondear ni dormir a ciegas.
+    pub fn wait_for_model_load(&self) {
+        let mut is_loading = self.is_loading.lock().unwrap();
+        while *is_loading {
+            is_loading = self.loading_condvar.wait(is_loading).unwrap();
+        }
     }
 
     /// Unloads the model immediately if the setting is enabled and the model is loaded
     pub fn maybe_unload_immediately(&self, context: &str) {
+        // Una reunión en curso vuelve a necesitar el modelo en el próximo
+        // turno, que llega en segundos: con "Descargar de inmediato" esto
+        // descargaba el modelo después de CADA turno y el siguiente fallaba
+        // (o pagaba una recarga completa). Mientras la reunión graba, el
+        // modelo se queda; `stop_capture` levanta la marca y la próxima
+        // transcripción de dictado lo descarga igual que siempre.
+        if self.is_meeting_capture_active() {
+            debug!(
+                "Skipping immediate unload after {}: meeting capture is active",
+                context
+            );
+            return;
+        }
         let settings = get_settings(&self.app_handle);
         if settings.model_unload_timeout == ModelUnloadTimeout::Immediately
             && self.is_model_loaded()
