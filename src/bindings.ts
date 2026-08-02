@@ -1039,10 +1039,21 @@ async getMeeting(meetingId: number) : Promise<Result<Meeting, string>> {
 }
 },
 /**
- * Cambia la fuente de audio con la que se graban las reuniones (cableado de
- * audio de reuniones, ver el ajuste `meeting_audio_source`). Sólo afecta a
- * la próxima reunión que se inicie — `start_capture` lee el ajuste recién
- * al construir la sesión, no hay ninguna en curso que reconfigurar.
+ * Recuerda el tipo de reunión elegido la última vez, para preseleccionarlo
+ * la próxima vez que se abra el selector (`RecordingControls.tsx`) —
+ * **ya no determina la fuente de audio de ninguna reunión**: eso lo decide
+ * `resolve_meeting_audio_source` a partir del `kind` de esa reunión en
+ * particular (M2 del reporte de cableado). El nombre del comando y del
+ * ajuste (`meeting_audio_source`, tipo `MeetingAudioSource`) se conservan
+ * sin cambios a propósito — es sólo una etiqueta de recordatorio ahora,
+ * pero renombrar el campo persistido rompería la compatibilidad con
+ * `settings.json` ya guardados; ver el doc comment del campo en
+ * `settings.rs` para el detalle completo de la reinterpretación.
+ * 
+ * M3 del reporte de seguimiento: un `source` que no sea exactamente
+ * `"system_audio"` o `"microphone"` ahora **falla** en vez de caer en
+ * silencio al default — antes un typo (por ejemplo, mandado a mano contra
+ * el comando) cambiaba el ajuste sin que nadie se enterara.
  */
 async changeMeetingAudioSourceSetting(source: string) : Promise<Result<null, string>> {
     try {
@@ -1061,6 +1072,21 @@ async changeMeetingAudioSourceSetting(source: string) : Promise<Result<null, str
  */
 async isSystemAudioAvailable() : Promise<boolean> {
     return await TAURI_INVOKE("is_system_audio_available");
+},
+/**
+ * Avisos de audio de reunión (falta el permiso, varios minutos sin
+ * capturar nada real, cambió el dispositivo de salida, se cayó a
+ * micrófono) que ocurrieron sin que la ventana de Reuniones estuviera a la
+ * vista — I5 del reporte de seguimiento. El flujo esperado es grabar y
+ * volver a la videollamada: `return_to_main_window` y el botón de cerrar de
+ * esa ventana la esconden (`window.hide()`) en vez de destruirla, así que
+ * el evento `meeting-audio-warning` en vivo llega a un webview que nadie
+ * está mirando. `MeetingsWindow.tsx`/`useMeetings.ts` vacían esta cola al
+ * montar y al recuperar el foco de la ventana, mismo patrón que
+ * `take_pending_fallback_notices`/`take_pending_assistant_notices`.
+ */
+async takePendingMeetingAudioNotices() : Promise<MeetingAudioWarning[]> {
+    return await TAURI_INVOKE("take_pending_meeting_audio_notices");
 },
 /**
  * Abre la ventana de reuniones, o la trae al frente si ya está abierta
@@ -1483,9 +1509,28 @@ export type Meeting = { id: number; title: string; kind: string; started_at: num
  * que viajan por el sistema — decisión de producto del dueño ("ya habíamos
  * decidido hacerlo por el audio del computador, no del micrófono; sólo
  * opción para presencial"). `Microphone` es la opción para reuniones
- * presenciales. Ver `managers::meeting::resolve_meeting_audio_source` para
- * cómo se resuelve cuando el audio del sistema no está disponible en esta
- * máquina (fuera de macOS, o macOS anterior a 14.2).
+ * presenciales.
+ * 
+ * **Reinterpretado por el cableado de audio de reuniones (M2 del reporte de
+ * seguimiento).** Antes de esa tarea, esta era una perilla GLOBAL e
+ * independiente del tipo de reunión (`kind`, `"presencial"`/`"virtual"`),
+ * y las dos podían quedar incoherentes entre sí — la interfaz podía decir
+ * "reunión online" mientras `start_capture` grababa con audio del sistema
+ * contra este ajuste sin importarle el `kind` real de esa reunión. Ahora la
+ * fuente se deduce SIEMPRE del `kind` que el usuario eligió para esa
+ * reunión en particular (`managers::meeting::resolve_meeting_audio_source`,
+ * que ya no lee este campo en absoluto). Este ajuste sigue existiendo sólo
+ * para recordar la última elección y preseleccionarla la próxima vez que se
+ * abre el selector de tipo de reunión (`RecordingControls.tsx`:
+ * `SystemAudio` ~ "online", `Microphone` ~ "presencial") — se mantienen el
+ * nombre del campo y sus dos variantes sin cambios a propósito, para que un
+ * `settings.json` guardado con una versión anterior siga cargando igual sin
+ * ninguna migración.
+ * 
+ * Ver `managers::meeting::resolve_meeting_audio_source` para cómo se
+ * resuelve la fuente real de una reunión, incluyendo cuando el audio del
+ * sistema no está disponible en esta máquina (fuera de macOS, o macOS
+ * anterior a 14.2).
  */
 export type MeetingAudioSource = "system_audio" | "microphone"
 /**
@@ -1514,7 +1559,26 @@ export type MeetingAudioWarningKind =
  * dispositivo de salida por defecto (por ejemplo, conectó audífonos) a
  * mitad de reunión — la captura puede haber quedado muda.
  */
-"output_device_changed"
+"output_device_changed" | 
+/**
+ * I4 del reporte de seguimiento: la sesión lleva
+ * [`SILENCE_WARNING_THRESHOLD`] (o terminó) sin capturar ni una sola
+ * muestra distinta de cero, y no fue por falta de permiso
+ * (`MissingPermission` ya cubre ese caso). El acoplamiento kind/fuente
+ * mitiga el caso más común (una reunión presencial ya no usa audio del
+ * sistema por default), pero no lo cierra: una reunión online donde el
+ * usuario nunca compartió el audio, o donde la llamada va por el
+ * teléfono en vez del computador, sigue cayendo en silencio genuino sin
+ * ningún aviso si no fuera por esto.
+ */
+"no_audio_captured" | 
+/**
+ * I2 del reporte de seguimiento: la fuente resuelta era audio del
+ * sistema pero `open()`/`start()` fallaron al abrir la sesión (por
+ * ejemplo, `AudioHardwareCreateProcessTap` falló) — la reunión sigue
+ * grabando, mediante el micrófono, en vez de abortar.
+ */
+"fell_back_to_microphone"
 /**
  * An active video call was detected with no recording in progress
  * (User Story 3, FR-017). `call_source` is the detected app name when it

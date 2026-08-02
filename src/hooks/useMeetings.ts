@@ -1,7 +1,14 @@
 import { useCallback, useEffect } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { events, type MeetingSegment } from "@/bindings";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import {
+  commands,
+  events,
+  type MeetingAudioWarningKind,
+  type MeetingSegment,
+} from "@/bindings";
 import { useMeetingStore, type MeetingKind } from "../stores/meetingStore";
 
 interface UseMeetingsReturn {
@@ -18,6 +25,44 @@ interface UseMeetingsReturn {
   setSpeakerName: (speakerId: number, name: string) => void;
   reset: () => void;
 }
+
+/**
+ * Un solo toast por tipo de aviso de audio de reunión — lo usan tanto el
+ * listener en vivo (ventana de Reuniones a la vista) como el vaciado de la
+ * cola de pendientes al montar/recuperar el foco (I5 del reporte de
+ * seguimiento), así el aviso se ve igual llegue por el camino que llegue.
+ * Mismo patrón que `showAssistantErrorToast` en `App.tsx`.
+ */
+const showAudioWarningToast = (
+  t: TFunction,
+  kind: MeetingAudioWarningKind,
+): void => {
+  console.warn("Meeting audio warning:", kind);
+  switch (kind) {
+    case "missing_permission":
+      toast.warning(t("meeting.errors.audioMissingPermission"), {
+        description: t("meeting.errors.audioMissingPermissionDescription"),
+        duration: 15000,
+      });
+      break;
+    case "output_device_changed":
+      toast.warning(t("meeting.errors.audioOutputDeviceChanged"), {
+        description: t("meeting.errors.audioOutputDeviceChangedDescription"),
+      });
+      break;
+    case "no_audio_captured":
+      toast.warning(t("meeting.errors.audioNoAudioCaptured"), {
+        description: t("meeting.errors.audioNoAudioCapturedDescription"),
+        duration: 15000,
+      });
+      break;
+    case "fell_back_to_microphone":
+      toast.warning(t("meeting.errors.audioFellBackToMicrophone"), {
+        description: t("meeting.errors.audioFellBackToMicrophoneDescription"),
+      });
+      break;
+  }
+};
 
 /**
  * Suscripción a los eventos de reunión del backend.
@@ -69,23 +114,39 @@ export const useMeetingEvents = (): void => {
         description: event.payload.error,
       });
     });
-    // Cableado de audio de reuniones: falta el permiso de audio del sistema,
-    // o cambió el dispositivo de salida a mitad de reunión (ver
-    // `MeetingAudioWarningKind` en Rust). Ninguno de los dos termina la
-    // sesión — el backend ya avisa como máximo una vez por tipo y por
-    // sesión, así que acá no hace falta deduplicar de nuevo.
+    // Cableado de audio de reuniones: falta el permiso, varios minutos sin
+    // capturar nada real, cambió el dispositivo de salida, o se cayó a
+    // micrófono al abrir (ver `MeetingAudioWarningKind` en Rust). Ninguno
+    // termina la sesión — el backend ya avisa como máximo una vez por tipo
+    // y por sesión, así que acá no hace falta deduplicar de nuevo.
     const unlistenAudioWarning = events.meetingAudioWarning.listen((event) => {
-      console.warn("Meeting audio warning:", event.payload.kind);
-      if (event.payload.kind === "missing_permission") {
-        toast.warning(t("meeting.errors.audioMissingPermission"), {
-          description: t("meeting.errors.audioMissingPermissionDescription"),
-          duration: 15000,
-        });
-      } else {
-        toast.warning(t("meeting.errors.audioOutputDeviceChanged"), {
-          description: t("meeting.errors.audioOutputDeviceChangedDescription"),
-        });
-      }
+      showAudioWarningToast(t, event.payload.kind);
+    });
+
+    // I5 del reporte de seguimiento: el flujo esperado es grabar y volver a
+    // la videollamada, y tanto `return_to_main_window` como el botón de
+    // cerrar de esta ventana la ESCONDEN (`window.hide()`) en vez de
+    // destruirla — el webview (y este listener) sigue vivo, pero un aviso
+    // que llega mientras está escondida dibuja su toast en una ventana que
+    // nadie mira, y como el backend lo emite una sola vez por tipo, se
+    // pierde para siempre. `take_pending_meeting_audio_notices` es la cola
+    // que lo sobrevive (mismo patrón que `PendingFallbackNotices`/
+    // `PendingAssistantNotices` en `App.tsx`): se vacía al montar (cubre la
+    // primera apertura) y cada vez que esta ventana recupera el foco (cubre
+    // reabrir después de escondida) — a diferencia del popover, esta
+    // ventana no se remonta al reabrir, así que "al montar" solo no
+    // alcanza.
+    const drainPendingAudioWarnings = () => {
+      void commands.takePendingMeetingAudioNotices().then((pending) => {
+        for (const notice of pending) {
+          showAudioWarningToast(t, notice.kind);
+        }
+      });
+    };
+    drainPendingAudioWarnings();
+    const win = getCurrentWindow();
+    const unlistenFocus = win.onFocusChanged(({ payload: focused }) => {
+      if (focused) drainPendingAudioWarnings();
     });
 
     return () => {
@@ -94,6 +155,7 @@ export const useMeetingEvents = (): void => {
       void unlistenError.then((fn) => fn());
       void unlistenTurnFailed.then((fn) => fn());
       void unlistenAudioWarning.then((fn) => fn());
+      void unlistenFocus.then((fn) => fn());
     };
   }, [appendSegment, markFinished, markErrored, t]);
 };
