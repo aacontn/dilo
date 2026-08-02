@@ -4,6 +4,8 @@ use crate::managers::transcription::TranscriptionManager;
 use crate::settings;
 use crate::tray_i18n::get_tray_translations;
 use log::{debug, error, info, warn};
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -12,12 +14,28 @@ use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIcon;
 use tauri::{AppHandle, Manager, Theme};
 use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_specta::Event;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
 pub enum TrayIconState {
     Idle,
     Recording,
     Transcribing,
+}
+
+/// Broadcast global cada vez que `change_tray_icon` decide un nuevo estado —
+/// el mismo embudo por el que pasan el dictado (`actions.rs`, `assistant.rs`)
+/// y una reunión grabando (`set_meeting_recording`, vía `effective_tray_state`).
+///
+/// El popover lo escucha para pintar "en reposo / dictando / transcribiendo"
+/// sin depender de los eventos del overlay (`show-overlay`/`hide-overlay`),
+/// que **no se emiten en absoluto** si el usuario apagó el overlay
+/// (`overlay_style == None`) — ese hueco habría dejado el estado del popover
+/// pegado en "en reposo" para quien desactivó el overlay pero sigue dictando.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct TrayIconStateChanged {
+    pub state: TrayIconState,
 }
 
 /// Tauri managed state holding the last icon state set via `change_tray_icon`.
@@ -161,6 +179,10 @@ pub fn change_tray_icon(app: &AppHandle, icon: TrayIconState) {
 
     // Store current state
     app.state::<CurrentTrayIconState>().set(icon);
+    // El popover (y cualquier otra ventana) se entera de este mismo cambio
+    // sin depender del overlay del dictado — ver el doc comment de
+    // `TrayIconStateChanged`.
+    let _ = TrayIconStateChanged { state: icon }.emit(app);
 
     let icon_path = get_icon_path(theme, icon);
 
@@ -358,35 +380,43 @@ pub fn set_tray_visibility(app: &AppHandle, visible: bool) {
     }
 }
 
-pub fn copy_last_transcript(app: &AppHandle) {
+/// Copia la última transcripción completa al portapapeles.
+///
+/// Devuelve `Err` describiendo por qué no copió nada (sin historial todavía,
+/// última transcripción vacía, o falla del portapapeles) para que un llamador
+/// con UI —el popover— pueda avisarlo; el menú de la bandeja (`lib.rs`,
+/// `on_menu_event`) ignora el resultado y sólo deja el log de arriba, porque
+/// ahí no hay ventana visible que muestre un toast.
+pub fn copy_last_transcript(app: &AppHandle) -> Result<(), String> {
     let history_manager = app.state::<Arc<HistoryManager>>();
     let entry = match history_manager.get_latest_completed_entry() {
         Ok(Some(entry)) => entry,
         Ok(None) => {
             warn!("No completed transcription history entries available for tray copy.");
-            return;
+            return Err("no_history".to_string());
         }
         Err(err) => {
             error!(
                 "Failed to fetch last completed transcription entry: {}",
                 err
             );
-            return;
+            return Err(err.to_string());
         }
     };
 
     let text = last_transcript_text(&entry);
     if text.trim().is_empty() {
         warn!("Last completed transcription is empty; skipping tray copy.");
-        return;
+        return Err("empty".to_string());
     }
 
     if let Err(err) = app.clipboard().write_text(text) {
         error!("Failed to copy last transcript to clipboard: {}", err);
-        return;
+        return Err(err.to_string());
     }
 
-    info!("Copied last transcript to clipboard via tray.");
+    info!("Copied last transcript to clipboard.");
+    Ok(())
 }
 
 #[cfg(test)]

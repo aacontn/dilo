@@ -970,6 +970,14 @@
   "popover": {
     "idle": "No meeting is being recorded",
     "recording": "Recording",
+    "status": {
+      "idle": "Not dictating",
+      "recording": "Dictating…",
+      "transcribing": "Transcribing…"
+    },
+    "copyLastDone": "Copied to clipboard",
+    "copyLastFailed": "Nothing to copy yet",
+    "modelSwitchFailed": "Couldn't switch models",
     "recentTitle": "Recent meetings",
     "recentEmpty": "Nothing recorded yet",
     "loadFailed": "Couldn't load your meetings",

@@ -17,6 +17,25 @@ pub fn cancel_operation(app: AppHandle) {
     cancel_current_operation(&app);
 }
 
+/// Copia la última transcripción completa al portapapeles. Mismo camino que
+/// usa el ítem "Copiar última transcripción" del menú de la bandeja
+/// (`tray::copy_last_transcript`) — lo que cambia es el llamador: el popover
+/// tiene ventana, así que puede mostrar un toast si no había nada que copiar.
+#[tauri::command]
+#[specta::specta]
+pub fn copy_last_transcript(app: AppHandle) -> Result<(), String> {
+    crate::tray::copy_last_transcript(&app)
+}
+
+/// Estado actual del ícono de la bandeja (reposo/grabando/transcribiendo),
+/// para que el popover pueda pintarlo apenas monta. Los cambios posteriores
+/// llegan por el evento `TrayIconStateChanged` que emite `change_tray_icon`.
+#[tauri::command]
+#[specta::specta]
+pub fn get_tray_icon_state(app: AppHandle) -> crate::tray::TrayIconState {
+    app.state::<crate::tray::CurrentTrayIconState>().get()
+}
+
 /// Avisos de cruce a la nube que ocurrieron sin ninguna ventana escuchando
 /// el evento. La ventana los pide al montar y los muestra como toasts; la
 /// llamada los consume, así que no se repiten al reabrir.

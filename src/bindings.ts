@@ -513,6 +513,28 @@ async cancelOperation() : Promise<void> {
     await TAURI_INVOKE("cancel_operation");
 },
 /**
+ * Copia la última transcripción completa al portapapeles. Mismo camino que
+ * usa el ítem "Copiar última transcripción" del menú de la bandeja
+ * (`tray::copy_last_transcript`) — lo que cambia es el llamador: el popover
+ * tiene ventana, así que puede mostrar un toast si no había nada que copiar.
+ */
+async copyLastTranscript() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("copy_last_transcript") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Estado actual del ícono de la bandeja (reposo/grabando/transcribiendo),
+ * para que el popover pueda pintarlo apenas monta. Los cambios posteriores
+ * llegan por el evento `TrayIconStateChanged` que emite `change_tray_icon`.
+ */
+async getTrayIconState() : Promise<TrayIconState> {
+    return await TAURI_INVOKE("get_tray_icon_state");
+},
+/**
  * El webview del overlay avisa que sus listeners ya están registrados; recién
  * entonces es seguro entregarle el estado pendiente del primer show. (Emitir
  * en on_page_load corría una carrera contra el mount de React: el "page
@@ -1262,7 +1284,8 @@ meetingSegment: MeetingSegment,
 meetingTurnFailed: MeetingTurnFailed,
 postProcessFallback: PostProcessFallback,
 streamPhaseEvent: StreamPhaseEvent,
-streamTextEvent: StreamTextEvent
+streamTextEvent: StreamTextEvent,
+trayIconStateChanged: TrayIconStateChanged
 }>({
 historyUpdatePayload: "history-update-payload",
 meetingCallDetected: "meeting-call-detected",
@@ -1275,7 +1298,8 @@ meetingSegment: "meeting-segment",
 meetingTurnFailed: "meeting-turn-failed",
 postProcessFallback: "post-process-fallback",
 streamPhaseEvent: "stream-phase-event",
-streamTextEvent: "stream-text-event"
+streamTextEvent: "stream-text-event",
+trayIconStateChanged: "tray-icon-state-changed"
 })
 
 /** user-defined constants **/
@@ -1596,6 +1620,8 @@ export type StreamWorkKind = "transcribing" | "polishing"
  */
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
+export type TrayIconState = "idle" | "recording" | "transcribing"
+export type TrayIconStateChanged = { state: TrayIconState }
 /**
  * Motor de síntesis de voz de salida activo. Hoy solo existe `Supertonic`
  * (local); ya es un `enum` — no un `String` opaco como `VoiceId` — para no

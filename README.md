@@ -60,19 +60,27 @@ La primera vez, Dilo te guía: dos permisos (micrófono y accesibilidad, explica
 
 ## Modelos y cuánta RAM usan
 
-Regla simple: más grande = más preciso y más RAM; más chico = vuela. Dilo te recomienda según tu máquina, y **libera la RAM solo** a los 2 minutos sin dictar (configurable).
+Trece modelos, **todos entienden español**. Regla simple: más preciso suele ser más lento y más pesado. Dilo te recomienda según tu máquina, y **libera la RAM solo** a los 2 minutos sin dictar (configurable).
 
-| Modelo                        | Español        | Descarga | RAM dictando | Ideal para                           |
-| ----------------------------- | -------------- | -------- | ------------ | ------------------------------------ |
-| **Parakeet V3** (recomendado) | ✅ 25 idiomas  | 705 MB   | ~1.1–1.4 GB  | Rápido y preciso — el día a día      |
-| **Nemotron Streaming 3.5**    | ✅ +27 idiomas | 716 MB   | ~1.1–1.4 GB  | Ver el texto en vivo mientras hablas |
-| **Cohere Transcribe**         | ✅ 14 idiomas  | 1.7 GB   | ~2.5 GB      | Máxima precisión, máquinas potentes  |
-| **Whisper Large v3 Turbo**    | ✅ 100 idiomas | 845 MB   | ~1.6 GB      | Whisper de alta calidad              |
-| **Whisper Medium**            | ✅ 99 idiomas  | 793 MB   | ~1.5 GB      | Idiomas poco comunes                 |
-| **Qwen3-ASR 0.6B**            | ✅ 30 idiomas  | 811 MB   | ~1.3 GB      | Balance moderno, multilingüe         |
-| **Whisper Small**             | ✅ 99 idiomas  | 257 MB   | ~0.6 GB      | Equipos modestos (8 GB o menos)      |
+Precisión y velocidad son las del catálogo, en escala de 0 a 100 — sirven para comparar entre ellos, no como nota absoluta.
 
-En reposo (modelo liberado, ventana cerrada): **~60–80 MB**. Puedes elegir cuantizaciones más chicas (Q4) de cualquier modelo si tu RAM anda justa.
+| Modelo                        | Precisión | Velocidad | Descarga | Ideal para                                |
+| ----------------------------- | --------- | --------- | -------- | ----------------------------------------- |
+| **Parakeet V3** (recomendado) | 88        | 79        | 739 MB   | El día a día: rápido y preciso            |
+| **Canary 1B Flash**           | 90        | 83        | 769 MB   | Le gana al recomendado en ambas cosas     |
+| **Cohere Transcribe**         | 92        | 63        | 1.8 GB   | La máxima precisión                       |
+| **Granite Speech 4.1 2B**     | 92        | 37        | 1.8 GB   | Precisión pareja, sin apuro               |
+| **Qwen3-ASR 1.7B**            | 90        | 38        | 1.5 GB   | Multilingüe serio (30 idiomas)            |
+| **Canary 1B v2**              | 88        | 81        | 836 MB   | Rápido y con 25 idiomas                   |
+| **Qwen3-ASR 0.6B**            | 87        | 63        | 850 MB   | Balance moderno, multilingüe              |
+| **Whisper Large v3 Turbo**    | 87        | 35        | 886 MB   | Whisper de alta calidad                   |
+| **Whisper Medium**            | 84        | 42        | 831 MB   | Idiomas poco comunes                      |
+| **Nemotron Streaming 3.5**    | 82        | 84        | 751 MB   | Ver el texto en vivo mientras hablas      |
+| **Whisper Small**             | 80        | 78        | 269 MB   | Equipos modestos (8 GB o menos)           |
+| **Voxtral Mini 3B**           | 88        | 14        | 3.5 GB   | Preciso pero lento: mejor para reuniones  |
+| **Voxtral Mini 4B Realtime**  | 87        | 11        | 3.3 GB   | Multilingüe en vivo, pide máquina potente |
+
+De regla, la RAM mientras dictas es **1,5 a 2 veces la descarga**. En reposo (modelo liberado, ventana cerrada): **~60–80 MB**. Puedes elegir cuantizaciones más chicas (Q4) de cualquier modelo si tu RAM anda justa.
 
 ## Hecho para vibe coders
 
@@ -118,12 +126,20 @@ instrucciones (`CLAUDE.md` = `AGENTS.md`). Guía de Codex:
 
 ## Roadmap
 
-Las dos apuestas grandes de producto:
+Las apuestas grandes de producto:
 
+- [ ] **Notetaker de reuniones** — graba la reunión, separa quién habla, y te deja el transcript con resumen y acciones. **Empezando por las reuniones online**, donde el audio de los demás llega limpio por el sistema; las presenciales vienen después, porque con el micrófono de un laptop al centro de la mesa no se puede hacer bien.
+  - [x] Grabar, transcribir y separar voces en presencial
+  - [x] Registro de reuniones pasadas, en su propia ventana
+  - [ ] Capturar el audio del sistema (lo que dicen los demás en Meet, Zoom o Teams)
+  - [ ] Detectar solo que empezó una videollamada y ofrecerte grabarla
+  - [ ] Resumen, acciones y preguntarle cosas al transcript
+  - [ ] Notas propias junto al transcript, y sincronizarlas con Obsidian o Apple Notes
 - [ ] **Control de agentes por voz** — Dilo como intermediario: le hablas, un agente hace el trabajo (Claude Code y otros) y Dilo te lee la respuesta en voz alta, con palabra de activación. La voz de salida ya llega en v0.1.12; falta conectar el otro extremo.
-- [ ] **Notetaker de reuniones y notas** — transcripción en vivo identificando quién habla, con resumen y acciones, sincronizada con Apple Notes. Pensada también para reuniones **presenciales**, no solo videollamadas.
+- [ ] **Panel en la barra de menú** — el ícono de Dilo abre lo que usas seguido sin abrir la app: copiar lo último dictado, cambiar de modelo, grabar una reunión.
 - [ ] **Modo según la app en la que estás** — Dilo detecta dónde escribes y aplica el modo que corresponde (en el correo escribe como correo, en el editor como código), sin que tengas que acordarte de ningún atajo. Foco en macOS y Windows; en Linux el comportamiento actual se mantiene.
 - [ ] **Diccionario que aprende solo** — Dilo aprende de las correcciones que ya hace la IA y las incorpora al arreglo local, así deja de necesitar la IA para las palabras que usas siempre. Todo en tu equipo.
+- [ ] **Conectores por MCP** — enchufar Dilo a tus herramientas con permisos explícitos, sin acoplar el núcleo a ningún servicio.
 
 Empaquetado y sistema:
 

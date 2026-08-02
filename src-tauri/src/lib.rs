@@ -362,7 +362,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 }
             }
             "copy_last_transcript" => {
-                tray::copy_last_transcript(app);
+                // Sin ventana visible que muestre el error; el log de
+                // `copy_last_transcript` ya deja constancia si no copió nada.
+                let _ = tray::copy_last_transcript(app);
             }
             "unload_model" => {
                 let transcription_manager = app.state::<Arc<TranscriptionManager>>();
@@ -747,6 +749,8 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            commands::copy_last_transcript,
+            commands::get_tray_icon_state,
             overlay::overlay_ready,
             commands::take_pending_fallback_notices,
             commands::take_pending_assistant_notices,
@@ -837,6 +841,7 @@ pub fn run(cli_args: CliArgs) {
             managers::meeting::MeetingInterrupted,
             managers::meeting::MeetingCallDetected,
             managers::meeting::MeetingCallEnded,
+            tray::TrayIconStateChanged,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

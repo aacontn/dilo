@@ -155,7 +155,13 @@ pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) 
 
 pub const POPOVER_WINDOW_LABEL: &str = "popover";
 pub const POPOVER_WIDTH: f64 = 360.0;
-pub const POPOVER_HEIGHT: f64 = 480.0;
+// 480 alcanzaba cuando el contenido era sólo la sesión + últimas reuniones;
+// el panel rápido de acciones (estado del dictado, copiar, modelo, grabar)
+// agrega una sección más arriba de la lista de reuniones. 496 le da algo de
+// aire sin acercarse al techo de `el_tamano_del_popover_cabe_en_una_pantalla_
+// chica` (debe quedar bajo la mitad del alto útil de un Mac de 800px, o sea
+// bajo 500).
+pub const POPOVER_HEIGHT: f64 = 496.0;
 
 /// Conmuta el popover: si está visible lo esconde, si no lo muestra bajo el
 /// ícono. Se **esconde**, nunca se destruye, para no pagar el arranque del
