@@ -909,15 +909,16 @@
       "finishing": "Приключва…",
       "kindPresencial": "Присъствено, с микрофона на това устройство",
       "kindOnlineSystemAudio": "Онлайн среща, със звука на този компютър",
+      "kindOnlineMicrophoneFallback": "Онлайн среща, запис през микрофона (това устройство няма системен звук)",
       "model": "Транскрибиране с {{name}}",
       "modelLoading": "Зареждане на модела…",
       "privacy": "Звукът не напуска компютъра ти: преписът и разделянето на гласове стават тук.",
       "startFailed": "Записът не можа да започне",
       "stopFailed": "Срещата не можа да бъде спряна",
-      "audioSourceHeading": "Източник на звук",
-      "audioSourceSystemOption": "Звукът на този компютър",
-      "audioSourceMicrophoneOption": "Микрофон",
-      "audioSourceUnavailable": "Този Mac не поддържа звука на компютъра (изисква се macOS 14.2 или по-нова), затова се записва с микрофона."
+      "audioSourceHeading": "Тип среща",
+      "audioSourceSystemOption": "Онлайн",
+      "audioSourceMicrophoneOption": "Присъствено",
+      "audioSourceUnavailable": "Това устройство не може да улавя звука на компютъра, затова онлайн срещите се записват през микрофона."
     },
     "errors": {
       "sessionFailed": "Срещата спря заради грешка",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Липсва разрешение за системен звук",
       "audioMissingPermissionDescription": "Dilo не улавя нищо от звука на компютъра. Дайте разрешението от Системни настройки → Поверителност и сигурност → Запис на системен звук, и стартирайте записа отново.",
       "audioOutputDeviceChanged": "Изходът за звук се смени",
-      "audioOutputDeviceChangedDescription": "Смени изхода за звук по средата на срещата, така че част от нея може да не е записана. Ако забележиш липсваща част, спри и започни отново."
+      "audioOutputDeviceChangedDescription": "Смени изхода за звук по средата на срещата, така че част от нея може да не е записана. Ако забележиш липсваща част, спри и започни отново.",
+      "audioNoAudioCaptured": "Не е засечен звук",
+      "audioNoAudioCapturedDescription": "От известно време Dilo не улавя звук от този компютър. Провери дали си споделил звука и дали разговорът не минава през телефона вместо през компютъра.",
+      "audioFellBackToMicrophone": "Записва се през микрофона",
+      "audioFellBackToMicrophoneDescription": "Dilo не успя да отвори звука на този компютър за тази среща, затова записва през микрофона."
     },
     "transcript": {
       "title": "Препис на живо",

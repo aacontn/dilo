@@ -909,15 +909,16 @@
       "finishing": "Kończenie…",
       "kindPresencial": "Na żywo, mikrofonem tego urządzenia",
       "kindOnlineSystemAudio": "Spotkanie online, z dźwiękiem tego komputera",
+      "kindOnlineMicrophoneFallback": "Spotkanie online, nagrywanie z mikrofonu (brak dźwięku systemowego na tym urządzeniu)",
       "model": "Transkrypcja przy użyciu {{name}}",
       "modelLoading": "Ładowanie modelu…",
       "privacy": "Dźwięk nie opuszcza twojego komputera: transkrypcja i rozdzielanie głosów dzieją się tutaj.",
       "startFailed": "Nie udało się rozpocząć nagrywania",
       "stopFailed": "Nie udało się zatrzymać spotkania",
-      "audioSourceHeading": "Źródło dźwięku",
-      "audioSourceSystemOption": "Dźwięk tego komputera",
-      "audioSourceMicrophoneOption": "Mikrofon",
-      "audioSourceUnavailable": "Ten Mac nie obsługuje dźwięku komputera (wymaga macOS 14.2 lub nowszego), więc nagrywanie odbywa się z mikrofonu."
+      "audioSourceHeading": "Rodzaj spotkania",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "Stacjonarne",
+      "audioSourceUnavailable": "To urządzenie nie może przechwytywać dźwięku komputera, więc spotkania online są nagrywane z mikrofonu."
     },
     "errors": {
       "sessionFailed": "Spotkanie zostało przerwane z powodu błędu",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Brak uprawnienia do dźwięku systemowego",
       "audioMissingPermissionDescription": "Dilo nie odbiera żadnego dźwięku z tego komputera. Nadaj uprawnienie w Ustawieniach systemu → Prywatność i bezpieczeństwo → Nagrywanie dźwięku systemowego, a potem uruchom nagrywanie ponownie.",
       "audioOutputDeviceChanged": "Zmieniono wyjście audio",
-      "audioOutputDeviceChangedDescription": "Zmieniłeś wyjście audio w trakcie spotkania, więc część mogła nie zostać nagrana. Jeśli zauważysz brakujący fragment, zatrzymaj i nagraj ponownie."
+      "audioOutputDeviceChangedDescription": "Zmieniłeś wyjście audio w trakcie spotkania, więc część mogła nie zostać nagrana. Jeśli zauważysz brakujący fragment, zatrzymaj i nagraj ponownie.",
+      "audioNoAudioCaptured": "Nie wykryto dźwięku",
+      "audioNoAudioCapturedDescription": "Dilo od jakiegoś czasu nie odbiera żadnego dźwięku z tego komputera. Sprawdź, czy udostępniłeś dźwięk i czy rozmowa nie idzie przez telefon zamiast przez komputer.",
+      "audioFellBackToMicrophone": "Nagrywanie z mikrofonu",
+      "audioFellBackToMicrophoneDescription": "Dilo nie mógł otworzyć dźwięku tego komputera dla tego spotkania, więc nagrywa z mikrofonu."
     },
     "transcript": {
       "title": "Transkrypcja na żywo",

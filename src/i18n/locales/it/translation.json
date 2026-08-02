@@ -909,15 +909,16 @@
       "finishing": "Chiusura…",
       "kindPresencial": "In presenza, con il microfono di questo dispositivo",
       "kindOnlineSystemAudio": "Riunione online, con l'audio di questo computer",
+      "kindOnlineMicrophoneFallback": "Riunione online, registrazione con il microfono (nessun audio di sistema su questo dispositivo)",
       "model": "Trascrizione con {{name}}",
       "modelLoading": "Caricamento del modello…",
       "privacy": "L'audio non esce dal tuo computer: trascrizione e separazione delle voci avvengono qui.",
       "startFailed": "Impossibile avviare la registrazione",
       "stopFailed": "Impossibile fermare la riunione",
-      "audioSourceHeading": "Sorgente audio",
-      "audioSourceSystemOption": "Audio di questo computer",
-      "audioSourceMicrophoneOption": "Microfono",
-      "audioSourceUnavailable": "Questo Mac non supporta l'audio del computer (serve macOS 14.2 o successivo), quindi si registra con il microfono."
+      "audioSourceHeading": "Tipo di riunione",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "In presenza",
+      "audioSourceUnavailable": "Questo dispositivo non può catturare l'audio del computer, quindi le riunioni online registrano con il microfono."
     },
     "errors": {
       "sessionFailed": "La riunione si è interrotta per un errore",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Permesso audio di sistema mancante",
       "audioMissingPermissionDescription": "Dilo non sta captando nulla dall'audio di questo computer. Concedi il permesso in Impostazioni di Sistema → Privacy e sicurezza → Registrazione audio di sistema, poi avvia di nuovo la registrazione.",
       "audioOutputDeviceChanged": "Uscita audio cambiata",
-      "audioOutputDeviceChangedDescription": "Hai cambiato l'uscita audio a metà riunione, quindi una parte potrebbe non essere stata registrata. Se noti che manca qualcosa, ferma e registra di nuovo."
+      "audioOutputDeviceChangedDescription": "Hai cambiato l'uscita audio a metà riunione, quindi una parte potrebbe non essere stata registrata. Se noti che manca qualcosa, ferma e registra di nuovo.",
+      "audioNoAudioCaptured": "Nessun audio rilevato",
+      "audioNoAudioCapturedDescription": "Dilo non rileva alcun suono dall'audio di questo computer da un po'. Controlla di aver condiviso l'audio e che la chiamata non stia passando dal telefono invece che dal computer.",
+      "audioFellBackToMicrophone": "Registrazione con il microfono",
+      "audioFellBackToMicrophoneDescription": "Dilo non è riuscito ad aprire l'audio di questo computer per questa riunione, quindi sta registrando con il microfono."
     },
     "transcript": {
       "title": "Trascrizione dal vivo",

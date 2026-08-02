@@ -909,15 +909,16 @@
       "finishing": "Tamamlanıyor…",
       "kindPresencial": "Yüz yüze, bu cihazın mikrofonuyla",
       "kindOnlineSystemAudio": "Çevrimiçi toplantı, bu bilgisayarın sesiyle",
+      "kindOnlineMicrophoneFallback": "Çevrimiçi toplantı, mikrofonla kayıt (bu cihazda sistem sesi yok)",
       "model": "{{name}} ile yazıya dökülüyor",
       "modelLoading": "Model yükleniyor…",
       "privacy": "Ses bilgisayarından çıkmaz: döküm ve ses ayrıştırma burada yapılır.",
       "startFailed": "Kayıt başlatılamadı",
       "stopFailed": "Toplantı durdurulamadı",
-      "audioSourceHeading": "Ses kaynağı",
-      "audioSourceSystemOption": "Bu bilgisayarın sesi",
-      "audioSourceMicrophoneOption": "Mikrofon",
-      "audioSourceUnavailable": "Bu Mac bilgisayar sesini desteklemiyor (macOS 14.2 veya üstü gerekir), bu yüzden mikrofonla kaydediliyor."
+      "audioSourceHeading": "Toplantı türü",
+      "audioSourceSystemOption": "Çevrimiçi",
+      "audioSourceMicrophoneOption": "Yüz yüze",
+      "audioSourceUnavailable": "Bu cihaz bilgisayarın sesini yakalayamıyor, bu yüzden çevrimiçi toplantılar mikrofonla kaydediliyor."
     },
     "errors": {
       "sessionFailed": "Toplantı bir hata nedeniyle durdu",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Sistem sesi izni eksik",
       "audioMissingPermissionDescription": "Dilo bu bilgisayarın sesinden hiçbir şey almıyor. Sistem Ayarları → Gizlilik ve Güvenlik → Sistem Sesi Kaydı üzerinden izni ver, sonra kaydı yeniden başlat.",
       "audioOutputDeviceChanged": "Ses çıkışı değişti",
-      "audioOutputDeviceChangedDescription": "Toplantı ortasında ses çıkışını değiştirdin, bu yüzden bir kısmı kaydedilmemiş olabilir. Eksik bir şey fark edersen durdurup yeniden kaydet."
+      "audioOutputDeviceChangedDescription": "Toplantı ortasında ses çıkışını değiştirdin, bu yüzden bir kısmı kaydedilmemiş olabilir. Eksik bir şey fark edersen durdurup yeniden kaydet.",
+      "audioNoAudioCaptured": "Ses algılanmadı",
+      "audioNoAudioCapturedDescription": "Dilo bir süredir bu bilgisayarın sesinden hiçbir şey almıyor. Sesi paylaştığından ve görüşmenin bilgisayar yerine telefonundan gitmediğinden emin ol.",
+      "audioFellBackToMicrophone": "Kayıt mikrofonla devam ediyor",
+      "audioFellBackToMicrophoneDescription": "Dilo bu toplantı için bilgisayarın sesini açamadı, bu yüzden mikrofonla kayıt yapıyor."
     },
     "transcript": {
       "title": "Canlı döküm",

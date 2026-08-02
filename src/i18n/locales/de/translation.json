@@ -909,15 +909,16 @@
       "finishing": "Wird beendet…",
       "kindPresencial": "Vor Ort, über das Mikrofon dieses Geräts",
       "kindOnlineSystemAudio": "Online-Meeting, mit dem Ton dieses Computers",
+      "kindOnlineMicrophoneFallback": "Online-Meeting, Aufnahme über das Mikrofon (kein Systemton auf diesem Gerät)",
       "model": "Transkribiert mit {{name}}",
       "modelLoading": "Modell wird geladen…",
       "privacy": "Das Audio verlässt deinen Rechner nicht: Transkription und Stimmentrennung passieren hier.",
       "startFailed": "Aufnahme konnte nicht gestartet werden",
       "stopFailed": "Meeting konnte nicht gestoppt werden",
-      "audioSourceHeading": "Audioquelle",
-      "audioSourceSystemOption": "Ton dieses Computers",
-      "audioSourceMicrophoneOption": "Mikrofon",
-      "audioSourceUnavailable": "Dieser Mac unterstützt den Computer-Ton nicht (benötigt macOS 14.2 oder neuer), daher wird mit dem Mikrofon aufgenommen."
+      "audioSourceHeading": "Meeting-Art",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "Vor Ort",
+      "audioSourceUnavailable": "Dieses Gerät kann den Systemton nicht erfassen, deshalb nehmen Online-Meetings stattdessen über das Mikrofon auf."
     },
     "errors": {
       "sessionFailed": "Das Meeting wurde durch einen Fehler gestoppt",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Systemton-Berechtigung fehlt",
       "audioMissingPermissionDescription": "Dilo empfängt keinen Ton von diesem Computer. Erteile die Berechtigung unter Systemeinstellungen → Datenschutz & Sicherheit → Systemton-Aufnahme und starte die Aufnahme erneut.",
       "audioOutputDeviceChanged": "Audioausgabe geändert",
-      "audioOutputDeviceChangedDescription": "Du hast die Audioausgabe mitten im Meeting gewechselt, ein Teil wurde möglicherweise nicht aufgenommen. Falls dir etwas fehlt, stoppe und nimm erneut auf."
+      "audioOutputDeviceChangedDescription": "Du hast die Audioausgabe mitten im Meeting gewechselt, ein Teil wurde möglicherweise nicht aufgenommen. Falls dir etwas fehlt, stoppe und nimm erneut auf.",
+      "audioNoAudioCaptured": "Kein Ton erkannt",
+      "audioNoAudioCapturedDescription": "Dilo empfängt seit einer Weile keinen Ton vom Audio dieses Computers. Prüfe, ob du den Ton geteilt hast und ob das Gespräch nicht über dein Telefon statt über den Computer läuft.",
+      "audioFellBackToMicrophone": "Aufnahme läuft jetzt über das Mikrofon",
+      "audioFellBackToMicrophoneDescription": "Dilo konnte den Systemton für dieses Meeting nicht öffnen und nimmt stattdessen über das Mikrofon auf."
     },
     "transcript": {
       "title": "Live-Transkript",

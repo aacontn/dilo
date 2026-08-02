@@ -106,15 +106,16 @@
       "finishing": "Wrapping up…",
       "kindPresencial": "In person, using this computer's microphone",
       "kindOnlineSystemAudio": "Online meeting, using this computer's audio",
+      "kindOnlineMicrophoneFallback": "Online meeting, recording with the microphone (no system audio on this device)",
       "model": "Transcribing with {{name}}",
       "modelLoading": "Loading the model…",
       "privacy": "Audio never leaves your computer: transcription and speaker separation happen right here.",
       "startFailed": "Couldn't start recording",
       "stopFailed": "Couldn't stop the meeting",
-      "audioSourceHeading": "Audio source",
-      "audioSourceSystemOption": "This computer's audio",
-      "audioSourceMicrophoneOption": "Microphone",
-      "audioSourceUnavailable": "This Mac can't use this computer's audio (needs macOS 14.2 or later), so it records with the microphone instead."
+      "audioSourceHeading": "Meeting type",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "In person",
+      "audioSourceUnavailable": "This device can't capture the computer's audio, so online meetings record with the microphone instead."
     },
     "errors": {
       "sessionFailed": "The meeting stopped because of an error",
@@ -122,7 +123,11 @@
       "audioMissingPermission": "Missing system audio permission",
       "audioMissingPermissionDescription": "Dilo isn't hearing anything from this computer's audio. Grant the permission in System Settings → Privacy & Security → System Audio Recording, then start the recording again.",
       "audioOutputDeviceChanged": "Audio output changed",
-      "audioOutputDeviceChangedDescription": "You switched audio output mid-meeting, so part of it may have gone unrecorded. Stop and start again if you notice anything missing."
+      "audioOutputDeviceChangedDescription": "You switched audio output mid-meeting, so part of it may have gone unrecorded. Stop and start again if you notice anything missing.",
+      "audioNoAudioCaptured": "No audio detected",
+      "audioNoAudioCapturedDescription": "Dilo hasn't picked up any sound from this computer's audio in a while. Check that you shared audio, and that the call isn't going through your phone instead.",
+      "audioFellBackToMicrophone": "Recording with the microphone instead",
+      "audioFellBackToMicrophoneDescription": "Dilo couldn't open this computer's audio for this meeting, so it's recording with the microphone instead."
     },
     "transcript": {
       "title": "Live transcript",

@@ -909,15 +909,16 @@
       "finishing": "Finalizando…",
       "kindPresencial": "Presencial, com o microfone deste aparelho",
       "kindOnlineSystemAudio": "Reunião online, com o áudio deste computador",
+      "kindOnlineMicrophoneFallback": "Reunião online, gravando com o microfone (sem áudio do sistema neste dispositivo)",
       "model": "Transcrevendo com {{name}}",
       "modelLoading": "Carregando o modelo…",
       "privacy": "O áudio não sai do seu computador: a transcrição e a separação de vozes acontecem aqui.",
       "startFailed": "Não foi possível começar a gravar",
       "stopFailed": "Não foi possível parar a reunião",
-      "audioSourceHeading": "Fonte de áudio",
-      "audioSourceSystemOption": "Áudio deste computador",
-      "audioSourceMicrophoneOption": "Microfone",
-      "audioSourceUnavailable": "Este Mac não é compatível com o áudio do computador (precisa do macOS 14.2 ou mais recente), então grava com o microfone."
+      "audioSourceHeading": "Tipo de reunião",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "Presencial",
+      "audioSourceUnavailable": "Este dispositivo não consegue captar o áudio do computador, então as reuniões online gravam com o microfone."
     },
     "errors": {
       "sessionFailed": "A reunião parou por causa de um erro",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Falta permissão de áudio do sistema",
       "audioMissingPermissionDescription": "O Dilo não está captando nada do áudio deste computador. Conceda a permissão em Ajustes do Sistema → Privacidade e Segurança → Gravação de Áudio do Sistema, e inicie a gravação novamente.",
       "audioOutputDeviceChanged": "Saída de áudio alterada",
-      "audioOutputDeviceChangedDescription": "Você trocou a saída de áudio no meio da reunião, então uma parte pode não ter sido gravada. Se notar que falta algo, pare e grave novamente."
+      "audioOutputDeviceChangedDescription": "Você trocou a saída de áudio no meio da reunião, então uma parte pode não ter sido gravada. Se notar que falta algo, pare e grave novamente.",
+      "audioNoAudioCaptured": "Nenhum áudio detectado",
+      "audioNoAudioCapturedDescription": "O Dilo não capta nenhum som do áudio deste computador há um tempo. Verifique se você compartilhou o áudio e se a chamada não está saindo pelo telefone em vez do computador.",
+      "audioFellBackToMicrophone": "Gravando com o microfone",
+      "audioFellBackToMicrophoneDescription": "O Dilo não conseguiu abrir o áudio deste computador para esta reunião, então está gravando com o microfone."
     },
     "transcript": {
       "title": "Transcrição ao vivo",

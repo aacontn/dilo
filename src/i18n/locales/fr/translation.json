@@ -909,15 +909,16 @@
       "finishing": "Finalisation…",
       "kindPresencial": "En présentiel, avec le micro de cet appareil",
       "kindOnlineSystemAudio": "Réunion en ligne, avec l'audio de cet ordinateur",
+      "kindOnlineMicrophoneFallback": "Réunion en ligne, enregistrement avec le micro (pas d'audio système sur cet appareil)",
       "model": "Transcription avec {{name}}",
       "modelLoading": "Chargement du modèle…",
       "privacy": "L'audio ne quitte pas ton ordinateur : la transcription et la séparation des voix se font ici.",
       "startFailed": "Impossible de démarrer l'enregistrement",
       "stopFailed": "Impossible d'arrêter la réunion",
-      "audioSourceHeading": "Source audio",
-      "audioSourceSystemOption": "Audio de cet ordinateur",
-      "audioSourceMicrophoneOption": "Microphone",
-      "audioSourceUnavailable": "Ce Mac ne prend pas en charge l'audio de l'ordinateur (nécessite macOS 14.2 ou supérieur), l'enregistrement se fera donc avec le microphone."
+      "audioSourceHeading": "Type de réunion",
+      "audioSourceSystemOption": "En ligne",
+      "audioSourceMicrophoneOption": "En personne",
+      "audioSourceUnavailable": "Cet appareil ne peut pas capter l'audio de l'ordinateur, donc les réunions en ligne enregistrent avec le micro à la place."
     },
     "errors": {
       "sessionFailed": "La réunion s'est arrêtée à cause d'une erreur",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Autorisation audio système manquante",
       "audioMissingPermissionDescription": "Dilo ne capte rien de l'audio de cet ordinateur. Accorde l'autorisation dans Réglages Système → Confidentialité et sécurité → Enregistrement audio système, puis relance l'enregistrement.",
       "audioOutputDeviceChanged": "Sortie audio changée",
-      "audioOutputDeviceChangedDescription": "Tu as changé de sortie audio en pleine réunion, une partie n'a peut-être pas été enregistrée. Si tu remarques qu'il en manque, arrête puis recommence l'enregistrement."
+      "audioOutputDeviceChangedDescription": "Tu as changé de sortie audio en pleine réunion, une partie n'a peut-être pas été enregistrée. Si tu remarques qu'il en manque, arrête puis recommence l'enregistrement.",
+      "audioNoAudioCaptured": "Aucun son détecté",
+      "audioNoAudioCapturedDescription": "Dilo ne capte aucun son de cet ordinateur depuis un moment. Vérifie que tu as bien partagé l'audio, et que l'appel ne passe pas par ton téléphone au lieu de l'ordinateur.",
+      "audioFellBackToMicrophone": "Enregistrement avec le micro à la place",
+      "audioFellBackToMicrophoneDescription": "Dilo n'a pas pu ouvrir l'audio de cet ordinateur pour cette réunion, il enregistre donc avec le micro à la place."
     },
     "transcript": {
       "title": "Transcription en direct",

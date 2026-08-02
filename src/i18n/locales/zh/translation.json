@@ -909,15 +909,16 @@
       "finishing": "收尾中…",
       "kindPresencial": "线下，使用本机麦克风",
       "kindOnlineSystemAudio": "线上会议，使用本电脑的音频",
+      "kindOnlineMicrophoneFallback": "线上会议，正在用麦克风录制（此设备没有系统音频）",
       "model": "正在使用 {{name}} 转录",
       "modelLoading": "正在加载模型…",
       "privacy": "音频不会离开你的电脑：转写和区分声音都在本地完成。",
       "startFailed": "无法开始录制",
       "stopFailed": "无法停止会议",
-      "audioSourceHeading": "音频来源",
-      "audioSourceSystemOption": "本电脑的音频",
-      "audioSourceMicrophoneOption": "麦克风",
-      "audioSourceUnavailable": "这台 Mac 不支持电脑音频（需要 macOS 14.2 或更高版本），因此将使用麦克风录音。"
+      "audioSourceHeading": "会议类型",
+      "audioSourceSystemOption": "线上",
+      "audioSourceMicrophoneOption": "线下",
+      "audioSourceUnavailable": "此设备无法捕获电脑音频，因此线上会议也会改用麦克风录制。"
     },
     "errors": {
       "sessionFailed": "会议因错误而停止",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "缺少系统音频权限",
       "audioMissingPermissionDescription": "Dilo 没有捕捉到本电脑音频的任何内容。请在系统设置 → 隐私与安全性 → 系统音频录制 中授予权限，然后重新开始录音。",
       "audioOutputDeviceChanged": "音频输出已更改",
-      "audioOutputDeviceChangedDescription": "你在会议中途切换了音频输出，部分内容可能未被录下。如果发现缺失，请停止并重新录音。"
+      "audioOutputDeviceChangedDescription": "你在会议中途切换了音频输出，部分内容可能未被录下。如果发现缺失，请停止并重新录音。",
+      "audioNoAudioCaptured": "未检测到音频",
+      "audioNoAudioCapturedDescription": "Dilo 有一段时间没有从这台电脑的音频中捕捉到任何声音了。请确认你已共享音频，并且通话不是通过手机而不是电脑进行的。",
+      "audioFellBackToMicrophone": "改用麦克风录制",
+      "audioFellBackToMicrophoneDescription": "Dilo 无法为这次会议打开电脑音频，因此改用麦克风录制。"
     },
     "transcript": {
       "title": "实时转写",

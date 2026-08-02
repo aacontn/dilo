@@ -909,15 +909,16 @@
       "finishing": "מסיים…",
       "kindPresencial": "פרונטלית, עם המיקרופון של המחשב הזה",
       "kindOnlineSystemAudio": "פגישה מקוונת, עם השמע של המחשב הזה",
+      "kindOnlineMicrophoneFallback": "פגישה מקוונת, מוקלטת דרך המיקרופון (אין אודיו מערכת במכשיר הזה)",
       "model": "משוכתב באמצעות {{name}}",
       "modelLoading": "טוען את המודל…",
       "privacy": "האודיו לא יוצא מהמחשב שלך: התמלול והפרדת הקולות קורים כאן.",
       "startFailed": "לא ניתן היה להתחיל להקליט",
       "stopFailed": "לא ניתן היה לעצור את הפגישה",
-      "audioSourceHeading": "מקור שמע",
-      "audioSourceSystemOption": "שמע המחשב הזה",
-      "audioSourceMicrophoneOption": "מיקרופון",
-      "audioSourceUnavailable": "ה-Mac הזה לא תומך בשמע המחשב (נדרש macOS 14.2 ואילך), לכן ההקלטה תתבצע עם המיקרופון."
+      "audioSourceHeading": "סוג הפגישה",
+      "audioSourceSystemOption": "מקוונת",
+      "audioSourceMicrophoneOption": "פרונטלית",
+      "audioSourceUnavailable": "המכשיר הזה לא יכול ללכוד את האודיו של המחשב, ולכן גם פגישות מקוונות מוקלטות דרך המיקרופון."
     },
     "errors": {
       "sessionFailed": "הפגישה נעצרה בגלל שגיאה",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "חסרה הרשאת שמע מערכת",
       "audioMissingPermissionDescription": "Dilo לא קולט שום דבר משמע המחשב הזה. הענק את ההרשאה בהגדרות המערכת ← פרטיות ואבטחה ← הקלטת שמע מערכת, והתחל את ההקלטה מחדש.",
       "audioOutputDeviceChanged": "פלט השמע השתנה",
-      "audioOutputDeviceChangedDescription": "החלפת את פלט השמע באמצע הפגישה, ייתכן שחלק ממנה לא הוקלט. אם שמת לב שמשהו חסר, עצור והתחל הקלטה מחדש."
+      "audioOutputDeviceChangedDescription": "החלפת את פלט השמע באמצע הפגישה, ייתכן שחלק ממנה לא הוקלט. אם שמת לב שמשהו חסר, עצור והתחל הקלטה מחדש.",
+      "audioNoAudioCaptured": "לא זוהה קול",
+      "audioNoAudioCapturedDescription": "Dilo לא קולט קול מהאודיו של המחשב הזה כבר זמן מה. ודא ששיתפת את האודיו, ושהשיחה לא עוברת דרך הטלפון במקום המחשב.",
+      "audioFellBackToMicrophone": "מקליט דרך המיקרופון במקום זאת",
+      "audioFellBackToMicrophoneDescription": "Dilo לא הצליח לפתוח את האודיו של המחשב לפגישה הזו, ולכן הוא מקליט דרך המיקרופון במקום זאת."
     },
     "transcript": {
       "title": "תמלול חי",

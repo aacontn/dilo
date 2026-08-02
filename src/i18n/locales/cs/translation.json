@@ -909,15 +909,16 @@
       "finishing": "Dokončuji…",
       "kindPresencial": "Naživo, mikrofonem tohoto zařízení",
       "kindOnlineSystemAudio": "Online schůzka, se zvukem tohoto počítače",
+      "kindOnlineMicrophoneFallback": "Online schůzka, nahrávání přes mikrofon (toto zařízení nemá systémový zvuk)",
       "model": "Přepis pomocí {{name}}",
       "modelLoading": "Načítání modelu…",
       "privacy": "Zvuk neopouští tvůj počítač: přepis i rozdělení hlasů probíhá tady.",
       "startFailed": "Nahrávání se nepodařilo spustit",
       "stopFailed": "Schůzku se nepodařilo zastavit",
-      "audioSourceHeading": "Zdroj zvuku",
-      "audioSourceSystemOption": "Zvuk tohoto počítače",
-      "audioSourceMicrophoneOption": "Mikrofon",
-      "audioSourceUnavailable": "Tento Mac nepodporuje zvuk počítače (vyžaduje macOS 14.2 nebo novější), takže se nahrává s mikrofonem."
+      "audioSourceHeading": "Typ schůzky",
+      "audioSourceSystemOption": "Online",
+      "audioSourceMicrophoneOption": "Osobně",
+      "audioSourceUnavailable": "Toto zařízení neumí zachytit zvuk počítače, takže online schůzky se nahrávají přes mikrofon."
     },
     "errors": {
       "sessionFailed": "Schůzka se zastavila kvůli chybě",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Chybí oprávnění pro systémový zvuk",
       "audioMissingPermissionDescription": "Dilo nezachytává žádný zvuk z tohoto počítače. Udělte oprávnění v Nastavení systému → Soukromí a zabezpečení → Nahrávání systémového zvuku a nahrávání spusťte znovu.",
       "audioOutputDeviceChanged": "Výstup zvuku se změnil",
-      "audioOutputDeviceChangedDescription": "Uprostřed schůzky jsi změnil výstup zvuku, takže část nemusela být zaznamenána. Pokud si všimneš, že něco chybí, zastav a nahraj to znovu."
+      "audioOutputDeviceChangedDescription": "Uprostřed schůzky jsi změnil výstup zvuku, takže část nemusela být zaznamenána. Pokud si všimneš, že něco chybí, zastav a nahraj to znovu.",
+      "audioNoAudioCaptured": "Nebyl zaznamenán žádný zvuk",
+      "audioNoAudioCapturedDescription": "Dilo už chvíli nezaznamenává žádný zvuk z tohoto počítače. Zkontroluj, že jsi sdílel zvuk a že hovor neprobíhá přes telefon místo počítače.",
+      "audioFellBackToMicrophone": "Nahrávání přes mikrofon",
+      "audioFellBackToMicrophoneDescription": "Dilo se nepodařilo otevřít zvuk tohoto počítače pro tuto schůzku, takže nahrává přes mikrofon."
     },
     "transcript": {
       "title": "Živý přepis",

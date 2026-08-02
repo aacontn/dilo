@@ -909,15 +909,16 @@
       "finishing": "جارٍ الإنهاء…",
       "kindPresencial": "حضوريًا، بميكروفون هذا الجهاز",
       "kindOnlineSystemAudio": "اجتماع عبر الإنترنت، باستخدام صوت هذا الجهاز",
+      "kindOnlineMicrophoneFallback": "اجتماع عبر الإنترنت، يسجَّل بالميكروفون (لا يوجد صوت نظام على هذا الجهاز)",
       "model": "يجري النسخ باستخدام {{name}}",
       "modelLoading": "جارٍ تحميل النموذج…",
       "privacy": "الصوت لا يغادر جهازك: التفريغ وفصل الأصوات يحدثان هنا.",
       "startFailed": "تعذّر بدء التسجيل",
       "stopFailed": "تعذّر إيقاف الاجتماع",
-      "audioSourceHeading": "مصدر الصوت",
-      "audioSourceSystemOption": "صوت هذا الجهاز",
-      "audioSourceMicrophoneOption": "الميكروفون",
-      "audioSourceUnavailable": "لا يدعم هذا الـ Mac صوت هذا الجهاز (يتطلب macOS 14.2 أو أحدث)، لذلك سيتم التسجيل باستخدام الميكروفون."
+      "audioSourceHeading": "نوع الاجتماع",
+      "audioSourceSystemOption": "عبر الإنترنت",
+      "audioSourceMicrophoneOption": "حضوري",
+      "audioSourceUnavailable": "لا يمكن لهذا الجهاز التقاط صوت الكمبيوتر، لذا تُسجَّل الاجتماعات عبر الإنترنت أيضًا باستخدام الميكروفون."
     },
     "errors": {
       "sessionFailed": "توقّف الاجتماع بسبب خطأ",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "إذن صوت النظام مفقود",
       "audioMissingPermissionDescription": "لا يلتقط Dilo أي شيء من صوت هذا الجهاز. امنح الإذن من إعدادات النظام ← الخصوصية والأمان ← تسجيل صوت النظام، ثم ابدأ التسجيل من جديد.",
       "audioOutputDeviceChanged": "تغيّر مخرج الصوت",
-      "audioOutputDeviceChangedDescription": "غيّرت مخرج الصوت أثناء الاجتماع، فقد لا يكون جزء منه قد سُجّل. إذا لاحظت نقصًا، أوقف التسجيل وابدأ من جديد."
+      "audioOutputDeviceChangedDescription": "غيّرت مخرج الصوت أثناء الاجتماع، فقد لا يكون جزء منه قد سُجّل. إذا لاحظت نقصًا، أوقف التسجيل وابدأ من جديد.",
+      "audioNoAudioCaptured": "لم يتم اكتشاف صوت",
+      "audioNoAudioCapturedDescription": "لم يلتقط Dilo أي صوت من هذا الكمبيوتر منذ فترة. تحقق من أنك شاركت الصوت، وأن المكالمة لا تمر عبر هاتفك بدلاً من الكمبيوتر.",
+      "audioFellBackToMicrophone": "التسجيل جارٍ عبر الميكروفون",
+      "audioFellBackToMicrophoneDescription": "لم يتمكن Dilo من فتح صوت هذا الكمبيوتر لهذا الاجتماع، لذا يسجل عبر الميكروفون بدلاً من ذلك."
     },
     "transcript": {
       "title": "النص المباشر",

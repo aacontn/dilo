@@ -909,15 +909,16 @@
       "finishing": "Đang kết thúc…",
       "kindPresencial": "Trực tiếp, dùng micrô của máy này",
       "kindOnlineSystemAudio": "Cuộc họp trực tuyến, dùng âm thanh của máy tính này",
+      "kindOnlineMicrophoneFallback": "Cuộc họp trực tuyến, đang ghi âm bằng micro (thiết bị này không có âm thanh hệ thống)",
       "model": "Đang phiên âm bằng {{name}}",
       "modelLoading": "Đang tải mô hình…",
       "privacy": "Âm thanh không rời khỏi máy của bạn: việc chuyển lời và tách giọng đều làm tại đây.",
       "startFailed": "Không thể bắt đầu ghi",
       "stopFailed": "Không thể dừng cuộc họp",
-      "audioSourceHeading": "Nguồn âm thanh",
-      "audioSourceSystemOption": "Âm thanh của máy tính này",
-      "audioSourceMicrophoneOption": "Micrô",
-      "audioSourceUnavailable": "Máy Mac này không hỗ trợ âm thanh của máy tính (cần macOS 14.2 trở lên), nên sẽ ghi âm bằng micrô."
+      "audioSourceHeading": "Loại cuộc họp",
+      "audioSourceSystemOption": "Trực tuyến",
+      "audioSourceMicrophoneOption": "Trực tiếp",
+      "audioSourceUnavailable": "Thiết bị này không thể thu âm thanh máy tính, nên các cuộc họp trực tuyến cũng sẽ ghi âm bằng micro."
     },
     "errors": {
       "sessionFailed": "Cuộc họp đã dừng do lỗi",
@@ -925,7 +926,11 @@
       "audioMissingPermission": "Thiếu quyền âm thanh hệ thống",
       "audioMissingPermissionDescription": "Dilo không thu được gì từ âm thanh của máy tính này. Cấp quyền trong Cài đặt Hệ thống → Quyền riêng tư & Bảo mật → Ghi âm thanh hệ thống, rồi bắt đầu ghi lại.",
       "audioOutputDeviceChanged": "Đã đổi thiết bị xuất âm thanh",
-      "audioOutputDeviceChangedDescription": "Bạn đã đổi thiết bị xuất âm thanh giữa cuộc họp, nên có thể một phần chưa được ghi lại. Nếu thấy thiếu đoạn nào, hãy dừng và ghi lại."
+      "audioOutputDeviceChangedDescription": "Bạn đã đổi thiết bị xuất âm thanh giữa cuộc họp, nên có thể một phần chưa được ghi lại. Nếu thấy thiếu đoạn nào, hãy dừng và ghi lại.",
+      "audioNoAudioCaptured": "Không phát hiện âm thanh",
+      "audioNoAudioCapturedDescription": "Dilo đã một lúc không thu được âm thanh nào từ máy tính này. Hãy kiểm tra xem bạn đã chia sẻ âm thanh chưa, và cuộc gọi có đang đi qua điện thoại thay vì máy tính không.",
+      "audioFellBackToMicrophone": "Đang ghi âm bằng micro",
+      "audioFellBackToMicrophoneDescription": "Dilo không thể mở âm thanh máy tính cho cuộc họp này, nên đang ghi âm bằng micro thay thế."
     },
     "transcript": {
       "title": "Bản ghi trực tiếp",
