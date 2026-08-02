@@ -13,7 +13,7 @@
     "general": "一般",
     "models": "模型",
     "advanced": "進階",
-    "postProcessing": "後處理",
+    "postProcessing": "轉換",
     "history": "歷史紀錄",
     "debug": "偵錯",
     "about": "關於",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "在轉換中設定提供者即可使用此模式。",
       "customize": "自訂"
     }
   },
@@ -302,8 +302,8 @@
             "description": "用於取消目前錄製的鍵盤快捷鍵"
           },
           "transcribe_with_post_process": {
-            "name": "後處理快捷鍵",
-            "description": "可選：專用快捷鍵，使用時一律對轉錄結果套用 AI 後處理"
+            "name": "轉換快捷鍵",
+            "description": "可選：專用快捷鍵，一律將轉錄結果傳送給轉換"
           },
           "quick_note": {
             "name": "快速筆記快捷鍵",
@@ -554,7 +554,7 @@
         "createPrompt": "建立提示詞",
         "cancel": "取消",
         "selectToEdit": "選擇上方的提示詞以檢視和編輯其詳細資訊",
-        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個後處理提示詞",
+        "createFirst": "點選上方的「建立新提示詞」來建立您的第一個轉換提示詞",
         "modeShortcut": "模式快速鍵（選填）",
         "modeShortcutHint": "在任何應用程式中直接以此模式聽寫，而不改變所選模式。",
         "modeShortcutEmpty": "無快速鍵",
@@ -653,7 +653,7 @@
         "description": "筆記型電腦闔蓋時使用的麥克風"
       },
       "postProcessingToggle": {
-        "label": "後處理",
+        "label": "轉換",
         "description": "啟用轉錄後的 AI 文字最佳化"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "無法播放範例。請檢查音訊輸出裝置。",
       "assistantMode": {
         "title": "語音助理模式",
-        "description": "指定一個快捷鍵後，Dilo 不再貼上你的口述內容，而是將其傳送給已設定的 LLM（後處理）並朗讀回覆。",
+        "description": "指定一個快捷鍵後，Dilo 不再貼上你的口述內容，而是將其傳送給已設定的 LLM（轉換）並朗讀回覆。",
         "toggleLabel": "啟用語音助理模式",
-        "toggleDescription": "需要在後處理中設定 LLM 供應商和模型。",
+        "toggleDescription": "需要在轉換中設定 LLM 供應商和模型。",
         "shortcutHint": "按住以錄製問題；放開後傳送給 LLM 並朗讀回覆。"
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "轉錄失敗",
     "noteSaveFailed": "無法儲存筆記：{{error}}",
     "assistantNotConfiguredTitle": "語音助理未設定",
-    "assistantNotConfigured": "請在後處理中設定 LLM 供應商和模型，才能使用語音助理。",
+    "assistantNotConfigured": "請在轉換中設定 LLM 供應商和模型，才能使用語音助理。",
     "assistantFailedTitle": "語音助理失敗",
     "assistantFailed": "無法從 LLM 取得回覆。請檢查網路連線後再試一次。",
     "assistantTtsFailedTitle": "無法朗讀回覆",

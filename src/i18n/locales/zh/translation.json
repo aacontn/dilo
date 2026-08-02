@@ -13,7 +13,7 @@
     "general": "通用",
     "models": "模型",
     "advanced": "高级",
-    "postProcessing": "后处理",
+    "postProcessing": "转换",
     "history": "历史记录",
     "debug": "调试",
     "about": "关于",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "在转换中配置一个提供商即可使用此模式。",
       "customize": "自定义"
     }
   },
@@ -320,8 +320,8 @@
             "description": "用于取消当前录制的键盘快捷键。"
           },
           "transcribe_with_post_process": {
-            "name": "后处理快捷键",
-            "description": "可选：一个专用快捷键，始终对您的转录应用 AI 后处理。"
+            "name": "转换快捷键",
+            "description": "可选：一个专用快捷键，始终将您的转录发送到转换。"
           },
           "quick_note": {
             "name": "快速笔记快捷键",
@@ -554,7 +554,7 @@
         "createPrompt": "创建提示词",
         "cancel": "取消",
         "selectToEdit": "选择上方的提示词以查看和编辑其详细信息。",
-        "createFirst": "点击上方的「创建新提示词」来创建您的第一个后处理提示词。",
+        "createFirst": "点击上方的「创建新提示词」来创建您的第一个转换提示词。",
         "modeShortcut": "模式快捷键（可选）",
         "modeShortcutHint": "在任何应用中直接用此模式听写，而不改变所选模式。",
         "modeShortcutEmpty": "无快捷键",
@@ -653,7 +653,7 @@
         "description": "笔记本电脑盖子关闭时使用的麦克风"
       },
       "postProcessingToggle": {
-        "label": "后处理",
+        "label": "转换",
         "description": "启用转录后的 AI 文本优化"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "无法播放示例。请检查音频输出设备。",
       "assistantMode": {
         "title": "语音助手模式",
-        "description": "分配一个快捷键后，Dilo 不再粘贴你的口述内容，而是将其发送给已配置的 LLM（后处理）并朗读回复。",
+        "description": "分配一个快捷键后，Dilo 不再粘贴你的口述内容，而是将其发送给已配置的 LLM（转换）并朗读回复。",
         "toggleLabel": "启用语音助手模式",
-        "toggleDescription": "需要在后处理中设置 LLM 提供商和模型。",
+        "toggleDescription": "需要在转换中设置 LLM 提供商和模型。",
         "shortcutHint": "按下以录制问题；松开后发送给 LLM 并朗读回复。"
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "转录失败",
     "noteSaveFailed": "无法保存笔记：{{error}}",
     "assistantNotConfiguredTitle": "语音助手未配置",
-    "assistantNotConfigured": "请在后处理中设置 LLM 提供商和模型，以使用语音助手。",
+    "assistantNotConfigured": "请在转换中设置 LLM 提供商和模型，以使用语音助手。",
     "assistantFailedTitle": "语音助手失败",
     "assistantFailed": "无法从 LLM 获取回复。请检查网络连接后重试。",
     "assistantTtsFailedTitle": "无法朗读回复",

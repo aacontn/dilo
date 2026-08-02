@@ -13,7 +13,7 @@
     "general": "כללי",
     "models": "מודלים",
     "advanced": "מתקדם",
-    "postProcessing": "עיבוד משלים",
+    "postProcessing": "המרה",
     "history": "היסטוריה",
     "debug": "ניפוי שגיאות",
     "about": "אודות",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "הגדר ספק בהמרה כדי להשתמש במצב הזה.",
       "customize": "התאמה אישית"
     }
   },
@@ -302,8 +302,8 @@
             "description": "קיצור המקלדת לביטול ההקלטה הנוכחית."
           },
           "transcribe_with_post_process": {
-            "name": "קיצור לעיבוד משלים",
-            "description": "אופציונלי: קיצור מקשים ייעודי שתמיד מפעיל עיבוד AI על התמלול."
+            "name": "קיצור להמרה",
+            "description": "אופציונלי: קיצור מקשים ייעודי ששולח את התמלול שלך תמיד דרך המרה."
           },
           "quick_note": {
             "name": "קיצור להערה מהירה",
@@ -554,7 +554,7 @@
         "createPrompt": "צור פרומפט",
         "cancel": "ביטול",
         "selectToEdit": "בחר פרומפט למעלה כדי לצפות בפרטים שלו ולערוך אותם.",
-        "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט העיבוד הראשון שלך.",
+        "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט ההמרה הראשון שלך.",
         "modeShortcut": "קיצור דרך למצב (אופציונלי)",
         "modeShortcutHint": "הכתב ישירות במצב הזה מכל אפליקציה, בלי לשנות את המצב הנבחר.",
         "modeShortcutEmpty": "אין קיצור דרך",
@@ -653,7 +653,7 @@
         "description": "המיקרופון שישמש כשהמחשב הנייד סגור"
       },
       "postProcessingToggle": {
-        "label": "עיבוד משלים",
+        "label": "המרה",
         "description": "הפעל שיפור טקסט מבוסס AI אחרי התמלול"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "לא ניתן היה להשמיע את הדוגמה. בדוק את התקן פלט השמע.",
       "assistantMode": {
         "title": "מצב עוזר קולי",
-        "description": "הקצה קיצור מקשים, ובמקום להדביק את ההכתבה, Dilo ישלח אותה ל-LLM שהוגדר (עיבוד משלים) ויקריא את התשובה בקול.",
+        "description": "הקצה קיצור מקשים, ובמקום להדביק את ההכתבה, Dilo ישלח אותה ל-LLM שהוגדר (המרה) ויקריא את התשובה בקול.",
         "toggleLabel": "הפעל מצב עוזר קולי",
-        "toggleDescription": "דורש ספק LLM ומודל שהוגדרו בעיבוד המשלים.",
+        "toggleDescription": "דורש ספק LLM ומודל שהוגדרו בהמרה.",
         "shortcutHint": "לחץ כדי להקליט שאלה; בשחרור היא נשלחת ל-LLM והתשובה מוקראת בקול."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "התמלול נכשל",
     "noteSaveFailed": "לא ניתן היה לשמור את ההערה: {{error}}",
     "assistantNotConfiguredTitle": "העוזר הקולי לא הוגדר",
-    "assistantNotConfigured": "הגדר ספק LLM ומודל בעיבוד המשלים כדי להשתמש בעוזר הקולי.",
+    "assistantNotConfigured": "הגדר ספק LLM ומודל בהמרה כדי להשתמש בעוזר הקולי.",
     "assistantFailedTitle": "העוזר הקולי נכשל",
     "assistantFailed": "לא ניתן היה לקבל תשובה מה-LLM. בדוק את החיבור ונסה שוב.",
     "assistantTtsFailedTitle": "לא ניתן היה להקריא את התשובה",

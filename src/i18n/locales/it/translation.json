@@ -13,7 +13,7 @@
     "general": "Generale",
     "models": "Modelli",
     "advanced": "Avanzate",
-    "postProcessing": "Post-Elaborazione",
+    "postProcessing": "Trasformazione",
     "history": "Cronologia",
     "debug": "Debug",
     "about": "Informazioni",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Configura un provider in Trasformazione per usare questa modalità.",
       "customize": "Personalizza"
     }
   },
@@ -320,8 +320,8 @@
             "description": "La scorciatoia da tastiera per annullare la registrazione in corso."
           },
           "transcribe_with_post_process": {
-            "name": "Tasto di post-elaborazione",
-            "description": "Facoltativo: Un tasto di scelta rapida dedicato che applica sempre la post-elaborazione IA alla trascrizione."
+            "name": "Tasto di trasformazione",
+            "description": "Facoltativo: Un tasto di scelta rapida dedicato che invia sempre la trascrizione a Trasformazione."
           },
           "quick_note": {
             "name": "Scorciatoia nota rapida",
@@ -554,7 +554,7 @@
         "createPrompt": "Crea Prompt",
         "cancel": "Annulla",
         "selectToEdit": "Scegli un prompt qui sopra per visualizzare o modificare i dettagli.",
-        "createFirst": "Clicca 'Crea un nuovo prompt' qui sopra per creare il tuo primo prompt di post-elaborazione.",
+        "createFirst": "Clicca 'Crea un nuovo prompt' qui sopra per creare il tuo primo prompt di Trasformazione.",
         "modeShortcut": "Scorciatoia della modalità (opzionale)",
         "modeShortcutHint": "Detta direttamente con questa modalità da qualsiasi app, senza cambiare la modalità selezionata.",
         "modeShortcutEmpty": "Nessuna scorciatoia",
@@ -653,7 +653,7 @@
         "description": "Microfono da usare quando il portatile è chiuso"
       },
       "postProcessingToggle": {
-        "label": "Post-Elaborazione",
+        "label": "Trasformazione",
         "description": "Abilita il miglioramento della trascrizione con IA"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Impossibile riprodurre l'esempio. Controlla il dispositivo di uscita audio.",
       "assistantMode": {
         "title": "Modalità assistente vocale",
-        "description": "Assegna una scorciatoia: invece di incollare la dettatura, Dilo la invia all'LLM configurato (Post-Elaborazione) e legge la risposta ad alta voce.",
+        "description": "Assegna una scorciatoia: invece di incollare la dettatura, Dilo la invia all'LLM configurato (Trasformazione) e legge la risposta ad alta voce.",
         "toggleLabel": "Attiva la modalità assistente vocale",
-        "toggleDescription": "Richiede un provider LLM e un modello configurati in Post-Elaborazione.",
+        "toggleDescription": "Richiede un provider LLM e un modello configurati in Trasformazione.",
         "shortcutHint": "Premi per registrare una domanda; al rilascio viene inviata all'LLM e la risposta viene letta ad alta voce."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Trascrizione non riuscita",
     "noteSaveFailed": "Impossibile salvare la nota: {{error}}",
     "assistantNotConfiguredTitle": "Assistente vocale non configurato",
-    "assistantNotConfigured": "Configura un provider LLM e un modello in Post-Elaborazione per usare l'assistente vocale.",
+    "assistantNotConfigured": "Configura un provider LLM e un modello in Trasformazione per usare l'assistente vocale.",
     "assistantFailedTitle": "Assistente vocale non riuscito",
     "assistantFailed": "Impossibile ottenere una risposta dall'LLM. Controlla la connessione e riprova.",
     "assistantTtsFailedTitle": "Impossibile leggere la risposta",

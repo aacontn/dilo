@@ -12,7 +12,7 @@
     "home": "Home",
     "general": "عام",
     "advanced": "متقدم",
-    "postProcessing": "معالجة لاحقة",
+    "postProcessing": "تحويل",
     "history": "السجل",
     "debug": "تصحيح الأخطاء",
     "about": "حول",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "اضبط مزوّدًا في تحويل لاستخدام هذا الوضع.",
       "customize": "تخصيص"
     }
   },
@@ -299,8 +299,8 @@
             "description": ".اختصار لوحة المفاتيح لإلغاء التسجيل الحالي"
           },
           "transcribe_with_post_process": {
-            "name": "مفتاح المعالجة اللاحقة",
-            "description": "اختياري: مفتاح اختصار مخصص يطبق دائماً المعالجة اللاحقة بالذكاء الاصطناعي على التفريغ الصوتي."
+            "name": "مفتاح التحويل",
+            "description": "اختياري: مفتاح اختصار مخصص يرسل تفريغك الصوتي دائماً عبر تحويل."
           },
           "quick_note": {
             "name": "اختصار الملاحظة السريعة",
@@ -533,7 +533,7 @@
         "createPrompt": "إنشاء مطالبة",
         "cancel": "إلغاء",
         "selectToEdit": ".اختر مطالبة أعلاه لعرض وتعديل تفاصيلها",
-        "createFirst": ".انقر على 'إنشاء مطالبة جديدة' أعلاه لإنشاء أول مطالبة معالجة لاحقة لك",
+        "createFirst": ".انقر على 'إنشاء مطالبة جديدة' أعلاه لإنشاء أول مطالبة تحويل لك",
         "modeShortcut": "اختصار الوضع (اختياري)",
         "modeShortcutHint": "أملِ مباشرة بهذا الوضع من أي تطبيق دون تغيير الوضع المحدد.",
         "modeShortcutEmpty": "لا يوجد اختصار",
@@ -632,7 +632,7 @@
         "description": "الميكروفون المراد استخدامه عندما يكون غطاء المحمول مغلقاً"
       },
       "postProcessingToggle": {
-        "label": "معالجة لاحقة",
+        "label": "تحويل",
         "description": "تمكين تحسين النص المدعوم بالذكاء الاصطناعي بعد التفريغ الصوتي"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "تعذّر تشغيل العيّنة. تحقق من جهاز إخراج الصوت.",
       "assistantMode": {
         "title": "وضع المساعد الصوتي",
-        "description": "عيّن اختصارًا، وبدلاً من لصق ما أمليته، يرسله Dilo إلى نموذج LLM المُهيّأ (معالجة لاحقة) ويقرأ الرد بصوت عالٍ.",
+        "description": "عيّن اختصارًا، وبدلاً من لصق ما أمليته، يرسله Dilo إلى نموذج LLM المُهيّأ (تحويل) ويقرأ الرد بصوت عالٍ.",
         "toggleLabel": "تفعيل وضع المساعد الصوتي",
-        "toggleDescription": "يتطلب مزود LLM ونموذجًا مُعدّين في المعالجة اللاحقة.",
+        "toggleDescription": "يتطلب مزود LLM ونموذجًا مُعدّين في تحويل.",
         "shortcutHint": "اضغط لتسجيل سؤال؛ وعند الإفلات يُرسل إلى LLM ويُقرأ الرد بصوت عالٍ."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "فشل التفريغ النصي",
     "noteSaveFailed": "تعذّر حفظ الملاحظة: {{error}}",
     "assistantNotConfiguredTitle": "المساعد الصوتي غير مُهيّأ",
-    "assistantNotConfigured": "قم بإعداد مزود LLM ونموذج في المعالجة اللاحقة لاستخدام المساعد الصوتي.",
+    "assistantNotConfigured": "قم بإعداد مزود LLM ونموذج في تحويل لاستخدام المساعد الصوتي.",
     "assistantFailedTitle": "فشل المساعد الصوتي",
     "assistantFailed": "تعذّر الحصول على رد من LLM. تحقق من اتصالك وحاول مرة أخرى.",
     "assistantTtsFailedTitle": "تعذّر نطق الرد",

@@ -13,7 +13,7 @@
     "general": "Obecné",
     "models": "Modely",
     "advanced": "Pokročilé",
-    "postProcessing": "Následné zpracování",
+    "postProcessing": "Transformace",
     "history": "Historie",
     "debug": "Ladění",
     "about": "O aplikaci",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Nastavte poskytovatele v sekci Transformace, abyste mohli tento režim používat.",
       "customize": "Přizpůsobit"
     }
   },
@@ -320,8 +320,8 @@
             "description": "Klávesová zkratka pro zrušení aktuálního nahrávání."
           },
           "transcribe_with_post_process": {
-            "name": "Klávesa pro následné zpracování",
-            "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy použije AI následné zpracování na váš přepis."
+            "name": "Klávesa pro transformaci",
+            "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy pošle váš přepis přes Transformaci."
           },
           "quick_note": {
             "name": "Zkratka rychlé poznámky",
@@ -554,7 +554,7 @@
         "createPrompt": "Vytvořit prompt",
         "cancel": "Zrušit",
         "selectToEdit": "Vyberte výše prompt, abyste zobrazili a upravili jeho podrobnosti.",
-        "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro následné zpracování.",
+        "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro Transformaci.",
         "modeShortcut": "Zkratka režimu (volitelné)",
         "modeShortcutHint": "Diktujte přímo v tomto režimu z jakékoli aplikace beze změny vybraného režimu.",
         "modeShortcutEmpty": "Žádná zkratka",
@@ -653,7 +653,7 @@
         "description": "Mikrofon, který se použije při zavřeném víku notebooku"
       },
       "postProcessingToggle": {
-        "label": "Následné zpracování",
+        "label": "Transformace",
         "description": "Povolit AI vylepšení textu po přepisu"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Ukázku se nepodařilo přehrát. Zkontrolujte výstupní zvukové zařízení.",
       "assistantMode": {
         "title": "Režim hlasového asistenta",
-        "description": "Přiřaďte zkratku: místo vložení diktátu jej Dilo odešle nakonfigurovanému LLM (Následné zpracování) a odpověď přečte nahlas.",
+        "description": "Přiřaďte zkratku: místo vložení diktátu jej Dilo odešle nakonfigurovanému LLM (Transformace) a odpověď přečte nahlas.",
         "toggleLabel": "Zapnout režim hlasového asistenta",
-        "toggleDescription": "Vyžaduje poskytovatele LLM a model nastavené v Následném zpracování.",
+        "toggleDescription": "Vyžaduje poskytovatele LLM a model nastavené v Transformaci.",
         "shortcutHint": "Stiskněte pro nahrání otázky; po uvolnění se odešle LLM a odpověď se přečte nahlas."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Přepis selhal",
     "noteSaveFailed": "Poznámku se nepodařilo uložit: {{error}}",
     "assistantNotConfiguredTitle": "Hlasový asistent není nakonfigurován",
-    "assistantNotConfigured": "Pro použití hlasového asistenta nastavte poskytovatele LLM a model v Následném zpracování.",
+    "assistantNotConfigured": "Pro použití hlasového asistenta nastavte poskytovatele LLM a model v Transformaci.",
     "assistantFailedTitle": "Hlasový asistent selhal",
     "assistantFailed": "Od LLM se nepodařilo získat odpověď. Zkontrolujte připojení a zkuste to znovu.",
     "assistantTtsFailedTitle": "Odpověď se nepodařilo přečíst nahlas",

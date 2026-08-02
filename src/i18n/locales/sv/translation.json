@@ -13,7 +13,7 @@
     "general": "Allmänt",
     "models": "Modeller",
     "advanced": "Avancerat",
-    "postProcessing": "Efterbearbetning",
+    "postProcessing": "Omvandling",
     "history": "Historik",
     "debug": "Felsökning",
     "about": "Om",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Ställ in en leverantör i Omvandling för att använda det här läget.",
       "customize": "Anpassa"
     }
   },
@@ -302,8 +302,8 @@
             "description": "Kortkommandot för att avbryta den aktuella inspelningen."
           },
           "transcribe_with_post_process": {
-            "name": "Snabbkommando för efterbearbetning",
-            "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+            "name": "Snabbkommando för omvandling",
+            "description": "Valfritt: En dedikerad snabbknapp som alltid skickar din transkription genom Omvandling."
           },
           "quick_note": {
             "name": "Kortkommando för snabbanteckning",
@@ -554,7 +554,7 @@
         "createPrompt": "Skapa prompt",
         "cancel": "Avbryt",
         "selectToEdit": "Välj en prompt ovan för att visa och redigera dess detaljer.",
-        "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för efterbearbetning.",
+        "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för Omvandling.",
         "modeShortcut": "Lägesgenväg (valfritt)",
         "modeShortcutHint": "Diktera direkt med det här läget från vilken app som helst, utan att ändra det valda läget.",
         "modeShortcutEmpty": "Ingen genväg",
@@ -653,7 +653,7 @@
         "description": "Mikrofon som ska användas när bärbara datorns lock är stängt"
       },
       "postProcessingToggle": {
-        "label": "Efterbearbetning",
+        "label": "Omvandling",
         "description": "Aktivera AI-driven textförfining efter transkription"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Det gick inte att spela upp exemplet. Kontrollera ljudutgångsenheten.",
       "assistantMode": {
         "title": "Röstassistentläge",
-        "description": "Tilldela ett kortkommando: i stället för att klistra in din diktering skickar Dilo den till den konfigurerade LLM:en (Efterbearbetning) och läser upp svaret högt.",
+        "description": "Tilldela ett kortkommando: i stället för att klistra in din diktering skickar Dilo den till den konfigurerade LLM:en (Omvandling) och läser upp svaret högt.",
         "toggleLabel": "Aktivera röstassistentläge",
-        "toggleDescription": "Kräver en LLM-leverantör och modell konfigurerade i Efterbearbetning.",
+        "toggleDescription": "Kräver en LLM-leverantör och modell konfigurerade i Omvandling.",
         "shortcutHint": "Tryck för att spela in en fråga; när du släpper skickas den till LLM:en och svaret läses upp."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Transkriptionen misslyckades",
     "noteSaveFailed": "Det gick inte att spara anteckningen: {{error}}",
     "assistantNotConfiguredTitle": "Röstassistenten är inte konfigurerad",
-    "assistantNotConfigured": "Konfigurera en LLM-leverantör och modell i Efterbearbetning för att använda röstassistenten.",
+    "assistantNotConfigured": "Konfigurera en LLM-leverantör och modell i Omvandling för att använda röstassistenten.",
     "assistantFailedTitle": "Röstassistenten misslyckades",
     "assistantFailed": "Det gick inte att få ett svar från LLM:en. Kontrollera din anslutning och försök igen.",
     "assistantTtsFailedTitle": "Kunde inte läsa upp svaret",

@@ -13,7 +13,7 @@
     "general": "General",
     "models": "Models",
     "advanced": "Advanced",
-    "postProcessing": "Post Process",
+    "postProcessing": "Transform",
     "history": "History",
     "debug": "Debug",
     "about": "About",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Configure a provider in Transform to use this mode.",
       "customize": "Customize"
     }
   },
@@ -390,8 +390,8 @@
             "description": "The keyboard shortcut to cancel the current recording."
           },
           "transcribe_with_post_process": {
-            "name": "Post-Processing Hotkey",
-            "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+            "name": "Transform Hotkey",
+            "description": "Optional: A dedicated hotkey that always sends your transcription through Transform."
           },
           "quick_note": {
             "name": "Quick Note Shortcut",
@@ -642,7 +642,7 @@
         "createPrompt": "Create Prompt",
         "cancel": "Cancel",
         "selectToEdit": "Select a prompt above to view and edit its details.",
-        "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt.",
+        "createFirst": "Click 'Create New Prompt' above to create your first Transform prompt.",
         "modeShortcut": "Mode shortcut (optional)",
         "modeShortcutHint": "Dictate straight into this mode from any app, without changing the selected mode.",
         "modeShortcutEmpty": "No shortcut",
@@ -748,7 +748,7 @@
         "description": "Microphone to use when laptop lid is closed"
       },
       "postProcessingToggle": {
-        "label": "Post Processing",
+        "label": "Transform",
         "description": "Enable AI-powered text refinement after transcription"
       },
       "muteWhileRecording": {
@@ -874,9 +874,9 @@
       "testError": "Couldn't play the sample. Check the audio output device.",
       "assistantMode": {
         "title": "Voice Assistant Mode",
-        "description": "Assign a shortcut, and instead of pasting your dictation, Dilo sends it to the configured LLM (Post-Processing) and reads the reply aloud.",
+        "description": "Assign a shortcut, and instead of pasting your dictation, Dilo sends it to the configured LLM (Transform) and reads the reply aloud.",
         "toggleLabel": "Enable voice assistant mode",
-        "toggleDescription": "Requires an LLM provider and model set up in Post-Processing.",
+        "toggleDescription": "Requires an LLM provider and model set up in Transform.",
         "shortcutHint": "Press to record a question; releasing sends it to the LLM and speaks the reply."
       },
       "license": {
@@ -940,7 +940,7 @@
     "transcriptionFailedTitle": "Transcription Failed",
     "noteSaveFailed": "Couldn't save the note: {{error}}",
     "assistantNotConfiguredTitle": "Voice Assistant Not Configured",
-    "assistantNotConfigured": "Set up an LLM provider and model in Post-Processing to use the voice assistant.",
+    "assistantNotConfigured": "Set up an LLM provider and model in Transform to use the voice assistant.",
     "assistantFailedTitle": "Voice Assistant Failed",
     "assistantFailed": "Couldn't get a reply from the LLM. Check your connection and try again.",
     "assistantTtsFailedTitle": "Couldn't Speak the Reply",

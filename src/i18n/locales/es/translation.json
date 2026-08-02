@@ -13,7 +13,7 @@
     "general": "General",
     "models": "Modelos",
     "advanced": "Avanzado",
-    "postProcessing": "Post-proceso",
+    "postProcessing": "Transformar",
     "history": "Historial",
     "debug": "Debug",
     "about": "Acerca de",
@@ -72,7 +72,7 @@
         "title": "Código",
         "description": "Respeta rutas, comandos e identificadores"
       },
-      "needsProvider": "Configura un proveedor de post-proceso para usar este modo.",
+      "needsProvider": "Configura un proveedor en Transformar para usar este modo.",
       "customize": "Personalizar"
     }
   },
@@ -320,8 +320,8 @@
             "description": "El atajo para cancelar la grabación en curso."
           },
           "transcribe_with_post_process": {
-            "name": "Atajo con post-proceso",
-            "description": "Opcional: un atajo dedicado que siempre pasa tu dictado por la IA de post-proceso."
+            "name": "Atajo que transforma",
+            "description": "Opcional: un atajo dedicado que siempre pasa tu dictado por Transformar."
           },
           "quick_note": {
             "name": "Atajo de nota rápida",
@@ -554,7 +554,7 @@
         "createPrompt": "Crear prompt",
         "cancel": "Cancelar",
         "selectToEdit": "Elige un prompt arriba para ver y editar sus detalles.",
-        "createFirst": "Crea tu primer prompt de post-proceso con el botón de arriba.",
+        "createFirst": "Crea tu primer prompt de Transformar con el botón de arriba.",
         "modeShortcut": "Atajo del modo (opcional)",
         "modeShortcutHint": "Dicta directo con este modo desde cualquier app, sin cambiar el modo seleccionado.",
         "modeShortcutEmpty": "Sin atajo",
@@ -653,7 +653,7 @@
         "description": "Qué micrófono usar con la tapa del laptop cerrada"
       },
       "postProcessingToggle": {
-        "label": "Post-proceso",
+        "label": "Transformar",
         "description": "Pulir el texto con IA después de transcribir"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "No se pudo reproducir el ejemplo. Revisa el dispositivo de salida de audio.",
       "assistantMode": {
         "title": "Modo asistente hablado",
-        "description": "Asigna un atajo y, en vez de pegar tu dictado, Dilo lo manda al LLM configurado (Post-proceso) y dice la respuesta en voz alta.",
+        "description": "Asigna un atajo y, en vez de pegar tu dictado, Dilo lo manda al LLM configurado en Transformar y dice la respuesta en voz alta.",
         "toggleLabel": "Activar el modo asistente hablado",
-        "toggleDescription": "Necesita un proveedor y un modelo de LLM configurados en Post-proceso.",
+        "toggleDescription": "Necesita un proveedor y un modelo de LLM configurados en Transformar.",
         "shortcutHint": "Mantén presionado para grabar una pregunta; al soltar se manda al LLM y se escucha la respuesta."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Error de transcripción",
     "noteSaveFailed": "No pude guardar la nota: {{error}}",
     "assistantNotConfiguredTitle": "Asistente de voz sin configurar",
-    "assistantNotConfigured": "Configura un proveedor y un modelo de LLM en Post-proceso para usar el asistente de voz.",
+    "assistantNotConfigured": "Configura un proveedor y un modelo de LLM en Transformar para usar el asistente de voz.",
     "assistantFailedTitle": "Falló el asistente de voz",
     "assistantFailed": "No se pudo obtener respuesta del LLM. Revisa tu conexión y reintenta.",
     "assistantTtsFailedTitle": "No se pudo decir la respuesta",

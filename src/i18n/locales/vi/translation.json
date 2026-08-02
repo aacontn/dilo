@@ -13,7 +13,7 @@
     "general": "Chung",
     "models": "Mô hình",
     "advanced": "Nâng cao",
-    "postProcessing": "Xử lý sau",
+    "postProcessing": "Biến đổi",
     "history": "Lịch sử",
     "debug": "Gỡ lỗi",
     "about": "Giới thiệu",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Định cấu hình nhà cung cấp trong Biến đổi để dùng chế độ này.",
       "customize": "Tùy chỉnh"
     }
   },
@@ -320,8 +320,8 @@
             "description": "Phím tắt để hủy bản ghi hiện tại."
           },
           "transcribe_with_post_process": {
-            "name": "Phím tắt xử lý sau",
-            "description": "Tùy chọn: Phím tắt chuyên dụng luôn áp dụng xử lý sau bằng AI cho bản chuyển đổi của bạn."
+            "name": "Phím tắt Biến đổi",
+            "description": "Tùy chọn: Phím tắt chuyên dụng luôn gửi bản ghi của bạn qua Biến đổi."
           },
           "quick_note": {
             "name": "Phím tắt ghi chú nhanh",
@@ -554,7 +554,7 @@
         "createPrompt": "Tạo Prompt",
         "cancel": "Hủy",
         "selectToEdit": "Chọn một prompt ở trên để xem và chỉnh sửa chi tiết.",
-        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt xử lý sau đầu tiên của bạn.",
+        "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt Biến đổi đầu tiên của bạn.",
         "modeShortcut": "Phím tắt của chế độ (tùy chọn)",
         "modeShortcutHint": "Đọc chính tả trực tiếp bằng chế độ này từ bất kỳ ứng dụng nào mà không đổi chế độ đang chọn.",
         "modeShortcutEmpty": "Chưa có phím tắt",
@@ -653,7 +653,7 @@
         "description": "Micrô sử dụng khi nắp laptop được đóng"
       },
       "postProcessingToggle": {
-        "label": "Xử lý sau",
+        "label": "Biến đổi",
         "description": "Bật tinh chỉnh văn bản bằng AI sau khi chuyển đổi"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Không thể phát mẫu. Kiểm tra thiết bị đầu ra âm thanh.",
       "assistantMode": {
         "title": "Chế độ trợ lý giọng nói",
-        "description": "Gán một phím tắt, và thay vì dán nội dung bạn đọc, Dilo gửi nó đến LLM đã cấu hình (Xử lý sau) rồi đọc to câu trả lời.",
+        "description": "Gán một phím tắt, và thay vì dán nội dung bạn đọc, Dilo gửi nó đến LLM đã cấu hình (Biến đổi) rồi đọc to câu trả lời.",
         "toggleLabel": "Bật chế độ trợ lý giọng nói",
-        "toggleDescription": "Yêu cầu nhà cung cấp LLM và mô hình được thiết lập trong Xử lý sau.",
+        "toggleDescription": "Yêu cầu nhà cung cấp LLM và mô hình được thiết lập trong Biến đổi.",
         "shortcutHint": "Nhấn để ghi âm câu hỏi; khi thả, câu hỏi được gửi đến LLM và câu trả lời được đọc to."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Phiên âm thất bại",
     "noteSaveFailed": "Không thể lưu ghi chú: {{error}}",
     "assistantNotConfiguredTitle": "Trợ lý giọng nói chưa được cấu hình",
-    "assistantNotConfigured": "Thiết lập nhà cung cấp LLM và mô hình trong Xử lý sau để dùng trợ lý giọng nói.",
+    "assistantNotConfigured": "Thiết lập nhà cung cấp LLM và mô hình trong Biến đổi để dùng trợ lý giọng nói.",
     "assistantFailedTitle": "Trợ lý giọng nói gặp lỗi",
     "assistantFailed": "Không nhận được câu trả lời từ LLM. Kiểm tra kết nối và thử lại.",
     "assistantTtsFailedTitle": "Không thể đọc câu trả lời",

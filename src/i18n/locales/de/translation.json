@@ -13,7 +13,7 @@
     "general": "Allgemein",
     "models": "Modelle",
     "advanced": "Erweitert",
-    "postProcessing": "Nachbearbeitung",
+    "postProcessing": "Transformation",
     "history": "Verlauf",
     "debug": "Debug",
     "about": "Info",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Richte einen Anbieter in der Transformation ein, um diesen Modus zu nutzen.",
       "customize": "Anpassen"
     }
   },
@@ -320,8 +320,8 @@
             "description": "Das Tastenkürzel zum Abbrechen der aktuellen Aufnahme."
           },
           "transcribe_with_post_process": {
-            "name": "Nachbearbeitungs-Tastenkürzel",
-            "description": "Optional: Ein dediziertes Tastenkürzel, das immer die KI-Nachbearbeitung auf deine Transkription anwendet."
+            "name": "Transformations-Tastenkürzel",
+            "description": "Optional: Ein dediziertes Tastenkürzel, das deine Transkription immer durch die Transformation schickt."
           },
           "quick_note": {
             "name": "Kurznotiz-Tastenkürzel",
@@ -554,7 +554,7 @@
         "createPrompt": "Prompt erstellen",
         "cancel": "Abbrechen",
         "selectToEdit": "Wähle oben einen Prompt aus, um dessen Details anzuzeigen und zu bearbeiten.",
-        "createFirst": "Klicke oben auf 'Neuen Prompt erstellen', um deinen ersten Nachbearbeitungs-Prompt zu erstellen.",
+        "createFirst": "Klicke oben auf 'Neuen Prompt erstellen', um deinen ersten Transformations-Prompt zu erstellen.",
         "modeShortcut": "Modus-Kurzbefehl (optional)",
         "modeShortcutHint": "Diktiere direkt mit diesem Modus aus jeder App, ohne den ausgewählten Modus zu ändern.",
         "modeShortcutEmpty": "Kein Kurzbefehl",
@@ -653,7 +653,7 @@
         "description": "Mikrofon bei geschlossenem Laptop-Deckel"
       },
       "postProcessingToggle": {
-        "label": "Nachbearbeitung",
+        "label": "Transformation",
         "description": "KI-gestützte Textverfeinerung nach der Transkription aktivieren"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Die Hörprobe konnte nicht abgespielt werden. Prüfe das Audioausgabegerät.",
       "assistantMode": {
         "title": "Sprachassistent-Modus",
-        "description": "Weise ein Tastenkürzel zu: Statt dein Diktat einzufügen, sendet Dilo es an das konfigurierte LLM (Nachbearbeitung) und liest die Antwort laut vor.",
+        "description": "Weise ein Tastenkürzel zu: Statt dein Diktat einzufügen, sendet Dilo es an das konfigurierte LLM (Transformation) und liest die Antwort laut vor.",
         "toggleLabel": "Sprachassistent-Modus aktivieren",
-        "toggleDescription": "Erfordert einen LLM-Anbieter und ein Modell in der Nachbearbeitung.",
+        "toggleDescription": "Erfordert einen LLM-Anbieter und ein Modell in der Transformation.",
         "shortcutHint": "Drücken, um eine Frage aufzunehmen; beim Loslassen wird sie an das LLM gesendet und die Antwort vorgelesen."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Transkription fehlgeschlagen",
     "noteSaveFailed": "Notiz konnte nicht gespeichert werden: {{error}}",
     "assistantNotConfiguredTitle": "Sprachassistent nicht konfiguriert",
-    "assistantNotConfigured": "Richte in der Nachbearbeitung einen LLM-Anbieter und ein Modell ein, um den Sprachassistenten zu nutzen.",
+    "assistantNotConfigured": "Richte in der Transformation einen LLM-Anbieter und ein Modell ein, um den Sprachassistenten zu nutzen.",
     "assistantFailedTitle": "Sprachassistent fehlgeschlagen",
     "assistantFailed": "Es konnte keine Antwort vom LLM abgerufen werden. Prüfe deine Verbindung und versuche es erneut.",
     "assistantTtsFailedTitle": "Antwort konnte nicht vorgelesen werden",

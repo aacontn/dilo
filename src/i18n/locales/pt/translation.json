@@ -13,7 +13,7 @@
     "general": "Geral",
     "models": "Modelos",
     "advanced": "Avançado",
-    "postProcessing": "Pós-Processamento",
+    "postProcessing": "Transformação",
     "history": "Histórico",
     "debug": "Depuração",
     "about": "Sobre",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Configure um provedor em Transformação para usar este modo.",
       "customize": "Personalizar"
     }
   },
@@ -302,8 +302,8 @@
             "description": "O atalho de teclado para cancelar a gravação atual."
           },
           "transcribe_with_post_process": {
-            "name": "Tecla de Pós-Processamento",
-            "description": "Opcional: Uma tecla de atalho dedicada que sempre aplica pós-processamento com IA à sua transcrição."
+            "name": "Tecla de Transformação",
+            "description": "Opcional: Uma tecla de atalho dedicada que sempre envia sua transcrição para Transformação."
           },
           "quick_note": {
             "name": "Atalho de nota rápida",
@@ -554,7 +554,7 @@
         "createPrompt": "Criar Prompt",
         "cancel": "Cancelar",
         "selectToEdit": "Selecione um prompt acima para visualizar e editar seus detalhes.",
-        "createFirst": "Clique em 'Criar Novo Prompt' acima para criar seu primeiro prompt de pós-processamento.",
+        "createFirst": "Clique em 'Criar Novo Prompt' acima para criar seu primeiro prompt de Transformação.",
         "modeShortcut": "Atalho do modo (opcional)",
         "modeShortcutHint": "Dite diretamente com este modo a partir de qualquer app, sem mudar o modo selecionado.",
         "modeShortcutEmpty": "Sem atalho",
@@ -653,7 +653,7 @@
         "description": "Microfone a usar quando a tampa do laptop está fechada"
       },
       "postProcessingToggle": {
-        "label": "Pós-Processamento",
+        "label": "Transformação",
         "description": "Habilitar refinamento de texto com IA após a transcrição"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Não foi possível reproduzir a amostra. Verifique o dispositivo de saída de áudio.",
       "assistantMode": {
         "title": "Modo assistente de voz",
-        "description": "Atribua um atalho e, em vez de colar o ditado, o Dilo o envia para o LLM configurado (Pós-Processamento) e lê a resposta em voz alta.",
+        "description": "Atribua um atalho e, em vez de colar o ditado, o Dilo o envia para o LLM configurado (Transformação) e lê a resposta em voz alta.",
         "toggleLabel": "Ativar modo assistente de voz",
-        "toggleDescription": "Requer um provedor LLM e um modelo configurados no Pós-Processamento.",
+        "toggleDescription": "Requer um provedor LLM e um modelo configurados na Transformação.",
         "shortcutHint": "Pressione para gravar uma pergunta; ao soltar, ela é enviada ao LLM e a resposta é falada."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Falha na transcrição",
     "noteSaveFailed": "Não foi possível salvar a nota: {{error}}",
     "assistantNotConfiguredTitle": "Assistente de voz não configurado",
-    "assistantNotConfigured": "Configure um provedor LLM e um modelo no Pós-Processamento para usar o assistente de voz.",
+    "assistantNotConfigured": "Configure um provedor LLM e um modelo na Transformação para usar o assistente de voz.",
     "assistantFailedTitle": "Falha no assistente de voz",
     "assistantFailed": "Não foi possível obter uma resposta do LLM. Verifique sua conexão e tente novamente.",
     "assistantTtsFailedTitle": "Não foi possível falar a resposta",

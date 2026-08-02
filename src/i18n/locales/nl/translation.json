@@ -13,7 +13,7 @@
     "general": "Algemeen",
     "models": "Modellen",
     "advanced": "Geavanceerd",
-    "postProcessing": "Naverwerking",
+    "postProcessing": "Transformatie",
     "history": "Geschiedenis",
     "debug": "Probleemoplossing",
     "about": "Over Dilo",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Stel een provider in bij Transformatie om deze modus te gebruiken.",
       "customize": "Aanpassen"
     }
   },
@@ -302,8 +302,8 @@
             "description": "De sneltoets om de huidige opname te annuleren."
           },
           "transcribe_with_post_process": {
-            "name": "Sneltoets voor naverwerking",
-            "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+            "name": "Sneltoets voor transformatie",
+            "description": "Optioneel: Een specifieke sneltoets die je transcriptie altijd door Transformatie stuurt."
           },
           "quick_note": {
             "name": "Sneltoets snelle notitie",
@@ -554,7 +554,7 @@
         "createPrompt": "Prompt maken",
         "cancel": "Annuleren",
         "selectToEdit": "Selecteer hierboven een prompt om de details te bekijken en te bewerken.",
-        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste naverwerkingsprompt aan te maken.",
+        "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste Transformatie-prompt aan te maken.",
         "modeShortcut": "Modus-sneltoets (optioneel)",
         "modeShortcutHint": "Dicteer rechtstreeks met deze modus vanuit elke app, zonder de geselecteerde modus te wijzigen.",
         "modeShortcutEmpty": "Geen sneltoets",
@@ -660,7 +660,7 @@
         "description": "Microfoon die gebruikt moet worden wanneer het laptopscherm gesloten is"
       },
       "postProcessingToggle": {
-        "label": "Naverwerking",
+        "label": "Transformatie",
         "description": "Schakel AI-gestuurde tekstverfijning in na transcriptie"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Kon het voorbeeld niet afspelen. Controleer het audio-uitvoerapparaat.",
       "assistantMode": {
         "title": "Spraakassistentmodus",
-        "description": "Wijs een sneltoets toe: in plaats van je dictaat te plakken, stuurt Dilo het naar de geconfigureerde LLM (Naverwerking) en leest het antwoord hardop voor.",
+        "description": "Wijs een sneltoets toe: in plaats van je dictaat te plakken, stuurt Dilo het naar de geconfigureerde LLM (Transformatie) en leest het antwoord hardop voor.",
         "toggleLabel": "Spraakassistentmodus inschakelen",
-        "toggleDescription": "Vereist een LLM-provider en model ingesteld in Naverwerking.",
+        "toggleDescription": "Vereist een LLM-provider en model ingesteld in Transformatie.",
         "shortcutHint": "Druk om een vraag op te nemen; bij loslaten wordt deze naar de LLM gestuurd en wordt het antwoord uitgesproken."
       },
       "license": {
@@ -852,7 +852,7 @@
     "transcriptionFailedTitle": "Transcriptie mislukt",
     "noteSaveFailed": "Kon de notitie niet opslaan: {{error}}",
     "assistantNotConfiguredTitle": "Spraakassistent niet geconfigureerd",
-    "assistantNotConfigured": "Stel een LLM-provider en model in bij Naverwerking om de spraakassistent te gebruiken.",
+    "assistantNotConfigured": "Stel een LLM-provider en model in bij Transformatie om de spraakassistent te gebruiken.",
     "assistantFailedTitle": "Spraakassistent mislukt",
     "assistantFailed": "Kon geen antwoord van de LLM krijgen. Controleer je verbinding en probeer het opnieuw.",
     "assistantTtsFailedTitle": "Kon het antwoord niet uitspreken",

@@ -13,7 +13,7 @@
     "general": "Genel",
     "models": "Modeller",
     "advanced": "Gelişmiş",
-    "postProcessing": "Son İşlem",
+    "postProcessing": "Dönüştürme",
     "history": "Geçmiş",
     "debug": "Hata Ayıklama",
     "about": "Hakkında",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Bu modu kullanmak için Dönüştürme bölümünde bir sağlayıcı yapılandırın.",
       "customize": "Özelleştir"
     }
   },
@@ -320,8 +320,8 @@
             "description": "Mevcut kaydı iptal etmek için klavye kısayolu."
           },
           "transcribe_with_post_process": {
-            "name": "Son İşlem Kısayolu",
-            "description": "İsteğe bağlı: Transkripsiyonunuza her zaman AI son işleme uygulayan özel bir kısayol tuşu."
+            "name": "Dönüştürme Kısayolu",
+            "description": "İsteğe bağlı: Transkripsiyonunuzu her zaman Dönüştürme'ye gönderen özel bir kısayol tuşu."
           },
           "quick_note": {
             "name": "Hızlı not kısayolu",
@@ -554,7 +554,7 @@
         "createPrompt": "Prompt Oluştur",
         "cancel": "İptal",
         "selectToEdit": "Ayrıntılarını görüntülemek ve düzenlemek için yukarıdan bir prompt seçin.",
-        "createFirst": "İlk son işlem prompt'unuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın.",
+        "createFirst": "İlk Dönüştürme prompt'unuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın.",
         "modeShortcut": "Mod kısayolu (isteğe bağlı)",
         "modeShortcutHint": "Seçili modu değiştirmeden herhangi bir uygulamadan doğrudan bu modla dikte et.",
         "modeShortcutEmpty": "Kısayol yok",
@@ -653,7 +653,7 @@
         "description": "Dizüstü bilgisayar kapağı kapalıyken kullanılacak mikrofon"
       },
       "postProcessingToggle": {
-        "label": "Son İşlem",
+        "label": "Dönüştürme",
         "description": "Transkripsiyon sonrası yapay zekâ destekli metin iyileştirmeyi etkinleştirir"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Örnek çalınamadı. Ses çıkış aygıtını kontrol edin.",
       "assistantMode": {
         "title": "Sesli Asistan Modu",
-        "description": "Bir kısayol atayın; Dilo dikte ettiğinizi yapıştırmak yerine yapılandırılmış LLM'e (Son İşlem) gönderir ve yanıtı sesli okur.",
+        "description": "Bir kısayol atayın; Dilo dikte ettiğinizi yapıştırmak yerine yapılandırılmış LLM'e (Dönüştürme) gönderir ve yanıtı sesli okur.",
         "toggleLabel": "Sesli asistan modunu etkinleştir",
-        "toggleDescription": "Son İşlem bölümünde ayarlanmış bir LLM sağlayıcısı ve model gerektirir.",
+        "toggleDescription": "Dönüştürme bölümünde ayarlanmış bir LLM sağlayıcısı ve model gerektirir.",
         "shortcutHint": "Bir soru kaydetmek için basılı tutun; bıraktığınızda LLM'e gönderilir ve yanıt sesli okunur."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Transkripsiyon başarısız oldu",
     "noteSaveFailed": "Not kaydedilemedi: {{error}}",
     "assistantNotConfiguredTitle": "Sesli Asistan Yapılandırılmamış",
-    "assistantNotConfigured": "Sesli asistanı kullanmak için Son İşlem bölümünde bir LLM sağlayıcısı ve model ayarlayın.",
+    "assistantNotConfigured": "Sesli asistanı kullanmak için Dönüştürme bölümünde bir LLM sağlayıcısı ve model ayarlayın.",
     "assistantFailedTitle": "Sesli Asistan Başarısız Oldu",
     "assistantFailed": "LLM'den yanıt alınamadı. Bağlantınızı kontrol edip tekrar deneyin.",
     "assistantTtsFailedTitle": "Yanıt Sesli Okunamadı",

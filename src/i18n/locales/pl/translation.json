@@ -13,7 +13,7 @@
     "general": "Ogólne",
     "models": "Modele",
     "advanced": "Zaawansowane",
-    "postProcessing": "Postproces",
+    "postProcessing": "Przekształcanie",
     "history": "Historia",
     "debug": "Debugowanie",
     "about": "O programie",
@@ -72,7 +72,7 @@
         "title": "Code",
         "description": "Preserves paths, commands, and identifiers"
       },
-      "needsProvider": "Configure a post-processing provider to use this mode.",
+      "needsProvider": "Skonfiguruj dostawcę w sekcji Przekształcanie, aby używać tego trybu.",
       "customize": "Dostosuj"
     }
   },
@@ -320,8 +320,8 @@
             "description": "Skrót klawiaturowy do anulowania bieżącego nagrywania."
           },
           "transcribe_with_post_process": {
-            "name": "Skrót postprocessingu",
-            "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze stosuje postprocessing AI do transkrypcji."
+            "name": "Skrót przekształcania",
+            "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze wysyła transkrypcję do Przekształcania."
           },
           "quick_note": {
             "name": "Skrót szybkiej notatki",
@@ -554,7 +554,7 @@
         "createPrompt": "Utwórz prompt",
         "cancel": "Anuluj",
         "selectToEdit": "Wybierz prompt powyżej, aby zobaczyć i edytować jego szczegóły.",
-        "createFirst": "Kliknij 'Utwórz nowy prompt' powyżej, aby utworzyć pierwszy prompt postprocessingu.",
+        "createFirst": "Kliknij 'Utwórz nowy prompt' powyżej, aby utworzyć pierwszy prompt w Przekształcaniu.",
         "modeShortcut": "Skrót trybu (opcjonalnie)",
         "modeShortcutHint": "Dyktuj bezpośrednio w tym trybie z dowolnej aplikacji, bez zmiany wybranego trybu.",
         "modeShortcutEmpty": "Brak skrótu",
@@ -653,7 +653,7 @@
         "description": "Mikrofon używany, gdy pokrywa laptopa jest zamknięta"
       },
       "postProcessingToggle": {
-        "label": "Postprocess",
+        "label": "Przekształcanie",
         "description": "Włącz AI do ulepszania tekstu po transkrypcji"
       },
       "muteWhileRecording": {
@@ -786,9 +786,9 @@
       "testError": "Nie udało się odtworzyć próbki. Sprawdź wyjściowe urządzenie audio.",
       "assistantMode": {
         "title": "Tryb asystenta głosowego",
-        "description": "Przypisz skrót: zamiast wklejać dyktowany tekst, Dilo wysyła go do skonfigurowanego LLM (Postproces) i odczytuje odpowiedź na głos.",
+        "description": "Przypisz skrót: zamiast wklejać dyktowany tekst, Dilo wysyła go do skonfigurowanego LLM (Przekształcanie) i odczytuje odpowiedź na głos.",
         "toggleLabel": "Włącz tryb asystenta głosowego",
-        "toggleDescription": "Wymaga dostawcy LLM i modelu skonfigurowanych w sekcji Postproces.",
+        "toggleDescription": "Wymaga dostawcy LLM i modelu skonfigurowanych w sekcji Przekształcanie.",
         "shortcutHint": "Naciśnij, aby nagrać pytanie; po puszczeniu zostanie wysłane do LLM, a odpowiedź odczytana na głos."
       },
       "license": {
@@ -849,7 +849,7 @@
     "transcriptionFailedTitle": "Transkrypcja nie powiodła się",
     "noteSaveFailed": "Nie udało się zapisać notatki: {{error}}",
     "assistantNotConfiguredTitle": "Asystent głosowy nie jest skonfigurowany",
-    "assistantNotConfigured": "Skonfiguruj dostawcę LLM i model w sekcji Postproces, aby używać asystenta głosowego.",
+    "assistantNotConfigured": "Skonfiguruj dostawcę LLM i model w sekcji Przekształcanie, aby używać asystenta głosowego.",
     "assistantFailedTitle": "Błąd asystenta głosowego",
     "assistantFailed": "Nie udało się uzyskać odpowiedzi od LLM. Sprawdź połączenie i spróbuj ponownie.",
     "assistantTtsFailedTitle": "Nie udało się odczytać odpowiedzi",
