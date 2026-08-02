@@ -277,7 +277,14 @@ fn force_overlay_topmost(overlay_window: &tauri::webview::WebviewWindow) {
     });
 }
 
-fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
+/// Resuelve el monitor bajo el cursor en el instante en que se llama. `pub(crate)`
+/// porque `popover.rs` la reusa para el mismo problema (ver su doc en
+/// `popover::logical_tray_rect`): un punto físico solo, sin la escala con la
+/// que se generó, no alcanza para saber a qué monitor pertenece cuando hay
+/// escalas mixtas. El cursor no tiene ese problema — `input::get_cursor_position`
+/// entrega un punto lógico y no ambiguo por construcción (en macOS,
+/// `NSEvent::mouseLocation`, ya no relativo a ningún monitor en particular).
+pub(crate) fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
     if let Some(mouse_location) = input::get_cursor_position(app_handle) {
         if let Ok(monitors) = app_handle.available_monitors() {
             for monitor in monitors {
