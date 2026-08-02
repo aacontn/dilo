@@ -4,5 +4,7 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>Request microphone access to transcribe audio locally</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>Dilo necesita capturar el audio del sistema para transcribir lo que se dice en tus reuniones (Meet, Zoom, Teams).</string>
 </dict>
 </plist>
