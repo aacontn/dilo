@@ -112,6 +112,44 @@
 //! (`output_device_changed()`); el llamador decide si avisa al usuario o
 //! cierra y reabre para reconstruir contra el dispositivo nuevo. Quedarse
 //! mudo sin decir nada, que era el comportamiento anterior, no es aceptable.
+//!
+//! ## Seguimiento: fallo total de lectura, diagnóstico en caliente y decisión testeable
+//!
+//! Tres hallazgos "Important" de la revisión de seguimiento tocan esta parte:
+//!
+//! - **Fallo total de `any_process_playing_audio()` (Important 1).** El
+//!   `unwrap_or(0)` por proceso sigue siendo correcto para uno que murió
+//!   entre enumerarlo y leerlo, pero si **todas** las lecturas fallaran (un
+//!   selector que dejara de estar soportado en una macOS futura, por
+//!   ejemplo) la función devolvía `Ok(false)` — "nadie reproduce nada" —
+//!   cuando en realidad no se pudo preguntar. Ahora cuenta lecturas exitosas
+//!   aparte del resultado: sin ninguna, devuelve `Err`, que el llamador
+//!   traduce a `CaptureDiagnosis::Undetermined` en vez de a un falso
+//!   "silencio real" (la inversión exacta de la señal que este mecanismo
+//!   existe para dar).
+//! - **Diagnóstico consultable en caliente (Important 2).** `stop()`
+//!   calculaba el diagnóstico una sola vez, al final — en una reunión larga
+//!   el usuario se enteraba recién al colgar. `diagnose_now()` expone la
+//!   misma lógica de sólo lectura (no consume `buffer`, no resetea
+//!   `saw_nonzero`) para que el llamador pueda sondear cada tanto durante la
+//!   grabación y avisar a tiempo. Llamarlo muy temprano, antes de que llegue
+//!   el primer bloque, puede dar legítimamente `NoSamplesCaptured` — no es un
+//!   error.
+//! - **Decisión testeable (Important 3).** El árbol de decisión (vacío → sin
+//!   muestras; alguna muestra no-cero → hay audio; si no, cruzar con
+//!   `any_process_playing_audio()`) vivía inline en `stop()`, gateado por
+//!   `#[cfg(target_os = "macos")]`, sin tests. Ahora es
+//!   [`super::diagnose`], función pura en `system_audio.rs` sin `cfg`, con
+//!   sus cinco casos cubiertos por test. `stop()` y `diagnose_now()`
+//!   comparten `compute_diagnosis()` (más abajo) para llamarla igual.
+//!
+//! Además (Important 4): si desregistrar el listener de I5 falla en
+//! `close()`, ya no se libera igual el `Box` al que apunta — se filtra a
+//! propósito (`Box::leak`) para evitar un use-after-free en un hilo de la
+//! HAL de CoreAudio si un callback llegara a mitad de camino. Y `LeakGuard`
+//! (M6) ahora también desregistra ese listener cuando ya estaba registrado
+//! en el momento de armarse, no sólo el tap/agregado/IOProc — ver el
+//! comentario sobre orden de declaración en `finish_open_with_aggregate`.
 
 use std::error::Error;
 use std::ffi::{c_void, CString};
@@ -145,9 +183,9 @@ use objc2_core_foundation::{CFArray, CFBoolean, CFDictionary, CFRetained, CFStri
 use objc2_foundation::{NSArray, NSNumber};
 
 use super::{
-    describe_osstatus, has_nonzero_sample, is_process_tap_available, mix_interleaved_to_mono,
-    mix_planar_to_mono, parse_macos_version, resampled_frame_count, CaptureDiagnosis,
-    CaptureResult,
+    describe_osstatus, diagnose, has_nonzero_sample, is_process_tap_available,
+    mix_interleaved_to_mono, mix_planar_to_mono, parse_macos_version, resampled_frame_count,
+    CaptureDiagnosis, CaptureResult,
 };
 use crate::audio_toolkit::{audio::FrameResampler, constants};
 
@@ -178,6 +216,18 @@ struct OutputDeviceListenerContext {
     changed: Arc<AtomicBool>,
 }
 
+/// Captura del audio del sistema vía process taps de CoreAudio — ver el
+/// comentario del módulo para el diseño completo.
+///
+/// `start()`/`stop()` toman `&self`, no `&mut self`, lo que puede sugerir que
+/// es seguro compartirlo entre hilos sin más cuidado. No lo es (M9 del
+/// reporte de seguimiento): `ctx` guarda un `mpsc::Receiver<Vec<f32>>`
+/// (`free_rx`, dentro de `IoProcContext`), y `Receiver` no es `Sync` — eso
+/// alcanza para que todo `SystemAudioRecorder` sea `!Sync`. Quien lo cablee
+/// a un flujo con más de un hilo (por ejemplo, un comando de Tauri que corre
+/// en el pool async y un callback que corre en otro) va a necesitar
+/// envolverlo en un `Mutex` igual que hace `AudioRecorder` con sus propios
+/// canales.
 pub struct SystemAudioRecorder {
     tap_id: Option<AudioObjectID>,
     aggregate_device_id: Option<AudioObjectID>,
@@ -280,6 +330,22 @@ impl SystemAudioRecorder {
                 format.mFormatID, format.mFormatFlags
             )));
         }
+        // M7 (reporte de seguimiento): con tasa 0, `FrameResampler::new`
+        // (más abajo, en el hilo consumidor) panickea al construir el
+        // `FftFixedIn` de rubato — y lo hace en ESE hilo, que muere en
+        // silencio mientras `open()` ya devolvió `Ok`. Todo `send` posterior
+        // sigue "funcionando" (el canal no se cierra por un panic en el otro
+        // extremo hasta que se intenta drenarlo), así que el síntoma visible
+        // es sólo que `stop()` termina reportando `NoSamplesCaptured` sin
+        // ninguna pista de por qué. Se valida acá, junto al resto del
+        // formato, para fallar `open()` con un mensaje legible en vez de
+        // eso.
+        if format.mSampleRate <= 0.0 {
+            return Err(core_audio_error(&format!(
+                "el tap reportó una tasa de muestreo inválida ({})",
+                format.mSampleRate
+            )));
+        }
 
         let tap_uid = tap_property_uid(tap_id)?;
         let output_device_id = default_output_device_id()?;
@@ -336,22 +402,75 @@ impl SystemAudioRecorder {
         };
         check_osstatus(status, "AudioDeviceCreateIOProcID")?;
 
-        // Guard M6: a partir de acá el tap, el agregado y el IOProc ya
-        // existen como recursos vivos en CoreAudio, pero todavía no están
-        // guardados en `self` — si algo entre acá y el final de la función
-        // *panickea* en vez de devolver `Err` (el único candidato es
-        // `std::thread::spawn`, que panickea si el sistema operativo no
-        // puede crear el hilo), ni el `Drop` de `SystemAudioRecorder` (no
-        // sabe de estos recursos todavía) ni el manejo de `Err` de más
-        // arriba (espera un `Result`, no un unwind) los liberan: quedan
-        // colgados en el sistema del usuario hasta que reinicie. El guard
-        // cubre ese hueco y se desarma justo antes del único `return`
-        // normal de la función, así que en el camino feliz no hace nada de
-        // más.
+        // I5: listener de cambio de dispositivo de salida por defecto — ver
+        // el comentario del módulo. Un fallo acá no aborta `open()`: se
+        // pierde la detección del cambio, pero la captura en sí sigue
+        // siendo funcional. Se registra ACÁ, antes del guard M6 de más
+        // abajo y del `std::thread::spawn` que sigue, a propósito: así el
+        // guard, que se arma después, también lo cubre si el spawn
+        // panickea (ver el comentario de `LeakGuard` más abajo sobre por
+        // qué el orden de declaración de `output_listener_ctx` frente al
+        // guard importa).
+        let output_device_changed = Arc::new(AtomicBool::new(false));
+        let output_listener_ctx = Box::new(OutputDeviceListenerContext {
+            changed: Arc::clone(&output_device_changed),
+        });
+        let listener_client_data = std::ptr::addr_of!(*output_listener_ctx) as *mut c_void;
+        let output_device_address = AudioObjectPropertyAddress {
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain,
+        };
+        let listener_status = unsafe {
+            AudioObjectAddPropertyListener(
+                kAudioObjectSystemObject as AudioObjectID,
+                NonNull::from(&output_device_address),
+                Some(output_device_listener),
+                listener_client_data,
+            )
+        };
+        // `output_listener_ctx` se queda `Some` sólo si CoreAudio confirmó el
+        // registro — en el `else` el `Box` no llegó a registrarse en ningún
+        // lado, así que dropearlo (al salir de este `if`/`else` sin moverlo)
+        // es completamente seguro, no hay ningún puntero vivo apuntando ahí.
+        let (output_listener_ctx, output_listener_client_data) = if listener_status == 0 {
+            (Some(output_listener_ctx), Some(listener_client_data))
+        } else {
+            log::warn!(
+                "no se pudo registrar el listener de cambio de dispositivo de salida: {}",
+                describe_osstatus(listener_status)
+            );
+            (None, None)
+        };
+
+        // Guard M6: a partir de acá el tap, el agregado, el IOProc y (si se
+        // registró) el listener de I5 ya existen como recursos vivos en
+        // CoreAudio, pero todavía no están guardados en `self` — si algo
+        // entre acá y el final de la función *panickea* en vez de devolver
+        // `Err` (el único candidato es `std::thread::spawn`, que panickea si
+        // el sistema operativo no puede crear el hilo), ni el `Drop` de
+        // `SystemAudioRecorder` (no sabe de estos recursos todavía) ni el
+        // manejo de `Err` de más arriba (espera un `Result`, no un unwind)
+        // los liberan: quedan colgados en el sistema del usuario hasta que
+        // reinicie. El guard cubre ese hueco y se desarma justo antes del
+        // único `return` normal de la función, así que en el camino feliz
+        // no hace nada de más.
+        //
+        // Orden de declaración (Minor del reporte de seguimiento): `ctx` y
+        // `output_listener_ctx` están declarados ANTES que `leak_guard` a
+        // propósito. Las variables locales se destruyen en orden inverso de
+        // declaración, así que si el `thread::spawn` de más abajo
+        // panickea, `leak_guard` (declarado después) se destruye PRIMERO —
+        // desregistrando el IOProc y el listener en CoreAudio — y recién
+        // DESPUÉS se liberan las cajas `ctx`/`output_listener_ctx` a las que
+        // esos callbacks apuntaban. Invertir este orden reabriría un
+        // use-after-free en un hilo de la HAL: no reordenar estas
+        // declaraciones sin mover también la del guard.
         let mut leak_guard = LeakGuard {
             tap_id,
             aggregate_device_id,
             io_proc_id,
+            output_listener_client_data,
             armed: true,
         };
 
@@ -417,38 +536,6 @@ impl SystemAudioRecorder {
             }
         });
 
-        // I5: listener de cambio de dispositivo de salida por defecto — ver
-        // el comentario del módulo. Un fallo acá no aborta `open()`: se
-        // pierde la detección del cambio, pero la captura en sí sigue
-        // siendo funcional.
-        let output_device_changed = Arc::new(AtomicBool::new(false));
-        let output_listener_ctx = Box::new(OutputDeviceListenerContext {
-            changed: Arc::clone(&output_device_changed),
-        });
-        let listener_client_data = std::ptr::addr_of!(*output_listener_ctx) as *mut c_void;
-        let output_device_address = AudioObjectPropertyAddress {
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain,
-        };
-        let listener_status = unsafe {
-            AudioObjectAddPropertyListener(
-                kAudioObjectSystemObject as AudioObjectID,
-                NonNull::from(&output_device_address),
-                Some(output_device_listener),
-                listener_client_data,
-            )
-        };
-        let output_listener_ctx = if listener_status == 0 {
-            Some(output_listener_ctx)
-        } else {
-            log::warn!(
-                "no se pudo registrar el listener de cambio de dispositivo de salida: {}",
-                describe_osstatus(listener_status)
-            );
-            None
-        };
-
         self.tap_id = Some(tap_id);
         self.aggregate_device_id = Some(aggregate_device_id);
         self.io_proc_id = io_proc_id;
@@ -499,8 +586,25 @@ impl SystemAudioRecorder {
         // sin drenar cuando leemos `self.buffer` más abajo.
         if let Some(tx) = &self.cmd_tx {
             let (ack_tx, ack_rx) = mpsc::channel();
-            if tx.send(Msg::Barrier(ack_tx)).is_ok() {
-                let _ = ack_rx.recv_timeout(Duration::from_secs(2));
+            if tx.send(Msg::Barrier(ack_tx)).is_ok()
+                && ack_rx.recv_timeout(Duration::from_secs(2)).is_err()
+            {
+                // M8 (reporte de seguimiento): si la barrera nunca confirma,
+                // el hilo consumidor puede seguir procesando el resto del
+                // canal después de que `stop()` ya devolvió — y ese
+                // `finish()`/`reset()` tardío escribiría en `self.buffer`
+                // después de que la línea de abajo ya lo drenó para esta
+                // sesión, así que la cola terminaría en el buffer de la
+                // PRÓXIMA sesión de grabación si hay un `start()` antes de
+                // `close()`. No se pudo justificar una solución completa
+                // (por ejemplo, un número de sesión que el hilo consumidor
+                // verifique antes de escribir) para un timeout que en la
+                // práctica no se vio disparar — pero que no deje ni rastro
+                // en el log tampoco era aceptable.
+                log::warn!(
+                    "la barrera de stop() no confirmó en 2s — el hilo consumidor puede estar atascado; \
+                     el resto de su cola podría terminar en el buffer de la próxima sesión de grabación"
+                );
             }
         }
 
@@ -512,25 +616,34 @@ impl SystemAudioRecorder {
         // I6: diagnóstico de por qué `samples` podría no traer audio útil.
         // `saw_nonzero` ya viene calculado sobre las muestras nativas, antes
         // del remuestreo — no depende de que el remuestreo preserve el cero
-        // exacto.
-        let diagnosis = if samples.is_empty() {
-            CaptureDiagnosis::NoSamplesCaptured
-        } else if self.saw_nonzero.swap(false, Ordering::Relaxed) {
-            CaptureDiagnosis::AudioPresent
-        } else {
-            match any_process_playing_audio() {
-                Ok(true) => CaptureDiagnosis::LikelyMissingPermission,
-                Ok(false) => CaptureDiagnosis::GenuineSilence,
-                Err(e) => {
-                    log::warn!(
-                        "no se pudo consultar si había procesos reproduciendo audio para diagnosticar el silencio: {e}"
-                    );
-                    CaptureDiagnosis::Undetermined
-                }
-            }
-        };
+        // exacto. La decisión en sí vive en `compute_diagnosis` (Important 3
+        // del reporte de seguimiento) para que `diagnose_now()` la comparta.
+        let has_samples = !samples.is_empty();
+        let saw_nonzero = self.saw_nonzero.swap(false, Ordering::Relaxed);
+        let diagnosis = compute_diagnosis(has_samples, saw_nonzero);
 
         Ok(CaptureResult { samples, diagnosis })
+    }
+
+    /// Diagnóstico consultable en caliente, sin esperar a `stop()` (Important
+    /// 2 del reporte de seguimiento). Antes, el único diagnóstico posible
+    /// era el de `stop()` — en una reunión de 40 minutos el usuario recién se
+    /// enteraba de que faltaba el permiso al colgar. Esto expone la misma
+    /// lógica de sólo lectura: no consume `self.buffer` (a diferencia de
+    /// `stop()`, que lo drena con `mem::take`) ni resetea `saw_nonzero`, así
+    /// que se puede llamar tantas veces como se quiera durante la grabación
+    /// sin alterar lo que `stop()` va a reportar después.
+    ///
+    /// Llamarlo muy temprano — antes de que llegue el primer bloque de audio
+    /// del tap — puede dar legítimamente `NoSamplesCaptured`: no es un error,
+    /// es que todavía no hay nada que diagnosticar. El llamador que quiera
+    /// sondear "¿va a andar esta reunión?" debería esperar al menos un par de
+    /// segundos después de `start()` antes de tratar ese resultado como una
+    /// señal real.
+    pub fn diagnose_now(&self) -> CaptureDiagnosis {
+        let has_samples = !self.buffer.lock().unwrap().is_empty();
+        let saw_nonzero = self.saw_nonzero.load(Ordering::Relaxed);
+        compute_diagnosis(has_samples, saw_nonzero)
     }
 
     pub fn close(&mut self) -> Result<(), Box<dyn Error>> {
@@ -549,14 +662,24 @@ impl SystemAudioRecorder {
         // Desregistra el listener de I5 antes de soltar su contexto — mismo
         // orden que el IOProc: CoreAudio no debe poder llamar a un puntero
         // que ya dejó de ser válido.
-        if let Some(listener_ctx) = &self.output_listener_ctx {
+        //
+        // Important 4 (reporte de seguimiento): si la desregistración
+        // FALLA, ya no se libera `listener_ctx` igual — antes,
+        // `self.output_listener_ctx = None` corría sin condición después de
+        // este bloque, así que un status distinto de cero dejaba a
+        // CoreAudio con un callback pendiente apuntando a memoria recién
+        // liberada: un use-after-free en un hilo de la HAL la próxima vez
+        // que el sistema disparara el evento. `Box::leak` saca el valor de
+        // la gestión normal de memoria de Rust — el proceso los recupera al
+        // salir, no antes — y es infinitamente preferible a esa alternativa.
+        if let Some(listener_ctx) = self.output_listener_ctx.take() {
             let address = AudioObjectPropertyAddress {
                 mSelector: kAudioHardwarePropertyDefaultOutputDevice,
                 mScope: kAudioObjectPropertyScopeGlobal,
                 mElement: kAudioObjectPropertyElementMain,
             };
-            let client_data = std::ptr::addr_of!(**listener_ctx) as *mut c_void;
-            let _ = unsafe {
+            let client_data = std::ptr::addr_of!(*listener_ctx) as *mut c_void;
+            let status = unsafe {
                 AudioObjectRemovePropertyListener(
                     kAudioObjectSystemObject as AudioObjectID,
                     NonNull::from(&address),
@@ -564,8 +687,17 @@ impl SystemAudioRecorder {
                     client_data,
                 )
             };
+            if status != 0 {
+                log::error!(
+                    "no se pudo desregistrar el listener de cambio de dispositivo de salida ({}) — se filtra el contexto a propósito para evitar un use-after-free en un hilo de CoreAudio",
+                    describe_osstatus(status)
+                );
+                Box::leak(listener_ctx);
+            }
+            // Si `status == 0`, `listener_ctx` se libera acá normalmente al
+            // salir de scope: CoreAudio ya confirmó que no lo va a volver a
+            // llamar.
         }
-        self.output_listener_ctx = None;
 
         // Soltar `cmd_tx` y `ctx` (que tiene su propio clon del `Sender`)
         // cierra el canal: `rx.recv()` en el hilo consumidor devuelve `Err`
@@ -626,6 +758,12 @@ struct LeakGuard {
     tap_id: AudioObjectID,
     aggregate_device_id: AudioObjectID,
     io_proc_id: AudioDeviceIOProcID,
+    /// Puntero de `client_data` del listener de I5 (M6 del reporte de
+    /// seguimiento), sólo si ya se había registrado con éxito en CoreAudio
+    /// en el momento de armar este guard. `None` si el registro falló — en
+    /// ese caso no hay nada que desregistrar, el listener nunca llegó a
+    /// existir del lado de CoreAudio.
+    output_listener_client_data: Option<*mut c_void>,
     armed: bool,
 }
 
@@ -634,11 +772,34 @@ impl Drop for LeakGuard {
         if !self.armed {
             return;
         }
-        // SAFETY: mientras el guard esté armado, estos tres IDs identifican
-        // recursos que `finish_open_with_aggregate` acaba de crear y que
-        // todavía no pasaron a manos de `self` — nadie más pudo haberlos
-        // destruido ya.
+        // SAFETY: mientras el guard esté armado, estos recursos identifican
+        // lo que `finish_open_with_aggregate` acaba de crear y que todavía
+        // no pasó a manos de `self` — nadie más pudo haberlos destruido ya.
+        // El listener se desregistra ANTES de destruir el resto — ver el
+        // comentario sobre orden de declaración en
+        // `finish_open_with_aggregate`: este `Drop` corre antes que el de
+        // `output_listener_ctx`/`ctx`, así que CoreAudio ya no puede llamar
+        // a esos punteros para cuando sus cajas se liberan. Si la
+        // desregistración fallara acá (caso extremo: ocurre sólo si
+        // `std::thread::spawn` ya panickeó, algo que hoy no tiene manejo de
+        // "no liberar la memoria" como sí tiene `close()` para el mismo
+        // caso — ver Important 4), se ignora el status igual que para el
+        // resto de los recursos de este guard: es un camino de pánico ya
+        // degradado, no el camino normal.
         unsafe {
+            if let Some(client_data) = self.output_listener_client_data {
+                let address = AudioObjectPropertyAddress {
+                    mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                    mScope: kAudioObjectPropertyScopeGlobal,
+                    mElement: kAudioObjectPropertyElementMain,
+                };
+                let _ = AudioObjectRemovePropertyListener(
+                    kAudioObjectSystemObject as AudioObjectID,
+                    NonNull::from(&address),
+                    Some(output_device_listener),
+                    client_data,
+                );
+            }
             if let Some(proc_id) = self.io_proc_id {
                 let _ = AudioDeviceDestroyIOProcID(self.aggregate_device_id, Some(proc_id));
             }
@@ -993,21 +1154,90 @@ fn audio_process_object_ids() -> Result<Vec<AudioObjectID>, Box<dyn Error>> {
     Ok(ids)
 }
 
-/// True si algún proceso del sistema está reproduciendo audio ahora mismo
-/// (I6). Se usa sólo para desambiguar un `stop()` que capturó puro cero:
-/// cruzado con eso, "algo suena y capturamos cero" es la firma de "falta el
-/// permiso de captura de audio del sistema"; "nada suena" es silencio
-/// normal. Un proceso individual que falle la consulta (por ejemplo, uno que
-/// terminó entre la enumeración y la lectura de su propiedad) se trata como
-/// "no está sonando" en vez de abortar toda la consulta por uno solo.
+/// True si algún proceso del sistema tiene salida de audio activa ahora
+/// mismo (I6). Se usa sólo para desambiguar un `stop()`/`diagnose_now()` que
+/// capturó puro cero: cruzado con eso, "algo tiene salida activa y
+/// capturamos cero" es la firma de "falta el permiso de captura de audio del
+/// sistema"; "nada tiene salida activa" es silencio normal.
+///
+/// M5 (reporte de seguimiento) — ojo con lo que esto garantiza de verdad:
+/// `kAudioProcessPropertyIsRunningOutput` documenta (`AudioHardware.h`,
+/// líneas 1971-1974 del SDK) que el proceso "está corriendo IO y tiene al
+/// menos un stream de salida activo" — NO que esté produciendo sonido
+/// audible. Un proceso con el stream abierto pero mudo (Spotify en pausa con
+/// el output todavía prendido, una pestaña con un `AudioContext` vivo que no
+/// suena) puede devolver 1 igual. Por eso el diagnóstico que cruza esto se
+/// llama `LikelyMissingPermission`, no `MissingPermission` a secas — sigue
+/// siendo la mejor señal disponible (no existe una consulta pública al
+/// estado de TCC para este permiso), pero no es una prueba.
+///
+/// Un proceso individual que falle la consulta (por ejemplo, uno que terminó
+/// entre la enumeración y la lectura de su propiedad) se trata como "no
+/// tiene salida activa" en vez de abortar toda la consulta por uno solo.
+/// Important 1 (reporte de seguimiento): eso es distinto de que **todas**
+/// las lecturas fallen — un selector que dejara de estar soportado en una
+/// macOS futura, por ejemplo. Antes, ese caso también caía en `Ok(false)`
+/// ("nadie tiene salida activa"), que un `stop()` con `saw_nonzero == false`
+/// traduce en `GenuineSilence` — exactamente la inversión de la señal que
+/// este mecanismo existe para dar si en realidad había audio y faltaba el
+/// permiso. Por eso se cuentan las lecturas exitosas aparte del resultado: si
+/// hubo procesos para consultar pero ninguna lectura funcionó, se devuelve
+/// `Err` — el llamador lo traduce a `CaptureDiagnosis::Undetermined`.
 fn any_process_playing_audio() -> Result<bool, Box<dyn Error>> {
     let ids = audio_process_object_ids()?;
+    if ids.is_empty() {
+        // No hay ningún proceso de audio para preguntar: no es un fallo de
+        // lectura, es que no hay nada con salida que pueda estar activa.
+        return Ok(false);
+    }
+
+    let mut any_read_ok = false;
     for id in ids {
-        if get_property_u32(id, kAudioProcessPropertyIsRunningOutput).unwrap_or(0) != 0 {
-            return Ok(true);
+        match get_property_u32(id, kAudioProcessPropertyIsRunningOutput) {
+            Ok(value) => {
+                any_read_ok = true;
+                if value != 0 {
+                    return Ok(true);
+                }
+            }
+            Err(_) => {
+                // Este proceso puntual no se pudo leer (por ejemplo, terminó
+                // entre enumerarlo y consultarle la propiedad) — se sigue
+                // con el resto en vez de abortar toda la consulta por uno.
+            }
         }
     }
+
+    if !any_read_ok {
+        return Err(core_audio_error(
+            "no se pudo leer kAudioProcessPropertyIsRunningOutput de ningún proceso enumerado",
+        ));
+    }
     Ok(false)
+}
+
+/// Calcula el diagnóstico de `stop()`/`diagnose_now()` (Important 3 del
+/// reporte de seguimiento): comparte la consulta a
+/// `any_process_playing_audio()` — sólo se hace cuando hace falta, es decir
+/// cuando hay muestras pero todas en cero — y la traduce a la forma que
+/// espera la función pura [`diagnose`] de `system_audio.rs`, logueando el
+/// motivo si la consulta falla. No toma `&self`: no necesita ningún campo de
+/// `SystemAudioRecorder`, sólo lo que `stop()`/`diagnose_now()` ya
+/// calcularon sobre su propio estado.
+fn compute_diagnosis(has_samples: bool, saw_nonzero: bool) -> CaptureDiagnosis {
+    let playing = if has_samples && !saw_nonzero {
+        any_process_playing_audio().map_err(|e| {
+            log::warn!(
+                "no se pudo consultar si había procesos con salida de audio activa para diagnosticar el silencio: {e}"
+            );
+        })
+    } else {
+        // `diagnose()` no mira `playing` cuando no hay muestras o cuando ya
+        // hubo una muestra no-cero — este `Err(())` es un valor descartable,
+        // no una consulta que efectivamente falló.
+        Err(())
+    };
+    diagnose(has_samples, saw_nonzero, playing)
 }
 
 fn tap_stream_format(tap_id: AudioObjectID) -> Result<AudioStreamBasicDescription, Box<dyn Error>> {

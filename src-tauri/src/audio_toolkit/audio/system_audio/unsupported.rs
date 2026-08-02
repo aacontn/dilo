@@ -60,6 +60,13 @@ impl SystemAudioRecorder {
         0
     }
 
+    /// Ver `macos::SystemAudioRecorder::diagnose_now()` (Important 2 del
+    /// reporte de seguimiento). Acá nunca hubo ni puede haber una sesión
+    /// abierta, así que siempre es `NoSamplesCaptured`.
+    pub fn diagnose_now(&self) -> CaptureDiagnosis {
+        CaptureDiagnosis::NoSamplesCaptured
+    }
+
     pub fn output_device_changed(&self) -> bool {
         false
     }

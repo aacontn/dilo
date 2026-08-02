@@ -233,6 +233,45 @@ pub enum CaptureDiagnosis {
     Undetermined,
 }
 
+/// Decide el diagnóstico de una sesión de captura ya terminada (o consultada
+/// en caliente — ver `diagnose_now()` en `macos.rs`). Extraída como función
+/// pura, sin `cfg`, para poder cubrir los cinco casos con tests sin hardware
+/// real (Important 3 del reporte de seguimiento): antes este árbol vivía
+/// inline dentro de `stop()`, gateado por `#[cfg(target_os = "macos")]`, y no
+/// tenía ni un test.
+///
+/// - `has_samples`: si `stop()`/`diagnose_now()` tiene al menos una muestra
+///   capturada en el buffer.
+/// - `saw_nonzero`: si algún bloque de la sesión trajo alguna muestra
+///   distinta de cero (`has_nonzero_sample`, calculado en vivo en el hilo
+///   consumidor).
+/// - `playing`: resultado de `any_process_playing_audio()` en `macos.rs`,
+///   sólo relevante cuando hay muestras pero todas en cero — `Err` significa
+///   que la consulta no se pudo completar (por ejemplo, Important 1: ninguna
+///   lectura de `kAudioProcessPropertyIsRunningOutput` funcionó). El
+///   contenido del error no importa para la decisión, así que la firma usa
+///   `Result<bool, ()>` en vez de `Result<bool, Box<dyn Error>>` — más simple
+///   de construir en los tests y el llamador ya logueó el error real antes de
+///   llegar acá.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn diagnose(
+    has_samples: bool,
+    saw_nonzero: bool,
+    playing: Result<bool, ()>,
+) -> CaptureDiagnosis {
+    if !has_samples {
+        return CaptureDiagnosis::NoSamplesCaptured;
+    }
+    if saw_nonzero {
+        return CaptureDiagnosis::AudioPresent;
+    }
+    match playing {
+        Ok(true) => CaptureDiagnosis::LikelyMissingPermission,
+        Ok(false) => CaptureDiagnosis::GenuineSilence,
+        Err(()) => CaptureDiagnosis::Undetermined,
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
@@ -438,5 +477,50 @@ mod tests {
     fn version_invalida_da_none() {
         assert_eq!(parse_macos_version(""), None);
         assert_eq!(parse_macos_version("catorce.dos"), None);
+    }
+
+    // ---------- diagnose (Important 3 del reporte de seguimiento) ----------
+
+    #[test]
+    fn sin_muestras_es_no_samples_captured_sin_importar_el_resto() {
+        // `playing` no debería ni mirarse cuando no hay muestras: se le pasa
+        // `Ok(true)` a propósito para probar que no cambia el resultado.
+        assert_eq!(
+            diagnose(false, true, Ok(true)),
+            CaptureDiagnosis::NoSamplesCaptured
+        );
+    }
+
+    #[test]
+    fn muestra_no_cero_es_audio_present_sin_consultar_procesos() {
+        // Ídem: con `saw_nonzero`, `playing` tampoco importa.
+        assert_eq!(
+            diagnose(true, true, Err(())),
+            CaptureDiagnosis::AudioPresent
+        );
+    }
+
+    #[test]
+    fn todo_cero_con_algo_sonando_es_likely_missing_permission() {
+        assert_eq!(
+            diagnose(true, false, Ok(true)),
+            CaptureDiagnosis::LikelyMissingPermission
+        );
+    }
+
+    #[test]
+    fn todo_cero_sin_nada_sonando_es_genuine_silence() {
+        assert_eq!(
+            diagnose(true, false, Ok(false)),
+            CaptureDiagnosis::GenuineSilence
+        );
+    }
+
+    #[test]
+    fn todo_cero_sin_poder_consultar_procesos_es_undetermined() {
+        assert_eq!(
+            diagnose(true, false, Err(())),
+            CaptureDiagnosis::Undetermined
+        );
     }
 }
