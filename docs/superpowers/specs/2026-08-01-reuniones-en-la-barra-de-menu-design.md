@@ -67,7 +67,33 @@ Su contenido, en orden de arriba abajo:
 3. **Las últimas reuniones.** Las 4 más recientes, con fecha y duración, para
    abrir cualquiera. Cuatro y no "tres o cuatro": un número fijo evita que el
    popover cambie de alto según lo que haya.
-4. **"Ver todas".** Abre el panel completo en su ventana.
+4. **Las dos puertas.** Al pie, una junto a la otra:
+   - **"Abrir transcript"** → la ventana de reuniones.
+   - **"Abrir Dilo"** → la ventana de ajustes.
+
+### Las dos puertas: el popover como conmutador
+
+Alfonso lo pidió explícito: que el popover tenga interacción con las dos
+ventanas, no sólo con la de reuniones. Eso lo convierte en **el conmutador de
+la app** — desde la barra alcanzas cualquiera de las dos superficies sin pasar
+por la otra.
+
+Es lo que hace coherente el intercambio de ventanas que ya existe. Hoy abrir
+Reuniones esconde Ajustes y volver hace lo inverso: **una ventana a la vez**.
+Sin un lugar donde elegir, esa regla se siente como una puerta que se cierra
+sola; con el popover, se siente como cambiar de pestaña. La regla no cambia —
+gana el lugar desde donde se ejerce.
+
+**No hace falta backend nuevo.** Las dos puertas son los comandos que ya
+existen:
+
+| Puerta | Comando | Qué hace |
+| --- | --- | --- |
+| Abrir transcript | `open_meetings_window` | Muestra Reuniones y esconde Ajustes |
+| Abrir Dilo | `return_to_main_window` | Muestra Ajustes y esconde Reuniones si está |
+
+`return_to_main_window` sirve para los dos casos —con Reuniones abierta o sin
+ella— porque muestra Ajustes siempre y sólo esconde Reuniones si existe.
 
 ### Por qué una ranura vacía y no nada
 
@@ -96,7 +122,8 @@ Nada de lo que existe hoy en esas plataformas se rompe ni se quita.
 ## Alcance
 
 **Entra:** el indicador con sus estados, el popover con sus cuatro zonas, la
-ranura de avisos vacía, y el botón de volver a Dilo en la ventana.
+ranura de avisos vacía, las dos puertas (transcript y Dilo), y el botón de
+volver a Dilo en la ventana.
 
 **No entra:**
 
@@ -117,7 +144,9 @@ ranura de avisos vacía, y el botón de volver a Dilo en la ventana.
 - El popover abre, cierra al perder foco, y no estorba mientras trabajas en
   otra app.
 - Desde el popover se puede detener una grabación en curso.
-- "Ver todas" abre la ventana, y el botón de volver reabre Ajustes.
+- Las dos puertas del popover llevan a su ventana, y cada una esconde la otra:
+  una ventana a la vez, sin quedar con las dos encima ni con ninguna.
+- El botón de volver dentro de la ventana de reuniones reabre Ajustes.
 - En Windows el ícono de bandeja sigue funcionando como antes.
 
 ---
