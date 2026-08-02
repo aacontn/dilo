@@ -22,13 +22,19 @@
 //!    `start()` nunca duplica un tap (requisito de la tarea): la creación de
 //!    recursos vive únicamente en `open()`.
 //!
-//! ## Hilo consumidor y la barrera de `stop()`
+//! ## Hilo consumidor, remuestreo en línea (I4) y la barrera de `stop()`
 //!
 //! El callback de CoreAudio (`tap_io_proc`) corre en el hilo de tiempo real
 //! del propio CoreAudio: sólo hace la mezcla a mono (barata) y un
 //! `Sender::send` no bloqueante, igual que `AudioRecorder::build_stream` hace
 //! con el micrófono ("keep the callback cheap"). Un hilo consumidor aparte
-//! junta esas muestras en `buffer`.
+//! recibe esos bloques y los remuestrea a 16 kHz **a medida que llegan**
+//! (mismo patrón que `AudioRecorder::run_consumer` usa para el micrófono):
+//! antes, este módulo acumulaba la reunión entera a la tasa nativa (48 kHz)
+//! y remuestreaba todo junto en `stop()` — ~690 MB/hora residentes con un
+//! pico del doble por el realloc, y un `stop()` que bloqueaba segundos. Ahora
+//! `buffer` guarda directamente las muestras ya remuestreadas a 16 kHz, y
+//! `stop()` sólo drena lo que el hilo consumidor ya produjo.
 //!
 //! `AudioDeviceStop` documenta que, cuando retorna, el IOProc no vuelve a
 //! llamarse — pero el hilo consumidor puede ir un paso atrás del canal en
@@ -36,10 +42,76 @@
 //! de `AudioDeviceStop` y espera su ack: como ambos productores (el IOProc y
 //! `stop()`) escriben al mismo `mpsc::Sender` clonado, el orden FIFO del
 //! canal garantiza que la barrera llega después de toda la audio pendiente.
-//! Es la misma garantía de "no perder el último bloque" que
+//! Al recibir la barrera, el hilo consumidor llama `FrameResampler::finish()`
+//! (para no perder la cola del remuestreo) y después `reset()` (para que la
+//! siguiente sesión de grabación, si la hay antes de `close()`, no arranque
+//! con las colas FFT de la anterior — el mismo riesgo de "crosstalk" que
+//! `resampler.rs` prueba explícitamente) antes de confirmar la barrera. Es la
+//! misma garantía de "no perder el último bloque" que
 //! `AudioRecorder::run_consumer` logra con su sentinela `EndOfStream`, pero
 //! más simple acá porque `AudioDeviceStop` ya da el corte limpio que cpal no
 //! ofrece.
+//!
+//! ## Reciclaje de buffers en el callback de tiempo real (I1)
+//!
+//! `tap_io_proc` corre en el hilo de tiempo real de CoreAudio, donde pedir
+//! memoria al sistema puede provocar cortes audibles — y durante una reunión
+//! corre en paralelo con el callback de `cpal` del micrófono, duplicando esa
+//! presión sobre el allocator en dos hilos de tiempo real a la vez. El hilo
+//! consumidor devuelve cada `Vec<f32>` ya vacío por un canal de reciclaje
+//! (`IoProcContext::free_rx`) después de consumirlo; el callback intenta
+//! sacar uno de ahí antes de construir uno nuevo, así que en régimen
+//! permanente no pide memoria nueva para la mezcla a mono. El primer puñado
+//! de bloques (antes de que el reciclaje se ponga al día) sí asigna, igual
+//! que hoy. Lo que **no** se eliminó: `mpsc::Sender::send` sigue asignando un
+//! nodo por mensaje — es una limitación del canal de `std::sync::mpsc`, no
+//! del tamaño del buffer, y es el mismo patrón que ya usa
+//! `AudioRecorder::build_stream` para el micrófono en este mismo árbol.
+//! Reemplazarlo por un ring buffer sin asignaciones es factible pero es
+//! infraestructura nueva de concurrencia de bajo nivel en un camino de
+//! tiempo real crítico para audio — se juzgó que el riesgo de un bug ahí no
+//! se paga con la ganancia marginal frente al nodo, ya fijo y pequeño, del
+//! canal.
+//!
+//! ## Diagnóstico de silencio (I6)
+//!
+//! Verificado contra hardware real: **sin el permiso de captura de audio del
+//! sistema concedido, CoreAudio no devuelve ningún error.** Crea el tap,
+//! acepta el dispositivo agregado, entrega buffers del tamaño y la tasa
+//! correctos — todos en cero digital exacto. `stop()` no puede seguir
+//! devolviendo sólo un `Vec<f32>`: un archivo mudo por falta de permiso y un
+//! archivo mudo porque la reunión estaba en silencio real se ven
+//! idénticos. Por eso ahora devuelve [`CaptureResult`], que además de las
+//! muestras trae un [`CaptureDiagnosis`]. La señal que distingue los dos
+//! casos es cruzar "¿todo lo capturado es exactamente cero?" (se seguía en
+//! vivo, en el hilo consumidor, con `has_nonzero_sample` sobre cada bloque
+//! *antes* de remuestrear — el remuestreo de puro cero también da cero, pero
+//! confiar en eso sería confiar en un detalle de implementación de FFT) con
+//! "¿había algún proceso reproduciendo audio en ese momento?"
+//! (`any_process_playing_audio`, vía `kAudioHardwarePropertyProcessObjectList`
+//! y `kAudioProcessPropertyIsRunningOutput` — no existe una consulta pública
+//! y estable al estado de TCC para este permiso, así que esta heurística es
+//! el camino).
+//!
+//! ## Cambio de dispositivo de salida en caliente (I5)
+//!
+//! `open()` fija el UID del dispositivo de salida por defecto en el momento
+//! de construir el dispositivo agregado. Si el usuario cambia de salida a
+//! mitad de reunión (por ejemplo, conecta AirPods), el agregado sigue
+//! apuntando al dispositivo viejo — que puede haber desaparecido — y la
+//! captura queda muda sin ningún error. Reconstruir el agregado en caliente
+//! (destruir sub-dispositivo/tap-list y recrearlos con el nuevo UID mientras
+//! el IOProc puede estar corriendo) es frágil: no hay garantía de que
+//! CoreAudio no deje el agregado en un estado a medias si el cambio ocurre
+//! entre la creación y el primer `AudioDeviceStart`, y el costo de acertar
+//! esa máquina de estados no se paga solo para evitar avisar. Este módulo
+//! registra un listener sobre `kAudioHardwarePropertyDefaultOutputDevice` con
+//! `AudioObjectAddPropertyListener` (variante de función C, no de bloque —
+//! mismo estilo que ya usa `tap_io_proc`, sin sumar `block2`/`dispatch2`
+//! como dependencias directas) y sólo levanta una bandera
+//! (`output_device_changed()`); el llamador decide si avisa al usuario o
+//! cierra y reabre para reconstruir contra el dispositivo nuevo. Quedarse
+//! mudo sin decir nada, que era el comportamiento anterior, no es aceptable.
 
 use std::error::Error;
 use std::ffi::{c_void, CString};
@@ -54,14 +126,16 @@ use objc2_core_audio::{
     kAudioAggregateDeviceNameKey, kAudioAggregateDeviceSubDeviceListKey,
     kAudioAggregateDeviceTapAutoStartKey, kAudioAggregateDeviceTapListKey,
     kAudioAggregateDeviceUIDKey, kAudioDevicePropertyDeviceUID,
-    kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyElementMain,
-    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject, kAudioSubDeviceUIDKey,
-    kAudioSubTapDriftCompensationKey, kAudioSubTapUIDKey, kAudioTapPropertyFormat,
-    kAudioTapPropertyUID, AudioDeviceCreateIOProcID, AudioDeviceDestroyIOProcID,
-    AudioDeviceIOProcID, AudioDeviceStart, AudioDeviceStop, AudioHardwareCreateAggregateDevice,
-    AudioHardwareCreateProcessTap, AudioHardwareDestroyAggregateDevice,
-    AudioHardwareDestroyProcessTap, AudioObjectGetPropertyData, AudioObjectID,
-    AudioObjectPropertyAddress, CATapDescription, CATapMuteBehavior,
+    kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyProcessObjectList,
+    kAudioObjectPropertyElementMain, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+    kAudioProcessPropertyIsRunningOutput, kAudioSubDeviceUIDKey, kAudioSubTapDriftCompensationKey,
+    kAudioSubTapUIDKey, kAudioTapPropertyFormat, kAudioTapPropertyUID, AudioDeviceCreateIOProcID,
+    AudioDeviceDestroyIOProcID, AudioDeviceIOProcID, AudioDeviceStart, AudioDeviceStop,
+    AudioHardwareCreateAggregateDevice, AudioHardwareCreateProcessTap,
+    AudioHardwareDestroyAggregateDevice, AudioHardwareDestroyProcessTap,
+    AudioObjectAddPropertyListener, AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize,
+    AudioObjectID, AudioObjectPropertyAddress, AudioObjectRemovePropertyListener, CATapDescription,
+    CATapMuteBehavior,
 };
 use objc2_core_audio_types::{
     kAudioFormatFlagIsFloat, kAudioFormatLinearPCM, AudioBufferList, AudioStreamBasicDescription,
@@ -71,8 +145,9 @@ use objc2_core_foundation::{CFArray, CFBoolean, CFDictionary, CFRetained, CFStri
 use objc2_foundation::{NSArray, NSNumber};
 
 use super::{
-    describe_osstatus, is_process_tap_available, mix_interleaved_to_mono, mix_planar_to_mono,
-    parse_macos_version, resampled_frame_count,
+    describe_osstatus, has_nonzero_sample, is_process_tap_available, mix_interleaved_to_mono,
+    mix_planar_to_mono, parse_macos_version, resampled_frame_count, CaptureDiagnosis,
+    CaptureResult,
 };
 use crate::audio_toolkit::{audio::FrameResampler, constants};
 
@@ -86,6 +161,21 @@ enum Msg {
 
 struct IoProcContext {
     tx: mpsc::Sender<Msg>,
+    /// Buffers ya vacíos que el hilo consumidor devuelve para reciclar (I1,
+    /// ver el comentario del módulo). Sólo el hilo de CoreAudio que llama a
+    /// `tap_io_proc` saca de acá — es exactamente el uso de "un solo
+    /// consumidor" para el que está pensado `mpsc::Receiver`, aunque el
+    /// acceso pase por un puntero crudo en vez de por el tipo Rust normal
+    /// (ver la nota de seguridad de `tap_io_proc`).
+    free_rx: mpsc::Receiver<Vec<f32>>,
+}
+
+/// Contexto del listener de cambio de dispositivo de salida (I5). Vive en su
+/// propio `Box`, separado de `IoProcContext`, porque CoreAudio lo llama por
+/// una API distinta (`AudioObjectAddPropertyListener`, no un IOProc) con su
+/// propio ciclo de vida de registro/desregistro.
+struct OutputDeviceListenerContext {
+    changed: Arc<AtomicBool>,
 }
 
 pub struct SystemAudioRecorder {
@@ -101,11 +191,22 @@ pub struct SystemAudioRecorder {
     ctx: Option<Box<IoProcContext>>,
     cmd_tx: Option<mpsc::Sender<Msg>>,
     consumer: Option<std::thread::JoinHandle<()>>,
+    /// Muestras a 16 kHz mono ya remuestreadas por el hilo consumidor (I4) —
+    /// no la tasa nativa del tap.
     buffer: Arc<Mutex<Vec<f32>>>,
     /// Tasa de muestreo nativa del tap (la que reporta
-    /// `kAudioTapPropertyFormat`), no necesariamente 48 kHz.
+    /// `kAudioTapPropertyFormat`), no necesariamente 48 kHz. Sólo se usa para
+    /// configurar el `FrameResampler` del hilo consumidor; se expone por
+    /// `native_sample_rate()` para diagnóstico.
     native_rate: u32,
     running: AtomicBool,
+    /// True si algún bloque de la sesión de grabación actual trajo alguna
+    /// muestra distinta de cero (I6). Se resetea en cada `stop()`.
+    saw_nonzero: Arc<AtomicBool>,
+    /// True si `kAudioHardwarePropertyDefaultOutputDevice` cambió desde
+    /// `open()` (I5). Ver `output_device_changed()`.
+    output_device_changed: Arc<AtomicBool>,
+    output_listener_ctx: Option<Box<OutputDeviceListenerContext>>,
 }
 
 impl SystemAudioRecorder {
@@ -120,6 +221,9 @@ impl SystemAudioRecorder {
             buffer: Arc::new(Mutex::new(Vec::new())),
             native_rate: 0,
             running: AtomicBool::new(false),
+            saw_nonzero: Arc::new(AtomicBool::new(false)),
+            output_device_changed: Arc::new(AtomicBool::new(false)),
+            output_listener_ctx: None,
         })
     }
 
@@ -208,7 +312,11 @@ impl SystemAudioRecorder {
         sample_rate: f64,
     ) -> Result<(), Box<dyn Error>> {
         let (tx, rx) = mpsc::channel::<Msg>();
-        let ctx = Box::new(IoProcContext { tx: tx.clone() });
+        let (free_tx, free_rx) = mpsc::channel::<Vec<f32>>();
+        let ctx = Box::new(IoProcContext {
+            tx: tx.clone(),
+            free_rx,
+        });
         // SAFETY: `ctx` se mueve a `self.ctx` más abajo sin reubicar su
         // contenido (mover un `Box` no mueve lo que apunta) — este puntero
         // sigue siendo válido mientras `self.ctx` exista. Se destruye el
@@ -228,20 +336,118 @@ impl SystemAudioRecorder {
         };
         check_osstatus(status, "AudioDeviceCreateIOProcID")?;
 
+        // Guard M6: a partir de acá el tap, el agregado y el IOProc ya
+        // existen como recursos vivos en CoreAudio, pero todavía no están
+        // guardados en `self` — si algo entre acá y el final de la función
+        // *panickea* en vez de devolver `Err` (el único candidato es
+        // `std::thread::spawn`, que panickea si el sistema operativo no
+        // puede crear el hilo), ni el `Drop` de `SystemAudioRecorder` (no
+        // sabe de estos recursos todavía) ni el manejo de `Err` de más
+        // arriba (espera un `Result`, no un unwind) los liberan: quedan
+        // colgados en el sistema del usuario hasta que reinicie. El guard
+        // cubre ese hueco y se desarma justo antes del único `return`
+        // normal de la función, así que en el camino feliz no hace nada de
+        // más.
+        let mut leak_guard = LeakGuard {
+            tap_id,
+            aggregate_device_id,
+            io_proc_id,
+            armed: true,
+        };
+
+        let native_rate = sample_rate.round() as u32;
         let buffer = Arc::new(Mutex::new(Vec::<f32>::new()));
         let consumer_buffer = Arc::clone(&buffer);
+        let saw_nonzero = Arc::new(AtomicBool::new(false));
+        let consumer_saw_nonzero = Arc::clone(&saw_nonzero);
+
         let consumer = std::thread::spawn(move || {
+            // I4: el remuestreo a 16 kHz vive acá, no en `stop()` — así el
+            // buffer compartido nunca guarda más que la sesión ya reducida a
+            // 16 kHz, y `stop()` no tiene que remuestrear la reunión entera
+            // de una sola vez.
+            let mut resampler = FrameResampler::new(
+                native_rate as usize,
+                constants::WHISPER_SAMPLE_RATE as usize,
+                Duration::from_millis(30),
+            );
             while let Ok(msg) = rx.recv() {
                 match msg {
                     Msg::Audio(samples) => {
-                        consumer_buffer.lock().unwrap().extend(samples);
+                        // I6: si algún bloque de esta sesión trae algo
+                        // distinto de cero, ya no puede tratarse de "sin
+                        // permiso" — se registra apenas se ve la primera
+                        // muestra no-cero para no tener que releer toda la
+                        // sesión después.
+                        if !consumer_saw_nonzero.load(Ordering::Relaxed)
+                            && has_nonzero_sample(&samples)
+                        {
+                            consumer_saw_nonzero.store(true, Ordering::Relaxed);
+                        }
+                        {
+                            let mut buf = consumer_buffer.lock().unwrap();
+                            buf.reserve(resampled_frame_count(
+                                samples.len(),
+                                native_rate,
+                                constants::WHISPER_SAMPLE_RATE,
+                            ));
+                            resampler.push(&samples, |frame| buf.extend_from_slice(frame));
+                        }
+                        // I1: se devuelve para reciclar en vez de dejar que
+                        // el `Vec` simplemente se libere — el próximo
+                        // `tap_io_proc` lo reutiliza en vez de pedir memoria
+                        // nueva. Si el receptor ya se soltó (cerrando), esto
+                        // no hace nada distinto de dropear el `Vec`.
+                        let _ = free_tx.send(samples);
                     }
                     Msg::Barrier(ack) => {
+                        {
+                            let mut buf = consumer_buffer.lock().unwrap();
+                            resampler.finish(|frame| buf.extend_from_slice(frame));
+                        }
+                        // Limpia las colas FFT antes de la próxima sesión
+                        // (stop() seguido de otro start() sin pasar por
+                        // close()) para que no haya crosstalk entre
+                        // grabaciones — mismo riesgo que
+                        // `FrameResampler::reset` documenta y prueba.
+                        resampler.reset();
                         let _ = ack.send(());
                     }
                 }
             }
         });
+
+        // I5: listener de cambio de dispositivo de salida por defecto — ver
+        // el comentario del módulo. Un fallo acá no aborta `open()`: se
+        // pierde la detección del cambio, pero la captura en sí sigue
+        // siendo funcional.
+        let output_device_changed = Arc::new(AtomicBool::new(false));
+        let output_listener_ctx = Box::new(OutputDeviceListenerContext {
+            changed: Arc::clone(&output_device_changed),
+        });
+        let listener_client_data = std::ptr::addr_of!(*output_listener_ctx) as *mut c_void;
+        let output_device_address = AudioObjectPropertyAddress {
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain,
+        };
+        let listener_status = unsafe {
+            AudioObjectAddPropertyListener(
+                kAudioObjectSystemObject as AudioObjectID,
+                NonNull::from(&output_device_address),
+                Some(output_device_listener),
+                listener_client_data,
+            )
+        };
+        let output_listener_ctx = if listener_status == 0 {
+            Some(output_listener_ctx)
+        } else {
+            log::warn!(
+                "no se pudo registrar el listener de cambio de dispositivo de salida: {}",
+                describe_osstatus(listener_status)
+            );
+            None
+        };
 
         self.tap_id = Some(tap_id);
         self.aggregate_device_id = Some(aggregate_device_id);
@@ -250,7 +456,11 @@ impl SystemAudioRecorder {
         self.cmd_tx = Some(tx);
         self.consumer = Some(consumer);
         self.buffer = buffer;
-        self.native_rate = sample_rate.round() as u32;
+        self.native_rate = native_rate;
+        self.saw_nonzero = saw_nonzero;
+        self.output_device_changed = output_device_changed;
+        self.output_listener_ctx = output_listener_ctx;
+        leak_guard.armed = false;
         Ok(())
     }
 
@@ -270,9 +480,12 @@ impl SystemAudioRecorder {
         Ok(())
     }
 
-    pub fn stop(&self) -> Result<Vec<f32>, Box<dyn Error>> {
+    pub fn stop(&self) -> Result<CaptureResult, Box<dyn Error>> {
         let Some(device_id) = self.aggregate_device_id else {
-            return Ok(Vec::new());
+            return Ok(CaptureResult {
+                samples: Vec::new(),
+                diagnosis: CaptureDiagnosis::NoSamplesCaptured,
+            });
         };
         let io_proc_id = self.io_proc_id;
 
@@ -291,28 +504,33 @@ impl SystemAudioRecorder {
             }
         }
 
-        let native_mono = {
+        let samples = {
             let mut buf = self.buffer.lock().unwrap();
             std::mem::take(&mut *buf)
         };
 
-        if native_mono.is_empty() || self.native_rate == 0 {
-            return Ok(Vec::new());
-        }
+        // I6: diagnóstico de por qué `samples` podría no traer audio útil.
+        // `saw_nonzero` ya viene calculado sobre las muestras nativas, antes
+        // del remuestreo — no depende de que el remuestreo preserve el cero
+        // exacto.
+        let diagnosis = if samples.is_empty() {
+            CaptureDiagnosis::NoSamplesCaptured
+        } else if self.saw_nonzero.swap(false, Ordering::Relaxed) {
+            CaptureDiagnosis::AudioPresent
+        } else {
+            match any_process_playing_audio() {
+                Ok(true) => CaptureDiagnosis::LikelyMissingPermission,
+                Ok(false) => CaptureDiagnosis::GenuineSilence,
+                Err(e) => {
+                    log::warn!(
+                        "no se pudo consultar si había procesos reproduciendo audio para diagnosticar el silencio: {e}"
+                    );
+                    CaptureDiagnosis::Undetermined
+                }
+            }
+        };
 
-        let mut resampler = FrameResampler::new(
-            self.native_rate as usize,
-            constants::WHISPER_SAMPLE_RATE as usize,
-            Duration::from_millis(30),
-        );
-        let mut out = Vec::with_capacity(resampled_frame_count(
-            native_mono.len(),
-            self.native_rate,
-            constants::WHISPER_SAMPLE_RATE,
-        ));
-        resampler.push(&native_mono, |frame| out.extend_from_slice(frame));
-        resampler.finish(|frame| out.extend_from_slice(frame));
-        Ok(out)
+        Ok(CaptureResult { samples, diagnosis })
     }
 
     pub fn close(&mut self) -> Result<(), Box<dyn Error>> {
@@ -327,6 +545,27 @@ impl SystemAudioRecorder {
             let _ = unsafe { AudioDeviceDestroyIOProcID(device_id, Some(io_proc_id)) };
         }
         self.io_proc_id = None;
+
+        // Desregistra el listener de I5 antes de soltar su contexto — mismo
+        // orden que el IOProc: CoreAudio no debe poder llamar a un puntero
+        // que ya dejó de ser válido.
+        if let Some(listener_ctx) = &self.output_listener_ctx {
+            let address = AudioObjectPropertyAddress {
+                mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain,
+            };
+            let client_data = std::ptr::addr_of!(**listener_ctx) as *mut c_void;
+            let _ = unsafe {
+                AudioObjectRemovePropertyListener(
+                    kAudioObjectSystemObject as AudioObjectID,
+                    NonNull::from(&address),
+                    Some(output_device_listener),
+                    client_data,
+                )
+            };
+        }
+        self.output_listener_ctx = None;
 
         // Soltar `cmd_tx` y `ctx` (que tiene su propio clon del `Sender`)
         // cierra el canal: `rx.recv()` en el hilo consumidor devuelve `Err`
@@ -346,13 +585,66 @@ impl SystemAudioRecorder {
 
         *self.buffer.lock().unwrap() = Vec::new();
         self.native_rate = 0;
+        self.saw_nonzero.store(false, Ordering::Relaxed);
+        self.output_device_changed.store(false, Ordering::Relaxed);
         Ok(())
+    }
+
+    /// Tasa de muestreo nativa del tap reportada por CoreAudio, 0 si todavía
+    /// no se llamó a `open()`. Sólo para diagnóstico/logging — la captura ya
+    /// remuestrea internamente a 16 kHz.
+    pub fn native_sample_rate(&self) -> u32 {
+        self.native_rate
+    }
+
+    /// True si `kAudioHardwarePropertyDefaultOutputDevice` cambió desde
+    /// `open()` (I5, ver el comentario del módulo). El agregado sigue
+    /// apuntando al dispositivo de salida que era el de por defecto al
+    /// abrir, que puede haber desaparecido — la captura puede haber quedado
+    /// muda sin ningún error. El llamador decide qué hacer: avisar al
+    /// usuario, o cerrar y reabrir para reconstruir contra el dispositivo
+    /// nuevo.
+    pub fn output_device_changed(&self) -> bool {
+        self.output_device_changed.load(Ordering::SeqCst)
+    }
+
+    /// Limpia la señal de `output_device_changed()` después de que el
+    /// llamador ya reaccionó (por ejemplo, mostró el aviso una vez).
+    pub fn acknowledge_output_device_change(&self) {
+        self.output_device_changed.store(false, Ordering::SeqCst);
     }
 }
 
 impl Drop for SystemAudioRecorder {
     fn drop(&mut self) {
         let _ = self.close();
+    }
+}
+
+/// Ver el comentario sobre M6 en `finish_open_with_aggregate`.
+struct LeakGuard {
+    tap_id: AudioObjectID,
+    aggregate_device_id: AudioObjectID,
+    io_proc_id: AudioDeviceIOProcID,
+    armed: bool,
+}
+
+impl Drop for LeakGuard {
+    fn drop(&mut self) {
+        if !self.armed {
+            return;
+        }
+        // SAFETY: mientras el guard esté armado, estos tres IDs identifican
+        // recursos que `finish_open_with_aggregate` acaba de crear y que
+        // todavía no pasaron a manos de `self` — nadie más pudo haberlos
+        // destruido ya.
+        unsafe {
+            if let Some(proc_id) = self.io_proc_id {
+                let _ = AudioDeviceDestroyIOProcID(self.aggregate_device_id, Some(proc_id));
+            }
+            AudioHardwareDestroyAggregateDevice(self.aggregate_device_id);
+            AudioHardwareDestroyProcessTap(self.tap_id);
+        }
     }
 }
 
@@ -365,7 +657,12 @@ impl Drop for SystemAudioRecorder {
 /// CoreAudio garantiza que todos los punteros son válidos durante la llamada
 /// y que `in_client_data` es el mismo puntero pasado a
 /// `AudioDeviceCreateIOProcID` (acá, siempre un `*const IoProcContext`
-/// vigente — ver el comentario sobre `client_data` en `finish_open_with_aggregate`).
+/// vigente — ver el comentario sobre `client_data` en
+/// `finish_open_with_aggregate`). CoreAudio llama a este IOProc siempre
+/// desde el mismo hilo de tiempo real dedicado a este dispositivo, nunca de
+/// forma concurrente consigo mismo — por eso `ctx.free_rx.try_recv()` es
+/// seguro con sólo `&IoProcContext` pese a que `Receiver` no es `Sync`: no
+/// hay dos llamadas de esta función corriendo a la vez.
 unsafe extern "C-unwind" fn tap_io_proc(
     _in_device: AudioObjectID,
     _in_now: NonNull<AudioTimeStamp>,
@@ -382,15 +679,44 @@ unsafe extern "C-unwind" fn tap_io_proc(
     let ctx = unsafe { &*(in_client_data as *const IoProcContext) };
     // SAFETY: ídem — `in_input_data` es válido durante la llamada.
     let list = unsafe { in_input_data.as_ref() };
-    // SAFETY: ver el comentario de `mono_from_buffer_list`.
-    let mono = unsafe { mono_from_buffer_list(list) };
+
+    // I1: reutiliza un buffer reciclado por el hilo consumidor en vez de
+    // pedir memoria nueva en el camino común. `unwrap_or_default()` cae a un
+    // `Vec::new()` recién creado si todavía no hay nada reciclado (arranque
+    // en frío) o si el canal ya se cerró — sigue siendo correcto, sólo
+    // pierde la ventaja de no asignar en esos casos puntuales.
+    let mut mono = ctx.free_rx.try_recv().unwrap_or_default();
+    // SAFETY: ver el comentario de `mono_from_buffer_list_into`.
+    unsafe { mono_from_buffer_list_into(list, &mut mono) };
     if !mono.is_empty() {
         let _ = ctx.tx.send(Msg::Audio(mono));
     }
     0
 }
 
-/// Extrae y mezcla a mono un `AudioBufferList` entregado por el IOProc.
+/// # Safety
+/// Ver el comentario de `tap_io_proc`: CoreAudio llama siempre desde el
+/// mismo hilo dedicado a este listener, nunca de forma concurrente consigo
+/// mismo, así que `&OutputDeviceListenerContext` con un `Arc<AtomicBool>`
+/// adentro es seguro pese a construirse a partir de un puntero crudo.
+unsafe extern "C-unwind" fn output_device_listener(
+    _in_object_id: AudioObjectID,
+    _in_number_addresses: u32,
+    _in_addresses: NonNull<AudioObjectPropertyAddress>,
+    in_client_data: *mut c_void,
+) -> i32 {
+    if in_client_data.is_null() {
+        return 0;
+    }
+    // SAFETY: ver el comentario de la función.
+    let ctx = unsafe { &*(in_client_data as *const OutputDeviceListenerContext) };
+    ctx.changed.store(true, Ordering::SeqCst);
+    0
+}
+
+/// Extrae y mezcla a mono un `AudioBufferList` entregado por el IOProc,
+/// escribiendo el resultado en `out` (se limpia primero, se reutiliza su
+/// capacidad — ver I1).
 ///
 /// # Safety
 /// `list` debe ser un `AudioBufferList` real de CoreAudio: `mBuffers` está
@@ -400,10 +726,11 @@ unsafe extern "C-unwind" fn tap_io_proc(
 /// este tipo de struct de la API C de CoreAudio. Cada `AudioBuffer.mData` no
 /// nulo debe apuntar a `mDataByteSize` bytes de Float32 nativo (verificado en
 /// `open()` contra `kAudioTapPropertyFormat` antes de registrar el IOProc).
-unsafe fn mono_from_buffer_list(list: &AudioBufferList) -> Vec<f32> {
+unsafe fn mono_from_buffer_list_into(list: &AudioBufferList, out: &mut Vec<f32>) {
     let n = list.mNumberBuffers as usize;
     if n == 0 {
-        return Vec::new();
+        out.clear();
+        return;
     }
     // SAFETY: ver el comentario de la función.
     let buffers = unsafe { std::slice::from_raw_parts(list.mBuffers.as_ptr(), n) };
@@ -412,25 +739,36 @@ unsafe fn mono_from_buffer_list(list: &AudioBufferList) -> Vec<f32> {
         let buf = &buffers[0];
         let channels = buf.mNumberChannels as usize;
         if buf.mData.is_null() || channels == 0 {
-            return Vec::new();
+            out.clear();
+            return;
         }
         let sample_count = buf.mDataByteSize as usize / std::mem::size_of::<f32>();
         // SAFETY: ver el comentario de la función.
         let samples = unsafe { std::slice::from_raw_parts(buf.mData as *const f32, sample_count) };
-        return mix_interleaved_to_mono(samples, channels);
+        mix_interleaved_to_mono(samples, channels, out);
+        return;
     }
 
+    // Camino planar: verificado con hardware real (I3 del reporte) que la
+    // HAL entrega siempre `mNumberBuffers=1` para este tap — esta rama no se
+    // ejerce en la práctica. Se mantiene por completitud (mejor mezclarla
+    // bien que tratarla como silencio si algún día CoreAudio cambiara de
+    // forma), pero el `Vec::with_capacity(n)` de acá abajo sigue asignando
+    // en el hilo de tiempo real: no se justificó reemplazarlo por algo más
+    // elaborado (por ejemplo un arreglo fijo en el stack) para un camino que
+    // nunca se ejecuta con este tap.
+    out.clear();
     let mut planar: Vec<&[f32]> = Vec::with_capacity(n);
     for buf in buffers {
         if buf.mData.is_null() {
-            return Vec::new();
+            return;
         }
         let sample_count = buf.mDataByteSize as usize / std::mem::size_of::<f32>();
         // SAFETY: ver el comentario de la función.
         let samples = unsafe { std::slice::from_raw_parts(buf.mData as *const f32, sample_count) };
         planar.push(samples);
     }
-    mix_planar_to_mono(&planar)
+    mix_planar_to_mono(&planar, out);
 }
 
 // ---------------------------------------------------------------------------
@@ -441,7 +779,11 @@ unsafe fn mono_from_buffer_list(list: &AudioBufferList) -> Vec<f32> {
 // ---------------------------------------------------------------------------
 
 fn key(cstr: &std::ffi::CStr) -> CFRetained<CFString> {
-    CFString::from_str(cstr.to_str().expect("clave CoreAudio no es UTF-8 válido"))
+    // `to_string_lossy()` nunca panickea (a diferencia de `to_str().expect(...)`):
+    // si alguna de las claves de CoreAudio dejara de ser ASCII válido en una
+    // versión futura del SDK, preferimos una clave rara a un panic en medio
+    // de `open()`.
+    CFString::from_str(&cstr.to_string_lossy())
 }
 
 fn build_aggregate_device_description(
@@ -571,6 +913,103 @@ fn get_property_cfstring(
     Ok(unsafe { CFRetained::from_raw(ptr) })
 }
 
+/// Lee una propiedad `UInt32` de un `AudioObject` (por ejemplo
+/// `kAudioProcessPropertyIsRunningOutput`, que CoreAudio expone como 0/1).
+fn get_property_u32(
+    object_id: AudioObjectID,
+    selector: objc2_core_audio::AudioObjectPropertySelector,
+) -> Result<u32, Box<dyn Error>> {
+    let address = AudioObjectPropertyAddress {
+        mSelector: selector,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain,
+    };
+    let mut value: u32 = 0;
+    let mut size = std::mem::size_of::<u32>() as u32;
+    let status = unsafe {
+        AudioObjectGetPropertyData(
+            object_id,
+            NonNull::from(&address),
+            0,
+            std::ptr::null(),
+            NonNull::from(&mut size),
+            NonNull::new(&mut value as *mut u32 as *mut c_void).unwrap(),
+        )
+    };
+    check_osstatus(status, "AudioObjectGetPropertyData(u32)")?;
+    Ok(value)
+}
+
+/// Enumera los `AudioObjectID` de `kAudioHardwarePropertyProcessObjectList`
+/// (I6, ver el comentario del módulo). CoreAudio devuelve esta propiedad
+/// como un array plano de `AudioObjectID`, no como `CFArray` — hace falta
+/// consultar el tamaño primero porque la cantidad de procesos de audio
+/// cambia todo el tiempo.
+fn audio_process_object_ids() -> Result<Vec<AudioObjectID>, Box<dyn Error>> {
+    let address = AudioObjectPropertyAddress {
+        mSelector: kAudioHardwarePropertyProcessObjectList,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain,
+    };
+    let system_object = kAudioObjectSystemObject as AudioObjectID;
+
+    let mut size: u32 = 0;
+    let status = unsafe {
+        AudioObjectGetPropertyDataSize(
+            system_object,
+            NonNull::from(&address),
+            0,
+            std::ptr::null(),
+            NonNull::from(&mut size),
+        )
+    };
+    check_osstatus(
+        status,
+        "AudioObjectGetPropertyDataSize(kAudioHardwarePropertyProcessObjectList)",
+    )?;
+
+    let count = size as usize / std::mem::size_of::<AudioObjectID>();
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut ids = vec![0 as AudioObjectID; count];
+    let mut io_size = size;
+    let status = unsafe {
+        AudioObjectGetPropertyData(
+            system_object,
+            NonNull::from(&address),
+            0,
+            std::ptr::null(),
+            NonNull::from(&mut io_size),
+            NonNull::new(ids.as_mut_ptr() as *mut c_void).unwrap(),
+        )
+    };
+    check_osstatus(
+        status,
+        "AudioObjectGetPropertyData(kAudioHardwarePropertyProcessObjectList)",
+    )?;
+    ids.truncate(io_size as usize / std::mem::size_of::<AudioObjectID>());
+    Ok(ids)
+}
+
+/// True si algún proceso del sistema está reproduciendo audio ahora mismo
+/// (I6). Se usa sólo para desambiguar un `stop()` que capturó puro cero:
+/// cruzado con eso, "algo suena y capturamos cero" es la firma de "falta el
+/// permiso de captura de audio del sistema"; "nada suena" es silencio
+/// normal. Un proceso individual que falle la consulta (por ejemplo, uno que
+/// terminó entre la enumeración y la lectura de su propiedad) se trata como
+/// "no está sonando" en vez de abortar toda la consulta por uno solo.
+fn any_process_playing_audio() -> Result<bool, Box<dyn Error>> {
+    let ids = audio_process_object_ids()?;
+    for id in ids {
+        if get_property_u32(id, kAudioProcessPropertyIsRunningOutput).unwrap_or(0) != 0 {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 fn tap_stream_format(tap_id: AudioObjectID) -> Result<AudioStreamBasicDescription, Box<dyn Error>> {
     let address = AudioObjectPropertyAddress {
         mSelector: kAudioTapPropertyFormat,
@@ -695,12 +1134,19 @@ mod tests {
         let mut rec = SystemAudioRecorder::new().expect("new() no debería fallar");
         rec.open()
             .expect("open() — ¿permiso de audio del sistema concedido?");
+        assert!(!rec.output_device_changed());
+
         rec.start().expect("start()");
         std::thread::sleep(Duration::from_secs(3));
         let first = rec.stop().expect("stop()");
         assert!(
-            !first.is_empty(),
+            !first.samples.is_empty(),
             "no se capturó audio — ¿había algo sonando?"
+        );
+        assert_eq!(
+            first.diagnosis,
+            CaptureDiagnosis::AudioPresent,
+            "se esperaba audio real con algo sonando en el equipo"
         );
 
         // stop() seguido de start() no debe recrear el tap ni el
@@ -709,7 +1155,7 @@ mod tests {
         rec.start().expect("segundo start() tras stop()");
         std::thread::sleep(Duration::from_secs(1));
         let second = rec.stop().expect("segundo stop()");
-        assert!(!second.is_empty());
+        assert!(!second.samples.is_empty());
 
         rec.close().expect("close()");
     }
