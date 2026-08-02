@@ -24,6 +24,7 @@ export default defineConfig(async () => ({
         main: resolve(__dirname, "index.html"),
         overlay: resolve(__dirname, "src/overlay/index.html"),
         meetings: resolve(__dirname, "src/meetings/index.html"),
+        popover: resolve(__dirname, "src/popover/index.html"),
       },
     },
   },

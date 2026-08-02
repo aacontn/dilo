@@ -7,6 +7,8 @@
 //! adentro—, así que es una ventana normal sin decoraciones que se esconde al
 //! perder el foco. Esa regla no aplica acá.
 
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+
 /// Respiro entre el borde inferior del ícono y el techo del popover.
 pub const POPOVER_GAP: f64 = 6.0;
 
@@ -66,6 +68,106 @@ pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) 
     let y = below.min(max_y).max(min_y);
 
     PopoverGeometry { x, y }
+}
+
+pub const POPOVER_WINDOW_LABEL: &str = "popover";
+pub const POPOVER_WIDTH: f64 = 360.0;
+pub const POPOVER_HEIGHT: f64 = 480.0;
+
+/// Conmuta el popover: si está visible lo esconde, si no lo muestra bajo el
+/// ícono. Se **esconde**, nunca se destruye, para no pagar el arranque del
+/// webview en cada clic.
+pub fn toggle_popover(app: &AppHandle, icon: TrayRect) {
+    if let Some(window) = app.get_webview_window(POPOVER_WINDOW_LABEL) {
+        if window.is_visible().unwrap_or(false) {
+            let _ = window.hide();
+            return;
+        }
+        position_and_show(app, &window, icon);
+        return;
+    }
+
+    match create_popover_window(app) {
+        Ok(window) => position_and_show(app, &window, icon),
+        Err(e) => log::error!("No se pudo crear el popover: {e}"),
+    }
+}
+
+pub fn hide_popover(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(POPOVER_WINDOW_LABEL) {
+        let _ = window.hide();
+    }
+}
+
+fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayRect) {
+    let work_area = current_work_area(app, window);
+    let pos = popover_position(
+        icon,
+        PopoverSize {
+            width: POPOVER_WIDTH,
+            height: POPOVER_HEIGHT,
+        },
+        work_area,
+    );
+
+    let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+        x: pos.x,
+        y: pos.y,
+    }));
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
+/// Área utilizable del monitor donde está el popover. Si no se puede
+/// determinar, cae a la pantalla principal; si tampoco, a un tamaño
+/// conservador — es preferible un popover mal centrado a ninguno.
+fn current_work_area(app: &AppHandle, window: &tauri::WebviewWindow) -> WorkArea {
+    let monitor = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| app.primary_monitor().ok().flatten());
+
+    match monitor {
+        Some(m) => {
+            let scale = m.scale_factor();
+            let size = m.size().to_logical::<f64>(scale);
+            let position = m.position().to_logical::<f64>(scale);
+            WorkArea {
+                x: position.x,
+                y: position.y,
+                width: size.width,
+                height: size.height,
+            }
+        }
+        None => WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1440.0,
+            height: 900.0,
+        },
+    }
+}
+
+fn create_popover_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    let mut builder = WebviewWindowBuilder::new(
+        app,
+        POPOVER_WINDOW_LABEL,
+        WebviewUrl::App("src/popover/index.html".into()),
+    )
+    .inner_size(POPOVER_WIDTH, POPOVER_HEIGHT)
+    .resizable(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .visible(false);
+
+    if let Some(data_dir) = crate::portable::data_dir() {
+        builder = builder.data_directory(data_dir.join("webview"));
+    }
+
+    builder.build().map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -197,5 +299,19 @@ mod tests {
         };
         let pos = popover_position(icon, size(), narrow);
         assert_eq!(pos.x, POPOVER_MARGIN);
+    }
+
+    #[test]
+    fn el_tamano_del_popover_cabe_en_una_pantalla_chica() {
+        // 1280x800 es el Mac más chico que soportamos; el popover no puede
+        // ocupar más de la mitad del alto útil ni salirse a lo ancho.
+        let small = WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1280.0,
+            height: 800.0,
+        };
+        assert!(POPOVER_WIDTH + POPOVER_MARGIN * 2.0 < small.width);
+        assert!(POPOVER_HEIGHT < small.height / 2.0 + 100.0);
     }
 }

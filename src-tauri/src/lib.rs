@@ -1086,6 +1086,14 @@ pub fn run(cli_args: CliArgs) {
                 // Re-apply the current tray state with the new theme's icon set
                 utils::refresh_tray_icon(window.app_handle());
             }
+            // El popover es efímero: al hacer clic fuera se va, como
+            // cualquier menú del sistema. Sólo aplica a esa ventana; las
+            // demás siguen vivas al perder el foco.
+            tauri::WindowEvent::Focused(false)
+                if window.label() == popover::POPOVER_WINDOW_LABEL =>
+            {
+                let _ = window.hide();
+            }
             _ => {}
         })
         .invoke_handler(invoke_handler)
