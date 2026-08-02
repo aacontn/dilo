@@ -11,11 +11,12 @@
 //! "T013: diarización incremental" section below.
 
 use crate::audio_toolkit::{
+    audio::{system_audio_available, CaptureDiagnosis, SystemAudioRecorder},
     vad::{
-        SmoothedVad, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
+        SmoothedVad, VadFrame, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
         VAD_STREAMING_HANGOVER_FRAMES,
     },
-    AudioRecorder, SileroVad, VadPolicy,
+    AudioRecorder, SileroVad, VadPolicy, VoiceActivityDetector,
 };
 use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter, VAD_THRESHOLD};
 use crate::managers::diarization::{
@@ -23,6 +24,7 @@ use crate::managers::diarization::{
 };
 use crate::managers::diarization_models;
 use crate::managers::transcription::TranscriptionManager;
+use crate::settings::{self, MeetingAudioSource};
 use anyhow::{bail, Result};
 use chrono::{Local, Utc};
 use log::{debug, error, info, warn};
@@ -239,6 +241,34 @@ pub struct MeetingCallDetected {
 #[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
 pub struct MeetingCallEnded {
     pub meeting_id: i64,
+}
+
+/// Por qué se emitió un [`MeetingAudioWarning`] durante una grabación con
+/// audio del sistema (cableado de audio de reuniones). El texto que ve el
+/// usuario vive en el frontend (i18n, 21 idiomas) — acá sólo va el motivo,
+/// no un mensaje.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingAudioWarningKind {
+    /// `CaptureDiagnosis::LikelyMissingPermission`: todo lo capturado es
+    /// cero digital y había algo sonando — verificado contra hardware real,
+    /// así es exactamente como se ve grabar sin el permiso de audio del
+    /// sistema concedido (ver `system_audio.rs`).
+    MissingPermission,
+    /// `SystemAudioRecorder::output_device_changed()`: el usuario cambió el
+    /// dispositivo de salida por defecto (por ejemplo, conectó audífonos) a
+    /// mitad de reunión — la captura puede haber quedado muda.
+    OutputDeviceChanged,
+}
+
+/// Aviso durante una grabación con audio del sistema — no termina la
+/// sesión (a diferencia de [`MeetingError`]), es información para que el
+/// usuario pueda actuar (conceder el permiso, o saber que puede haber
+/// perdido audio) sin esperar a colgar para enterarse.
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingAudioWarning {
+    pub meeting_id: i64,
+    pub kind: MeetingAudioWarningKind,
 }
 
 // --- T012: microphone capture -> VAD -> incremental transcription -----
@@ -479,6 +509,17 @@ const MAX_TURN_MS: u64 = 8_000;
 /// How often the watchdog thread checks for a silence gap.
 #[allow(dead_code)]
 const WATCHDOG_POLL_INTERVAL: Duration = Duration::from_millis(100);
+/// Cada cuánto el watchdog sondea el diagnóstico del audio del sistema
+/// (`SystemAudioRecorder::diagnose_now()`/`output_device_changed()`, I6/I5
+/// del reporte de `system_audio.rs`) mientras graba con esa fuente. No es
+/// `WATCHDOG_POLL_INTERVAL`: sondear cada 100ms sería ruido y, sondeado
+/// demasiado pronto (antes del primer bloque de audio), `diagnose_now()`
+/// puede dar legítimamente `NoSamplesCaptured` sin que signifique nada. Una
+/// reunión de 40 minutos igual necesita enterarse mucho antes de colgar, no
+/// sólo al final — de ahí el sondeo periódico en vez de uno solo en
+/// `stop_capture`.
+#[allow(dead_code)]
+const SYSTEM_AUDIO_DIAGNOSIS_POLL: Duration = Duration::from_secs(5);
 /// Turns shorter than this are zero-padded before transcription, mirroring
 /// `AudioRecordingManager::stop_recording`'s short-buffer padding (some
 /// engines need a minimum input duration to run at all).
@@ -582,6 +623,38 @@ fn report_turn_failure<R: tauri::Runtime>(
     }
 }
 
+/// Avisa `meeting-audio-warning` (audio del sistema: falta el permiso, o el
+/// dispositivo de salida cambió a mitad de reunión) — **no termina la
+/// sesión**, es sólo información. Se reporta como máximo una vez por
+/// `kind` y por sesión de captura (`already_reported` lo trackea aparte por
+/// tipo, ver `start_capture`): la reunión sigue grabando aunque falte el
+/// permiso, así que repetir el aviso en cada sondeo del watchdog sería
+/// ruido — el usuario ya lo vio la primera vez.
+fn report_audio_warning<R: tauri::Runtime>(
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    already_reported: &mut bool,
+    kind: MeetingAudioWarningKind,
+) {
+    warn!(
+        "Meeting {}: aviso de audio del sistema {:?}",
+        meeting_id, kind
+    );
+    if *already_reported {
+        return;
+    }
+    *already_reported = true;
+    if let Some(app) = app_handle {
+        let payload = MeetingAudioWarning { meeting_id, kind };
+        if let Err(e) = payload.emit(app) {
+            warn!(
+                "Failed to emit meeting-audio-warning for {}: {}",
+                meeting_id, e
+            );
+        }
+    }
+}
+
 /// Cierra la captura de una sesión que no puede continuar, desde afuera del
 /// hilo transcriptor.
 ///
@@ -642,6 +715,174 @@ fn build_meeting_recorder(
         .with_audio_callback(audio_cb);
 
     Ok(recorder)
+}
+
+/// Resuelve qué fuente de audio usa REALMENTE una reunión, cruzando el
+/// ajuste del usuario (`AppSettings::meeting_audio_source`) con si el audio
+/// del sistema está disponible en esta máquina (`system_audio_available()`:
+/// macOS 14.2+). Función pura y testeable a propósito — es la pieza que la
+/// tarea de cableado pidió explícitamente poder probar sin hardware.
+///
+/// El micrófono nunca necesita "resolverse hacia" nada: está disponible en
+/// cualquier plataforma, así que si el usuario ya lo eligió, se usa tal
+/// cual. Sólo `SystemAudio` puede degradar, y sólo hacia `Microphone` — no
+/// hay una tercera fuente a la que caer.
+pub fn resolve_meeting_audio_source(
+    setting: MeetingAudioSource,
+    system_audio_available: bool,
+) -> MeetingAudioSource {
+    match setting {
+        MeetingAudioSource::SystemAudio if !system_audio_available => {
+            MeetingAudioSource::Microphone
+        }
+        other => other,
+    }
+}
+
+/// Build the `SystemAudioRecorder` a meeting capture session uses cuando la
+/// fuente resuelta es `MeetingAudioSource::SystemAudio`. Espejo de
+/// `build_meeting_recorder`, con una diferencia que importa:
+/// `SystemAudioRecorder` no tiene ningún VAD propio (el del micrófono vive
+/// ADENTRO de `AudioRecorder` — ver `with_audio_callback` en
+/// `audio_toolkit/audio/recorder.rs`), así que `with_frame_callback` entrega
+/// las muestras del tap **sin filtrar**. Para que el resto del pipeline
+/// (acumulador de turnos, corte por voz, diarización) reciba exactamente lo
+/// mismo que hoy recibe del micrófono, este helper aplica acá el mismo VAD
+/// (`SileroVad` + `SmoothedVad`, mismas constantes que `build_meeting_recorder`
+/// para `VadPolicy::Offline` — la única política que usa una reunión) antes
+/// de llamar a `audio_cb`.
+///
+/// `Mutex` en vez de un VAD por hilo: el callback es `Fn`, no `FnMut` (misma
+/// restricción que `AudioRecorder::with_audio_callback`), y el VAD necesita
+/// mutar su estado interno (buffer de prefill, contador de hangover) entre
+/// frames — mismo patrón que `VadConfig` usa en `recorder.rs` para el
+/// micrófono. Un solo hilo llama a este callback (el consumidor de
+/// `SystemAudioRecorder`, ver `system_audio/macos.rs`), así que el `Mutex`
+/// nunca compite de verdad; existe sólo para satisfacer el tipo.
+#[allow(dead_code)]
+fn build_meeting_system_audio_recorder(
+    vad_path: &Path,
+    audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
+) -> Result<SystemAudioRecorder> {
+    let silero = SileroVad::new(vad_path, VAD_THRESHOLD).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create SileroVad for system-audio meeting capture: {}",
+            e
+        )
+    })?;
+    let smoothed_vad = SmoothedVad::new(
+        Box::new(silero),
+        VAD_PREFILL_FRAMES,
+        VAD_OFFLINE_HANGOVER_FRAMES,
+        VAD_ONSET_FRAMES,
+    );
+    let vad: Mutex<Box<dyn VoiceActivityDetector>> = Mutex::new(Box::new(smoothed_vad));
+
+    let recorder = SystemAudioRecorder::new()
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to create SystemAudioRecorder for meeting capture: {}",
+                e
+            )
+        })?
+        .with_frame_callback(move |frame: &[f32]| {
+            let mut vad = vad.lock().unwrap();
+            match vad.push_frame(frame) {
+                Ok(VadFrame::Speech(buf)) => audio_cb(buf),
+                Ok(VadFrame::Noise) => {}
+                Err(e) => {
+                    // Fail open, igual que `handle_frame` en
+                    // `audio_toolkit/audio/recorder.rs`
+                    // (`unwrap_or(VadFrame::Speech(samples))`): preferir de
+                    // más a perder audio de la reunión por un fallo puntual
+                    // del VAD.
+                    warn!("VAD del audio del sistema falló, se deja pasar el frame: {e}");
+                    audio_cb(frame);
+                }
+            }
+        });
+
+    Ok(recorder)
+}
+
+/// Uno de los dos backends de audio que puede alimentar una sesión de
+/// reunión — ver `resolve_meeting_audio_source`. `AudioRecorder` trae su
+/// propio VAD y su propio ciclo start/stop con `VadPolicy`; `SystemAudioRecorder`
+/// no tiene VAD propio (aplicado por `build_meeting_system_audio_recorder`
+/// antes de llegar acá) y su `start()`/`stop()` no toman política. Esta
+/// enum absorbe esa diferencia de forma para que `CaptureSession` y
+/// `start_capture`/`stop_capture` no tengan que ramificar en cada punto de
+/// uso.
+///
+/// El variante `SystemAudio` guarda un `Arc<Mutex<_>>`, no el recorder
+/// directo: el propio módulo de `SystemAudioRecorder` documenta que es
+/// `!Sync` (su `ctx` guarda un `mpsc::Receiver`, que no es `Sync`) y avisa
+/// explícitamente que "quien lo cablee a un flujo con más de un hilo... va a
+/// necesitar envolverlo en un `Mutex`". Acá hace falta más de un hilo: el
+/// watchdog necesita su propia referencia para sondear `diagnose_now()`/
+/// `output_device_changed()` en caliente (I6/I5 de `system_audio.rs`)
+/// mientras `CaptureSession` sigue siendo dueña de la sesión — ver
+/// `start_capture`. El `Mutex` nunca compite de verdad (el watchdog sondea
+/// cada `SYSTEM_AUDIO_DIAGNOSIS_POLL`, no en el camino caliente de audio) —
+/// existe sólo para satisfacer `Sync`, igual que en
+/// `build_meeting_system_audio_recorder`.
+enum MeetingRecorder {
+    Microphone(AudioRecorder),
+    SystemAudio(Arc<Mutex<SystemAudioRecorder>>),
+}
+
+impl MeetingRecorder {
+    fn open(&mut self, device: Option<cpal::Device>) -> Result<()> {
+        match self {
+            MeetingRecorder::Microphone(r) => r.open(device).map_err(|e| anyhow::anyhow!("{e}")),
+            MeetingRecorder::SystemAudio(r) => {
+                r.lock().unwrap().open().map_err(|e| anyhow::anyhow!("{e}"))
+            }
+        }
+    }
+
+    fn start(&self) -> Result<()> {
+        match self {
+            MeetingRecorder::Microphone(r) => r
+                .start(VadPolicy::Offline)
+                .map_err(|e| anyhow::anyhow!("{e}")),
+            MeetingRecorder::SystemAudio(r) => r
+                .lock()
+                .unwrap()
+                .start()
+                .map_err(|e| anyhow::anyhow!("{e}")),
+        }
+    }
+
+    /// Detiene la captura. El valor de retorno del backend se descarta a
+    /// propósito en los dos casos — ver el comentario del módulo sobre por
+    /// qué el buffer redundante de `AudioRecorder::stop()` no se usa, y el
+    /// comentario de `system_audio.rs` sobre por qué `SystemAudioRecorder::
+    /// stop()` sí importa (el diagnóstico de permiso vive ahí): ese
+    /// diagnóstico se consulta por separado, en caliente, vía
+    /// `diagnose_now()` durante la grabación — no hace falta leerlo de vuelta
+    /// acá para no perderlo.
+    fn stop(&self) {
+        match self {
+            MeetingRecorder::Microphone(r) => {
+                let _ = r.stop();
+            }
+            MeetingRecorder::SystemAudio(r) => {
+                let _ = r.lock().unwrap().stop();
+            }
+        }
+    }
+
+    fn close(&mut self) {
+        match self {
+            MeetingRecorder::Microphone(r) => {
+                let _ = r.close();
+            }
+            MeetingRecorder::SystemAudio(r) => {
+                let _ = r.lock().unwrap().close();
+            }
+        }
+    }
 }
 
 // --- T013/T014: diarización incremental + corte por voz dentro del turno --
@@ -1359,7 +1600,7 @@ pub struct Meeting {
 #[allow(dead_code)]
 struct CaptureSession {
     meeting_id: i64,
-    recorder: AudioRecorder,
+    recorder: MeetingRecorder,
     accumulator: Arc<Mutex<TurnAccumulator>>,
     capture_started: Instant,
     shutdown: Arc<AtomicBool>,
@@ -1578,20 +1819,53 @@ impl MeetingManager {
                 }
             };
 
-            let mut recorder = build_meeting_recorder(&vad_path, audio_cb)?;
-            // El micrófono elegido en Ajustes, igual que el dictado: la
+            // Fuente de audio resuelta contra el ajuste del usuario y si el
+            // audio del sistema está disponible en esta máquina — ver
+            // `resolve_meeting_audio_source`.
+            let audio_source = resolve_meeting_audio_source(
+                settings::get_settings(&app_handle).meeting_audio_source,
+                system_audio_available(),
+            );
+
+            let mut recorder = match audio_source {
+                MeetingAudioSource::Microphone => {
+                    MeetingRecorder::Microphone(build_meeting_recorder(&vad_path, audio_cb)?)
+                }
+                MeetingAudioSource::SystemAudio => MeetingRecorder::SystemAudio(Arc::new(
+                    Mutex::new(build_meeting_system_audio_recorder(&vad_path, audio_cb)?),
+                )),
+            };
+            // El micrófono elegido en Ajustes sólo aplica a esa rama: la
             // reunión tiene su propio `AudioRecorder`, así que sin esto
-            // abría el default del sistema e ignoraba el ajuste en silencio.
-            let selected_device = app_handle
-                .try_state::<Arc<AudioRecordingManager>>()
-                .and_then(|manager| manager.selected_input_device());
+            // abría el default del sistema e ignoraba el ajuste en
+            // silencio. El audio del sistema no toma dispositivo de
+            // entrada — un tap global captura todo lo que suena en el
+            // equipo, no lo que entra por un micrófono en particular.
+            let selected_device = match audio_source {
+                MeetingAudioSource::Microphone => app_handle
+                    .try_state::<Arc<AudioRecordingManager>>()
+                    .and_then(|manager| manager.selected_input_device()),
+                MeetingAudioSource::SystemAudio => None,
+            };
             recorder
                 .open(selected_device)
-                .map_err(|e| anyhow::anyhow!("Failed to open microphone for meeting: {}", e))?;
-            if let Err(e) = recorder.start(VadPolicy::Offline) {
-                let _ = recorder.close();
+                .map_err(|e| anyhow::anyhow!("Failed to open audio capture for meeting: {}", e))?;
+            if let Err(e) = recorder.start() {
+                recorder.close();
                 bail!("Failed to start meeting capture: {}", e);
             }
+
+            // Referencia propia para que el watchdog pueda sondear el
+            // diagnóstico de permiso/dispositivo de salida (I6/I5 de
+            // `system_audio.rs`) sin disputarle la dueñidad de la sesión a
+            // `CaptureSession` — ver el comentario de `MeetingRecorder`.
+            // `None` para micrófono: no hay nada que sondear ahí, el
+            // micrófono falla con un error explícito de permiso al abrir en
+            // vez de en silencio.
+            let audio_diagnostics_handle = match &recorder {
+                MeetingRecorder::SystemAudio(r) => Some(Arc::clone(r)),
+                MeetingRecorder::Microphone(_) => None,
+            };
 
             let shutdown = Arc::new(AtomicBool::new(false));
 
@@ -1601,7 +1875,20 @@ impl MeetingManager {
                 let turn_tx = turn_tx.clone();
                 let transcription_manager = Arc::clone(&transcription_manager);
                 let queue_depth = Arc::clone(&queue_depth);
+                let app_handle = app_handle.clone();
                 thread::spawn(move || {
+                    // Sondeo del audio del sistema (I6/I5): una vez por
+                    // `SYSTEM_AUDIO_DIAGNOSIS_POLL`, no en cada vuelta de
+                    // 100ms del watchdog — sondear "demasiado temprano"
+                    // (antes del primer bloque de audio) puede dar
+                    // legítimamente `NoSamplesCaptured`, y una reunión de 40
+                    // minutos igual necesita enterarse mucho antes de
+                    // colgar, no sólo al final. Cada aviso se manda como
+                    // máximo una vez por sesión (`report_audio_warning`).
+                    let mut last_diagnosis_poll = Instant::now();
+                    let mut permission_warning_reported = false;
+                    let mut output_device_warning_reported = false;
+
                     while !shutdown.load(Ordering::Relaxed) {
                         thread::sleep(WATCHDOG_POLL_INTERVAL);
                         // Mantener vivo el reloj de inactividad del modelo:
@@ -1630,6 +1917,36 @@ impl MeetingManager {
                                 );
                             }
                             let _ = turn_tx.send(turn);
+                        }
+
+                        if let Some(sa) = &audio_diagnostics_handle {
+                            if last_diagnosis_poll.elapsed() >= SYSTEM_AUDIO_DIAGNOSIS_POLL {
+                                last_diagnosis_poll = Instant::now();
+                                let sa = sa.lock().unwrap();
+                                if sa.diagnose_now() == CaptureDiagnosis::LikelyMissingPermission {
+                                    report_audio_warning(
+                                        Some(&app_handle),
+                                        meeting_id,
+                                        &mut permission_warning_reported,
+                                        MeetingAudioWarningKind::MissingPermission,
+                                    );
+                                }
+                                if sa.output_device_changed() {
+                                    report_audio_warning(
+                                        Some(&app_handle),
+                                        meeting_id,
+                                        &mut output_device_warning_reported,
+                                        MeetingAudioWarningKind::OutputDeviceChanged,
+                                    );
+                                    // Reconoce el cambio para que uno nuevo
+                                    // (por ejemplo, otro cambio de salida más
+                                    // adelante en la misma reunión) pueda
+                                    // volver a avisar — a diferencia del
+                                    // permiso, acá sí hay un "acknowledge"
+                                    // propio en `system_audio.rs`.
+                                    sa.acknowledge_output_device_change();
+                                }
+                            }
                         }
                     }
                 })
@@ -1858,7 +2175,7 @@ impl MeetingManager {
         // flush below. Its own return value is redundant with what we
         // already collected via the callback (see the module doc comment)
         // and is discarded.
-        let _ = session.recorder.stop();
+        session.recorder.stop();
 
         let now_ms = session.capture_started.elapsed().as_millis() as i64;
         if let Some(turn) = session.accumulator.lock().unwrap().take_remaining(now_ms) {
@@ -1880,7 +2197,7 @@ impl MeetingManager {
             let _ = h.join();
         }
 
-        let _ = session.recorder.close();
+        session.recorder.close();
 
         // Recién acá, con los hilos ya unidos: mientras se drenaba la cola
         // los turnos pendientes todavía necesitaban el modelo cargado.
@@ -2538,6 +2855,40 @@ mod tests {
     /// sobre el runtime de Tauri (ver su doc comment), así que los tests que
     /// no verifican la emisión tienen que decir de qué runtime hablan.
     const NO_APP: Option<&AppHandle> = None;
+
+    // ---------- resolve_meeting_audio_source (cableado de audio) ----------
+
+    #[test]
+    fn resuelve_audio_de_sistema_cuando_esta_disponible() {
+        assert_eq!(
+            resolve_meeting_audio_source(MeetingAudioSource::SystemAudio, true),
+            MeetingAudioSource::SystemAudio
+        );
+    }
+
+    #[test]
+    fn degrada_a_microfono_cuando_el_audio_de_sistema_no_esta_disponible() {
+        assert_eq!(
+            resolve_meeting_audio_source(MeetingAudioSource::SystemAudio, false),
+            MeetingAudioSource::Microphone
+        );
+    }
+
+    #[test]
+    fn microfono_elegido_a_mano_nunca_cambia_aunque_el_audio_de_sistema_este_disponible() {
+        assert_eq!(
+            resolve_meeting_audio_source(MeetingAudioSource::Microphone, true),
+            MeetingAudioSource::Microphone
+        );
+    }
+
+    #[test]
+    fn microfono_elegido_a_mano_se_mantiene_sin_audio_de_sistema_disponible() {
+        assert_eq!(
+            resolve_meeting_audio_source(MeetingAudioSource::Microphone, false),
+            MeetingAudioSource::Microphone
+        );
+    }
 
     /// Unique temp db path for a test (mirrors the inline pattern the
     /// existing T007 tests below already use, factored out so the new

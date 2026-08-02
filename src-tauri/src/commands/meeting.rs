@@ -6,8 +6,10 @@
 //! ninguna pantalla podía mostrar una reunión pasada.
 
 use crate::managers::meeting::{Meeting, MeetingManager, PaginatedMeetings};
+use crate::settings::{get_settings, write_settings, MeetingAudioSource};
+use log::warn;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 /// Start a new meeting recording: inserts a `meetings` row with
 /// `status = "recording"`, abre el micrófono y devuelve el `id`.
@@ -150,4 +152,39 @@ pub async fn get_meeting(
     meeting_manager
         .get_meeting(meeting_id)
         .map_err(|e| e.to_string())
+}
+
+/// Cambia la fuente de audio con la que se graban las reuniones (cableado de
+/// audio de reuniones, ver el ajuste `meeting_audio_source`). Sólo afecta a
+/// la próxima reunión que se inicie — `start_capture` lee el ajuste recién
+/// al construir la sesión, no hay ninguna en curso que reconfigurar.
+#[tauri::command]
+#[specta::specta]
+pub fn change_meeting_audio_source_setting(app: AppHandle, source: String) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    let parsed = match source.as_str() {
+        "system_audio" => MeetingAudioSource::SystemAudio,
+        "microphone" => MeetingAudioSource::Microphone,
+        other => {
+            warn!(
+                "Fuente de audio de reunión inválida '{}', se usa audio del computador",
+                other
+            );
+            MeetingAudioSource::SystemAudio
+        }
+    };
+    settings.meeting_audio_source = parsed;
+    write_settings(&app, settings);
+    Ok(())
+}
+
+/// Si esta máquina soporta la captura de audio del sistema (macOS 14.2+,
+/// process taps de CoreAudio). El frontend lo consulta para no ofrecer una
+/// opción que no va a funcionar — fuera de macOS, o en una versión anterior,
+/// la fuente siempre resuelve a micrófono (ver
+/// `managers::meeting::resolve_meeting_audio_source`).
+#[tauri::command]
+#[specta::specta]
+pub fn is_system_audio_available() -> bool {
+    crate::audio_toolkit::audio::system_audio_available()
 }

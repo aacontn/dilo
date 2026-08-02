@@ -329,6 +329,23 @@ pub enum TtsEngineSetting {
     Supertonic,
 }
 
+/// Fuente de audio para grabar reuniones. `SystemAudio` (el audio que sale
+/// del computador) es el default: en una reunión online el micrófono sólo
+/// capta tu voz y un eco pobre de los parlantes, no las voces de los demás,
+/// que viajan por el sistema — decisión de producto del dueño ("ya habíamos
+/// decidido hacerlo por el audio del computador, no del micrófono; sólo
+/// opción para presencial"). `Microphone` es la opción para reuniones
+/// presenciales. Ver `managers::meeting::resolve_meeting_audio_source` para
+/// cómo se resuelve cuando el audio del sistema no está disponible en esta
+/// máquina (fuera de macOS, o macOS anterior a 14.2).
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MeetingAudioSource {
+    #[default]
+    SystemAudio,
+    Microphone,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum OrtAcceleratorSetting {
@@ -541,6 +558,11 @@ pub struct AppSettings {
     /// tecla asignada (igual que `quick_note`).
     #[serde(default)]
     pub voice_assistant_enabled: bool,
+    /// Fuente de audio para grabar reuniones — ver [`MeetingAudioSource`].
+    /// Un `settings.json` viejo no trae esta clave: `#[serde(default)]` la
+    /// resuelve a `SystemAudio` sin tocar el resto del archivo.
+    #[serde(default)]
+    pub meeting_audio_source: MeetingAudioSource,
 }
 
 fn default_model() -> String {
@@ -1129,6 +1151,7 @@ pub fn get_default_settings() -> AppSettings {
         tts_engine: TtsEngineSetting::default(),
         tts_voice: default_tts_voice(),
         voice_assistant_enabled: false,
+        meeting_audio_source: MeetingAudioSource::default(),
     }
 }
 

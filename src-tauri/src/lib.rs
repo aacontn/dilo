@@ -808,6 +808,8 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::merge_speakers,
             commands::meeting::list_meetings,
             commands::meeting::get_meeting,
+            commands::meeting::change_meeting_audio_source_setting,
+            commands::meeting::is_system_audio_available,
             meeting_window::open_meetings_window,
             meeting_window::return_to_main_window,
             notes::test_notion_connection,
@@ -841,6 +843,7 @@ pub fn run(cli_args: CliArgs) {
             managers::meeting::MeetingInterrupted,
             managers::meeting::MeetingCallDetected,
             managers::meeting::MeetingCallEnded,
+            managers::meeting::MeetingAudioWarning,
             tray::TrayIconStateChanged,
         ]);
 
