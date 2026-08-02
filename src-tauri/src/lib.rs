@@ -15,6 +15,7 @@ mod managers;
 mod meeting_window;
 mod notes;
 mod overlay;
+mod popover;
 pub mod portable;
 mod settings;
 mod shortcut;
