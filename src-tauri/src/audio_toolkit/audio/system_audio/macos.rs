@@ -197,8 +197,8 @@ use objc2_foundation::{NSArray, NSNumber};
 
 use super::{
     describe_osstatus, diagnose, has_nonzero_sample, is_process_tap_available,
-    mix_interleaved_to_mono, mix_planar_to_mono, parse_macos_version, resampled_frame_count,
-    CaptureDiagnosis, CaptureResult,
+    mix_interleaved_to_mono, mix_planar_to_mono, parse_macos_version, CaptureDiagnosis,
+    CaptureResult,
 };
 use crate::audio_toolkit::{audio::FrameResampler, constants};
 
@@ -272,6 +272,15 @@ pub struct SystemAudioRecorder {
     /// True si algún bloque de la sesión de grabación actual trajo alguna
     /// muestra distinta de cero (I6). Se resetea en cada `stop()`.
     saw_nonzero: Arc<AtomicBool>,
+    /// True si llegó al menos un bloque de audio del tap en la sesión de
+    /// grabación actual, tenga contenido no-cero o no (I1 del reporte de
+    /// seguimiento). Reemplaza a `!buffer.is_empty()` como señal de "hubo
+    /// datos" para `diagnose_now()`/`stop()`: con un `frame_cb` registrado
+    /// (flujo de reuniones) el hilo consumidor deja de escribir en `buffer`
+    /// a propósito (ver el comentario en `finish_open_with_aggregate`), así
+    /// que `buffer` solo ya no sirve para saber si hubo captura. Se resetea
+    /// en cada `stop()`, igual que `saw_nonzero`.
+    saw_any_sample: Arc<AtomicBool>,
     /// True si `kAudioHardwarePropertyDefaultOutputDevice` cambió desde
     /// `open()` (I5). Ver `output_device_changed()`.
     output_device_changed: Arc<AtomicBool>,
@@ -295,6 +304,7 @@ impl SystemAudioRecorder {
             native_rate: 0,
             running: AtomicBool::new(false),
             saw_nonzero: Arc::new(AtomicBool::new(false)),
+            saw_any_sample: Arc::new(AtomicBool::new(false)),
             output_device_changed: Arc::new(AtomicBool::new(false)),
             output_listener_ctx: None,
             frame_cb: None,
@@ -525,7 +535,23 @@ impl SystemAudioRecorder {
         let consumer_buffer = Arc::clone(&buffer);
         let saw_nonzero = Arc::new(AtomicBool::new(false));
         let consumer_saw_nonzero = Arc::clone(&saw_nonzero);
+        let saw_any_sample = Arc::new(AtomicBool::new(false));
+        let consumer_saw_any_sample = Arc::clone(&saw_any_sample);
         let frame_cb = self.frame_cb.clone();
+        // I1 del reporte de seguimiento: para reuniones, `buffer` es puro
+        // desperdicio — `MeetingRecorder::stop()` descarta el `Vec<f32>` que
+        // devuelve `stop()` (ver `managers/meeting.rs`) y `diagnose_now()`
+        // ya no depende de `buffer` (usa `saw_any_sample`, más abajo). Sin
+        // VAD, retiene 64 KB/s = ~230 MB/h; a las 2h son ~460 MB, y como
+        // `Vec` duplica capacidad al crecer, el realloc pide otros ~920 MB
+        // con los 460 viejos todavía vivos — un pico de ~1,4 GB con los
+        // modelos ONNX ya cargados. Cuando hay un `frame_cb` registrado
+        // (único caso real hoy: el flujo de reuniones), el hilo consumidor
+        // deja de escribir en `buffer` directamente — se calcula una sola
+        // vez, no en cada mensaje, porque `frame_cb` no cambia durante la
+        // vida de esta sesión (se fija en `with_frame_callback`, antes de
+        // `open()`).
+        let retains_buffer = frame_cb.is_none();
 
         let consumer = std::thread::spawn(move || {
             // I4: el remuestreo a 16 kHz vive acá, no en `stop()` — así el
@@ -540,6 +566,13 @@ impl SystemAudioRecorder {
             while let Ok(msg) = rx.recv() {
                 match msg {
                     Msg::Audio(samples) => {
+                        // I1: cualquier bloque que llegue del tap cuenta como
+                        // "hubo captura", tenga contenido o no — a diferencia
+                        // de `saw_nonzero`, que sólo importa su CONTENIDO.
+                        // No depende de `buffer` (que puede estar
+                        // deliberadamente vacío con `frame_cb` registrado,
+                        // ver más abajo).
+                        consumer_saw_any_sample.store(true, Ordering::Relaxed);
                         // I6: si algún bloque de esta sesión trae algo
                         // distinto de cero, ya no puede tratarse de "sin
                         // permiso" — se registra apenas se ve la primera
@@ -549,14 +582,6 @@ impl SystemAudioRecorder {
                             && has_nonzero_sample(&samples)
                         {
                             consumer_saw_nonzero.store(true, Ordering::Relaxed);
-                        }
-                        {
-                            let mut buf = consumer_buffer.lock().unwrap();
-                            buf.reserve(resampled_frame_count(
-                                samples.len(),
-                                native_rate,
-                                constants::WHISPER_SAMPLE_RATE,
-                            ));
                         }
                         // El callback en vivo (cableado a reuniones) se
                         // llama SIN el lock de `buffer` tomado — sólo se
@@ -572,7 +597,9 @@ impl SystemAudioRecorder {
                             if let Some(cb) = &frame_cb {
                                 cb(frame);
                             }
-                            consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                            if retains_buffer {
+                                consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                            }
                         });
                         // I1: se devuelve para reciclar en vez de dejar que
                         // el `Vec` simplemente se libere — el próximo
@@ -586,7 +613,9 @@ impl SystemAudioRecorder {
                             if let Some(cb) = &frame_cb {
                                 cb(frame);
                             }
-                            consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                            if retains_buffer {
+                                consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                            }
                         });
                         // Limpia las colas FFT antes de la próxima sesión
                         // (stop() seguido de otro start() sin pasar por
@@ -609,6 +638,7 @@ impl SystemAudioRecorder {
         self.buffer = buffer;
         self.native_rate = native_rate;
         self.saw_nonzero = saw_nonzero;
+        self.saw_any_sample = saw_any_sample;
         self.output_device_changed = output_device_changed;
         self.output_listener_ctx = output_listener_ctx;
         leak_guard.armed = false;
@@ -682,7 +712,14 @@ impl SystemAudioRecorder {
         // del remuestreo — no depende de que el remuestreo preserve el cero
         // exacto. La decisión en sí vive en `compute_diagnosis` (Important 3
         // del reporte de seguimiento) para que `diagnose_now()` la comparta.
-        let has_samples = !samples.is_empty();
+        //
+        // I1 (reporte de cableado): `has_samples` ya NO se lee de `samples`
+        // (`!samples.is_empty()`) — con un `frame_cb` registrado, `buffer`
+        // se deja vacío a propósito (ver `finish_open_with_aggregate`), así
+        // que `samples` siempre estaría vacío ahí y todo diagnóstico caería
+        // siempre en `NoSamplesCaptured` sin importar cuánto audio real haya
+        // pasado. `saw_any_sample` no depende de `buffer`.
+        let has_samples = self.saw_any_sample.swap(false, Ordering::Relaxed);
         let saw_nonzero = self.saw_nonzero.swap(false, Ordering::Relaxed);
         let diagnosis = compute_diagnosis(has_samples, saw_nonzero);
 
@@ -694,9 +731,10 @@ impl SystemAudioRecorder {
     /// era el de `stop()` — en una reunión de 40 minutos el usuario recién se
     /// enteraba de que faltaba el permiso al colgar. Esto expone la misma
     /// lógica de sólo lectura: no consume `self.buffer` (a diferencia de
-    /// `stop()`, que lo drena con `mem::take`) ni resetea `saw_nonzero`, así
-    /// que se puede llamar tantas veces como se quiera durante la grabación
-    /// sin alterar lo que `stop()` va a reportar después.
+    /// `stop()`, que lo drena con `mem::take`) ni resetea `saw_nonzero`/
+    /// `saw_any_sample`, así que se puede llamar tantas veces como se quiera
+    /// durante la grabación sin alterar lo que `stop()` va a reportar
+    /// después.
     ///
     /// Llamarlo muy temprano — antes de que llegue el primer bloque de audio
     /// del tap — puede dar legítimamente `NoSamplesCaptured`: no es un error,
@@ -705,7 +743,9 @@ impl SystemAudioRecorder {
     /// segundos después de `start()` antes de tratar ese resultado como una
     /// señal real.
     pub fn diagnose_now(&self) -> CaptureDiagnosis {
-        let has_samples = !self.buffer.lock().unwrap().is_empty();
+        // I1: ver el comentario de `stop()` sobre por qué esto ya no lee
+        // `self.buffer`.
+        let has_samples = self.saw_any_sample.load(Ordering::Relaxed);
         let saw_nonzero = self.saw_nonzero.load(Ordering::Relaxed);
         compute_diagnosis(has_samples, saw_nonzero)
     }
@@ -782,6 +822,7 @@ impl SystemAudioRecorder {
         *self.buffer.lock().unwrap() = Vec::new();
         self.native_rate = 0;
         self.saw_nonzero.store(false, Ordering::Relaxed);
+        self.saw_any_sample.store(false, Ordering::Relaxed);
         self.output_device_changed.store(false, Ordering::Relaxed);
         Ok(())
     }

@@ -110,7 +110,15 @@ pub fn mix_planar_to_mono(channels: &[&[f32]], out: &mut Vec<f32>) {
 /// Pura, sin acceso a `rubato`: sirve para dimensionar buffers y para loguear
 /// sin tener que instanciar un resampler. Redondea al entero más cercano,
 /// igual que el cálculo de `frame_samples` en `FrameResampler::new`.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+///
+/// Sin llamadores en producción desde el reporte de cableado (M7): el único
+/// uso era un `buf.reserve(...)` en `macos.rs` que quedó huérfano una vez
+/// que el lock de `buffer` pasó a tomarse por frame, no por bloque — se
+/// limpió junto con él en vez de reservar contra un lock que ya se soltó.
+/// Se conserva como función pura documentada y testeada (mismo criterio que
+/// el resto de las funciones puras de este archivo) para quien necesite
+/// dimensionar un buffer de remuestreo sin instanciar un `FrameResampler`.
+#[allow(dead_code)]
 pub fn resampled_frame_count(input_frames: usize, in_hz: u32, out_hz: u32) -> usize {
     if in_hz == 0 {
         return 0;
