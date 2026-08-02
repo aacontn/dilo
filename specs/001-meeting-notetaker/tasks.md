@@ -90,9 +90,23 @@ Proyecto Tauri existente (no monorepo): `src-tauri/src/` (backend Rust),
     pantalla. Su Info.plist lo declara así y su helper enlaza CoreAudio sin
     ScreenCaptureKit. Es menos invasivo, no muestra el indicador morado, y permite
     tomar el audio de un proceso concreto en vez de toda la pantalla.
-  - Requiere decidir cómo se llaman esas APIs desde Rust (FFI propio o crate), y esa
-    decisión choca con la restricción de "sin dependencias nuevas": resolverla en el
-    diseño antes de implementar.
+  - **Resuelto (2026-08-02):** no hizo falta FFI a mano ni crates nuevos.
+    `coreaudio-rs 0.13` (que ya trae `cpal`) migró a `objc2-core-audio`, y esa
+    crate expone `AudioHardwareCreateProcessTap`, `CATapDescription` y los
+    dispositivos agregados ya tipados. Implementado en
+    `audio_toolkit/audio/system_audio/` (commit `50728198`).
+  - **Verificado con hardware el 2026-08-02**: la tasa del tap y la del
+    dispositivo agregado coinciden (48000), el layout es intercalado de un
+    stream (sin colarse entradas de otros sub-dispositivos), el remuestreo a
+    16 kHz da la duración correcta, y no quedan dispositivos colgando.
+  - **⚠️ Bloqueante antes de cablearlo a reuniones — sin permiso, macOS entrega
+    silencio.** Con la captura sin autorizar, el sistema crea el tap, acepta el
+    agregado y entrega buffers del tamaño y la tasa correctos, **todos en cero**
+    (`pico=0`, `no_cero=0` sobre 46.560 muestras, con audio sonando al 50%). No
+    hay error ni código de estado que lo delate. Grabar una reunión entera y
+    obtener un archivo mudo es el resultado por defecto. **Hay que detectar el
+    permiso explícitamente** (estado TCC, o medir energía cero en los primeros
+    segundos y avisar) antes de que esto llegue al usuario.
 - [ ] T024 [US2] Extender `start_meeting` para aceptar `kind: "virtual"`, mezclando audio de sistema + micrófono
 - [ ] T025 [P] [US2] Agregar selector presencial/virtual a `src/components/meeting/RecordingControls.tsx` (extiende T017)
 - [ ] T026 [US2] Manejar el flujo de permiso de macOS para captura de audio de sistema (solicitud + estado en Ajustes)
