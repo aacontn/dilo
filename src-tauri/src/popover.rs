@@ -44,7 +44,7 @@ pub struct PopoverGeometry {
     pub y: f64,
 }
 
-/// Centra el popover bajo el ícono y lo empuja hacia adentro si se saldría.
+/// Centra el popover bajo el ícono y lo empuja hacia adentro en ambos ejes si se saldría.
 pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) -> PopoverGeometry {
     let centered = icon.x + icon.width / 2.0 - size.width / 2.0;
 
@@ -56,10 +56,16 @@ pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) 
     // izquierdo a dejarlo con x negativo.
     let x = centered.min(max_x).max(min_x);
 
-    PopoverGeometry {
-        x,
-        y: icon.y + icon.height + POPOVER_GAP,
-    }
+    let below = icon.y + icon.height + POPOVER_GAP;
+    let min_y = work_area.y + POPOVER_MARGIN;
+    let max_y = work_area.y + work_area.height - size.height - POPOVER_MARGIN;
+
+    // Mismo orden que en X y por la misma razón: en una pantalla más baja que
+    // el popover, `max_y` cae bajo `min_y` y preferimos pegarlo arriba a
+    // dejarlo fuera de pantalla.
+    let y = below.min(max_y).max(min_y);
+
+    PopoverGeometry { x, y }
 }
 
 #[cfg(test)]
@@ -140,5 +146,56 @@ mod tests {
         };
         let pos = popover_position(icon, size(), shifted);
         assert_eq!(pos.x, 1440.0 + POPOVER_MARGIN);
+    }
+
+    #[test]
+    fn sube_el_popover_si_no_cabe_bajo_el_icono() {
+        // Barra de menú abajo (Windows/Linux): el ícono está al pie de la
+        // pantalla y colgar el popover bajo él lo dejaría fuera.
+        let icon = TrayRect {
+            x: 700.0,
+            y: 880.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let pos = popover_position(icon, size(), area());
+        assert_eq!(pos.y, 900.0 - 480.0 - POPOVER_MARGIN);
+    }
+
+    #[test]
+    fn no_se_sale_por_arriba_en_una_pantalla_muy_baja() {
+        // Pantalla más baja que el popover: pegado arriba, nunca en negativo.
+        let short = WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1440.0,
+            height: 300.0,
+        };
+        let icon = TrayRect {
+            x: 700.0,
+            y: 0.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let pos = popover_position(icon, size(), short);
+        assert_eq!(pos.y, POPOVER_MARGIN);
+    }
+
+    #[test]
+    fn en_una_pantalla_mas_angosta_que_el_popover_se_pega_a_la_izquierda() {
+        let narrow = WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 200.0,
+            height: 900.0,
+        };
+        let icon = TrayRect {
+            x: 100.0,
+            y: 0.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let pos = popover_position(icon, size(), narrow);
+        assert_eq!(pos.x, POPOVER_MARGIN);
     }
 }
