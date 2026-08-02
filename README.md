@@ -29,7 +29,7 @@ Si dictas tus prompts en vez de tipearlos, esto es para ti.
 - 🇪🇸 **Español primero** — modelos recomendados que entienden español de verdad, interfaz en español
 - 🔌 **100% offline** — sin cuenta, sin nube, sin telemetría
 - 🪶 **Liviano** — el modelo se descarga solo de la RAM cuando no dictas (~60–80 MB en reposo)
-- 🧠 **Post-proceso opcional con IA** — pulir gramática, formato de prompt, lo que quieras
+- 🧠 **Transformar con IA, si quieres** — pulir gramática, formato de prompt, lo que se te ocurra
 - 🖥️ **macOS, Windows y Linux**
 
 ## Descarga
@@ -87,7 +87,7 @@ De regla, la RAM mientras dictas es **1,5 a 2 veces la descarga**. En reposo (mo
 - Dicta el prompt largo en Cursor o Claude Code en vez de tipearlo — hablar es 3× más rápido que escribir
 - `dilo --toggle-transcription` desde el terminal, scripts o tu window manager
 - Envío automático opcional: dicta y que se mande solo con Enter
-- Post-proceso con cualquier API compatible con OpenAI (o Apple Intelligence en macOS 26+): "mejora la gramática", "formatea como conventional commit", tu prompt manda
+- Transforma tu dictado con cualquier API compatible con OpenAI (o Apple Intelligence en macOS 26+): "mejora la gramática", "formatea como conventional commit", tu prompt manda
 - Historial local de todo lo que dictaste, re-transcribible al cambiar de modelo
 
 ## Requisitos
