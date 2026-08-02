@@ -51,6 +51,61 @@ pub fn popover_supported() -> bool {
     cfg!(target_os = "macos")
 }
 
+/// `(posición física, tamaño físico, escala)` de un monitor — la forma
+/// mínima que necesita `monitor_scale_at_point` para razonar sobre un
+/// `Monitor` sin depender de uno real, misma idea que `TrayRect` para el
+/// ícono.
+type MonitorGeometry = ((f64, f64), (f64, f64), f64);
+
+/// Encuentra la escala del monitor que contiene `point`, en un espacio donde
+/// `point` y cada monitor comparten unidad ambigua (ver `logical_tray_rect`).
+/// Pura y testeable: los monitores entran como `MonitorGeometry` en vez de
+/// `Monitor`, siguiendo el mismo patrón que `popover_position` y
+/// `tray_click_action` en este archivo.
+///
+/// **Por qué en espacio lógico y no físico.** `Monitor::position()`/`size()`
+/// en macOS son `punto_CGDisplayBounds × escala_de_ese_monitor` (ver
+/// `tao::platform_impl::macos::monitor::{position,size}`). Cuando dos
+/// monitores tienen escalas distintas, esa multiplicación por escalas
+/// distintas hace que sus rectángulos físicos **se solapen** aunque las
+/// pantallas reales no se toquen — comparar `point` contra ellos tal cual
+/// (lo que hacía este módulo antes) es ambiguo: un mismo punto puede caer
+/// dentro de dos rects físicos a la vez, y gana el que `available_monitors()`
+/// entregue primero, que no es determinístico. Convertir cada monitor a su
+/// rectángulo **lógico** (`posición / escala`, `tamaño / escala`) sí tesela
+/// sin solape, porque reconstruye las coordenadas de `CGDisplayBounds`
+/// —compartidas por todos los monitores— a partir de su propia escala.
+///
+/// **El empate que puede seguir quedando.** Un único punto físico no lleva
+/// consigo la escala con la que se generó, así que sigue siendo posible que
+/// el punto, reinterpretado con la escala de más de un monitor, caiga dentro
+/// del rectángulo lógico de ambos (la franja de solape original, vista desde
+/// el otro lado). En ese caso no hay información suficiente para decidir con
+/// certeza, y se prefiere la escala **más baja**: en una config mixta con un
+/// portátil Retina y un externo normal, el externo suele ser la pantalla de
+/// trabajo, y es preferible errar hacia ahí que hacia el panel interno.
+///
+/// Si ningún monitor contiene el punto (no debería pasar, pero mejor que un
+/// panic), devuelve `None` — el llamador cae a escala 1.0: en una pantalla 1x
+/// el resultado es correcto de todas formas, y en Retina es preferible un
+/// popover mal ubicado a ninguno.
+pub fn monitor_scale_at_point(point: (f64, f64), monitors: &[MonitorGeometry]) -> Option<f64> {
+    monitors
+        .iter()
+        .filter(|&&((mx, my), (mw, mh), scale)| {
+            let lx = point.0 / scale;
+            let ly = point.1 / scale;
+            let (lmx, lmy) = (mx / scale, my / scale);
+            let (lmw, lmh) = (mw / scale, mh / scale);
+            lx >= lmx && lx < lmx + lmw && ly >= lmy && ly < lmy + lmh
+        })
+        .map(|&(_, _, scale)| scale)
+        .fold(None, |best, scale| match best {
+            Some(b) if b <= scale => Some(b),
+            _ => Some(scale),
+        })
+}
+
 /// Convierte el `rect` de `TrayIconEvent::Click` (físico) a `TrayRect`
 /// (lógico, el contrato de este módulo — ver `current_work_area` más abajo).
 ///
@@ -59,39 +114,32 @@ pub fn popover_supported() -> bool {
 /// `backingScaleFactor()` de la `NSWindow` del ícono (su
 /// `platform_impl::macos::get_tray_rect`), que es el scale del **monitor
 /// donde vive el ícono en ese instante** — no una constante ni el scale de
-/// la ventana principal, que puede estar en otra pantalla. Igual que
-/// `get_monitor_with_cursor` en `overlay.rs` resuelve el monitor antes de
-/// confiar en un scale factor, acá resolvemos el monitor cuyos límites
-/// físicos contienen el punto del rect y usamos su `scale_factor()`. A
-/// diferencia de aquella función —que normaliza un punto de origen ambiguo
-/// dividiendo por el scale antes de comparar—, acá el punto ya es físico sin
-/// ambigüedad, así que se compara directo contra `Monitor::position()` /
-/// `size()` (también físicas, sin conversión).
-///
-/// Si ningún monitor contiene el punto (no debería pasar, pero mejor que un
-/// panic), cae a escala 1.0: en una pantalla 1x el resultado es correcto de
-/// todas formas, y en Retina es preferible un popover mal ubicado a ninguno.
+/// la ventana principal, que puede estar en otra pantalla. Resolvemos esa
+/// escala con `monitor_scale_at_point` (ver su doc para el porqué del
+/// espacio lógico).
 pub fn logical_tray_rect(app: &AppHandle, rect: Rect) -> TrayRect {
     // `to_physical(1.0)` sólo hace de cast cuando la variante ya es física
     // (el caso real en macOS); sirve para tener un punto con el que buscar
     // el monitor antes de conocer el scale real.
     let raw_pos = rect.position.to_physical::<f64>(1.0);
 
-    let scale = app
+    let monitors: Vec<MonitorGeometry> = app
         .available_monitors()
         .ok()
         .into_iter()
         .flatten()
-        .find(|m| {
-            let mp = m.position();
-            let ms = m.size();
-            raw_pos.x >= mp.x as f64
-                && raw_pos.x < mp.x as f64 + ms.width as f64
-                && raw_pos.y >= mp.y as f64
-                && raw_pos.y < mp.y as f64 + ms.height as f64
+        .map(|m| {
+            let p = m.position();
+            let s = m.size();
+            (
+                (p.x as f64, p.y as f64),
+                (s.width as f64, s.height as f64),
+                m.scale_factor(),
+            )
         })
-        .map(|m| m.scale_factor())
-        .unwrap_or(1.0);
+        .collect();
+
+    let scale = monitor_scale_at_point((raw_pos.x, raw_pos.y), &monitors).unwrap_or(1.0);
 
     let pos = rect.position.to_logical::<f64>(scale);
     let size = rect.size.to_logical::<f64>(scale);
@@ -110,8 +158,17 @@ pub struct PopoverSize {
     pub height: f64,
 }
 
-/// Área utilizable de la pantalla donde vive el ícono. `x`/`y` no son cero
-/// cuando el monitor no es el principal.
+/// Límites completos de la pantalla donde vive el ícono, no el `work_area()`
+/// del sistema operativo (que en macOS excluye la barra de menú y el Dock).
+/// `x`/`y` no son cero cuando el monitor no es el principal.
+///
+/// El nombre dice "utilizable" pero **no excluye la barra de menú**: hereda
+/// la misma decisión que `overlay.rs` (ver el comentario sobre
+/// `calculate_overlay_position`, que evita `work_area()` porque en macOS da
+/// coordenadas incorrectas para monitores con posición negativa). El popover
+/// nunca se pega al borde superior de la pantalla — siempre cuelga bajo el
+/// ícono, que ya vive en la barra de menú —, así que la franja que
+/// `work_area()` recortaría no le importa acá.
 #[derive(Debug, Clone, Copy)]
 pub struct WorkArea {
     pub x: f64,
@@ -174,7 +231,7 @@ pub fn toggle_popover(app: &AppHandle, icon: TrayRect) {
 }
 
 fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayRect) {
-    let work_area = current_work_area(app, window, icon);
+    let work_area = current_work_area(app, icon);
     let pos = popover_position(
         icon,
         PopoverSize {
@@ -208,10 +265,13 @@ fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
 /// ya usa `overlay.rs`— reporta en puntos, no en píxeles físicos.
 ///
 /// Si no se puede resolver por el punto (por ejemplo si `monitor_from_point`
-/// no está implementado en la plataforma), cae al monitor de la ventana; si
-/// tampoco, a la pantalla principal; si tampoco, a un tamaño conservador —
-/// es preferible un popover mal centrado a ninguno.
-fn current_work_area(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayRect) -> WorkArea {
+/// no está implementado en la plataforma), cae a la pantalla principal —no al
+/// monitor de la ventana: ese fallback es exactamente el bug de "abre en la
+/// pantalla equivocada" que este mismo archivo corrige para el ícono, así
+/// que no tiene sentido conservarlo como segunda opción para el popover—; si
+/// tampoco, a un tamaño conservador. Es preferible un popover mal centrado a
+/// ninguno.
+fn current_work_area(app: &AppHandle, icon: TrayRect) -> WorkArea {
     let center_x = icon.x + icon.width / 2.0;
     let center_y = icon.y + icon.height / 2.0;
 
@@ -219,7 +279,6 @@ fn current_work_area(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
         .monitor_from_point(center_x, center_y)
         .ok()
         .flatten()
-        .or_else(|| window.current_monitor().ok().flatten())
         .or_else(|| app.primary_monitor().ok().flatten());
 
     match monitor {
@@ -427,5 +486,50 @@ mod tests {
     fn sin_soporte_de_popover_el_izquierdo_conserva_el_menu() {
         // Windows y Linux: el comportamiento de hoy no se toca.
         assert_eq!(tray_click_action(TrayButton::Left, false), TrayClick::Menu);
+    }
+
+    // --- monitor_scale_at_point: regresión del bug de dos pantallas ---
+
+    #[test]
+    fn resuelve_el_icono_en_el_externo_1x_pese_al_solape_fisico_con_el_retina() {
+        // El caso exacto de I1: Retina interna de 1512pt (físico 0..3024,
+        // escala 2.0) + externa 1x pegada a la derecha en lógico 1512
+        // (físico 1512..3432, escala 1.0). El ícono vive en el externo, en
+        // lógico x=2000 — dentro de la franja donde los rects *físicos* de
+        // ambos monitores se solapan (1512..3024). Bajo comparación física
+        // pura, el resultado dependía de qué monitor iterara primero; acá
+        // tiene que resolver siempre al externo (escala 1.0),
+        // independientemente del orden de la lista.
+        let internal = ((0.0, 0.0), (3024.0, 1964.0), 2.0);
+        let external = ((1512.0, 0.0), (1920.0, 1080.0), 1.0);
+        let point = (2000.0, 20.0);
+
+        assert_eq!(
+            monitor_scale_at_point(point, &[internal, external]),
+            Some(1.0)
+        );
+        // El orden en la lista no debería cambiar el resultado.
+        assert_eq!(
+            monitor_scale_at_point(point, &[external, internal]),
+            Some(1.0)
+        );
+    }
+
+    #[test]
+    fn un_solo_monitor_retina_se_resuelve_sin_ambiguedad() {
+        // Caso base (sin segunda pantalla): nada de esto debería regresionar
+        // el caso normal de un MacBook solo.
+        let internal = ((0.0, 0.0), (3024.0, 1964.0), 2.0);
+        let point = (2200.0, 40.0); // mitad derecha de la pantalla, en físico
+        assert_eq!(monitor_scale_at_point(point, &[internal]), Some(2.0));
+    }
+
+    #[test]
+    fn un_punto_fuera_de_todos_los_monitores_no_matchea_ninguno() {
+        let internal = ((0.0, 0.0), (3024.0, 1964.0), 2.0);
+        let external = ((1512.0, 0.0), (1920.0, 1080.0), 1.0);
+        // Muy a la derecha de ambas pantallas.
+        let point = (5000.0, 20.0);
+        assert_eq!(monitor_scale_at_point(point, &[internal, external]), None);
     }
 }
