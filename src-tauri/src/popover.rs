@@ -93,14 +93,8 @@ pub fn toggle_popover(app: &AppHandle, icon: TrayRect) {
     }
 }
 
-pub fn hide_popover(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window(POPOVER_WINDOW_LABEL) {
-        let _ = window.hide();
-    }
-}
-
 fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayRect) {
-    let work_area = current_work_area(app, window);
+    let work_area = current_work_area(app, window, icon);
     let pos = popover_position(
         icon,
         PopoverSize {
@@ -118,14 +112,34 @@ fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
     let _ = window.set_focus();
 }
 
-/// Área utilizable del monitor donde está el popover. Si no se puede
-/// determinar, cae a la pantalla principal; si tampoco, a un tamaño
-/// conservador — es preferible un popover mal centrado a ninguno.
-fn current_work_area(app: &AppHandle, window: &tauri::WebviewWindow) -> WorkArea {
-    let monitor = window
-        .current_monitor()
+/// Área utilizable del monitor donde está el popover.
+///
+/// Se resuelve desde el **centro del ícono**, no desde la ventana: una
+/// ventana recién creada aterriza donde el sistema la puso por defecto
+/// (típicamente la pantalla principal), no necesariamente donde está el
+/// ícono — con dos pantallas de escalas distintas la primera apertura
+/// calcularía la geometría contra la pantalla equivocada. Mismo problema que
+/// resuelve `get_monitor_with_cursor` en `overlay.rs`, pero desde el punto
+/// del ícono en vez del cursor.
+///
+/// `TrayRect` ya llega en coordenadas lógicas (puntos), que es lo que
+/// `AppHandle::monitor_from_point` espera en macOS: por debajo llama a
+/// `CGDisplayBounds`, que —como `NSEvent::mouseLocation`, la misma fuente que
+/// ya usa `overlay.rs`— reporta en puntos, no en píxeles físicos.
+///
+/// Si no se puede resolver por el punto (por ejemplo si `monitor_from_point`
+/// no está implementado en la plataforma), cae al monitor de la ventana; si
+/// tampoco, a la pantalla principal; si tampoco, a un tamaño conservador —
+/// es preferible un popover mal centrado a ninguno.
+fn current_work_area(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayRect) -> WorkArea {
+    let center_x = icon.x + icon.width / 2.0;
+    let center_y = icon.y + icon.height / 2.0;
+
+    let monitor = app
+        .monitor_from_point(center_x, center_y)
         .ok()
         .flatten()
+        .or_else(|| window.current_monitor().ok().flatten())
         .or_else(|| app.primary_monitor().ok().flatten());
 
     match monitor {

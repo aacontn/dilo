@@ -1,4 +1,5 @@
 import React from "react";
+import "@/App.css";
 
 /**
  * Cascarón del popover de la barra de menú. El contenido llega en la Task 4;
