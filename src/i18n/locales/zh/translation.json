@@ -966,5 +966,15 @@
       "emptyTranscript": "这场会议没有留下任何记录。",
       "interruptedBanner": "这场会议在结束前被中断——转录内容可能不完整。"
     }
+  },
+  "popover": {
+    "idle": "当前没有正在录制的会议",
+    "recording": "录制中",
+    "recentTitle": "最近的会议",
+    "recentEmpty": "还没有录制任何内容",
+    "loadFailed": "无法加载你的会议",
+    "openTranscript": "打开转写",
+    "openDilo": "打开 Dilo",
+    "openFailed": "无法打开窗口"
   }
 }

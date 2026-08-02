@@ -966,5 +966,15 @@
       "emptyTranscript": "No quedó ningún tramo grabado en esta reunión.",
       "interruptedBanner": "Esta reunión se cortó antes de terminar — el transcript puede estar incompleto."
     }
+  },
+  "popover": {
+    "idle": "No hay ninguna reunión grabándose",
+    "recording": "Grabando",
+    "recentTitle": "Reuniones recientes",
+    "recentEmpty": "Todavía no grabas ninguna",
+    "loadFailed": "No se pudieron cargar tus reuniones",
+    "openTranscript": "Abrir transcript",
+    "openDilo": "Abrir Dilo",
+    "openFailed": "No se pudo abrir la ventana"
   }
 }

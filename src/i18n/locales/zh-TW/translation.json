@@ -966,5 +966,15 @@
       "emptyTranscript": "這場會議沒有留下任何紀錄。",
       "interruptedBanner": "這場會議在結束前被中斷——逐字稿可能不完整。"
     }
+  },
+  "popover": {
+    "idle": "目前沒有正在錄製的會議",
+    "recording": "錄製中",
+    "recentTitle": "最近的會議",
+    "recentEmpty": "還沒有錄製任何內容",
+    "loadFailed": "無法載入你的會議",
+    "openTranscript": "開啟逐字稿",
+    "openDilo": "開啟 Dilo",
+    "openFailed": "無法開啟視窗"
   }
 }

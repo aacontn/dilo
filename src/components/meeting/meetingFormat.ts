@@ -1,6 +1,21 @@
 import type { MeetingSummary } from "@/bindings";
 
 /**
+ * Cuántas reuniones muestra el popover de la barra. Número fijo y no "las que
+ * quepan": así el popover no cambia de alto según lo que haya (§2 del diseño).
+ */
+export const RECENT_MEETINGS_LIMIT = 4;
+
+/**
+ * La reunión en curso viaja en el mismo listado que las pasadas —
+ * `list_meetings` no la excluye—, así que quien muestre "reuniones pasadas"
+ * tiene que filtrarla. Vive acá y no en un componente porque la usan dos: el
+ * registro completo y el popover.
+ */
+export const isPastMeeting = (meeting: MeetingSummary): boolean =>
+  meeting.status !== "recording";
+
+/**
  * Anexa una página del listado a lo que ya se mostraba, salteando las
  * reuniones que ya están.
  *

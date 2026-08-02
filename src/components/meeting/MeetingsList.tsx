@@ -5,20 +5,13 @@ import { toast } from "sonner";
 import { commands, events, type MeetingSummary } from "@/bindings";
 import { formatRelativeTime } from "@/utils/dateFormat";
 import { Button } from "../ui/Button";
-import { appendMeetingPage, formatDuration } from "./meetingFormat";
+import {
+  appendMeetingPage,
+  formatDuration,
+  isPastMeeting,
+} from "./meetingFormat";
 
 const PAGE_SIZE = 10;
-
-/**
- * Mientras hay una reunión grabando, esa fila vive en los controles de
- * arriba, no acá (decisión de producto) — el backend no filtra por estado
- * en `list_meetings`, así que lo hacemos en la UI. Sólo puede existir una
- * fila `recording` a la vez (el backend rechaza una segunda grabación con
- * `recording_busy`), así que filtrarla siempre saca como máximo el primer
- * ítem de la primera página.
- */
-const isPastMeeting = (meeting: MeetingSummary): boolean =>
-  meeting.status !== "recording";
 
 interface StatusBadgeProps {
   status: string;

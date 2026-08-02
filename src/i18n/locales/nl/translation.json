@@ -966,5 +966,15 @@
       "emptyTranscript": "Er is niets opgenomen in deze vergadering.",
       "interruptedBanner": "Deze vergadering werd voortijdig afgebroken — het transcript kan onvolledig zijn."
     }
+  },
+  "popover": {
+    "idle": "Er wordt nu geen vergadering opgenomen",
+    "recording": "Bezig met opnemen",
+    "recentTitle": "Recente vergaderingen",
+    "recentEmpty": "Nog niets opgenomen",
+    "loadFailed": "Je vergaderingen konden niet worden geladen",
+    "openTranscript": "Transcript openen",
+    "openDilo": "Dilo openen",
+    "openFailed": "Het venster kon niet worden geopend"
   }
 }

@@ -966,5 +966,15 @@
       "emptyTranscript": "Bu toplantıda hiçbir şey kaydedilmedi.",
       "interruptedBanner": "Bu toplantı bitmeden yarıda kesildi — döküm eksik olabilir."
     }
+  },
+  "popover": {
+    "idle": "Şu anda kaydedilen bir toplantı yok",
+    "recording": "Kaydediliyor",
+    "recentTitle": "Son toplantılar",
+    "recentEmpty": "Henüz hiçbir şey kaydedilmedi",
+    "loadFailed": "Toplantıların yüklenemedi",
+    "openTranscript": "Dökümü aç",
+    "openDilo": "Dilo'yu aç",
+    "openFailed": "Pencere açılamadı"
   }
 }

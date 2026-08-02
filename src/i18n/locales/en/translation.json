@@ -966,5 +966,15 @@
     "processing": "Processing...",
     "speaking": "Speaking...",
     "noteSaved": "Note saved"
+  },
+  "popover": {
+    "idle": "No meeting is being recorded",
+    "recording": "Recording",
+    "recentTitle": "Recent meetings",
+    "recentEmpty": "Nothing recorded yet",
+    "loadFailed": "Couldn't load your meetings",
+    "openTranscript": "Open transcript",
+    "openDilo": "Open Dilo",
+    "openFailed": "Couldn't open the window"
   }
 }

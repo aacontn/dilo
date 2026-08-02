@@ -1,13 +1,32 @@
 import React from "react";
+import { Toaster } from "sonner";
 import "@/App.css";
+import { PopoverBody } from "@/components/popover/PopoverBody";
 
 /**
- * Cascarón del popover de la barra de menú. El contenido llega en la Task 4;
- * acá sólo el vidrio, que sigue el ajuste de tema de Dilo (ver §2 del diseño:
- * el ícono sigue al sistema por legibilidad, el popover sigue a la app).
+ * Cascarón del popover de la barra de menú, con las cuatro zonas montadas
+ * adentro (§2 del diseño: el ícono sigue al sistema por legibilidad, el
+ * popover sigue al ajuste de tema de la app — eso ya lo resuelve el arranque
+ * de tema en `main.tsx`, acá sólo se monta el contenido).
  */
 const PopoverWindow: React.FC = () => (
-  <div className="dilo-shell h-screen w-screen select-none cursor-default p-3" />
+  <>
+    <Toaster
+      theme="system"
+      toastOptions={{
+        unstyled: true,
+        classNames: {
+          toast:
+            "glass-toast rounded-xl px-4 py-3 flex items-center gap-3 text-sm",
+          title: "font-medium",
+          description: "text-muted-text",
+        },
+      }}
+    />
+    <div className="dilo-shell h-screen w-screen select-none cursor-default p-3">
+      <PopoverBody />
+    </div>
+  </>
 );
 
 export default PopoverWindow;

@@ -966,5 +966,15 @@
       "emptyTranscript": "W tym spotkaniu nic nie zostało nagrane.",
       "interruptedBanner": "To spotkanie zostało przerwane przed zakończeniem — zapis może być niekompletny."
     }
+  },
+  "popover": {
+    "idle": "Teraz nie nagrywa się żadne spotkanie",
+    "recording": "Nagrywanie",
+    "recentTitle": "Ostatnie spotkania",
+    "recentEmpty": "Nic jeszcze nie nagrano",
+    "loadFailed": "Nie udało się wczytać Twoich spotkań",
+    "openTranscript": "Otwórz transkrypcję",
+    "openDilo": "Otwórz Dilo",
+    "openFailed": "Nie udało się otworzyć okna"
   }
 }

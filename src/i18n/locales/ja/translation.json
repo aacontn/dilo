@@ -966,5 +966,15 @@
       "emptyTranscript": "このミーティングは何も記録されていません。",
       "interruptedBanner": "このミーティングは終了前に中断されました。文字起こしが不完全な場合があります。"
     }
+  },
+  "popover": {
+    "idle": "現在録音中のミーティングはありません",
+    "recording": "録音中",
+    "recentTitle": "最近のミーティング",
+    "recentEmpty": "まだ何も録音されていません",
+    "loadFailed": "ミーティングを読み込めませんでした",
+    "openTranscript": "文字起こしを開く",
+    "openDilo": "Dilo を開く",
+    "openFailed": "ウィンドウを開けませんでした"
   }
 }

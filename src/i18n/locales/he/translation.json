@@ -966,5 +966,15 @@
       "emptyTranscript": "שום דבר לא הוקלט בפגישה הזו.",
       "interruptedBanner": "הפגישה הזו נקטעה לפני שהסתיימה — התמליל עשוי להיות חלקי."
     }
+  },
+  "popover": {
+    "idle": "אין כרגע פגישה שמוקלטת",
+    "recording": "מקליט",
+    "recentTitle": "פגישות אחרונות",
+    "recentEmpty": "עדיין אין כלום מוקלט",
+    "loadFailed": "לא ניתן היה לטעון את הפגישות שלך",
+    "openTranscript": "פתח תמלול",
+    "openDilo": "פתח את Dilo",
+    "openFailed": "לא ניתן היה לפתוח את החלון"
   }
 }

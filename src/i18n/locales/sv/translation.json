@@ -966,5 +966,15 @@
       "emptyTranscript": "Inget spelades in i det här mötet.",
       "interruptedBanner": "Det här mötet avbröts i förtid — transkriptionen kan vara ofullständig."
     }
+  },
+  "popover": {
+    "idle": "Inget möte spelas in just nu",
+    "recording": "Spelar in",
+    "recentTitle": "Senaste möten",
+    "recentEmpty": "Inget inspelat än",
+    "loadFailed": "Dina möten kunde inte laddas",
+    "openTranscript": "Öppna transkript",
+    "openDilo": "Öppna Dilo",
+    "openFailed": "Det gick inte att öppna fönstret"
   }
 }

@@ -966,5 +966,15 @@
       "emptyTranscript": "V této schůzce se nic nenahrálo.",
       "interruptedBanner": "Tato schůzka byla předčasně přerušena — přepis může být neúplný."
     }
+  },
+  "popover": {
+    "idle": "Momentálně se nenahrává žádná schůzka",
+    "recording": "Nahrává se",
+    "recentTitle": "Poslední schůzky",
+    "recentEmpty": "Zatím nic nenahráno",
+    "loadFailed": "Tvoje schůzky se nepodařilo načíst",
+    "openTranscript": "Otevřít přepis",
+    "openDilo": "Otevřít Dilo",
+    "openFailed": "Okno se nepodařilo otevřít"
   }
 }

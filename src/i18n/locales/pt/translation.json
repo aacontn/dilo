@@ -966,5 +966,15 @@
       "emptyTranscript": "Nada foi registrado nesta reunião.",
       "interruptedBanner": "Esta reunião foi interrompida antes de terminar — a transcrição pode estar incompleta."
     }
+  },
+  "popover": {
+    "idle": "Nenhuma reunião está sendo gravada",
+    "recording": "Gravando",
+    "recentTitle": "Reuniões recentes",
+    "recentEmpty": "Ainda não há nada gravado",
+    "loadFailed": "Não foi possível carregar suas reuniões",
+    "openTranscript": "Abrir transcrição",
+    "openDilo": "Abrir o Dilo",
+    "openFailed": "Não foi possível abrir a janela"
   }
 }

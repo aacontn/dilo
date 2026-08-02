@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { MeetingSegment, MeetingSummary } from "@/bindings";
 import { useMeetingStore } from "@/stores/meetingStore";
-import { appendMeetingPage } from "@/components/meeting/meetingFormat";
+import {
+  appendMeetingPage,
+  isPastMeeting,
+  RECENT_MEETINGS_LIMIT,
+} from "@/components/meeting/meetingFormat";
 
 const segment = (id: number): MeetingSegment => ({
   id,
@@ -109,5 +113,32 @@ describe("appendMeetingPage", () => {
         (m) => m.id,
       ),
     ).toEqual([3, 2, 1]);
+  });
+});
+
+describe("isPastMeeting", () => {
+  test("deja pasar las terminadas", () => {
+    expect(isPastMeeting({ ...summary(1), status: "ready" })).toBe(true);
+  });
+
+  test("deja pasar las interrumpidas: son legibles aunque incompletas", () => {
+    expect(isPastMeeting({ ...summary(1), status: "interrupted" })).toBe(true);
+  });
+
+  test("saca la que está grabando ahora", () => {
+    expect(isPastMeeting({ ...summary(1), status: "recording" })).toBe(false);
+  });
+
+  test("pedir una fila de más deja 4 pasadas aunque una esté grabando", () => {
+    const rows = [
+      { ...summary(5), status: "recording" },
+      summary(4),
+      summary(3),
+      summary(2),
+      summary(1),
+    ];
+    expect(
+      rows.filter(isPastMeeting).slice(0, RECENT_MEETINGS_LIMIT),
+    ).toHaveLength(4);
   });
 });

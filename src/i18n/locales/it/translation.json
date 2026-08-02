@@ -966,5 +966,15 @@
       "emptyTranscript": "Non è stato registrato nulla in questa riunione.",
       "interruptedBanner": "Questa riunione si è interrotta prima della fine — la trascrizione potrebbe essere incompleta."
     }
+  },
+  "popover": {
+    "idle": "Nessuna riunione in fase di registrazione",
+    "recording": "Registrazione in corso",
+    "recentTitle": "Riunioni recenti",
+    "recentEmpty": "Ancora niente di registrato",
+    "loadFailed": "Impossibile caricare le tue riunioni",
+    "openTranscript": "Apri trascrizione",
+    "openDilo": "Apri Dilo",
+    "openFailed": "Impossibile aprire la finestra"
   }
 }
