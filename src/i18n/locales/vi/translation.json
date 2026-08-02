@@ -880,6 +880,8 @@
     "title": "Điểm mới trong Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "Quay lại Dilo",
+    "backFailed": "Không thể quay lại Dilo",
     "launcher": {
       "title": "Cuộc họp",
       "description": "Ghi âm và xem lại các cuộc họp trước đây diễn ra trong cửa sổ riêng.",

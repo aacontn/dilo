@@ -880,6 +880,8 @@
     "noteSaved": "Notitie opgeslagen"
   },
   "meeting": {
+    "backToDilo": "Terug naar Dilo",
+    "backFailed": "Kon niet terug naar Dilo",
     "launcher": {
       "title": "Vergaderingen",
       "description": "Vergaderingen opnemen en teruglezen gebeurt in een eigen venster.",

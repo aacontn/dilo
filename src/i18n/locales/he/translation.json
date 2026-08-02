@@ -880,6 +880,8 @@
     "title": "חדש ב-Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "חזרה ל-Dilo",
+    "backFailed": "לא ניתן היה לחזור ל-Dilo",
     "launcher": {
       "title": "פגישות",
       "description": "הקלטת פגישות קודמות וקריאתן מתבצעת בחלון נפרד.",

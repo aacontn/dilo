@@ -880,6 +880,8 @@
     "title": "Neu in Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "Zurück zu Dilo",
+    "backFailed": "Zurückkehren zu Dilo fehlgeschlagen",
     "launcher": {
       "title": "Meetings",
       "description": "Vergangene Meetings aufnehmen und lesen läuft in einem eigenen Fenster.",

@@ -1,7 +1,9 @@
 import React, { useEffect } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
 import "@/App.css";
+import { commands } from "@/bindings";
 import { MeetingSession } from "@/components/meeting";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
@@ -14,12 +16,22 @@ import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
  * reuniones pasadas.
  */
 const MeetingsWindow: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const direction = getLanguageDirection(i18n.language);
 
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
+
+  // Abrir Reuniones esconde la ventana de Ajustes, así que sin esto la única
+  // vuelta es la bandeja. El intercambio lo hace Rust (`return_to_main_window`),
+  // igual que el de ida.
+  const goBack = async () => {
+    const result = await commands.returnToMainWindow();
+    if (result.status === "error") {
+      toast.error(t("meeting.backFailed"), { description: result.error });
+    }
+  };
 
   return (
     <>
@@ -48,6 +60,19 @@ const MeetingsWindow: React.FC = () => {
         />
         <div className="dilo-scroll flex-1 overflow-y-auto">
           <div className="dilo-page flex flex-col items-center gap-4">
+            {/* Debajo de la franja de arrastre, no dentro: en macOS los
+                semáforos nativos viven arriba a la izquierda y un botón ahí
+                chocaría con ellos. */}
+            <div className="w-full">
+              <button
+                type="button"
+                onClick={() => void goBack()}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-text transition-colors hover:bg-white/10 hover:text-text"
+              >
+                <ArrowLeft className="size-4 shrink-0" />
+                {t("meeting.backToDilo")}
+              </button>
+            </div>
             <MeetingSession />
           </div>
         </div>

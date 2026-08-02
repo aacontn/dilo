@@ -21,7 +21,7 @@ curso → y desde ahí **el panel completo** en su ventana.
 Esto **no reemplaza** la ventana de reuniones de §1. La decisión de tener el
 módulo completo en su propia ventana sigue en pie: el registro, los transcripts
 y la asignación de hablantes se leen con calma, y eso no cabe —ni se disfruta—
-en un popover. Lo que cambia es que la actividad *viva* sube a la barra.
+en un popover. Lo que cambia es que la actividad _viva_ sube a la barra.
 
 **El popover es lo que pasa ahora; la ventana es lo que quedó guardado.**
 
@@ -119,19 +119,19 @@ de avisos); la capacidad no.
 
 Es proyecto propio porque son **dos disparadores distintos**, y ninguno es UI:
 
-- **Agendado** — calendario conectado. Sabe *antes*, con cuenta regresiva. Es
+- **Agendado** — calendario conectado. Sabe _antes_, con cuenta regresiva. Es
   lo que hace la píldora de Wispr según la inspección del 2026-07-27: va de
   Google Calendar, no de detección.
-- **Espontáneo** — una llamada, un Meet que alguien te tira. Sabe *durante*, y
+- **Espontáneo** — una llamada, un Meet que alguien te tira. Sabe _durante_, y
   ningún calendario lo ve venir. Es el caso que Alfonso describió.
 
 Para el espontáneo, las rutas evaluadas:
 
-| Ruta | Alcance | Costo |
-| --- | --- | --- |
-| Proceso corriendo | Zoom, Teams nativos | Barato |
-| Título de ventana vía Accesibilidad | Meet, Blackboard en navegador | Frágil: cambia con cada rediseño del sitio |
-| **Micrófono en uso por otra app** | **Todos, sin conocer ninguna app** | **Una señal, cero lista que mantener** |
+| Ruta                                | Alcance                            | Costo                                      |
+| ----------------------------------- | ---------------------------------- | ------------------------------------------ |
+| Proceso corriendo                   | Zoom, Teams nativos                | Barato                                     |
+| Título de ventana vía Accesibilidad | Meet, Blackboard en navegador      | Frágil: cambia con cada rediseño del sitio |
+| **Micrófono en uso por otra app**   | **Todos, sin conocer ninguna app** | **Una señal, cero lista que mantener**     |
 
 La tercera es la candidata: cubre Zoom, Meet, Blackboard y lo que venga sin
 una lista de apps que envejece.

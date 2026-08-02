@@ -1030,6 +1030,28 @@ async openMeetingsWindow() : Promise<Result<null, string>> {
 }
 },
 /**
+ * El camino de vuelta: muestra Ajustes y esconde Reuniones. Es el inverso
+ * exacto de `open_meetings_window`, y existe porque esa función esconde la
+ * ventana principal — sin esto el usuario queda sin puerta de regreso salvo
+ * la bandeja.
+ * 
+ * Vive en Rust y no en el frontend a propósito: el intercambio de ventanas
+ * ya se decide acá, y hacerlo desde el webview exigiría permisos de ventana
+ * nuevos en `capabilities/default.json` para repetir la misma lógica.
+ * 
+ * Reuniones se **esconde**, no se cierra: si hay una reunión grabando, su
+ * estado vive en el webview (ver la nota del módulo) y debe sobrevivir al
+ * viaje de ida y vuelta.
+ */
+async returnToMainWindow() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("return_to_main_window") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Verifica el token de Notion guardado con `GET /v1/users/me`.
  */
 async testNotionConnection() : Promise<Result<null, string>> {

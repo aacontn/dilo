@@ -880,6 +880,8 @@
     "title": "Ново в Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "Обратно към Dilo",
+    "backFailed": "Не успя връщането към Dilo",
     "launcher": {
       "title": "Срещи",
       "description": "Записването и четенето на минали срещи се случва в собствен прозорец.",

@@ -880,6 +880,8 @@
     "title": "Dilo v{{version}} の新機能"
   },
   "meeting": {
+    "backToDilo": "Dilo に戻る",
+    "backFailed": "Dilo に戻れませんでした",
     "launcher": {
       "title": "ミーティング",
       "description": "過去のミーティングの録音と閲覧は専用のウィンドウで行います。",

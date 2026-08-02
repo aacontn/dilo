@@ -24,6 +24,7 @@ para reuniones.
 TypeScript estricto (sin `any`) para el frontend.
 
 **Primary Dependencies**:
+
 - Backend existente a reutilizar: `rusqlite` + `rusqlite_migration` (persistencia),
   `transcribe-cpp`/`transcribe-rs` (motores Whisper/Parakeet/Moonshine/SenseVoice),
   `vad-rs` (Silero VAD), `llm_client.rs` (proveedor LLM de post-proceso), Tauri 2.x
@@ -63,16 +64,16 @@ ver spec Assumptions). Sesiones de hasta varias horas.
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principio | Evaluación | Estado |
-|---|---|---|
-| I. Núcleo Abierto y Agnóstico | El notetaker es una capacidad del núcleo (captura + presentación), no depende de ningún backend/negocio específico. El destino de sync (Apple Notes u otro) entra como configuración reemplazable, no hardcodeada. | ✅ PASS |
-| II. Dilo Propone, Nunca Ejecuta | La sincronización a un destino externo (Historia 5) escribe únicamente en un destino que el propio usuario configuró de antemano (su propia app de notas) — no es una operación sensible de terceros (no envía, no borra, no compra). No requiere gate adicional de confirmación en tiempo real, pero el destino debe ser explícito y reversible (el usuario puede desconfigurarlo). | ✅ PASS |
-| III. Español Primero, Sin Traducción Automática | Todo string nuevo de UI vía i18next; el copy `es` se escribe a mano como el resto del producto. Se verifica en Fase 2 (tasks) como criterio de aceptación, no solo como intención. | ✅ PASS (gate operativo en tasks) |
-| IV. Cerca del Upstream (Handy) | El notetaker no existe en Handy upstream — es una feature nueva de Dilo, no una divergencia de algo que ya existía río arriba. No compite con este principio; el código nuevo vive en módulos propios (`managers/meeting.rs`, etc.) sin tocar la lógica de dictado existente. | ✅ PASS |
-| V. Calidad No Negociable | `cargo fmt`/`clippy` y `eslint`/`prettier` aplican igual que al resto del repo; se listan como parte de Definition of Done en tasks, no como best-effort. | ✅ PASS (gate operativo en tasks) |
-| VI. Sin Atajos de Alcance | Éste es el gate real de este plan. La Historia 1 (diarización presencial) es P1 y su enfoque técnico se investiga en Fase 0 (research.md) como un problema de primera clase, no se pospone. Si Fase 0 concluyera que no hay ningún enfoque viable local/offline, el plan debe decirlo explícitamente como bloqueo — no degradar en silencio a "solo post-proceso". | ⚠ VERIFICAR EN FASE 0 — ver research.md |
+| Principio                                       | Evaluación                                                                                                                                                                                                                                                                                                                                                                           | Estado                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| I. Núcleo Abierto y Agnóstico                   | El notetaker es una capacidad del núcleo (captura + presentación), no depende de ningún backend/negocio específico. El destino de sync (Apple Notes u otro) entra como configuración reemplazable, no hardcodeada.                                                                                                                                                                   | ✅ PASS                                  |
+| II. Dilo Propone, Nunca Ejecuta                 | La sincronización a un destino externo (Historia 5) escribe únicamente en un destino que el propio usuario configuró de antemano (su propia app de notas) — no es una operación sensible de terceros (no envía, no borra, no compra). No requiere gate adicional de confirmación en tiempo real, pero el destino debe ser explícito y reversible (el usuario puede desconfigurarlo). | ✅ PASS                                  |
+| III. Español Primero, Sin Traducción Automática | Todo string nuevo de UI vía i18next; el copy `es` se escribe a mano como el resto del producto. Se verifica en Fase 2 (tasks) como criterio de aceptación, no solo como intención.                                                                                                                                                                                                   | ✅ PASS (gate operativo en tasks)        |
+| IV. Cerca del Upstream (Handy)                  | El notetaker no existe en Handy upstream — es una feature nueva de Dilo, no una divergencia de algo que ya existía río arriba. No compite con este principio; el código nuevo vive en módulos propios (`managers/meeting.rs`, etc.) sin tocar la lógica de dictado existente.                                                                                                        | ✅ PASS                                  |
+| V. Calidad No Negociable                        | `cargo fmt`/`clippy` y `eslint`/`prettier` aplican igual que al resto del repo; se listan como parte de Definition of Done en tasks, no como best-effort.                                                                                                                                                                                                                            | ✅ PASS (gate operativo en tasks)        |
+| VI. Sin Atajos de Alcance                       | Éste es el gate real de este plan. La Historia 1 (diarización presencial) es P1 y su enfoque técnico se investiga en Fase 0 (research.md) como un problema de primera clase, no se pospone. Si Fase 0 concluyera que no hay ningún enfoque viable local/offline, el plan debe decirlo explícitamente como bloqueo — no degradar en silencio a "solo post-proceso".                   | ⚠ VERIFICAR EN FASE 0 — ver research.md |
 
 **Resultado del gate inicial**: PASA para avanzar a Fase 0, con la condición
 de que Fase 0 resuelva de forma concreta (no evasiva) el enfoque de
@@ -81,8 +82,8 @@ diseño.
 
 ### Re-evaluación post-diseño (después de Fase 0 y Fase 1)
 
-| Principio | Re-evaluación | Estado |
-|---|---|---|
+| Principio                 | Re-evaluación                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Estado                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | VI. Sin Atajos de Alcance | `research.md` §1 define un enfoque concreto y viable (pipeline ONNX estilo sherpa-onnx, embebible, offline, con clustering para número de hablantes desconocido) — no es un placeholder ni "a definir después". El límite honesto (overlap total de dos voces simultáneas no se separa con precisión perfecta) queda documentado explícitamente en vez de prometerse de más u ocultarse. `data-model.md` modela `overlapped` y `speaker_id NULL` como estados de primera clase, no como casos de error. | ✅ PASS — el gate se cumple con un enfoque real, sujeto al límite honesto documentado |
 
 Todos los demás principios se mantienen ✅ PASS sin cambios tras el diseño —
@@ -154,6 +155,6 @@ existe en el repo.
 
 > Fill ONLY if Constitution Check has violations that must be justified
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|---|---|---|
+| Violation                                                                      | Why Needed                                                                                                                                                                                         | Simpler Alternative Rejected Because                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Alcance inicial limitado a macOS para captura de audio de sistema (Historia 2) | La API de captura de audio de sistema (tipo ScreenCaptureKit) es específica de plataforma; no hay una librería cross-platform madura y offline disponible hoy en el ecosistema Rust/Tauri de Dilo. | Bloquear todo el feature hasta tener paridad Windows/Linux retrasaría la Historia 1 (P1, el diferencial real) sin necesidad — la diarización presencial no depende de captura de sistema. Windows/Linux quedan como expansión posterior de la Historia 2, no una reducción de alcance de la Historia 1. |

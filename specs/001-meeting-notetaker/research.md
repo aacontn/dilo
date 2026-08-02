@@ -21,6 +21,7 @@ ya usa para Silero VAD y los motores de transcripción ONNX (transcribe-rs)
 "Resultado (T002)" más abajo).
 
 **Rationale**:
+
 - Encaja con la arquitectura existente: Dilo ya embebe modelos ONNX locales
   (Silero VAD, Parakeet/Moonshine/SenseVoice vía transcribe-rs) — agregar un
   modelo de diarización ONNX más sigue el mismo patrón de
@@ -93,7 +94,7 @@ sirve. Resultado, con las fuentes primarias usadas:
   bytes, SHA-256
   `220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079`):
   **MIT License, Copyright (c) 2022 CNRS**. Verificado leyendo el archivo
-  `LICENSE` bundleado *dentro* del propio `.tar.bz2` de la release (no
+  `LICENSE` bundleado _dentro_ del propio `.tar.bz2` de la release (no
   solo la licencia del repo) — descargado de
   https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2.
   El `README.md` bundleado confirma el origen:
@@ -108,8 +109,8 @@ sirve. Resultado, con las fuentes primarias usadas:
   `aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2`):
   **Apache-2.0** (proyecto 3D-Speaker, Alibaba DAMO Academy / ModelScope).
   Verificado leyendo el `README.md` real del repo origen
-  (`modelscope/3D-Speaker`, sección "License": *"3D-Speaker is released
-  under the Apache License 2.0"*) y la licencia que GitHub detecta sobre
+  (`modelscope/3D-Speaker`, sección "License": _"3D-Speaker is released
+  under the Apache License 2.0"_) y la licencia que GitHub detecta sobre
   ese repo (`apache-2.0`), con dos mirrors independientes de este mismo
   checkpoint ONNX en HuggingFace confirmando "License: Apache-2.0
   (inherited from 3D-Speaker / ModelScope)". Descargado de
@@ -144,15 +145,16 @@ perfecta de audio superpuesto NO lo es con el estado del arte actual en
 un solo canal, y no se promete como tal.
 
 **Alternatives considered**:
-- *NVIDIA NeMo diarization / Sortformer*: más preciso en benchmarks
+
+- _NVIDIA NeMo diarization / Sortformer_: más preciso en benchmarks
   académicos, pero es un framework de entrenamiento/investigación en
   Python, pesado para empotrar en una app de escritorio distribuida como
   binario único. Rechazado por costo de empaquetado, no por precisión.
-- *WhisperX / whisper-diarization*: combina Whisper + pyannote vía Python;
+- _WhisperX / whisper-diarization_: combina Whisper + pyannote vía Python;
   mismo problema — requeriría un runtime Python embebido que Dilo no tiene
   hoy y que rompe la filosofía de binario nativo liviano.
-- *Diarización basada solo en heurísticas de pausas/VAD (sin embeddings de
-  hablante)*: más simple de implementar, pero no distingue hablantes
+- _Diarización basada solo en heurísticas de pausas/VAD (sin embeddings de
+  hablante)_: más simple de implementar, pero no distingue hablantes
   reales — solo turnos de silencio. No cumple FR-003 (identificar
   hablantes distintos), fue descartado por no resolver el problema que
   esta feature existe para resolver.
@@ -177,12 +179,13 @@ ya funcionan bien en español, sin bloquear la feature a que aparezca un
 modelo streaming-en-español production-ready.
 
 **Alternatives considered**:
-- *Esperar/exigir un modelo con streaming real en español*: bloquearía
+
+- _Esperar/exigir un modelo con streaming real en español_: bloquearía
   toda la Historia 1 y 2 a una dependencia externa fuera del control del
   equipo. Rechazado — el pipeline de streaming real queda como mejora
   futura cuando exista un modelo apto, sin cambiar el contrato de cara al
   usuario (FR-002 se sigue cumpliendo).
-- *Transcribir todo al final (batch puro)*: es lo que hace el clon de Handy
+- _Transcribir todo al final (batch puro)_: es lo que hace el clon de Handy
   inspeccionado como referencia. Rechazado explícitamente por el Principio
   VI — no cumple SC-002 y es la clase de atajo que ya se descartó.
 
@@ -201,14 +204,15 @@ instalación adicionales para el usuario. Apps comparables (notetakers,
 herramientas de captura) ya usan esta misma API en macOS reciente.
 
 **Alternatives considered**:
-- *Driver de audio virtual (BlackHole u otro)*: requiere instalación
+
+- _Driver de audio virtual (BlackHole u otro)_: requiere instalación
   separada fuera de Dilo, rompe "no setup" y complica la distribución (no
   se puede empotrar un kernel extension dentro del `.app`). Rechazado.
-- *Pedir a cada participante que instale algo / un bot que se una a la
-  llamada*: contradice explícitamente FR-016 ("sin requerir que otros
+- _Pedir a cada participante que instale algo / un bot que se una a la
+  llamada_: contradice explícitamente FR-016 ("sin requerir que otros
   participantes instalen software ni que un bot se una"). Rechazado por
   spec.
-- *Windows/Linux en v1*: no hay una API de captura de audio de sistema tan
+- _Windows/Linux en v1_: no hay una API de captura de audio de sistema tan
   directa y sin dependencias como ScreenCaptureKit en esas plataformas
   todavía integrada al toolkit de Dilo. Documentado en Complexity Tracking
   del plan como limitación de alcance explícita, no oculta.
@@ -228,13 +232,14 @@ dependencia distinta) — la detección es, en los hechos, un "modo de
 prueba" de la misma captura antes de comprometerse a grabar.
 
 **Alternatives considered**:
-- *Detectar por proceso corriendo (`Zoom.app`, etc.)*: más simple, pero da
+
+- _Detectar por proceso corriendo (`Zoom.app`, etc.)_: más simple, pero da
   falsos positivos (la app abierta sin llamada activa) y no cubre
   videollamadas dentro del navegador (Meet en Chrome) sin lógica adicional
   por navegador. Rechazado como señal principal; puede usarse como
   heurística complementaria más adelante, no en v1.
-- *Integración directa con la API de cada app de videollamada (Zoom SDK,
-  etc.)*: requeriría credenciales/SDKs por proveedor, contradice el
+- _Integración directa con la API de cada app de videollamada (Zoom SDK,
+  etc.)_: requeriría credenciales/SDKs por proveedor, contradice el
   Principio I (no atar el núcleo a integraciones específicas de terceros
   para una función que debe funcionar igual sin importar qué app se use).
   Rechazado.

@@ -60,6 +60,36 @@ pub fn open_meetings_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// El camino de vuelta: muestra Ajustes y esconde Reuniones. Es el inverso
+/// exacto de `open_meetings_window`, y existe porque esa función esconde la
+/// ventana principal — sin esto el usuario queda sin puerta de regreso salvo
+/// la bandeja.
+///
+/// Vive en Rust y no en el frontend a propósito: el intercambio de ventanas
+/// ya se decide acá, y hacerlo desde el webview exigiría permisos de ventana
+/// nuevos en `capabilities/default.json` para repetir la misma lógica.
+///
+/// Reuniones se **esconde**, no se cierra: si hay una reunión grabando, su
+/// estado vive en el webview (ver la nota del módulo) y debe sobrevivir al
+/// viaje de ida y vuelta.
+#[tauri::command]
+#[specta::specta]
+pub fn return_to_main_window(app: AppHandle) -> Result<(), String> {
+    // Primero mostrar, después esconder: al revés, entre medio no queda
+    // ninguna ventana visible y la guarda del Dock podría mandar la app a
+    // Accessory.
+    crate::show_main_window(&app);
+
+    if let Some(meetings) = app.get_webview_window(MEETINGS_WINDOW_LABEL) {
+        if let Err(e) = meetings.hide() {
+            // No es fatal: Ajustes ya está al frente, que es lo que se pidió.
+            log::warn!("No se pudo esconder la ventana de reuniones: {e}");
+        }
+    }
+
+    Ok(())
+}
+
 fn create_meetings_window(app: &AppHandle) -> Result<(), String> {
     let mut builder = WebviewWindowBuilder::new(
         app,

@@ -87,7 +87,7 @@ el fork de "mergear" a "reescribir", y ese costo compone en cada release.
 `cargo fmt` + `cargo clippy` en Rust, ESLint + Prettier en frontend,
 TypeScript estricto sin `any`, corren antes de cada commit. Los mensajes de
 commit usan prefijo convencional (`feat:`, `fix:`, `docs:`, `refactor:`,
-`chore:`) enfocado en el *por qué*, no el *qué*.
+`chore:`) enfocado en el _por qué_, no el _qué_.
 
 **Rationale**: en un fork abierto sin feature freeze, la disciplina de
 código es lo único que evita que la velocidad de shippear se convierta en

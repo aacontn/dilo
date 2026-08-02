@@ -880,6 +880,8 @@
     "title": "Nytt i Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "Tillbaka till Dilo",
+    "backFailed": "Kunde inte gå tillbaka till Dilo",
     "launcher": {
       "title": "Möten",
       "description": "Att spela in och läsa tidigare möten sker i ett eget fönster.",

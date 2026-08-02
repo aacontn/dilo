@@ -23,27 +23,29 @@
 
 ## Estructura de archivos
 
-| Archivo | Responsabilidad |
-|---|---|
-| `src-tauri/src/settings.rs` | Campos nuevos, regla `provider_is_local`, resolución del proveedor de un modo, refresco al cargar |
-| `src-tauri/src/actions.rs` | Orden de resolución, caída al global, señal de cruce local→online |
-| `src-tauri/src/shortcut/mod.rs` | Comando para guardar el proveedor/modelo de un modo |
-| `src-tauri/src/lib.rs` | Registro del comando y del evento nuevos |
-| `src/components/settings/post-processing/ModeProviderSelect.tsx` | **Nuevo.** Bloque "IA de este modo" |
-| `src/components/settings/post-processing/PostProcessingSettings.tsx` | Monta el bloque junto al atajo |
-| `src/components/home/DictationModes.tsx` | Etiqueta LOCAL/ONLINE por modo |
-| `src/App.tsx` | Toast del aviso de caída |
-| `src/i18n/locales/*/translation.json` | Claves nuevas en 21 lenguas |
+| Archivo                                                              | Responsabilidad                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/settings.rs`                                          | Campos nuevos, regla `provider_is_local`, resolución del proveedor de un modo, refresco al cargar |
+| `src-tauri/src/actions.rs`                                           | Orden de resolución, caída al global, señal de cruce local→online                                 |
+| `src-tauri/src/shortcut/mod.rs`                                      | Comando para guardar el proveedor/modelo de un modo                                               |
+| `src-tauri/src/lib.rs`                                               | Registro del comando y del evento nuevos                                                          |
+| `src/components/settings/post-processing/ModeProviderSelect.tsx`     | **Nuevo.** Bloque "IA de este modo"                                                               |
+| `src/components/settings/post-processing/PostProcessingSettings.tsx` | Monta el bloque junto al atajo                                                                    |
+| `src/components/home/DictationModes.tsx`                             | Etiqueta LOCAL/ONLINE por modo                                                                    |
+| `src/App.tsx`                                                        | Toast del aviso de caída                                                                          |
+| `src/i18n/locales/*/translation.json`                                | Claves nuevas en 21 lenguas                                                                       |
 
 ---
 
 ### Task 1: `is_local` calculado en el catálogo de proveedores
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs` (struct `PostProcessProvider` ~línea 112, `default_post_process_providers` ~661, `ensure_post_process_defaults` ~847)
 - Test: mismo archivo, `mod tests` (~1278)
 
 **Interfaces:**
+
 - Produces: `pub fn provider_is_local(provider: &PostProcessProvider) -> bool`; campo `PostProcessProvider.is_local: bool` (calculado al cargar, visible en `bindings.ts`).
 
 - [ ] **Step 1: Escribir el test que falla**
@@ -213,10 +215,12 @@ apunta a un servidor remoto deja de decir local solo."
 ### Task 2: `provider_id` y `model` por modo, con su resolución
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs` (struct `LLMPrompt` ~línea 90, `dilo_post_process_presets` ~788, `add_post_process_prompt` en `shortcut/mod.rs` ~1151 construye un `LLMPrompt`)
 - Test: `src-tauri/src/settings.rs`, `mod tests`
 
 **Interfaces:**
+
 - Consumes: `provider_is_local` (Task 1).
 - Produces: `LLMPrompt.provider_id: Option<String>`, `LLMPrompt.model: Option<String>`; `pub struct ResolvedProvider { pub provider: PostProcessProvider, pub model: String, pub is_local: bool, pub inherited: bool }`; `pub fn resolve_mode_provider(settings: &AppSettings, prompt: &LLMPrompt) -> Option<ResolvedProvider>`.
 
@@ -411,10 +415,12 @@ es configuración que quedó vieja."
 ### Task 3: Caída al proveedor global y señal de cruce a la nube
 
 **Files:**
+
 - Modify: `src-tauri/src/actions.rs` (`post_process_transcription` ~137-381, y su llamador ~486)
 - Test: `src-tauri/src/actions.rs`, `mod tests` (~1070)
 
 **Interfaces:**
+
 - Consumes: `resolve_mode_provider`, `ResolvedProvider` (Task 2).
 - Produces: `pub struct PostProcessOutcome { pub text: String, pub used_provider_id: String, pub crossed_to_cloud: Option<PostProcessFallback> }`; el evento `pub struct PostProcessFallback { pub mode_name: String, pub provider_label: String }` (nombre de cable `post-process-fallback`, binding `events.postProcessFallback`); `fn crossing_to_report(mode_was_local: bool, fallback_is_local: bool, mode_name: &str, provider_label: &str) -> Option<PostProcessFallback>`.
 
@@ -622,10 +628,12 @@ enterarse."
 ### Task 4: Comando para guardar el proveedor de un modo
 
 **Files:**
+
 - Modify: `src-tauri/src/shortcut/mod.rs` (junto a `update_post_process_prompt` ~1164)
 - Modify: `src-tauri/src/lib.rs` (`collect_commands![...]`, junto a `add_post_process_prompt`)
 
 **Interfaces:**
+
 - Produces: comando `set_post_process_prompt_provider(id: String, provider_id: Option<String>, model: Option<String>)` → binding `commands.setPostProcessPromptProvider(id, providerId, model)`.
 
 - [ ] **Step 1: Implementar el comando**
@@ -684,6 +692,7 @@ En `collect_commands![...]`, inmediatamente después de la línea 622
 cd src-tauri && cargo build && ./target/debug/dilo --list-devices >/dev/null 2>&1; cd ..
 grep -n "setPostProcessPromptProvider" src/bindings.ts
 ```
+
 Expected: la función aparece en `src/bindings.ts`.
 
 - [ ] **Step 4: Commit**
@@ -702,10 +711,12 @@ significa nada y quedaría como basura en el settings."
 ### Task 5: Bloque "IA de este modo" en la UI
 
 **Files:**
+
 - Create: `src/components/settings/post-processing/ModeProviderSelect.tsx`
 - Modify: `src/components/settings/post-processing/PostProcessingSettings.tsx` (junto a `<ModeShortcutInput ... />`, ~línea 328)
 
 **Interfaces:**
+
 - Consumes: `commands.setPostProcessPromptProvider` (Task 4), `settings.post_process_providers[].is_local` (Task 1), `LLMPrompt.provider_id/model` (Task 2).
 - Produces: `<ModeProviderSelect promptId providerId model />`.
 
@@ -754,7 +765,10 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
     [providers, scope],
   );
 
-  const save = async (nextProviderId: string | null, nextModel: string | null) => {
+  const save = async (
+    nextProviderId: string | null,
+    nextModel: string | null,
+  ) => {
     const result = await commands.setPostProcessPromptProvider(
       promptId,
       nextProviderId,
@@ -854,11 +868,11 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
 En `PostProcessingSettings.tsx`, inmediatamente después del `<ModeShortcutInput ... />`:
 
 ```tsx
-            <ModeProviderSelect
-              promptId={selectedPrompt.id}
-              providerId={selectedPrompt.provider_id}
-              model={selectedPrompt.model}
-            />
+<ModeProviderSelect
+  promptId={selectedPrompt.id}
+  providerId={selectedPrompt.provider_id}
+  model={selectedPrompt.model}
+/>
 ```
 
 y su import arriba: `import { ModeProviderSelect } from "./ModeProviderSelect";`
@@ -884,10 +898,12 @@ de proveedor, porque es la que el usuario necesita ver de un vistazo."
 ### Task 6: Etiqueta LOCAL/ONLINE en Inicio y aviso de caída
 
 **Files:**
+
 - Modify: `src/components/home/DictationModes.tsx`
 - Modify: `src/App.tsx` (junto al listener de `recording-error`, ~línea 118)
 
 **Interfaces:**
+
 - Consumes: `events.postProcessFallback` (Task 3), `is_local` (Task 1).
 
 - [ ] **Step 1: Etiqueta por modo en Inicio**
@@ -899,28 +915,30 @@ tanto no lleva etiqueta — de ahí el `promptId === null` del guard.
 Agregar el helper antes del `return` del componente:
 
 ```tsx
-  const providerBadgeFor = (promptId: string | null) => {
-    if (promptId === null) return null; // "literal" no pasa por IA
-    const prompt = prompts.find((p) => p.id === promptId);
-    const providerId = prompt?.provider_id ?? settings.post_process_provider_id;
-    const provider = settings.post_process_providers.find(
-      (p) => p.id === providerId,
-    );
-    if (!provider) return null;
-    return provider.is_local
-      ? t("settings.postProcessing.modeProvider.badgeLocal")
-      : t("settings.postProcessing.modeProvider.badgeOnline");
-  };
+const providerBadgeFor = (promptId: string | null) => {
+  if (promptId === null) return null; // "literal" no pasa por IA
+  const prompt = prompts.find((p) => p.id === promptId);
+  const providerId = prompt?.provider_id ?? settings.post_process_provider_id;
+  const provider = settings.post_process_providers.find(
+    (p) => p.id === providerId,
+  );
+  if (!provider) return null;
+  return provider.is_local
+    ? t("settings.postProcessing.modeProvider.badgeLocal")
+    : t("settings.postProcessing.modeProvider.badgeOnline");
+};
 ```
 
 y usarlo dentro de la tarjeta de cada modo, junto al nombre:
 
 ```tsx
-                {providerBadgeFor(mode.promptId) && (
-                  <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
-                    {providerBadgeFor(mode.promptId)}
-                  </span>
-                )}
+{
+  providerBadgeFor(mode.promptId) && (
+    <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
+      {providerBadgeFor(mode.promptId)}
+    </span>
+  );
+}
 ```
 
 - [ ] **Step 2: Toast del cruce a la nube**
@@ -928,20 +946,20 @@ y usarlo dentro de la tarjeta de cada modo, junto al nombre:
 En `src/App.tsx`, junto al listener existente de `recording-error`:
 
 ```tsx
-  useEffect(() => {
-    const unlisten = events.postProcessFallback.listen((event) => {
-      const { mode_name, provider_label } = event.payload;
-      toast.info(
-        t("settings.postProcessing.modeProvider.fallbackNotice", {
-          mode: mode_name,
-          provider: provider_label,
-        }),
-      );
-    });
-    return () => {
-      void unlisten.then((fn) => fn());
-    };
-  }, [t]);
+useEffect(() => {
+  const unlisten = events.postProcessFallback.listen((event) => {
+    const { mode_name, provider_label } = event.payload;
+    toast.info(
+      t("settings.postProcessing.modeProvider.fallbackNotice", {
+        mode: mode_name,
+        provider: provider_label,
+      }),
+    );
+  });
+  return () => {
+    void unlisten.then((fn) => fn());
+  };
+}, [t]);
 ```
 
 Asegurarse de que `events` esté importado desde `@/bindings` en ese archivo.
@@ -967,10 +985,12 @@ el aviso aparece cuando una caída al proveedor general cruzó esa línea."
 ### Task 7: Copy en 21 idiomas
 
 **Files:**
+
 - Modify: `src/i18n/locales/{es,en}/translation.json` (a mano)
 - Modify: los otros 19 locales
 
 **Interfaces:**
+
 - Consumes: las claves usadas en Tasks 5 y 6.
 
 - [ ] **Step 1: Escribir `es` a mano (tuteo chileno)**
@@ -1029,6 +1049,7 @@ Expected: `✓ All 21 languages have complete translations!`
 ```bash
 grep -nE "\b(mirá|ponele|elegí|tenés|querés|podés|hacé|fijate|guardá|probá|escribí)\b" src/i18n/locales/es/translation.json
 ```
+
 Expected: sin resultados.
 
 - [ ] **Step 6: Commit**
@@ -1044,6 +1065,7 @@ git commit -m "i18n: copy de la IA por modo en los 21 idiomas"
 ### Task 8: Verificación visual y cierre
 
 **Files:**
+
 - Ninguno nuevo. Usa el andamio de preview del worktree del notetaker como referencia (`.superpowers/preview/`, gitignored).
 
 - [ ] **Step 1: Mirar el bloque en el navegador**
@@ -1058,6 +1080,7 @@ Run: `./node_modules/.bin/vite --config .superpowers/preview/vite.config.ts --po
 cd src-tauri && cargo fmt --check && cargo clippy --all-targets && cargo test --lib && cd ..
 bun run build && bun run lint && bun run check:translations
 ```
+
 Expected: todo verde; los warnings de clippy sólo en los archivos preexistentes (`recorder.rs`, `gguf_meta.rs`, `transcription.rs`, `portable.rs`, `transcription_coordinator.rs`).
 
 - [ ] **Step 3: Prueba en vivo (Alfonso)**

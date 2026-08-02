@@ -880,6 +880,8 @@
     "title": "الجديد في Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "العودة إلى Dilo",
+    "backFailed": "تعذرت العودة إلى Dilo",
     "launcher": {
       "title": "الاجتماعات",
       "description": "تسجيل الاجتماعات السابقة وقراءتها يتم في نافذة خاصة بها.",

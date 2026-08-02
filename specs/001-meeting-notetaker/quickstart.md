@@ -67,10 +67,10 @@ feature cumple la spec con gente real hablando.
    no modifica ni se mezcla con la transcripción generada.
 4. **Verificar**: los pendientes aparecen como lista independiente, no
    mezclados en el texto del resumen (FR-006).
-4. Buscar una palabra que se haya dicho en una de las reuniones.
-5. **Verificar**: aparece en resultados con contexto (FR-010, SC-006).
-6. Preguntar en lenguaje natural algo sobre el contenido de esa reunión.
-7. **Verificar**: la respuesta se basa en el transcript real, no genérica
+5. Buscar una palabra que se haya dicho en una de las reuniones.
+6. **Verificar**: aparece en resultados con contexto (FR-010, SC-006).
+7. Preguntar en lenguaje natural algo sobre el contenido de esa reunión.
+8. **Verificar**: la respuesta se basa en el transcript real, no genérica
    (FR-011).
 
 ## Escenario 5 — Sincronización

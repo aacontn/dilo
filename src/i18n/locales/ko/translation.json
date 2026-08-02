@@ -880,6 +880,8 @@
     "title": "Dilo v{{version}}의 새 소식"
   },
   "meeting": {
+    "backToDilo": "Dilo로 돌아가기",
+    "backFailed": "Dilo로 돌아갈 수 없었습니다",
     "launcher": {
       "title": "회의",
       "description": "지난 회의를 녹음하고 다시 읽는 건 별도의 창에서 이루어져요.",

@@ -776,6 +776,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::list_meetings,
             commands::meeting::get_meeting,
             meeting_window::open_meetings_window,
+            meeting_window::return_to_main_window,
             notes::test_notion_connection,
             notes::pending_notes_count,
             notes::flush_pending_notes,

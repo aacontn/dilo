@@ -880,6 +880,8 @@
     "title": "Dilo v{{version}} yenilikleri"
   },
   "meeting": {
+    "backToDilo": "Dilo'ya dön",
+    "backFailed": "Dilo'ya dönülemedi",
     "launcher": {
       "title": "Toplantılar",
       "description": "Geçmiş toplantıları kaydetmek ve okumak kendi penceresinde olur.",

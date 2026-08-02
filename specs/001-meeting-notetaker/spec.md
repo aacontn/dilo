@@ -8,7 +8,7 @@
 
 **Input**: User description: "Meeting/notes notetaker for Dilo — the second major pillar of the product alongside voice dictation. Capture a meeting or a stream of spoken thoughts and turn it into a transcript + summary + action items, searchable, synced to Apple Notes or a configurable destination. Must solve the presencial (in-person, single far-field mic, overlapping speech) case, not just the easy virtual-meeting case that every existing notetaker optimizes for — that is the differentiation and it is explicitly in scope, not deferred."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Grabar y transcribir una reunión presencial con varios hablantes (Priority: P1)
 
@@ -218,7 +218,7 @@ pendientes sin intervención manual.
   reunión (spanglish, términos técnicos en inglés)? No debe romper la sesión
   de transcripción en curso.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -295,7 +295,7 @@ pendientes sin intervención manual.
 - **Destino de sincronización**: configuración de a dónde se envía el
   resumen y los pendientes de una reunión al terminar de procesarla.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

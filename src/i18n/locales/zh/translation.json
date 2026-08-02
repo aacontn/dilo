@@ -880,6 +880,8 @@
     "title": "Dilo v{{version}} 新功能"
   },
   "meeting": {
+    "backToDilo": "返回 Dilo",
+    "backFailed": "无法返回 Dilo",
     "launcher": {
       "title": "会议",
       "description": "录制和查看过往会议在独立的窗口中进行。",

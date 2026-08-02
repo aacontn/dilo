@@ -77,6 +77,8 @@
     }
   },
   "meeting": {
+    "backToDilo": "Back to Dilo",
+    "backFailed": "Couldn't go back to Dilo",
     "launcher": {
       "title": "Meetings",
       "description": "Recording and reading past meetings lives in its own window.",

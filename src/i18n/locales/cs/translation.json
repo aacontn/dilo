@@ -880,6 +880,8 @@
     "title": "Novinky v Dilo v{{version}}"
   },
   "meeting": {
+    "backToDilo": "Zpět do Dilo",
+    "backFailed": "Návrat do Dilo se nezdařil",
     "launcher": {
       "title": "Schůzky",
       "description": "Nahrávání a čtení minulých schůzek probíhá ve vlastním okně.",

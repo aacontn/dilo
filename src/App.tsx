@@ -282,7 +282,10 @@ function App() {
           showAssistantErrorToast(t, notice);
         }
       } catch (error) {
-        console.error("No se pudieron leer los avisos del asistente pendientes:", error);
+        console.error(
+          "No se pudieron leer los avisos del asistente pendientes:",
+          error,
+        );
       }
     })();
   }, []);
