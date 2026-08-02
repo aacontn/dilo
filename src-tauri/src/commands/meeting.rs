@@ -5,11 +5,13 @@
 //! son los que por fin dejan leer lo que ya se graba y se guarda: hasta acá
 //! ninguna pantalla podía mostrar una reunión pasada.
 
-use crate::managers::meeting::{Meeting, MeetingManager, PaginatedMeetings};
+use crate::managers::meeting::{
+    Meeting, MeetingAudioWarning, MeetingKind, MeetingManager, PaginatedMeetings,
+    PendingMeetingAudioNotices,
+};
 use crate::settings::{get_settings, write_settings, MeetingAudioSource};
-use log::warn;
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 /// Start a new meeting recording: inserts a `meetings` row with
 /// `status = "recording"`, abre el micrófono y devuelve el `id`.
@@ -30,15 +32,21 @@ pub async fn start_meeting(
     meeting_manager: State<'_, Arc<MeetingManager>>,
     kind: String,
 ) -> Result<i64, String> {
-    if kind != "presencial" && kind != "virtual" {
-        return Err(format!("Invalid meeting kind: {}", kind));
-    }
+    // Un solo parseo, reusado para las dos llamadas de abajo: la fila en
+    // `meetings.kind` (texto crudo, sin cambios) y `start_capture` (que
+    // necesita el tipo ya validado para decidir la fuente de audio real —
+    // ver `resolve_meeting_audio_source`, M2 del reporte de cableado de
+    // audio: antes `start_capture` no sabía el `kind` de la reunión y
+    // resolvía la fuente contra un ajuste global aparte, que podía quedar
+    // incoherente con lo que decía la interfaz).
+    let parsed_kind =
+        MeetingKind::parse(&kind).ok_or_else(|| format!("Invalid meeting kind: {}", kind))?;
 
     let meeting_id = meeting_manager
         .start_meeting(&kind)
         .map_err(|e| e.to_string())?;
 
-    if let Err(e) = meeting_manager.start_capture(meeting_id) {
+    if let Err(e) = meeting_manager.start_capture(meeting_id, parsed_kind) {
         meeting_manager.discard_meeting(meeting_id);
         return Err(e.to_string());
     }
@@ -154,25 +162,30 @@ pub async fn get_meeting(
         .map_err(|e| e.to_string())
 }
 
-/// Cambia la fuente de audio con la que se graban las reuniones (cableado de
-/// audio de reuniones, ver el ajuste `meeting_audio_source`). Sólo afecta a
-/// la próxima reunión que se inicie — `start_capture` lee el ajuste recién
-/// al construir la sesión, no hay ninguna en curso que reconfigurar.
+/// Recuerda el tipo de reunión elegido la última vez, para preseleccionarlo
+/// la próxima vez que se abra el selector (`RecordingControls.tsx`) —
+/// **ya no determina la fuente de audio de ninguna reunión**: eso lo decide
+/// `resolve_meeting_audio_source` a partir del `kind` de esa reunión en
+/// particular (M2 del reporte de cableado). El nombre del comando y del
+/// ajuste (`meeting_audio_source`, tipo `MeetingAudioSource`) se conservan
+/// sin cambios a propósito — es sólo una etiqueta de recordatorio ahora,
+/// pero renombrar el campo persistido rompería la compatibilidad con
+/// `settings.json` ya guardados; ver el doc comment del campo en
+/// `settings.rs` para el detalle completo de la reinterpretación.
+///
+/// M3 del reporte de seguimiento: un `source` que no sea exactamente
+/// `"system_audio"` o `"microphone"` ahora **falla** en vez de caer en
+/// silencio al default — antes un typo (por ejemplo, mandado a mano contra
+/// el comando) cambiaba el ajuste sin que nadie se enterara.
 #[tauri::command]
 #[specta::specta]
 pub fn change_meeting_audio_source_setting(app: AppHandle, source: String) -> Result<(), String> {
-    let mut settings = get_settings(&app);
     let parsed = match source.as_str() {
         "system_audio" => MeetingAudioSource::SystemAudio,
         "microphone" => MeetingAudioSource::Microphone,
-        other => {
-            warn!(
-                "Fuente de audio de reunión inválida '{}', se usa audio del computador",
-                other
-            );
-            MeetingAudioSource::SystemAudio
-        }
+        other => return Err(format!("Invalid meeting audio source: {}", other)),
     };
+    let mut settings = get_settings(&app);
     settings.meeting_audio_source = parsed;
     write_settings(&app, settings);
     Ok(())
@@ -187,4 +200,20 @@ pub fn change_meeting_audio_source_setting(app: AppHandle, source: String) -> Re
 #[specta::specta]
 pub fn is_system_audio_available() -> bool {
     crate::audio_toolkit::audio::system_audio_available()
+}
+
+/// Avisos de audio de reunión (falta el permiso, varios minutos sin
+/// capturar nada real, cambió el dispositivo de salida, se cayó a
+/// micrófono) que ocurrieron sin que la ventana de Reuniones estuviera a la
+/// vista — I5 del reporte de seguimiento. El flujo esperado es grabar y
+/// volver a la videollamada: `return_to_main_window` y el botón de cerrar de
+/// esa ventana la esconden (`window.hide()`) en vez de destruirla, así que
+/// el evento `meeting-audio-warning` en vivo llega a un webview que nadie
+/// está mirando. `MeetingsWindow.tsx`/`useMeetings.ts` vacían esta cola al
+/// montar y al recuperar el foco de la ventana, mismo patrón que
+/// `take_pending_fallback_notices`/`take_pending_assistant_notices`.
+#[tauri::command]
+#[specta::specta]
+pub fn take_pending_meeting_audio_notices(app: AppHandle) -> Vec<MeetingAudioWarning> {
+    app.state::<PendingMeetingAudioNotices>().take_all()
 }

@@ -279,6 +279,11 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // atajo apretado con el modo apagado) que ocurrieron sin ninguna ventana
     // abierta — ver `assistant::PendingAssistantNotices`.
     app_handle.manage(assistant::PendingAssistantNotices::default());
+    // Avisos de audio de reunión (permiso, silencio prolongado, cambio de
+    // salida, caída a micrófono) que ocurrieron con la ventana de Reuniones
+    // escondida — ver `managers::meeting::PendingMeetingAudioNotices` (I5
+    // del reporte de seguimiento del cableado de audio de reuniones).
+    app_handle.manage(managers::meeting::PendingMeetingAudioNotices::default());
     // Voz de salida: estado del motor TTS, cargado perezosamente en el
     // primer `tts_speak` (ver `tts::TtsState`).
     app_handle.manage(tts::TtsState::default());
@@ -810,6 +815,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::get_meeting,
             commands::meeting::change_meeting_audio_source_setting,
             commands::meeting::is_system_audio_available,
+            commands::meeting::take_pending_meeting_audio_notices,
             meeting_window::open_meetings_window,
             meeting_window::return_to_main_window,
             notes::test_notion_connection,

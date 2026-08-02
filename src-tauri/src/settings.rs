@@ -335,9 +335,28 @@ pub enum TtsEngineSetting {
 /// que viajan por el sistema — decisión de producto del dueño ("ya habíamos
 /// decidido hacerlo por el audio del computador, no del micrófono; sólo
 /// opción para presencial"). `Microphone` es la opción para reuniones
-/// presenciales. Ver `managers::meeting::resolve_meeting_audio_source` para
-/// cómo se resuelve cuando el audio del sistema no está disponible en esta
-/// máquina (fuera de macOS, o macOS anterior a 14.2).
+/// presenciales.
+///
+/// **Reinterpretado por el cableado de audio de reuniones (M2 del reporte de
+/// seguimiento).** Antes de esa tarea, esta era una perilla GLOBAL e
+/// independiente del tipo de reunión (`kind`, `"presencial"`/`"virtual"`),
+/// y las dos podían quedar incoherentes entre sí — la interfaz podía decir
+/// "reunión online" mientras `start_capture` grababa con audio del sistema
+/// contra este ajuste sin importarle el `kind` real de esa reunión. Ahora la
+/// fuente se deduce SIEMPRE del `kind` que el usuario eligió para esa
+/// reunión en particular (`managers::meeting::resolve_meeting_audio_source`,
+/// que ya no lee este campo en absoluto). Este ajuste sigue existiendo sólo
+/// para recordar la última elección y preseleccionarla la próxima vez que se
+/// abre el selector de tipo de reunión (`RecordingControls.tsx`:
+/// `SystemAudio` ~ "online", `Microphone` ~ "presencial") — se mantienen el
+/// nombre del campo y sus dos variantes sin cambios a propósito, para que un
+/// `settings.json` guardado con una versión anterior siga cargando igual sin
+/// ninguna migración.
+///
+/// Ver `managers::meeting::resolve_meeting_audio_source` para cómo se
+/// resuelve la fuente real de una reunión, incluyendo cuando el audio del
+/// sistema no está disponible en esta máquina (fuera de macOS, o macOS
+/// anterior a 14.2).
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum MeetingAudioSource {
