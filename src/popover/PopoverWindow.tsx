@@ -23,7 +23,7 @@ const PopoverWindow: React.FC = () => (
         },
       }}
     />
-    <div className="dilo-shell h-screen w-screen select-none cursor-default p-3">
+    <div className="dilo-shell h-screen w-screen select-none cursor-default rounded-xl overflow-hidden p-3">
       <PopoverBody />
     </div>
   </>
