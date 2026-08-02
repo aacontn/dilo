@@ -275,12 +275,12 @@ pub fn diagnose(
 #[cfg(target_os = "macos")]
 mod macos;
 #[cfg(target_os = "macos")]
-pub use macos::SystemAudioRecorder;
+pub use macos::{system_audio_available, SystemAudioRecorder};
 
 #[cfg(not(target_os = "macos"))]
 mod unsupported;
 #[cfg(not(target_os = "macos"))]
-pub use unsupported::SystemAudioRecorder;
+pub use unsupported::{system_audio_available, SystemAudioRecorder};
 
 #[cfg(test)]
 mod tests {

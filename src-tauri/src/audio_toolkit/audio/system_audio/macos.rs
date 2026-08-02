@@ -150,6 +150,19 @@
 //! (M6) ahora también desregistra ese listener cuando ya estaba registrado
 //! en el momento de armarse, no sólo el tap/agregado/IOProc — ver el
 //! comentario sobre orden de declaración en `finish_open_with_aggregate`.
+//!
+//! ## Cableado a reuniones: `with_frame_callback` y `system_audio_available`
+//!
+//! Este módulo seguía sin que nadie lo llamara desde el flujo de reuniones.
+//! `with_frame_callback` cierra ese hueco entregando, en vivo y en el mismo
+//! hilo consumidor descrito arriba, cada frame de 16 kHz ya remuestreado —
+//! antes de esto sólo existía el camino por lotes (`start()`/`stop()` con
+//! todo junto al final). El callback se llama en el mismo punto donde antes
+//! sólo se escribía en `buffer`, y sigue escribiendo ahí también: `stop()` y
+//! `diagnose_now()` no cambiaron. `system_audio_available()` expone en
+//! caliente la misma condición de plataforma que `open()` ya verificaba
+//! (macOS 14.2+) para que el ajuste de fuente de audio de reuniones pueda
+//! resolverse sin intentar abrir una sesión primero.
 
 use std::error::Error;
 use std::ffi::{c_void, CString};
@@ -216,6 +229,12 @@ struct OutputDeviceListenerContext {
     changed: Arc<AtomicBool>,
 }
 
+/// Callback en vivo de `with_frame_callback` — mismo tipo, sin nombrarlo así,
+/// que `audio_toolkit::audio::recorder::AudioFrameCallback` (no se reusa ese
+/// alias directamente para no crear una dependencia de `system_audio` hacia
+/// el módulo del micrófono sólo por un tipo).
+type FrameCallback = Arc<dyn Fn(&[f32]) + Send + Sync + 'static>;
+
 /// Captura del audio del sistema vía process taps de CoreAudio — ver el
 /// comentario del módulo para el diseño completo.
 ///
@@ -257,6 +276,10 @@ pub struct SystemAudioRecorder {
     /// `open()` (I5). Ver `output_device_changed()`.
     output_device_changed: Arc<AtomicBool>,
     output_listener_ctx: Option<Box<OutputDeviceListenerContext>>,
+    /// Callback en vivo para el flujo de reuniones (tarea de cableado): ver
+    /// `with_frame_callback`. `None` hasta que se registre uno — `stop()`
+    /// sigue funcionando igual sin él, drenando `buffer` como siempre.
+    frame_cb: Option<FrameCallback>,
 }
 
 impl SystemAudioRecorder {
@@ -274,7 +297,30 @@ impl SystemAudioRecorder {
             saw_nonzero: Arc::new(AtomicBool::new(false)),
             output_device_changed: Arc::new(AtomicBool::new(false)),
             output_listener_ctx: None,
+            frame_cb: None,
         })
+    }
+
+    /// Registra un callback que recibe cada frame de 16 kHz mono **en
+    /// vivo**, a medida que el hilo consumidor los remuestrea — misma forma
+    /// y mismas garantías que `AudioRecorder::with_audio_callback` (en
+    /// orden, en el hilo consumidor, barato: ver el comentario del módulo
+    /// sobre "keep the callback cheap"). A diferencia del callback del
+    /// micrófono, éste entrega las muestras **sin filtrar por VAD**: este
+    /// módulo no tiene ningún VAD propio (el del micrófono vive adentro de
+    /// `AudioRecorder`). Quien necesite el mismo corte por voz que el
+    /// micrófono debe aplicar su propio VAD sobre estas muestras antes de
+    /// usarlas — ver `managers/meeting.rs::build_meeting_system_audio_recorder`.
+    ///
+    /// Debe llamarse ANTES de `open()`: `open()` clona esta referencia hacia
+    /// el hilo consumidor que crea, así que registrarlo después de abrir la
+    /// sesión no tiene efecto.
+    pub fn with_frame_callback<F>(mut self, cb: F) -> Self
+    where
+        F: Fn(&[f32]) + Send + Sync + 'static,
+    {
+        self.frame_cb = Some(Arc::new(cb));
+        self
     }
 
     pub fn open(&mut self) -> Result<(), Box<dyn Error>> {
@@ -479,6 +525,7 @@ impl SystemAudioRecorder {
         let consumer_buffer = Arc::clone(&buffer);
         let saw_nonzero = Arc::new(AtomicBool::new(false));
         let consumer_saw_nonzero = Arc::clone(&saw_nonzero);
+        let frame_cb = self.frame_cb.clone();
 
         let consumer = std::thread::spawn(move || {
             // I4: el remuestreo a 16 kHz vive acá, no en `stop()` — así el
@@ -510,8 +557,23 @@ impl SystemAudioRecorder {
                                 native_rate,
                                 constants::WHISPER_SAMPLE_RATE,
                             ));
-                            resampler.push(&samples, |frame| buf.extend_from_slice(frame));
                         }
+                        // El callback en vivo (cableado a reuniones) se
+                        // llama SIN el lock de `buffer` tomado — sólo se
+                        // toma, por frame, para el `extend_from_slice`. Si
+                        // se llamara con el lock puesto, cualquier trabajo
+                        // que haga el callback (acá, VAD + push a un
+                        // acumulador de turnos, ver `managers/meeting.rs`)
+                        // quedaría corriendo con `buffer` tomado, compitiendo
+                        // con `stop()`/`diagnose_now()` sin necesidad: nada
+                        // de eso depende de tener el lock durante el
+                        // callback, así que no vale la pena arriesgarlo.
+                        resampler.push(&samples, |frame| {
+                            if let Some(cb) = &frame_cb {
+                                cb(frame);
+                            }
+                            consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                        });
                         // I1: se devuelve para reciclar en vez de dejar que
                         // el `Vec` simplemente se libere — el próximo
                         // `tap_io_proc` lo reutiliza en vez de pedir memoria
@@ -520,10 +582,12 @@ impl SystemAudioRecorder {
                         let _ = free_tx.send(samples);
                     }
                     Msg::Barrier(ack) => {
-                        {
-                            let mut buf = consumer_buffer.lock().unwrap();
-                            resampler.finish(|frame| buf.extend_from_slice(frame));
-                        }
+                        resampler.finish(|frame| {
+                            if let Some(cb) = &frame_cb {
+                                cb(frame);
+                            }
+                            consumer_buffer.lock().unwrap().extend_from_slice(frame);
+                        });
                         // Limpia las colas FFT antes de la próxima sesión
                         // (stop() seguido de otro start() sin pasar por
                         // close()) para que no haya crosstalk entre
@@ -1292,6 +1356,17 @@ fn unique_suffix() -> String {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     format!("{nanos:x}-{n}")
+}
+
+/// True si esta máquina soporta la captura de audio del sistema ahora mismo
+/// (macOS 14.2+, ver `is_process_tap_available`). Consulta la versión de
+/// macOS en caliente cada vez — no cachea — porque quien la usa (el ajuste
+/// de fuente de audio de reuniones, `managers/meeting.rs`) la llama a lo
+/// sumo una vez por sesión de reunión, no en un camino caliente.
+pub fn system_audio_available() -> bool {
+    macos_version()
+        .map(|(major, minor)| is_process_tap_available(major, minor))
+        .unwrap_or(false)
 }
 
 /// Lee `kern.osproductversion` vía `sysctlbyname` (por ejemplo "14.2.1") y lo

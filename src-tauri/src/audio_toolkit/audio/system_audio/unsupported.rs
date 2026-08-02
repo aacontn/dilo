@@ -30,11 +30,30 @@ impl fmt::Display for NotAvailable {
 
 impl Error for NotAvailable {}
 
+/// Windows/Linux siempre; macOS por debajo de 14.2 lo resuelve
+/// `macos::system_audio_available()` en tiempo de ejecución (no llega acá,
+/// distinto target). Acá siempre falso: no hay ninguna versión de esta
+/// plataforma que lo habilite.
+pub fn system_audio_available() -> bool {
+    false
+}
+
 pub struct SystemAudioRecorder;
 
 impl SystemAudioRecorder {
     pub fn new() -> Result<Self, Box<dyn Error>> {
         Ok(SystemAudioRecorder)
+    }
+
+    /// Sin efecto en esta plataforma: `open()` siempre falla acá, así que
+    /// nunca hay un hilo consumidor que pudiera llamar a `cb`. Existe sólo
+    /// para que el código que arma un `SystemAudioRecorder` sin `cfg` propio
+    /// (ver `managers/meeting.rs`) compile igual en cualquier plataforma.
+    pub fn with_frame_callback<F>(self, _cb: F) -> Self
+    where
+        F: Fn(&[f32]) + Send + Sync + 'static,
+    {
+        self
     }
 
     pub fn open(&mut self) -> Result<(), Box<dyn Error>> {
