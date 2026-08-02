@@ -181,14 +181,17 @@ transcribe-cpp = { version = "0.1.3", default-features = false, features = ["met
 # `tauri-nspanel`/`tauri` (vía `objc2-app-kit`/`objc2-foundation`); declararlos
 # acá sólo los hace directamente importables, no agrega crates nuevos al
 # árbol de compilación (confirmado con `cargo tree`, ver el reporte de esta
-# tarea). Versiones fijas a las ya resueltas para no mover nada del resto del
-# build.
-objc2 = "=0.6.3"
-objc2-foundation = "=0.3.2"
-objc2-core-audio = "=0.3.2"
-objc2-core-audio-types = "=0.3.2"
-objc2-core-foundation = "=0.3.2"
-libc = "=0.2.182"
+# tarea). Rangos caret (no `=`) para que `git merge upstream/main` siga
+# barato — un pin exacto choca con eso apenas upstream toque una de estas
+# crates por otro camino (M4 de la revisión). Verificado con `cargo tree`
+# que siguen resolviendo a las mismas versiones y que `Cargo.lock` no gana
+# paquetes.
+objc2 = "0.6.3"
+objc2-foundation = "0.3.2"
+objc2-core-audio = "0.3.2"
+objc2-core-audio-types = "0.3.2"
+objc2-core-foundation = "0.3.2"
+libc = "0.2.182"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }
