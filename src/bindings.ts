@@ -1039,6 +1039,30 @@ async getMeeting(meetingId: number) : Promise<Result<Meeting, string>> {
 }
 },
 /**
+ * Cambia la fuente de audio con la que se graban las reuniones (cableado de
+ * audio de reuniones, ver el ajuste `meeting_audio_source`). Sólo afecta a
+ * la próxima reunión que se inicie — `start_capture` lee el ajuste recién
+ * al construir la sesión, no hay ninguna en curso que reconfigurar.
+ */
+async changeMeetingAudioSourceSetting(source: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_meeting_audio_source_setting", { source }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Si esta máquina soporta la captura de audio del sistema (macOS 14.2+,
+ * process taps de CoreAudio). El frontend lo consulta para no ofrecer una
+ * opción que no va a funcionar — fuera de macOS, o en una versión anterior,
+ * la fuente siempre resuelve a micrófono (ver
+ * `managers::meeting::resolve_meeting_audio_source`).
+ */
+async isSystemAudioAvailable() : Promise<boolean> {
+    return await TAURI_INVOKE("is_system_audio_available");
+},
+/**
  * Abre la ventana de reuniones, o la trae al frente si ya está abierta
  * (escondida tras un cierre anterior, o simplemente detrás de otras
  * ventanas). Nunca crea una segunda.
@@ -1274,6 +1298,7 @@ async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+meetingAudioWarning: MeetingAudioWarning,
 meetingCallDetected: MeetingCallDetected,
 meetingCallEnded: MeetingCallEnded,
 meetingError: MeetingError,
@@ -1288,6 +1313,7 @@ streamTextEvent: StreamTextEvent,
 trayIconStateChanged: TrayIconStateChanged
 }>({
 historyUpdatePayload: "history-update-payload",
+meetingAudioWarning: "meeting-audio-warning",
 meetingCallDetected: "meeting-call-detected",
 meetingCallEnded: "meeting-call-ended",
 meetingError: "meeting-error",
@@ -1386,7 +1412,13 @@ tts_voice?: string;
  * por defecto — activarlo es explícito, aunque el atajo ya viene sin
  * tecla asignada (igual que `quick_note`).
  */
-voice_assistant_enabled?: boolean }
+voice_assistant_enabled?: boolean;
+/**
+ * Fuente de audio para grabar reuniones — ver [`MeetingAudioSource`].
+ * Un `settings.json` viejo no trae esta clave: `#[serde(default)]` la
+ * resuelve a `SystemAudio` sin tocar el resto del archivo.
+ */
+meeting_audio_source?: MeetingAudioSource }
 /**
  * Payload de `assistant-error` — espejo de `AssistantErrorEvent` en
  * `src/lib/types/events.ts` (evento plano, no tauri-specta, para no tocar el
@@ -1444,6 +1476,32 @@ export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
  * sobre por qué no incluye `notes` ni `actionItems` todavía.
  */
 export type Meeting = { id: number; title: string; kind: string; started_at: number; ended_at: number | null; status: string; summary: string | null; segments: MeetingSegment[]; speakers: MeetingSpeaker[] }
+/**
+ * Fuente de audio para grabar reuniones. `SystemAudio` (el audio que sale
+ * del computador) es el default: en una reunión online el micrófono sólo
+ * capta tu voz y un eco pobre de los parlantes, no las voces de los demás,
+ * que viajan por el sistema — decisión de producto del dueño ("ya habíamos
+ * decidido hacerlo por el audio del computador, no del micrófono; sólo
+ * opción para presencial"). `Microphone` es la opción para reuniones
+ * presenciales. Ver `managers::meeting::resolve_meeting_audio_source` para
+ * cómo se resuelve cuando el audio del sistema no está disponible en esta
+ * máquina (fuera de macOS, o macOS anterior a 14.2).
+ */
+export type MeetingAudioSource = "system_audio" | "microphone"
+/**
+ * Aviso durante una grabación con audio del sistema — no termina la
+ * sesión (a diferencia de [`MeetingError`]), es información para que el
+ * usuario pueda actuar (conceder el permiso, o saber que puede haber
+ * perdido audio) sin esperar a colgar para enterarse.
+ */
+export type MeetingAudioWarning = { meeting_id: number; kind: MeetingAudioWarningKind }
+/**
+ * Por qué se emitió un [`MeetingAudioWarning`] durante una grabación con
+ * audio del sistema (cableado de audio de reuniones). El texto que ve el
+ * usuario vive en el frontend (i18n, 21 idiomas) — acá sólo va el motivo,
+ * no un mensaje.
+ */
+export type MeetingAudioWarningKind = "missing_permission" | "output_device_changed"
 /**
  * An active video call was detected with no recording in progress
  * (User Story 3, FR-017). `call_source` is the detected app name when it

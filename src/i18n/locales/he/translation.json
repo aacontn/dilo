@@ -908,15 +908,24 @@
       "stop": "עצור",
       "finishing": "מסיים…",
       "kindPresencial": "פרונטלית, עם המיקרופון של המחשב הזה",
+      "kindOnlineSystemAudio": "פגישה מקוונת, עם השמע של המחשב הזה",
       "model": "משוכתב באמצעות {{name}}",
       "modelLoading": "טוען את המודל…",
       "privacy": "האודיו לא יוצא מהמחשב שלך: התמלול והפרדת הקולות קורים כאן.",
       "startFailed": "לא ניתן היה להתחיל להקליט",
-      "stopFailed": "לא ניתן היה לעצור את הפגישה"
+      "stopFailed": "לא ניתן היה לעצור את הפגישה",
+      "audioSourceHeading": "מקור שמע",
+      "audioSourceSystemOption": "שמע המחשב הזה",
+      "audioSourceMicrophoneOption": "מיקרופון",
+      "audioSourceUnavailable": "ה-Mac הזה לא תומך בשמע המחשב (נדרש macOS 14.2 ואילך), לכן ההקלטה תתבצע עם המיקרופון."
     },
     "errors": {
       "sessionFailed": "הפגישה נעצרה בגלל שגיאה",
-      "turnFailed": "קטע לא נשמר; הפגישה ממשיכה להיות מוקלטת"
+      "turnFailed": "קטע לא נשמר; הפגישה ממשיכה להיות מוקלטת",
+      "audioMissingPermission": "חסרה הרשאת שמע מערכת",
+      "audioMissingPermissionDescription": "Dilo לא קולט שום דבר משמע המחשב הזה. הענק את ההרשאה בהגדרות המערכת ← פרטיות ואבטחה ← הקלטת שמע מערכת, והתחל את ההקלטה מחדש.",
+      "audioOutputDeviceChanged": "פלט השמע השתנה",
+      "audioOutputDeviceChangedDescription": "החלפת את פלט השמע באמצע הפגישה, ייתכן שחלק ממנה לא הוקלט. אם שמת לב שמשהו חסר, עצור והתחל הקלטה מחדש."
     },
     "transcript": {
       "title": "תמלול חי",

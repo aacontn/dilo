@@ -908,15 +908,24 @@
       "stop": "중지",
       "finishing": "마무리 중…",
       "kindPresencial": "대면, 이 기기의 마이크 사용",
+      "kindOnlineSystemAudio": "온라인 회의, 이 컴퓨터의 오디오 사용",
       "model": "{{name}}(으)로 전사 중",
       "modelLoading": "모델 불러오는 중…",
       "privacy": "오디오는 컴퓨터 밖으로 나가지 않습니다. 받아쓰기와 화자 분리 모두 여기서 처리됩니다.",
       "startFailed": "녹음을 시작하지 못했습니다",
-      "stopFailed": "회의를 중지하지 못했습니다"
+      "stopFailed": "회의를 중지하지 못했습니다",
+      "audioSourceHeading": "오디오 소스",
+      "audioSourceSystemOption": "이 컴퓨터의 오디오",
+      "audioSourceMicrophoneOption": "마이크",
+      "audioSourceUnavailable": "이 Mac은 컴퓨터 오디오를 지원하지 않아(macOS 14.2 이상 필요) 마이크로 녹음합니다."
     },
     "errors": {
       "sessionFailed": "오류로 회의 기록이 중단되었습니다",
-      "turnFailed": "일부를 저장하지 못했지만 회의는 계속 녹음 중입니다"
+      "turnFailed": "일부를 저장하지 못했지만 회의는 계속 녹음 중입니다",
+      "audioMissingPermission": "시스템 오디오 권한이 없습니다",
+      "audioMissingPermissionDescription": "Dilo가 이 컴퓨터의 오디오를 전혀 받지 못하고 있습니다. 시스템 설정 → 개인정보 보호 및 보안 → 시스템 오디오 녹음에서 권한을 허용한 뒤 녹음을 다시 시작하세요.",
+      "audioOutputDeviceChanged": "오디오 출력이 변경됨",
+      "audioOutputDeviceChangedDescription": "회의 중간에 오디오 출력을 변경해서 일부가 녹음되지 않았을 수 있습니다. 빠진 부분이 있다면 중지 후 다시 녹음하세요."
     },
     "transcript": {
       "title": "실시간 대화록",

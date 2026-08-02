@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Cpu, LockKeyhole, Mic, Square, Users } from "lucide-react";
+import { Cpu, LockKeyhole, Mic, MonitorSpeaker, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/Button";
 import { useMeetings } from "../../hooks/useMeetings";
 import { useModelStore } from "../../stores/modelStore";
+import { useSettings } from "../../hooks/useSettings";
+import { commands, type MeetingAudioSource } from "@/bindings";
 
 /**
  * Controles de grabación de una reunión presencial (T017).
@@ -13,6 +15,13 @@ import { useModelStore } from "../../stores/modelStore";
  * punto de color + etiqueta en versalitas, titular grande y una línea de
  * privacidad. La reunión virtual (Historia 2) todavía no existe, así que no
  * hay selector de tipo — agregarlo es T025, cuando la opción signifique algo.
+ *
+ * **Cableado de audio de reuniones:** sí trae un selector — no de tipo de
+ * reunión, sino de FUENTE de audio (audio de este equipo vs. micrófono, ver
+ * `settings.meeting_audio_source` en el backend). Antes de grabar el usuario
+ * tiene que ver cuál se va a usar y poder cambiarla; mientras graba queda
+ * fijo, cambiarla a mitad de sesión no tiene efecto sobre la captura en
+ * curso.
  */
 export const RecordingControls: React.FC = () => {
   const { t } = useTranslation();
@@ -26,6 +35,36 @@ export const RecordingControls: React.FC = () => {
     stopMeeting,
   } = useMeetings();
   const [elapsedLabel, setElapsedLabel] = useState<string | null>(null);
+  const { settings, updateSetting } = useSettings();
+
+  // Si esta máquina soporta el audio del computador (macOS 14.2+, ver
+  // `is_system_audio_available` en Rust). `null` mientras se consulta: no
+  // queremos parpadear la opción de "no disponible" en el primer render.
+  // Fuera de macOS, o en una versión vieja, la interfaz no debe ofrecer una
+  // opción que de todas formas va a resolver a micrófono en el backend
+  // (`resolve_meeting_audio_source`) — se oculta en vez de mostrarla
+  // deshabilitada, porque no hay nada que el usuario pueda hacer desde acá
+  // para habilitarla.
+  const [systemAudioAvailable, setSystemAudioAvailable] = useState<
+    boolean | null
+  >(null);
+  useEffect(() => {
+    let cancelled = false;
+    void commands.isSystemAudioAvailable().then((available) => {
+      if (!cancelled) setSystemAudioAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const audioSource: MeetingAudioSource =
+    settings?.meeting_audio_source ?? "system_audio";
+  const canChangeAudioSource = !isRecording && !isProcessing;
+  const setAudioSource = (source: MeetingAudioSource) => {
+    if (!canChangeAudioSource || source === audioSource) return;
+    void updateSetting("meeting_audio_source", source);
+  };
 
   // Qué modelo STT graba la reunión — mismo modelo que el dictado normal
   // (managers/meeting.rs reusa el TranscriptionManager compartido, no uno
@@ -149,9 +188,52 @@ export const RecordingControls: React.FC = () => {
             </Button>
           )}
           <span className="inline-flex items-center gap-2 text-xs text-muted-text">
-            <Users className="size-4 shrink-0" />
-            {t("meeting.controls.kindPresencial")}
+            {audioSource === "system_audio" ? (
+              <MonitorSpeaker className="size-4 shrink-0" />
+            ) : (
+              <Mic className="size-4 shrink-0" />
+            )}
+            {audioSource === "system_audio"
+              ? t("meeting.controls.kindOnlineSystemAudio")
+              : t("meeting.controls.kindPresencial")}
           </span>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-text">
+            {t("meeting.controls.audioSourceHeading")}
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {systemAudioAvailable !== false && (
+              <Button
+                type="button"
+                variant={audioSource === "system_audio" ? "primary-soft" : "ghost"}
+                size="sm"
+                disabled={!canChangeAudioSource}
+                onClick={() => setAudioSource("system_audio")}
+                className="flex items-center gap-1.5"
+              >
+                <MonitorSpeaker className="size-3.5" />
+                {t("meeting.controls.audioSourceSystemOption")}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant={audioSource === "microphone" ? "primary-soft" : "ghost"}
+              size="sm"
+              disabled={!canChangeAudioSource}
+              onClick={() => setAudioSource("microphone")}
+              className="flex items-center gap-1.5"
+            >
+              <Mic className="size-3.5" />
+              {t("meeting.controls.audioSourceMicrophoneOption")}
+            </Button>
+          </div>
+          {systemAudioAvailable === false && (
+            <p className="text-xs text-muted-text/70">
+              {t("meeting.controls.audioSourceUnavailable")}
+            </p>
+          )}
         </div>
 
         <div className="mt-2 flex items-center gap-2 text-xs text-muted-text">

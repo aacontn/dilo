@@ -908,15 +908,24 @@
       "stop": "Stoppen",
       "finishing": "Wird beendet…",
       "kindPresencial": "Vor Ort, über das Mikrofon dieses Geräts",
+      "kindOnlineSystemAudio": "Online-Meeting, mit dem Ton dieses Computers",
       "model": "Transkribiert mit {{name}}",
       "modelLoading": "Modell wird geladen…",
       "privacy": "Das Audio verlässt deinen Rechner nicht: Transkription und Stimmentrennung passieren hier.",
       "startFailed": "Aufnahme konnte nicht gestartet werden",
-      "stopFailed": "Meeting konnte nicht gestoppt werden"
+      "stopFailed": "Meeting konnte nicht gestoppt werden",
+      "audioSourceHeading": "Audioquelle",
+      "audioSourceSystemOption": "Ton dieses Computers",
+      "audioSourceMicrophoneOption": "Mikrofon",
+      "audioSourceUnavailable": "Dieser Mac unterstützt den Computer-Ton nicht (benötigt macOS 14.2 oder neuer), daher wird mit dem Mikrofon aufgenommen."
     },
     "errors": {
       "sessionFailed": "Das Meeting wurde durch einen Fehler gestoppt",
-      "turnFailed": "Ein Teil wurde nicht gespeichert; das Meeting wird weiter aufgezeichnet"
+      "turnFailed": "Ein Teil wurde nicht gespeichert; das Meeting wird weiter aufgezeichnet",
+      "audioMissingPermission": "Systemton-Berechtigung fehlt",
+      "audioMissingPermissionDescription": "Dilo empfängt keinen Ton von diesem Computer. Erteile die Berechtigung unter Systemeinstellungen → Datenschutz & Sicherheit → Systemton-Aufnahme und starte die Aufnahme erneut.",
+      "audioOutputDeviceChanged": "Audioausgabe geändert",
+      "audioOutputDeviceChangedDescription": "Du hast die Audioausgabe mitten im Meeting gewechselt, ein Teil wurde möglicherweise nicht aufgenommen. Falls dir etwas fehlt, stoppe und nimm erneut auf."
     },
     "transcript": {
       "title": "Live-Transkript",

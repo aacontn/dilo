@@ -908,15 +908,24 @@
       "stop": "Durdur",
       "finishing": "Tamamlanıyor…",
       "kindPresencial": "Yüz yüze, bu cihazın mikrofonuyla",
+      "kindOnlineSystemAudio": "Çevrimiçi toplantı, bu bilgisayarın sesiyle",
       "model": "{{name}} ile yazıya dökülüyor",
       "modelLoading": "Model yükleniyor…",
       "privacy": "Ses bilgisayarından çıkmaz: döküm ve ses ayrıştırma burada yapılır.",
       "startFailed": "Kayıt başlatılamadı",
-      "stopFailed": "Toplantı durdurulamadı"
+      "stopFailed": "Toplantı durdurulamadı",
+      "audioSourceHeading": "Ses kaynağı",
+      "audioSourceSystemOption": "Bu bilgisayarın sesi",
+      "audioSourceMicrophoneOption": "Mikrofon",
+      "audioSourceUnavailable": "Bu Mac bilgisayar sesini desteklemiyor (macOS 14.2 veya üstü gerekir), bu yüzden mikrofonla kaydediliyor."
     },
     "errors": {
       "sessionFailed": "Toplantı bir hata nedeniyle durdu",
-      "turnFailed": "Bir bölüm kaydedilemedi; toplantı kaydı sürüyor"
+      "turnFailed": "Bir bölüm kaydedilemedi; toplantı kaydı sürüyor",
+      "audioMissingPermission": "Sistem sesi izni eksik",
+      "audioMissingPermissionDescription": "Dilo bu bilgisayarın sesinden hiçbir şey almıyor. Sistem Ayarları → Gizlilik ve Güvenlik → Sistem Sesi Kaydı üzerinden izni ver, sonra kaydı yeniden başlat.",
+      "audioOutputDeviceChanged": "Ses çıkışı değişti",
+      "audioOutputDeviceChangedDescription": "Toplantı ortasında ses çıkışını değiştirdin, bu yüzden bir kısmı kaydedilmemiş olabilir. Eksik bir şey fark edersen durdurup yeniden kaydet."
     },
     "transcript": {
       "title": "Canlı döküm",

@@ -908,15 +908,24 @@
       "stop": "Parar",
       "finishing": "Finalizando…",
       "kindPresencial": "Presencial, com o microfone deste aparelho",
+      "kindOnlineSystemAudio": "Reunião online, com o áudio deste computador",
       "model": "Transcrevendo com {{name}}",
       "modelLoading": "Carregando o modelo…",
       "privacy": "O áudio não sai do seu computador: a transcrição e a separação de vozes acontecem aqui.",
       "startFailed": "Não foi possível começar a gravar",
-      "stopFailed": "Não foi possível parar a reunião"
+      "stopFailed": "Não foi possível parar a reunião",
+      "audioSourceHeading": "Fonte de áudio",
+      "audioSourceSystemOption": "Áudio deste computador",
+      "audioSourceMicrophoneOption": "Microfone",
+      "audioSourceUnavailable": "Este Mac não é compatível com o áudio do computador (precisa do macOS 14.2 ou mais recente), então grava com o microfone."
     },
     "errors": {
       "sessionFailed": "A reunião parou por causa de um erro",
-      "turnFailed": "Um trecho não foi salvo; a reunião continua gravando"
+      "turnFailed": "Um trecho não foi salvo; a reunião continua gravando",
+      "audioMissingPermission": "Falta permissão de áudio do sistema",
+      "audioMissingPermissionDescription": "O Dilo não está captando nada do áudio deste computador. Conceda a permissão em Ajustes do Sistema → Privacidade e Segurança → Gravação de Áudio do Sistema, e inicie a gravação novamente.",
+      "audioOutputDeviceChanged": "Saída de áudio alterada",
+      "audioOutputDeviceChangedDescription": "Você trocou a saída de áudio no meio da reunião, então uma parte pode não ter sido gravada. Se notar que falta algo, pare e grave novamente."
     },
     "transcript": {
       "title": "Transcrição ao vivo",

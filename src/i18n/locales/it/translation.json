@@ -908,15 +908,24 @@
       "stop": "Ferma",
       "finishing": "Chiusura…",
       "kindPresencial": "In presenza, con il microfono di questo dispositivo",
+      "kindOnlineSystemAudio": "Riunione online, con l'audio di questo computer",
       "model": "Trascrizione con {{name}}",
       "modelLoading": "Caricamento del modello…",
       "privacy": "L'audio non esce dal tuo computer: trascrizione e separazione delle voci avvengono qui.",
       "startFailed": "Impossibile avviare la registrazione",
-      "stopFailed": "Impossibile fermare la riunione"
+      "stopFailed": "Impossibile fermare la riunione",
+      "audioSourceHeading": "Sorgente audio",
+      "audioSourceSystemOption": "Audio di questo computer",
+      "audioSourceMicrophoneOption": "Microfono",
+      "audioSourceUnavailable": "Questo Mac non supporta l'audio del computer (serve macOS 14.2 o successivo), quindi si registra con il microfono."
     },
     "errors": {
       "sessionFailed": "La riunione si è interrotta per un errore",
-      "turnFailed": "Un tratto non è stato salvato; la riunione continua a registrare"
+      "turnFailed": "Un tratto non è stato salvato; la riunione continua a registrare",
+      "audioMissingPermission": "Permesso audio di sistema mancante",
+      "audioMissingPermissionDescription": "Dilo non sta captando nulla dall'audio di questo computer. Concedi il permesso in Impostazioni di Sistema → Privacy e sicurezza → Registrazione audio di sistema, poi avvia di nuovo la registrazione.",
+      "audioOutputDeviceChanged": "Uscita audio cambiata",
+      "audioOutputDeviceChangedDescription": "Hai cambiato l'uscita audio a metà riunione, quindi una parte potrebbe non essere stata registrata. Se noti che manca qualcosa, ferma e registra di nuovo."
     },
     "transcript": {
       "title": "Trascrizione dal vivo",

@@ -908,15 +908,24 @@
       "stop": "إيقاف",
       "finishing": "جارٍ الإنهاء…",
       "kindPresencial": "حضوريًا، بميكروفون هذا الجهاز",
+      "kindOnlineSystemAudio": "اجتماع عبر الإنترنت، باستخدام صوت هذا الجهاز",
       "model": "يجري النسخ باستخدام {{name}}",
       "modelLoading": "جارٍ تحميل النموذج…",
       "privacy": "الصوت لا يغادر جهازك: التفريغ وفصل الأصوات يحدثان هنا.",
       "startFailed": "تعذّر بدء التسجيل",
-      "stopFailed": "تعذّر إيقاف الاجتماع"
+      "stopFailed": "تعذّر إيقاف الاجتماع",
+      "audioSourceHeading": "مصدر الصوت",
+      "audioSourceSystemOption": "صوت هذا الجهاز",
+      "audioSourceMicrophoneOption": "الميكروفون",
+      "audioSourceUnavailable": "لا يدعم هذا الـ Mac صوت هذا الجهاز (يتطلب macOS 14.2 أو أحدث)، لذلك سيتم التسجيل باستخدام الميكروفون."
     },
     "errors": {
       "sessionFailed": "توقّف الاجتماع بسبب خطأ",
-      "turnFailed": "تعذّر حفظ جزء؛ لا يزال الاجتماع قيد التسجيل"
+      "turnFailed": "تعذّر حفظ جزء؛ لا يزال الاجتماع قيد التسجيل",
+      "audioMissingPermission": "إذن صوت النظام مفقود",
+      "audioMissingPermissionDescription": "لا يلتقط Dilo أي شيء من صوت هذا الجهاز. امنح الإذن من إعدادات النظام ← الخصوصية والأمان ← تسجيل صوت النظام، ثم ابدأ التسجيل من جديد.",
+      "audioOutputDeviceChanged": "تغيّر مخرج الصوت",
+      "audioOutputDeviceChangedDescription": "غيّرت مخرج الصوت أثناء الاجتماع، فقد لا يكون جزء منه قد سُجّل. إذا لاحظت نقصًا، أوقف التسجيل وابدأ من جديد."
     },
     "transcript": {
       "title": "النص المباشر",

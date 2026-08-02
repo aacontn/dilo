@@ -69,12 +69,31 @@ export const useMeetingEvents = (): void => {
         description: event.payload.error,
       });
     });
+    // Cableado de audio de reuniones: falta el permiso de audio del sistema,
+    // o cambió el dispositivo de salida a mitad de reunión (ver
+    // `MeetingAudioWarningKind` en Rust). Ninguno de los dos termina la
+    // sesión — el backend ya avisa como máximo una vez por tipo y por
+    // sesión, así que acá no hace falta deduplicar de nuevo.
+    const unlistenAudioWarning = events.meetingAudioWarning.listen((event) => {
+      console.warn("Meeting audio warning:", event.payload.kind);
+      if (event.payload.kind === "missing_permission") {
+        toast.warning(t("meeting.errors.audioMissingPermission"), {
+          description: t("meeting.errors.audioMissingPermissionDescription"),
+          duration: 15000,
+        });
+      } else {
+        toast.warning(t("meeting.errors.audioOutputDeviceChanged"), {
+          description: t("meeting.errors.audioOutputDeviceChangedDescription"),
+        });
+      }
+    });
 
     return () => {
       void unlistenSegment.then((fn) => fn());
       void unlistenFinished.then((fn) => fn());
       void unlistenError.then((fn) => fn());
       void unlistenTurnFailed.then((fn) => fn());
+      void unlistenAudioWarning.then((fn) => fn());
     };
   }, [appendSegment, markFinished, markErrored, t]);
 };

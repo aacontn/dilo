@@ -908,15 +908,24 @@
       "stop": "停止",
       "finishing": "仕上げ中…",
       "kindPresencial": "対面、この端末のマイクを使用",
+      "kindOnlineSystemAudio": "オンライン会議、このコンピューターの音声を使用",
       "model": "{{name}} で文字起こし中",
       "modelLoading": "モデルを読み込み中…",
       "privacy": "音声はパソコンの外に出ません。文字起こしも話者の分離もここで行われます。",
       "startFailed": "録音を開始できませんでした",
-      "stopFailed": "ミーティングを停止できませんでした"
+      "stopFailed": "ミーティングを停止できませんでした",
+      "audioSourceHeading": "音声ソース",
+      "audioSourceSystemOption": "このコンピューターの音声",
+      "audioSourceMicrophoneOption": "マイク",
+      "audioSourceUnavailable": "このMacはコンピューターの音声に対応していません（macOS 14.2以降が必要です）。そのためマイクで録音します。"
     },
     "errors": {
       "sessionFailed": "エラーで会議の記録が停止しました",
-      "turnFailed": "一部を保存できませんでしたが、会議の録音は続いています"
+      "turnFailed": "一部を保存できませんでしたが、会議の録音は続いています",
+      "audioMissingPermission": "システム音声の権限がありません",
+      "audioMissingPermissionDescription": "Dilo はこのコンピューターの音声を取得できていません。システム設定 → プライバシーとセキュリティ → システムオーディオ録音 で権限を許可してから、録音をやり直してください。",
+      "audioOutputDeviceChanged": "音声出力が変更されました",
+      "audioOutputDeviceChangedDescription": "会議の途中で音声出力を切り替えたため、一部が録音されていない可能性があります。抜けに気づいたら、停止してから録音し直してください。"
     },
     "transcript": {
       "title": "ライブ文字起こし",

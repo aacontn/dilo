@@ -176,6 +176,8 @@ const settingUpdaters: {
   tts_voice: (value) => commands.ttsSetVoice(value as string),
   voice_assistant_enabled: (value) =>
     commands.ttsSetVoiceAssistantEnabled(value as boolean),
+  meeting_audio_source: (value) =>
+    commands.changeMeetingAudioSourceSetting(value as string),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

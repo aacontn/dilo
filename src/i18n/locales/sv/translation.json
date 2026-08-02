@@ -908,15 +908,24 @@
       "stop": "Stoppa",
       "finishing": "Avslutar…",
       "kindPresencial": "På plats, med den här datorns mikrofon",
+      "kindOnlineSystemAudio": "Onlinemöte, med ljudet från den här datorn",
       "model": "Transkriberar med {{name}}",
       "modelLoading": "Läser in modellen…",
       "privacy": "Ljudet lämnar aldrig din dator: transkribering och röstseparering sker här.",
       "startFailed": "Kunde inte börja spela in",
-      "stopFailed": "Kunde inte stoppa mötet"
+      "stopFailed": "Kunde inte stoppa mötet",
+      "audioSourceHeading": "Ljudkälla",
+      "audioSourceSystemOption": "Ljudet från den här datorn",
+      "audioSourceMicrophoneOption": "Mikrofon",
+      "audioSourceUnavailable": "Den här Mac:en stöder inte datorljud (kräver macOS 14.2 eller senare), så det spelas in med mikrofonen."
     },
     "errors": {
       "sessionFailed": "Mötet stoppades på grund av ett fel",
-      "turnFailed": "En del sparades inte; mötet spelas fortfarande in"
+      "turnFailed": "En del sparades inte; mötet spelas fortfarande in",
+      "audioMissingPermission": "Systemljudbehörighet saknas",
+      "audioMissingPermissionDescription": "Dilo fångar inget ljud från den här datorn. Ge behörigheten i Systeminställningar → Sekretess och säkerhet → Inspelning av systemljud, och starta inspelningen igen.",
+      "audioOutputDeviceChanged": "Ljudutgången ändrades",
+      "audioOutputDeviceChangedDescription": "Du bytte ljudutgång mitt i mötet, så en del kan ha missats. Om du märker att något saknas, stoppa och spela in igen."
     },
     "transcript": {
       "title": "Direkttranskript",

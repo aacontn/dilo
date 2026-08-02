@@ -105,15 +105,24 @@
       "stop": "Stop",
       "finishing": "Wrapping up…",
       "kindPresencial": "In person, using this computer's microphone",
+      "kindOnlineSystemAudio": "Online meeting, using this computer's audio",
       "model": "Transcribing with {{name}}",
       "modelLoading": "Loading the model…",
       "privacy": "Audio never leaves your computer: transcription and speaker separation happen right here.",
       "startFailed": "Couldn't start recording",
-      "stopFailed": "Couldn't stop the meeting"
+      "stopFailed": "Couldn't stop the meeting",
+      "audioSourceHeading": "Audio source",
+      "audioSourceSystemOption": "This computer's audio",
+      "audioSourceMicrophoneOption": "Microphone",
+      "audioSourceUnavailable": "This Mac can't use this computer's audio (needs macOS 14.2 or later), so it records with the microphone instead."
     },
     "errors": {
       "sessionFailed": "The meeting stopped because of an error",
-      "turnFailed": "Part of the meeting wasn't saved; it's still recording"
+      "turnFailed": "Part of the meeting wasn't saved; it's still recording",
+      "audioMissingPermission": "Missing system audio permission",
+      "audioMissingPermissionDescription": "Dilo isn't hearing anything from this computer's audio. Grant the permission in System Settings → Privacy & Security → System Audio Recording, then start the recording again.",
+      "audioOutputDeviceChanged": "Audio output changed",
+      "audioOutputDeviceChangedDescription": "You switched audio output mid-meeting, so part of it may have gone unrecorded. Stop and start again if you notice anything missing."
     },
     "transcript": {
       "title": "Live transcript",

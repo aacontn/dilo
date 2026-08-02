@@ -908,15 +908,24 @@
       "stop": "停止",
       "finishing": "收尾中…",
       "kindPresencial": "线下，使用本机麦克风",
+      "kindOnlineSystemAudio": "线上会议，使用本电脑的音频",
       "model": "正在使用 {{name}} 转录",
       "modelLoading": "正在加载模型…",
       "privacy": "音频不会离开你的电脑：转写和区分声音都在本地完成。",
       "startFailed": "无法开始录制",
-      "stopFailed": "无法停止会议"
+      "stopFailed": "无法停止会议",
+      "audioSourceHeading": "音频来源",
+      "audioSourceSystemOption": "本电脑的音频",
+      "audioSourceMicrophoneOption": "麦克风",
+      "audioSourceUnavailable": "这台 Mac 不支持电脑音频（需要 macOS 14.2 或更高版本），因此将使用麦克风录音。"
     },
     "errors": {
       "sessionFailed": "会议因错误而停止",
-      "turnFailed": "有一段没能保存，会议仍在录制"
+      "turnFailed": "有一段没能保存，会议仍在录制",
+      "audioMissingPermission": "缺少系统音频权限",
+      "audioMissingPermissionDescription": "Dilo 没有捕捉到本电脑音频的任何内容。请在系统设置 → 隐私与安全性 → 系统音频录制 中授予权限，然后重新开始录音。",
+      "audioOutputDeviceChanged": "音频输出已更改",
+      "audioOutputDeviceChangedDescription": "你在会议中途切换了音频输出，部分内容可能未被录下。如果发现缺失，请停止并重新录音。"
     },
     "transcript": {
       "title": "实时转写",

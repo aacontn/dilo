@@ -908,15 +908,24 @@
       "stop": "Detener",
       "finishing": "Cerrando…",
       "kindPresencial": "Presencial, con el micrófono de este equipo",
+      "kindOnlineSystemAudio": "Reunión online, con el audio de este equipo",
       "model": "Transcribiendo con {{name}}",
       "modelLoading": "Cargando el modelo…",
       "privacy": "El audio no sale de tu computador: se transcribe y se separan las voces acá mismo.",
       "startFailed": "No se pudo empezar a grabar",
-      "stopFailed": "No se pudo detener la reunión"
+      "stopFailed": "No se pudo detener la reunión",
+      "audioSourceHeading": "Fuente de audio",
+      "audioSourceSystemOption": "Audio de este equipo",
+      "audioSourceMicrophoneOption": "Micrófono",
+      "audioSourceUnavailable": "Tu Mac no puede usar el audio de este equipo (necesita macOS 14.2 o más nuevo), así que graba con el micrófono."
     },
     "errors": {
       "sessionFailed": "La reunión se detuvo por un error",
-      "turnFailed": "No se pudo guardar un tramo; la reunión sigue grabando"
+      "turnFailed": "No se pudo guardar un tramo; la reunión sigue grabando",
+      "audioMissingPermission": "Falta el permiso de audio del sistema",
+      "audioMissingPermissionDescription": "Dilo no está captando nada del audio de este equipo. Dale el permiso en Ajustes del Sistema → Privacidad y Seguridad → Grabación de audio del sistema, y vuelve a grabar.",
+      "audioOutputDeviceChanged": "Cambiaste la salida de audio",
+      "audioOutputDeviceChangedDescription": "Cambiaste de salida a mitad de la reunión, así que puede que una parte no se haya grabado. Si notas que falta algo, detén y vuelve a grabar."
     },
     "transcript": {
       "title": "Transcript en vivo",

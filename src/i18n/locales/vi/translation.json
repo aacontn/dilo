@@ -908,15 +908,24 @@
       "stop": "Dừng",
       "finishing": "Đang kết thúc…",
       "kindPresencial": "Trực tiếp, dùng micrô của máy này",
+      "kindOnlineSystemAudio": "Cuộc họp trực tuyến, dùng âm thanh của máy tính này",
       "model": "Đang phiên âm bằng {{name}}",
       "modelLoading": "Đang tải mô hình…",
       "privacy": "Âm thanh không rời khỏi máy của bạn: việc chuyển lời và tách giọng đều làm tại đây.",
       "startFailed": "Không thể bắt đầu ghi",
-      "stopFailed": "Không thể dừng cuộc họp"
+      "stopFailed": "Không thể dừng cuộc họp",
+      "audioSourceHeading": "Nguồn âm thanh",
+      "audioSourceSystemOption": "Âm thanh của máy tính này",
+      "audioSourceMicrophoneOption": "Micrô",
+      "audioSourceUnavailable": "Máy Mac này không hỗ trợ âm thanh của máy tính (cần macOS 14.2 trở lên), nên sẽ ghi âm bằng micrô."
     },
     "errors": {
       "sessionFailed": "Cuộc họp đã dừng do lỗi",
-      "turnFailed": "Một đoạn không được lưu; cuộc họp vẫn đang ghi"
+      "turnFailed": "Một đoạn không được lưu; cuộc họp vẫn đang ghi",
+      "audioMissingPermission": "Thiếu quyền âm thanh hệ thống",
+      "audioMissingPermissionDescription": "Dilo không thu được gì từ âm thanh của máy tính này. Cấp quyền trong Cài đặt Hệ thống → Quyền riêng tư & Bảo mật → Ghi âm thanh hệ thống, rồi bắt đầu ghi lại.",
+      "audioOutputDeviceChanged": "Đã đổi thiết bị xuất âm thanh",
+      "audioOutputDeviceChangedDescription": "Bạn đã đổi thiết bị xuất âm thanh giữa cuộc họp, nên có thể một phần chưa được ghi lại. Nếu thấy thiếu đoạn nào, hãy dừng và ghi lại."
     },
     "transcript": {
       "title": "Bản ghi trực tiếp",

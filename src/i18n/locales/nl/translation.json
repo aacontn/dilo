@@ -908,15 +908,24 @@
       "stop": "Stoppen",
       "finishing": "Afronden…",
       "kindPresencial": "Fysiek, met de microfoon van dit apparaat",
+      "kindOnlineSystemAudio": "Online vergadering, met de audio van deze computer",
       "model": "Transcriberen met {{name}}",
       "modelLoading": "Model laden…",
       "privacy": "De audio verlaat je computer niet: transcriptie en het scheiden van stemmen gebeuren hier.",
       "startFailed": "Opnemen kon niet starten",
-      "stopFailed": "Vergadering kon niet gestopt worden"
+      "stopFailed": "Vergadering kon niet gestopt worden",
+      "audioSourceHeading": "Audiobron",
+      "audioSourceSystemOption": "Audio van deze computer",
+      "audioSourceMicrophoneOption": "Microfoon",
+      "audioSourceUnavailable": "Deze Mac ondersteunt geen computeraudio (vereist macOS 14.2 of hoger), dus er wordt opgenomen met de microfoon."
     },
     "errors": {
       "sessionFailed": "De vergadering is gestopt door een fout",
-      "turnFailed": "Een deel is niet opgeslagen; de vergadering neemt nog op"
+      "turnFailed": "Een deel is niet opgeslagen; de vergadering neemt nog op",
+      "audioMissingPermission": "Systeemaudio-toestemming ontbreekt",
+      "audioMissingPermissionDescription": "Dilo ontvangt niets van de audio van deze computer. Geef toestemming in Systeeminstellingen → Privacy en beveiliging → Systeemaudio-opname, en start de opname opnieuw.",
+      "audioOutputDeviceChanged": "Audio-uitgang gewijzigd",
+      "audioOutputDeviceChangedDescription": "Je hebt halverwege de vergadering van audio-uitgang gewisseld, dus een deel is mogelijk niet opgenomen. Merk je dat er iets ontbreekt, stop dan en neem opnieuw op."
     },
     "transcript": {
       "title": "Live transcript",

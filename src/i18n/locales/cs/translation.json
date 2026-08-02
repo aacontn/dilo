@@ -908,15 +908,24 @@
       "stop": "Zastavit",
       "finishing": "Dokončuji…",
       "kindPresencial": "Naživo, mikrofonem tohoto zařízení",
+      "kindOnlineSystemAudio": "Online schůzka, se zvukem tohoto počítače",
       "model": "Přepis pomocí {{name}}",
       "modelLoading": "Načítání modelu…",
       "privacy": "Zvuk neopouští tvůj počítač: přepis i rozdělení hlasů probíhá tady.",
       "startFailed": "Nahrávání se nepodařilo spustit",
-      "stopFailed": "Schůzku se nepodařilo zastavit"
+      "stopFailed": "Schůzku se nepodařilo zastavit",
+      "audioSourceHeading": "Zdroj zvuku",
+      "audioSourceSystemOption": "Zvuk tohoto počítače",
+      "audioSourceMicrophoneOption": "Mikrofon",
+      "audioSourceUnavailable": "Tento Mac nepodporuje zvuk počítače (vyžaduje macOS 14.2 nebo novější), takže se nahrává s mikrofonem."
     },
     "errors": {
       "sessionFailed": "Schůzka se zastavila kvůli chybě",
-      "turnFailed": "Část se nepodařilo uložit; schůzka se stále nahrává"
+      "turnFailed": "Část se nepodařilo uložit; schůzka se stále nahrává",
+      "audioMissingPermission": "Chybí oprávnění pro systémový zvuk",
+      "audioMissingPermissionDescription": "Dilo nezachytává žádný zvuk z tohoto počítače. Udělte oprávnění v Nastavení systému → Soukromí a zabezpečení → Nahrávání systémového zvuku a nahrávání spusťte znovu.",
+      "audioOutputDeviceChanged": "Výstup zvuku se změnil",
+      "audioOutputDeviceChangedDescription": "Uprostřed schůzky jsi změnil výstup zvuku, takže část nemusela být zaznamenána. Pokud si všimneš, že něco chybí, zastav a nahraj to znovu."
     },
     "transcript": {
       "title": "Živý přepis",
