@@ -1,6 +1,9 @@
 {
   "catalog_version": 1,
   "generated_at": "2026-07-01T13:30:59+00:00",
+  "mirrors": [
+    "https://blob.handy.computer"
+  ],
   "models": [
     {
       "id": "handy-computer/parakeet-tdt-0.6b-v3-gguf",
@@ -804,6 +807,475 @@
       "recommended_rank": 7,
       "download_url": "https://github.com/aacontn/dilo-models/releases/download/v1-models/whisper-small-Q8_0.gguf",
       "sha256": "9b9c8811bbcc82a7766f0fb0925614bdacb0923b2cc630daeac17108b655b860"
+    },
+    {
+      "id": "handy-computer/canary-1b-flash-gguf",
+      "revision": "b427664769b93c021df108a2fa8bfb858ae236c1",
+      "slug": "canary-1b-flash",
+      "name": "Canary 1B Flash",
+      "architecture": "canary",
+      "family": "canary",
+      "parameters": "1B",
+      "description": "4-language speech-to-text with translation.",
+      "base_model": "nvidia/canary-1b-flash",
+      "license": "cc-by-4.0",
+      "language_count": 4,
+      "languages": [
+        "en",
+        "de",
+        "es",
+        "fr"
+      ],
+      "capabilities": {
+        "streaming": false,
+        "translate": true,
+        "lang_detect": false,
+        "timestamps": "none"
+      },
+      "speed_score": 83,
+      "accuracy_score": 90,
+      "files": [
+        {
+          "filename": "canary-1b-flash-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 677141280,
+          "sha256": "2521a615a2b04ab11900d894e1f5c5a70405d85aa74be0806b569b9cc311a707"
+        },
+        {
+          "filename": "canary-1b-flash-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 769563424,
+          "sha256": "7eed3cac92f255a4adbd518c58663d3fbf65984d2619189e593f2d374b05c601"
+        },
+        {
+          "filename": "canary-1b-flash-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 857603872,
+          "sha256": "3faeb99e16c719047df92fbdcc501ab5cd00edfac83a5e6e7cd69b470d650730"
+        },
+        {
+          "filename": "canary-1b-flash-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 1048131360,
+          "sha256": "9b99e0881d883467e0a03ceb0968dba888c9f8921b73355143ad8b67931e08ce"
+        },
+        {
+          "filename": "canary-1b-flash-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 1785657120,
+          "sha256": "e87e172694fe6d808fa8844961fb7bc77a4a22063936227c62ac76b6fdbf3dcd"
+        },
+        {
+          "filename": "canary-1b-flash-F32.gguf",
+          "quant": "F32",
+          "size_bytes": 3560372000,
+          "sha256": "888c24f7d67c3c60d00003bf6a1e3123822afbc47927b7ca931d0b4aaf45305b"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
+      "id": "handy-computer/canary-1b-v2-gguf",
+      "revision": "58d13c2c0102229aad45f7e19a77ddc42b41dd9a",
+      "slug": "canary-1b-v2",
+      "name": "Canary 1B v2",
+      "architecture": "canary",
+      "family": "canary",
+      "parameters": "1B",
+      "description": "25-language speech-to-text with translation.",
+      "base_model": "nvidia/canary-1b-v2",
+      "license": "cc-by-4.0",
+      "language_count": 25,
+      "languages": [
+        "bg",
+        "hr",
+        "cs",
+        "da",
+        "nl",
+        "en",
+        "et",
+        "fi",
+        "fr",
+        "de",
+        "el",
+        "hu",
+        "it",
+        "lv",
+        "lt",
+        "mt",
+        "pl",
+        "pt",
+        "ro",
+        "sk",
+        "sl",
+        "es",
+        "sv",
+        "ru",
+        "uk"
+      ],
+      "capabilities": {
+        "streaming": false,
+        "translate": true,
+        "lang_detect": false,
+        "timestamps": "none"
+      },
+      "speed_score": 81,
+      "accuracy_score": 88,
+      "files": [
+        {
+          "filename": "canary-1b-v2-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 735476448,
+          "sha256": "49e0a67e219bec95a254c2348460b6350e75a7ac6f93a131e48244b4c7cb53b9"
+        },
+        {
+          "filename": "canary-1b-v2-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 836664032,
+          "sha256": "9c3a893c93795438baf9b4b1c853c39b60316c3a0d259a3ba6e284712f5ddb71"
+        },
+        {
+          "filename": "canary-1b-v2-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 931986144,
+          "sha256": "6567c2d601fccacf9809fc230edefde05728340f65860bbe91cfd72d0a5eea9d"
+        },
+        {
+          "filename": "canary-1b-v2-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 1144290016,
+          "sha256": "224f83d1bc487b3303b495a7d6874912fdece93de19d1a04b550829c30a5d289"
+        },
+        {
+          "filename": "canary-1b-v2-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 1966111456,
+          "sha256": "eadda53cd1652d65cd12ff7ac4b7dc64cba1ce9837aae0c86e4222e8db89e320"
+        },
+        {
+          "filename": "canary-1b-v2-F32.gguf",
+          "quant": "F32",
+          "size_bytes": 3920657120,
+          "sha256": "b0b48b62b2c68f2779c49481de102715c5eaadbe084bca7fdddc7912f9c20e8b"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
+      "id": "handy-computer/Qwen3-ASR-1.7B-gguf",
+      "revision": "92282af1610a2db19d66f2bef1e260f5deca782d",
+      "slug": "Qwen3-ASR-1.7B",
+      "name": "Qwen3-ASR 1.7B",
+      "architecture": "qwen3_asr",
+      "family": "qwen3",
+      "parameters": "2.0B",
+      "description": "30-language speech-to-text with auto language detection.",
+      "base_model": "Qwen/Qwen3-ASR-1.7B",
+      "license": "apache-2.0",
+      "language_count": 30,
+      "languages": [
+        "zh",
+        "en",
+        "yue",
+        "ar",
+        "de",
+        "fr",
+        "es",
+        "pt",
+        "id",
+        "it",
+        "ko",
+        "ru",
+        "th",
+        "vi",
+        "ja",
+        "tr",
+        "hi",
+        "ms",
+        "nl",
+        "sv",
+        "da",
+        "fi",
+        "pl",
+        "cs",
+        "fil",
+        "fa",
+        "el",
+        "ro",
+        "hu",
+        "mk"
+      ],
+      "capabilities": {
+        "streaming": false,
+        "translate": false,
+        "lang_detect": true,
+        "timestamps": "none"
+      },
+      "speed_score": 38,
+      "accuracy_score": 90,
+      "files": [
+        {
+          "filename": "Qwen3-ASR-1.7B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 1319830496,
+          "sha256": "b7afe3674f653fa84f712ed2440353c6e7cf7f93697fef76b05a26538b24844e"
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 1517290464,
+          "sha256": "034c557fe92ff8fcd9a9c041cbdaad347be0a86a58d3a348f63cf3f0180879d0"
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 1692554208,
+          "sha256": "c75a961b7134a6c952d89797865cb0d0376876185aee04ef6d12c31c2952e4e1"
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 2185030624,
+          "sha256": "9a0d81792dfea2d5f278b8a63deb3ea6e02139ce42c2301f32ea19c4f77526b7"
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-BF16.gguf",
+          "quant": "BF16",
+          "size_bytes": 4083087904,
+          "sha256": "57db745f8ec3ad2ea391b0205661e7d74f76158877a33f151e4d4624ed2b7cc9"
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 4091390944,
+          "sha256": "edb09c29b8f73822c639168d5ef72aa2dccdf8b4e48fc4b8518885352ff62c71"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
+      "id": "handy-computer/granite-speech-4.1-2b-nar-gguf",
+      "revision": "ca53e8273416eb7e888f19bcebbcb9b6ab3edc17",
+      "slug": "granite-speech-4.1-2b-nar",
+      "name": "Granite Speech 4.1 2B NAR",
+      "architecture": "granite_speech_nar",
+      "family": "granite",
+      "parameters": "2.3B",
+      "description": "5-language speech-to-text.",
+      "base_model": "ibm-granite/granite-speech-4.1-2b-nar",
+      "license": "apache-2.0",
+      "language_count": 5,
+      "languages": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "pt"
+      ],
+      "capabilities": {
+        "streaming": false,
+        "translate": false,
+        "lang_detect": false,
+        "timestamps": "none"
+      },
+      "speed_score": 37,
+      "accuracy_score": 92,
+      "files": [
+        {
+          "filename": "granite-speech-4.1-2b-nar-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 1560008832,
+          "sha256": "68537a51d4d6d5a6be6e50f735a08af16646afba70fe8ab80dfe60ba7623325f"
+        },
+        {
+          "filename": "granite-speech-4.1-2b-nar-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 1782089344,
+          "sha256": "88d7c7b5b8b59c95bb6580a1e7d5d81cae63943cef71405ff477527b0bb69fca"
+        },
+        {
+          "filename": "granite-speech-4.1-2b-nar-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 1977417568,
+          "sha256": "cfdcdf223a8132ab58bd983df43e277d84056f2a4bf2115fdbc1d40d387f42e1"
+        },
+        {
+          "filename": "granite-speech-4.1-2b-nar-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 2498105472,
+          "sha256": "4762df797b9efa1ce0d73d2f5128517c86fdfdba2e9d00cd5cca97e624760b21"
+        },
+        {
+          "filename": "granite-speech-4.1-2b-nar-BF16.gguf",
+          "quant": "BF16",
+          "size_bytes": 4514736032,
+          "sha256": "742575c3cea9ff717ad39b18cf635da7c0453f6238fc01baa687beae223ad7e5"
+        },
+        {
+          "filename": "granite-speech-4.1-2b-nar-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 4515792768,
+          "sha256": "433c4925b3c7fdfea037a343eed60e4c9655acc25d293131ec6f71fd42dfe93f"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
+      "id": "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
+      "revision": "b3e1c979e3775cbd0a49a65878a0ec7f06789ed7",
+      "slug": "Voxtral-Mini-4B-Realtime-2602",
+      "name": "Voxtral Mini 4B Realtime",
+      "architecture": "voxtral_realtime",
+      "family": "voxtral",
+      "parameters": "4.8B",
+      "description": "Live multilingual, excellent on powerful machines",
+      "base_model": "mistralai/Voxtral-Mini-4B-Realtime-2602",
+      "license": "apache-2.0",
+      "language_count": 13,
+      "languages": [
+        "en",
+        "fr",
+        "es",
+        "de",
+        "ru",
+        "zh",
+        "ja",
+        "it",
+        "pt",
+        "nl",
+        "ar",
+        "hi",
+        "ko"
+      ],
+      "capabilities": {
+        "streaming": true,
+        "translate": false,
+        "lang_detect": true,
+        "timestamps": "none"
+      },
+      "speed_score": 11,
+      "accuracy_score": 87,
+      "files": [
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 2830493984,
+          "sha256": "39dc1f65539373a406edea7490505822d77c12edff521744678717eef4da4723"
+        },
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 3281439008,
+          "sha256": "e20a7582c5cf8159454c909b7f57b184b287cb3d7c3ec85744727a2cec51b08f"
+        },
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 3661018912,
+          "sha256": "92038784cffa20ea8ee925f10fd28c110285124d94730eacce48bab6c214fa48"
+        },
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 4731791648,
+          "sha256": "6fb22249463c1e7a600d920ad732e2dd0a231510e9db59fb8061d3d1d48d0c67"
+        },
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-BF16.gguf",
+          "quant": "BF16",
+          "size_bytes": 8868301088,
+          "sha256": "dca6a7bece55858472e1b2df1f928642bdc1e964b1a91f3378c3a4e72fc5bc04"
+        },
+        {
+          "filename": "Voxtral-Mini-4B-Realtime-2602-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 8879114528,
+          "sha256": "243258ae0ad80f748b18cfd9c8141998157d74eb32fbb131ba8f69e0c01564d7"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
+      "id": "handy-computer/Voxtral-Mini-3B-2507-gguf",
+      "revision": "5690205813042c07cbaa86d2a9dcc585fcd31304",
+      "slug": "Voxtral-Mini-3B-2507",
+      "name": "Voxtral Mini 3B",
+      "architecture": "voxtral",
+      "family": "voxtral",
+      "parameters": "4.7B",
+      "description": "8-language speech-to-text with translation, auto language detection.",
+      "base_model": "mistralai/Voxtral-Mini-3B-2507",
+      "license": "apache-2.0",
+      "language_count": 8,
+      "languages": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "hi"
+      ],
+      "capabilities": {
+        "streaming": false,
+        "translate": true,
+        "lang_detect": true,
+        "timestamps": "none"
+      },
+      "speed_score": 14,
+      "accuracy_score": 88,
+      "files": [
+        {
+          "filename": "Voxtral-Mini-3B-2507-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 2984721056,
+          "sha256": "3a6717aa8f8989108d260cbd237584289eec43cc987e10133c33643515936205"
+        },
+        {
+          "filename": "Voxtral-Mini-3B-2507-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 3464182432,
+          "sha256": "9ea2eb85359f7771270715849dc2b0e80381a59dab09d9c5d85352ab9c53f675"
+        },
+        {
+          "filename": "Voxtral-Mini-3B-2507-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 3869489824,
+          "sha256": "0be733fd436c2a89483b96ed8d398abbc3ce5bcaa7aac64e886f5eb9d9066a43"
+        },
+        {
+          "filename": "Voxtral-Mini-3B-2507-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 5000084128,
+          "sha256": "06b4dd04e32953ccab0d417125bdd728ec031431596ed5e80123c3c66f29ddc2"
+        },
+        {
+          "filename": "Voxtral-Mini-3B-2507-BF16.gguf",
+          "quant": "BF16",
+          "size_bytes": 9365764768,
+          "sha256": "ddfa5eb2e5e56343ee9b3262d5581f9b48085bdecefba71c0092901cf0183ccb"
+        },
+        {
+          "filename": "Voxtral-Mini-3B-2507-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 9376578208,
+          "sha256": "a7f0bebce988a32ce7e736acffe19a48d9bc739789dfab7d13ca6b622d23dd6e"
+        }
+      ],
+      "default_quant": "Q5_K_M",
+      "recommended": false,
+      "recommended_rank": null
     }
   ]
 }

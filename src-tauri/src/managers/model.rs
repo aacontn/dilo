@@ -122,6 +122,12 @@ pub struct QuantFile {
     pub filename: String,
     pub quant: String,
     pub size_bytes: u64,
+    /// Content sha256 — the trust anchor for a mirror download (see
+    /// `catalog::mirror_fallbacks`). `None` for entries that predate the
+    /// field (our original 7, which carry a model-level `sha256` instead, for
+    /// their own `download_url`).
+    #[serde(default)]
+    pub sha256: Option<String>,
 }
 
 /// Pick the default quant among `files`: the one whose `quant` matches
@@ -1318,9 +1324,14 @@ impl ModelManager {
 
         for model in models.values_mut() {
             if let ModelSource::HuggingFace { repo_id, revision } = &model.source {
-                model.is_downloaded = hf_cached_path(repo_id, revision, &model.filename).is_some();
+                // A models_dir copy counts too: mirror-fallback downloads land
+                // there instead of the HF cache (see `download_from_mirror`).
+                let local_path = self.models_dir.join(&model.filename);
+                let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
+                model.is_downloaded = hf_cached_path(repo_id, revision, &model.filename).is_some()
+                    || local_path.exists();
                 model.is_downloading = false;
-                model.partial_size = 0;
+                model.partial_size = partial_path.metadata().map(|m| m.len()).unwrap_or(0);
                 continue;
             }
             if model.is_directory {
@@ -1755,7 +1766,9 @@ impl ModelManager {
     /// Download a Hugging Face-sourced model into the shared HF cache via
     /// hf-hub, reporting progress through the same `model-download-progress`
     /// event the URL path uses. Relies on hf-hub's stock token + cache (no
-    /// custom environment wiring).
+    /// custom environment wiring). Falls back to a catalog mirror (see
+    /// [`Self::download_from_mirror`]) when the HF transfer fails and the
+    /// catalog has one for this model.
     async fn download_hf_model(
         &self,
         model_info: &ModelInfo,
@@ -1765,8 +1778,11 @@ impl ModelManager {
         let model_id = model_info.id.clone();
         let filename = model_info.filename.clone();
 
-        // Already in the shared cache (possibly from another tool)? Done.
-        if hf_cached_path(&repo_id, &revision, &filename).is_some() {
+        // Already in the shared cache (possibly from another tool), or
+        // previously landed in the models dir by a mirror fallback? Done.
+        if hf_cached_path(&repo_id, &revision, &filename).is_some()
+            || self.models_dir.join(&filename).exists()
+        {
             self.update_download_status()?;
             let _ = self.app_handle.emit("model-download-complete", &model_id);
             return Ok(());
@@ -1813,7 +1829,7 @@ impl ModelManager {
         let repo = api.repo(Repo::with_revision(repo_id, RepoType::Model, revision));
         let progress = HfDownloadProgress::new(self.app_handle.clone(), model_id.clone());
         match repo
-            .download_with_progress_cancellable(&filename, progress, cancel_token)
+            .download_with_progress_cancellable(&filename, progress, cancel_token.clone())
             .await
         {
             Ok(_) => {}
@@ -1826,8 +1842,53 @@ impl ModelManager {
                 info!("HF download cancelled for: {}", model_id);
                 return Ok(());
             }
-            Err(e) => {
-                return Err(anyhow::anyhow!("Hugging Face download failed: {}", e));
+            Err(hf_error) => {
+                // Ported from upstream: on HF failure, fall back to the
+                // catalog's mirror(s) (see `catalog::mirror_fallbacks`) before
+                // giving up. Empty for models without a pinned revision /
+                // per-file sha256 — our original 7 `download_url` entries
+                // never reach here at all (their own branch handles them).
+                warn!(
+                    "HF download failed for {}: {}; checking for a mirror fallback",
+                    model_id, hf_error
+                );
+                let mirrors = crate::catalog::mirror_fallbacks(&model_id);
+                if mirrors.is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Hugging Face download failed: {}",
+                        hf_error
+                    ));
+                }
+                let mut completed = false;
+                for mirror in &mirrors {
+                    info!("Falling back to mirror for {}: {}", model_id, mirror.url);
+                    match self
+                        .download_from_mirror(&model_id, &filename, mirror, cancel_token.clone())
+                        .await
+                    {
+                        Ok(true) => {
+                            completed = true;
+                            break;
+                        }
+                        Ok(false) => {
+                            info!("Mirror download cancelled for: {}", model_id);
+                            return Ok(());
+                        }
+                        Err(mirror_error) => {
+                            warn!(
+                                "Mirror download failed for {} from {}: {:?}",
+                                model_id, mirror.url, mirror_error
+                            );
+                        }
+                    }
+                }
+                if !completed {
+                    return Err(anyhow::anyhow!(
+                        "Download failed from Hugging Face ({}) and {} mirror(s)",
+                        hf_error,
+                        mirrors.len()
+                    ));
+                }
             }
         }
 
@@ -1837,6 +1898,144 @@ impl ModelManager {
         let _ = self.app_handle.emit("model-download-complete", &model_id);
         info!("HF model {} downloaded", model_id);
         Ok(())
+    }
+
+    /// Direct-HTTP download of a catalog model's file from a mirror
+    /// (`blob.handy.computer` today, see [`crate::catalog::mirror_fallbacks`])
+    /// into `models_dir` — the resumable-download + sha256-verify pattern
+    /// [`Self::download_model`] already uses for `ModelSource::Url` models,
+    /// applied to a mirror URL instead. `get_model_path` and
+    /// `update_download_status` both also check `models_dir` for
+    /// HuggingFace-sourced models, so a file landed here by a mirror is
+    /// recognized as downloaded without ever touching the HF cache.
+    ///
+    /// Returns `Ok(true)` once the file is downloaded and verified,
+    /// `Ok(false)` if cancelled (the partial is kept for a later resume).
+    async fn download_from_mirror(
+        &self,
+        model_id: &str,
+        filename: &str,
+        mirror: &crate::catalog::MirrorFile,
+        cancel_token: CancellationToken,
+    ) -> Result<bool> {
+        fs::create_dir_all(&self.models_dir)?;
+        let model_path = self.models_dir.join(filename);
+        let partial_path = self.models_dir.join(format!("{}.partial", filename));
+
+        if model_path.exists() {
+            return Ok(true);
+        }
+
+        let mut resume_from = if partial_path.exists() {
+            let size = partial_path.metadata()?.len();
+            info!(
+                "Resuming mirror download of model {} from byte {}",
+                model_id, size
+            );
+            size
+        } else {
+            0
+        };
+
+        let client = reqwest::Client::new();
+        let mut request = client.get(&mirror.url);
+        if resume_from > 0 {
+            request = request.header("Range", format!("bytes={}-", resume_from));
+        }
+        let mut response = request.send().await?;
+
+        // Mirror doesn't support range requests: restart fresh rather than
+        // risk appending a full body onto an existing partial.
+        if resume_from > 0 && response.status() == reqwest::StatusCode::OK {
+            drop(response);
+            let _ = fs::remove_file(&partial_path);
+            resume_from = 0;
+            response = client.get(&mirror.url).send().await?;
+        }
+
+        if !response.status().is_success()
+            && response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+        {
+            return Err(anyhow::anyhow!(
+                "Mirror download failed: HTTP {}",
+                response.status()
+            ));
+        }
+
+        let total_size = mirror.size_bytes;
+        let mut downloaded = resume_from;
+        let mut stream = response.bytes_stream();
+
+        let mut file = if resume_from > 0 {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&partial_path)?
+        } else {
+            std::fs::File::create(&partial_path)?
+        };
+
+        let mut last_emit = Instant::now();
+        let throttle_duration = Duration::from_millis(100);
+
+        while let Some(chunk) = stream.next().await {
+            if cancel_token.is_cancelled() {
+                drop(file);
+                info!("Mirror download cancelled for: {}", model_id);
+                return Ok(false);
+            }
+
+            let chunk = chunk?;
+            file.write_all(&chunk)?;
+            downloaded += chunk.len() as u64;
+
+            if last_emit.elapsed() >= throttle_duration {
+                let progress = DownloadProgress {
+                    model_id: model_id.to_string(),
+                    downloaded,
+                    total: total_size,
+                    percentage: if total_size > 0 {
+                        (downloaded as f64 / total_size as f64) * 100.0
+                    } else {
+                        0.0
+                    },
+                };
+                let _ = self.app_handle.emit("model-download-progress", &progress);
+                last_emit = Instant::now();
+            }
+        }
+
+        file.flush()?;
+        drop(file);
+
+        if total_size > 0 {
+            let actual_size = partial_path.metadata()?.len();
+            if actual_size != total_size {
+                let _ = fs::remove_file(&partial_path);
+                return Err(anyhow::anyhow!(
+                    "Mirror download incomplete: expected {} bytes, got {} bytes",
+                    total_size,
+                    actual_size
+                ));
+            }
+        }
+
+        let _ = self.app_handle.emit("model-verification-started", model_id);
+        info!(
+            "Verifying SHA256 for mirror download of model {}...",
+            model_id
+        );
+        Self::verify_sha256(&partial_path, Some(&mirror.sha256), model_id)?;
+        let _ = self
+            .app_handle
+            .emit("model-verification-completed", model_id);
+
+        fs::rename(&partial_path, &model_path)?;
+        info!(
+            "Mirror download of {} completed and verified ({:?})",
+            model_id, model_path
+        );
+        Ok(true)
     }
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
@@ -2218,6 +2417,19 @@ impl ModelManager {
                     }
                 }
             }
+            // Also remove a models_dir copy (mirror fallback download) and any
+            // resumable partial next to it.
+            for path in [
+                self.models_dir.join(&model_info.filename),
+                self.models_dir
+                    .join(format!("{}.partial", &model_info.filename)),
+            ] {
+                if path.exists() {
+                    info!("Deleting model file at: {:?}", path);
+                    fs::remove_file(&path)?;
+                    deleted = true;
+                }
+            }
             if !deleted {
                 return Err(anyhow::anyhow!("No model files found to delete"));
             }
@@ -2301,9 +2513,27 @@ impl ModelManager {
         }
 
         if let ModelSource::HuggingFace { repo_id, revision } = &model_info.source {
-            return hf_cached_path(repo_id, revision, &model_info.filename).ok_or_else(|| {
-                anyhow::anyhow!("Complete model file not found in HF cache: {}", model_id)
-            });
+            if let Some(path) = hf_cached_path(repo_id, revision, &model_info.filename) {
+                return Ok(path);
+            }
+            // Mirror-fallback download landed in models_dir instead of the HF
+            // cache. A stale `.partial` alongside a complete file is leftover
+            // noise (the complete file only appears after verification), not
+            // a veto — clear it rather than declaring the model missing.
+            let local_path = self.models_dir.join(&model_info.filename);
+            if local_path.exists() {
+                let partial_path = self
+                    .models_dir
+                    .join(format!("{}.partial", &model_info.filename));
+                if partial_path.exists() {
+                    let _ = fs::remove_file(&partial_path);
+                }
+                return Ok(local_path);
+            }
+            return Err(anyhow::anyhow!(
+                "Complete model file not found in HF cache or models dir: {}",
+                model_id
+            ));
         }
 
         // Catalog Url mirror not in models_dir but present in the shared HF cache:
