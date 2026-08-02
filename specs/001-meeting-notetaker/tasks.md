@@ -82,7 +82,17 @@ Proyecto Tauri existente (no monorepo): `src-tauri/src/` (backend Rust),
 
 **Independent Test**: grabar una videollamada de prueba de 2 participantes y verificar que el transcript incluye ambos lados (quickstart.md Escenario 2).
 
-- [ ] T023 [US2] Implementar captura de audio de sistema con ScreenCaptureKit en `src-tauri/src/audio_toolkit/audio/system_audio.rs` (`research.md` §3, macOS)
+- [ ] T023 [US2] Implementar captura de audio de sistema en `src-tauri/src/audio_toolkit/audio/system_audio.rs` (macOS)
+  - **Corrección 2026-08-02:** NO usar ScreenCaptureKit, como decía `research.md` §3.
+    La inspección de Wispr Flow (que resuelve esto en producción) mostró que no lo
+    usa: captura con la vía de **audio del sistema de macOS 14.4+**, que pide sólo
+    permiso de **audio** (`NSAudioCaptureUsageDescription`) y no el de grabación de
+    pantalla. Su Info.plist lo declara así y su helper enlaza CoreAudio sin
+    ScreenCaptureKit. Es menos invasivo, no muestra el indicador morado, y permite
+    tomar el audio de un proceso concreto en vez de toda la pantalla.
+  - Requiere decidir cómo se llaman esas APIs desde Rust (FFI propio o crate), y esa
+    decisión choca con la restricción de "sin dependencias nuevas": resolverla en el
+    diseño antes de implementar.
 - [ ] T024 [US2] Extender `start_meeting` para aceptar `kind: "virtual"`, mezclando audio de sistema + micrófono
 - [ ] T025 [P] [US2] Agregar selector presencial/virtual a `src/components/meeting/RecordingControls.tsx` (extiende T017)
 - [ ] T026 [US2] Manejar el flujo de permiso de macOS para captura de audio de sistema (solicitud + estado en Ajustes)
