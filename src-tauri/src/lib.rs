@@ -320,8 +320,36 @@ fn initialize_core_logic(app_handle: &AppHandle) {
             .unwrap(),
         )
         .tooltip(tray::tray_tooltip())
-        .show_menu_on_left_click(true)
+        // En macOS el clic izquierdo abre el popover (ver `popover.rs`); el
+        // derecho conserva el menú de siempre. En Windows y Linux, donde no
+        // hay popover, el izquierdo sigue abriendo el menú como hasta ahora.
+        .show_menu_on_left_click(!popover::popover_supported())
         .icon_as_template(true)
+        .on_tray_icon_event(|tray, event| {
+            let tauri::tray::TrayIconEvent::Click {
+                button,
+                button_state,
+                rect,
+                ..
+            } = event
+            else {
+                return;
+            };
+            if button_state != tauri::tray::MouseButtonState::Up {
+                return;
+            }
+            let tray_button = match button {
+                tauri::tray::MouseButton::Left => popover::TrayButton::Left,
+                _ => popover::TrayButton::Right,
+            };
+            if popover::tray_click_action(tray_button, popover::popover_supported())
+                != popover::TrayClick::Popover
+            {
+                return;
+            }
+            let app = tray.app_handle();
+            popover::toggle_popover(app, popover::logical_tray_rect(app, rect));
+        })
         .on_menu_event(|app, event| match event.id.as_ref() {
             "settings" => {
                 show_main_window(app);

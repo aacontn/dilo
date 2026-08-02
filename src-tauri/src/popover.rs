@@ -7,7 +7,7 @@
 //! adentro—, así que es una ventana normal sin decoraciones que se esconde al
 //! perder el foco. Esa regla no aplica acá.
 
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, Rect, WebviewUrl, WebviewWindowBuilder};
 
 /// Respiro entre el borde inferior del ícono y el techo del popover.
 pub const POPOVER_GAP: f64 = 6.0;
@@ -22,6 +22,86 @@ pub struct TrayRect {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrayButton {
+    Left,
+    Right,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrayClick {
+    Popover,
+    Menu,
+}
+
+/// Qué hace un clic en el ícono. Pura y testeable: `popover_supported` entra
+/// como parámetro en vez de consultarse acá, para poder probar las dos
+/// plataformas desde cualquiera.
+pub fn tray_click_action(button: TrayButton, popover_supported: bool) -> TrayClick {
+    match (button, popover_supported) {
+        (TrayButton::Left, true) => TrayClick::Popover,
+        _ => TrayClick::Menu,
+    }
+}
+
+/// True donde el popover existe. Hoy sólo macOS (§4 del diseño).
+pub fn popover_supported() -> bool {
+    cfg!(target_os = "macos")
+}
+
+/// Convierte el `rect` de `TrayIconEvent::Click` (físico) a `TrayRect`
+/// (lógico, el contrato de este módulo — ver `current_work_area` más abajo).
+///
+/// El punto crítico: no hay una API que entregue "el scale factor de este
+/// evento". `tray-icon` 0.21 arma `rect` en macOS a partir del
+/// `backingScaleFactor()` de la `NSWindow` del ícono (su
+/// `platform_impl::macos::get_tray_rect`), que es el scale del **monitor
+/// donde vive el ícono en ese instante** — no una constante ni el scale de
+/// la ventana principal, que puede estar en otra pantalla. Igual que
+/// `get_monitor_with_cursor` en `overlay.rs` resuelve el monitor antes de
+/// confiar en un scale factor, acá resolvemos el monitor cuyos límites
+/// físicos contienen el punto del rect y usamos su `scale_factor()`. A
+/// diferencia de aquella función —que normaliza un punto de origen ambiguo
+/// dividiendo por el scale antes de comparar—, acá el punto ya es físico sin
+/// ambigüedad, así que se compara directo contra `Monitor::position()` /
+/// `size()` (también físicas, sin conversión).
+///
+/// Si ningún monitor contiene el punto (no debería pasar, pero mejor que un
+/// panic), cae a escala 1.0: en una pantalla 1x el resultado es correcto de
+/// todas formas, y en Retina es preferible un popover mal ubicado a ninguno.
+pub fn logical_tray_rect(app: &AppHandle, rect: Rect) -> TrayRect {
+    // `to_physical(1.0)` sólo hace de cast cuando la variante ya es física
+    // (el caso real en macOS); sirve para tener un punto con el que buscar
+    // el monitor antes de conocer el scale real.
+    let raw_pos = rect.position.to_physical::<f64>(1.0);
+
+    let scale = app
+        .available_monitors()
+        .ok()
+        .into_iter()
+        .flatten()
+        .find(|m| {
+            let mp = m.position();
+            let ms = m.size();
+            raw_pos.x >= mp.x as f64
+                && raw_pos.x < mp.x as f64 + ms.width as f64
+                && raw_pos.y >= mp.y as f64
+                && raw_pos.y < mp.y as f64 + ms.height as f64
+        })
+        .map(|m| m.scale_factor())
+        .unwrap_or(1.0);
+
+    let pos = rect.position.to_logical::<f64>(scale);
+    let size = rect.size.to_logical::<f64>(scale);
+
+    TrayRect {
+        x: pos.x,
+        y: pos.y,
+        width: size.width,
+        height: size.height,
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -327,5 +407,25 @@ mod tests {
         };
         assert!(POPOVER_WIDTH + POPOVER_MARGIN * 2.0 < small.width);
         assert!(POPOVER_HEIGHT < small.height / 2.0 + 100.0);
+    }
+
+    #[test]
+    fn el_clic_izquierdo_abre_el_popover_donde_hay_soporte() {
+        assert_eq!(
+            tray_click_action(TrayButton::Left, true),
+            TrayClick::Popover
+        );
+    }
+
+    #[test]
+    fn el_clic_derecho_siempre_abre_el_menu() {
+        assert_eq!(tray_click_action(TrayButton::Right, true), TrayClick::Menu);
+        assert_eq!(tray_click_action(TrayButton::Right, false), TrayClick::Menu);
+    }
+
+    #[test]
+    fn sin_soporte_de_popover_el_izquierdo_conserva_el_menu() {
+        // Windows y Linux: el comportamiento de hoy no se toca.
+        assert_eq!(tray_click_action(TrayButton::Left, false), TrayClick::Menu);
     }
 }
