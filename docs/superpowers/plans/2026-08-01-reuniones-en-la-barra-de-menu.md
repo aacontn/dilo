@@ -17,21 +17,21 @@
 - **El popover es sólo macOS.** En Windows y Linux el clic izquierdo conserva el menú actual, intacto.
 - **El catálogo de modelos no se toca**: no se borra ninguno de los existentes.
 - Respeta `prefers-reduced-motion` como el resto de la app.
-- Gates antes de cada commit: `cargo fmt`, `cargo clippy --all-targets` (0 warnings nuevos), `cargo test --lib`, `bun run build`, `bun run lint`, `bun run check:translations`.
+- Gates antes de cada commit: `cargo fmt`, `cargo clippy --all-targets` (0 warnings nuevos), `cargo test --lib`, `bun run build`, `bun run lint`, `bun run format:check`, `bun run check:translations`.
 
 ## Estructura de archivos
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `src-tauri/src/popover.rs` *(nuevo)* | Ciclo de vida de la ventana popover: crear, mostrar posicionada, esconder, conmutar. Incluye la geometría pura y sus tests. |
-| `src-tauri/src/lib.rs` *(modificar)* | Registrar el módulo, la ventana en el builder del tray, y el manejador de foco que la esconde. |
-| `src-tauri/src/tray.rs` *(modificar)* | Nada de menú nuevo; sólo lo que haga falta para que el clic izquierdo conmute en macOS. |
-| `src-tauri/capabilities/default.json` *(modificar)* | Añadir la etiqueta `"popover"` a `windows`. **Sin esto los eventos y comandos se rechazan en silencio en producción.** |
-| `src/popover/index.html`, `main.tsx`, `PopoverWindow.tsx` *(nuevos)* | Entrada de Vite y cascarón visual del popover. |
-| `src/components/popover/PopoverBody.tsx` *(nuevo)* | Las cuatro zonas: ranura de avisos, sesión en curso, últimas reuniones, dos puertas. |
-| `src/components/popover/recentMeetings.ts` *(nuevo)* | Selección pura de las 4 más recientes — lógica testeable sin DOM. |
-| `vite.config.ts` *(modificar)* | Registrar la nueva entrada. |
-| `src/i18n/locales/*/translation.json` *(modificar)* | Claves nuevas bajo `popover.` en los 21 idiomas. |
+| Archivo                                                              | Responsabilidad                                                                                                             |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `src-tauri/src/popover.rs` _(nuevo)_                                 | Ciclo de vida de la ventana popover: crear, mostrar posicionada, esconder, conmutar. Incluye la geometría pura y sus tests. |
+| `src-tauri/src/lib.rs` _(modificar)_                                 | Registrar el módulo, la ventana en el builder del tray, y el manejador de foco que la esconde.                              |
+| `src-tauri/src/tray.rs` _(modificar)_                                | Nada de menú nuevo; sólo lo que haga falta para que el clic izquierdo conmute en macOS.                                     |
+| `src-tauri/capabilities/default.json` _(modificar)_                  | Añadir la etiqueta `"popover"` a `windows`. **Sin esto los eventos y comandos se rechazan en silencio en producción.**      |
+| `src/popover/index.html`, `main.tsx`, `PopoverWindow.tsx` _(nuevos)_ | Entrada de Vite y cascarón visual del popover.                                                                              |
+| `src/components/popover/PopoverBody.tsx` _(nuevo)_                   | Las cuatro zonas: ranura de avisos, sesión en curso, últimas reuniones, dos puertas.                                        |
+| `src/components/popover/recentMeetings.ts` _(nuevo)_                 | Selección pura de las 4 más recientes — lógica testeable sin DOM.                                                           |
+| `vite.config.ts` _(modificar)_                                       | Registrar la nueva entrada.                                                                                                 |
+| `src/i18n/locales/*/translation.json` _(modificar)_                  | Claves nuevas bajo `popover.` en los 21 idiomas.                                                                            |
 
 ---
 
@@ -40,10 +40,12 @@
 Posicionar bajo el ícono sin salirse de la pantalla. Es matemática pura, así que se resuelve y se prueba antes de tocar ninguna ventana.
 
 **Files:**
+
 - Create: `src-tauri/src/popover.rs`
 - Modify: `src-tauri/src/lib.rs` (añadir `mod popover;` junto a los otros `mod`)
 
 **Interfaces:**
+
 - Consumes: nada.
 - Produces: `pub struct PopoverGeometry { pub x: f64, pub y: f64 }` y
   `pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) -> PopoverGeometry`,
@@ -206,12 +208,14 @@ git commit -m "feat(popover): geometría del popover bajo el ícono de la barra"
 Crear, mostrar posicionada y esconder. Sin contenido todavía: una ventana vacía que aparece donde debe.
 
 **Files:**
+
 - Modify: `src-tauri/src/popover.rs`
 - Modify: `src-tauri/capabilities/default.json`
 - Create: `src/popover/index.html`, `src/popover/main.tsx`, `src/popover/PopoverWindow.tsx`
 - Modify: `vite.config.ts`
 
 **Interfaces:**
+
 - Consumes: `popover_position`, `TrayRect`, `PopoverSize`, `WorkArea` de la Task 1.
 - Produces:
   - `pub const POPOVER_WINDOW_LABEL: &str = "popover";`
@@ -435,10 +439,12 @@ git commit -m "feat(popover): ventana del popover, posicionada bajo el ícono y 
 Izquierdo conmuta el popover en macOS; derecho conserva el menú. En Windows y Linux nada cambia.
 
 **Files:**
+
 - Modify: `src-tauri/src/lib.rs:311-322` (el `TrayIconBuilder`)
 - Modify: `src-tauri/src/popover.rs` (la función de decisión y sus tests)
 
 **Interfaces:**
+
 - Consumes: `toggle_popover`, `TrayRect` de la Task 2.
 - Produces: `pub enum TrayClick { Popover, Menu }` y
   `pub fn tray_click_action(button: TrayButton, popover_supported: bool) -> TrayClick`,
@@ -580,6 +586,7 @@ git commit -m "feat(popover): el clic izquierdo del ícono abre el popover en ma
 El contenido: ranura de avisos vacía, sesión en curso, últimas 4 reuniones y las dos puertas.
 
 **Files:**
+
 - Modify: `src/components/meeting/meetingFormat.ts` (extraer `isPastMeeting`)
 - Modify: `src/components/meeting/MeetingsList.tsx:20-21` (importarlo en vez de definirlo)
 - Create: `src/components/popover/PopoverBody.tsx`
@@ -588,6 +595,7 @@ El contenido: ranura de avisos vacía, sesión en curso, últimas 4 reuniones y 
 - Modify: los 21 `src/i18n/locales/*/translation.json`
 
 **Interfaces:**
+
 - Consumes: `commands.listMeetings(limit, offset)`, `commands.openMeetingsWindow()` y `commands.returnToMainWindow()` de `@/bindings` (los tres ya existen); `useMeetingStore` de `@/stores/meetingStore`; los tipos `MeetingSummary` y `PaginatedMeetings` de `@/bindings`.
 - Produces: `export const isPastMeeting: (meeting: MeetingSummary) => boolean` y
   `export const RECENT_MEETINGS_LIMIT = 4;`, ambos desde
@@ -636,7 +644,9 @@ describe("isPastMeeting", () => {
       summary(2),
       summary(1),
     ];
-    expect(rows.filter(isPastMeeting).slice(0, RECENT_MEETINGS_LIMIT)).toHaveLength(4);
+    expect(
+      rows.filter(isPastMeeting).slice(0, RECENT_MEETINGS_LIMIT),
+    ).toHaveLength(4);
   });
 });
 ```
@@ -872,9 +882,11 @@ comportamiento.
 - [ ] **Step 9: Verificar que no se coló voseo**
 
 Run:
+
 ```bash
 grep -nE "preferís|querés|podés|tenés|elegí |mirá|ponele|sabés|hacé|vos " src/i18n/locales/es/translation.json
 ```
+
 Expected: sin resultados. Si aparece alguno, reescribe esa línea en tuteo chileno.
 
 - [ ] **Step 10: Commit**
@@ -886,7 +898,6 @@ git commit -m "feat(popover): las cuatro zonas del popover y sus dos puertas"
 
 ---
 
-
 ### Task 5: Verificación en la app
 
 Lo que ningún test unitario puede probar: que el popover se vea y se comporte.
@@ -894,6 +905,7 @@ Lo que ningún test unitario puede probar: que el popover se vea y se comporte.
 **Files:** ninguno — es una pasada de verificación. Los arreglos que salgan van con su propio commit.
 
 **Interfaces:**
+
 - Consumes: todo lo anterior.
 - Produces: nada.
 
@@ -920,7 +932,7 @@ bun run tauri dev
 
 - [ ] **Step 3: Commit de los arreglos que salgan**
 
-Uno por arreglo, con prefijo `fix(popover):` y el mensaje explicando *por qué*, no *qué*.
+Uno por arreglo, con prefijo `fix(popover):` y el mensaje explicando _por qué_, no _qué_.
 
 ---
 

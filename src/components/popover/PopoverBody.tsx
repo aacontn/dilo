@@ -64,8 +64,8 @@ export const PopoverBody: React.FC = () => {
   // ventana de reuniones mientras tanto— sólo llega por evento.
   useEffect(() => {
     const unlistenFinished = events.meetingFinished.listen(() => void load());
-    const unlistenInterrupted = events.meetingInterrupted.listen(() =>
-      void load(),
+    const unlistenInterrupted = events.meetingInterrupted.listen(
+      () => void load(),
     );
     return () => {
       void unlistenFinished.then((fn) => fn());

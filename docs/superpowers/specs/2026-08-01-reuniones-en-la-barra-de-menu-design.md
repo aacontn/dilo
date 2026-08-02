@@ -47,10 +47,10 @@ que pidió — sin quedar roto si el tema cambia.
 **Cuál tema, exactamente.** El ícono y el popover viven en la misma franja de
 pantalla pero obedecen a fuentes distintas, y es deliberado:
 
-| Superficie | Sigue | Por qué |
-| --- | --- | --- |
-| El ícono | El tema del **sistema** | Legibilidad, no estética: es un bitmap sobre la barra del SO. `get_current_theme` en `tray.rs` ya lo resuelve así, y su comentario explica el caso de Windows —barra oscura con apps claras— donde el tema de la app elegiría un ícono invisible. |
-| El popover | El ajuste **de Dilo** (`settings.theme`) | Es superficie propia de la app, no un bitmap peleando contra el fondo del sistema. Si alguien pone Dilo en oscuro con el sistema en claro, quiere Dilo oscuro, popover incluido. |
+| Superficie | Sigue                                    | Por qué                                                                                                                                                                                                                                           |
+| ---------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El ícono   | El tema del **sistema**                  | Legibilidad, no estética: es un bitmap sobre la barra del SO. `get_current_theme` en `tray.rs` ya lo resuelve así, y su comentario explica el caso de Windows —barra oscura con apps claras— donde el tema de la app elegiría un ícono invisible. |
+| El popover | El ajuste **de Dilo** (`settings.theme`) | Es superficie propia de la app, no un bitmap peleando contra el fondo del sistema. Si alguien pone Dilo en oscuro con el sistema en claro, quiere Dilo oscuro, popover incluido.                                                                  |
 
 `settings.theme` es `System | Light | Dark` y viene por defecto en `System`, así
 que la mayoría nunca nota la diferencia; sólo importa para quien fija el tema a
@@ -87,10 +87,10 @@ gana el lugar desde donde se ejerce.
 **No hace falta backend nuevo.** Las dos puertas son los comandos que ya
 existen:
 
-| Puerta | Comando | Qué hace |
-| --- | --- | --- |
-| Abrir transcript | `open_meetings_window` | Muestra Reuniones y esconde Ajustes |
-| Abrir Dilo | `return_to_main_window` | Muestra Ajustes y esconde Reuniones si está |
+| Puerta           | Comando                 | Qué hace                                    |
+| ---------------- | ----------------------- | ------------------------------------------- |
+| Abrir transcript | `open_meetings_window`  | Muestra Reuniones y esconde Ajustes         |
+| Abrir Dilo       | `return_to_main_window` | Muestra Ajustes y esconde Reuniones si está |
 
 `return_to_main_window` sirve para los dos casos —con Reuniones abierta o sin
 ella— porque muestra Ajustes siempre y sólo esconde Reuniones si existe.
