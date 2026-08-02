@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="brand/dilo-wordmark.svg" alt="dilo" width="220" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/dilo-wordmark.svg" />
+    <img src="brand/dilo-wordmark-light.svg" alt="dilo" width="220" />
+  </picture>
 </p>
 
 <h3 align="center">Deja de tipear tus prompts. Dilo.</h3>

@@ -1,4 +1,12 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <!-- Idle: solid caret. White = for dark menubars (tray_idle.png, template on macOS). -->
-  <rect x="25" y="12" width="14" height="40" rx="4" fill="#FFFFFF"/>
+  <!-- Idle: el logo completo — cursor + onda de tres barras.
+       Antes era sólo el cursor, y entre los demás íconos de la barra de menú
+       se leía como una barra suelta sin identidad (reportado por Alfonso,
+       2026-08-02). El estado ya no se distingue por la forma del ícono: lo
+       lleva la pastilla del overlay, que es donde el usuario mira.
+       Blanco = para barras oscuras (template en macOS, que descarta el color). -->
+  <rect x="8" y="14" width="12" height="36" rx="3.5" fill="#FFFFFF"/>
+  <rect x="28" y="24" width="7" height="16" rx="3.5" fill="#FFFFFF"/>
+  <rect x="39" y="18" width="7" height="28" rx="3.5" fill="#FFFFFF"/>
+  <rect x="50" y="26" width="7" height="12" rx="3.5" fill="#FFFFFF"/>
 </svg>
