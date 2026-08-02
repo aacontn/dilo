@@ -40,10 +40,21 @@ Al hacer clic se despliega un panel de vidrio, con el mismo tratamiento Liquid
 Glass que las ventanas actuales (`transparent(true)` +
 `TitleBarStyle::Overlay`).
 
-**Sigue el tema de la app, no un color fijo:** vidrio oscuro en tema oscuro,
-claro en tema claro. Alfonso lo pidió "glass oscuro acorde al tema" y usa el
-tema oscuro; se resuelve la ambigüedad a favor de "acorde al tema", que es lo
-que hace el resto de Dilo y lo que no se ve roto si algún día cambia de tema.
+**Sigue el tema, no un color fijo** (confirmado por Alfonso): vidrio oscuro en
+tema oscuro, claro en tema claro. Él usa oscuro, así que en la práctica ve lo
+que pidió — sin quedar roto si el tema cambia.
+
+**Cuál tema, exactamente.** El ícono y el popover viven en la misma franja de
+pantalla pero obedecen a fuentes distintas, y es deliberado:
+
+| Superficie | Sigue | Por qué |
+| --- | --- | --- |
+| El ícono | El tema del **sistema** | Legibilidad, no estética: es un bitmap sobre la barra del SO. `get_current_theme` en `tray.rs` ya lo resuelve así, y su comentario explica el caso de Windows —barra oscura con apps claras— donde el tema de la app elegiría un ícono invisible. |
+| El popover | El ajuste **de Dilo** (`settings.theme`) | Es superficie propia de la app, no un bitmap peleando contra el fondo del sistema. Si alguien pone Dilo en oscuro con el sistema en claro, quiere Dilo oscuro, popover incluido. |
+
+`settings.theme` es `System | Light | Dark` y viene por defecto en `System`, así
+que la mayoría nunca nota la diferencia; sólo importa para quien fija el tema a
+mano.
 
 Su contenido, en orden de arriba abajo:
 
