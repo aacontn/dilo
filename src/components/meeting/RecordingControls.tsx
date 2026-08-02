@@ -207,7 +207,9 @@ export const RecordingControls: React.FC = () => {
             {systemAudioAvailable !== false && (
               <Button
                 type="button"
-                variant={audioSource === "system_audio" ? "primary-soft" : "ghost"}
+                variant={
+                  audioSource === "system_audio" ? "primary-soft" : "ghost"
+                }
                 size="sm"
                 disabled={!canChangeAudioSource}
                 onClick={() => setAudioSource("system_audio")}

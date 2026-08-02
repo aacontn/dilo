@@ -1412,7 +1412,7 @@ tts_voice?: string;
  * por defecto — activarlo es explícito, aunque el atajo ya viene sin
  * tecla asignada (igual que `quick_note`).
  */
-voice_assistant_enabled?: boolean;
+voice_assistant_enabled?: boolean; 
 /**
  * Fuente de audio para grabar reuniones — ver [`MeetingAudioSource`].
  * Un `settings.json` viejo no trae esta clave: `#[serde(default)]` la
@@ -1501,7 +1501,20 @@ export type MeetingAudioWarning = { meeting_id: number; kind: MeetingAudioWarnin
  * usuario vive en el frontend (i18n, 21 idiomas) — acá sólo va el motivo,
  * no un mensaje.
  */
-export type MeetingAudioWarningKind = "missing_permission" | "output_device_changed"
+export type MeetingAudioWarningKind = 
+/**
+ * `CaptureDiagnosis::LikelyMissingPermission`: todo lo capturado es
+ * cero digital y había algo sonando — verificado contra hardware real,
+ * así es exactamente como se ve grabar sin el permiso de audio del
+ * sistema concedido (ver `system_audio.rs`).
+ */
+"missing_permission" | 
+/**
+ * `SystemAudioRecorder::output_device_changed()`: el usuario cambió el
+ * dispositivo de salida por defecto (por ejemplo, conectó audífonos) a
+ * mitad de reunión — la captura puede haber quedado muda.
+ */
+"output_device_changed"
 /**
  * An active video call was detected with no recording in progress
  * (User Story 3, FR-017). `call_source` is the detected app name when it
@@ -1679,6 +1692,17 @@ export type StreamWorkKind = "transcribing" | "polishing"
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TrayIconState = "idle" | "recording" | "transcribing"
+/**
+ * Broadcast global cada vez que `change_tray_icon` decide un nuevo estado —
+ * el mismo embudo por el que pasan el dictado (`actions.rs`, `assistant.rs`)
+ * y una reunión grabando (`set_meeting_recording`, vía `effective_tray_state`).
+ * 
+ * El popover lo escucha para pintar "en reposo / dictando / transcribiendo"
+ * sin depender de los eventos del overlay (`show-overlay`/`hide-overlay`),
+ * que **no se emiten en absoluto** si el usuario apagó el overlay
+ * (`overlay_style == None`) — ese hueco habría dejado el estado del popover
+ * pegado en "en reposo" para quien desactivó el overlay pero sigue dictando.
+ */
 export type TrayIconStateChanged = { state: TrayIconState }
 /**
  * Motor de síntesis de voz de salida activo. Hoy solo existe `Supertonic`
