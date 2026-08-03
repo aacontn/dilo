@@ -3,6 +3,7 @@ import type { MeetingSegment, MeetingSummary } from "@/bindings";
 import { useMeetingStore } from "@/stores/meetingStore";
 import {
   appendMeetingPage,
+  groupConsecutiveSegments,
   isPastMeeting,
   RECENT_MEETINGS_LIMIT,
 } from "@/components/meeting/meetingFormat";
@@ -155,6 +156,96 @@ describe("appendMeetingPage", () => {
         (m) => m.id,
       ),
     ).toEqual([3, 2, 1]);
+  });
+});
+
+describe("groupConsecutiveSegments", () => {
+  // El backend corta un turno cada MAX_TURN_MS (8s) aunque el mismo
+  // hablante siga con la palabra — ver el doc comment de la función. Estos
+  // casos son los bordes de la regla "sólo se unen dos hablantes conocidos
+  // e iguales".
+  const withSpeaker = (id: number, speakerId: number): MeetingSegment => ({
+    ...segment(id),
+    speaker_id: speakerId,
+  });
+
+  test("dos seguidos del mismo hablante se unen, con la marca del primero", () => {
+    const result = groupConsecutiveSegments([
+      withSpeaker(1, 10),
+      withSpeaker(2, 10),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].started_at_ms).toBe(1000);
+    expect(result[0].ended_at_ms).toBe(2500);
+    expect(result[0].text).toBe("turno 1 turno 2");
+  });
+
+  test("dos seguidos de hablantes distintos NO se unen", () => {
+    const result = groupConsecutiveSegments([
+      withSpeaker(1, 10),
+      withSpeaker(2, 20),
+    ]);
+
+    expect(result.map((s) => s.id)).toEqual([1, 2]);
+  });
+
+  test("dos seguidos sin hablante NO se unen: son dos dudas independientes", () => {
+    const result = groupConsecutiveSegments([segment(1), segment(2)]);
+
+    expect(result.map((s) => s.id)).toEqual([1, 2]);
+  });
+
+  test("un hablante conocido seguido de uno sin identificar NO se une", () => {
+    const result = groupConsecutiveSegments([withSpeaker(1, 10), segment(2)]);
+
+    expect(result.map((s) => s.id)).toEqual([1, 2]);
+  });
+
+  test("uno sin identificar seguido de un hablante conocido tampoco se une", () => {
+    const result = groupConsecutiveSegments([segment(1), withSpeaker(2, 10)]);
+
+    expect(result.map((s) => s.id)).toEqual([1, 2]);
+  });
+
+  test("tres o más seguidos del mismo hablante quedan en un solo bloque", () => {
+    const result = groupConsecutiveSegments([
+      withSpeaker(1, 10),
+      withSpeaker(2, 10),
+      withSpeaker(3, 10),
+      withSpeaker(4, 10),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(1);
+    expect(result[0].started_at_ms).toBe(1000);
+    expect(result[0].ended_at_ms).toBe(4500);
+    expect(result[0].text).toBe("turno 1 turno 2 turno 3 turno 4");
+  });
+
+  test("lista vacía da lista vacía, sin reventar", () => {
+    expect(groupConsecutiveSegments([])).toEqual([]);
+  });
+
+  test("un cambio de hablante en el medio corta el bloque en dos", () => {
+    const result = groupConsecutiveSegments([
+      withSpeaker(1, 10),
+      withSpeaker(2, 10),
+      withSpeaker(3, 20),
+      withSpeaker(4, 20),
+    ]);
+
+    expect(result.map((s) => s.id)).toEqual([1, 3]);
+  });
+
+  test("overlapped viaja con OR: no se pierde si sólo un trozo lo tenía", () => {
+    const result = groupConsecutiveSegments([
+      { ...withSpeaker(1, 10), overlapped: false },
+      { ...withSpeaker(2, 10), overlapped: true },
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].overlapped).toBe(true);
   });
 });
 

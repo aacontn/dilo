@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { HelpCircle } from "lucide-react";
 import type { MeetingSegment } from "@/bindings";
+import { groupConsecutiveSegments } from "./meetingFormat";
 
 /** Milisegundos -> `m:ss`, relativo al inicio de la reunión. */
 export const formatOffset = (ms: number): string => {
@@ -67,8 +68,15 @@ interface TranscriptListProps {
  *
  * Extraído de `LiveTranscript` (T018) para que `MeetingDetail` (Historia 4)
  * lo reutilice sin duplicar la lógica de chips — mismo componente para el
- * transcript en vivo y el de una reunión ya guardada. No trae wrapper propio
- * (ni `divide-y` ni scroll): cada pantalla decide su propio contenedor.
+ * transcript en vivo, el de una reunión ya guardada y el mini transcript del
+ * popover. No trae wrapper propio (ni `divide-y` ni scroll): cada pantalla
+ * decide su propio contenedor.
+ *
+ * Los `segments` que llegan son los que persiste el backend, cortados cada
+ * `MAX_TURN_MS` aunque el mismo hablante siga con la palabra (ver el doc
+ * comment de `groupConsecutiveSegments`). Se agrupan acá, en el único punto
+ * por el que pasan las tres superficies, para que ninguna tenga que acordarse
+ * de hacerlo por su cuenta.
  */
 export const TranscriptList: React.FC<TranscriptListProps> = ({
   segments,
@@ -76,9 +84,11 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  const groupedSegments = groupConsecutiveSegments(segments);
+
   // Orden de aparición de cada hablante, para el color y la etiqueta.
   const speakerOrder = new Map<number, number>();
-  for (const segment of segments) {
+  for (const segment of groupedSegments) {
     if (segment.speaker_id !== null && !speakerOrder.has(segment.speaker_id)) {
       speakerOrder.set(segment.speaker_id, speakerOrder.size);
     }
@@ -86,7 +96,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
 
   return (
     <>
-      {segments.map((segment) => (
+      {groupedSegments.map((segment) => (
         <article key={segment.id} className="flex items-start gap-3 px-4 py-3">
           <time className="mt-0.5 shrink-0 font-mono text-xs text-muted-text tabular-nums">
             {formatOffset(segment.started_at_ms)}
