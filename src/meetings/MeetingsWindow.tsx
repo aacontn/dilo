@@ -58,24 +58,31 @@ const MeetingsWindow: React.FC = () => {
           data-tauri-drag-region
           aria-hidden="true"
         />
-        <div className="dilo-scroll flex-1 overflow-y-auto">
-          <div className="dilo-page flex flex-col items-center gap-4">
-            {/* Debajo de la franja de arrastre, no dentro: en macOS los
-                semáforos nativos viven arriba a la izquierda y un botón ahí
-                chocaría con ellos. */}
-            <div className="w-full">
-              <button
-                type="button"
-                onClick={() => void goBack()}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-text transition-colors hover:bg-white/10 hover:text-text"
-              >
-                <ArrowLeft className="size-4 shrink-0" />
-                {t("meeting.backToDilo")}
-              </button>
+        {/* `.dilo-main` reserva `--dilo-titlebar-inset` de espacio fijo
+            arriba del scroll — el mismo truco que usa `App.tsx` para que
+            los semáforos nativos de macOS (arriba a la izquierda, por
+            `TitleBarStyle::Overlay`) nunca queden sobre el botón "Volver a
+            Dilo" ni el título "Reuniones". Sin este envoltorio esa
+            reserva faltaba acá: era el único hueco donde el patrón de la
+            ventana principal no se había copiado (reporte del dueño,
+            2026-08-02). */}
+        <main className="dilo-main flex-1 flex flex-col overflow-hidden">
+          <div className="dilo-scroll flex-1 overflow-y-auto">
+            <div className="dilo-page flex flex-col items-center gap-4">
+              <div className="w-full">
+                <button
+                  type="button"
+                  onClick={() => void goBack()}
+                  className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-text transition-colors hover:bg-white/10 hover:text-text"
+                >
+                  <ArrowLeft className="size-4 shrink-0" />
+                  {t("meeting.backToDilo")}
+                </button>
+              </div>
+              <MeetingSession />
             </div>
-            <MeetingSession />
           </div>
-        </div>
+        </main>
       </div>
     </>
   );
