@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "当前没有正在录制的会议",
+    "status": {
+      "idle": "待机",
+      "recording": "录音中",
+      "transcribing": "转写中…"
+    },
     "recording": "录制中",
     "recentTitle": "最近的会议",
     "recentEmpty": "还没有录制任何内容",
     "loadFailed": "无法加载你的会议",
     "openTranscript": "打开转写",
     "openDilo": "打开 Dilo",
-    "openFailed": "无法打开窗口"
+    "openFailed": "无法打开窗口",
+    "copyLastDone": "已复制!",
+    "copyLastFailed": "复制失败",
+    "modelSwitchFailed": "切换模型失败"
   }
 }

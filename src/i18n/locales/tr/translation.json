@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Şu anda kaydedilen bir toplantı yok",
+    "status": {
+      "idle": "Hazır",
+      "recording": "Kaydediliyor",
+      "transcribing": "Yazıya dökülüyor…"
+    },
     "recording": "Kaydediliyor",
     "recentTitle": "Son toplantılar",
     "recentEmpty": "Henüz hiçbir şey kaydedilmedi",
     "loadFailed": "Toplantıların yüklenemedi",
     "openTranscript": "Dökümü aç",
     "openDilo": "Dilo'yu aç",
-    "openFailed": "Pencere açılamadı"
+    "openFailed": "Pencere açılamadı",
+    "copyLastDone": "Kopyalandı!",
+    "copyLastFailed": "Kopyalanamadı",
+    "modelSwitchFailed": "Model değiştirilemedi"
   }
 }

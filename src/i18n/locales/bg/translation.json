@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "В момента не се записва среща",
+    "status": {
+      "idle": "Готово",
+      "recording": "Записва се",
+      "transcribing": "Транскрибира се…"
+    },
     "recording": "Записва се",
     "recentTitle": "Скорошни срещи",
     "recentEmpty": "Все още нищо не е записано",
     "loadFailed": "Срещите ти не можаха да се заредят",
     "openTranscript": "Отвори преписа",
     "openDilo": "Отвори Dilo",
-    "openFailed": "Прозорецът не можа да се отвори"
+    "openFailed": "Прозорецът не можа да се отвори",
+    "copyLastDone": "Копирано!",
+    "copyLastFailed": "Копирането не бе успешно",
+    "modelSwitchFailed": "Смяната на модела не бе успешна"
   }
 }

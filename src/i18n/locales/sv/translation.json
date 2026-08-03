@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Inget möte spelas in just nu",
+    "status": {
+      "idle": "Redo",
+      "recording": "Spelar in",
+      "transcribing": "Transkriberar…"
+    },
     "recording": "Spelar in",
     "recentTitle": "Senaste möten",
     "recentEmpty": "Inget inspelat än",
     "loadFailed": "Dina möten kunde inte laddas",
     "openTranscript": "Öppna transkript",
     "openDilo": "Öppna Dilo",
-    "openFailed": "Det gick inte att öppna fönstret"
+    "openFailed": "Det gick inte att öppna fönstret",
+    "copyLastDone": "Kopierat!",
+    "copyLastFailed": "Kunde inte kopiera",
+    "modelSwitchFailed": "Kunde inte byta modell"
   }
 }

@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Er wordt nu geen vergadering opgenomen",
+    "status": {
+      "idle": "Gereed",
+      "recording": "Opname",
+      "transcribing": "Transcriberen…"
+    },
     "recording": "Bezig met opnemen",
     "recentTitle": "Recente vergaderingen",
     "recentEmpty": "Nog niets opgenomen",
     "loadFailed": "Je vergaderingen konden niet worden geladen",
     "openTranscript": "Transcript openen",
     "openDilo": "Dilo openen",
-    "openFailed": "Het venster kon niet worden geopend"
+    "openFailed": "Het venster kon niet worden geopend",
+    "copyLastDone": "Gekopieerd!",
+    "copyLastFailed": "Kopiëren mislukt",
+    "modelSwitchFailed": "Model wisselen mislukt"
   }
 }

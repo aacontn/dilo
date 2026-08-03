@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Hiện không có cuộc họp nào đang được ghi",
+    "status": {
+      "idle": "Sẵn sàng",
+      "recording": "Đang ghi",
+      "transcribing": "Đang phiên âm…"
+    },
     "recording": "Đang ghi",
     "recentTitle": "Cuộc họp gần đây",
     "recentEmpty": "Chưa ghi âm gì cả",
     "loadFailed": "Không tải được các cuộc họp của bạn",
     "openTranscript": "Mở bản ghi",
     "openDilo": "Mở Dilo",
-    "openFailed": "Không mở được cửa sổ"
+    "openFailed": "Không mở được cửa sổ",
+    "copyLastDone": "Đã sao chép!",
+    "copyLastFailed": "Không sao chép được",
+    "modelSwitchFailed": "Không đổi được mô hình"
   }
 }

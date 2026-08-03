@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Gerade wird kein Meeting aufgenommen",
+    "status": {
+      "idle": "Bereit",
+      "recording": "Wird aufgenommen",
+      "transcribing": "Wird transkribiert …"
+    },
     "recording": "Wird aufgenommen",
     "recentTitle": "Letzte Meetings",
     "recentEmpty": "Noch nichts aufgenommen",
     "loadFailed": "Deine Meetings konnten nicht geladen werden",
     "openTranscript": "Transkript öffnen",
     "openDilo": "Dilo öffnen",
-    "openFailed": "Das Fenster konnte nicht geöffnet werden"
+    "openFailed": "Das Fenster konnte nicht geöffnet werden",
+    "copyLastDone": "Kopiert!",
+    "copyLastFailed": "Kopieren fehlgeschlagen",
+    "modelSwitchFailed": "Modellwechsel fehlgeschlagen"
   }
 }

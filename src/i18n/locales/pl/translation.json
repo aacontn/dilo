@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Teraz nie nagrywa się żadne spotkanie",
+    "status": {
+      "idle": "Gotowe",
+      "recording": "Nagrywanie",
+      "transcribing": "Transkrybowanie…"
+    },
     "recording": "Nagrywanie",
     "recentTitle": "Ostatnie spotkania",
     "recentEmpty": "Nic jeszcze nie nagrano",
     "loadFailed": "Nie udało się wczytać Twoich spotkań",
     "openTranscript": "Otwórz transkrypcję",
     "openDilo": "Otwórz Dilo",
-    "openFailed": "Nie udało się otworzyć okna"
+    "openFailed": "Nie udało się otworzyć okna",
+    "copyLastDone": "Skopiowano!",
+    "copyLastFailed": "Nie udało się skopiować",
+    "modelSwitchFailed": "Nie udało się zmienić modelu"
   }
 }

@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Nenhuma reunião está sendo gravada",
+    "status": {
+      "idle": "Pronto",
+      "recording": "Gravando",
+      "transcribing": "Transcrevendo…"
+    },
     "recording": "Gravando",
     "recentTitle": "Reuniões recentes",
     "recentEmpty": "Ainda não há nada gravado",
     "loadFailed": "Não foi possível carregar suas reuniões",
     "openTranscript": "Abrir transcrição",
     "openDilo": "Abrir o Dilo",
-    "openFailed": "Não foi possível abrir a janela"
+    "openFailed": "Não foi possível abrir a janela",
+    "copyLastDone": "Copiado!",
+    "copyLastFailed": "Não foi possível copiar",
+    "modelSwitchFailed": "Não foi possível trocar de modelo"
   }
 }

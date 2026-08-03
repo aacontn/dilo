@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "現在録音中のミーティングはありません",
+    "status": {
+      "idle": "待機中",
+      "recording": "録音中",
+      "transcribing": "文字起こし中…"
+    },
     "recording": "録音中",
     "recentTitle": "最近のミーティング",
     "recentEmpty": "まだ何も録音されていません",
     "loadFailed": "ミーティングを読み込めませんでした",
     "openTranscript": "文字起こしを開く",
     "openDilo": "Dilo を開く",
-    "openFailed": "ウィンドウを開けませんでした"
+    "openFailed": "ウィンドウを開けませんでした",
+    "copyLastDone": "コピーしました!",
+    "copyLastFailed": "コピーできませんでした",
+    "modelSwitchFailed": "モデルを切り替えられませんでした"
   }
 }

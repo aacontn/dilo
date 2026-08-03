@@ -983,12 +983,20 @@
   },
   "popover": {
     "idle": "Nessuna riunione in fase di registrazione",
+    "status": {
+      "idle": "Pronto",
+      "recording": "Registrazione",
+      "transcribing": "Trascrizione…"
+    },
     "recording": "Registrazione in corso",
     "recentTitle": "Riunioni recenti",
     "recentEmpty": "Ancora niente di registrato",
     "loadFailed": "Impossibile caricare le tue riunioni",
     "openTranscript": "Apri trascrizione",
     "openDilo": "Apri Dilo",
-    "openFailed": "Impossibile aprire la finestra"
+    "openFailed": "Impossibile aprire la finestra",
+    "copyLastDone": "Copiato!",
+    "copyLastFailed": "Copia non riuscita",
+    "modelSwitchFailed": "Cambio modello non riuscito"
   }
 }
