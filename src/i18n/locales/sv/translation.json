@@ -884,8 +884,8 @@
     "backFailed": "Kunde inte gå tillbaka till Dilo",
     "launcher": {
       "title": "Möten",
-      "description": "Att spela in och läsa tidigare möten sker i ett eget fönster.",
-      "hint": "Det öppnas av sig själv. Om du stängde det eller det hamnade bakom ett annat fönster, ta fram det med knappen.",
+      "description": "Att spela in ett möte sker i ett eget fönster. Här är listan över dina tidigare möten.",
+      "hint": "Öppna fönstret för att spela in ett nytt möte eller läsa live-transkriptet.",
       "openButton": "Öppna mötesfönstret",
       "openFailed": "Det gick inte att öppna mötesfönstret"
     },

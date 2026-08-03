@@ -884,8 +884,8 @@
     "backFailed": "Impossible de revenir à Dilo",
     "launcher": {
       "title": "Réunions",
-      "description": "Enregistrer et relire vos réunions passées se passe dans sa propre fenêtre.",
-      "hint": "Elle s'ouvre toute seule. Si vous l'avez fermée ou qu'elle est derrière une autre fenêtre, rouvrez-la avec le bouton.",
+      "description": "Enregistrer une réunion se passe dans sa propre fenêtre. Voici l'historique de celles que vous avez déjà eues.",
+      "hint": "Ouvrez la fenêtre pour enregistrer une nouvelle réunion ou lire la transcription en direct.",
       "openButton": "Ouvrir la fenêtre des réunions",
       "openFailed": "Impossible d'ouvrir la fenêtre des réunions"
     },

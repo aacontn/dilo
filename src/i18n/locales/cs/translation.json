@@ -884,8 +884,8 @@
     "backFailed": "Návrat do Dilo se nezdařil",
     "launcher": {
       "title": "Schůzky",
-      "description": "Nahrávání a čtení minulých schůzek probíhá ve vlastním okně.",
-      "hint": "Otevře se samo. Pokud jste ho zavřeli nebo zůstalo za jiným oknem, vraťte ho tlačítkem.",
+      "description": "Nahrávání schůzky probíhá ve vlastním okně. Tady je seznam těch, které už proběhly.",
+      "hint": "Otevřete okno a nahrajte novou schůzku, nebo si přečtěte přepis naživo.",
       "openButton": "Otevřít okno schůzek",
       "openFailed": "Okno schůzek se nepodařilo otevřít"
     },

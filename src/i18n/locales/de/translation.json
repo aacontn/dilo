@@ -884,8 +884,8 @@
     "backFailed": "Zurückkehren zu Dilo fehlgeschlagen",
     "launcher": {
       "title": "Meetings",
-      "description": "Vergangene Meetings aufnehmen und lesen läuft in einem eigenen Fenster.",
-      "hint": "Es öffnet sich von selbst. Falls du es geschlossen hast oder es hinter einem anderen Fenster liegt, hol es mit dem Button zurück.",
+      "description": "Eine Besprechung aufnehmen läuft in einem eigenen Fenster. Hier ist die Übersicht deiner bisherigen.",
+      "hint": "Öffne das Fenster, um eine neue Besprechung aufzunehmen oder das Live-Transkript zu lesen.",
       "openButton": "Meeting-Fenster öffnen",
       "openFailed": "Das Meeting-Fenster konnte nicht geöffnet werden"
     },

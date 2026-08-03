@@ -884,8 +884,8 @@
     "backFailed": "Não foi possível voltar ao Dilo",
     "launcher": {
       "title": "Reuniões",
-      "description": "Gravar e reler suas reuniões passadas acontece em uma janela própria.",
-      "hint": "Ela abre sozinha. Se você fechou ou ela ficou atrás de outra janela, traga-a de volta com o botão.",
+      "description": "Gravar uma reunião acontece em uma janela própria. Aqui está o registro das que você já teve.",
+      "hint": "Abra a janela para gravar uma nova reunião ou ler a transcrição ao vivo.",
       "openButton": "Abrir a janela de reuniões",
       "openFailed": "Não foi possível abrir a janela de reuniões"
     },

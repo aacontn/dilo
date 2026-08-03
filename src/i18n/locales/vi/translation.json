@@ -884,8 +884,8 @@
     "backFailed": "Không thể quay lại Dilo",
     "launcher": {
       "title": "Cuộc họp",
-      "description": "Ghi âm và xem lại các cuộc họp trước đây diễn ra trong cửa sổ riêng.",
-      "hint": "Cửa sổ tự mở. Nếu bạn đã đóng nó hoặc nó bị khuất sau cửa sổ khác, hãy mở lại bằng nút này.",
+      "description": "Ghi âm cuộc họp diễn ra trong cửa sổ riêng. Đây là danh sách các cuộc họp bạn đã có.",
+      "hint": "Mở cửa sổ để ghi âm cuộc họp mới hoặc đọc bản ghi trực tiếp.",
       "openButton": "Mở cửa sổ cuộc họp",
       "openFailed": "Không mở được cửa sổ cuộc họp"
     },

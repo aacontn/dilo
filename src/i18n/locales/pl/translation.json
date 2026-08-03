@@ -884,8 +884,8 @@
     "backFailed": "Nie udało się wrócić do Dilo",
     "launcher": {
       "title": "Spotkania",
-      "description": "Nagrywanie i czytanie poprzednich spotkań odbywa się w osobnym oknie.",
-      "hint": "Otwiera się samo. Jeśli je zamknąłeś albo schowało się za innym oknem, przywróć je przyciskiem.",
+      "description": "Nagrywanie spotkania odbywa się w osobnym oknie. Tu znajdziesz listę tych, które już się odbyły.",
+      "hint": "Otwórz okno, aby nagrać nowe spotkanie lub przeczytać transkrypcję na żywo.",
       "openButton": "Otwórz okno spotkań",
       "openFailed": "Nie udało się otworzyć okna spotkań"
     },

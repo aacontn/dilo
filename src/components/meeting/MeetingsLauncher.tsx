@@ -1,20 +1,29 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Users } from "lucide-react";
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { Button } from "../ui/Button";
 import { PageHeader } from "../ui/PageHeader";
+import { MeetingsList } from "./MeetingsList";
+import { MeetingDetail } from "./MeetingDetail";
 
 /**
- * Lo que queda de la sección "Reuniones" en el panel principal, ahora que
- * grabar y leer transcripts vive en su propia ventana (diseño
- * 2026-07-31-notetaker-usable-design.md §1). Este panel ya no es la
- * actividad: es el lanzador. Abre la ventana solo al entrar a la sección, y
- * deja un botón por si el usuario la cerró o quedó detrás de otra ventana.
+ * Sección "Reuniones" del panel principal: el registro completo (reporte del
+ * dueño, 2026-08-02). Grabar y ver el transcript en vivo vive en su propia
+ * ventana (`MeetingSession`, montada en `src/meetings/`); acá vive todo lo
+ * demás — abrir esa ventana, y leer las reuniones ya grabadas.
+ *
+ * A diferencia de la versión anterior, esta sección **no** abre la ventana
+ * sola al entrar: eso apilaba tres pantallas (lanzador + sesión + detalle)
+ * en el mismo lugar y competía con este registro. Abrir la ventana es ahora
+ * una acción explícita del botón, igual que cualquier otro control.
  */
 export const MeetingsLauncher: React.FC = () => {
   const { t } = useTranslation();
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(
+    null,
+  );
 
   const openWindow = async () => {
     const result = await commands.openMeetingsWindow();
@@ -24,11 +33,6 @@ export const MeetingsLauncher: React.FC = () => {
       });
     }
   };
-
-  // Solo al entrar a la sección, no en cada render.
-  useEffect(() => {
-    void openWindow();
-  }, []);
 
   return (
     <div className="w-full mx-auto space-y-6">
@@ -45,6 +49,14 @@ export const MeetingsLauncher: React.FC = () => {
           {t("meeting.launcher.openButton")}
         </Button>
       </section>
+      {selectedMeetingId === null ? (
+        <MeetingsList onSelect={setSelectedMeetingId} />
+      ) : (
+        <MeetingDetail
+          meetingId={selectedMeetingId}
+          onBack={() => setSelectedMeetingId(null)}
+        />
+      )}
     </div>
   );
 };

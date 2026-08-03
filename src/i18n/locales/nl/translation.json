@@ -884,8 +884,8 @@
     "backFailed": "Kon niet terug naar Dilo",
     "launcher": {
       "title": "Vergaderingen",
-      "description": "Vergaderingen opnemen en teruglezen gebeurt in een eigen venster.",
-      "hint": "Het opent vanzelf. Heb je het gesloten of staat het achter een ander venster, haal het terug met de knop.",
+      "description": "Een vergadering opnemen gebeurt in een eigen venster. Hier is het overzicht van je eerdere vergaderingen.",
+      "hint": "Open het venster om een nieuwe vergadering op te nemen of het live transcript te lezen.",
       "openButton": "Vergaderingenvenster openen",
       "openFailed": "Het vergaderingenvenster kon niet worden geopend"
     },

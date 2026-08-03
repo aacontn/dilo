@@ -81,8 +81,8 @@
     "backFailed": "Couldn't go back to Dilo",
     "launcher": {
       "title": "Meetings",
-      "description": "Recording and reading past meetings lives in its own window.",
-      "hint": "It opens on its own. If you closed it or it's behind another window, bring it back with the button.",
+      "description": "Recording a meeting lives in its own window. This is the record of the ones you've already had.",
+      "hint": "Open the window to record a new meeting or read the live transcript.",
       "openButton": "Open the meetings window",
       "openFailed": "Couldn't open the meetings window"
     },

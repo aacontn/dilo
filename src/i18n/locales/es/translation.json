@@ -884,8 +884,8 @@
     "backFailed": "No se pudo volver a Dilo",
     "launcher": {
       "title": "Reuniones",
-      "description": "Grabar y leer tus reuniones pasadas vive en su propia ventana.",
-      "hint": "Se abre sola. Si la cerraste o quedó detrás de otra ventana, tráela de vuelta con el botón.",
+      "description": "Grabar una reunión vive en su propia ventana. Acá está el registro de las que ya tuviste.",
+      "hint": "Abre la ventana para grabar una reunión nueva o leer el transcript en vivo.",
       "openButton": "Abrir ventana de reuniones",
       "openFailed": "No se pudo abrir la ventana de reuniones"
     },

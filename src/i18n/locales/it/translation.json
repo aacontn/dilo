@@ -884,8 +884,8 @@
     "backFailed": "Impossibile tornare a Dilo",
     "launcher": {
       "title": "Riunioni",
-      "description": "Registrare e rivedere le riunioni passate avviene in una finestra a parte.",
-      "hint": "Si apre da sola. Se l'hai chiusa o è finita dietro un'altra finestra, riportala in primo piano con il pulsante.",
+      "description": "Registrare una riunione avviene in una finestra a parte. Qui trovi lo storico di quelle già fatte.",
+      "hint": "Apri la finestra per registrare una nuova riunione o leggere la trascrizione in diretta.",
       "openButton": "Apri la finestra delle riunioni",
       "openFailed": "Impossibile aprire la finestra delle riunioni"
     },
