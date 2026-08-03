@@ -277,7 +277,9 @@
     },
     "cancel": "Annulla",
     "cancelDownload": "Annulla download",
-    "legacy": "Obsoleto"
+    "legacy": "Obsoleto",
+    "unloadModel": "Rilascia modello",
+    "unloadModelTooltip": "Libera subito la memoria senza chiudere Dilo. Si ricarica automaticamente la prossima volta che detti — Dilo lo fa anche da solo dopo un periodo di inattività."
   },
   "settings": {
     "modelSettings": {

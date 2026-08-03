@@ -277,7 +277,9 @@
     },
     "cancel": "Zrušit",
     "cancelDownload": "Zrušit stahování",
-    "legacy": "Zastaralé"
+    "legacy": "Zastaralé",
+    "unloadModel": "Uvolnit model",
+    "unloadModelTooltip": "Okamžitě uvolní paměť, aniž by se Dilo zavřelo. Při příštím diktování se model znovu načte automaticky – Dilo to dělá i samo po chvíli nečinnosti."
   },
   "settings": {
     "modelSettings": {

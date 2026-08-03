@@ -277,7 +277,9 @@
     },
     "cancel": "キャンセル",
     "cancelDownload": "ダウンロードをキャンセル",
-    "legacy": "旧式"
+    "legacy": "旧式",
+    "unloadModel": "モデルをアンロード",
+    "unloadModelTooltip": "Dilo を閉じずに今すぐメモリを解放します。次に口述するときに自動的に再読み込みされます。しばらく操作がないと Dilo が自動的に行うこともあります。"
   },
   "settings": {
     "modelSettings": {

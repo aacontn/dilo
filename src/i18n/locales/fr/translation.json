@@ -277,7 +277,9 @@
     },
     "cancel": "Annuler",
     "cancelDownload": "Annuler le téléchargement",
-    "legacy": "Hérité"
+    "legacy": "Hérité",
+    "unloadModel": "Décharger le modèle",
+    "unloadModelTooltip": "Libère la mémoire immédiatement sans fermer Dilo. Il se recharge automatiquement la prochaine fois que vous dictez — Dilo le fait aussi tout seul après un moment d'inactivité."
   },
   "settings": {
     "modelSettings": {

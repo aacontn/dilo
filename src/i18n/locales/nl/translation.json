@@ -277,7 +277,9 @@
       "translation": "Kan vertalen naar het Engels",
       "translate": "Vertalen",
       "streaming": "Toont live transcriptie tijdens het spreken"
-    }
+    },
+    "unloadModel": "Model ontladen",
+    "unloadModelTooltip": "Maakt meteen geheugen vrij zonder Dilo te sluiten. Het wordt automatisch opnieuw geladen de volgende keer dat je dicteert — Dilo doet dit ook vanzelf na een tijdje inactiviteit."
   },
   "settings": {
     "modelSettings": {

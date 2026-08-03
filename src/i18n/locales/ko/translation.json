@@ -277,7 +277,9 @@
       "translate": "영어로 번역",
       "streaming": "말하는 동안 실시간으로 음성 인식 결과를 표시"
     },
-    "legacy": "레거시"
+    "legacy": "레거시",
+    "unloadModel": "모델 언로드",
+    "unloadModelTooltip": "Dilo를 종료하지 않고 지금 바로 메모리를 해제합니다. 다음에 받아쓰기할 때 자동으로 다시 로드됩니다. Dilo는 일정 시간 사용하지 않으면 이 작업을 스스로도 수행합니다."
   },
   "settings": {
     "modelSettings": {

@@ -277,7 +277,9 @@
     },
     "cancel": "Hủy",
     "cancelDownload": "Hủy tải xuống",
-    "legacy": "Cũ"
+    "legacy": "Cũ",
+    "unloadModel": "Dỡ mô hình",
+    "unloadModelTooltip": "Giải phóng bộ nhớ ngay mà không cần đóng Dilo. Mô hình sẽ tự động tải lại vào lần bạn đọc chính tả tiếp theo — Dilo cũng tự làm việc này sau một thời gian không hoạt động."
   },
   "settings": {
     "modelSettings": {

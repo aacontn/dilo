@@ -277,7 +277,9 @@
       "translate": "翻譯為英語",
       "streaming": "在您說話時即時顯示轉錄"
     },
-    "legacy": "舊版"
+    "legacy": "舊版",
+    "unloadModel": "卸載模型",
+    "unloadModelTooltip": "立即釋放記憶體，且不需要關閉 Dilo。下次聽寫時會自動重新載入——Dilo 在閒置一段時間後也會自動執行此動作。"
   },
   "settings": {
     "modelSettings": {

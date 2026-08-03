@@ -277,7 +277,9 @@
       "translate": "Översätt till engelska",
       "streaming": "Visar transkription i realtid medan du talar"
     },
-    "legacy": "Äldre"
+    "legacy": "Äldre",
+    "unloadModel": "Avlasta modell",
+    "unloadModelTooltip": "Frigör minnet direkt utan att stänga Dilo. Det laddas automatiskt igen nästa gång du dikterar — Dilo gör det även själv efter en stunds inaktivitet."
   },
   "settings": {
     "modelSettings": {

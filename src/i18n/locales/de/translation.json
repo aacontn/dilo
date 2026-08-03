@@ -277,7 +277,9 @@
     },
     "cancel": "Abbrechen",
     "cancelDownload": "Download abbrechen",
-    "legacy": "Veraltet"
+    "legacy": "Veraltet",
+    "unloadModel": "Modell entladen",
+    "unloadModelTooltip": "Gibt sofort Speicher frei, ohne Dilo zu schließen. Beim nächsten Diktieren wird das Modell automatisch neu geladen – das macht Dilo nach einer Weile Inaktivität auch von selbst."
   },
   "settings": {
     "modelSettings": {

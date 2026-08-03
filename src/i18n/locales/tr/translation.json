@@ -277,7 +277,9 @@
     },
     "cancel": "İptal",
     "cancelDownload": "İndirmeyi iptal et",
-    "legacy": "Eski"
+    "legacy": "Eski",
+    "unloadModel": "Modeli boşalt",
+    "unloadModelTooltip": "Dilo'yu kapatmadan belleği hemen boşaltir. Bir sonraki dikte edişinizde otomatik olarak yeniden yüklenir — Dilo bunu bir süre işlem yapılmadığında zaten kendiliğinden de yapar."
   },
   "settings": {
     "modelSettings": {

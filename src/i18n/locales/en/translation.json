@@ -379,7 +379,9 @@
       "translation": "Can translate to English",
       "translate": "Translate",
       "streaming": "Shows live transcription as you speak"
-    }
+    },
+    "unloadModel": "Unload Model",
+    "unloadModelTooltip": "Frees memory right now without closing Dilo. It reloads automatically next time you dictate — Dilo also does this on its own after a while of inactivity."
   },
   "settings": {
     "modelSettings": {

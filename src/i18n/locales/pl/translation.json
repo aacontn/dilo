@@ -277,7 +277,9 @@
     },
     "cancel": "Anuluj",
     "cancelDownload": "Anuluj pobieranie",
-    "legacy": "Przestarzałe"
+    "legacy": "Przestarzałe",
+    "unloadModel": "Zwolnij model",
+    "unloadModelTooltip": "Natychmiast zwalnia pamięć bez zamykania Dilo. Model wczyta się ponownie automatycznie, gdy następnym razem zaczniesz dyktować — Dilo robi to samo również samo po chwili bezczynności."
   },
   "settings": {
     "modelSettings": {

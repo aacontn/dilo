@@ -7,6 +7,7 @@ import { useModelStore } from "../../stores/modelStore";
 import ModelStatusButton from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
 import DownloadProgressDisplay from "./DownloadProgressDisplay";
+import UnloadModelButton from "./UnloadModelButton";
 
 import { ModelStateEvent } from "@/lib/types/events";
 
@@ -41,6 +42,11 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   // Track pending model switch for optimistic display
   const [pendingModelId, setPendingModelId] = useState<string | null>(null);
+  // Mirrors TranscriptionManager::is_model_loaded() — gates the manual
+  // "unload from RAM" shortcut, which only makes sense while something is
+  // actually resident in memory.
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const [isUnloading, setIsUnloading] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -64,6 +70,15 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
       } else {
         setModelStatus("none");
       }
+
+      try {
+        const loadStatusResult = await commands.getModelLoadStatus();
+        if (loadStatusResult.status === "ok") {
+          setIsModelLoaded(loadStatusResult.data.is_loaded);
+        }
+      } catch {
+        // Leave the last known value — the button just won't update.
+      }
     };
     checkStatus();
   }, [currentModel]);
@@ -83,6 +98,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
             setModelStatus("ready");
             setModelError(null);
             setPendingModelId(null);
+            setIsModelLoaded(true);
             break;
           case "loading_failed":
             setModelStatus("error");
@@ -92,6 +108,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
           case "unloaded":
             setModelStatus("unloaded");
             setModelError(null);
+            setIsModelLoaded(false);
             break;
         }
       },
@@ -150,6 +167,23 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
       setModelStatus("error");
       setModelError("Failed to switch model");
       onError?.("Failed to switch model");
+    }
+  };
+
+  const handleUnloadModel = async () => {
+    if (isUnloading) return;
+    setIsUnloading(true);
+    try {
+      const result = await commands.unloadModelManually();
+      if (result.status === "ok") {
+        setIsModelLoaded(false);
+      } else {
+        onError?.(result.error);
+      }
+    } catch (error) {
+      onError?.(String(error));
+    } finally {
+      setIsUnloading(false);
     }
   };
 
@@ -245,12 +279,21 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   return (
     <>
       {/* Model Status and Switcher */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative flex items-center gap-1.5" ref={dropdownRef}>
         <ModelStatusButton
           status={getDisplayStatus()}
           displayText={getModelDisplayText()}
           isDropdownOpen={showModelDropdown}
           onClick={() => setShowModelDropdown(!showModelDropdown)}
+        />
+
+        {/* Manual "free RAM now" shortcut — hidden unless a model is
+            actually resident in memory (see TranscriptionManager::is_model_loaded).
+            This is the surface that replaced the removed macOS tray item. */}
+        <UnloadModelButton
+          visible={isModelLoaded}
+          disabled={isUnloading}
+          onUnload={handleUnloadModel}
         />
 
         {/* Model Dropdown */}
