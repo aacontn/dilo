@@ -96,7 +96,17 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
         : { segments: [...state.segments, segment] },
     ),
 
-  markFinished: () => set({ status: "ready" }),
+  // La sesión terminó normalmente. Limpia `activeMeetingId` igual que
+  // `markErrored` de aquí abajo, y por la misma razón: mientras quede un id
+  // puesto, `startMeeting` cree que sigue habiendo una reunión viva en esta
+  // ventana y no deja empezar otra — aunque el backend ya la dejó en
+  // `status = 'ready'` y está libre para grabar de nuevo.
+  //
+  // Los segmentos ya mostrados NO se borran acá tampoco: el backend los
+  // tiene persistidos (FR-007) y borrarlos de la pantalla haría parecer que
+  // se perdió lo que sí se guardó. `startMeeting` los limpia recién cuando
+  // arranca la próxima reunión de verdad.
+  markFinished: () => set({ activeMeetingId: null, status: "ready" }),
 
   // La sesión murió (falla del pipeline de captura o del cierre). Vuelve a
   // "listo para grabar" — sin esto la pantalla quedaba clavada en "Cerrando…"

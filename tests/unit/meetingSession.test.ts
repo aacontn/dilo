@@ -63,6 +63,48 @@ describe("meetingStore.markErrored", () => {
   });
 });
 
+describe("meetingStore.markFinished", () => {
+  beforeEach(() => {
+    useMeetingStore.setState({
+      activeMeetingId: null,
+      status: null,
+      segments: [],
+      speakerNames: {},
+      isStarting: false,
+      isStopping: false,
+    });
+  });
+
+  // Regresión: sin limpiar `activeMeetingId` acá, `startMeeting` seguía
+  // creyendo que había una reunión viva en esta ventana después de
+  // detenerla y no dejaba empezar otra — aunque el backend ya la dejó en
+  // `status = 'ready'`, libre para grabar de nuevo.
+  test("deja `activeMeetingId` en null para poder empezar otra reunión", () => {
+    useMeetingStore.setState({ activeMeetingId: 7, status: "processing" });
+
+    useMeetingStore.getState().markFinished();
+
+    const state = useMeetingStore.getState();
+    expect(state.activeMeetingId).toBe(null);
+    expect(state.status).toBe("ready");
+  });
+
+  test("no borra el transcript ya mostrado: esos segmentos sí se guardaron", () => {
+    useMeetingStore.setState({
+      activeMeetingId: 7,
+      status: "processing",
+      segments: [segment(1), segment(2)],
+      speakerNames: { 3: "Ana" },
+    });
+
+    useMeetingStore.getState().markFinished();
+
+    const state = useMeetingStore.getState();
+    expect(state.segments.map((s) => s.id)).toEqual([1, 2]);
+    expect(state.speakerNames).toEqual({ 3: "Ana" });
+  });
+});
+
 describe("un turno perdido no termina la sesión en la ventana", () => {
   // Regresión: mandar `meeting-error` por un turno fallido hacía que el
   // store limpiara la sesión mientras el backend seguía capturando. Sin
