@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "अहिले कुनै बैठक रेकर्ड भइरहेको छैन",
     "status": {
       "idle": "तयार",
       "recording": "रेकर्ड हुँदै",
       "transcribing": "ट्रान्सक्राइब हुँदै…"
     },
     "recording": "रेकर्ड हुँदै",
-    "recentTitle": "हालैका बैठकहरू",
-    "recentEmpty": "अहिलेसम्म केही रेकर्ड भएको छैन",
+    "copyLastDone": "प्रतिलिपि गरियो!",
+    "copyLastFailed": "प्रतिलिपि गर्न सकिएन",
+    "modelSwitchFailed": "मोडेल बदल्न सकिएन",
     "loadFailed": "तपाईंका बैठकहरू लोड गर्न सकिएन",
     "openTranscript": "ट्रान्सक्रिप्ट खोल्नुहोस्",
     "openDilo": "Dilo खोल्नुहोस्",
     "openFailed": "विन्डो खोल्न सकिएन",
-    "copyLastDone": "प्रतिलिपि गरियो!",
-    "copyLastFailed": "प्रतिलिपि गर्न सकिएन",
-    "modelSwitchFailed": "मोडेल बदल्न सकिएन"
+    "models": {
+      "dictation": "डिक्टेशन",
+      "inherit": "डिक्टेशन जस्तै"
+    }
   }
 }

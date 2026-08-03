@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "目前沒有正在錄製的會議",
     "status": {
       "idle": "待機",
       "recording": "錄音中",
       "transcribing": "轉寫中…"
     },
     "recording": "錄製中",
-    "recentTitle": "最近的會議",
-    "recentEmpty": "還沒有錄製任何內容",
+    "copyLastDone": "已複製!",
+    "copyLastFailed": "複製失敗",
+    "modelSwitchFailed": "切換模型失敗",
     "loadFailed": "無法載入你的會議",
     "openTranscript": "開啟逐字稿",
     "openDilo": "開啟 Dilo",
     "openFailed": "無法開啟視窗",
-    "copyLastDone": "已複製!",
-    "copyLastFailed": "複製失敗",
-    "modelSwitchFailed": "切換模型失敗"
+    "models": {
+      "dictation": "聽寫",
+      "inherit": "與聽寫相同"
+    }
   }
 }

@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "Сейчас не идёт запись встречи",
     "status": {
       "idle": "Готово",
       "recording": "Идёт запись",
       "transcribing": "Идёт транскрибация…"
     },
     "recording": "Идёт запись",
-    "recentTitle": "Недавние встречи",
-    "recentEmpty": "Пока ничего не записано",
+    "copyLastDone": "Скопировано!",
+    "copyLastFailed": "Не удалось скопировать",
+    "modelSwitchFailed": "Не удалось сменить модель",
     "loadFailed": "Не удалось загрузить твои встречи",
     "openTranscript": "Открыть расшифровку",
     "openDilo": "Открыть Dilo",
     "openFailed": "Не удалось открыть окно",
-    "copyLastDone": "Скопировано!",
-    "copyLastFailed": "Не удалось скопировать",
-    "modelSwitchFailed": "Не удалось сменить модель"
+    "models": {
+      "dictation": "Надиктовка",
+      "inherit": "Как при надиктовке"
+    }
   }
 }

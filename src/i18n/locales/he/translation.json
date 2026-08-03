@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "אין כרגע פגישה שמוקלטת",
     "status": {
       "idle": "מוכן",
       "recording": "מקליט",
       "transcribing": "מתמלל…"
     },
     "recording": "מקליט",
-    "recentTitle": "פגישות אחרונות",
-    "recentEmpty": "עדיין אין כלום מוקלט",
+    "copyLastDone": "הועתק!",
+    "copyLastFailed": "ההעתקה נכשלה",
+    "modelSwitchFailed": "החלפת המודל נכשלה",
     "loadFailed": "לא ניתן היה לטעון את הפגישות שלך",
     "openTranscript": "פתח תמלול",
     "openDilo": "פתח את Dilo",
     "openFailed": "לא ניתן היה לפתוח את החלון",
-    "copyLastDone": "הועתק!",
-    "copyLastFailed": "ההעתקה נכשלה",
-    "modelSwitchFailed": "החלפת המודל נכשלה"
+    "models": {
+      "dictation": "הכתבה",
+      "inherit": "כמו בהכתבה"
+    }
   }
 }

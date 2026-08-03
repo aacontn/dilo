@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "Aucune réunion n'est en cours d'enregistrement",
     "status": {
       "idle": "Prêt",
       "recording": "Enregistrement",
       "transcribing": "Transcription…"
     },
     "recording": "Enregistrement",
-    "recentTitle": "Réunions récentes",
-    "recentEmpty": "Rien d'enregistré pour l'instant",
+    "copyLastDone": "Copié !",
+    "copyLastFailed": "Échec de la copie",
+    "modelSwitchFailed": "Échec du changement de modèle",
     "loadFailed": "Impossible de charger tes réunions",
     "openTranscript": "Ouvrir la transcription",
     "openDilo": "Ouvrir Dilo",
     "openFailed": "Impossible d'ouvrir la fenêtre",
-    "copyLastDone": "Copié !",
-    "copyLastFailed": "Échec de la copie",
-    "modelSwitchFailed": "Échec du changement de modèle"
+    "models": {
+      "dictation": "Dictée",
+      "inherit": "Comme la dictée"
+    }
   }
 }

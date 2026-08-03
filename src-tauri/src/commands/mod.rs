@@ -36,6 +36,29 @@ pub fn get_tray_icon_state(app: AppHandle) -> crate::tray::TrayIconState {
     app.state::<crate::tray::CurrentTrayIconState>().get()
 }
 
+/// Versión de Dilo para mostrar en la interfaz — mismo texto que ya se veía
+/// como primer ítem (deshabilitado) del menú nativo de la bandeja y como su
+/// tooltip (`tray::tray_tooltip`/`version_label`). El popover lo reusa tal
+/// cual en vez de recalcularlo del lado del frontend, para que los dos
+/// lugares digan siempre lo mismo (incluido el sufijo "(Dev)" en debug).
+#[tauri::command]
+#[specta::specta]
+pub fn get_app_version() -> String {
+    crate::tray::tray_tooltip()
+}
+
+/// Cierra la app. El menú nativo de la bandeja ya tenía este mismo camino
+/// (`on_menu_event`, id `"quit"`) — este comando le da al popover un botón
+/// "Salir" propio ahora que en macOS no queda ningún menú nativo detrás
+/// (ver `popover::tray_click_action`): sin esto, cerrar Dilo desde la
+/// bandeja dejaba de tener ninguna vía en absoluto.
+#[tauri::command]
+#[specta::specta]
+pub fn quit_app(app: AppHandle) -> Result<(), String> {
+    app.exit(0);
+    Ok(())
+}
+
 /// Avisos de cruce a la nube que ocurrieron sin ninguna ventana escuchando
 /// el evento. La ventana los pide al montar y los muestra como toasts; la
 /// llamada los consume, así que no se repiten al reabrir.

@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "Зараз жодна зустріч не записується",
     "status": {
       "idle": "Готово",
       "recording": "Триває запис",
       "transcribing": "Триває транскрибування…"
     },
     "recording": "Триває запис",
-    "recentTitle": "Останні зустрічі",
-    "recentEmpty": "Поки що нічого не записано",
+    "copyLastDone": "Скопійовано!",
+    "copyLastFailed": "Не вдалося скопіювати",
+    "modelSwitchFailed": "Не вдалося змінити модель",
     "loadFailed": "Не вдалося завантажити твої зустрічі",
     "openTranscript": "Відкрити розшифровку",
     "openDilo": "Відкрити Dilo",
     "openFailed": "Не вдалося відкрити вікно",
-    "copyLastDone": "Скопійовано!",
-    "copyLastFailed": "Не вдалося скопіювати",
-    "modelSwitchFailed": "Не вдалося змінити модель"
+    "models": {
+      "dictation": "Диктування",
+      "inherit": "Як для диктування"
+    }
   }
 }

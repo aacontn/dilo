@@ -982,21 +982,22 @@
     "noteSaved": "Note saved"
   },
   "popover": {
-    "idle": "No meeting is being recorded",
     "status": {
       "idle": "Ready",
       "recording": "Recording",
       "transcribing": "Transcribing…"
     },
     "recording": "Recording",
-    "recentTitle": "Recent meetings",
-    "recentEmpty": "Nothing recorded yet",
+    "copyLastDone": "Copied!",
+    "copyLastFailed": "Couldn't copy",
+    "modelSwitchFailed": "Couldn't switch models",
     "loadFailed": "Couldn't load your meetings",
     "openTranscript": "Open transcript",
     "openDilo": "Open Dilo",
     "openFailed": "Couldn't open the window",
-    "copyLastDone": "Copied!",
-    "copyLastFailed": "Couldn't copy",
-    "modelSwitchFailed": "Couldn't switch models"
+    "models": {
+      "dictation": "Dictation",
+      "inherit": "Same as dictation"
+    }
   }
 }

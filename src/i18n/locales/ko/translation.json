@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "지금 녹음 중인 회의가 없어요",
     "status": {
       "idle": "대기 중",
       "recording": "녹음 중",
       "transcribing": "받아쓰는 중…"
     },
     "recording": "녹음 중",
-    "recentTitle": "최근 회의",
-    "recentEmpty": "아직 녹음한 내용이 없어요",
+    "copyLastDone": "복사했어요!",
+    "copyLastFailed": "복사하지 못했어요",
+    "modelSwitchFailed": "모델을 변경하지 못했어요",
     "loadFailed": "회의를 불러오지 못했어요",
     "openTranscript": "대화록 열기",
     "openDilo": "Dilo 열기",
     "openFailed": "창을 열지 못했어요",
-    "copyLastDone": "복사했어요!",
-    "copyLastFailed": "복사하지 못했어요",
-    "modelSwitchFailed": "모델을 변경하지 못했어요"
+    "models": {
+      "dictation": "받아쓰기",
+      "inherit": "받아쓰기와 동일"
+    }
   }
 }

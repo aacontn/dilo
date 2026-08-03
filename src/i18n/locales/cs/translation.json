@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "Momentálně se nenahrává žádná schůzka",
     "status": {
       "idle": "Připraveno",
       "recording": "Nahrává se",
       "transcribing": "Přepisuje se…"
     },
     "recording": "Nahrává se",
-    "recentTitle": "Poslední schůzky",
-    "recentEmpty": "Zatím nic nenahráno",
+    "copyLastDone": "Zkopírováno!",
+    "copyLastFailed": "Kopírování se nezdařilo",
+    "modelSwitchFailed": "Změna modelu se nezdařila",
     "loadFailed": "Tvoje schůzky se nepodařilo načíst",
     "openTranscript": "Otevřít přepis",
     "openDilo": "Otevřít Dilo",
     "openFailed": "Okno se nepodařilo otevřít",
-    "copyLastDone": "Zkopírováno!",
-    "copyLastFailed": "Kopírování se nezdařilo",
-    "modelSwitchFailed": "Změna modelu se nezdařila"
+    "models": {
+      "dictation": "Diktování",
+      "inherit": "Stejné jako diktování"
+    }
   }
 }

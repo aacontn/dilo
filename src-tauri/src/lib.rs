@@ -756,6 +756,8 @@ pub fn run(cli_args: CliArgs) {
             commands::cancel_operation,
             commands::copy_last_transcript,
             commands::get_tray_icon_state,
+            commands::get_app_version,
+            commands::quit_app,
             overlay::overlay_ready,
             commands::take_pending_fallback_notices,
             commands::take_pending_assistant_notices,

@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "لا يوجد اجتماع قيد التسجيل الآن",
     "status": {
       "idle": "جاهز",
       "recording": "جارٍ التسجيل",
       "transcribing": "جارٍ تفريغ النص…"
     },
     "recording": "جارٍ التسجيل",
-    "recentTitle": "الاجتماعات الأخيرة",
-    "recentEmpty": "لا شيء مسجَّل بعد",
+    "copyLastDone": "تم النسخ!",
+    "copyLastFailed": "تعذّر النسخ",
+    "modelSwitchFailed": "تعذّر تبديل النموذج",
     "loadFailed": "تعذّر تحميل اجتماعاتك",
     "openTranscript": "فتح النص",
     "openDilo": "فتح Dilo",
     "openFailed": "تعذّر فتح النافذة",
-    "copyLastDone": "تم النسخ!",
-    "copyLastFailed": "تعذّر النسخ",
-    "modelSwitchFailed": "تعذّر تبديل النموذج"
+    "models": {
+      "dictation": "الإملاء",
+      "inherit": "نفس نموذج الإملاء"
+    }
   }
 }

@@ -39,10 +39,21 @@ pub enum TrayClick {
 /// Qué hace un clic en el ícono. Pura y testeable: `popover_supported` entra
 /// como parámetro en vez de consultarse acá, para poder probar las dos
 /// plataformas desde cualquiera.
-pub fn tray_click_action(button: TrayButton, popover_supported: bool) -> TrayClick {
-    match (button, popover_supported) {
-        (TrayButton::Left, true) => TrayClick::Popover,
-        _ => TrayClick::Menu,
+///
+/// **Donde hay popover, los DOS botones lo abren** — ya no sólo el
+/// izquierdo. Antes el derecho siempre abría el menú nativo del sistema,
+/// incluso en macOS, y Alfonso lo rechazó explícitamente: dos superficies
+/// peleando encima de la otra. `_button` se conserva como parámetro (la
+/// firma no se reduce a sólo `popover_supported`) porque el llamador
+/// (`lib.rs`) sigue necesitando distinguir el botón para armar el
+/// `TrayButton` en primer lugar, y porque documenta la decisión: donde NO
+/// hay popover, cualquier clic sigue yendo al menú nativo de siempre,
+/// comportamiento de Windows/Linux sin tocar.
+pub fn tray_click_action(_button: TrayButton, popover_supported: bool) -> TrayClick {
+    if popover_supported {
+        TrayClick::Popover
+    } else {
+        TrayClick::Menu
     }
 }
 
@@ -155,13 +166,16 @@ pub fn popover_position(icon: TrayRect, size: PopoverSize, work_area: WorkArea) 
 
 pub const POPOVER_WINDOW_LABEL: &str = "popover";
 pub const POPOVER_WIDTH: f64 = 360.0;
-// 480 alcanzaba cuando el contenido era sólo la sesión + últimas reuniones;
-// el panel rápido de acciones (estado del dictado, copiar, modelo, grabar)
-// agrega una sección más arriba de la lista de reuniones. 496 le da algo de
-// aire sin acercarse al techo de `el_tamano_del_popover_cabe_en_una_pantalla_
-// chica` (debe quedar bajo la mitad del alto útil de un Mac de 800px, o sea
-// bajo 500).
-pub const POPOVER_HEIGHT: f64 = 496.0;
+// Rediseño 2026-08-03: se fue la lista de reuniones recientes (Alfonso la
+// rechazó explícitamente — "es una tontera"), así que el contenido en reposo
+// vuelve a ser compacto: versión, estado del dictado, copiar lo último,
+// cuatro selectores de modelo y la pastilla de grabar. Mientras graba una
+// reunión, ese contenido se reemplaza entero por el mini transcript en vivo,
+// que llena el mismo alto con su propio scroll interno — un solo alto fijo
+// le alcanza a los dos estados. 480 se mantiene bajo el techo de
+// `el_tamano_del_popover_cabe_en_una_pantalla_chica` (debe quedar bajo la
+// mitad del alto útil de un Mac de 800px, o sea bajo 500).
+pub const POPOVER_HEIGHT: f64 = 480.0;
 
 /// Conmuta el popover: si está visible lo esconde, si no lo muestra bajo el
 /// ícono. Se **esconde**, nunca se destruye, para no pagar el arranque del
@@ -440,14 +454,21 @@ mod tests {
     }
 
     #[test]
-    fn el_clic_derecho_siempre_abre_el_menu() {
-        assert_eq!(tray_click_action(TrayButton::Right, true), TrayClick::Menu);
-        assert_eq!(tray_click_action(TrayButton::Right, false), TrayClick::Menu);
+    fn el_clic_derecho_tambien_abre_el_popover_donde_hay_soporte() {
+        // Antes el derecho siempre abría el menú nativo, incluso en macOS —
+        // las dos superficies peleando que Alfonso rechazó. Ahora, donde hay
+        // popover, los dos botones lo abren.
+        assert_eq!(
+            tray_click_action(TrayButton::Right, true),
+            TrayClick::Popover
+        );
     }
 
     #[test]
-    fn sin_soporte_de_popover_el_izquierdo_conserva_el_menu() {
-        // Windows y Linux: el comportamiento de hoy no se toca.
+    fn sin_soporte_de_popover_ningun_boton_toca_el_menu_nativo() {
+        // Windows y Linux: el comportamiento de hoy no se toca — cualquier
+        // clic sigue yendo al menú nativo de siempre.
         assert_eq!(tray_click_action(TrayButton::Left, false), TrayClick::Menu);
+        assert_eq!(tray_click_action(TrayButton::Right, false), TrayClick::Menu);
     }
 }

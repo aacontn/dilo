@@ -535,6 +535,31 @@ async getTrayIconState() : Promise<TrayIconState> {
     return await TAURI_INVOKE("get_tray_icon_state");
 },
 /**
+ * Versión de Dilo para mostrar en la interfaz — mismo texto que ya se veía
+ * como primer ítem (deshabilitado) del menú nativo de la bandeja y como su
+ * tooltip (`tray::tray_tooltip`/`version_label`). El popover lo reusa tal
+ * cual en vez de recalcularlo del lado del frontend, para que los dos
+ * lugares digan siempre lo mismo (incluido el sufijo "(Dev)" en debug).
+ */
+async getAppVersion() : Promise<string> {
+    return await TAURI_INVOKE("get_app_version");
+},
+/**
+ * Cierra la app. El menú nativo de la bandeja ya tenía este mismo camino
+ * (`on_menu_event`, id `"quit"`) — este comando le da al popover un botón
+ * "Salir" propio ahora que en macOS no queda ningún menú nativo detrás
+ * (ver `popover::tray_click_action`): sin esto, cerrar Dilo desde la
+ * bandeja dejaba de tener ninguna vía en absoluto.
+ */
+async quitApp() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("quit_app") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * El webview del overlay avisa que sus listeners ya están registrados; recién
  * entonces es seguro entregarle el estado pendiente del primer show. (Emitir
  * en on_page_load corría una carrera contra el mount de React: el "page

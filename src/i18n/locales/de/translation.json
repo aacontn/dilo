@@ -982,21 +982,22 @@
     }
   },
   "popover": {
-    "idle": "Gerade wird kein Meeting aufgenommen",
     "status": {
       "idle": "Bereit",
       "recording": "Wird aufgenommen",
       "transcribing": "Wird transkribiert …"
     },
     "recording": "Wird aufgenommen",
-    "recentTitle": "Letzte Meetings",
-    "recentEmpty": "Noch nichts aufgenommen",
+    "copyLastDone": "Kopiert!",
+    "copyLastFailed": "Kopieren fehlgeschlagen",
+    "modelSwitchFailed": "Modellwechsel fehlgeschlagen",
     "loadFailed": "Deine Meetings konnten nicht geladen werden",
     "openTranscript": "Transkript öffnen",
     "openDilo": "Dilo öffnen",
     "openFailed": "Das Fenster konnte nicht geöffnet werden",
-    "copyLastDone": "Kopiert!",
-    "copyLastFailed": "Kopieren fehlgeschlagen",
-    "modelSwitchFailed": "Modellwechsel fehlgeschlagen"
+    "models": {
+      "dictation": "Diktat",
+      "inherit": "Wie beim Diktat"
+    }
   }
 }

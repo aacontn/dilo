@@ -1,6 +1,7 @@
 use crate::managers::history::{HistoryEntry, HistoryManager};
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::TranscriptionManager;
+use crate::popover;
 use crate::settings;
 use crate::tray_i18n::get_tray_translations;
 use log::{debug, error, info, warn};
@@ -359,7 +360,19 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
     };
 
     let tray = app.state::<TrayIcon>();
-    let _ = tray.set_menu(Some(menu));
+    // En macOS el popover es la única superficie del ícono de bandeja (ver
+    // `popover::tray_click_action`): dejar un menú puesto en el
+    // `NSStatusItem` hacía que el sistema lo mostrara solo en el clic
+    // derecho, por su cuenta y encima del popover — las "dos superficies
+    // peleando" que Alfonso rechazó explícitamente. Sin ningún menú
+    // asignado, los dos clics le llegan limpios a `on_tray_icon_event`. En
+    // Windows y Linux, sin popover, el menú construido arriba sigue
+    // asignándose exactamente como siempre.
+    let _ = tray.set_menu(if popover::popover_supported() {
+        None
+    } else {
+        Some(menu)
+    });
     let _ = tray.set_icon_as_template(true);
     let _ = tray.set_tooltip(Some(version_label));
 }
