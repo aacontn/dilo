@@ -223,6 +223,32 @@ fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
 /// que no tiene sentido conservarlo como segunda opción para el popover—; si
 /// tampoco, a un tamaño conservador. Es preferible un popover mal centrado a
 /// ninguno.
+/// Límites completos de un monitor ya resuelto, en coordenadas lógicas.
+/// `pub(crate)` porque `meeting_window.rs` reusa esto mismo para anclar la
+/// ventana de reuniones al borde derecho del monitor donde vive el cursor —
+/// mismo cálculo, sólo cambia cómo se resuelve el monitor de partida (acá,
+/// el punto del ícono; allá, el cursor vía `overlay::get_monitor_with_cursor`).
+pub(crate) fn work_area_for_monitor(monitor: &tauri::Monitor) -> WorkArea {
+    let scale = monitor.scale_factor();
+    let size = monitor.size().to_logical::<f64>(scale);
+    let position = monitor.position().to_logical::<f64>(scale);
+    WorkArea {
+        x: position.x,
+        y: position.y,
+        width: size.width,
+        height: size.height,
+    }
+}
+
+/// Área de respaldo cuando no se puede resolver ningún monitor. `pub(crate)`
+/// por la misma razón que `work_area_for_monitor`.
+pub(crate) const FALLBACK_WORK_AREA: WorkArea = WorkArea {
+    x: 0.0,
+    y: 0.0,
+    width: 1440.0,
+    height: 900.0,
+};
+
 fn current_work_area(app: &AppHandle, icon: TrayRect) -> WorkArea {
     let center_x = icon.x + icon.width / 2.0;
     let center_y = icon.y + icon.height / 2.0;
@@ -234,23 +260,8 @@ fn current_work_area(app: &AppHandle, icon: TrayRect) -> WorkArea {
         .or_else(|| app.primary_monitor().ok().flatten());
 
     match monitor {
-        Some(m) => {
-            let scale = m.scale_factor();
-            let size = m.size().to_logical::<f64>(scale);
-            let position = m.position().to_logical::<f64>(scale);
-            WorkArea {
-                x: position.x,
-                y: position.y,
-                width: size.width,
-                height: size.height,
-            }
-        }
-        None => WorkArea {
-            x: 0.0,
-            y: 0.0,
-            width: 1440.0,
-            height: 900.0,
-        },
+        Some(m) => work_area_for_monitor(&m),
+        None => FALLBACK_WORK_AREA,
     }
 }
 

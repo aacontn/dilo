@@ -13,9 +13,131 @@
 //! en memoria del webview cuando el usuario la reabre — no hace falta
 //! reconstruirlo desde el backend.
 
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_store::StoreExt;
 
-const MEETINGS_WINDOW_LABEL: &str = "meetings";
+use crate::popover::WorkArea;
+
+pub(crate) const MEETINGS_WINDOW_LABEL: &str = "meetings";
+
+// Panel alto anclado a un costado (referencia: Wispr Flow), no la ventana
+// chica y flotante de antes — reporte del dueño, 2026-08-02. El ancho se
+// mantiene cercano al de siempre: es un panel de lectura, no una ventana
+// ancha. El alto se calcula en `anchored_geometry` a partir del monitor.
+const MEETINGS_WINDOW_WIDTH: f64 = 460.0;
+const MEETINGS_WINDOW_MIN_HEIGHT: f64 = 520.0;
+
+// Márgenes verticales del anclaje inicial. No se usa `Monitor::work_area()`
+// para calcularlos dinámicamente: `popover.rs` ya documenta (ver
+// `work_area_for_monitor`) que esa API da coordenadas incorrectas en macOS
+// para monitores con posición negativa (el caso real de dos pantallas de
+// Alfonso), y `overlay.rs` esquiva el mismo problema con offsets fijos
+// (`OVERLAY_TOP_OFFSET`/`OVERLAY_BOTTOM_OFFSET`) en vez de consultar el
+// sistema. Mismo criterio acá: un margen fijo que despeja la barra de menú
+// de macOS, no una medición exacta.
+#[cfg(target_os = "macos")]
+const MEETINGS_WINDOW_TOP_MARGIN: f64 = 30.0;
+#[cfg(not(target_os = "macos"))]
+const MEETINGS_WINDOW_TOP_MARGIN: f64 = 8.0;
+const MEETINGS_WINDOW_BOTTOM_MARGIN: f64 = 8.0;
+
+/// Geometría en curso de la ventana, en coordenadas lógicas.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct WindowGeometry {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+/// Geometría inicial: alta y anclada al borde derecho del monitor donde está
+/// el cursor (misma resolución de monitor que usa el overlay de grabación,
+/// vía `overlay::get_monitor_with_cursor` — evita el bug de dos pantallas
+/// con escalas distintas descrito en `popover::logical_tray_rect`).
+fn anchored_geometry(work_area: WorkArea) -> WindowGeometry {
+    let width = MEETINGS_WINDOW_WIDTH.min(work_area.width);
+    let height = (work_area.height - MEETINGS_WINDOW_TOP_MARGIN - MEETINGS_WINDOW_BOTTOM_MARGIN)
+        .max(MEETINGS_WINDOW_MIN_HEIGHT.min(work_area.height));
+
+    WindowGeometry {
+        x: work_area.x + work_area.width - width,
+        y: work_area.y + MEETINGS_WINDOW_TOP_MARGIN,
+        width,
+        height,
+    }
+}
+
+fn current_work_area(app: &AppHandle) -> WorkArea {
+    let monitor = crate::overlay::get_monitor_with_cursor(app)
+        .or_else(|| app.primary_monitor().ok().flatten());
+
+    match monitor {
+        Some(m) => crate::popover::work_area_for_monitor(&m),
+        None => crate::popover::FALLBACK_WORK_AREA,
+    }
+}
+
+/// Geometría guardada la última vez que el usuario movió o redimensionó la
+/// ventana. Vive en el mismo store que el resto de los ajustes (mismo
+/// patrón que `settings::get_settings`/`write_settings`), bajo una clave
+/// propia — no es un ajuste editable desde la interfaz, así que no entra al
+/// struct `AppSettings` ni a los bindings generados para el frontend.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+struct SavedWindowBounds {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+const MEETINGS_WINDOW_BOUNDS_KEY: &str = "meeting_window_bounds";
+
+fn load_saved_bounds(app: &AppHandle) -> Option<SavedWindowBounds> {
+    let store = app
+        .store(crate::portable::store_path(
+            crate::settings::SETTINGS_STORE_PATH,
+        ))
+        .ok()?;
+    let value = store.get(MEETINGS_WINDOW_BOUNDS_KEY)?.clone();
+    serde_json::from_value(value).ok()
+}
+
+/// Guarda la geometría actual. Se llama desde el manejador global de
+/// `WindowEvent::Moved`/`Resized` en `lib.rs`, filtrado por
+/// `MEETINGS_WINDOW_LABEL` — mismo lugar donde ya se manejan casos
+/// especiales por ventana (ver el match de `popover::POPOVER_WINDOW_LABEL`
+/// ahí mismo).
+pub(crate) fn save_current_bounds(window: &tauri::Window) {
+    let Ok(scale) = window.scale_factor() else {
+        return;
+    };
+    let Ok(position) = window.outer_position() else {
+        return;
+    };
+    let Ok(size) = window.inner_size() else {
+        return;
+    };
+    let logical_position = position.to_logical::<f64>(scale);
+    let logical_size = size.to_logical::<f64>(scale);
+
+    let bounds = SavedWindowBounds {
+        x: logical_position.x,
+        y: logical_position.y,
+        width: logical_size.width,
+        height: logical_size.height,
+    };
+
+    let Ok(store) = window.app_handle().store(crate::portable::store_path(
+        crate::settings::SETTINGS_STORE_PATH,
+    )) else {
+        return;
+    };
+    store.set(
+        MEETINGS_WINDOW_BOUNDS_KEY,
+        serde_json::to_value(bounds).unwrap(),
+    );
+}
 
 /// Abre la ventana de reuniones, o la trae al frente si ya está abierta
 /// (escondida tras un cierre anterior, o simplemente detrás de otras
@@ -91,14 +213,29 @@ pub fn return_to_main_window(app: AppHandle) -> Result<(), String> {
 }
 
 fn create_meetings_window(app: &AppHandle) -> Result<(), String> {
+    // Si el usuario ya movió o redimensionó la ventana antes, se respeta esa
+    // geometría en vez de volver a anclar — anclar es sólo la posición
+    // inicial, no una cárcel (reporte del dueño, 2026-08-02). Sin geometría
+    // guardada (primera vez), se calcula el anclaje: panel alto, anclado al
+    // borde derecho del monitor donde está el cursor en este instante.
+    let geometry = match load_saved_bounds(app) {
+        Some(bounds) => WindowGeometry {
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+        },
+        None => anchored_geometry(current_work_area(app)),
+    };
+
     let mut builder = WebviewWindowBuilder::new(
         app,
         MEETINGS_WINDOW_LABEL,
         WebviewUrl::App("src/meetings/index.html".into()),
     )
     .title("Dilo — Reuniones")
-    // Más alta que ancha: para leer transcripts, no para verlos de reojo.
-    .inner_size(460.0, 760.0)
+    .inner_size(geometry.width, geometry.height)
+    .position(geometry.x, geometry.y)
     .min_inner_size(360.0, 520.0)
     .resizable(true)
     .maximizable(false)
@@ -131,4 +268,75 @@ fn create_meetings_window(app: &AppHandle) -> Result<(), String> {
     window.set_focus().map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn area() -> WorkArea {
+        WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1440.0,
+            height: 900.0,
+        }
+    }
+
+    #[test]
+    fn se_ancla_al_borde_derecho_del_monitor() {
+        let geometry = anchored_geometry(area());
+        assert_eq!(geometry.x, 1440.0 - MEETINGS_WINDOW_WIDTH);
+        assert_eq!(geometry.width, MEETINGS_WINDOW_WIDTH);
+    }
+
+    #[test]
+    fn el_alto_ocupa_el_area_util_menos_los_margenes() {
+        let geometry = anchored_geometry(area());
+        assert_eq!(
+            geometry.height,
+            900.0 - MEETINGS_WINDOW_TOP_MARGIN - MEETINGS_WINDOW_BOTTOM_MARGIN
+        );
+        assert_eq!(geometry.y, MEETINGS_WINDOW_TOP_MARGIN);
+    }
+
+    #[test]
+    fn respeta_un_area_de_trabajo_desplazada() {
+        // Segunda pantalla a la derecha de la principal — el caso real de
+        // Alfonso (dos pantallas), mismo escenario que prueba `popover.rs`.
+        let shifted = WorkArea {
+            x: 1440.0,
+            y: 0.0,
+            width: 1920.0,
+            height: 1080.0,
+        };
+        let geometry = anchored_geometry(shifted);
+        assert_eq!(geometry.x, 1440.0 + 1920.0 - MEETINGS_WINDOW_WIDTH);
+        assert_eq!(geometry.y, MEETINGS_WINDOW_TOP_MARGIN);
+    }
+
+    #[test]
+    fn en_un_monitor_mas_angosto_que_el_panel_el_ancho_no_se_sale() {
+        let narrow = WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 300.0,
+            height: 900.0,
+        };
+        let geometry = anchored_geometry(narrow);
+        assert_eq!(geometry.width, 300.0);
+        assert_eq!(geometry.x, 0.0);
+    }
+
+    #[test]
+    fn en_un_monitor_mas_bajo_que_el_minimo_no_baja_del_minimo() {
+        let short = WorkArea {
+            x: 0.0,
+            y: 0.0,
+            width: 1440.0,
+            height: 400.0,
+        };
+        let geometry = anchored_geometry(short);
+        assert_eq!(geometry.height, MEETINGS_WINDOW_MIN_HEIGHT.min(400.0));
+    }
 }

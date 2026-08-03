@@ -1136,6 +1136,16 @@ pub fn run(cli_args: CliArgs) {
             {
                 let _ = window.hide();
             }
+            // Si el usuario mueve o redimensiona la ventana de reuniones,
+            // esa geometría se respeta la próxima vez que se cree (reporte
+            // del dueño, 2026-08-02): anclarla al borde derecho del monitor
+            // es sólo la posición inicial, no una cárcel. Ver
+            // `meeting_window::save_current_bounds`.
+            tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_)
+                if window.label() == meeting_window::MEETINGS_WINDOW_LABEL =>
+            {
+                meeting_window::save_current_bounds(window);
+            }
             _ => {}
         })
         .invoke_handler(invoke_handler)
