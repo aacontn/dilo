@@ -582,6 +582,22 @@ pub struct AppSettings {
     /// resuelve a `SystemAudio` sin tocar el resto del archivo.
     #[serde(default)]
     pub meeting_audio_source: MeetingAudioSource,
+    /// Modelo de transcripción propio para reuniones, separado del de
+    /// dictado (`selected_model`). `None` (o vacío) significa **heredar**:
+    /// la reunión usa el mismo modelo que el dictado, y quien nunca entra al
+    /// selector de reuniones del popover no nota que este campo existe —
+    /// mismo patrón que `LLMPrompt::provider_id` en `resolve_mode_provider`
+    /// (un modo de post-proceso hereda el proveedor global salvo que elija
+    /// uno propio). `#[serde(default)]` (`None`) para que un `settings.json`
+    /// viejo cargue igual sin tocar el resto del archivo.
+    ///
+    /// Se resuelve una sola vez, al empezar la captura
+    /// (`MeetingManager::start_capture`), y esa reunión entera —incluido
+    /// cualquier reintento tras una descarga de modelo por inactividad— usa
+    /// siempre ese mismo id, nunca `selected_model` directamente (que es el
+    /// del dictado y puede cambiar bajo los pies mientras la reunión graba).
+    #[serde(default)]
+    pub meeting_model_id: Option<String>,
 }
 
 fn default_model() -> String {
@@ -1171,6 +1187,7 @@ pub fn get_default_settings() -> AppSettings {
         tts_voice: default_tts_voice(),
         voice_assistant_enabled: false,
         meeting_audio_source: MeetingAudioSource::default(),
+        meeting_model_id: None,
     }
 }
 

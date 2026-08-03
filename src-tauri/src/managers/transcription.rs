@@ -744,15 +744,38 @@ impl TranscriptionManager {
         Ok(())
     }
 
-    /// Kicks off the model loading in a background thread if it's not already loaded
+    /// Kicks off the model loading in a background thread if it's not already
+    /// loaded. Always targets `settings.selected_model` (dictation's model) —
+    /// see [`Self::initiate_model_load_id`] for the explicit-id variant that
+    /// meeting capture uses instead.
     pub fn initiate_model_load(&self) {
+        let model_id = get_settings(&self.app_handle).selected_model;
+        self.initiate_model_load_id(model_id);
+    }
+
+    /// Like [`Self::initiate_model_load`], but for an explicit `model_id`
+    /// instead of always reading `settings.selected_model`.
+    ///
+    /// Meeting capture (`MeetingManager::start_capture`) uses this to load
+    /// its own resolved model (`settings.meeting_model_id`, or dictation's
+    /// as a fallback) without disturbing what dictation has selected, and
+    /// again at `stop_capture` to switch back. It's also what
+    /// `initiate_model_load` itself delegates to.
+    ///
+    /// Idempotent against the *target* id, not merely "is some model
+    /// loaded": if a different model is currently loaded (e.g. a meeting's
+    /// model still loaded right after the meeting stopped), this reloads to
+    /// `model_id` instead of leaving the wrong one in place — the bug that
+    /// motivated splitting this out of the old `initiate_model_load`, whose
+    /// blanket `is_model_loaded()` check would have skipped the switch back.
+    pub fn initiate_model_load_id(&self, model_id: String) {
         let mut is_loading = self.is_loading.lock().unwrap();
         if *is_loading {
             return;
         }
 
         let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
-        if !reload_pending && self.is_model_loaded() {
+        if !reload_pending && self.get_current_model().as_deref() == Some(model_id.as_str()) {
             return;
         }
 
@@ -764,8 +787,7 @@ impl TranscriptionManager {
                     .reload_model_on_next_use
                     .store(false, Ordering::Release);
             }
-            let settings = get_settings(&self_clone.app_handle);
-            if let Err(e) = self_clone.load_model(&settings.selected_model) {
+            if let Err(e) = self_clone.load_model(&model_id) {
                 error!("Failed to load model: {}", e);
             }
             let mut is_loading = self_clone.is_loading.lock().unwrap();

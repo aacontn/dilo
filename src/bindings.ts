@@ -1064,6 +1064,25 @@ async changeMeetingAudioSourceSetting(source: string) : Promise<Result<null, str
 }
 },
 /**
+ * Elige (o borra) el modelo de transcripción propio de las reuniones — ver
+ * el doc comment de `AppSettings::meeting_model_id`. Mandar `None` (o un
+ * string vacío/sólo espacios) vuelve a "hereda del dictado", mismo criterio
+ * que `notes::change_notes_folder` para su propio `Option<String>`.
+ * 
+ * No valida que `model_id` exista ni esté descargado: el popover sólo
+ * ofrece modelos ya descargados (mismo criterio que el submenú de la
+ * bandeja, `update_tray_menu`), así que un id inválido acá sólo puede venir
+ * de tocar el comando a mano.
+ */
+async changeMeetingModelSetting(modelId: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_meeting_model_setting", { modelId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Si esta máquina soporta la captura de audio del sistema (macOS 14.2+,
  * process taps de CoreAudio). El frontend lo consulta para no ofrecer una
  * opción que no va a funcionar — fuera de macOS, o en una versión anterior,
@@ -1444,7 +1463,24 @@ voice_assistant_enabled?: boolean;
  * Un `settings.json` viejo no trae esta clave: `#[serde(default)]` la
  * resuelve a `SystemAudio` sin tocar el resto del archivo.
  */
-meeting_audio_source?: MeetingAudioSource }
+meeting_audio_source?: MeetingAudioSource; 
+/**
+ * Modelo de transcripción propio para reuniones, separado del de
+ * dictado (`selected_model`). `None` (o vacío) significa **heredar**:
+ * la reunión usa el mismo modelo que el dictado, y quien nunca entra al
+ * selector de reuniones del popover no nota que este campo existe —
+ * mismo patrón que `LLMPrompt::provider_id` en `resolve_mode_provider`
+ * (un modo de post-proceso hereda el proveedor global salvo que elija
+ * uno propio). `#[serde(default)]` (`None`) para que un `settings.json`
+ * viejo cargue igual sin tocar el resto del archivo.
+ * 
+ * Se resuelve una sola vez, al empezar la captura
+ * (`MeetingManager::start_capture`), y esa reunión entera —incluido
+ * cualquier reintento tras una descarga de modelo por inactividad— usa
+ * siempre ese mismo id, nunca `selected_model` directamente (que es el
+ * del dictado y puede cambiar bajo los pies mientras la reunión graba).
+ */
+meeting_model_id?: string | null }
 /**
  * Payload de `assistant-error` — espejo de `AssistantErrorEvent` en
  * `src/lib/types/events.ts` (evento plano, no tauri-specta, para no tocar el

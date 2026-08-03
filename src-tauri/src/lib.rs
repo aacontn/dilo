@@ -814,6 +814,7 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::list_meetings,
             commands::meeting::get_meeting,
             commands::meeting::change_meeting_audio_source_setting,
+            commands::meeting::change_meeting_model_setting,
             commands::meeting::is_system_audio_available,
             commands::meeting::take_pending_meeting_audio_notices,
             meeting_window::open_meetings_window,

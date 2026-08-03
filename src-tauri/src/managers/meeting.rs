@@ -881,6 +881,26 @@ pub fn resolve_meeting_audio_source(
     }
 }
 
+/// Resuelve qué modelo de transcripción usa ESTA reunión: el propio
+/// (`meeting_model_id`) si el usuario eligió uno, si no el del dictado
+/// (`selected_model`) — ver el doc comment de `AppSettings::meeting_model_id`.
+/// Mismo patrón que `resolve_mode_provider` en `settings.rs` para el
+/// proveedor de post-proceso de un modo: heredar es el default silencioso, y
+/// esta función es pura y testeable a propósito, igual que
+/// `resolve_meeting_audio_source` arriba — `start_capture` sólo la llama con
+/// los ajustes ya leídos.
+///
+/// Vacío o sólo espacios cuenta como "sin elegir" y también hereda: un
+/// `settings.json` tocado a mano con `"meeting_model_id": ""` no debe dejar
+/// la reunión sin ningún modelo.
+pub fn resolve_meeting_model_id(meeting_model_id: Option<&str>, selected_model: &str) -> String {
+    meeting_model_id
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .unwrap_or(selected_model)
+        .to_string()
+}
+
 /// Build the `SystemAudioRecorder` a meeting capture session uses cuando la
 /// fuente resuelta es `MeetingAudioSource::SystemAudio`. Espejo de
 /// `build_meeting_recorder`, con una diferencia que importa:
@@ -1956,13 +1976,29 @@ impl MeetingManager {
             .clone()
             .ok_or_else(|| anyhow::anyhow!("MeetingManager capture not configured"))?;
 
+        // El modelo de ESTA reunión, resuelto una sola vez acá: el propio de
+        // reuniones si el usuario eligió uno (`settings.meeting_model_id`),
+        // si no el mismo que el dictado — ver el doc comment del campo en
+        // `settings.rs`. Todo lo que sigue (la carga de acá abajo y el
+        // reintento del watchdog más adelante en esta función) usa siempre
+        // esta variable, nunca `settings.selected_model` directamente: ese
+        // es el del dictado y puede cambiar bajo los pies mientras la
+        // reunión graba (el selector de dictado del popover sigue activo).
+        let meeting_model_id = {
+            let settings = crate::settings::get_settings(&app_handle);
+            resolve_meeting_model_id(
+                settings.meeting_model_id.as_deref(),
+                &settings.selected_model,
+            )
+        };
+
         // Kick off the ASR model load now (non-blocking, idempotent if
         // already loaded/loading) rather than waiting for the first
         // completed turn to discover it isn't ready. Mirrors how dictation
         // kicks this off in parallel with opening the mic (`actions.rs`) —
         // by the time a turn actually finishes (seconds into the meeting),
         // the model has almost always finished loading.
-        transcription_manager.initiate_model_load();
+        transcription_manager.initiate_model_load_id(meeting_model_id.clone());
 
         let mut capture_guard = self.capture.lock().unwrap();
         if capture_guard.is_some() {
@@ -2267,6 +2303,7 @@ impl MeetingManager {
                 let transcription_manager = Arc::clone(&transcription_manager);
                 let diarization_engine = self.diarization_engine.clone();
                 let queue_depth = Arc::clone(&queue_depth);
+                let meeting_model_id = meeting_model_id.clone();
                 thread::spawn(move || {
                     // Un solo aviso de turno perdido por sesión de captura,
                     // ver `report_turn_failure`.
@@ -2310,12 +2347,18 @@ impl MeetingManager {
                         // (watcher de inactividad, cambio de modelo), este
                         // turno/pieza lo recarga y se reintenta una vez en vez
                         // de perderse — y con él todos los que vinieran atrás.
+                        // Recarga el modelo DE ESTA REUNIÓN
+                        // (`meeting_model_id`), no `settings.selected_model`:
+                        // ese es el del dictado, y usarlo acá dejaría el
+                        // resto de la reunión transcribiendo con el modelo
+                        // equivocado sin que nada lo avisara.
                         let transcribe = |samples: Vec<f32>| {
                             transcribe_with_reload(
                                 samples,
                                 &|s| transcription_manager.transcribe(s),
                                 &|| {
-                                    transcription_manager.initiate_model_load();
+                                    transcription_manager
+                                        .initiate_model_load_id(meeting_model_id.clone());
                                     transcription_manager.wait_for_model_load();
                                 },
                             )
@@ -2549,6 +2592,14 @@ impl MeetingManager {
         // los turnos pendientes todavía necesitaban el modelo cargado.
         if let Some(tm) = &self.transcription_manager {
             tm.set_meeting_capture_active(false);
+            // Vuelve al modelo del dictado ahora que la reunión soltó el
+            // suyo — barato cuando los dos son el mismo (herencia, el caso
+            // más común: `initiate_model_load` no hace nada si ya es el
+            // cargado) y necesario cuando la reunión usó uno propio: sin
+            // esto, el próximo dictado corría sobre el modelo de la
+            // reunión hasta la siguiente carga explícita. No bloqueante,
+            // igual que el resto de esta función.
+            tm.initiate_model_load();
         }
         if let Some(app) = &self.app_handle {
             crate::tray::set_meeting_recording(app, false);
@@ -3237,6 +3288,53 @@ mod tests {
         assert_eq!(
             resolve_meeting_audio_source(MeetingKind::Presencial, false),
             MeetingAudioSource::Microphone
+        );
+    }
+
+    // ---------- resolve_meeting_model_id (modelo propio de reuniones) -----
+
+    #[test]
+    fn sin_modelo_propio_hereda_el_del_dictado() {
+        assert_eq!(
+            resolve_meeting_model_id(None, "whisper-large-v3-turbo"),
+            "whisper-large-v3-turbo"
+        );
+    }
+
+    #[test]
+    fn un_modelo_propio_gana_sobre_el_del_dictado() {
+        assert_eq!(
+            resolve_meeting_model_id(Some("parakeet-tdt-0.6b-v3"), "whisper-small"),
+            "parakeet-tdt-0.6b-v3"
+        );
+    }
+
+    #[test]
+    fn vacio_o_solo_espacios_cuenta_como_sin_elegir_y_hereda() {
+        // Un `settings.json` tocado a mano con `"meeting_model_id": ""` (o
+        // `"   "`) no debe dejar la reunión sin modelo — hereda igual que
+        // `None`.
+        assert_eq!(
+            resolve_meeting_model_id(Some(""), "whisper-small"),
+            "whisper-small"
+        );
+        assert_eq!(
+            resolve_meeting_model_id(Some("   "), "whisper-small"),
+            "whisper-small"
+        );
+    }
+
+    #[test]
+    fn el_mismo_modelo_elegido_a_mano_que_el_del_dictado_no_es_un_caso_especial() {
+        // Documenta el "barato cuando coinciden" del comentario de
+        // `TranscriptionManager::initiate_model_load_id`: si el usuario elige
+        // a mano el mismo modelo que ya usa el dictado, esta función no
+        // necesita saberlo — simplemente devuelve ese id, e
+        // `initiate_model_load_id` es quien no hace ningún trabajo de más
+        // porque el id resuelto ya coincide con el cargado.
+        assert_eq!(
+            resolve_meeting_model_id(Some("whisper-small"), "whisper-small"),
+            "whisper-small"
         );
     }
 

@@ -191,6 +191,29 @@ pub fn change_meeting_audio_source_setting(app: AppHandle, source: String) -> Re
     Ok(())
 }
 
+/// Elige (o borra) el modelo de transcripción propio de las reuniones — ver
+/// el doc comment de `AppSettings::meeting_model_id`. Mandar `None` (o un
+/// string vacío/sólo espacios) vuelve a "hereda del dictado", mismo criterio
+/// que `notes::change_notes_folder` para su propio `Option<String>`.
+///
+/// No valida que `model_id` exista ni esté descargado: el popover sólo
+/// ofrece modelos ya descargados (mismo criterio que el submenú de la
+/// bandeja, `update_tray_menu`), así que un id inválido acá sólo puede venir
+/// de tocar el comando a mano.
+#[tauri::command]
+#[specta::specta]
+pub fn change_meeting_model_setting(
+    app: AppHandle,
+    model_id: Option<String>,
+) -> Result<(), String> {
+    let mut settings = get_settings(&app);
+    settings.meeting_model_id = model_id
+        .map(|id| id.trim().to_string())
+        .filter(|id| !id.is_empty());
+    write_settings(&app, settings);
+    Ok(())
+}
+
 /// Si esta máquina soporta la captura de audio del sistema (macOS 14.2+,
 /// process taps de CoreAudio). El frontend lo consulta para no ofrecer una
 /// opción que no va a funcionar — fuera de macOS, o en una versión anterior,
