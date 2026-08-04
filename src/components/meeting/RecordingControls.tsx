@@ -36,6 +36,27 @@ const sourceFromKind = (kind: MeetingKind): MeetingAudioSource =>
   kind === "presencial" ? "microphone" : "system_audio";
 
 /**
+ * Qué modelo STT va a usar la reunión REALMENTE — mismo criterio que
+ * `resolve_meeting_model_id` en `managers/meeting.rs`: el propio de
+ * reuniones (`settings.meeting_model_id`) si el usuario eligió uno, si no
+ * el del dictado. Vacío o sólo espacios cuenta como "sin elegir" y también
+ * hereda, igual que en Rust.
+ *
+ * Antes esta pantalla mostraba directamente `currentModel` de
+ * `useModelStore` — el modelo de DICTADO — sin mirar este ajuste para nada.
+ * Ésa era, al menos en parte, la causa del reporte "cambio el modelo de la
+ * reunión y no cambia en la reunión": la etiqueta mentía sobre cuál se iba
+ * a usar de verdad.
+ */
+const resolveMeetingModelId = (
+  meetingModelId: string | null | undefined,
+  dictationModelId: string,
+): string => {
+  const trimmed = meetingModelId?.trim();
+  return trimmed ? trimmed : dictationModelId;
+};
+
+/**
  * Clave de traducción para el indicador de arriba (icono + texto junto al
  * botón de grabar). Tres combinaciones reales, no dos: una reunión online
  * en una máquina sin audio de sistema (Windows, Linux, macOS viejo) graba
@@ -117,14 +138,19 @@ export const RecordingControls: React.FC = () => {
     void updateSetting("meeting_audio_source", sourceFromKind(kind));
   };
 
-  // Qué modelo STT graba la reunión — mismo modelo que el dictado normal
-  // (managers/meeting.rs reusa el TranscriptionManager compartido, no uno
-  // propio de reuniones). Alfonso no sabía qué modelo estaba usando al
-  // grabar; esto lo deja a la vista sin abrir Ajustes.
+  // Qué modelo STT va a grabar la reunión — el propio de reuniones si el
+  // usuario eligió uno en la tarjeta del popover (`settings.meeting_model_id`),
+  // si no el del dictado (ver `resolveMeetingModelId` arriba, espejo de
+  // `resolve_meeting_model_id` en Rust). Alfonso no sabía qué modelo estaba
+  // usando al grabar; esto lo deja a la vista sin abrir Ajustes.
   const { currentModel, models } = useModelStore();
+  const meetingModelId = useMemo(
+    () => resolveMeetingModelId(settings?.meeting_model_id, currentModel),
+    [settings?.meeting_model_id, currentModel],
+  );
   const activeModelName = useMemo(
-    () => models.find((model) => model.id === currentModel)?.name,
-    [currentModel, models],
+    () => models.find((model) => model.id === meetingModelId)?.name,
+    [meetingModelId, models],
   );
 
   // Cronómetro simple mientras graba: el tiempo lo marca el propio
