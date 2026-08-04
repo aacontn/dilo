@@ -1082,17 +1082,46 @@ enum DiarizerCmd {
 
 /// Traduce milisegundos "de reconocimiento" (los que cuenta el ASR en
 /// streaming — sólo avanzan cuando `audio_cb` deja pasar un frame por la
-/// compuerta de energía, ver [`has_energy`]) a milisegundos "de reunión"
-/// (reloj de pared desde que arrancó la captura — lo que el usuario ve en
-/// el transcript, y lo que `SpeakerSpan` ya mide directamente porque la
-/// diarización recibe el audio SIN filtrar). Cada silencio digital que la
-/// compuerta descarta comprime el reloj del ASR respecto al de pared; esta
-/// estructura registra, cada vez que `audio_cb` retoma después de un
-/// hueco, el punto exacto donde ambos coincidían (`(asr_ms, wall_ms)`),
-/// para poder reconstruir el reloj de pared de cualquier marca del ASR por
-/// interpolación lineal — entre dos frames consecutivos SIN hueco de por
-/// medio, los dos relojes avanzan 1:1, así que sólo hace falta un punto de
-/// referencia por hueco, no uno por frame.
+/// compuerta de energía, ver [`has_energy`]) a milisegundos "de reunión":
+/// el reloj por MUESTRAS que ve `StreamingDiarizer`, no reloj de pared
+/// (`Instant`).
+///
+/// **N1 del fix round 2 — el ancla original estaba mal.** La primera
+/// versión de esto marcaba cada punto de referencia con
+/// `capture_started.elapsed()` (reloj de pared de verdad), asumiendo que
+/// `SpeakerSpan` también medía en reloj de pared. Es falso:
+/// `StreamingDiarizer::push` calcula sus tiempos puramente por muestras
+/// procesadas (`processed_s = total_model_frames * SUBSAMPLING *
+/// AUDIO_FRAME_DURATION_S`, `sortformer.rs`), nunca toca un reloj real. Los
+/// dos relojes no estaban en el mismo marco: `capture_started` se toma
+/// ANTES de abrir el recorder (sesgo constante = la latencia de apertura
+/// del dispositivo, segundos en el camino de fallback), `FrameResampler`
+/// entrega frames en ráfaga por buffer de cpal (jitter que podía romper la
+/// monotonía de `to_wall_ms` y hacer que `maybe_persist_new_runs` se
+/// saltara una intervención real leyéndola como "ya persistida"), y el
+/// hilo consumidor puede atrasarse respecto al reloj real bajo presión de
+/// CPU sin autocorregirse jamás.
+///
+/// El ancla correcta: como la diarización recibe TODO el audio sin
+/// filtrar (Important 4 del fix round 1), su reloj es exactamente la suma
+/// de milisegundos de CADA frame que le llega a `audio_cb`, pase o no la
+/// compuerta — eso es lo que `audio_cb` lleva en `total_ms` y lo que
+/// `mark` recibe como segundo elemento ahora, en vez de
+/// `capture_started.elapsed()`. Por construcción, sin sesgo (mismo origen:
+/// la primera muestra), sin jitter (mismo conteo de muestras, no reloj de
+/// pared) y sin deriva (no depende de cuándo el hilo consumidor llegó a
+/// procesar el frame). El diseño ya sabía esto — el `backlog` del hilo
+/// diarizador existe justamente "para que el reloj de la diarización
+/// arranque en la MISMA muestra cero"; este ancla es la otra mitad de la
+/// misma idea.
+///
+/// Cada silencio que la compuerta descarta comprime el reloj del ASR
+/// respecto al de la diarización; esta estructura registra, cada vez que
+/// `audio_cb` retoma después de un hueco, el punto exacto donde ambos
+/// coincidían (`(asr_ms, total_ms)`), para reconstruir el reloj de reunión
+/// de cualquier marca del ASR por interpolación lineal — entre dos frames
+/// consecutivos SIN hueco de por medio, los dos relojes avanzan 1:1, así
+/// que sólo hace falta un punto de referencia por hueco, no uno por frame.
 ///
 /// `mark` lo llama sólo `audio_cb` (un único hilo, en orden estrictamente
 /// creciente de `asr_ms`); `to_wall_ms` lo llama el listener de
@@ -1103,26 +1132,50 @@ enum DiarizerCmd {
 /// distintos siempre da el mismo resultado.
 #[derive(Default)]
 struct AudioToWallClock {
-    breakpoints: Vec<(u64, i64)>,
+    breakpoints: Vec<(u64, u64)>,
 }
 
 impl AudioToWallClock {
-    fn mark(&mut self, asr_ms: u64, wall_ms: i64) {
-        self.breakpoints.push((asr_ms, wall_ms));
+    fn mark(&mut self, asr_ms: u64, meeting_ms: u64) {
+        self.breakpoints.push((asr_ms, meeting_ms));
     }
 
-    /// Reloj de pared correspondiente a `asr_ms`. Sin ningún punto de
-    /// referencia todavía (nada se alimentó nunca al ASR), devuelve
+    /// Milisegundo de reunión correspondiente a `asr_ms`. Sin ningún punto
+    /// de referencia todavía (nada se alimentó nunca al ASR), devuelve
     /// `asr_ms` tal cual — mejor aproximación disponible, y el valor que
     /// ya tenía antes de que esta conversión existiera.
     fn to_wall_ms(&self, asr_ms: u64) -> u64 {
         match self.breakpoints.iter().rposition(|&(a, _)| a <= asr_ms) {
             Some(i) => {
-                let (bp_asr, bp_wall) = self.breakpoints[i];
-                (bp_wall.max(0) as u64) + (asr_ms - bp_asr)
+                let (bp_asr, bp_meeting) = self.breakpoints[i];
+                bp_meeting + (asr_ms - bp_asr)
             }
             None => asr_ms,
         }
+    }
+}
+
+/// Convierte un `TimedToken` del reloj del ASR al reloj de reunión,
+/// acotando su duración a la original — N3 del fix round 2. `start_ms` y
+/// `end_ms` se interpolan por separado (`AudioToWallClock::to_wall_ms`),
+/// así que pueden caer contra quiebres distintos si el hueco de silencio
+/// que la compuerta le sacó al ASR partió justo ese token: sin acotar, el
+/// token pasaría a "durar" en reloj de reunión todo el silencio
+/// intermedio, y como `align::attribute` atribuye por mayor solape, ese
+/// token inflado podría terminar atribuido a quien habló del otro lado del
+/// silencio. Acotar a `end - start` original es conservador: no inventa
+/// dónde cae el token dentro del hueco, sólo evita que se coma silencio
+/// ajeno.
+fn convert_token_to_meeting_clock(token: TimedToken, clock: &AudioToWallClock) -> TimedToken {
+    let start_ms = clock.to_wall_ms(token.start_ms);
+    let original_duration = token.end_ms.saturating_sub(token.start_ms);
+    let end_ms = clock
+        .to_wall_ms(token.end_ms)
+        .min(start_ms + original_duration);
+    TimedToken {
+        text: token.text,
+        start_ms,
+        end_ms,
     }
 }
 
@@ -1858,14 +1911,21 @@ impl MeetingManager {
             // para poder avisarlo (ver `QUEUE_DEPTH_WARN_THRESHOLD`).
             let diar_queue_depth = Arc::new(AtomicUsize::new(0));
             // Reconstruye el reloj de reunión a partir del reloj comprimido
-            // del ASR — ver el doc comment de `AudioToWallClock` y el
-            // comentario del módulo (Important 3/4 del fix round 1).
+            // del ASR — ver el doc comment de `AudioToWallClock` (fix
+            // round 2: el ancla es el reloj por MUESTRAS de la diarización,
+            // no reloj de pared) y el comentario del módulo (Important 3/4
+            // del fix round 1).
             let clock = Arc::new(Mutex::new(AudioToWallClock::default()));
-            // Cuánto audio (en ms) ya se le entregó al ASR — sólo lo que
-            // pasó la compuerta. Único hilo escritor (`audio_cb`), por eso
-            // alcanza un `Mutex` compartido con `was_gap` en vez de átomos
-            // separados que podrían quedar inconsistentes entre sí.
-            let asr_clock = Arc::new(Mutex::new((0u64, true))); // (asr_ms_acumulado, was_gap)
+            // (asr_ms, total_ms, was_gap): `asr_ms` es cuánto audio ya se
+            // le entregó al ASR (sólo lo que pasó la compuerta); `total_ms`
+            // es la suma de TODOS los frames que pasaron por `audio_cb`,
+            // pasen o no la compuerta — exactamente lo mismo que ve
+            // `StreamingDiarizer` (Important 4), así que es su reloj por
+            // construcción, no una aproximación de reloj de pared. Único
+            // hilo escritor (`audio_cb`), por eso alcanza un `Mutex`
+            // compartido en vez de átomos separados que podrían quedar
+            // inconsistentes entre sí.
+            let asr_clock = Arc::new(Mutex::new((0u64, 0u64, true)));
 
             // Cada intento de abrir un recorder necesita su propio callback
             // (`audio_cb` consume el que le pasan) — I2 del reporte de
@@ -1879,10 +1939,11 @@ impl MeetingManager {
             // TODO el audio sin filtrar: `StreamingDiarizer` necesita ver
             // las pausas reales para cortar turnos (ver el comentario del
             // módulo). Como el ASR ve un subconjunto, su reloj en
-            // milisegundos queda comprimido respecto al de pared —
+            // milisegundos queda comprimido respecto al de la diarización —
             // `AudioToWallClock` (arriba) es quien lo destraduce, marcando
-            // un punto de referencia cada vez que el ASR retoma después de
-            // un hueco de silencio.
+            // un punto de referencia (contra `total_ms`, NO contra
+            // `capture_started.elapsed()` — ver N1 del fix round 2) cada
+            // vez que el ASR retoma después de un hueco de silencio.
             let build_audio_cb = || {
                 let stream_router = Arc::clone(&stream_router);
                 let diar_tx = diar_tx.clone();
@@ -1890,22 +1951,23 @@ impl MeetingManager {
                 let clock = Arc::clone(&clock);
                 let asr_clock = Arc::clone(&asr_clock);
                 move |frame: &[f32]| {
+                    // 16 kHz mono, igual que el resto del pipeline de
+                    // reuniones (ver `AudioRecorder`/`StreamingDiarizer`).
+                    let frame_ms = (frame.len() as u64 * 1000) / 16_000;
+                    let mut guard = asr_clock.lock().unwrap();
+                    let (asr_ms, total_ms, was_gap) = &mut *guard;
                     if has_energy(frame) {
-                        let wall_ms_now = capture_started.elapsed().as_millis() as i64;
-                        let mut guard = asr_clock.lock().unwrap();
-                        let (asr_ms, was_gap) = &mut *guard;
                         if *was_gap {
-                            clock.lock().unwrap().mark(*asr_ms, wall_ms_now);
+                            clock.lock().unwrap().mark(*asr_ms, *total_ms);
                             *was_gap = false;
                         }
                         stream_router.feed(frame);
-                        // 16 kHz mono, igual que el resto del pipeline de
-                        // reuniones (ver `AudioRecorder`/`StreamingDiarizer`).
-                        *asr_ms += (frame.len() as u64 * 1000) / 16_000;
-                        drop(guard);
+                        *asr_ms += frame_ms;
                     } else {
-                        asr_clock.lock().unwrap().1 = true;
+                        *was_gap = true;
                     }
+                    *total_ms += frame_ms;
+                    drop(guard);
 
                     // Sin filtrar: ver Important 4 arriba.
                     let depth = diar_queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
@@ -2098,11 +2160,7 @@ impl MeetingManager {
                         let clock = clock.lock().unwrap();
                         let tokens = tokens
                             .into_iter()
-                            .map(|token| TimedToken {
-                                text: token.text,
-                                start_ms: clock.to_wall_ms(token.start_ms),
-                                end_ms: clock.to_wall_ms(token.end_ms),
-                            })
+                            .map(|token| convert_token_to_meeting_clock(token, &clock))
                             .collect();
                         drop(clock);
                         transcript_state.lock().unwrap().tokens = tokens;
@@ -3684,23 +3742,26 @@ mod tests {
 
         // Recorre en frames de 30ms @ 16kHz, igual que `audio_cb` —
         // alimenta la compuerta y `AudioToWallClock` exactamente como el
-        // camino en vivo, para probar los dos juntos sobre audio real.
+        // camino en vivo (fix round 2: `total_ms` cuenta TODOS los
+        // frames, pasen o no la compuerta — el mismo reloj que ve
+        // `StreamingDiarizer`, ya no una aproximación de reloj de pared),
+        // para probar los dos juntos sobre audio real.
         let frame_len = 480usize;
         let mut clock = AudioToWallClock::default();
         let mut asr_ms = 0u64;
+        let mut total_ms = 0u64;
         let mut was_gap = true;
         let mut loud_frames = 0usize;
         let mut quiet_frames = 0usize;
 
-        for (i, frame) in samples.chunks(frame_len).enumerate() {
+        for frame in samples.chunks(frame_len) {
             if frame.len() < frame_len {
                 break; // recorta el último frame parcial, igual que haría el resampler
             }
-            let wall_ms_now = (i * 30) as i64;
             if has_energy(frame) {
                 loud_frames += 1;
                 if was_gap {
-                    clock.mark(asr_ms, wall_ms_now);
+                    clock.mark(asr_ms, total_ms);
                     was_gap = false;
                 }
                 asr_ms += 30;
@@ -3708,6 +3769,7 @@ mod tests {
                 quiet_frames += 1;
                 was_gap = true;
             }
+            total_ms += 30;
         }
 
         // La asunción de la que depende Important 4: una grabación real de
@@ -3729,13 +3791,140 @@ mod tests {
         // Chequeo de cordura sobre `AudioToWallClock::to_wall_ms` con
         // quiebres reales (no sintéticos): el reloj de reunión
         // reconstruido nunca puede ir más atrás que el propio reloj
-        // comprimido del ASR, porque cada pausa sólo puede haber hecho que
-        // el reloj de pared avanzara MÁS que el del ASR, nunca menos.
+        // comprimido del ASR (cada pausa sólo puede haber hecho crecer
+        // `total_ms` más que `asr_ms`, nunca al revés), y tiene que ser
+        // monótono sobre toda la grabación real — el chequeo que N1
+        // rompía con el ancla de reloj de pared y que los tests sintéticos
+        // de arriba ya cubren, repetido acá contra quiebres reales.
         let wall_ms_at_end = clock.to_wall_ms(asr_ms);
         assert!(
             wall_ms_at_end >= asr_ms,
             "el reloj de reunión reconstruido no puede ir más atrás que el reloj \
              comprimido del ASR: {wall_ms_at_end} < {asr_ms}"
+        );
+        let mut last = clock.to_wall_ms(0);
+        for probe_asr_ms in (0..=asr_ms).step_by(30) {
+            let wall_ms = clock.to_wall_ms(probe_asr_ms);
+            assert!(
+                wall_ms >= last,
+                "to_wall_ms no es monótona en asr_ms={probe_asr_ms} sobre audio real: \
+                 {wall_ms} < {last}"
+            );
+            last = wall_ms;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // N2 del fix round 2: `AudioToWallClock` son 8 líneas de lógica pura
+    // justo donde un error corre la atribución en silencio (ver N1) — el
+    // único test que tenía antes era el `#[ignore]` de audio real, que
+    // nunca corre en los gates y cuya única aserción sobre el reloj
+    // (`wall_ms_at_end >= asr_ms`) es trivialmente cierta para cualquier
+    // conjunto de quiebres no negativos. Estos son de mesa, baratos, y
+    // corren siempre.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn to_wall_ms_sin_quiebres_devuelve_el_mismo_valor() {
+        let clock = AudioToWallClock::default();
+        assert_eq!(clock.to_wall_ms(0), 0);
+        assert_eq!(clock.to_wall_ms(1_234), 1_234);
+    }
+
+    #[test]
+    fn to_wall_ms_justo_en_un_quiebre() {
+        let mut clock = AudioToWallClock::default();
+        clock.mark(500, 800); // el ASR llevaba 500ms cuando la reunión iba en 800ms
+        assert_eq!(clock.to_wall_ms(500), 800);
+    }
+
+    #[test]
+    fn to_wall_ms_interpola_entre_dos_quiebres() {
+        let mut clock = AudioToWallClock::default();
+        clock.mark(0, 0);
+        clock.mark(1_000, 3_000); // un hueco de 2s en el medio
+                                  // Después del segundo quiebre, los dos relojes vuelven a avanzar
+                                  // 1:1 -- 200ms más de ASR son 200ms más de reunión.
+        assert_eq!(clock.to_wall_ms(1_200), 3_200);
+    }
+
+    #[test]
+    fn to_wall_ms_despues_de_un_hueco_largo() {
+        let mut clock = AudioToWallClock::default();
+        clock.mark(0, 0);
+        clock.mark(100, 100);
+        clock.mark(150, 60_100); // un minuto de silencio entre los dos
+        assert_eq!(clock.to_wall_ms(200), 60_150);
+    }
+
+    #[test]
+    fn to_wall_ms_es_monotona_sobre_una_secuencia_de_quiebres() {
+        // Justo lo que N1 rompía: con el ancla equivocada (reloj de pared
+        // real, sujeto a jitter de ráfaga y deriva del hilo consumidor),
+        // un quiebre posterior podía marcar un `meeting_ms` MENOR que uno
+        // anterior, y `to_wall_ms` dejaba de ser monótona -- tokens que
+        // "retroceden" en reloj de reunión, y `run.end_ms <=
+        // persisted_until_ms` los lee como ya persistidos, perdiendo una
+        // intervención real sin ningún error. Con el ancla correcta
+        // (`total_ms`, que sólo puede crecer) esto no puede pasar: se
+        // afirma acá para que una futura regresión lo note.
+        let mut clock = AudioToWallClock::default();
+        let breaks = [(0, 0), (50, 200), (120, 500), (121, 501), (500, 2_000)];
+        for &(asr_ms, meeting_ms) in &breaks {
+            clock.mark(asr_ms, meeting_ms);
+        }
+
+        let mut last = clock.to_wall_ms(0);
+        for asr_ms in 0..600u64 {
+            let wall_ms = clock.to_wall_ms(asr_ms);
+            assert!(
+                wall_ms >= last,
+                "to_wall_ms no es monótona en asr_ms={asr_ms}: {wall_ms} < {last}"
+            );
+            last = wall_ms;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // N3 del fix round 2: convert_token_to_meeting_clock no debe dejar que
+    // un token se "coma" un hueco de silencio que la compuerta le sacó al
+    // ASR justo en medio de él.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn convert_token_to_meeting_clock_sin_hueco_no_cambia_la_duracion() {
+        let mut clock = AudioToWallClock::default();
+        clock.mark(0, 0);
+        let token = TimedToken {
+            text: "hola".into(),
+            start_ms: 100,
+            end_ms: 400,
+        };
+        let converted = convert_token_to_meeting_clock(token, &clock);
+        assert_eq!(converted.start_ms, 100);
+        assert_eq!(converted.end_ms, 400);
+    }
+
+    #[test]
+    fn convert_token_to_meeting_clock_acota_un_token_partido_por_un_hueco() {
+        let mut clock = AudioToWallClock::default();
+        clock.mark(0, 0);
+        // Un hueco de 5s de silencio empieza en asr_ms=100.
+        clock.mark(100, 5_100);
+        // Un token cuyo comienzo cayó ANTES del hueco y cuyo fin el ASR
+        // reporta apenas 50ms después (100ms de duración original), pero
+        // que interpola contra el quiebre de después del hueco.
+        let token = TimedToken {
+            text: "eh".into(),
+            start_ms: 50,
+            end_ms: 150,
+        };
+        let converted = convert_token_to_meeting_clock(token, &clock);
+        assert_eq!(converted.start_ms, 50, "el comienzo no cruza el hueco");
+        assert_eq!(
+            converted.end_ms - converted.start_ms,
+            100,
+            "la duración queda acotada a la original (100ms), no se come el hueco de 5s"
         );
     }
 
