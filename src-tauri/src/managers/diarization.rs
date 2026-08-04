@@ -1525,6 +1525,14 @@ fn run_pipeline(models: &LoadedModels, audio: &[f32]) -> Result<Vec<DiarizedSegm
     ))
 }
 
+/// Sonda temporal de la Task 1 (plan "reuniones en streaming"): compara
+/// Sortformer streaming contra este mismo motor sobre audio real en
+/// español. Ver el doc comment del propio archivo para el detalle. Sólo
+/// contiene un test `#[ignore]` que corre a mano -- por eso el módulo entero
+/// vive detrás de `#[cfg(test)]` y no aparece en builds normales.
+#[cfg(test)]
+mod sortformer_probe;
+
 #[cfg(test)]
 mod tests {
     use super::*;
