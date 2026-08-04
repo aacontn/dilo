@@ -137,6 +137,7 @@
       "listening": "Listening… as soon as someone speaks, the text appears here.",
       "speakerLabel": "Speaker {{number}}",
       "unknownSpeaker": "Unidentified",
+      "speakerCapReached": "Dilo tells apart up to 4 voices. Beyond that it may mix them up.",
       "overlapped": "voices overlapped",
       "speakerCount_one": "{{count}} voice",
       "speakerCount_other": "{{count}} voices"

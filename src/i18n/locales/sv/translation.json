@@ -942,6 +942,7 @@
       "listening": "Lyssnar… så fort någon talar dyker texten upp här.",
       "speakerLabel": "Talare {{number}}",
       "unknownSpeaker": "Oidentifierad",
+      "speakerCapReached": "Dilo skiljer på upp till 4 röster. Utöver det kan den blanda ihop dem.",
       "overlapped": "röster överlappade",
       "speakerCount_one": "{{count}} röst",
       "speakerCount_other": "{{count}} röster"

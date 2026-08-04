@@ -942,6 +942,7 @@
       "listening": "Poslouchám… jakmile někdo promluví, text se objeví tady.",
       "speakerLabel": "Mluvčí {{number}}",
       "unknownSpeaker": "Neurčeno",
+      "speakerCapReached": "Dilo rozezná až 4 hlasy. Nad tento počet je může zaměnit.",
       "overlapped": "hlasy přes sebe",
       "speakerCount_one": "{{count}} hlas",
       "speakerCount_other": "{{count}} hlasů"

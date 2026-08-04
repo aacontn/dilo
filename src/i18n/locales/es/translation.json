@@ -942,6 +942,7 @@
       "listening": "Escuchando… en cuanto alguien hable, el texto aparece acá.",
       "speakerLabel": "Hablante {{number}}",
       "unknownSpeaker": "Sin identificar",
+      "speakerCapReached": "Dilo separa hasta 4 voces. De ahí en adelante puede confundirlas.",
       "overlapped": "voces encimadas",
       "speakerCount_one": "{{count}} voz",
       "speakerCount_other": "{{count}} voces"

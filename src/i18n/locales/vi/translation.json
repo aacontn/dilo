@@ -942,6 +942,7 @@
       "listening": "Đang nghe… có người nói là văn bản hiện ra ngay.",
       "speakerLabel": "Người nói {{number}}",
       "unknownSpeaker": "Chưa xác định",
+      "speakerCapReached": "Dilo phân biệt được tối đa 4 giọng nói. Vượt quá số đó, có thể sẽ nhầm lẫn.",
       "overlapped": "giọng chồng nhau",
       "speakerCount_one": "{{count}} giọng",
       "speakerCount_other": "{{count}} giọng"

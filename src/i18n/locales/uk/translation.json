@@ -942,6 +942,7 @@
       "listening": "Слухаємо… щойно хтось заговорить, текст з'явиться тут.",
       "speakerLabel": "Мовець {{number}}",
       "unknownSpeaker": "Не визначено",
+      "speakerCapReached": "Dilo розрізняє до 4 голосів. Понад це він може їх плутати.",
       "overlapped": "голоси наклалися",
       "speakerCount_one": "{{count}} голос",
       "speakerCount_other": "{{count}} голосів"

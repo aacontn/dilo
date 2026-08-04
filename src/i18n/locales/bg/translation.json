@@ -942,6 +942,7 @@
       "listening": "Слушаме… щом някой проговори, текстът се появява тук.",
       "speakerLabel": "Говорещ {{number}}",
       "unknownSpeaker": "Неидентифициран",
+      "speakerCapReached": "Dilo различава до 4 гласа. След това може да ги обърка.",
       "overlapped": "застъпени гласове",
       "speakerCount_one": "{{count}} глас",
       "speakerCount_other": "{{count}} гласа"

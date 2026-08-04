@@ -942,6 +942,7 @@
       "listening": "正在聆聽……只要有人開口，文字就會出現在這裡。",
       "speakerLabel": "發言者 {{number}}",
       "unknownSpeaker": "未辨識",
+      "speakerCapReached": "Dilo 最多能區分 4 個聲音，超過後可能會認錯。",
       "overlapped": "聲音重疊",
       "speakerCount_one": "{{count}} 個聲音",
       "speakerCount_other": "{{count}} 個聲音"

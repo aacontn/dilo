@@ -942,6 +942,7 @@
       "listening": "מאזין… ברגע שמישהו ידבר, הטקסט יופיע כאן.",
       "speakerLabel": "דובר {{number}}",
       "unknownSpeaker": "לא זוהה",
+      "speakerCapReached": "Dilo מבחין בין עד 4 קולות. מעבר לכך הוא עלול לבלבל ביניהם.",
       "overlapped": "קולות חופפים",
       "speakerCount_one": "קול {{count}}",
       "speakerCount_other": "{{count}} קולות"

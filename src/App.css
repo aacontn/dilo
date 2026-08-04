@@ -627,6 +627,12 @@
   .dilo-meeting-pulse {
     animation: none;
   }
+
+  /* El cursor del bloque en curso queda visible y fijo en vez de
+     parpadear — sigue marcando "esto puede crecer" sin animación. */
+  .dilo-transcript-caret {
+    animation: none;
+  }
 }
 
 /* Latido del punto mientras una reunión graba. Sutil a propósito: es un
@@ -645,4 +651,20 @@
 
 .dilo-meeting-pulse {
   animation: dilo-meeting-pulse 1.8s ease-in-out infinite;
+}
+
+/* Cursor del bloque en curso del transcript de reunión — misma idea que el
+   caret del overlay del dictado (`.scaret`, `RecordingOverlay.css`): marca
+   que ese bloque todavía puede recibir la próxima intervención de la misma
+   persona, en vez de aparecer como un bloque más, ya cerrado. Reutiliza
+   `dilo-blink` (`src/styles/brand.css`, ya importado arriba), el mismo
+   parpadeo del caret del wordmark. */
+.dilo-transcript-caret {
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  translate: 0 0.15em;
+  background: var(--dilo-mango);
+  border-radius: 1px;
+  animation: dilo-blink 1.2s steps(1) infinite;
 }

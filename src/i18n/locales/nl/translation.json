@@ -942,6 +942,7 @@
       "listening": "Aan het luisteren… zodra iemand praat, verschijnt de tekst hier.",
       "speakerLabel": "Spreker {{number}}",
       "unknownSpeaker": "Niet toegewezen",
+      "speakerCapReached": "Dilo onderscheidt tot 4 stemmen. Daarboven kan het ze door elkaar halen.",
       "overlapped": "stemmen door elkaar",
       "speakerCount_one": "{{count}} stem",
       "speakerCount_other": "{{count}} stemmen"

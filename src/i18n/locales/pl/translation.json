@@ -942,6 +942,7 @@
       "listening": "Słucham… gdy ktoś się odezwie, tekst pojawi się tutaj.",
       "speakerLabel": "Mówca {{number}}",
       "unknownSpeaker": "Nierozpoznany",
+      "speakerCapReached": "Dilo rozróżnia do 4 głosów. Powyżej tej liczby może je pomylić.",
       "overlapped": "głosy nałożone",
       "speakerCount_one": "{{count}} głos",
       "speakerCount_other": "{{count}} głosy"

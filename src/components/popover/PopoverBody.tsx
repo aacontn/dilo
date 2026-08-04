@@ -407,6 +407,7 @@ export const PopoverBody: React.FC = () => {
               <TranscriptList
                 segments={miniSegments}
                 speakerNames={speakerNames}
+                inProgress
               />
               <div ref={bottomRef} />
             </div>

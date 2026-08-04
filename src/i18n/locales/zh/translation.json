@@ -942,6 +942,7 @@
       "listening": "正在聆听……只要有人开口，文字就会出现在这里。",
       "speakerLabel": "发言人 {{number}}",
       "unknownSpeaker": "未识别",
+      "speakerCapReached": "Dilo 最多能区分 4 个声音，超出后可能会认错。",
       "overlapped": "声音重叠",
       "speakerCount_one": "{{count}} 个声音",
       "speakerCount_other": "{{count}} 个声音"

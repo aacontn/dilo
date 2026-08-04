@@ -942,6 +942,7 @@
       "listening": "Escutando… assim que alguém falar, o texto aparece aqui.",
       "speakerLabel": "Falante {{number}}",
       "unknownSpeaker": "Não identificado",
+      "speakerCapReached": "O Dilo distingue até 4 vozes. Além disso, pode confundi-las.",
       "overlapped": "vozes sobrepostas",
       "speakerCount_one": "{{count}} voz",
       "speakerCount_other": "{{count}} vozes"

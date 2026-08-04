@@ -942,6 +942,7 @@
       "listening": "Höre zu… sobald jemand spricht, erscheint der Text hier.",
       "speakerLabel": "Sprecher {{number}}",
       "unknownSpeaker": "Nicht zugeordnet",
+      "speakerCapReached": "Dilo unterscheidet bis zu 4 Stimmen. Darüber hinaus kann es sie verwechseln.",
       "overlapped": "Stimmen überlagert",
       "speakerCount_one": "{{count}} Stimme",
       "speakerCount_other": "{{count}} Stimmen"

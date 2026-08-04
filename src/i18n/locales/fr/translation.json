@@ -942,6 +942,7 @@
       "listening": "À l'écoute… dès que quelqu'un parle, le texte apparaît ici.",
       "speakerLabel": "Interlocuteur {{number}}",
       "unknownSpeaker": "Non identifié",
+      "speakerCapReached": "Dilo distingue jusqu'à 4 voix. Au-delà, il peut les confondre.",
       "overlapped": "voix superposées",
       "speakerCount_one": "{{count}} voix",
       "speakerCount_other": "{{count}} voix"

@@ -942,6 +942,7 @@
       "listening": "聞いています… 誰かが話し始めると、ここにテキストが出ます。",
       "speakerLabel": "話者 {{number}}",
       "unknownSpeaker": "未特定",
+      "speakerCapReached": "Dilo が聞き分けられるのは最大4人の声までです。それ以上になると混同することがあります。",
       "overlapped": "声が重なりました",
       "speakerCount_one": "{{count}} 人の声",
       "speakerCount_other": "{{count}} 人の声"

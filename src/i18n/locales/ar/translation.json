@@ -942,6 +942,7 @@
       "listening": "جارٍ الاستماع… ما إن يتكلم أحد حتى يظهر النص هنا.",
       "speakerLabel": "المتحدث {{number}}",
       "unknownSpeaker": "غير محدّد",
+      "speakerCapReached": "يميّز Dilo حتى 4 أصوات كحد أقصى. وقد يخلط بينها بعد ذلك.",
       "overlapped": "أصوات متداخلة",
       "speakerCount_one": "صوت واحد",
       "speakerCount_other": "{{count}} أصوات"

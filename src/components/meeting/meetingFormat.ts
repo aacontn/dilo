@@ -51,6 +51,23 @@ export const formatDuration = (seconds: number): string => {
 };
 
 /**
+ * Sortformer detecta como máximo 4 hablantes y degrada con 5 o más. No es un
+ * límite nuestro: es del modelo, y el diseño 2026-08-04 pide decirlo en la
+ * interfaz en vez de esconderlo — ver `exceedsSpeakerCap` y el aviso que
+ * dispara en `TranscriptList`.
+ */
+export const SORTFORMER_MAX_SPEAKERS = 4;
+
+/**
+ * `speakerIds` puede traer repetidos (un id por segmento, no por hablante
+ * distinto) — de ahí el `Set`. No cuenta `null` como hablante: "sin
+ * identificar" no es una voz de más, es la ausencia de una.
+ */
+export function exceedsSpeakerCap(speakerIds: number[]): boolean {
+  return new Set(speakerIds).size > SORTFORMER_MAX_SPEAKERS;
+}
+
+/**
  * Agrupa segmentos consecutivos del mismo hablante en un solo bloque visual.
  *
  * Desde la Task 5 del plan "reuniones en streaming", el backend persiste una

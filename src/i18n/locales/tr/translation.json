@@ -942,6 +942,7 @@
       "listening": "Dinleniyor… biri konuşur konuşmaz metin burada belirir.",
       "speakerLabel": "Konuşmacı {{number}}",
       "unknownSpeaker": "Belirlenmedi",
+      "speakerCapReached": "Dilo en fazla 4 sesi ayırt edebilir. Bundan fazlasında karıştırabilir.",
       "overlapped": "sesler üst üste",
       "speakerCount_one": "{{count}} ses",
       "speakerCount_other": "{{count}} ses"

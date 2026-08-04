@@ -3,9 +3,11 @@ import type { MeetingSegment, MeetingSummary } from "@/bindings";
 import { useMeetingStore } from "@/stores/meetingStore";
 import {
   appendMeetingPage,
+  exceedsSpeakerCap,
   groupConsecutiveSegments,
   isPastMeeting,
   RECENT_MEETINGS_LIMIT,
+  SORTFORMER_MAX_SPEAKERS,
 } from "@/components/meeting/meetingFormat";
 
 const segment = (id: number): MeetingSegment => ({
@@ -246,6 +248,28 @@ describe("groupConsecutiveSegments", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].overlapped).toBe(true);
+  });
+});
+
+describe("exceedsSpeakerCap", () => {
+  test("cuatro hablantes distintos todavía no supera el tope", () => {
+    expect(exceedsSpeakerCap([1, 2, 3, 4])).toBe(false);
+  });
+
+  test("cinco lo superan", () => {
+    expect(exceedsSpeakerCap([1, 2, 3, 4, 5])).toBe(true);
+  });
+
+  test("los repetidos no cuentan doble", () => {
+    expect(exceedsSpeakerCap([1, 1, 1, 2])).toBe(false);
+  });
+
+  test("sin hablantes no supera nada", () => {
+    expect(exceedsSpeakerCap([])).toBe(false);
+  });
+
+  test("el tope es el del modelo", () => {
+    expect(SORTFORMER_MAX_SPEAKERS).toBe(4);
   });
 });
 

@@ -942,6 +942,7 @@
       "listening": "सुन्दै… कसैले बोल्नासाथ पाठ यहीँ देखिन्छ।",
       "speakerLabel": "वक्ता {{number}}",
       "unknownSpeaker": "पहिचान भएन",
+      "speakerCapReached": "Dilo ले बढीमा ४ जनाको आवाज छुट्याउन सक्छ। त्यसभन्दा बढी भए भ्रमित हुन सक्छ।",
       "overlapped": "आवाज खप्टियो",
       "speakerCount_one": "{{count}} आवाज",
       "speakerCount_other": "{{count}} आवाजहरू"

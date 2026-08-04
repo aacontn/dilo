@@ -61,7 +61,11 @@ export const LiveTranscript: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-mid-gray/15">
-            <TranscriptList segments={segments} speakerNames={speakerNames} />
+            <TranscriptList
+              segments={segments}
+              speakerNames={speakerNames}
+              inProgress={isRecording}
+            />
             <div ref={bottomRef} />
           </div>
         )}

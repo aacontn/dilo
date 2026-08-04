@@ -2,7 +2,8 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { HelpCircle } from "lucide-react";
 import type { MeetingSegment } from "@/bindings";
-import { groupConsecutiveSegments } from "./meetingFormat";
+import { Alert } from "../ui/Alert";
+import { exceedsSpeakerCap, groupConsecutiveSegments } from "./meetingFormat";
 
 /** Milisegundos -> `m:ss`, relativo al inicio de la reunión. */
 export const formatOffset = (ms: number): string => {
@@ -60,6 +61,19 @@ interface TranscriptListProps {
   segments: MeetingSegment[];
   /** Nombre puesto por el usuario, por id de hablante (sólo los que lo tienen). */
   speakerNames: Record<number, string>;
+  /**
+   * `true` mientras la reunión sigue grabando: el diarizador no emite un
+   * tramo hasta que el hablante se calla (diseño 2026-08-04), así que el
+   * último bloque del listado puede seguir creciendo con la próxima
+   * intervención de la misma persona. Ese bloque se distingue del resto —
+   * igual que el overlay del dictado separa `tentative` de `committed` —
+   * con un cursor parpadeante al final del texto en vez de aparecer como un
+   * bloque más, ya cerrado.
+   *
+   * En una reunión guardada (`MeetingDetail`) no hay nada "en curso": se
+   * deja en `false` (default) y todos los bloques se ven cerrados.
+   */
+  inProgress?: boolean;
 }
 
 /**
@@ -91,7 +105,9 @@ interface TranscriptListProps {
 export const TranscriptList: React.FC<TranscriptListProps> = ({
   segments,
   speakerNames,
+  inProgress = false,
 }) => {
+  const { t } = useTranslation();
   const groupedSegments = groupConsecutiveSegments(segments);
 
   // Orden de aparición de cada hablante, para el color y la etiqueta.
@@ -102,35 +118,69 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
     }
   }
 
+  // Sortformer degrada pasados los 4 hablantes (ver el doc comment de
+  // `exceedsSpeakerCap`) — se calcula sobre TODOS los segmentos, no sólo los
+  // agrupados, para no perder de vista a alguien que sólo intervino una vez
+  // y quedó fusionado con un bloque vecino.
+  const distinctSpeakerIds = segments
+    .map((segment) => segment.speaker_id)
+    .filter((id): id is number => id !== null);
+  const speakerCapNotice = exceedsSpeakerCap(distinctSpeakerIds);
+
+  // Sólo el último bloque puede seguir creciendo: es el único que todavía
+  // podría recibir la próxima intervención de la misma persona.
+  const lastIndex = groupedSegments.length - 1;
+
   return (
     <>
-      {groupedSegments.map((segment) => (
-        <article key={segment.id} className="flex items-start gap-3 px-4 py-3">
-          <time className="mt-0.5 shrink-0 font-mono text-xs text-muted-text tabular-nums">
-            {formatOffset(segment.started_at_ms)}
-          </time>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <SpeakerChip
-                segment={segment}
-                order={
-                  segment.speaker_id === null
-                    ? null
-                    : (speakerOrder.get(segment.speaker_id) ?? 0)
-                }
-                name={
-                  segment.speaker_id === null
-                    ? null
-                    : (speakerNames[segment.speaker_id] ?? null)
-                }
-              />
+      {speakerCapNotice && (
+        <Alert variant="info" contained>
+          {t("meeting.transcript.speakerCapReached")}
+        </Alert>
+      )}
+      {groupedSegments.map((segment, index) => {
+        const open = inProgress && index === lastIndex;
+        return (
+          <article
+            key={segment.id}
+            className="flex items-start gap-3 px-4 py-3"
+          >
+            <time className="mt-0.5 shrink-0 font-mono text-xs text-muted-text tabular-nums">
+              {formatOffset(segment.started_at_ms)}
+            </time>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <SpeakerChip
+                  segment={segment}
+                  order={
+                    segment.speaker_id === null
+                      ? null
+                      : (speakerOrder.get(segment.speaker_id) ?? 0)
+                  }
+                  name={
+                    segment.speaker_id === null
+                      ? null
+                      : (speakerNames[segment.speaker_id] ?? null)
+                  }
+                />
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-text">
+                {segment.text}
+                {/* Bloque en curso: mismo cursor parpadeante que separa
+                    `tentative` de `committed` en el overlay del dictado —
+                    acá dice "esto todavía puede crecer", no "esto es
+                    provisorio" (el texto ya está persistido). */}
+                {open && (
+                  <span
+                    aria-hidden="true"
+                    className="dilo-transcript-caret ml-0.5"
+                  />
+                )}
+              </p>
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-text">
-              {segment.text}
-            </p>
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </>
   );
 };
