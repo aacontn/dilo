@@ -2343,16 +2343,38 @@ impl MeetingManager {
                             |depth| depth.checked_sub(1),
                         );
 
-                        // Si el modelo se descargó mientras la reunión seguía
-                        // (watcher de inactividad, cambio de modelo), este
-                        // turno/pieza lo recarga y se reintenta una vez en vez
-                        // de perderse — y con él todos los que vinieran atrás.
-                        // Recarga el modelo DE ESTA REUNIÓN
-                        // (`meeting_model_id`), no `settings.selected_model`:
-                        // ese es el del dictado, y usarlo acá dejaría el
-                        // resto de la reunión transcribiendo con el modelo
-                        // equivocado sin que nada lo avisara.
+                        // Causa 3 del reporte de arreglo (2026-08-03):
+                        // transcribir con el modelo equivocado NO falla —
+                        // `transcription_manager.transcribe` usa el que sea
+                        // que esté cargado y devuelve texto igual, así que
+                        // el reintento de `transcribe_with_reload` de más
+                        // abajo (que sólo dispara si `transcribe` devuelve
+                        // error) nunca lo hubiera detectado. Antes de cada
+                        // pieza se compara el id REALMENTE cargado contra el
+                        // de ESTA reunión (`meeting_model_id`) y, si no
+                        // coincide, se recarga y se espera acá mismo —
+                        // comparación barata (sólo el id en memoria, no
+                        // toca settings ni disco), así que correr esto por
+                        // cada pieza no cuesta nada. Cierra tanto la ventana
+                        // de la carga inicial asíncrona de `start_capture`
+                        // (los primeros turnos pueden llegar antes de que
+                        // termine) como cualquier caso en que el modelo
+                        // cargado cambiara bajo los pies sin que
+                        // `transcribe` llegara a fallar.
+                        //
+                        // Si el modelo se descargó del todo mientras la
+                        // reunión seguía (watcher de inactividad, descarga
+                        // manual), `transcribe_with_reload` sigue cubriendo
+                        // ese caso con su propio reintento — este chequeo no
+                        // lo reemplaza, es una capa antes.
                         let transcribe = |samples: Vec<f32>| {
+                            if transcription_manager.get_current_model().as_deref()
+                                != Some(meeting_model_id.as_str())
+                            {
+                                transcription_manager
+                                    .initiate_model_load_id(meeting_model_id.clone());
+                                transcription_manager.wait_for_model_load();
+                            }
                             transcribe_with_reload(
                                 samples,
                                 &|s| transcription_manager.transcribe(s),
