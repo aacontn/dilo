@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { commands, events, type MeetingSummary } from "@/bindings";
+import { useWindowShown } from "@/lib/windowShown";
 
 /**
  * Pregunta al backend si hay una reunión grabando ahora mismo, y cuál.
@@ -39,12 +40,18 @@ interface UseActiveMeetingReturn {
 
 /**
  * Mantiene la respuesta de `resolveActiveMeeting` al día en esta ventana:
- * la vuelve a pedir al montar, cuando esta ventana recupera el foco (ni el
- * popover ni la ventana de reuniones se destruyen al esconderse — ver sus
- * doc comments — así que un `useEffect` de montaje no vuelve a correr solo
- * cuando la sesión cambia en la otra ventana mientras ésta estaba
- * escondida) y cuando llegan los eventos que sí cruzan ventanas y pueden
- * cambiar la respuesta (`meeting-finished`, `meeting-interrupted`).
+ * la vuelve a pedir al montar, cuando esta ventana **se muestra**
+ * (`useWindowShown`), cuando recupera el foco (ni el popover ni la ventana
+ * de reuniones se destruyen al esconderse — ver sus doc comments — así que
+ * un `useEffect` de montaje no vuelve a correr solo cuando la sesión cambia
+ * en la otra ventana mientras ésta estaba escondida) y cuando llegan los
+ * eventos que sí cruzan ventanas y pueden cambiar la respuesta
+ * (`meeting-finished`, `meeting-interrupted`).
+ *
+ * Mostrarse y tomar el foco no son lo mismo, y por eso están los dos: una
+ * ventana puede mostrarse sin que el sistema reporte ningún cambio de foco
+ * (si ya lo tenía), y ése es exactamente el agujero por el que la ventana de
+ * reuniones mostró "no estoy grabando" con una reunión corriendo.
  *
  * No sabe nada de Zustand ni de ningún store local: sólo responde "¿hay
  * algo grabando, y qué reunión es". Cada ventana decide qué hacer con eso
@@ -104,6 +111,17 @@ export const useActiveMeeting = (
       void unlisten.then((fn) => fn());
     };
   }, [refresh]);
+
+  // Y **mostrarse** es el otro momento, el que faltaba: el foco no alcanza
+  // cuando la ventana se muestra sin que el sistema reporte un cambio de
+  // foco (ya estaba enfocada, o el popover se abrió encima sin quitárselo).
+  // Ahí esta ventana se quedaba mostrando "listo para grabar" con la
+  // reunión corriendo, y la única forma de sacarla de ese estado era
+  // reiniciar la app (reporte del dueño, 2026-08-04). Ver `useWindowShown`
+  // y `utils::emit_window_shown` en Rust.
+  useWindowShown(() => {
+    void refresh();
+  });
 
   return { activeMeeting, refresh };
 };

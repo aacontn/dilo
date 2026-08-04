@@ -143,12 +143,41 @@ pub enum MicOwner {
     Meeting,
 }
 
+/// Marcador estable al frente del error con que el árbitro rechaza una
+/// grabación nueva porque hay una reunión grabando.
+///
+/// El texto que sigue es para el log (`dilo.log`); la copia que ve el
+/// usuario la arma el frontend a partir del `error_type` del evento
+/// `recording-error` (ver `is_meeting_recording_active_error` acá abajo,
+/// su uso en `actions.rs`, y el toast compartido en
+/// `hooks/useRecordingErrorToast.ts`). Sin este marcador el frontend sólo
+/// tenía el string crudo en español y lo mostraba tal cual.
+pub const MEETING_RECORDING_ACTIVE: &str = "meeting_recording_active";
+
+/// `true` si `error` es el rechazo del árbitro por una reunión grabando.
+pub fn is_meeting_recording_active_error(error: &str) -> bool {
+    error.contains(MEETING_RECORDING_ACTIVE)
+}
+
 impl MicOwner {
-    /// Human-readable label for error messages surfaced to the user.
-    pub fn label(self) -> &'static str {
+    /// Por qué se rechaza una grabación nueva mientras este dueño tiene la
+    /// suya tomada.
+    ///
+    /// **No habla del micrófono a propósito.** El mensaje anterior decía
+    /// "El micrófono está en uso por …", y era falso en el caso más común:
+    /// una reunión por audio del sistema nunca abre el micrófono (ver M5 en
+    /// `start_capture`, `managers/meeting.rs`) y aun así bloquea el
+    /// dictado. Lo que hay acá es una política de "una sola grabación a la
+    /// vez", no un conflicto físico de dispositivo — y el usuario que lee
+    /// esto necesita saber qué detener, no a quién culpar.
+    pub fn busy_error_message(self) -> String {
         match self {
-            MicOwner::Dictation => "el dictado",
-            MicOwner::Meeting => "una reunión grabando",
+            MicOwner::Dictation => {
+                "Dilo graba una cosa a la vez y hay un dictado en curso ahora mismo.".to_string()
+            }
+            MicOwner::Meeting => format!(
+                "{MEETING_RECORDING_ACTIVE}: Dilo graba una cosa a la vez y hay una reunión grabando ahora mismo."
+            ),
         }
     }
 }
@@ -503,10 +532,11 @@ impl AudioRecordingManager {
         // that point, so releasing there used to free the arbiter while the
         // device was still genuinely open (T012 review finding #1/#2).
         if let Err(owner) = self.mic_arbiter.try_acquire(MicOwner::Dictation) {
-            anyhow::bail!(
-                "El micrófono está en uso por {} ahora mismo.",
-                owner.label()
-            );
+            // En la práctica `owner` sólo puede ser `Meeting` (el árbitro es
+            // reentrante para el mismo dueño, ver `try_acquire`), pero el
+            // mensaje se pide igual al dueño real para no mentir si eso
+            // cambia.
+            anyhow::bail!("{}", owner.busy_error_message());
         }
 
         let open_result = (|| -> Result<(), anyhow::Error> {

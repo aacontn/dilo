@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Nessun microfono trovato",
     "noInputDevice": "Non è stato rilevato alcun dispositivo di ingresso audio. Collega un microfono o delle cuffie e riprova.",
+    "meetingRecordingActiveTitle": "C'è una riunione in registrazione",
+    "meetingRecordingActive": "Dilo registra una cosa alla volta. Ferma la riunione e potrai dettare di nuovo.",
     "recordingFailed": "Impossibile avviare la registrazione: {{error}}",
     "modelLoadFailed": "Impossibile caricare il modello: {{model}}",
     "modelLoadFailedUnknown": "modello sconosciuto",
@@ -934,6 +936,7 @@
       "recordingBusy": "C'è già una riunione in registrazione",
       "recordingBusyDescription": "Non puoi registrare due riunioni insieme. Ferma prima quella in corso, oppure vai a vederla.",
       "recordingBusyAction": "Vedi riunione",
+      "noActiveMeeting": "In questo momento non c'è nessuna riunione in registrazione.",
       "modelNotStreaming": "Questo modello non funziona per le riunioni",
       "modelNotStreamingDescription": "{{name}} non supporta la trascrizione in diretta. Scegli un altro modello per le riunioni nel menu dei modelli.",
       "modelNoTimestampsDescription": "{{name}} trascrive in diretta, ma non marca i tempi di ogni parola, quindi Dilo non può sapere chi ha detto cosa. Scegli un altro modello per le riunioni nel menu dei modelli."

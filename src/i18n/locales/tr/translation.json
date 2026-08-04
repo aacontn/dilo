@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Mikrofon bulunamadı",
     "noInputDevice": "Ses giriş aygıtı algılanamadı. Lütfen bir mikrofon veya kulaklık bağlayın ve tekrar deneyin.",
+    "meetingRecordingActiveTitle": "Bir toplantı kaydediliyor",
+    "meetingRecordingActive": "Dilo aynı anda tek bir şey kaydeder. Toplantıyı durdur, sonra yeniden dikte edebilirsin.",
     "recordingFailed": "Kayıt başlatılamadı: {{error}}",
     "modelLoadFailed": "Model yüklenemedi: {{model}}",
     "modelLoadFailedUnknown": "bilinmeyen model",
@@ -934,6 +936,7 @@
       "recordingBusy": "Zaten kaydedilen bir toplantı var",
       "recordingBusyDescription": "Aynı anda iki toplantı kaydedemezsin. Önce o toplantıyı durdur ya da gidip bak.",
       "recordingBusyAction": "Toplantıyı görüntüle",
+      "noActiveMeeting": "Şu anda kaydedilen bir toplantı yok.",
       "modelNotStreaming": "Bu model toplantılar için kullanılamaz",
       "modelNotStreamingDescription": "{{name}} canlı deşifreyi desteklemiyor. Model menüsünden toplantılar için başka bir model seç.",
       "modelNoTimestampsDescription": "{{name}} canlı deşifre ediyor ama her kelimenin zamanını işaretlemiyor, bu yüzden Dilo kimin ne dediğini bilemiyor. Model menüsünden toplantılar için başka bir model seç."

@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Kein Mikrofon gefunden",
     "noInputDevice": "Es wurde kein Audio-Eingabegerät erkannt. Bitte schließe ein Mikrofon oder Headset an und versuche es erneut.",
+    "meetingRecordingActiveTitle": "Eine Besprechung wird gerade aufgezeichnet",
+    "meetingRecordingActive": "Dilo nimmt immer nur eine Sache auf. Beende die Besprechung, dann kannst du wieder diktieren.",
     "recordingFailed": "Aufnahme konnte nicht gestartet werden: {{error}}",
     "modelLoadFailed": "Modell konnte nicht geladen werden: {{model}}",
     "modelLoadFailedUnknown": "unbekanntes Modell",
@@ -934,6 +936,7 @@
       "recordingBusy": "Es läuft bereits eine Aufnahme",
       "recordingBusyDescription": "Du kannst nicht zwei Meetings gleichzeitig aufnehmen. Beende das laufende zuerst oder sieh es dir an.",
       "recordingBusyAction": "Meeting ansehen",
+      "noActiveMeeting": "Gerade wird keine Besprechung aufgezeichnet.",
       "modelNotStreaming": "Dieses Modell eignet sich nicht für Meetings",
       "modelNotStreamingDescription": "{{name}} unterstützt keine Live-Transkription. Wähle im Modellmenü ein anderes Modell für Meetings.",
       "modelNoTimestampsDescription": "{{name}} transkribiert live, setzt aber keine Zeitmarken pro Wort, also kann Dilo nicht zuordnen, wer was gesagt hat. Wähle im Modellmenü ein anderes Modell für Meetings."

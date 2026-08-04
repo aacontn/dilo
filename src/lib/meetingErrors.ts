@@ -10,6 +10,18 @@ export const isRecordingBusyError = (error: unknown): boolean =>
   error instanceof Error && error.message === "recording_busy";
 
 /**
+ * Detener cuando no hay ninguna reunión grabando — ni en esta ventana ni en
+ * el backend. No es un error del backend: lo levanta `stopMeeting`
+ * (`stores/meetingStore.ts`) para que apretar "detener" nunca vuelva a ser
+ * un `return` mudo. El llamador lo reconoce con `isNoActiveMeetingError` y
+ * muestra copia traducida en vez de este string.
+ */
+export const NO_ACTIVE_MEETING_ERROR = "meeting_no_active_session";
+
+export const isNoActiveMeetingError = (error: unknown): boolean =>
+  error instanceof Error && error.message === NO_ACTIVE_MEETING_ERROR;
+
+/**
  * Prefijo del error que `start_capture` (Rust, `managers/meeting.rs`) manda
  * cuando el modelo resuelto para la reunión (propio o heredado del dictado)
  * no soporta reconocimiento en streaming — desde la Task 5 del plan

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { commands, type MeetingSegment } from "@/bindings";
+import { resolveActiveMeeting } from "@/lib/activeMeeting";
+import { NO_ACTIVE_MEETING_ERROR } from "@/lib/meetingErrors";
 
 // `MeetingSegment` sale del binding generado, no se redeclara acá — así se
 // entera el frontend cuando el backend cambia de forma. El resumen y el
@@ -15,15 +17,16 @@ export type MeetingStatus =
 export type MeetingKind = "presencial" | "virtual";
 
 /**
- * Estado de la sesión de reunión en curso.
+ * Estado de la sesión de reunión en curso **en esta ventana**.
  *
- * Vive en memoria a propósito: no hay comando para preguntarle al backend
- * "¿hay una reunión grabando ahora mismo, y cuál es?", así que cerrar y
- * reabrir la ventana durante una reunión pierde de vista la sesión en esta
- * pantalla aunque la grabación siga corriendo. La consecuencia está acotada:
- * el backend rechaza empezar otra con `recording_busy` y ese mensaje se
- * muestra tal cual; y si la app se cierra de verdad, la reunión queda
- * `interrupted` y aparece como tal en el registro (Historia 4).
+ * Vive en memoria y es por ventana: cada webview tiene su propia instancia
+ * de Zustand, así que este store nunca puede ser la fuente de verdad sobre
+ * qué está grabando — una reunión empezada en el popover no aparece acá
+ * sola. Esa pregunta se le hace al backend con `resolveActiveMeeting`
+ * (`@/lib/activeMeeting`), y este store la adopta por dos caminos:
+ * `adoptActive` (vía `useMeetingActiveSync`, cuando la ventana se muestra o
+ * recupera el foco) y el propio `stopMeeting` de acá abajo, que resuelve
+ * contra el backend antes de rendirse.
  */
 interface MeetingStore {
   /** `null` = no hay ninguna reunión en curso en esta ventana. */
@@ -86,11 +89,34 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
     }
   },
 
+  // Detener SIEMPRE hace algo: o detiene, o falla con un error que el
+  // llamador puede mostrar. Antes, sin `activeMeetingId` local, esto era un
+  // `return` mudo — ni acción, ni error, ni log — y el botón de detener no
+  // producía ningún efecto ni ninguna señal (reporte del dueño,
+  // 2026-08-04). Y quedarse sin id local es exactamente lo que pasa cuando
+  // la reunión empezó en otra ventana: los stores de Zustand son POR
+  // VENTANA, la verdad de qué está grabando vive en el backend.
   stopMeeting: async () => {
-    const meetingId = get().activeMeetingId;
-    if (meetingId === null || get().isStopping) return;
+    if (get().isStopping) return;
     set({ isStopping: true });
     try {
+      let meetingId = get().activeMeetingId;
+      if (meetingId === null) {
+        // El backend es la fuente de verdad: si dice que hay una reunión
+        // viva, esta ventana la adopta y la detiene en vez de no hacer
+        // nada. Si no hay ninguna, se levanta un error reconocible para
+        // que el llamador lo diga (`isNoActiveMeetingError`).
+        const active = await resolveActiveMeeting();
+        if (active === null) {
+          // Y de paso se saca de pantalla el estado que mentía: si esta
+          // ventana mostraba "grabando" sin id, ya no hay nada que
+          // detener.
+          set({ status: null, pendingSegments: [] });
+          throw new Error(NO_ACTIVE_MEETING_ERROR);
+        }
+        meetingId = active.id;
+        set({ activeMeetingId: active.id, status: "recording" });
+      }
       const result = await commands.stopMeeting(meetingId);
       if (result.status === "error") throw new Error(result.error);
       // No se limpia la sesión acá: el backend sigue transcribiendo lo que

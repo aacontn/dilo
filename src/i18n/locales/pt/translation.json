@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Nenhum microfone encontrado",
     "noInputDevice": "Nenhum dispositivo de entrada de áudio foi detectado. Conecte um microfone ou fone de ouvido e tente novamente.",
+    "meetingRecordingActiveTitle": "Há uma reunião sendo gravada",
+    "meetingRecordingActive": "O Dilo grava uma coisa de cada vez. Pare a reunião e você volta a ditar.",
     "recordingFailed": "Falha ao iniciar a gravação: {{error}}",
     "modelLoadFailed": "Falha ao carregar o modelo: {{model}}",
     "modelLoadFailedUnknown": "modelo desconhecido",
@@ -934,6 +936,7 @@
       "recordingBusy": "Já há uma reunião sendo gravada",
       "recordingBusyDescription": "Você não pode gravar duas reuniões ao mesmo tempo. Pare essa reunião primeiro, ou vá dar uma olhada nela.",
       "recordingBusyAction": "Ver reunião",
+      "noActiveMeeting": "Não há nenhuma reunião sendo gravada agora.",
       "modelNotStreaming": "Este modelo não serve para reuniões",
       "modelNotStreamingDescription": "{{name}} não é compatível com transcrição ao vivo. Escolha outro modelo para reuniões no menu de modelos.",
       "modelNoTimestampsDescription": "{{name}} transcreve ao vivo, mas não marca o tempo de cada palavra, então o Dilo não consegue saber quem disse o quê. Escolha outro modelo para reuniões no menu de modelos."

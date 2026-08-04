@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Mikrofon nebyl nalezen",
     "noInputDevice": "Nebylo detekováno žádné zvukové vstupní zařízení. Připojte mikrofon nebo sluchátka a zkuste to znovu.",
+    "meetingRecordingActiveTitle": "Právě se nahrává schůzka",
+    "meetingRecordingActive": "Dilo nahrává vždy jen jednu věc. Zastav schůzku a můžeš zase diktovat.",
     "recordingFailed": "Nepodařilo se spustit nahrávání: {{error}}",
     "modelLoadFailed": "Nepodařilo se načíst model: {{model}}",
     "modelLoadFailedUnknown": "neznámý model",
@@ -934,6 +936,7 @@
       "recordingBusy": "Už se nahrává jiná schůzka",
       "recordingBusyDescription": "Nemůžeš nahrávat dvě schůzky najednou. Nejdřív tu probíhající zastav, nebo se na ni podívej.",
       "recordingBusyAction": "Zobrazit schůzku",
+      "noActiveMeeting": "Právě se nenahrává žádná schůzka.",
       "modelNotStreaming": "Tento model nelze použít pro schůzky",
       "modelNotStreamingDescription": "{{name}} nepodporuje živý přepis. Vyberte jiný model pro schůzky v nabídce modelů.",
       "modelNoTimestampsDescription": "{{name}} přepisuje živě, ale neoznačuje čas u každého slova, takže Dilo nepozná, kdo co řekl. Vyber v nabídce modelů jiný model pro schůzky."

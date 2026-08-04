@@ -877,14 +877,27 @@ impl ShortcutAction for TranscribeAction {
             utils::hide_recording_overlay(app);
             change_tray_icon(app, TrayIconState::Idle);
             if let Some(err) = recording_error {
-                let error_type = if is_microphone_access_denied(&err) {
+                let error_type = if crate::managers::audio::is_meeting_recording_active_error(&err)
+                {
+                    // No es una falla del micrófono ni del dictado: hay una
+                    // reunión grabando y Dilo graba una cosa a la vez. Se
+                    // clasifica aparte para que el frontend lo diga así, en
+                    // el idioma del usuario, en vez de mostrar el string
+                    // crudo (reporte del dueño, 2026-08-04).
+                    "meeting_recording_active"
+                } else if is_microphone_access_denied(&err) {
                     "microphone_permission_denied"
                 } else if is_no_input_device_error(&err) {
                     "no_input_device"
                 } else {
                     "unknown"
                 };
-                let _ = app.emit(
+                // A la ventana que el usuario tiene delante, y a una sola
+                // (ver `utils::pick_notice_window`): este toast vivía sólo en
+                // Ajustes, que queda escondida mientras Reuniones está
+                // abierta.
+                utils::emit_ui_notice(
+                    app,
                     "recording-error",
                     RecordingErrorEvent {
                         error_type: error_type.to_string(),

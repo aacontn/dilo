@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "لم يتم العثور على ميكروفون",
     "noInputDevice": "لم يتم اكتشاف أي جهاز إدخال صوتي. يرجى توصيل ميكروفون أو سماعة رأس والمحاولة مرة أخرى.",
+    "meetingRecordingActiveTitle": "هناك اجتماع قيد التسجيل",
+    "meetingRecordingActive": "يسجّل Dilo شيئًا واحدًا في كل مرة. أوقف الاجتماع لتتمكن من الإملاء من جديد.",
     "recordingFailed": "فشل في بدء التسجيل: {{error}}",
     "modelLoadFailed": "فشل في تحميل النموذج: {{model}}",
     "modelLoadFailedUnknown": "نموذج غير معروف",
@@ -934,6 +936,7 @@
       "recordingBusy": "هناك اجتماع قيد التسجيل بالفعل",
       "recordingBusyDescription": "لا يمكنك تسجيل اجتماعين في آن واحد. أوقف ذلك الاجتماع أولاً، أو اذهب لمشاهدته.",
       "recordingBusyAction": "عرض الاجتماع",
+      "noActiveMeeting": "لا يوجد أي اجتماع قيد التسجيل الآن.",
       "modelNotStreaming": "هذا النموذج لا يصلح للاجتماعات",
       "modelNotStreamingDescription": "{{name}} لا يدعم النسخ الصوتي المباشر. اختر نموذجًا آخر للاجتماعات من قائمة النماذج.",
       "modelNoTimestampsDescription": "{{name}} ينسخ الكلام مباشرة لكنه لا يضع طابعًا زمنيًا لكل كلمة، لذا لا يستطيع Dilo معرفة من قال ماذا. اختر نموذجًا آخر للاجتماعات من قائمة النماذج."

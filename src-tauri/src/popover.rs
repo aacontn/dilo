@@ -213,6 +213,12 @@ fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
     }));
     let _ = window.show();
     let _ = window.set_focus();
+    // El popover también se esconde en vez de destruirse (ver la nota del
+    // módulo): su React monta una sola vez, así que mostrarlo tiene que
+    // avisarse para que vuelva a resolver qué hay grabando. Acá el foco
+    // suele alcanzar —el popover se esconde al perderlo, así que reabrirlo
+    // siempre lo recupera— pero el aviso explícito no depende de eso.
+    crate::utils::emit_window_shown(app, POPOVER_WINDOW_LABEL);
 }
 
 /// Área utilizable del monitor donde está el popover.

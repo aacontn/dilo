@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import "@/App.css";
 import { commands } from "@/bindings";
 import { MeetingSession } from "@/components/meeting";
+import { useRecordingErrorToast } from "@/hooks/useRecordingErrorToast";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
 /**
@@ -22,6 +23,13 @@ const MeetingsWindow: React.FC = () => {
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
+
+  // Un dictado rechazado mientras esta ventana está abierta se avisa ACÁ:
+  // abrir Reuniones esconde la ventana de Ajustes, que era la única que
+  // escuchaba `recording-error` (reporte del dueño, 2026-08-04). Rust manda
+  // el evento a una sola ventana, así que no se duplica con Ajustes ni con
+  // el popover — ver `useRecordingErrorToast`.
+  useRecordingErrorToast();
 
   // Abrir Reuniones esconde la ventana de Ajustes, así que sin esto la única
   // vuelta es la bandeja. El intercambio lo hace Rust (`return_to_main_window`),

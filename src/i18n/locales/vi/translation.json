@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Không tìm thấy micrô",
     "noInputDevice": "Không phát hiện thiết bị đầu vào âm thanh nào. Vui lòng kết nối micrô hoặc tai nghe và thử lại.",
+    "meetingRecordingActiveTitle": "Đang ghi âm một cuộc họp",
+    "meetingRecordingActive": "Dilo chỉ ghi một thứ tại một thời điểm. Hãy dừng cuộc họp để đọc chính tả trở lại.",
     "recordingFailed": "Không thể bắt đầu ghi âm: {{error}}",
     "modelLoadFailed": "Không thể tải mô hình: {{model}}",
     "modelLoadFailedUnknown": "mô hình không xác định",
@@ -934,6 +936,7 @@
       "recordingBusy": "Đã có một cuộc họp đang được ghi âm",
       "recordingBusyDescription": "Bạn không thể ghi âm hai cuộc họp cùng lúc. Hãy dừng cuộc họp đó trước, hoặc vào xem cuộc họp đó.",
       "recordingBusyAction": "Xem cuộc họp",
+      "noActiveMeeting": "Hiện không có cuộc họp nào đang được ghi âm.",
       "modelNotStreaming": "Mô hình này không dùng được cho cuộc họp",
       "modelNotStreamingDescription": "{{name}} không hỗ trợ phiên âm trực tiếp. Hãy chọn mô hình khác cho cuộc họp trong menu mô hình.",
       "modelNoTimestampsDescription": "{{name}} phiên âm trực tiếp nhưng không đánh dấu thời gian từng từ, nên Dilo không biết ai đã nói gì. Hãy chọn mô hình khác cho cuộc họp trong menu mô hình."

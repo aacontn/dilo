@@ -150,6 +150,15 @@ pub fn open_meetings_window(app: AppHandle) -> Result<(), String> {
             window.unminimize().map_err(|e| e.to_string())?;
             window.show().map_err(|e| e.to_string())?;
             window.set_focus().map_err(|e| e.to_string())?;
+            // Esta ventana se esconde en vez de cerrarse (ver la nota del
+            // módulo), así que su React monta UNA sola vez en toda la vida
+            // del proceso: volver a mostrarla no vuelve a preguntarle al
+            // backend qué reunión está grabando. Recuperar el foco tampoco
+            // alcanza — si ya estaba enfocada, o si el sistema no reporta el
+            // cambio, no llega ningún evento. Por eso "mostrarse" se avisa
+            // explícitamente (reporte del dueño, 2026-08-04: la ventana
+            // decía "listo para grabar" con la reunión corriendo).
+            crate::utils::emit_window_shown(&app, MEETINGS_WINDOW_LABEL);
         }
         None => create_meetings_window(&app)?,
     }

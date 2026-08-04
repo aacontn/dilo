@@ -2340,14 +2340,15 @@ impl MeetingManager {
         // bloqueando una reunión por audio del sistema exactamente igual que
         // a una por micrófono, aunque esa reunión no necesite el micrófono
         // para nada.
+        //
+        // El mensaje del rechazo (en los dos sentidos) dice exactamente eso
+        // desde el reporte del 2026-08-04 — ver `MicOwner::busy_error_message`
+        // en `managers/audio.rs`: antes hablaba de "el micrófono está en uso"
+        // y mandaba al usuario a buscar un conflicto de dispositivo que no
+        // existía.
         mic_arbiter
             .try_acquire(MicOwner::Meeting)
-            .map_err(|owner| {
-                anyhow::anyhow!(
-                    "El micrófono está en uso por {} ahora mismo.",
-                    owner.label()
-                )
-            })?;
+            .map_err(|owner| anyhow::anyhow!("{}", owner.busy_error_message()))?;
 
         let start_result = (|| -> Result<CaptureSession> {
             let capture_started = Instant::now();

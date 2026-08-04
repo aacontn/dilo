@@ -164,6 +164,12 @@ fn show_main_window(app: &AppHandle) {
     if let Err(e) = main_window.set_focus() {
         log::error!("Failed to focus webview window: {}", e);
     }
+    // Misma regla que el popover y la ventana de reuniones: después de
+    // `show()` se avisa (`utils::emit_window_shown`). Acá la ventana suele
+    // recrearse —cerrarla destruye su webview— pero también puede volver de
+    // estar sólo escondida (`open_meetings_window` la esconde), y en ese
+    // caso su React no monta de nuevo.
+    crate::utils::emit_window_shown(app, "main");
     #[cfg(target_os = "macos")]
     {
         if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {

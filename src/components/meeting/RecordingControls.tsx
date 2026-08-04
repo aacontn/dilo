@@ -8,6 +8,7 @@ import { useModelStore } from "../../stores/modelStore";
 import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
 import {
+  isNoActiveMeetingError,
   isRecordingBusyError,
   modelNoTimestampsErrorModelId,
   modelNotStreamingErrorModelId,
@@ -202,6 +203,15 @@ export const RecordingControls: React.FC = () => {
     try {
       await stopMeeting();
     } catch (error) {
+      // Apretar detener sin ninguna reunión viva (ni acá ni en el backend):
+      // antes esto era un `return` mudo dentro del store y el botón no hacía
+      // absolutamente nada, ni siquiera avisar. Ahora se dice.
+      if (isNoActiveMeetingError(error)) {
+        toast.error(t("meeting.controls.stopFailed"), {
+          description: t("meeting.errors.noActiveMeeting"),
+        });
+        return;
+      }
       toast.error(t("meeting.controls.stopFailed"), {
         description: error instanceof Error ? error.message : String(error),
       });

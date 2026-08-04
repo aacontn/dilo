@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "Nie znaleziono mikrofonu",
     "noInputDevice": "Nie wykryto żadnego urządzenia wejściowego audio. Podłącz mikrofon lub słuchawki i spróbuj ponownie.",
+    "meetingRecordingActiveTitle": "Trwa nagrywanie spotkania",
+    "meetingRecordingActive": "Dilo nagrywa tylko jedną rzecz naraz. Zatrzymaj spotkanie, a znów podyktujesz.",
     "recordingFailed": "Nie udało się rozpocząć nagrywania: {{error}}",
     "modelLoadFailed": "Nie udało się załadować modelu: {{model}}",
     "modelLoadFailedUnknown": "nieznany model",
@@ -934,6 +936,7 @@
       "recordingBusy": "Już trwa nagrywanie innego spotkania",
       "recordingBusyDescription": "Nie możesz nagrywać dwóch spotkań naraz. Najpierw zatrzymaj to spotkanie albo przejdź, żeby je zobaczyć.",
       "recordingBusyAction": "Zobacz spotkanie",
+      "noActiveMeeting": "W tej chwili nie jest nagrywane żadne spotkanie.",
       "modelNotStreaming": "Ten model nie nadaje się do spotkań",
       "modelNotStreamingDescription": "{{name}} nie obsługuje transkrypcji na żywo. Wybierz inny model do spotkań w menu modeli.",
       "modelNoTimestampsDescription": "{{name}} transkrybuje na żywo, ale nie oznacza czasu każdego słowa, więc Dilo nie wie, kto co powiedział. Wybierz inny model do spotkań w menu modeli."

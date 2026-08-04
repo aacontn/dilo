@@ -846,6 +846,8 @@
     "modelLoadFailedUnknown": "okänd modell",
     "noInputDeviceTitle": "Ingen mikrofon hittades",
     "noInputDevice": "Ingen ljudenhet hittades. Anslut en mikrofon eller ett headset och försök igen.",
+    "meetingRecordingActiveTitle": "Ett möte spelas in",
+    "meetingRecordingActive": "Dilo spelar bara in en sak i taget. Stoppa mötet så kan du diktera igen.",
     "pasteFailedTitle": "Det gick inte att klistra in texten",
     "pasteFailed": "Texten kunde inte klistras in i det aktiva programmet.",
     "transcriptionFailedTitle": "Transkriptionen misslyckades",
@@ -934,6 +936,7 @@
       "recordingBusy": "Ett möte spelas redan in",
       "recordingBusyDescription": "Du kan inte spela in två möten samtidigt. Stoppa det pågående mötet först, eller gå och titta på det.",
       "recordingBusyAction": "Visa mötet",
+      "noActiveMeeting": "Just nu spelas inget möte in.",
       "modelNotStreaming": "Den här modellen fungerar inte för möten",
       "modelNotStreamingDescription": "{{name}} stöder inte livetranskribering. Välj en annan modell för möten i modellmenyn.",
       "modelNoTimestampsDescription": "{{name}} transkriberar live, men tidsmärker inte varje ord, så Dilo kan inte veta vem som sa vad. Välj en annan modell för möten i modellmenyn."

@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "לא נמצא מיקרופון",
     "noInputDevice": "לא זוהה התקן קלט שמע. חבר מיקרופון או אוזנייה ונסה שוב.",
+    "meetingRecordingActiveTitle": "מוקלטת עכשיו פגישה",
+    "meetingRecordingActive": "Dilo מקליט דבר אחד בכל פעם. עצור את הפגישה ותוכל להכתיב שוב.",
     "recordingFailed": "הפעלת ההקלטה נכשלה: {{error}}",
     "modelLoadFailed": "טעינת המודל נכשלה: {{model}}",
     "modelLoadFailedUnknown": "מודל לא ידוע",
@@ -934,6 +936,7 @@
       "recordingBusy": "כבר יש פגישה שמוקלטת",
       "recordingBusyDescription": "אי אפשר להקליט שתי פגישות בו-זמנית. עצור קודם את הפגישה הזו, או עבור לצפות בה.",
       "recordingBusyAction": "הצג פגישה",
+      "noActiveMeeting": "כרגע לא מוקלטת אף פגישה.",
       "modelNotStreaming": "אי אפשר להשתמש במודל הזה לפגישות",
       "modelNotStreamingDescription": "{{name}} לא תומך בתמלול בזמן אמת. בחר מודל אחר לפגישות בתפריט המודלים.",
       "modelNoTimestampsDescription": "{{name}} מתמלל בזמן אמת, אבל לא מסמן זמן לכל מילה, ולכן Dilo לא יכול לדעת מי אמר מה. בחר מודל אחר לפגישות בתפריט המודלים."

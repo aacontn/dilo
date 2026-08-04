@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "マイクが見つかりません",
     "noInputDevice": "オーディオ入力デバイスが検出されませんでした。マイクまたはヘッドセットを接続してから再試行してください。",
+    "meetingRecordingActiveTitle": "会議を録音中です",
+    "meetingRecordingActive": "Dilo が同時に録音できるのは1つだけです。会議を停止すれば、また音声入力できます。",
     "recordingFailed": "録音の開始に失敗しました: {{error}}",
     "modelLoadFailed": "モデルの読み込みに失敗しました: {{model}}",
     "modelLoadFailedUnknown": "不明なモデル",
@@ -934,6 +936,7 @@
       "recordingBusy": "すでに録音中の会議があります",
       "recordingBusyDescription": "同時に2つの会議は録音できません。先にその会議を停止するか、確認しに行ってください。",
       "recordingBusyAction": "会議を見る",
+      "noActiveMeeting": "いま録音中の会議はありません。",
       "modelNotStreaming": "このモデルは会議の録音に使えません",
       "modelNotStreamingDescription": "{{name}}はライブ文字起こしに対応していません。モデルメニューで会議用に別のモデルを選んでください。",
       "modelNoTimestampsDescription": "{{name}}はライブ文字起こしはできますが、単語ごとの時刻を付けないため、誰が話したかを判別できません。モデルメニューで会議用に別のモデルを選んでください。"

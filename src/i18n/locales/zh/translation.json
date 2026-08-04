@@ -843,6 +843,8 @@
     },
     "noInputDeviceTitle": "未找到麦克风",
     "noInputDevice": "未检测到音频输入设备。请连接麦克风或耳机后重试。",
+    "meetingRecordingActiveTitle": "正在录制会议",
+    "meetingRecordingActive": "Dilo 一次只录制一件事。停止会议后就能继续听写。",
     "recordingFailed": "录音启动失败: {{error}}",
     "modelLoadFailed": "加载模型失败: {{model}}",
     "modelLoadFailedUnknown": "未知模型",
@@ -934,6 +936,7 @@
       "recordingBusy": "已经有一场会议正在录制",
       "recordingBusyDescription": "不能同时录制两场会议。先停止那场会议，或者去看看它。",
       "recordingBusyAction": "查看会议",
+      "noActiveMeeting": "现在没有正在录制的会议。",
       "modelNotStreaming": "这个模型不能用于会议",
       "modelNotStreamingDescription": "{{name}} 不支持实时转录。请在模型菜单中为会议选择其他模型。",
       "modelNoTimestampsDescription": "{{name}} 能实时转录，但不会为每个词标记时间，所以 Dilo 无法分辨谁说了什么。请在模型菜单中为会议选择其他模型。"

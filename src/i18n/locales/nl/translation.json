@@ -846,6 +846,8 @@
     },
     "noInputDeviceTitle": "Geen microfoon gevonden",
     "noInputDevice": "Er is geen audio-invoerapparaat gedetecteerd. Sluit een microfoon of headset aan en probeer het opnieuw.",
+    "meetingRecordingActiveTitle": "Er wordt een vergadering opgenomen",
+    "meetingRecordingActive": "Dilo neemt maar één ding tegelijk op. Stop de vergadering, dan kun je weer dicteren.",
     "recordingFailed": "Opname starten mislukt: {{error}}",
     "modelLoadFailed": "Model laden mislukt: {{model}}",
     "modelLoadFailedUnknown": "onbekend model",
@@ -934,6 +936,7 @@
       "recordingBusy": "Er wordt al een vergadering opgenomen",
       "recordingBusyDescription": "Je kunt niet twee vergaderingen tegelijk opnemen. Stop eerst die vergadering, of ga ernaar kijken.",
       "recordingBusyAction": "Vergadering bekijken",
+      "noActiveMeeting": "Er wordt op dit moment geen vergadering opgenomen.",
       "modelNotStreaming": "Dit model werkt niet voor vergaderingen",
       "modelNotStreamingDescription": "{{name}} ondersteunt geen live transcriptie. Kies in het modellenmenu een ander model voor vergaderingen.",
       "modelNoTimestampsDescription": "{{name}} transcribeert live, maar zet geen tijdstempel per woord, dus Dilo kan niet zien wie wat zei. Kies in het modellenmenu een ander model voor vergaderingen."

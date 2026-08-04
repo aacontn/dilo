@@ -8,11 +8,7 @@ import {
   checkAccessibilityPermission,
   checkMicrophonePermission,
 } from "tauri-plugin-macos-permissions-api";
-import {
-  AssistantErrorEvent,
-  ModelStateEvent,
-  RecordingErrorEvent,
-} from "./lib/types/events";
+import { AssistantErrorEvent, ModelStateEvent } from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
@@ -23,6 +19,7 @@ import Onboarding, {
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { HomeDashboard } from "./components/home";
 import { WhatsNewGate } from "./components/whats-new";
+import { useRecordingErrorToast } from "./hooks/useRecordingErrorToast";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
 import { commands, events } from "@/bindings";
@@ -147,32 +144,11 @@ function App() {
     };
   }, [settings?.debug_mode, updateSetting]);
 
-  // Listen for recording errors from the backend and show a toast
-  useEffect(() => {
-    const unlisten = listen<RecordingErrorEvent>("recording-error", (event) => {
-      const { error_type, detail } = event.payload;
-
-      if (error_type === "microphone_permission_denied") {
-        const currentPlatform = platform();
-        const platformKey = `errors.micPermissionDenied.${currentPlatform}`;
-        const description = t(platformKey, {
-          defaultValue: t("errors.micPermissionDenied.generic"),
-        });
-        toast.error(t("errors.micPermissionDeniedTitle"), { description });
-      } else if (error_type === "no_input_device") {
-        toast.error(t("errors.noInputDeviceTitle"), {
-          description: t("errors.noInputDevice"),
-        });
-      } else {
-        toast.error(
-          t("errors.recordingFailed", { error: detail ?? "Unknown error" }),
-        );
-      }
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, [t]);
+  // El toast de un dictado que no pudo empezar. El listener ya no vive acá:
+  // es compartido con Reuniones y el popover, porque abrir Reuniones esconde
+  // esta ventana y el aviso se dibujaba donde nadie lo veía (ver
+  // `useRecordingErrorToast`).
+  useRecordingErrorToast();
 
   // Avisa cuando la caída al proveedor general cruzó de local a la nube: el
   // dictado sí se procesó, pero por un camino que el usuario debía conocer.

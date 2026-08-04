@@ -139,6 +139,79 @@ describe("un turno perdido no termina la sesión en la ventana", () => {
   });
 });
 
+/**
+ * Reporte del dueño (2026-08-04): la ventana de Reuniones mostró "no estoy
+ * grabando" con una reunión corriendo, y los rechazos del dictado se
+ * dibujaron en la ventana de Ajustes, que estaba escondida. Las dos mitades
+ * viven en cableado entre Rust y ventanas reales —no hay cómo montarlas en
+ * un test unitario— así que lo que se protege acá es que el cableado siga
+ * puesto: si alguien saca el aviso de "me mostré", o el listener compartido
+ * de una ventana, esto falla.
+ */
+describe("el aviso llega donde el usuario está mirando", () => {
+  test("Rust y el frontend usan el mismo nombre de evento para 'me mostré'", async () => {
+    const ts = await Bun.file("src/lib/windowShown.ts").text();
+    const rust = await Bun.file("src-tauri/src/utils.rs").text();
+
+    expect(ts).toContain('export const WINDOW_SHOWN_EVENT = "window-shown"');
+    expect(rust).toContain(
+      'pub const WINDOW_SHOWN_EVENT: &str = "window-shown"',
+    );
+  });
+
+  test("mostrar la ventana de Reuniones avisa, después de show()", async () => {
+    const source = await Bun.file("src-tauri/src/meeting_window.rs").text();
+    const open = source.slice(source.indexOf("pub fn open_meetings_window"));
+
+    expect(open.indexOf("window.show()")).toBeLessThan(
+      open.indexOf("emit_window_shown"),
+    );
+  });
+
+  test("resolver la reunión activa no depende sólo del foco", async () => {
+    const source = await Bun.file("src/lib/activeMeeting.ts").text();
+
+    expect(source).toContain("useWindowShown(");
+    expect(source).toContain("onFocusChanged");
+  });
+
+  test("las tres ventanas con interfaz escuchan los rechazos del dictado", async () => {
+    for (const file of [
+      "src/App.tsx",
+      "src/meetings/MeetingsWindow.tsx",
+      "src/popover/PopoverWindow.tsx",
+    ]) {
+      expect(await Bun.file(file).text()).toContain("useRecordingErrorToast()");
+    }
+  });
+
+  test("el rechazo se manda a una sola ventana, no a todas", async () => {
+    // Con el listener montado en tres ventanas, un broadcast dibujaría el
+    // mismo toast en cada una que esté a la vista.
+    const source = await Bun.file("src-tauri/src/actions.rs").text();
+
+    expect(source).toMatch(/emit_ui_notice\(\s*app,\s*"recording-error"/);
+    expect(source).not.toMatch(/app\.emit\(\s*"recording-error"/);
+  });
+
+  test("el rechazo por reunión en curso no culpa al micrófono", async () => {
+    const rust = await Bun.file("src-tauri/src/managers/audio.rs").text();
+    const hook = await Bun.file("src/hooks/useRecordingErrorToast.ts").text();
+    const en = await Bun.file("src/i18n/locales/en/translation.json").json();
+    const es = await Bun.file("src/i18n/locales/es/translation.json").json();
+
+    // El backend clasifica el caso en vez de mandar un string crudo…
+    expect(rust).toContain(
+      'pub const MEETING_RECORDING_ACTIVE: &str = "meeting_recording_active"',
+    );
+    expect(hook).toContain('error_type === "meeting_recording_active"');
+    // …y la copia dice qué pasa y qué hacer, sin hablar de micrófonos.
+    expect(en.errors.meetingRecordingActive).not.toContain("microphone");
+    expect(es.errors.meetingRecordingActive).not.toContain("micrófono");
+    expect(es.errors.meetingRecordingActive).toContain("Detén la reunión");
+  });
+});
+
 describe("appendMeetingPage", () => {
   test("no repite una reunión que ya estaba en la lista", () => {
     // El caso real: se grabó una reunión nueva entre la primera página y el

@@ -129,6 +129,7 @@
       "recordingBusy": "A meeting is already recording",
       "recordingBusyDescription": "You can't record two meetings at once. Stop that one first, or go check on it.",
       "recordingBusyAction": "View meeting",
+      "noActiveMeeting": "No meeting is recording right now.",
       "modelNotStreaming": "This model can't record meetings",
       "modelNotStreamingDescription": "{{name}} doesn't support live transcription. Pick a different model for meetings in the model menu.",
       "modelNoTimestampsDescription": "{{name}} transcribes live, but it doesn't time-stamp each word, so Dilo can't tell who said what. Pick a different model for meetings in the model menu."
@@ -953,6 +954,8 @@
     },
     "noInputDeviceTitle": "No Microphone Found",
     "noInputDevice": "No audio input device was detected. Please connect a microphone or headset and try again.",
+    "meetingRecordingActiveTitle": "A meeting is recording",
+    "meetingRecordingActive": "Dilo records one thing at a time. Stop the meeting and you can dictate again.",
     "recordingFailed": "Failed to start recording: {{error}}",
     "modelLoadFailed": "Failed to load model: {{model}}",
     "modelLoadFailedUnknown": "unknown model",
