@@ -576,6 +576,18 @@ impl TranscriptionManager {
     /// Espera a que termine una carga de modelo en curso. Mismo patrón que
     /// usa `run_stream_worker`: el condvar avisa cuando el hilo de carga
     /// terminó (haya cargado o haya fallado), sin sondear ni dormir a ciegas.
+    ///
+    /// Sin llamador desde la Task 5 del plan "reuniones en streaming"
+    /// (`.superpowers/sdd/2026-08-04-reuniones-en-streaming/`): el único uso
+    /// era el chequeo por turno del viejo camino de transcripción batch de
+    /// `MeetingManager` (`managers/meeting.rs`), que esa tarea reemplazó por
+    /// un stream continuo — `start_stream` ya espera la carga en curso por
+    /// su cuenta (mismo condvar), así que nadie más necesita bloquearse acá
+    /// explícitamente. Se conserva pública y sin `#[allow(dead_code)]`
+    /// fantasma porque es parte legítima de la API de este manager (mismo
+    /// criterio que otros métodos públicos del archivo); se anota para que
+    /// quede claro por qué no tiene llamador hoy, no para silenciar el lint.
+    #[allow(dead_code)]
     pub fn wait_for_model_load(&self) {
         let mut is_loading = self.is_loading.lock().unwrap();
         while *is_loading {

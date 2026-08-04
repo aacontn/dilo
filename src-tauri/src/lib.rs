@@ -230,9 +230,15 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     let meeting_db_path = crate::portable::app_data_dir(app_handle)
         .expect("Failed to resolve app data dir for meeting manager")
         .join("meetings.db");
-    // Creado sin modelos: `MeetingManager` los carga perezosamente en el
-    // primer `start_capture` (T013) sobre este mismo `Arc`, así que la app
-    // no paga ~34 MB de sesiones ONNX en cada arranque.
+    // Motor de diarización por lotes (`diarization.rs`): sigue sirviendo a
+    // audio ya grabado, pero desde la Task 5 del plan "reuniones en
+    // streaming" ya no alimenta la captura en vivo de `MeetingManager` (ese
+    // camino usa `StreamingDiarizer`, cargado perezosamente dentro del
+    // propio `MeetingManager`) — se mantiene gestionado acá para quien lo
+    // necesite más adelante (por ejemplo, re-diarizar una reunión ya
+    // grabada). Creado sin modelos: se cargan perezosamente en el primer
+    // uso real, así que la app no paga ~34 MB de sesiones ONNX en cada
+    // arranque.
     let diarization_engine = Arc::new(DiarizationEngine::new());
     let meeting_models_dir = crate::portable::app_data_dir(app_handle)
         .expect("Failed to resolve app data dir for meeting manager")
@@ -244,7 +250,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 app_handle.clone(),
                 transcription_manager.clone(),
                 mic_arbiter,
-                diarization_engine.clone(),
                 meeting_models_dir,
             ),
     );

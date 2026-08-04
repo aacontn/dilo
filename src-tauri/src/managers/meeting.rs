@@ -6,9 +6,7 @@
 //! `start_meeting()` — it only creates the `meetings` row. T012 wired real
 //! microphone capture + VAD + incremental transcription into a meeting
 //! session — see [`MeetingManager::start_capture`] and the
-//! coexistence-with-dictation decision documented just above it. T013 adds
-//! per-turn speaker attribution on top of that pipeline — see the
-//! "T013: diarización incremental" section below.
+//! coexistence-with-dictation decision documented just above it.
 //!
 //! **2026-08-04: el VAD neuronal salió del camino de reuniones.** Medido
 //! contra `meetings.db` real, Silero (afinado para dictado: micrófono
@@ -16,21 +14,48 @@
 //! audio de reuniones reales — peor cuanto más se mezclaba la voz con
 //! música o compresión de video. El reemplazo es una compuerta de energía
 //! (RMS) mucho más permisiva: ver [`has_energy`] y el comentario de
-//! [`ENERGY_GATE_RMS`] para la justificación del umbral, y el comentario de
-//! [`TurnAccumulator`] para cómo pasó a cerrar los turnos sin la señal que
-//! antes le daba el VAD. El VAD del dictado (`managers/audio.rs`) no se
-//! tocó: ahí filtrar sigue siendo correcto.
+//! [`ENERGY_GATE_RMS`] para la justificación del umbral. El VAD del dictado
+//! (`managers/audio.rs`) no se tocó: ahí filtrar sigue siendo correcto.
+//!
+//! **2026-08-04: el troceo por turnos salió del camino de reuniones**
+//! (Task 5 del plan "reuniones en streaming",
+//! `.superpowers/sdd/2026-08-04-reuniones-en-streaming/`). Antes, el audio
+//! se acumulaba en turnos cerrados por silencio o por un tope de duración
+//! (`TurnAccumulator`), cada turno se diarizaba de a uno (`diarization.rs`)
+//! y se re-identificaba contra un registro de hablantes por embeddings
+//! (`SpeakerRegistry`) porque cada llamada a `diarize()` devolvía índices de
+//! hablante locales a ESE turno. El problema motivador: una interrupción
+//! corta (media palabra de otro hablante pisando al que tenía la palabra)
+//! no cabía en un turno propio y se perdía, fundida en el de al lado.
+//!
+//! Ahora el audio capturado alimenta DOS flujos continuos en paralelo, sin
+//! cortarlo en turnos: el reconocimiento de voz en streaming
+//! (`TranscriptionManager::start_stream` con `StreamPurpose::Meeting`, que
+//! entrega [`TimedToken`]s con marca de tiempo real) y la diarización en
+//! streaming (`StreamingDiarizer::push`, que entrega `SpeakerSpan`s). Los
+//! dos se cruzan con `align::attribute` para armar intervenciones
+//! atribuidas (`AttributedRun`) que sobreviven una interrupción de un solo
+//! token — ver [`segments_from_runs`] y el hilo diarizador en
+//! [`MeetingManager::start_capture`]. Como el caché de hablantes de
+//! Sortformer (`spkcache`/`fifo`) ya mantiene la identidad estable DENTRO de
+//! una reunión completa (no por turno), el registro por embeddings dejó de
+//! hacer falta: [`resolve_local_speaker`] sólo mapea el índice local de
+//! Sortformer (0..4) a un `meeting_speakers.id`, sin comparar voces. La
+//! diarización por lotes de `diarization.rs` no se tocó: sigue sirviendo
+//! para audio ya grabado, sólo dejó de ser lo que atribuye hablantes en
+//! vivo.
 
 use crate::audio_toolkit::{
     audio::{system_audio_available, CaptureDiagnosis, SystemAudioRecorder},
     AudioRecorder, VadPolicy,
 };
 use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter};
-use crate::managers::diarization::{
-    cosine_similarity, DiarizationEngine, DiarizedSegment, CLUSTER_THRESHOLD,
-};
+use crate::managers::diarization::align::{attribute, AttributedRun};
+use crate::managers::diarization::sortformer::{SpeakerSpan, StreamingDiarizer};
 use crate::managers::diarization_models;
-use crate::managers::transcription::TranscriptionManager;
+use crate::managers::transcription::{
+    StreamPurpose, StreamTextEvent, TimedToken, TranscriptionManager,
+};
 use crate::settings::MeetingAudioSource;
 use anyhow::{bail, Result};
 use chrono::{Local, Utc};
@@ -39,12 +64,13 @@ use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Listener, Manager};
 use tauri_specta::Event;
 
 /// Database migrations for the meeting notetaker feature.
@@ -418,17 +444,16 @@ impl PendingMeetingAudioNotices {
 // (via `build_meeting_recorder`, mirroring `audio.rs`'s
 // `create_audio_recorder`) for a *single, continuous* `start()` spanning the
 // whole meeting, rather than reimplementing microphone capture — but that
-// means the recorder's own internal buffer also keeps every VAD-passed
-// (speech) sample in memory for the meeting's full duration, in addition to
-// this module's own per-turn accumulator (`TurnAccumulator`), which is what
-// actually drives transcription and is reset after every turn. The
-// recorder's copy is redundant (this module never reads `AudioRecorder::
-// stop()`'s return value) and unbounded: roughly 64 KB/s of *speech* audio,
-// so a hypothetical multi-hour meeting with e.g. 45 minutes of total speech
-// would hold ~170 MB in that redundant buffer by the end. This is called out
-// explicitly as a known simplification rather than fixed in this task: a
-// correct fix (periodically recycling the recorder's `stop()`/`start()`
-// around confirmed turn boundaries to reset its internal buffer, or adding a
+// means the recorder's own internal buffer also keeps every sample in
+// memory for the meeting's full duration, on top of what the two streaming
+// engines (ASR + `StreamingDiarizer`) already hold internally to do their
+// own job. The recorder's copy is redundant (this module never reads
+// `AudioRecorder::stop()`'s return value) and unbounded: roughly 64 KB/s of
+// audio that passes the energy gate, so a hypothetical multi-hour meeting
+// with e.g. 45 minutes of total speech would hold ~170 MB in that redundant
+// buffer by the end. This is called out explicitly as a known
+// simplification rather than fixed in this task: a correct fix
+// (periodically recycling the recorder's `stop()`/`start()`, or adding a
 // `drain()` method upstream) is not free — recycling would have to run from
 // a thread other than the recorder's own consumer thread to avoid a
 // deadlock (`stop()` blocks waiting for a reply the consumer thread would
@@ -444,194 +469,26 @@ impl PendingMeetingAudioNotices {
 // (`audio_toolkit/audio/recorder.rs`'s `handle_frame`/`emit`) runs
 // synchronously on `run_consumer`'s single thread — the same thread that
 // also resamples every incoming chunk, drives the VAD, and calls this
-// module's `audio_cb` (which is what actually feeds `TurnAccumulator` and,
-// downstream, when a turn gets transcribed). A `Vec<f32>` that has grown to
-// hundreds of MB reallocates (and memcpy's its *entire* existing contents)
-// on an amortized-doubling schedule — infrequent, but each one copies more
-// data than the last as the meeting goes on, so the worst-case stall on
-// that single thread gets *larger*, not smaller, later into a long
-// meeting. Any such stall delays `audio_cb` for whatever frames arrive
-// during it, which delays turn-boundary detection and therefore when a
-// segment reaches the transcriber thread — i.e. a plausible, compounding
+// module's `audio_cb` (which is what feeds both streaming engines). A
+// `Vec<f32>` that has grown to hundreds of MB reallocates (and memcpy's its
+// *entire* existing contents) on an amortized-doubling schedule —
+// infrequent, but each one copies more data than the last as the meeting
+// goes on, so the worst-case stall on that single thread gets *larger*, not
+// smaller, later into a long meeting. Any such stall delays `audio_cb` for
+// whatever frames arrive during it, which delays when a token/span reaches
+// the diarizer thread and therefore when a segment gets persisted — i.e. a
+// plausible, compounding
 // latency-degradation mechanism over a multi-hour meeting, not just a
 // memory one. I have not measured this (no real multi-hour audio run in
 // this environment) — flagging the mechanism, not a measurement, so
 // whoever runs T053's SC-004 validation knows to watch both memory *and*
 // segment-latency-over-time, not just memory.
 
-/// One completed audio turn, ready to run through the energy gate and (if it
-/// passes) transcribe. `research.md` §2's "ventanas cortas superpuestas"
-/// decision maps one turn to one transcription window — no more
-/// sophisticated windowing than that.
-///
-/// Pre-2026-08-04 this was "one completed VAD-detected speech turn" — a turn
-/// only ever contained audio the neural VAD had already classified as
-/// speech. Since the VAD no longer gates meeting audio (see the module doc
-/// comment), a turn now contains whatever the capture backend delivered,
-/// unfiltered, and may turn out to be mostly or entirely silence — that's
-/// exactly what [`has_energy`] checks before a turn reaches the
-/// transcriber.
-///
-/// `#[allow(dead_code)]` throughout this section: everything below is wired
-/// only through `start_capture`/`stop_capture`, which the brief for this
-/// task explicitly scopes out of exposing via a Tauri command yet (a future
-/// task wires them up — see the doc comment above). `cargo test` exercises
-/// all of it directly (see `mod tests` below), so it isn't actually dead,
-/// just not yet reachable from `cargo check`'s/`cargo clippy`'s non-test
-/// reachability roots.
-#[allow(dead_code)]
-struct CompletedTurn {
-    samples: Vec<f32>,
-    started_at_ms: i64,
-    ended_at_ms: i64,
-}
-
-/// Groups a live stream of audio frames into discrete [`CompletedTurn`]s.
-/// Deliberately decoupled from real time and from `AudioRecorder`/cpal: the
-/// live capture path drives it from `push`/`take_if_quiet` off a wall-clock
-/// watchdog, while tests drive the exact same buffering/timestamp logic by
-/// feeding synthetic or pre-recorded frames directly and calling
-/// `push`/`take_remaining` themselves — no live timing, no hardware, no
-/// flakiness.
-///
-/// **2026-08-04: turn closing no longer depends on frames stopping.** Before
-/// this change, every frame reaching this accumulator had already survived
-/// the neural VAD, so "no `push` call for a while" and "real silence" were
-/// the same event — the VAD's hangover tail simply stopped delivering
-/// frames once speech ended. Now every frame the capture backend produces
-/// arrives here, silence included (that's the whole point: the VAD is gone,
-/// see the module doc comment), so `push` is called continuously for the
-/// entire recording. Turn closing therefore can't watch for "frames stopped
-/// arriving" anymore — it watches the *content* of what keeps arriving:
-/// `quiet_since` tracks how long the frames have been below
-/// [`ENERGY_GATE_RMS`], and [`Self::take_if_quiet`] closes the turn once
-/// that stretch reaches [`TURN_SILENCE_GAP`], the same role `take_if_silent`
-/// used to play against `last_frame_at`.
-#[derive(Default)]
-#[allow(dead_code)]
-struct TurnAccumulator {
-    buffer: Vec<f32>,
-    turn_started_ms: Option<i64>,
-    /// `Some(when the current continuous low-energy stretch started)`,
-    /// `None` while the most recent frame had energy (or before any frame
-    /// arrived). Set once when a quiet frame follows a loud one (or the
-    /// first frame is quiet) and left alone by every quiet frame after
-    /// that, so its age is real wall-clock time spent quiet — not reset by
-    /// each individual quiet `push` call.
-    quiet_since: Option<Instant>,
-}
-
-impl TurnAccumulator {
-    /// Feed one chunk of audio — every frame the capture backend delivers,
-    /// loud or quiet; nothing is filtered out before this point anymore
-    /// (see the struct doc comment). `now_ms` is the caller's clock (ms
-    /// since capture started) and only used to timestamp the start of a
-    /// fresh turn.
-    #[allow(dead_code)]
-    fn push(&mut self, samples: &[f32], now_ms: i64) {
-        if self.buffer.is_empty() {
-            self.turn_started_ms = Some(now_ms);
-        }
-        self.buffer.extend_from_slice(samples);
-        if has_energy(samples) {
-            self.quiet_since = None;
-        } else if self.quiet_since.is_none() {
-            self.quiet_since = Some(Instant::now());
-        }
-    }
-
-    /// If a turn is in progress and has been below the energy gate
-    /// continuously for at least `gap`, take and return it. Used by the
-    /// live watchdog thread — the energy-gate equivalent of the old
-    /// `take_if_silent`, see the struct doc comment for why frame arrival
-    /// alone no longer signals silence.
-    #[allow(dead_code)]
-    fn take_if_quiet(&mut self, gap: Duration, now_ms: i64) -> Option<CompletedTurn> {
-        let quiet_for = self.quiet_since?.elapsed();
-        if self.buffer.is_empty() || quiet_for < gap {
-            return None;
-        }
-        self.take_remaining(now_ms)
-    }
-
-    /// Si hay un turno en curso y acumuló al menos `max_ms` de audio, lo
-    /// cierra aunque siga entrando voz — a diferencia de `take_if_quiet`,
-    /// que nunca dispara en conversación continua porque nunca hay
-    /// `TURN_SILENCE_GAP` de silencio real. Es el tope duro que evita que un
-    /// turno crezca sin límite (ver `MAX_TURN_MS`).
-    ///
-    /// La duración se mide por samples acumulados a 16 kHz, no por reloj de
-    /// pared: es la misma unidad que usa `split_turn_into_pieces` (y, debajo,
-    /// el motor de diarización) para sus propios offsets, así que un turno
-    /// cerrado por tope mide exactamente lo mismo aquí y allá.
-    #[allow(dead_code)]
-    fn take_if_over(&mut self, max_ms: u64, now_ms: i64) -> Option<CompletedTurn> {
-        if self.buffer.is_empty() {
-            return None;
-        }
-        let duration_ms = (self.buffer.len() as u64 * 1000) / DIARIZATION_SAMPLE_RATE as u64;
-        if duration_ms < max_ms {
-            return None;
-        }
-        self.take_remaining(now_ms)
-    }
-
-    /// Unconditionally take whatever is buffered, regardless of the quiet
-    /// gap. Used by tests and by `stop_capture` to flush a trailing partial
-    /// turn when capture ends mid-speech.
-    #[allow(dead_code)]
-    fn take_remaining(&mut self, now_ms: i64) -> Option<CompletedTurn> {
-        if self.buffer.is_empty() {
-            return None;
-        }
-        let started_at_ms = self.turn_started_ms.take()?;
-        self.quiet_since = None;
-        Some(CompletedTurn {
-            samples: std::mem::take(&mut self.buffer),
-            started_at_ms,
-            ended_at_ms: now_ms,
-        })
-    }
-}
-
-/// How long a turn must stay below the energy gate before the live watchdog
-/// finalizes it. This is not just "does the turn eventually close" — it's
-/// the number that decides WHERE the cut lands, so it has to line up with a
-/// real end-of-utterance pause, not with frame-to-frame jitter.
-///
-/// **2026-08-04: this used to be 400ms, on top of a VAD hangover tail that
-/// did most of the work.** Frames only arrived here once the neural VAD
-/// called them speech, and its `VAD_OFFLINE_HANGOVER_FRAMES` (15 frames *
-/// 30ms = 450ms) hangover tail kept delivering frames for a while after
-/// speech actually ended — so the real silence a turn needed before closing
-/// was hangover (450ms) + the old 400ms gap = 850ms, and only the last
-/// 400ms of that was ever spent waiting on this constant. Now there is no
-/// VAD and no hangover: frames keep arriving continuously regardless of
-/// content (see the module doc comment and `TurnAccumulator`), and
-/// `quiet_since` starts counting the instant the energy gate first sees a
-/// quiet frame — nothing pads it. For a turn to still close at roughly the
-/// same real silence point it always did (and keep landing on a
-/// sentence-final pause, not a mid-sentence breathing gap), this constant
-/// now has to cover that whole ~850ms by itself, so it moved from 400ms to
-/// 850ms rather than staying at 400ms and closing turns twice as eagerly as
-/// before by accident.
-///
-/// Measured against a real 126s recording (back when this was tuned against
-/// the VAD path): at 200ms total silence budget this produced 15 turns
-/// averaging 3.2s, a third of them under 2s and isolated enough to
-/// hallucinate on their own (a stray "weon" mid-English-sentence, a
-/// phonetic-alphabet spelling split word by word); 850ms was the budget
-/// that landed on 4-8s turns instead. Not re-measured against real audio
-/// after this change (no real meeting hardware in this environment) — flagged
-/// for whoever runs the next real-meeting validation pass.
-const TURN_SILENCE_GAP: Duration = Duration::from_millis(850);
-
 /// Umbral de energía (RMS, en la misma escala [-1.0, 1.0] que las muestras
 /// que entrega `cpal`) por debajo del cual un tramo de audio se trata como
-/// silencio para el pipeline de reuniones: no cierra por contenido, no
-/// alimenta `quiet_since` como "hay algo sonando", y — sobre el turno
-/// completo, ver [`has_energy`] usado en el hilo transcriptor — no se manda
-/// a transcribir.
+/// silencio para el pipeline de reuniones: no se le manda ni al
+/// reconocimiento de voz en streaming ni a la diarización en streaming (ver
+/// `audio_cb` en [`MeetingManager::start_capture`]).
 ///
 /// **Por qué RMS y no el VAD neuronal que reemplaza.** El VAD (Silero) es un
 /// clasificador voz/no-voz: le pasa lo que reconoce como habla humana y
@@ -679,15 +536,14 @@ const TURN_SILENCE_GAP: Duration = Duration::from_millis(850);
 /// este entorno) — el valor es una estimación de ingeniería a partir de
 /// niveles típicos de dBFS, deliberadamente conservadora hacia el lado
 /// permisivo (más cerca del piso de ruido que del contenido real), porque el
-/// costo de dejar pasar un tramo casi silencioso (un turno vacío que no
-/// transcribe nada, `persist_and_emit_segment` ya lo descarta si el texto
-/// sale vacío) es mucho menor que el de cortar voz real.
+/// costo de dejar pasar un tramo casi silencioso (en el peor caso, un tramo
+/// de audio real que no produce texto) es mucho menor que el de cortar voz
+/// real.
 const ENERGY_GATE_RMS: f32 = 0.005;
 
 /// Energía RMS (root-mean-square) de `samples`, en la misma escala que las
 /// muestras de entrada. `0.0` para un buffer vacío. Acumula en `f64` para no
-/// perder precisión sobre un turno largo (hasta 128_000 muestras, el tope de
-/// `MAX_TURN_MS`) antes de volver a `f32`.
+/// perder precisión antes de volver a `f32`.
 fn rms_energy(samples: &[f32]) -> f32 {
     if samples.is_empty() {
         return 0.0;
@@ -698,30 +554,15 @@ fn rms_energy(samples: &[f32]) -> f32 {
 
 /// La compuerta de energía en sí: `true` si `samples` tiene suficiente
 /// energía como para no ser silencio digital ni piso de ruido — ver
-/// [`ENERGY_GATE_RMS`]. Función pura, usada tanto por frame (30ms, dentro de
-/// `TurnAccumulator::push`) como sobre un turno completo (dentro del hilo
-/// transcriptor, antes de gastar un ciclo de transcripción en él) — RMS no
-/// depende del tamaño del buffer, así que el mismo umbral sirve para los
-/// dos.
+/// [`ENERGY_GATE_RMS`]. Función pura, aplicada por frame dentro de `audio_cb`
+/// (ver [`MeetingManager::start_capture`]) antes de mandarle nada a los dos
+/// motores en vivo.
 fn has_energy(samples: &[f32]) -> bool {
     rms_energy(samples) >= ENERGY_GATE_RMS
 }
 
-/// Tope duro de duración de un turno. En conversación continua nunca hay
-/// `TURN_SILENCE_GAP` de silencio real, así que sin este tope un turno crece
-/// sin límite y colapsa una reunión de varias personas en un solo bloque sin
-/// hablante — el problema real que este cambio arregla (18.7s de una
-/// reunión de 3 personas en un turno, cero hablantes).
-///
-/// 8s y no más: el modelo de segmentación usa una ventana de 10s
-/// (`SegmentationModel`, `diarization.rs`) y, con una sola ventana de
-/// audio, `run_pipeline` corre su caso especial de un solo chunk
-/// (`HandleOneChunkSpecialCase`) — el camino más preciso, sin clustering
-/// entre ventanas. Un turno de hasta 8s cabe siempre en esa única ventana.
-#[allow(dead_code)]
-const MAX_TURN_MS: u64 = 8_000;
-/// How often the watchdog thread checks for a silence gap.
-#[allow(dead_code)]
+/// How often the watchdog thread checks in (mantiene vivo el reloj de
+/// inactividad del modelo y sondea el diagnóstico de audio del sistema).
 const WATCHDOG_POLL_INTERVAL: Duration = Duration::from_millis(100);
 /// Cada cuánto el watchdog sondea el diagnóstico del audio del sistema
 /// (`SystemAudioRecorder::diagnose_now()`/`output_device_changed()`, I6/I5
@@ -750,61 +591,18 @@ const SYSTEM_AUDIO_DIAGNOSIS_POLL: Duration = Duration::from_secs(5);
 /// alcanzarlo (por ejemplo, se armó y se cortó a los 30s) igual avisa al
 /// cerrar si todo lo capturado fue cero — ver el comentario ahí.
 const SILENCE_WARNING_THRESHOLD: Duration = Duration::from_secs(120);
-/// Turns shorter than this are zero-padded before transcription, mirroring
-/// `AudioRecordingManager::stop_recording`'s short-buffer padding (some
-/// engines need a minimum input duration to run at all).
-#[allow(dead_code)]
-const MIN_TURN_SAMPLES: usize = 16_000; // 1s @ 16kHz
-/// A partir de cuántos turnos encolados sin transcribir se avisa en el log.
-/// La cola (`mpsc`) no tiene cota: si transcribir va más lento que hablar,
-/// crece sin freno y el audio pendiente se acumula en memoria. La
-/// backpressure real es trabajo aparte; esto al menos deja rastro en
-/// `handy.log` de que pasó, en vez de un consumo de memoria inexplicable.
+/// A partir de cuántos tramos de audio encolados sin diarizar se avisa en el
+/// log. La cola (`mpsc`) hacia el hilo diarizador no tiene cota: si la
+/// diarización va más lenta que tiempo real, crece sin freno y el audio
+/// pendiente se acumula en memoria. La backpressure real es trabajo aparte;
+/// esto al menos deja rastro en `handy.log` de que pasó, en vez de un
+/// consumo de memoria inexplicable.
 const QUEUE_DEPTH_WARN_THRESHOLD: usize = 50;
-
-/// ¿Este error dice "el modelo no está cargado"? Los dos mensajes salen de
-/// `TranscriptionManager::transcribe` y son los únicos que un reintento con
-/// recarga puede arreglar; cualquier otro (audio inválido, motor que explotó)
-/// volvería a fallar igual.
-fn is_model_not_loaded_error(error: &anyhow::Error) -> bool {
-    let message = error.to_string();
-    message.contains("Model is not loaded") || message.contains("Model failed to load")
-}
-
-/// Transcribe un turno y, si falló **porque el modelo no estaba cargado**,
-/// lo recarga y reintenta ese mismo turno UNA vez.
-///
-/// El modelo se puede descargar en medio de una reunión (watcher de
-/// inactividad, cambio de modelo, descarga manual desde la bandeja). Sin este
-/// reintento el turno se perdía en silencio y —peor— todos los siguientes,
-/// porque nadie volvía a cargar el modelo: la reunión seguía "grabando" horas
-/// sin producir un solo segmento.
-///
-/// Un solo reintento a propósito: si tras recargar sigue fallando, el
-/// problema no es la descarga y reintentar en bucle sólo trabaría la cola de
-/// turnos detrás de éste.
-fn transcribe_with_reload(
-    samples: Vec<f32>,
-    transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
-    reload: &dyn Fn(),
-) -> Result<String> {
-    // La copia es para poder reintentar: `transcribe` consume las muestras.
-    // Un turno son segundos de audio a 16 kHz, un par de MB en el peor caso.
-    let retry_samples = samples.clone();
-    match transcribe(samples) {
-        Err(e) if is_model_not_loaded_error(&e) => {
-            warn!("El modelo se había descargado; recargando y reintentando el turno: {e}");
-            reload();
-            transcribe(retry_samples)
-        }
-        other => other,
-    }
-}
 
 /// Avisa al frontend de un fallo que **mata la sesión** (`meeting-error`).
 ///
 /// Sin esto una reunión podía "grabar" horas con cero segmentos y sin decir
-/// nada: los errores del hilo transcriptor terminaban únicamente en
+/// nada: los errores del hilo diarizador terminaban únicamente en
 /// `handy.log`. Quien lo llama tiene que dejar además la captura cerrada
 /// (ver `spawn_capture_abort`): el frontend lee este evento como fin de
 /// sesión, y anunciar el fin mientras el micrófono sigue abierto le deja la
@@ -899,7 +697,7 @@ fn report_audio_warning<R: tauri::Runtime>(
 }
 
 /// Cierra la captura de una sesión que no puede continuar, desde afuera del
-/// hilo transcriptor.
+/// hilo diarizador.
 ///
 /// Va por el estado de Tauri porque ese hilo no tiene el `MeetingManager`, y
 /// **en otro hilo** porque `stop_capture` une justamente al hilo que la
@@ -927,10 +725,9 @@ fn spawn_capture_abort(app_handle: &AppHandle, meeting_id: i64) {
 
 /// Build the `AudioRecorder` a meeting capture session uses. Wired to a
 /// different callback than dictation's `create_audio_recorder`
-/// (`managers/audio.rs`) — this one feeds `audio_cb`'s caller-supplied turn
-/// accumulator instead of dictation's `StreamRouter` (which is a single
-/// global dictation-only route, not suited to a meeting's own long-running,
-/// independently-timed session).
+/// (`managers/audio.rs`) — this one feeds `audio_cb`, which forwards
+/// energy-gated frames to both live engines (see `MeetingManager::
+/// start_capture`), not just to a single `StreamRouter`.
 ///
 /// **2026-08-04: no VAD attached anymore.** This used to build a Silero VAD
 /// wrapped in `SmoothedVad` (mirroring dictation's own setup) and register
@@ -944,8 +741,8 @@ fn spawn_capture_abort(app_handle: &AppHandle, meeting_id: i64) {
 /// (tuned for dictation's near-mic single-voice silence, not system audio
 /// mixed with music/compression), and every frame this recorder now
 /// forwards passes through the energy gate instead (`ENERGY_GATE_RMS`,
-/// applied inside `TurnAccumulator`/the transcriber thread — see
-/// `start_capture`), which is far more permissive.
+/// applied inside `audio_cb` — see `start_capture`), which is far more
+/// permissive.
 #[allow(dead_code)]
 fn build_meeting_recorder(
     audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
@@ -1062,10 +859,8 @@ pub fn resolve_meeting_model_id(meeting_model_id: Option<&str>, selected_model: 
 /// "sin filtrar en ninguna" — este helper vuelve a ser lo que su nombre
 /// sugiere: sólo construye el recorder y conecta `audio_cb` directo, sin
 /// nada en el medio. La compuerta de energía (`ENERGY_GATE_RMS`) que
-/// reemplaza al VAD vive más abajo en el pipeline (`TurnAccumulator` y el
-/// hilo transcriptor en `start_capture`), no acá, porque tiene que ver el
-/// turno completo (o al menos el frame que corresponde), no cada backend
-/// por separado.
+/// reemplaza al VAD vive dentro de `audio_cb` (`start_capture`), no acá, para
+/// que las dos fuentes la apliquen de la misma forma.
 fn build_meeting_system_audio_recorder(
     audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
 ) -> Result<SystemAudioRecorder> {
@@ -1191,422 +986,144 @@ struct AudioWarningState {
     silence_reported: AtomicBool,
 }
 
-// --- T013/T014: diarización incremental + corte por voz dentro del turno --
+// --- Task 5 ("reuniones en streaming"): dos flujos continuos, sin turnos --
 //
-// # Por qué un registro incremental y no una diarización al final
+// # De un registro por embeddings a un mapa de índices locales
 //
-// `DiarizationEngine::diarize` (T009) es un pipeline offline: recibe UN
-// audio completo y devuelve segmentos cuyos índices de hablante son locales
-// a esa llamada — el clustering que decide "estas voces son la misma
-// persona" corre sobre todos los embeddings de ese audio junto. Una reunión
-// en vivo no tiene ese audio completo hasta que termina, y FR-002/FR-007
-// exigen persistir cada segmento apenas se transcribe, con su hablante, no
-// al final. Correr `diarize` por turno resuelve la parte local (¿cuántas
-// voces hay en este turno? ¿se pisaron?) pero NO la identidad entre turnos:
-// el "hablante 0" de un turno no tiene ninguna relación con el "hablante 0"
-// del siguiente.
+// Antes de esta tarea, cada turno se diarizaba por separado
+// (`DiarizationEngine::diarize`, T009) y devolvía índices de hablante
+// locales a ESA llamada — el "hablante 0" de un turno no tenía relación
+// con el "hablante 0" del siguiente, así que hacía falta un registro que
+// comparara embeddings de voz (CAM++, coseno contra `CLUSTER_THRESHOLD`)
+// para re-identificar a la misma persona entre turnos.
 //
-// La pieza que cierra esa brecha es [`SpeakerRegistry`]: por cada pieza (ver
-// más abajo) se calcula un embedding de voz (`DiarizationEngine::embed`, el
-// mismo vector CAM++ de 192 dims que el pipeline usa para clusterizar) y se
-// compara por similitud coseno contra los centroides de los hablantes ya
-// vistos EN ESTA reunión. Es la versión incremental del mismo juicio que
-// hace el clustering aglomerativo de T009, por eso sus umbrales se derivan
-// de `CLUSTER_THRESHOLD` en vez de ser números nuevos: el mismo par de
-// voces debe agruparse igual por los dos caminos.
+// [`StreamingDiarizer`] (Task 2) no tiene ese problema: su caché de
+// hablantes por orden de llegada (`spkcache`/`fifo`) mantiene la identidad
+// estable DENTRO de una reunión completa — el índice local que devuelve
+// `SpeakerSpan::speaker` (0..`SORTFORMER_MAX_SPEAKERS`) es el mismo para la
+// misma voz del principio al fin de la sesión. [`resolve_local_speaker`]
+// sólo necesita entonces un mapa `índice local -> meeting_speakers.id`,
+// creado la primera vez que aparece cada índice — sin comparar voces, sin
+// umbrales de similitud, sin incertidumbre que declarar.
 //
-// # Corte por voz dentro de un turno (T014)
+// # De turnos a intervenciones atribuidas
 //
-// Un turno (`CompletedTurn`) es sólo un tramo de audio con voz continua —
-// puede tener varios hablantes adentro, sobre todo ahora que `MAX_TURN_MS`
-// puede cortarlo a mitad de conversación en vez de esperar un silencio real.
-// [`split_turn_into_pieces`] es la función pura que toma los
-// `DiarizedSegment` que devolvió UNA llamada a `diarize` sobre el turno
-// entero y los convierte en [`TurnPiece`]s: tramos disjuntos, cada uno con
-// UN hablante local (o `None` cuando dos voces se pisaron demasiado para
-// separarlas). [`process_turn_pieces`] hace lo mismo que antes hacía
-// `attribute_turn` por turno, pero por pieza: extrae su audio
-// (`extract_ranges`), calcula su embedding y lo resuelve contra
-// `SpeakerRegistry`, y persiste una fila por pieza con offsets absolutos
-// (`turn.started_at_ms + pieza.start_ms`).
+// El audio ya no se corta en turnos: [`MeetingManager::start_capture`]
+// alimenta el reconocimiento de voz en streaming (`TimedToken`s con marca
+// real, Task 3) y [`StreamingDiarizer::push`] (`SpeakerSpan`s, Task 2) en
+// paralelo, sobre exactamente el mismo audio filtrado por la compuerta de
+// energía. `align::attribute` (Task 4) cruza ambos flujos por solape
+// temporal y arma [`AttributedRun`]s — la unidad que sobrevive incluso una
+// interrupción de un solo token, el problema que motivó todo este plan.
+// [`segments_from_runs`] convierte cada `AttributedRun` en el
+// `MeetingSegment` que ya se persistía y emitía; el hilo diarizador de
+// `start_capture` es quien decide CUÁNDO una run ya está cerrada (ver
+// [`maybe_persist_new_runs`]) y quien resuelve su hablante local antes de
+// guardarla ([`persist_and_emit_run`]).
 //
-// # Cómo se cumple FR-004 (marcar incierto en vez de adivinar)
+// # FR-004 (marcar incierto en vez de adivinar) sigue vigente
 //
-// Hay tres caminos distintos a `speaker_id = NULL`, todos deliberados:
-//
-// 1. **La pieza es de voz mezclada** (`TurnPiece.speaker == None`,
-//    `overlapped == true`): `split_turn_into_pieces` fusionó dos segmentos
-//    de hablantes distintos que se solapaban más del 60% del más corto — no
-//    hay forma de separar esa voz con un solo micrófono, así que ni se
-//    calcula su embedding ni se compara contra el registro.
-// 2. **Poco audio limpio** (< [`MIN_EMBED_SAMPLES`]): un embedding sobre
-//    medio segundo de voz no es confiable; preferimos no atribuir.
-// 3. **Similitud ambigua**: la mejor coincidencia cae en la banda de
-//    incertidumbre alrededor del umbral, o hay dos hablantes conocidos casi
-//    igual de parecidos (margen chico). Asignar el "menos malo" es
-//    justamente lo que FR-004 prohíbe.
-//
-// Una pieza sin atribuir NO actualiza ningún centroide ni crea un hablante
-// nuevo: un caso dudoso no debe mover la referencia contra la que se
-// comparan las piezas siguientes.
-//
-// # Degradación honesta cuando el motor no está listo
-//
-// El modelo de embeddings (~27 MB) se descarga en runtime (T008) y ambos
-// modelos tardan en cargar. `start_capture` dispara esa preparación en un
-// hilo aparte y NO bloquea el micrófono esperándola: los turnos que
-// completen antes de que el motor esté listo (o cuya diarización falle) se
-// persisten enteros, en una sola fila, con `speaker_id = NULL` (incierto) —
-// exactamente el comportamiento de antes de T014, ver el `if
-// segments.is_empty()` en el hilo transcriptor de `start_capture`. La
-// alternativa —demorar el inicio de la grabación hasta tener los modelos—
-// perdería audio real de la reunión, que es peor que perder la atribución
-// de los primeros segundos.
+// Un token sin ningún `SpeakerSpan` que lo cubra queda con `speaker: None`
+// en `align::attribute` — nunca se adivina (ver el doc comment de ese
+// módulo). Eso pasa, entre otros casos, mientras el modelo Sortformer
+// todavía está cargando (~492 MB, se descarga en runtime la primera vez):
+// el audio capturado antes de que esté listo se sigue transcribiendo igual
+// (el reconocimiento de voz no depende de la diarización), sólo que sin
+// hablante — exactamente la misma degradación honesta que antes, ahora sin
+// necesitar un caso especial para "el motor no está listo".
 
-/// Sample rate que exigen tanto el modelo de segmentación como el de
-/// embeddings (`DiarizationEngine::diarize` rechaza cualquier otro), y que
-/// es también el que entrega `AudioRecorder` — no hace falta resamplear.
-const DIARIZATION_SAMPLE_RATE: u32 = crate::audio_toolkit::constants::WHISPER_SAMPLE_RATE;
-
-/// Similitud coseno equivalente al corte del dendrograma de T009
-/// (`CLUSTER_THRESHOLD` es una DISimilitud: `1 - cos`). Los dos umbrales de
-/// abajo abren una banda de incertidumbre alrededor de este punto.
-const SAME_SPEAKER_SIMILARITY: f32 = 1.0 - CLUSTER_THRESHOLD;
-
-/// Media banda de incertidumbre alrededor de [`SAME_SPEAKER_SIMILARITY`].
-/// Dentro de `±UNCERTAIN_BAND` el motor no se compromete: ni asigna ni crea
-/// hablante nuevo (FR-004). Fuera de esa banda se comporta exactamente como
-/// el clustering de T009 con el mismo audio.
-const UNCERTAIN_BAND: f32 = 0.05;
-
-/// Por encima de esto, el turno es del hablante conocido más parecido.
-const ASSIGN_MIN_SIMILARITY: f32 = SAME_SPEAKER_SIMILARITY + UNCERTAIN_BAND;
-
-/// Por debajo de esto, el turno es de alguien que no habíamos oído: se crea
-/// un hablante nuevo (FR-003 — nunca se fija un número de hablantes de
-/// antemano).
-const NEW_SPEAKER_MAX_SIMILARITY: f32 = SAME_SPEAKER_SIMILARITY - UNCERTAIN_BAND;
-
-/// Ventaja mínima que el mejor candidato le tiene que sacar al segundo para
-/// que la asignación cuente como confiable. Sin esto, dos personas de voz
-/// parecida se roban turnos entre sí de forma alternada y el transcript
-/// queda peor que sin atribuir.
-const MIN_SIMILARITY_MARGIN: f32 = 0.05;
-
-/// Mínimo de audio limpio (un solo hablante, sin superposición) que un turno
-/// necesita para calcular un embedding en el que valga la pena confiar:
-/// 0.5 s a 16 kHz.
-const MIN_EMBED_SAMPLES: usize = 8_000;
-
-/// Fracción del segmento más corto que dos segmentos consecutivos tienen
-/// que solaparse para considerarse "la misma voz mezclada" en vez de un
-/// simple empalme entre hablantes que se turnan rápido. Por encima de esto
-/// no hay forma de separar limpiamente esa voz con un solo micrófono.
-const OVERLAP_MERGE_RATIO: f32 = 0.6;
-
-/// Piezas más cortas que esto se fusionan con la vecina (ver
-/// `split_turn_into_pieces`): un fragmento de menos de 700ms casi nunca es
-/// una frase completa, y suele ser ruido del corte entre hablantes en vez
-/// de una voz real e independiente.
-const MIN_PIECE_MS: u64 = 700;
-
-/// Un tramo disjunto dentro de un turno, ya resuelto de solapes: el
-/// resultado de `split_turn_into_pieces`. `speaker` es un índice local a la
-/// llamada de `diarize` de ESTE turno (igual que `DiarizedSegment::speaker`)
-/// — `process_turn_pieces` es quien lo traduce a un `speaker_id` de verdad
-/// vía `SpeakerRegistry`.
-#[derive(Debug, Clone, PartialEq)]
-struct TurnPiece {
-    /// Offset de inicio en milisegundos, relativo al turno (mismo sistema
-    /// de coordenadas que `DiarizedSegment`).
-    start_ms: u64,
-    end_ms: u64,
-    /// `None` = voz mezclada o sin diarización (FR-004): no se embebe ni se
-    /// compara contra el registro de hablantes.
-    speaker: Option<usize>,
-    /// Dos hablantes se solaparon más del `OVERLAP_MERGE_RATIO` del más
-    /// corto en esta pieza.
-    overlapped: bool,
+/// Comandos que `audio_cb` y el listener de `stream-text-event` mandan al
+/// hilo diarizador de una sesión de captura — un solo canal FIFO para que
+/// el orden de llegada (audio, más audio, actualización de tokens, cierre)
+/// se preserve tal cual, mismo patrón que `StreamCmd` en
+/// `transcription.rs`.
+enum DiarizerCmd {
+    /// Un tramo de audio ya filtrado por la compuerta de energía, listo
+    /// para `StreamingDiarizer::push`.
+    Audio(Vec<f32>),
+    /// Llegaron tokens nuevos por `stream-text-event`: puede haber una
+    /// intervención más para cerrar aunque no haya ningún tramo nuevo.
+    TokensUpdated,
+    /// Fin de la captura: vaciar lo que quede pendiente (`StreamingDiarizer
+    /// ::flush`) y persistir TODO lo que falte, última intervención
+    /// incluida, antes de salir del hilo.
+    Flush,
 }
 
-/// Corta los `DiarizedSegment`s de UN turno ya diarizado en `TurnPiece`s
-/// disjuntas, una por cambio de hablante. Función pura: es la parte del
-/// corte por voz que se puede testear sin cargar 34 MB de modelos ONNX.
-///
-/// Reglas (en este orden):
-/// 1. Ordenar por `start_ms`.
-/// 2. Dos segmentos consecutivos que se solapan más del
-///    `OVERLAP_MERGE_RATIO` del más corto se fusionan en UNA pieza
-///    `speaker: None, overlapped: true` — voz mezclada, no separable.
-/// 3. Un solape menor recorta el inicio del segmento posterior al fin del
-///    anterior.
-/// 4. Una pieza resultante más corta que `MIN_PIECE_MS` se fusiona con la
-///    anterior (o la siguiente si es la primera), conservando el hablante
-///    de la pieza más larga de las dos.
-/// 5. Lista vacía -> una sola pieza `[0, turn_len_ms)` sin hablante, igual
-///    que el comportamiento sin diarización.
-fn split_turn_into_pieces(segments: &[DiarizedSegment], turn_len_ms: u64) -> Vec<TurnPiece> {
-    if segments.is_empty() {
-        return vec![TurnPiece {
-            start_ms: 0,
-            end_ms: turn_len_ms,
-            speaker: None,
-            overlapped: false,
-        }];
-    }
-
-    let mut sorted: Vec<&DiarizedSegment> = segments.iter().collect();
-    sorted.sort_by_key(|s| s.start_ms);
-
-    let mut pieces: Vec<TurnPiece> = Vec::with_capacity(sorted.len());
-    for seg in sorted {
-        if seg.end_ms <= seg.start_ms {
-            continue; // segmento degenerado (duración cero o negativa): se ignora
-        }
-        let mut piece = TurnPiece {
-            start_ms: seg.start_ms,
-            end_ms: seg.end_ms,
-            speaker: Some(seg.speaker),
-            overlapped: seg.overlapped,
-        };
-
-        if let Some(prev) = pieces.last_mut() {
-            if piece.start_ms < prev.end_ms {
-                let overlap_len = prev.end_ms.min(piece.end_ms).saturating_sub(piece.start_ms);
-                let shorter_len = (prev.end_ms - prev.start_ms).min(piece.end_ms - piece.start_ms);
-                if shorter_len > 0 && overlap_len as f32 > OVERLAP_MERGE_RATIO * shorter_len as f32
-                {
-                    // Solape mayor: una sola voz mezclada, no separable.
-                    prev.end_ms = prev.end_ms.max(piece.end_ms);
-                    prev.speaker = None;
-                    prev.overlapped = true;
-                    continue;
-                }
-                // Solape menor: el posterior cede el tramo pisado.
-                piece.start_ms = prev.end_ms;
-                if piece.start_ms >= piece.end_ms {
-                    continue; // el recorte lo dejó vacío
-                }
-            }
-        }
-        pieces.push(piece);
-    }
-
-    if pieces.is_empty() {
-        return vec![TurnPiece {
-            start_ms: 0,
-            end_ms: turn_len_ms,
-            speaker: None,
-            overlapped: false,
-        }];
-    }
-
-    merge_tiny_pieces(pieces)
-}
-
-/// Combina `b` dentro de `a`: extiende el rango, conserva el hablante de la
-/// pieza más larga de las dos y propaga `overlapped`. Usado tanto para
-/// fusionar solapes grandes como piezas diminutas.
-fn merge_piece_into(a: &mut TurnPiece, b: &TurnPiece) {
-    let a_len = a.end_ms.saturating_sub(a.start_ms);
-    let b_len = b.end_ms.saturating_sub(b.start_ms);
-    a.start_ms = a.start_ms.min(b.start_ms);
-    a.end_ms = a.end_ms.max(b.end_ms);
-    if b_len > a_len {
-        a.speaker = b.speaker;
-    }
-    a.overlapped = a.overlapped || b.overlapped;
-}
-
-/// Fusiona piezas más cortas que `MIN_PIECE_MS` con su vecina — la anterior
-/// normalmente, o la siguiente si la diminuta es la primera de la lista (no
-/// hay anterior con la que fusionarla).
-fn merge_tiny_pieces(pieces: Vec<TurnPiece>) -> Vec<TurnPiece> {
-    if pieces.len() <= 1 {
-        return pieces;
-    }
-
-    let mut result: Vec<TurnPiece> = Vec::with_capacity(pieces.len());
-    for piece in pieces {
-        let len = piece.end_ms.saturating_sub(piece.start_ms);
-        if len < MIN_PIECE_MS && !result.is_empty() {
-            let prev = result.last_mut().expect("checked not empty above");
-            merge_piece_into(prev, &piece);
-        } else {
-            result.push(piece);
-        }
-    }
-
-    // La primera pieza no tuvo anterior con la que fusionarse arriba: si
-    // sigue siendo diminuta, se funde hacia adelante con la que le sigue.
-    if result.len() > 1 {
-        let first_len = result[0].end_ms.saturating_sub(result[0].start_ms);
-        if first_len < MIN_PIECE_MS {
-            let first = result.remove(0);
-            merge_piece_into(&mut result[0], &first);
-        }
-    }
-
-    result
-}
-
-/// Recorta y concatena los `ranges` (en ms) del audio de un turno. Los
-/// rangos que caen fuera del audio se ignoran en vez de entrar en pánico:
-/// `diarize` trabaja con frames redondeados, así que el último rango puede
-/// terminar unos milisegundos después del final real del buffer.
-fn extract_ranges(samples: &[f32], ranges: &[(u64, u64)], sample_rate: u32) -> Vec<f32> {
-    let mut out = Vec::new();
-    for &(start_ms, end_ms) in ranges {
-        let start = (start_ms as usize * sample_rate as usize) / 1000;
-        let end = (end_ms as usize * sample_rate as usize) / 1000;
-        let start = start.min(samples.len());
-        let end = end.min(samples.len());
-        if end > start {
-            out.extend_from_slice(&samples[start..end]);
-        }
-    }
-    out
-}
-
-/// Calcula el embedding de voz de UNA pieza ya extraída (un solo hablante,
-/// sin superposición) si hay audio suficiente para confiar en él. `None` es
-/// "incierto" (FR-004), ya sea por poco audio o porque el motor falló.
-///
-/// Nunca devuelve error: una falla acá degrada a "pieza sin hablante", que
-/// es un transcript peor pero correcto, mientras que propagar el error
-/// perdería la pieza entera (el texto ya transcrito) por un problema de
-/// atribución.
-fn embed_piece(engine: &DiarizationEngine, samples: &[f32]) -> Option<Vec<f32>> {
-    if samples.len() < MIN_EMBED_SAMPLES {
-        debug!(
-            "Pieza con sólo {} samples: muy poco audio para un embedding confiable",
-            samples.len()
-        );
-        return None;
-    }
-    match engine.embed(samples, DIARIZATION_SAMPLE_RATE) {
-        Ok(embedding) => Some(embedding),
-        Err(e) => {
-            warn!("Embedding de una pieza falló, queda sin atribuir: {}", e);
-            None
-        }
-    }
-}
-
-/// Qué decidió el registro sobre un embedding de turno.
-#[derive(Debug, PartialEq)]
-enum SpeakerMatch {
-    /// Índice dentro de `SpeakerRegistry::entries` (no el id de la base).
-    Existing(usize),
-    New,
-    Uncertain,
-}
-
-struct SpeakerEntry {
-    /// `meeting_speakers.id`.
-    id: i64,
-    /// Media de los embeddings normalizados atribuidos a este hablante.
-    centroid: Vec<f32>,
-    turns: u32,
-}
-
-/// Los hablantes vistos hasta ahora EN ESTA reunión, con su centroide de voz.
-/// Vive en el hilo transcriptor de una sesión de captura: un hablante es
-/// local a una reunión (`data-model.md`), no una identidad de voz persistente
-/// entre reuniones.
+/// Estado compartido entre el hilo diarizador (que recibe `SpeakerSpan`s de
+/// `StreamingDiarizer::push`/`flush`) y el listener de `stream-text-event`
+/// (que recibe `TimedToken`s del reconocimiento en streaming) — los dos
+/// pueden destrabar intervenciones nuevas, así que persistirlas bajo el
+/// mismo lock es lo único que evita procesar la misma dos veces o perderla
+/// por una carrera entre ambos.
 #[derive(Default)]
-struct SpeakerRegistry {
-    entries: Vec<SpeakerEntry>,
+struct TranscriptState {
+    /// Snapshot más reciente de `stream-text-event` — reemplaza al
+    /// anterior entero (no se acumula token a token): `StreamTextEvent::
+    /// tokens` ya trae la transcripción completa de la sesión hasta esa
+    /// revisión.
+    tokens: Vec<TimedToken>,
+    /// Todos los `SpeakerSpan`s recibidos hasta ahora, en el orden en que
+    /// `StreamingDiarizer` los fue emitiendo (monótono, ver
+    /// `spans_are_monotonic`).
+    spans: Vec<SpeakerSpan>,
+    /// Cuántas `AttributedRun`s de `align::attribute(&tokens, &spans)` ya
+    /// se persistieron como `MeetingSegment`. La ÚLTIMA run calculada no
+    /// cuenta acá hasta que aparece una run más detrás de ella — ver
+    /// [`maybe_persist_new_runs`].
+    persisted_runs: usize,
+    /// Índice local de hablante (`SpeakerSpan::speaker`, 0..
+    /// `SORTFORMER_MAX_SPEAKERS`) -> `meeting_speakers.id`. Sortformer ya
+    /// mantiene esa identidad estable dentro de la sesión (ver el
+    /// comentario de esta sección), así que este mapa sólo necesita crear
+    /// la fila la primera vez que ve cada índice.
+    local_speakers: HashMap<u8, i64>,
 }
 
-impl SpeakerRegistry {
-    /// Decisión pura (sin base de datos) sobre un embedding: hablante
-    /// conocido, hablante nuevo, o incierto.
-    fn classify(&self, embedding: &[f32]) -> SpeakerMatch {
-        if self.entries.is_empty() {
-            return SpeakerMatch::New;
-        }
-
-        let mut sims: Vec<(usize, f32)> = self
-            .entries
-            .iter()
-            .enumerate()
-            .map(|(i, e)| (i, cosine_similarity(embedding, &e.centroid)))
-            .collect();
-        sims.sort_by(|a, b| b.1.total_cmp(&a.1));
-
-        let (best_index, best) = sims[0];
-        let runner_up = sims.get(1).map(|(_, s)| *s).unwrap_or(f32::NEG_INFINITY);
-
-        if best >= ASSIGN_MIN_SIMILARITY {
-            if best - runner_up < MIN_SIMILARITY_MARGIN {
-                // Dos hablantes conocidos casi igual de parecidos: asignar
-                // al mejor por una diferencia despreciable es adivinar.
-                return SpeakerMatch::Uncertain;
-            }
-            return SpeakerMatch::Existing(best_index);
-        }
-
-        if best <= NEW_SPEAKER_MAX_SIMILARITY {
-            return SpeakerMatch::New;
-        }
-
-        SpeakerMatch::Uncertain
-    }
-
-    /// Actualiza el centroide de un hablante con un turno nuevo (media
-    /// corrida sobre embeddings normalizados, para que un turno largo no
-    /// pese más que uno corto sólo por magnitud).
-    fn reinforce(&mut self, index: usize, embedding: &[f32]) {
-        let entry = &mut self.entries[index];
-        let normalized = l2_normalize(embedding);
-        if normalized.len() != entry.centroid.len() {
-            return;
-        }
-        let n = entry.turns as f32;
-        for (c, v) in entry.centroid.iter_mut().zip(&normalized) {
-            *c = (*c * n + v) / (n + 1.0);
-        }
-        entry.turns += 1;
-    }
-
-    /// Resuelve el `speaker_id` que le corresponde a un turno y persiste el
-    /// hablante nuevo cuando hace falta. `None` = incierto (FR-004).
-    fn resolve(
-        &mut self,
-        conn: &Connection,
-        meeting_id: i64,
-        embedding: Option<&[f32]>,
-    ) -> Result<Option<i64>> {
-        let Some(embedding) = embedding else {
-            return Ok(None);
-        };
-
-        match self.classify(embedding) {
-            SpeakerMatch::Existing(index) => {
-                self.reinforce(index, embedding);
-                Ok(Some(self.entries[index].id))
-            }
-            SpeakerMatch::New => {
-                let id = insert_speaker(conn, meeting_id)?;
-                self.entries.push(SpeakerEntry {
-                    id,
-                    centroid: l2_normalize(embedding),
-                    turns: 1,
-                });
-                Ok(Some(id))
-            }
-            SpeakerMatch::Uncertain => Ok(None),
-        }
-    }
+/// Convierte intervenciones atribuidas (`align::attribute`, Task 4) en los
+/// segmentos que `meeting_segments`/`meeting-segment` ya conocían — el
+/// contrato hacia afuera no cambia. Función pura, sin base de datos: `id`
+/// queda en `0` (lo asigna el INSERT real) y `speaker_id` lleva el índice
+/// LOCAL de Sortformer tal cual, todavía sin resolver contra
+/// `meeting_speakers` — eso es trabajo de [`persist_and_emit_run`], que lo
+/// resuelve la primera vez que persiste cada índice.
+///
+/// `overlapped` siempre `false`: a diferencia del motor de diarización por
+/// lotes, `StreamingDiarizer` ya resuelve los solapes de hablantes ANTES de
+/// devolver un `SpeakerSpan` (`flatten_overlaps`, ver `sortformer.rs`) —
+/// para cuando un token llega hasta acá, la ambigüedad de "quién hablaba"
+/// ya se resolvió (o el token quedó sin hablante, `speaker: None`).
+fn segments_from_runs(runs: &[AttributedRun]) -> Vec<MeetingSegment> {
+    runs.iter()
+        .map(|run| MeetingSegment {
+            id: 0,
+            speaker_id: run.speaker.map(i64::from),
+            text: run.text.clone(),
+            started_at_ms: run.start_ms as i64,
+            ended_at_ms: run.end_ms as i64,
+            overlapped: false,
+        })
+        .collect()
 }
 
-fn l2_normalize(v: &[f32]) -> Vec<f32> {
-    let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
-    if norm == 0.0 {
-        return v.to_vec();
+/// Resuelve el `speaker_id` real de un índice local de Sortformer,
+/// creándolo la primera vez que aparece en esta reunión. A diferencia del
+/// `SpeakerRegistry` por embeddings que esto reemplaza, no hay comparación
+/// de voces ni incertidumbre que declarar: el índice local YA es una
+/// identidad estable dentro de la sesión (ver el comentario de esta
+/// sección), así que la única pregunta es "¿ya lo vimos?".
+fn resolve_local_speaker(
+    conn: &Connection,
+    meeting_id: i64,
+    local_speakers: &mut HashMap<u8, i64>,
+    local_index: u8,
+) -> Result<i64> {
+    if let Some(&id) = local_speakers.get(&local_index) {
+        return Ok(id);
     }
-    v.iter().map(|x| x / norm).collect()
+    let id = insert_speaker(conn, meeting_id)?;
+    local_speakers.insert(local_index, id);
+    Ok(id)
 }
 
 /// Sigue la cadena de `merged_into_id` hasta el hablante que realmente
@@ -1662,166 +1179,54 @@ fn insert_speaker(conn: &Connection, meeting_id: i64) -> Result<i64> {
     Ok(conn.last_insert_rowid())
 }
 
-/// Procesa UN turno ya diarizado: lo corta en [`TurnPiece`]s
-/// (`split_turn_into_pieces`) y persiste una fila por pieza, con offsets
-/// absolutos (`turn.started_at_ms + pieza.start_ms`). Es el reemplazo de
-/// T014 a "un turno, un segmento" — la contraparte de
-/// `persist_and_emit_segment` a nivel de turno completo.
+/// Persiste UNA intervención ya convertida a `MeetingSegment`
+/// ([`segments_from_runs`]) y, cuando hay `app_handle`, emite
+/// `meeting-segment`. `local_speaker` es el índice local de Sortformer del
+/// que salió esta run (`AttributedRun::speaker`) — `None` significa
+/// "incierto" (FR-004), no "sin implementar". El texto en blanco (tokens de
+/// puntuación/espacios sin nada más) no se persiste ni se emite: nada que
+/// mostrarle al usuario, igual que una transcripción vacía en el diseño
+/// anterior.
 ///
-/// `embed` y `transcribe` están inyectados por la misma razón: poder
-/// testear el flujo completo de piezas sin cargar los ~34 MB de modelos
-/// ONNX de diarización ni un motor de transcripción real. Sólo se llama a
-/// `embed` para piezas con hablante local conocido (`piece.speaker.is_some()`)
-/// — las piezas `None` (mezcla/superposición) NO se embeben ni tocan el
-/// registro (FR-004, vigente).
-///
-/// Llamar sólo cuando `segments` no está vacío: con `segments` vacío
-/// (motor no cargado o `diarize` falló) el llamador debe seguir usando
-/// `persist_and_emit_segment` directo sobre el turno entero, que es el
-/// comportamiento anterior a T014 exacto (ver `start_capture`).
-///
-/// Devuelve un resultado por pieza, en orden, para que el llamador decida
-/// cómo reportar cada fallo (mismo criterio por turno que ya usa
-/// `start_capture`: una pieza perdida no debe tumbar las siguientes).
-#[allow(dead_code, clippy::too_many_arguments)]
-fn process_turn_pieces<R: tauri::Runtime>(
+/// Generic sobre el runtime de Tauri (`R`) para que la emisión se pueda
+/// testear con `tauri::test::mock_app`'s `MockRuntime` sin un event loop ni
+/// ventana real — mismo patrón que el resto de los `report_*` de este
+/// módulo.
+fn persist_and_emit_run<R: tauri::Runtime>(
     conn: &Connection,
     app_handle: Option<&AppHandle<R>>,
     meeting_id: i64,
-    turn: &CompletedTurn,
-    segments: &[DiarizedSegment],
-    registry: &mut SpeakerRegistry,
-    embed: &dyn Fn(&[f32]) -> Option<Vec<f32>>,
-    transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
-) -> Vec<Result<Option<MeetingSegment>>> {
-    // Mismo sistema de coordenadas que los `DiarizedSegment`: ambos se
-    // miden sobre `turn.samples` a `DIARIZATION_SAMPLE_RATE`, no sobre el
-    // reloj de pared que cerró el turno.
-    let turn_len_ms = (turn.samples.len() as u64 * 1000) / DIARIZATION_SAMPLE_RATE as u64;
-    let pieces = split_turn_into_pieces(segments, turn_len_ms);
-
-    let mut results = Vec::with_capacity(pieces.len());
-    for piece in pieces {
-        let piece_samples = extract_ranges(
-            &turn.samples,
-            &[(piece.start_ms, piece.end_ms)],
-            DIARIZATION_SAMPLE_RATE,
-        );
-
-        let embedding = if piece.speaker.is_some() {
-            embed(&piece_samples)
-        } else {
-            None
-        };
-        let speaker_id = match registry.resolve(conn, meeting_id, embedding.as_deref()) {
-            Ok(id) => id,
-            Err(e) => {
-                warn!(
-                    "Meeting {}: no se pudo resolver el hablante de una pieza, queda sin \
-                     atribuir: {}",
-                    meeting_id, e
-                );
-                None
-            }
-        };
-
-        let piece_turn = CompletedTurn {
-            samples: piece_samples,
-            started_at_ms: turn.started_at_ms + piece.start_ms as i64,
-            ended_at_ms: turn.started_at_ms + piece.end_ms as i64,
-        };
-        let piece_audio_ms = piece_turn.ended_at_ms - piece_turn.started_at_ms;
-        let started = Instant::now();
-        let result = persist_and_emit_segment(
-            conn,
-            app_handle,
-            meeting_id,
-            piece_turn,
-            speaker_id,
-            piece.overlapped,
-            transcribe,
-        );
-        if let Ok(Some(_)) = &result {
-            debug!(
-                "Meeting {}: pieza de {} ms transcrita en {:?}",
-                meeting_id,
-                piece_audio_ms,
-                started.elapsed()
-            );
-        }
-        results.push(result);
-    }
-
-    results
-}
-
-/// Transcribe one completed turn, insert it into `meeting_segments`, and
-/// (when `app_handle` is given) emit `meeting-segment`. `speaker_id` comes
-/// from T013's [`SpeakerRegistry::resolve`] — `None` means "uncertain"
-/// (FR-004), not "not implemented".
-///
-/// `transcribe` is injected so this whole persist+emit path is testable
-/// without a loaded ML model: production passes a closure around
-/// `TranscriptionManager::transcribe`, tests pass a stub. Most tests pass
-/// `None` for `app_handle`, which skips the Tauri emit and asserts against
-/// the returned segment (or the DB row) instead.
-///
-/// Generic over the Tauri runtime (`R`) purely so the emission itself can be
-/// tested: production always instantiates it with `Wry`, while T014's test
-/// drives it with `tauri::test::mock_app`'s `MockRuntime` — a real
-/// `AppHandle<Wry>` needs an event loop and a window, so without this the
-/// "does the event actually reach the frontend bus" question could only be
-/// answered by hand. This is the generalization Tauri's own testing docs
-/// recommend for exactly this reason.
-///
-/// Returns `Ok(None)` when the transcription came back empty (silence/noise
-/// the VAD let through) — nothing is persisted or emitted for it.
-#[allow(dead_code)]
-fn persist_and_emit_segment<R: tauri::Runtime>(
-    conn: &Connection,
-    app_handle: Option<&AppHandle<R>>,
-    meeting_id: i64,
-    turn: CompletedTurn,
-    speaker_id: Option<i64>,
-    overlapped: bool,
-    transcribe: &dyn Fn(Vec<f32>) -> Result<String>,
+    mut segment: MeetingSegment,
+    local_speaker: Option<u8>,
+    local_speakers: &mut HashMap<u8, i64>,
 ) -> Result<Option<MeetingSegment>> {
-    let mut samples = turn.samples;
-    if !samples.is_empty() && samples.len() < MIN_TURN_SAMPLES {
-        samples.resize(MIN_TURN_SAMPLES * 5 / 4, 0.0);
-    }
-
-    let text = transcribe(samples)?;
-    if text.trim().is_empty() {
-        debug!(
-            "Meeting {}: turn [{}, {}]ms produced empty transcription, skipping",
-            meeting_id, turn.started_at_ms, turn.ended_at_ms
-        );
+    if segment.text.trim().is_empty() {
         return Ok(None);
     }
+
+    segment.speaker_id = match local_speaker {
+        Some(local_index) => Some(resolve_local_speaker(
+            conn,
+            meeting_id,
+            local_speakers,
+            local_index,
+        )?),
+        None => None,
+    };
 
     conn.execute(
         "INSERT INTO meeting_segments (meeting_id, speaker_id, text, started_at_ms, ended_at_ms, overlapped) \
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![
             meeting_id,
-            speaker_id,
-            text,
-            turn.started_at_ms,
-            turn.ended_at_ms,
-            overlapped
+            segment.speaker_id,
+            segment.text,
+            segment.started_at_ms,
+            segment.ended_at_ms,
+            segment.overlapped
         ],
     )?;
-    let id = conn.last_insert_rowid();
-
-    let segment = MeetingSegment {
-        id,
-        speaker_id,
-        text,
-        started_at_ms: turn.started_at_ms,
-        ended_at_ms: turn.ended_at_ms,
-        overlapped,
-    };
+    segment.id = conn.last_insert_rowid();
 
     if let Some(app) = app_handle {
         if let Err(e) = segment.clone().emit(app) {
@@ -1833,6 +1238,95 @@ fn persist_and_emit_segment<R: tauri::Runtime>(
     }
 
     Ok(Some(segment))
+}
+
+/// Empuja un tramo de audio ya filtrado por la compuerta de energía a
+/// `StreamingDiarizer::push` y agrega los tramos nuevos (si hay) a
+/// `state.spans`. Un error de diarización no mata la sesión: se reporta
+/// como `meeting-turn-failed` (la reunión sigue grabando) y el tramo queda
+/// sin diarizar, no sin transcribir — el reconocimiento de voz corre en su
+/// propio stream y no depende de esto.
+fn push_diarizer_chunk<R: tauri::Runtime>(
+    diarizer: &mut StreamingDiarizer,
+    chunk: &[f32],
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    state: &Mutex<TranscriptState>,
+    turn_failure_reported: &mut bool,
+) {
+    match diarizer.push(chunk) {
+        Ok(spans) if !spans.is_empty() => {
+            state.lock().unwrap().spans.extend(spans);
+        }
+        Ok(_) => {}
+        Err(e) => report_turn_failure(
+            app_handle,
+            meeting_id,
+            turn_failure_reported,
+            format!("la diarización en vivo falló: {e}"),
+        ),
+    }
+}
+
+/// Recalcula `align::attribute(&tokens, &spans)` sobre todo lo acumulado
+/// hasta ahora y persiste+emite las intervenciones que ya se pueden dar por
+/// cerradas.
+///
+/// **Por qué no persistir la última run todavía.** `attribute` re-agrupa
+/// tokens en runs cada vez que se le llama; mientras la MISMA persona siga
+/// hablando, la última run de la lista puede seguir creciendo con el
+/// próximo token que llegue. Recién cuando aparece una run MÁS detrás de
+/// ella (cambio de hablante, según los tramos ya emitidos) se sabe que la
+/// anterior no va a cambiar más — por eso `include_last` es `false` en
+/// cada llamada normal (nueva tanda de audio o de tokens) y sólo pasa a
+/// `true` una vez, al cerrar la reunión (`DiarizerCmd::Flush`), cuando ya
+/// no va a llegar nada más que pudiera extenderla.
+///
+/// Se llama tanto desde el hilo diarizador (cuando `StreamingDiarizer::
+/// push`/`flush` deja tramos nuevos) como desde el listener de
+/// `stream-text-event` (cuando llegan tokens nuevos) — las dos rutas
+/// comparten el mismo `state` bajo el mismo lock, así que sea cual sea el
+/// hilo que dispara la persistencia de una run, no hay forma de que las dos
+/// la persistan dos veces ni de que se pisen escribiendo `local_speakers`.
+fn maybe_persist_new_runs<R: tauri::Runtime>(
+    conn: &Connection,
+    app_handle: Option<&AppHandle<R>>,
+    meeting_id: i64,
+    state: &Mutex<TranscriptState>,
+    include_last: bool,
+    turn_failure_reported: &mut bool,
+) {
+    let mut state = state.lock().unwrap();
+    let runs = attribute(&state.tokens, &state.spans);
+    let upto = if include_last {
+        runs.len()
+    } else {
+        runs.len().saturating_sub(1)
+    };
+    if upto <= state.persisted_runs {
+        return;
+    }
+
+    let new_runs = &runs[state.persisted_runs..upto];
+    let new_segments = segments_from_runs(new_runs);
+    for (run, segment) in new_runs.iter().zip(new_segments) {
+        if let Err(e) = persist_and_emit_run(
+            conn,
+            app_handle,
+            meeting_id,
+            segment,
+            run.speaker,
+            &mut state.local_speakers,
+        ) {
+            report_turn_failure(
+                app_handle,
+                meeting_id,
+                turn_failure_reported,
+                format!("no se pudo guardar una intervención transcrita: {e}"),
+            );
+        }
+    }
+    state.persisted_runs = upto;
 }
 
 // --- T035: listado y detalle de reuniones pasadas ----------------------
@@ -1903,20 +1397,28 @@ pub struct Meeting {
 /// separate from dictation's `RecordingState` (see the coexistence note
 /// above): a meeting isn't triggered by a shortcut binding, runs far longer,
 /// and drives its own recorder/threads rather than the shared dictation one.
-#[allow(dead_code)]
 struct CaptureSession {
     meeting_id: i64,
     recorder: MeetingRecorder,
-    accumulator: Arc<Mutex<TurnAccumulator>>,
     capture_started: Instant,
     shutdown: Arc<AtomicBool>,
     watchdog_handle: Option<thread::JoinHandle<()>>,
-    transcriber_handle: Option<thread::JoinHandle<()>>,
-    /// Held so `stop_capture` can push one final flushed turn before
-    /// dropping every sender (this one plus the watchdog thread's own
-    /// clone), which closes the channel and lets the transcriber thread's
-    /// `recv()` loop exit after draining it.
-    final_turn_tx: Option<mpsc::Sender<CompletedTurn>>,
+    /// El hilo que corre `StreamingDiarizer::push`/`flush`, escucha
+    /// `DiarizerCmd::TokensUpdated` y persiste las intervenciones que ya se
+    /// pueden dar por cerradas (ver `maybe_persist_new_runs`). Reemplaza al
+    /// `transcriber_handle` de antes de esta tarea: ya no hay turnos que
+    /// transcribir de a uno, así que este hilo diariza y persiste, no
+    /// transcribe (eso corre en el propio worker de streaming de
+    /// `TranscriptionManager`).
+    diarizer_handle: Option<thread::JoinHandle<()>>,
+    /// Extremo emisor del canal hacia `diarizer_handle` — `stop_capture` lo
+    /// usa para mandar `DiarizerCmd::Flush` como último mensaje antes de
+    /// unirse al hilo.
+    diar_tx: mpsc::Sender<DiarizerCmd>,
+    /// Id del listener de `stream-text-event` registrado en `start_capture`
+    /// — `stop_capture` lo saca con `unlisten` para no acumular un listener
+    /// por reunión durante la vida de la app.
+    stream_listener_id: Option<tauri::EventId>,
     /// `Some` sólo cuando la sesión graba por audio del sistema — ver
     /// `AudioWarningState`. `stop_capture` lo usa para la revisión final de
     /// I4 y para no reportar dos veces algo que el watchdog ya avisó.
@@ -1933,14 +1435,19 @@ pub struct MeetingManager {
     app_handle: Option<AppHandle>,
     transcription_manager: Option<Arc<TranscriptionManager>>,
     mic_arbiter: Option<MicrophoneArbiter>,
-    /// Motor de diarización compartido con el estado de Tauri (T007/T009).
-    /// Se carga perezosamente en el primer `start_capture` (T013) — el `Arc`
-    /// existe desde el arranque de la app, pero sin modelos adentro.
-    diarization_engine: Option<Arc<DiarizationEngine>>,
+    /// Motor de diarización en streaming (Sortformer, Task 2), compartido
+    /// entre reuniones. Se carga perezosamente en el primer `start_capture`
+    /// (~492 MB, se descarga en runtime la primera vez) y se conserva
+    /// cargado entre reuniones — recargarlo es caro y nada lo descarga
+    /// (a diferencia del modelo de reconocimiento de voz, que sí tiene un
+    /// descargador por inactividad, ver `TranscriptionManager`). Cada
+    /// reunión sólo le pide `reset()` (limpia el caché de hablantes) al
+    /// cerrar, para que la siguiente arranque sin arrastrar identidades de
+    /// la anterior — ver `DiarizerCmd::Flush` en el hilo diarizador.
+    streaming_diarizer: Arc<Mutex<Option<StreamingDiarizer>>>,
     /// Mismo directorio de modelos que usa `ModelManager`: es donde vive (o
-    /// se descarga) el modelo de embeddings de hablante.
+    /// se descarga) el modelo Sortformer.
     models_dir: Option<PathBuf>,
-    #[allow(dead_code)]
     capture: Mutex<Option<CaptureSession>>,
 }
 
@@ -1961,7 +1468,7 @@ impl MeetingManager {
             app_handle: None,
             transcription_manager: None,
             mic_arbiter: None,
-            diarization_engine: None,
+            streaming_diarizer: Arc::new(Mutex::new(None)),
             models_dir: None,
             capture: Mutex::new(None),
         };
@@ -1977,74 +1484,59 @@ impl MeetingManager {
         app_handle: AppHandle,
         transcription_manager: Arc<TranscriptionManager>,
         mic_arbiter: MicrophoneArbiter,
-        diarization_engine: Arc<DiarizationEngine>,
         models_dir: PathBuf,
     ) -> Self {
         self.app_handle = Some(app_handle);
         self.transcription_manager = Some(transcription_manager);
         self.mic_arbiter = Some(mic_arbiter);
-        self.diarization_engine = Some(diarization_engine);
         self.models_dir = Some(models_dir);
         self
     }
 
-    /// Deja los modelos de diarización listos en un hilo aparte: descarga el
-    /// de embeddings si falta (~27 MB, una sola vez en la vida del equipo) y
-    /// carga ambos en el motor compartido. No bloquea el arranque de la
-    /// grabación — ver la nota de "degradación honesta" en la sección T013.
-    fn spawn_diarization_warmup(&self, app_handle: &AppHandle) {
-        let (Some(engine), Some(models_dir)) =
-            (self.diarization_engine.clone(), self.models_dir.clone())
-        else {
+    /// Deja el modelo Sortformer listo en un hilo aparte: lo descarga si
+    /// falta y lo carga en el `Arc` compartido. No bloquea el arranque de la
+    /// grabación — el audio que llega mientras carga no se pierde, el hilo
+    /// diarizador lo bufferiza hasta que el modelo esté listo (ver
+    /// `DiarizerCmd::Audio` en `start_capture`) para que el reloj en
+    /// milisegundos de la diarización arranque en la MISMA muestra cero que
+    /// el del reconocimiento de voz, no en la muestra donde el modelo
+    /// terminó de cargar.
+    fn spawn_sortformer_warmup(&self) {
+        let Some(models_dir) = self.models_dir.clone() else {
             return;
         };
-        if engine.is_loaded() {
+        let slot = Arc::clone(&self.streaming_diarizer);
+        if slot.lock().unwrap().is_some() {
             return;
         }
 
-        let segmentation_path = match app_handle.path().resolve(
-            format!(
-                "resources/models/{}",
-                diarization_models::SEGMENTATION_MODEL_FILENAME
-            ),
-            tauri::path::BaseDirectory::Resource,
-        ) {
-            Ok(p) => p,
-            Err(e) => {
-                warn!(
-                    "No se pudo resolver el modelo de segmentación; la reunión quedará sin \
-                     hablantes: {}",
-                    e
-                );
-                return;
-            }
-        };
-
         tauri::async_runtime::spawn(async move {
-            let embedding_path =
-                match diarization_models::ensure_embedding_model_downloaded(&models_dir).await {
+            let model_path =
+                match diarization_models::ensure_sortformer_model_downloaded(&models_dir).await {
                     Ok(p) => p,
                     Err(e) => {
                         warn!(
-                            "No se pudo obtener el modelo de embeddings de hablante; la reunión \
-                             quedará sin hablantes: {}",
+                            "No se pudo obtener el modelo Sortformer; la reunión quedará sin \
+                             hablantes: {}",
                             e
                         );
                         return;
                     }
                 };
 
-            // Cargar ~34 MB de sesiones ONNX es trabajo bloqueante: fuera
-            // del executor async, como hace el resto del código con las
+            // Cargar ~492 MB de sesión ONNX es trabajo bloqueante: fuera del
+            // executor async, como hace el resto del código con las
             // operaciones pesadas de modelo.
             let _ = tauri::async_runtime::spawn_blocking(move || {
-                match engine.ensure_loaded(&segmentation_path, &embedding_path) {
-                    Ok(()) => info!("Motor de diarización listo para la reunión en curso"),
+                match StreamingDiarizer::load(&model_path) {
+                    Ok(diarizer) => {
+                        *slot.lock().unwrap() = Some(diarizer);
+                        info!("Motor de diarización en streaming listo para la reunión en curso");
+                    }
                     Err(e) => warn!(
-                        "No se pudieron cargar los modelos de diarización; la reunión quedará \
-                         sin hablantes: {}",
-                        e
-                    ),
+                    "No se pudo cargar el modelo Sortformer; la reunión quedará sin hablantes: {}",
+                    e
+                ),
                 }
             })
             .await;
@@ -2052,18 +1544,20 @@ impl MeetingManager {
     }
 
     /// Start capturing audio for `meeting_id` (a row already created by
-    /// [`Self::start_meeting`]): opens the microphone, applies the Silero
-    /// VAD to detect speech turns, and transcribes+persists+emits each turn
-    /// as it completes (see [`persist_and_emit_segment`]). Runs until
-    /// [`Self::stop_capture`] is called — meetings run for hours, not the
-    /// seconds a dictation recording does, so this spawns its own long-lived
-    /// watchdog + transcriber threads rather than reusing dictation's
-    /// keypress-driven start/stop.
+    /// [`Self::start_meeting`]): opens the microphone and feeds two live
+    /// engines in parallel — speech recognition (`TranscriptionManager::
+    /// start_stream`) and speaker diarization (`StreamingDiarizer::push`) —
+    /// persisting+emitting each attributed intervention as it closes (see
+    /// [`maybe_persist_new_runs`]). Runs until [`Self::stop_capture`] is
+    /// called — meetings run for hours, not the seconds a dictation
+    /// recording does, so this spawns its own long-lived watchdog +
+    /// diarizer threads rather than reusing dictation's keypress-driven
+    /// start/stop.
     ///
     /// Fails if a capture is already active, if this manager wasn't
     /// configured via [`Self::with_capture_deps`], or if the microphone is
     /// currently held by a dictation recording (see the coexistence note
-    /// above `CompletedTurn`).
+    /// above).
     ///
     /// `kind` es el tipo de reunión que eligió el usuario para ESTA sesión
     /// (`commands::meeting::start_meeting` lo valida y lo pasa acá) — junto
@@ -2137,12 +1631,12 @@ impl MeetingManager {
             })?;
 
         let start_result = (|| -> Result<CaptureSession> {
-            let accumulator = Arc::new(Mutex::new(TurnAccumulator::default()));
             let capture_started = Instant::now();
-            let (turn_tx, turn_rx) = mpsc::channel::<CompletedTurn>();
-            // Profundidad de la cola de turnos pendientes de transcribir,
-            // sólo para poder avisarlo (ver `QUEUE_DEPTH_WARN_THRESHOLD`).
-            let queue_depth = Arc::new(AtomicUsize::new(0));
+            let stream_router = transcription_manager.stream_router();
+            let (diar_tx, diar_rx) = mpsc::channel::<DiarizerCmd>();
+            // Profundidad de la cola de audio pendiente de diarizar, sólo
+            // para poder avisarlo (ver `QUEUE_DEPTH_WARN_THRESHOLD`).
+            let diar_queue_depth = Arc::new(AtomicUsize::new(0));
 
             // Cada intento de abrir un recorder necesita su propio callback
             // (`audio_cb` consume el que le pasan) — I2 del reporte de
@@ -2150,17 +1644,33 @@ impl MeetingManager {
             // que audio del sistema ya se haya intentado y fallado, así que
             // esto es una fábrica en vez de un valor único.
             //
-            // 2026-08-04: recibe TODO frame que entregue el backend, no sólo
-            // los que un VAD hubiera clasificado como voz — ver el
-            // comentario del módulo y `TurnAccumulator::push`. La compuerta
-            // de energía corre más abajo (acá dentro de `push`, para decidir
-            // cuándo cerrar el turno, y sobre el turno completo en el hilo
-            // transcriptor antes de gastar un ciclo de transcripción).
+            // Alimenta los DOS motores en vivo con exactamente el mismo
+            // audio, en el mismo orden: la compuerta de energía corre acá,
+            // antes de mandarle nada a ninguno de los dos, porque los dos
+            // cuentan sus marcas de tiempo en milisegundos por muestras
+            // entregadas (no por reloj de pared) — si uno viera un
+            // subconjunto distinto del audio que el otro, sus relojes se
+            // desalinearían y `align::attribute` cruzaría tokens con tramos
+            // que no corresponden. Ver el comentario del módulo.
             let build_audio_cb = || {
-                let accumulator = Arc::clone(&accumulator);
+                let stream_router = Arc::clone(&stream_router);
+                let diar_tx = diar_tx.clone();
+                let diar_queue_depth = Arc::clone(&diar_queue_depth);
                 move |frame: &[f32]| {
-                    let now_ms = capture_started.elapsed().as_millis() as i64;
-                    accumulator.lock().unwrap().push(frame, now_ms);
+                    if !has_energy(frame) {
+                        return;
+                    }
+                    stream_router.feed(frame);
+                    let depth = diar_queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
+                    if depth == QUEUE_DEPTH_WARN_THRESHOLD {
+                        warn!(
+                            "Meeting {}: {} tramos de audio esperando diarización en vivo — la \
+                             diarización va más lenta que tiempo real y el audio pendiente se \
+                             acumula en memoria",
+                            meeting_id, depth
+                        );
+                    }
+                    let _ = diar_tx.send(DiarizerCmd::Audio(frame.to_vec()));
                 }
             };
             let mic_device = || {
@@ -2176,6 +1686,25 @@ impl MeetingManager {
             // reconstruye `recorder` directamente como `Microphone` sin
             // necesitar releer esta variable.
             let audio_source = resolve_meeting_audio_source(kind, system_audio_available());
+
+            // Arranca el stream de ASR ANTES de que exista un solo frame de
+            // audio real: tiene que contar milisegundos desde la MISMA
+            // muestra cero que la diarización (ver `build_audio_cb`), así
+            // que no puede haber ningún frame alimentando a ninguno de los
+            // dos motores todavía. No bloquea: sólo abre el canal interno y
+            // dispara un hilo aparte que espera a que el modelo (ya en
+            // camino, ver `initiate_model_load_id` arriba) termine de
+            // cargar antes de empezar a decodificar de verdad.
+            //
+            // Límite conocido, sin resolver en esta tarea: si el modelo de
+            // reconocimiento nunca llega a cargar (falla la descarga,
+            // archivo corrupto), `start_stream` se cae en silencio a "sin
+            // streaming" y esta reunión no va a producir ningún segmento —
+            // a diferencia del diseño anterior, ya no hay un reintento
+            // por-turno que pudiera recuperarla a mitad de camino, porque
+            // el motor se toma una sola vez para toda la sesión, no una vez
+            // por turno. No medido contra ese caso de falla real.
+            transcription_manager.start_stream(StreamPurpose::Meeting);
 
             let mut recorder = match audio_source {
                 MeetingAudioSource::Microphone => {
@@ -2203,6 +1732,7 @@ impl MeetingManager {
             {
                 recorder.close();
                 if audio_source != MeetingAudioSource::SystemAudio {
+                    transcription_manager.cancel_stream();
                     bail!("Failed to start meeting capture: {}", e);
                 }
                 // I2 del reporte de seguimiento: `resolve_meeting_audio_source`
@@ -2225,6 +1755,7 @@ impl MeetingManager {
                 recorder = MeetingRecorder::Microphone(build_meeting_recorder(build_audio_cb())?);
                 if let Err(e) = recorder.open(mic_device()).and_then(|_| recorder.start()) {
                     recorder.close();
+                    transcription_manager.cancel_stream();
                     bail!("Failed to start meeting capture: {}", e);
                 }
             }
@@ -2264,12 +1795,32 @@ impl MeetingManager {
 
             let shutdown = Arc::new(AtomicBool::new(false));
 
+            // Estado compartido entre el hilo diarizador y el listener de
+            // `stream-text-event` de más abajo — ver `TranscriptState`.
+            let transcript_state = Arc::new(Mutex::new(TranscriptState::default()));
+
+            // Tokens con tiempo del reconocimiento en streaming: llegan por
+            // evento (mismo bus que ya usa el overlay del dictado), no por
+            // llamada directa, porque `TranscriptionManager` no conoce a
+            // `MeetingManager` — ver `StreamPurpose`/`StreamTextEvent` en
+            // `transcription.rs`. Sólo puede haber un stream activo a la vez
+            // (exclusión mutua con el dictado, ver la nota de coexistencia),
+            // así que mientras esta reunión graba, cualquier evento que
+            // llegue es suyo.
+            let stream_listener_id = {
+                let transcript_state = Arc::clone(&transcript_state);
+                let diar_tx = diar_tx.clone();
+                StreamTextEvent::listen(&app_handle, move |event| {
+                    if let Some(tokens) = event.payload.tokens {
+                        transcript_state.lock().unwrap().tokens = tokens;
+                        let _ = diar_tx.send(DiarizerCmd::TokensUpdated);
+                    }
+                })
+            };
+
             let watchdog_handle = {
-                let accumulator = Arc::clone(&accumulator);
                 let shutdown = Arc::clone(&shutdown);
-                let turn_tx = turn_tx.clone();
                 let transcription_manager = Arc::clone(&transcription_manager);
-                let queue_depth = Arc::clone(&queue_depth);
                 let app_handle = app_handle.clone();
                 let audio_warning_state = audio_warning_state.clone();
                 thread::spawn(move || {
@@ -2295,30 +1846,11 @@ impl MeetingManager {
                         // el watcher de `TranscriptionManager` sólo mira el
                         // dictado, y un tramo callado de la reunión (una
                         // pausa, un break) le parece inactividad. Si descarga
-                        // el modelo, todos los turnos siguientes fallan.
+                        // el modelo, el stream de esta reunión se queda sin
+                        // motor a mitad de camino — ver `set_meeting_capture_
+                        // active` más abajo, que además evita que el
+                        // descargador por inactividad lo intente del todo.
                         transcription_manager.touch_activity();
-                        let now_ms = capture_started.elapsed().as_millis() as i64;
-                        // Tope duro primero: en conversación continua nunca
-                        // hay un tramo de baja energía sostenido, así que
-                        // `take_if_quiet` solo no basta para cerrar el turno
-                        // (ver MAX_TURN_MS).
-                        let completed = {
-                            let mut acc = accumulator.lock().unwrap();
-                            acc.take_if_over(MAX_TURN_MS, now_ms)
-                                .or_else(|| acc.take_if_quiet(TURN_SILENCE_GAP, now_ms))
-                        };
-                        if let Some(turn) = completed {
-                            let depth = queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
-                            if depth == QUEUE_DEPTH_WARN_THRESHOLD {
-                                warn!(
-                                    "Meeting {}: {} turnos esperando transcripción — transcribir \
-                                     va más lento que hablar y el audio pendiente se acumula en \
-                                     memoria",
-                                    meeting_id, depth
-                                );
-                            }
-                            let _ = turn_tx.send(turn);
-                        }
 
                         if let (Some(sa), Some(warning_state)) =
                             (&audio_diagnostics_handle, &audio_warning_state)
@@ -2400,16 +1932,15 @@ impl MeetingManager {
                 })
             };
 
-            let transcriber_handle = {
+            let diarizer_handle = {
                 let db_path = self.db_path.clone();
                 let app_handle = app_handle.clone();
-                let transcription_manager = Arc::clone(&transcription_manager);
-                let diarization_engine = self.diarization_engine.clone();
-                let queue_depth = Arc::clone(&queue_depth);
-                let meeting_model_id = meeting_model_id.clone();
+                let streaming_diarizer = Arc::clone(&self.streaming_diarizer);
+                let transcript_state = Arc::clone(&transcript_state);
+                let diar_queue_depth = Arc::clone(&diar_queue_depth);
                 thread::spawn(move || {
-                    // Un solo aviso de turno perdido por sesión de captura,
-                    // ver `report_turn_failure`.
+                    // Un solo aviso de intervención perdida por sesión de
+                    // captura, ver `report_turn_failure`.
                     let mut turn_failure_reported = false;
                     let conn = match Connection::open(&db_path) {
                         Ok(c) => c,
@@ -2422,7 +1953,7 @@ impl MeetingManager {
                                 Some(&app_handle),
                                 meeting_id,
                                 format!(
-                                    "no se pudo abrir la base de datos para transcribir la \
+                                    "no se pudo abrir la base de datos para guardar la \
                                      reunión, no se va a guardar nada de lo que se hable: {e}"
                                 ),
                             );
@@ -2430,162 +1961,114 @@ impl MeetingManager {
                             return;
                         }
                     };
-                    // El registro de hablantes vive acá, en el único hilo que
-                    // atribuye segmentos de esta sesión: sin locks, y sin
-                    // sobrevivir a la sesión (un hablante es local a una
-                    // reunión, `data-model.md`).
-                    let mut registry = SpeakerRegistry::default();
-                    while let Ok(turn) = turn_rx.recv() {
-                        // `fetch_update` y no `fetch_sub`: el turno final que
-                        // empuja `stop_capture` no pasó por el watchdog y no
-                        // sumó, así que restar a ciegas daría la vuelta el
-                        // contador sin signo.
-                        let _ = queue_depth.fetch_update(
-                            Ordering::Relaxed,
-                            Ordering::Relaxed,
-                            |depth| depth.checked_sub(1),
-                        );
 
-                        // Compuerta de energía sobre el turno completo
-                        // (2026-08-04): sin VAD, un turno puede ser
-                        // enteramente silencio o piso de ruido — cerrado por
-                        // `take_if_over`/`take_if_quiet` igual que cualquier
-                        // otro. Descartarlo ACÁ, antes de diarizar o
-                        // transcribir, es lo que evita mandarle silencio
-                        // digital al modelo de transcripción: los modelos
-                        // tipo Whisper alucinan texto sobre silencio puro,
-                        // así que la alternativa de "transcribir igual y
-                        // confiar en que salga vacío" es justo el problema
-                        // que este cambio busca evitar, no una red de
-                        // seguridad equivalente. Ver `ENERGY_GATE_RMS`.
-                        if !has_energy(&turn.samples) {
-                            debug!(
-                                "Meeting {}: turno [{}, {}]ms por debajo del umbral de energía, \
-                                 se descarta sin transcribir",
-                                meeting_id, turn.started_at_ms, turn.ended_at_ms
-                            );
-                            continue;
-                        }
+                    // Audio que llegó ANTES de que el modelo Sortformer
+                    // terminara de cargar: se bufferiza acá y se drena en
+                    // cuanto el motor esté listo, para que su reloj en
+                    // milisegundos arranque en la misma muestra cero que el
+                    // del reconocimiento de voz — ver `spawn_sortformer_
+                    // warmup` y el comentario del módulo. Si el modelo nunca
+                    // llega a cargar, este buffer crece sin freno por el
+                    // resto de la reunión (mismo tipo de límite conocido que
+                    // el resto de este módulo documenta para otros casos sin
+                    // hardware real para medirlos).
+                    let mut backlog: Vec<f32> = Vec::new();
 
-                        // Causa 3 del reporte de arreglo (2026-08-03):
-                        // transcribir con el modelo equivocado NO falla —
-                        // `transcription_manager.transcribe` usa el que sea
-                        // que esté cargado y devuelve texto igual, así que
-                        // el reintento de `transcribe_with_reload` de más
-                        // abajo (que sólo dispara si `transcribe` devuelve
-                        // error) nunca lo hubiera detectado. Antes de cada
-                        // pieza se compara el id REALMENTE cargado contra el
-                        // de ESTA reunión (`meeting_model_id`) y, si no
-                        // coincide, se recarga y se espera acá mismo —
-                        // comparación barata (sólo el id en memoria, no
-                        // toca settings ni disco), así que correr esto por
-                        // cada pieza no cuesta nada. Cierra tanto la ventana
-                        // de la carga inicial asíncrona de `start_capture`
-                        // (los primeros turnos pueden llegar antes de que
-                        // termine) como cualquier caso en que el modelo
-                        // cargado cambiara bajo los pies sin que
-                        // `transcribe` llegara a fallar.
-                        //
-                        // Si el modelo se descargó del todo mientras la
-                        // reunión seguía (watcher de inactividad, descarga
-                        // manual), `transcribe_with_reload` sigue cubriendo
-                        // ese caso con su propio reintento — este chequeo no
-                        // lo reemplaza, es una capa antes.
-                        let transcribe = |samples: Vec<f32>| {
-                            if transcription_manager.get_current_model().as_deref()
-                                != Some(meeting_model_id.as_str())
-                            {
-                                transcription_manager
-                                    .initiate_model_load_id(meeting_model_id.clone());
-                                transcription_manager.wait_for_model_load();
-                            }
-                            transcribe_with_reload(
-                                samples,
-                                &|s| transcription_manager.transcribe(s),
-                                &|| {
-                                    transcription_manager
-                                        .initiate_model_load_id(meeting_model_id.clone());
-                                    transcription_manager.wait_for_model_load();
-                                },
-                            )
-                        };
-
-                        // Diarizar ANTES de transcribir: `persist_and_emit_segment`
-                        // consume el audio (y le agrega padding a los turnos
-                        // cortos, que falsearía la duración del audio que ve
-                        // el motor de diarización).
-                        let segments: Vec<DiarizedSegment> = match diarization_engine.as_deref() {
-                            Some(engine) if engine.is_loaded() => {
-                                match engine.diarize(&turn.samples, DIARIZATION_SAMPLE_RATE) {
-                                    Ok(segs) => segs,
-                                    Err(e) => {
-                                        warn!(
-                                            "Meeting {}: diarización del turno falló, se \
-                                             transcribe entero sin hablante: {}",
-                                            meeting_id, e
+                    while let Ok(cmd) = diar_rx.recv() {
+                        match cmd {
+                            DiarizerCmd::Audio(chunk) => {
+                                let _ = diar_queue_depth.fetch_update(
+                                    Ordering::Relaxed,
+                                    Ordering::Relaxed,
+                                    |depth| depth.checked_sub(1),
+                                );
+                                let mut guard = streaming_diarizer.lock().unwrap();
+                                match guard.as_mut() {
+                                    Some(diarizer) => {
+                                        if !backlog.is_empty() {
+                                            let pending = std::mem::take(&mut backlog);
+                                            push_diarizer_chunk(
+                                                diarizer,
+                                                &pending,
+                                                Some(&app_handle),
+                                                meeting_id,
+                                                &transcript_state,
+                                                &mut turn_failure_reported,
+                                            );
+                                        }
+                                        push_diarizer_chunk(
+                                            diarizer,
+                                            &chunk,
+                                            Some(&app_handle),
+                                            meeting_id,
+                                            &transcript_state,
+                                            &mut turn_failure_reported,
                                         );
-                                        Vec::new()
+                                        drop(guard);
+                                        maybe_persist_new_runs(
+                                            &conn,
+                                            Some(&app_handle),
+                                            meeting_id,
+                                            &transcript_state,
+                                            false,
+                                            &mut turn_failure_reported,
+                                        );
+                                    }
+                                    None => {
+                                        drop(guard);
+                                        backlog.extend_from_slice(&chunk);
                                     }
                                 }
                             }
-                            // Motor todavía cargando (o no disponible).
-                            _ => Vec::new(),
-                        };
-
-                        if segments.is_empty() {
-                            // Sin diarización disponible: comportamiento
-                            // anterior a T014 exacto, un solo segmento para
-                            // todo el turno, sin hablante.
-                            if let Err(e) = persist_and_emit_segment(
-                                &conn,
-                                Some(&app_handle),
-                                meeting_id,
-                                turn,
-                                None,
-                                false,
-                                &transcribe,
-                            ) {
-                                // Se perdió ESTE turno, no la reunión: la
-                                // captura sigue abierta y detenible. Por eso
-                                // el aviso es `meeting-turn-failed` y no
-                                // `meeting-error`, que el frontend lee como
-                                // fin de sesión.
-                                report_turn_failure(
+                            DiarizerCmd::TokensUpdated => {
+                                maybe_persist_new_runs(
+                                    &conn,
                                     Some(&app_handle),
                                     meeting_id,
+                                    &transcript_state,
+                                    false,
                                     &mut turn_failure_reported,
-                                    format!("no se pudo guardar un segmento transcrito: {e}"),
                                 );
                             }
-                            continue;
-                        }
-
-                        // Corte por voz: una fila por pieza, con offsets
-                        // absolutos. `segments` no vacío implica que el
-                        // motor de diarización está cargado (única rama de
-                        // arriba que lo llena).
-                        let engine = diarization_engine
-                            .as_deref()
-                            .expect("segments no vacíos implica motor de diarización cargado");
-                        let embed = |samples: &[f32]| embed_piece(engine, samples);
-                        let piece_results = process_turn_pieces(
-                            &conn,
-                            Some(&app_handle),
-                            meeting_id,
-                            &turn,
-                            &segments,
-                            &mut registry,
-                            &embed,
-                            &transcribe,
-                        );
-                        for result in piece_results {
-                            if let Err(e) = result {
-                                report_turn_failure(
+                            DiarizerCmd::Flush => {
+                                let mut guard = streaming_diarizer.lock().unwrap();
+                                if let Some(diarizer) = guard.as_mut() {
+                                    if !backlog.is_empty() {
+                                        let pending = std::mem::take(&mut backlog);
+                                        push_diarizer_chunk(
+                                            diarizer,
+                                            &pending,
+                                            Some(&app_handle),
+                                            meeting_id,
+                                            &transcript_state,
+                                            &mut turn_failure_reported,
+                                        );
+                                    }
+                                    match diarizer.flush() {
+                                        Ok(spans) => {
+                                            transcript_state.lock().unwrap().spans.extend(spans);
+                                        }
+                                        Err(e) => warn!(
+                                            "Meeting {}: flush() de la diarización en vivo \
+                                             falló: {}",
+                                            meeting_id, e
+                                        ),
+                                    }
+                                    // Nueva reunión, caché de hablantes
+                                    // limpio — ver el doc comment de
+                                    // `streaming_diarizer`.
+                                    diarizer.reset();
+                                }
+                                drop(guard);
+                                maybe_persist_new_runs(
+                                    &conn,
                                     Some(&app_handle),
                                     meeting_id,
+                                    &transcript_state,
+                                    true,
                                     &mut turn_failure_reported,
-                                    format!("no se pudo guardar una pieza transcrita: {e}"),
                                 );
+                                break;
                             }
                         }
                     }
@@ -2595,24 +2078,24 @@ impl MeetingManager {
             Ok(CaptureSession {
                 meeting_id,
                 recorder,
-                accumulator,
                 capture_started,
                 shutdown,
                 watchdog_handle: Some(watchdog_handle),
-                transcriber_handle: Some(transcriber_handle),
-                final_turn_tx: Some(turn_tx),
+                diarizer_handle: Some(diarizer_handle),
+                diar_tx,
+                stream_listener_id: Some(stream_listener_id),
                 audio_warning_state,
             })
         })();
 
         match start_result {
             Ok(session) => {
-                // Recién con el micrófono ya abierto: preparar los modelos de
+                // Recién con el micrófono ya abierto: preparar el modelo de
                 // diarización nunca debe demorar el inicio de la grabación.
-                self.spawn_diarization_warmup(&app_handle);
-                // Que nadie descargue el modelo mientras dure la reunión:
-                // con "Descargar de inmediato" se descargaba después de cada
-                // turno y el siguiente fallaba.
+                self.spawn_sortformer_warmup();
+                // Que nadie descargue el modelo de reconocimiento mientras
+                // dure la reunión: con "Descargar de inmediato" se
+                // descargaba después de cada turno y el siguiente fallaba.
                 transcription_manager.set_meeting_capture_active(true);
                 // Única señal visible de que el micrófono está abierto cuando
                 // la ventana de reuniones está cerrada.
@@ -2629,17 +2112,16 @@ impl MeetingManager {
     }
 
     /// Stop the active capture session cleanly: stop and close the
-    /// microphone, flush any trailing partial turn (capture can stop
-    /// mid-speech), join the watchdog/transcriber threads, and release the
-    /// microphone arbiter. Idempotent-ish: fails with an error (not a
-    /// panic) if no capture is active, which is fine for callers to log and
-    /// ignore.
+    /// microphone, close both live engines (ASR + diarization), flush and
+    /// persist whatever intervention was still open, join the
+    /// watchdog/diarizer threads, and release the microphone arbiter.
+    /// Idempotent-ish: fails with an error (not a panic) if no capture is
+    /// active, which is fine for callers to log and ignore.
     ///
     /// This is the internal method the future `stop_meeting` Tauri command
     /// (T015) calls before it transitions `meetings.status` to
     /// `processing`/kicks off summary generation — this task does not
     /// implement that command itself.
-    #[allow(dead_code)]
     pub fn stop_capture(&self, meeting_id: i64) -> Result<()> {
         // Held for the ENTIRE critical section below — including
         // recorder.stop(), the thread joins, and the arbiter release at the
@@ -2670,30 +2152,48 @@ impl MeetingManager {
         }
 
         // Stop the recorder first — its drain still feeds `audio_cb` for
-        // any trailing buffered audio, so the accumulator sees it before we
-        // flush below. The samples themselves are redundant with what we
-        // already collected via the callback (see the module doc comment);
-        // only the final diagnosis (audio del sistema únicamente) se
-        // conserva, para el chequeo de I4 más abajo.
+        // any trailing buffered audio, so both live engines see it before we
+        // close them below. The samples themselves are redundant with what
+        // we already collected via the callback (see the module doc
+        // comment); only the final diagnosis (audio del sistema únicamente)
+        // se conserva, para el chequeo de I4 más abajo.
         let final_diagnosis = session.recorder.stop();
 
-        let now_ms = session.capture_started.elapsed().as_millis() as i64;
-        if let Some(turn) = session.accumulator.lock().unwrap().take_remaining(now_ms) {
-            if let Some(tx) = &session.final_turn_tx {
-                let _ = tx.send(turn);
+        // El ASR ya recibió (vía `audio_cb`, arriba) todo el audio que iba a
+        // recibir para esta reunión — `finalize_stream` BLOQUEA hasta que el
+        // hilo de streaming termine de procesar ese último tramo y emita su
+        // último `stream-text-event`, así que cuando vuelve acá
+        // `transcript_state.tokens` ya tiene lo último dicho. El texto que
+        // devuelve se descarta a propósito: ya está en los tokens que el
+        // listener capturó: lo único que se pierde es el texto que
+        // `finalize()` pudiera comprometer MÁS ALLÁ del último evento (el
+        // motor no expone tokens ahí, ver `TranscriptionManager::
+        // finalize_stream`) — hueco chico y conocido (como mucho una o dos
+        // palabras que seguían tentativas), no una carrera de datos: sin
+        // este bloqueo sí lo sería.
+        if let Some(tm) = &self.transcription_manager {
+            if let Err(e) = tm.finalize_stream() {
+                warn!(
+                    "Meeting {}: finalize_stream falló al cerrar la reunión: {}",
+                    meeting_id, e
+                );
             }
         }
-        // Drop every sender: this one plus the watchdog thread's clone
-        // (dropped when it's joined below) — once both are gone, the
-        // transcriber thread's `recv()` returns `Err` after draining
-        // whatever's still queued, and its loop exits.
-        session.final_turn_tx = None;
+        if let Some(app) = &self.app_handle {
+            if let Some(id) = session.stream_listener_id.take() {
+                app.unlisten(id);
+            }
+        }
+        // Último mensaje del canal: vacía lo que el diarizador tenga
+        // pendiente (`StreamingDiarizer::flush`) y persiste TODO lo que
+        // falte, última intervención incluida — ver `DiarizerCmd::Flush`.
+        let _ = session.diar_tx.send(DiarizerCmd::Flush);
 
         session.shutdown.store(true, Ordering::Relaxed);
         if let Some(h) = session.watchdog_handle.take() {
             let _ = h.join();
         }
-        if let Some(h) = session.transcriber_handle.take() {
+        if let Some(h) = session.diarizer_handle.take() {
             let _ = h.join();
         }
 
@@ -2755,7 +2255,11 @@ impl MeetingManager {
             arbiter.release(MicOwner::Meeting);
         }
 
-        info!("Meeting {} capture stopped", session.meeting_id);
+        info!(
+            "Meeting {} capture stopped after {:?}",
+            session.meeting_id,
+            session.capture_started.elapsed()
+        );
         Ok(())
     }
 
@@ -3089,10 +2593,13 @@ impl MeetingManager {
     /// destino" al leerlos, y eso tiene dos ventajas concretas sobre reescribir
     /// `meeting_segments.speaker_id`: (1) la fusión es un dato reversible en
     /// vez de una migración destructiva sobre el transcript, y (2) si la
-    /// reunión sigue grabando, el registro de hablantes en memoria (T013)
-    /// conserva el centroide del hablante fusionado y va a seguir atribuyéndole
-    /// turnos nuevos — que se resuelven solos al destino, sin que la fusión
-    /// tenga que comunicarse con el hilo transcriptor.
+    /// reunión sigue grabando, el mapa de hablantes locales en memoria
+    /// (`TranscriptState::local_speakers`, ver el hilo diarizador de
+    /// `start_capture`) sigue apuntando el mismo índice local de Sortformer
+    /// al mismo `speaker_id` de antes de la fusión, y va a seguir
+    /// atribuyéndole intervenciones nuevas — que se resuelven solas al
+    /// destino, sin que la fusión tenga que comunicarse con el hilo
+    /// diarizador.
     ///
     /// Detalles de integridad:
     ///
@@ -3391,12 +2898,11 @@ impl MeetingManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
-    use tauri::Listener;
 
-    /// `None` con runtime explícito: `persist_and_emit_segment` es genérica
-    /// sobre el runtime de Tauri (ver su doc comment), así que los tests que
-    /// no verifican la emisión tienen que decir de qué runtime hablan.
+    /// `None` con runtime explícito: `persist_and_emit_run`/`report_*` son
+    /// genéricas sobre el runtime de Tauri (ver sus doc comments), así que
+    /// los tests que no verifican la emisión tienen que decir de qué
+    /// runtime hablan.
     const NO_APP: Option<&AppHandle> = None;
 
     // ---------- resolve_meeting_audio_source (cableado de audio) ----------
@@ -3513,6 +3019,30 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ))
+    }
+
+    /// Inserta directamente una fila en `meeting_segments`, sin pasar por
+    /// ningún motor de reconocimiento ni diarización — reemplaza los usos
+    /// de `CompletedTurn`/`persist_and_emit_segment` que sólo necesitaban
+    /// dejar un segmento ya guardado como fixture para un test de otra
+    /// cosa (recuperación, fusión de hablantes, listado...). La cobertura
+    /// de la persistencia en sí vive en los tests de `persist_and_emit_run`
+    /// de más arriba.
+    fn insert_test_segment(
+        conn: &Connection,
+        meeting_id: i64,
+        speaker_id: Option<i64>,
+        text: &str,
+        started_at_ms: i64,
+        ended_at_ms: i64,
+    ) -> i64 {
+        conn.execute(
+            "INSERT INTO meeting_segments (meeting_id, speaker_id, text, started_at_ms, ended_at_ms, overlapped) \
+             VALUES (?1, ?2, ?3, ?4, ?5, 0)",
+            params![meeting_id, speaker_id, text, started_at_ms, ended_at_ms],
+        )
+        .expect("insert_test_segment");
+        conn.last_insert_rowid()
     }
 
     fn apply_migrations(conn: &mut Connection) {
@@ -3803,193 +3333,142 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
-    // T012: TurnAccumulator — pure, deterministic, no VAD/model needed.
-    //
-    // 2026-08-04: `push`/`take_if_quiet` replaced `push_speech`/
-    // `take_if_silent` — every frame is pushed now (loud or quiet, see the
-    // struct doc comment), so these tests represent a "quiet" stretch with
-    // an actual low-amplitude push (e.g. `&[0.0]`), not by simply not
-    // calling anything. `[1.0]`/`[2.0]`/`[0.5; N]` below are "loud" (their
-    // RMS is far above `ENERGY_GATE_RMS`); `[0.0]`/`[0.0; N]` are "quiet".
+    // Task 5 ("reuniones en streaming"): segments_from_runs — el test del
+    // brief, el síntoma que motivó todo el plan expresado como test sobre
+    // la pieza que arma segmentos a partir de intervenciones atribuidas.
     // ------------------------------------------------------------------
 
     #[test]
-    fn turn_accumulator_groups_contiguous_pushes_into_one_turn() {
-        let mut acc = TurnAccumulator::default();
-        assert!(
-            acc.take_remaining(1000).is_none(),
-            "nothing buffered yet -> no turn"
-        );
-
-        acc.push(&[0.1, 0.2], 100);
-        acc.push(&[0.3], 150);
-
-        let turn = acc
-            .take_remaining(200)
-            .expect("a turn should be in progress");
-        assert_eq!(turn.samples, vec![0.1, 0.2, 0.3]);
-        assert_eq!(turn.started_at_ms, 100);
-        assert_eq!(turn.ended_at_ms, 200);
-
-        assert!(
-            acc.take_remaining(300).is_none(),
-            "the turn was already taken; nothing should remain"
-        );
+    fn una_interrupcion_corta_se_persiste_como_segmento_propio() {
+        let runs = vec![
+            AttributedRun {
+                text: "estaba".into(),
+                speaker: Some(0),
+                start_ms: 0,
+                end_ms: 430,
+            },
+            AttributedRun {
+                text: " no".into(),
+                speaker: Some(1),
+                start_ms: 430,
+                end_ms: 620,
+            },
+            AttributedRun {
+                text: " diciendo".into(),
+                speaker: Some(0),
+                start_ms: 620,
+                end_ms: 1000,
+            },
+        ];
+        let segments = segments_from_runs(&runs);
+        assert_eq!(segments.len(), 3);
+        assert_eq!(segments[1].speaker_id, Some(1));
     }
 
     #[test]
-    fn turn_accumulator_starts_a_fresh_turn_after_take() {
-        let mut acc = TurnAccumulator::default();
-        acc.push(&[1.0], 0);
-        let first = acc.take_remaining(50).expect("first turn");
-        assert_eq!(first.started_at_ms, 0);
-        assert_eq!(first.samples, vec![1.0]);
-
-        acc.push(&[2.0], 500);
-        let second = acc.take_remaining(550).expect("second turn");
-        assert_eq!(second.started_at_ms, 500);
-        assert_eq!(second.samples, vec![2.0]);
+    fn segments_from_runs_conserva_texto_y_tiempos() {
+        let runs = vec![AttributedRun {
+            text: "hola que tal".into(),
+            speaker: None,
+            start_ms: 100,
+            end_ms: 900,
+        }];
+        let segments = segments_from_runs(&runs);
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].text, "hola que tal");
+        assert_eq!(segments[0].speaker_id, None);
+        assert_eq!(segments[0].started_at_ms, 100);
+        assert_eq!(segments[0].ended_at_ms, 900);
+        assert!(!segments[0].overlapped);
     }
 
     #[test]
-    fn turn_accumulator_take_if_quiet_waits_for_the_gap() {
-        let mut acc = TurnAccumulator::default();
-        acc.push(&[1.0], 0); // loud: speech present, quiet_since stays None
-
-        // A quiet frame arrives, starting the quiet-stretch timer.
-        acc.push(&[0.0], 10);
-
-        assert!(
-            acc.take_if_quiet(Duration::from_secs(5), 10).is_none(),
-            "gap has not elapsed yet"
-        );
-
-        std::thread::sleep(Duration::from_millis(30));
-
-        let turn = acc
-            .take_if_quiet(Duration::from_millis(5), 40)
-            .expect("gap has elapsed; the turn should finalize");
-        assert_eq!(turn.samples, vec![1.0, 0.0]);
-        assert_eq!(turn.ended_at_ms, 40);
-    }
-
-    #[test]
-    fn turn_accumulator_take_if_quiet_survives_a_short_pause() {
-        // Pins the intent behind `TURN_SILENCE_GAP`: a normal ~200-300ms
-        // breathing pause between words is word-to-word jitter, not the
-        // end of an utterance, and must not fragment the turn. Uses the
-        // real production constant (not an arbitrary `Duration`, unlike
-        // `turn_accumulator_take_if_quiet_waits_for_the_gap` above) so a
-        // future regression that shrinks the gap back toward inter-word
-        // jitter fails this test.
-        let mut acc = TurnAccumulator::default();
-        acc.push(&[1.0], 0); // speech
-
-        acc.push(&[0.0], 10); // the pause begins: a quiet frame arrives
-        std::thread::sleep(Duration::from_millis(250));
-        assert!(
-            acc.take_if_quiet(TURN_SILENCE_GAP, 250).is_none(),
-            "a ~250ms pause must not close the turn (well under the 850ms gap)"
-        );
-
-        // Speech resumes within the same turn — exactly what should happen
-        // for a short pause instead of a hard split.
-        acc.push(&[2.0], 250);
-        let turn = acc.take_remaining(300).expect("turn should still be open");
-        assert_eq!(turn.samples, vec![1.0, 0.0, 2.0]);
-    }
-
-    #[test]
-    fn turn_accumulator_take_if_quiet_is_none_with_nothing_buffered() {
-        let mut acc = TurnAccumulator::default();
-        assert!(acc.take_if_quiet(Duration::from_millis(0), 0).is_none());
-    }
-
-    #[test]
-    fn turn_accumulator_take_if_quiet_is_none_while_still_loud() {
-        // Without ever seeing a quiet frame, `quiet_since` never gets set —
-        // the turn must never close on content alone, no matter how long
-        // real time elapses, because the content never actually went quiet.
-        let mut acc = TurnAccumulator::default();
-        acc.push(&[1.0], 0);
-        std::thread::sleep(Duration::from_millis(20));
-        assert!(acc.take_if_quiet(Duration::from_millis(1), 20).is_none());
+    fn segments_from_runs_de_una_lista_vacia_es_vacio() {
+        assert!(segments_from_runs(&[]).is_empty());
     }
 
     // ------------------------------------------------------------------
-    // T014: take_if_over — el tope duro de MAX_TURN_MS, independiente de
-    // take_if_quiet (arriba). La duración se mide en samples (16kHz), no
-    // en reloj de pared, así que estos tests no necesitan `sleep`.
+    // resolve_local_speaker — el reemplazo trivial del registro por
+    // embeddings: el índice local de Sortformer ya es una identidad
+    // estable dentro de la sesión, así que sólo hay que recordar qué id
+    // real le tocó la primera vez.
     // ------------------------------------------------------------------
 
     #[test]
-    fn turn_accumulator_take_if_over_does_not_fire_before_the_cap() {
-        let mut acc = TurnAccumulator::default();
-        // 7999ms de audio a 16kHz: justo bajo el tope de 8000ms.
-        acc.push(&vec![0.0; 127_999], 0);
+    fn resolve_local_speaker_crea_una_vez_y_reutiliza_despues() {
+        let dir = temp_db_path("resolve-local-speaker");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
 
-        assert!(
-            acc.take_if_over(8_000, 8_000).is_none(),
-            "el tope no se superó todavía"
+        let mut local_speakers = HashMap::new();
+        let first = resolve_local_speaker(&conn, meeting_id, &mut local_speakers, 0)
+            .expect("resolver hablante local 0");
+        let again = resolve_local_speaker(&conn, meeting_id, &mut local_speakers, 0)
+            .expect("resolver hablante local 0 de nuevo");
+        let other = resolve_local_speaker(&conn, meeting_id, &mut local_speakers, 1)
+            .expect("resolver hablante local 1");
+
+        assert_eq!(
+            first, again,
+            "el mismo índice local siempre es el mismo hablante"
         );
-        // take_if_quiet tampoco debe verse afectado por este chequeo: el
-        // turno sigue intacto y disponible (y estas muestras son todo
-        // ceros, así que ya está "quieto" desde la primera).
-        assert!(acc.take_if_quiet(Duration::from_millis(0), 8_000).is_some());
-    }
-
-    #[test]
-    fn turn_accumulator_take_if_over_closes_the_turn_once_the_cap_is_reached() {
-        let mut acc = TurnAccumulator::default();
-        // 8000ms exactos de audio a 16kHz (128_000 samples): en el punto
-        // justo del tope, ya debe cerrar.
-        acc.push(&vec![0.5; 128_000], 100);
-
-        let turn = acc
-            .take_if_over(8_000, 8_100)
-            .expect("el tope se alcanzó, el turno debe cerrarse aunque siga habiendo voz");
-        assert_eq!(turn.samples.len(), 128_000);
-        assert_eq!(turn.started_at_ms, 100);
-        assert_eq!(turn.ended_at_ms, 8_100);
-
-        assert!(
-            acc.take_remaining(9_000).is_none(),
-            "el turno ya se tomó; no debe quedar nada en el buffer"
+        assert_ne!(
+            first, other,
+            "índices locales distintos son hablantes distintos"
         );
-    }
 
-    #[test]
-    fn turn_accumulator_take_if_over_is_none_with_nothing_buffered() {
-        let mut acc = TurnAccumulator::default();
-        assert!(acc.take_if_over(0, 0).is_none());
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_speakers", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(count, 2, "sólo se crea una fila por índice local nuevo");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
     }
 
     // ------------------------------------------------------------------
-    // T012: persist_and_emit_segment — DB row shape + speaker_id/overlapped
-    // defaults, driven with a stub transcriber (no ML model needed).
+    // persist_and_emit_run — inserta+emite UNA intervención ya convertida
+    // por `segments_from_runs`, resolviendo su hablante local si tiene uno.
+    // Reemplaza a `persist_and_emit_segment`: ya no transcribe (el texto
+    // llega hecho, del reconocimiento en streaming), pero conserva el mismo
+    // contrato de persistencia hacia `meeting_segments`/`meeting-segment`.
     // ------------------------------------------------------------------
 
     #[test]
-    fn persist_and_emit_segment_inserts_a_row_with_expected_defaults() {
-        let dir = temp_db_path("persist-segment-basic");
+    fn persist_and_emit_run_inserts_a_row_with_expected_defaults() {
+        let dir = temp_db_path("persist-run-basic");
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
         let meeting_id = manager
             .start_meeting("presencial")
             .expect("start_meeting should succeed");
-
         let conn = manager.get_connection().expect("get_connection");
-        let turn = CompletedTurn {
-            samples: vec![0.0; 4000],
-            started_at_ms: 1_000,
-            ended_at_ms: 3_500,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-            &|_samples| Ok("hola, esto es una prueba".to_string());
 
-        let segment =
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
-                .expect("persisting should succeed")
-                .expect("non-empty transcription should produce a segment");
+        let run = AttributedRun {
+            text: "hola, esto es una prueba".into(),
+            speaker: None,
+            start_ms: 1_000,
+            end_ms: 3_500,
+        };
+        let segment = segments_from_runs(std::slice::from_ref(&run))
+            .into_iter()
+            .next()
+            .unwrap();
+        let mut local_speakers = HashMap::new();
+
+        let segment = persist_and_emit_run(
+            &conn,
+            NO_APP,
+            meeting_id,
+            segment,
+            run.speaker,
+            &mut local_speakers,
+        )
+        .expect("persisting should succeed")
+        .expect("non-empty text should produce a segment");
 
         assert_eq!(segment.text, "hola, esto es una prueba");
         assert_eq!(segment.speaker_id, None);
@@ -3997,72 +3476,17 @@ mod tests {
         assert_eq!(segment.ended_at_ms, 3_500);
         assert!(!segment.overlapped);
 
-        let (text, speaker_id, started_at_ms, ended_at_ms, overlapped): (
-            String,
-            Option<i64>,
-            i64,
-            i64,
-            bool,
-        ) = conn
+        let (text, speaker_id): (String, Option<i64>) = conn
             .query_row(
-                "SELECT text, speaker_id, started_at_ms, ended_at_ms, overlapped \
-                 FROM meeting_segments WHERE id = ?1",
+                "SELECT text, speaker_id FROM meeting_segments WHERE id = ?1",
                 [segment.id],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                    ))
-                },
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .expect("the inserted segment should be readable back");
-
         assert_eq!(text, "hola, esto es una prueba");
         assert_eq!(
             speaker_id, None,
-            "un turno sin atribución confiable se persiste con speaker_id NULL (FR-004)"
-        );
-        assert_eq!(started_at_ms, 1_000);
-        assert_eq!(ended_at_ms, 3_500);
-        assert!(!overlapped);
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn persist_and_emit_segment_pads_short_turns_before_transcribing() {
-        let dir = temp_db_path("persist-segment-padding");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
-        let meeting_id = manager
-            .start_meeting("presencial")
-            .expect("start_meeting should succeed");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let observed_len = Arc::new(Mutex::new(0usize));
-        let observed_len_cb = Arc::clone(&observed_len);
-        let turn = CompletedTurn {
-            samples: vec![0.5; 100], // far under MIN_TURN_SAMPLES
-            started_at_ms: 0,
-            ended_at_ms: 10,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &move |samples| {
-            *observed_len_cb.lock().unwrap() = samples.len();
-            Ok("ok".to_string())
-        };
-
-        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
-            .expect("persisting should succeed");
-
-        assert_eq!(
-            *observed_len.lock().unwrap(),
-            MIN_TURN_SAMPLES * 5 / 4,
-            "a short turn should be zero-padded the same way \
-             AudioRecordingManager::stop_recording pads short dictation buffers"
+            "una intervención sin hablante se persiste con speaker_id NULL (FR-004)"
         );
 
         drop(conn);
@@ -4071,694 +3495,45 @@ mod tests {
     }
 
     #[test]
-    fn persist_and_emit_segment_skips_empty_transcription() {
-        let dir = temp_db_path("persist-segment-empty");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
-        let meeting_id = manager
-            .start_meeting("presencial")
-            .expect("start_meeting should succeed");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let turn = CompletedTurn {
-            samples: vec![0.0; 4000],
-            started_at_ms: 0,
-            ended_at_ms: 100,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("   ".to_string());
-
-        let result =
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
-                .expect("an empty transcription is not an error");
-        assert!(
-            result.is_none(),
-            "a blank transcription should not produce a segment"
-        );
-
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
-                row.get(0)
-            })
-            .expect("count meeting_segments");
-        assert_eq!(
-            count, 0,
-            "nothing should be inserted for an empty transcription"
-        );
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn persist_and_emit_segment_propagates_transcribe_errors() {
-        let dir = temp_db_path("persist-segment-error");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
-        let meeting_id = manager
-            .start_meeting("presencial")
-            .expect("start_meeting should succeed");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let turn = CompletedTurn {
-            samples: vec![0.0; 4000],
-            started_at_ms: 0,
-            ended_at_ms: 100,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-            &|_| Err(anyhow::anyhow!("engine exploded"));
-
-        let result =
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe);
-        assert!(result.is_err());
-
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
-                row.get(0)
-            })
-            .expect("count meeting_segments");
-        assert_eq!(count, 0, "a failed transcription must not insert a row");
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    // ------------------------------------------------------------------
-    // End-to-end test against real speech audio: drives the real energy
-    // gate (`has_energy`) over a real multi-speaker recording, through the
-    // exact same `TurnAccumulator` and `persist_and_emit_segment` the live
-    // capture path uses (with a stub transcriber standing in for a loaded
-    // ML model), and asserts multiple segments land in `meeting_segments`
-    // in order with sane timestamps.
-    //
-    // Reuses the same fixture wav `diarization.rs`'s T009 end-to-end test
-    // downloads (real speech with natural pauses between speakers — good
-    // for exercising turn segmentation). Note for the record: the task
-    // brief pointed at "tests de transcription.rs" for a reusable audio
-    // fixture, but transcription.rs's own tests don't use one; this
-    // fixture/pattern actually lives in diarization.rs (T009), the closest
-    // sibling task, which is what this test follows.
-    //
-    // Requires network (downloads the ~1.8MB test wav) -- #[ignore], same
-    // convention as diarization.rs. Run manually with:
-    //   cargo test --lib managers::meeting::tests::capture_pipeline_segments_real_speech_audio -- --ignored
-    //
-    // 2026-08-04: no VAD involved anymore (there's none left in the meeting
-    // path to exercise) — this now validates the assumption the energy-gate
-    // redesign actually depends on: that `has_energy`'s dumb RMS threshold
-    // still tells real speech from a real pause in an actual recording,
-    // without a neural classifier's help.
-    // ------------------------------------------------------------------
-    #[tokio::test]
-    #[ignore = "requiere red: descarga un wav de prueba real"]
-    async fn capture_pipeline_segments_real_speech_audio() {
-        let tmp = tempfile::tempdir().expect("tempdir");
-        let wav_path = tmp.path().join("0-four-speakers-zh.wav");
-        let wav_bytes = reqwest::get(
-            "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/0-four-speakers-zh.wav",
-        )
-        .await
-        .expect("downloading the test wav")
-        .bytes()
-        .await
-        .expect("reading the test wav");
-        std::fs::write(&wav_path, &wav_bytes).expect("writing the test wav");
-
-        let samples =
-            crate::audio_toolkit::read_wav_samples(&wav_path).expect("reading wav samples");
-
-        // Drive the same TurnAccumulator the live capture path uses
-        // (`push`/`take_remaining`), but deterministically off a
-        // sample-counted quiet run instead of `take_if_quiet`'s real
-        // `Instant`-based wall clock — same trick the pre-2026-08-04 version
-        // of this test used against the VAD's own Speech->Noise
-        // transitions: exercise the real buffering/timestamp logic without
-        // needing actual `TURN_SILENCE_GAP`-long sleeps over a real
-        // recording (see the module doc comment on `TurnAccumulator`).
-        let frame_len = 480usize; // 30ms @ 16kHz
-        let quiet_frames_needed = (TURN_SILENCE_GAP.as_millis() / 30).max(1) as usize;
-        let mut acc = TurnAccumulator::default();
-        let mut turns = Vec::new();
-        let mut consecutive_quiet = 0usize;
-        for (i, frame) in samples.chunks(frame_len).enumerate() {
-            if frame.len() < frame_len {
-                break; // drop a trailing partial frame, same as the resampler would
-            }
-            let now_ms = (i * 30) as i64;
-            acc.push(frame, now_ms);
-            if has_energy(frame) {
-                consecutive_quiet = 0;
-            } else {
-                consecutive_quiet += 1;
-                if consecutive_quiet >= quiet_frames_needed {
-                    if let Some(turn) = acc.take_remaining(now_ms) {
-                        turns.push(turn);
-                    }
-                    consecutive_quiet = 0;
-                }
-            }
-        }
-        if let Some(turn) = acc.take_remaining((samples.len() / 16) as i64) {
-            turns.push(turn);
-        }
-
-        assert!(
-            turns.len() > 1,
-            "a real multi-speaker recording with pauses between speakers should segment into \
-             more than one turn, got {}",
-            turns.len()
-        );
-        for turn in &turns {
-            assert!(turn.ended_at_ms > turn.started_at_ms);
-            assert!(!turn.samples.is_empty());
-        }
-
-        // Now run each detected turn through the exact same persist path
-        // start_capture's transcriber thread uses, with a stub transcriber.
-        let dir = temp_db_path("capture-pipeline-e2e");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new should succeed");
-        let meeting_id = manager
-            .start_meeting("presencial")
-            .expect("start_meeting should succeed");
-        let conn = manager.get_connection().expect("get_connection");
-
-        for turn in turns {
-            let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-                &move |samples| Ok(format!("[turno con {} muestras]", samples.len()));
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
-                .expect("persisting a real-audio turn should succeed");
-        }
-
-        let stored: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
-                row.get(0)
-            })
-            .expect("count meeting_segments");
-        assert!(
-            stored > 1,
-            "expected multiple incremental segments to be inserted during capture, got {}",
-            stored
-        );
-
-        // FR-002/research.md §2: segments carry increasing timestamps, one
-        // VAD turn per row. This test drives the persist path directly with
-        // `speaker_id = None`, so the rows come back unattributed — the real
-        // attribution path (T013) is covered by the `SpeakerRegistry` tests
-        // below and by the `#[ignore]`d end-to-end test.
-        let mut stmt = conn
-            .prepare(
-                "SELECT speaker_id, started_at_ms, ended_at_ms, overlapped \
-                 FROM meeting_segments ORDER BY id",
-            )
-            .unwrap();
-        let rows: Vec<(Option<i64>, i64, i64, bool)> = stmt
-            .query_map([], |row| {
-                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
-            })
-            .unwrap()
-            .map(|r| r.unwrap())
-            .collect();
-        let mut last_end = -1i64;
-        for (speaker_id, started_at_ms, ended_at_ms, overlapped) in rows {
-            assert_eq!(speaker_id, None);
-            assert!(!overlapped);
-            assert!(started_at_ms >= last_end);
-            assert!(ended_at_ms > started_at_ms);
-            last_end = ended_at_ms;
-        }
-
-        drop(stmt);
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    // ------------------------------------------------------------------
-    // T014: corte por voz dentro de un turno (`split_turn_into_pieces`) y
-    // resolución de hablante por pieza (`process_turn_pieces`).
-    //
-    // `split_turn_into_pieces` es una función pura sobre los
-    // `DiarizedSegment` que devuelve el motor -- se testea sin modelos ONNX.
-    // Los embeddings sintéticos de acá abajo son vectores unitarios en 2D
-    // con ángulos elegidos para caer a propósito en cada lado de los
-    // umbrales de `SpeakerRegistry`; el camino con voces reales lo cubre el
-    // test `#[ignore]` del final, que sí carga los dos modelos.
-    // ------------------------------------------------------------------
-
-    fn seg(speaker: usize, start_ms: u64, end_ms: u64, overlapped: bool) -> DiarizedSegment {
-        DiarizedSegment {
-            start_ms,
-            end_ms,
-            speaker,
-            overlapped,
-        }
-    }
-
-    /// Vector unitario a `degrees` grados del eje x: `cos(ángulo entre dos)`
-    /// es exactamente su similitud coseno, así que los umbrales se pueden
-    /// apuntar con precisión.
-    fn unit_at(degrees: f32) -> Vec<f32> {
-        let rad = degrees.to_radians();
-        vec![rad.cos(), rad.sin()]
-    }
-
-    #[test]
-    fn split_turn_into_pieces_returns_one_open_piece_when_there_is_no_diarization() {
-        assert_eq!(
-            split_turn_into_pieces(&[], 5_000),
-            vec![TurnPiece {
-                start_ms: 0,
-                end_ms: 5_000,
-                speaker: None,
-                overlapped: false,
-            }],
-            "sin diarización, el corte por voz debe equivaler al comportamiento sin diarizar: \
-             una sola pieza para todo el turno"
-        );
-    }
-
-    #[test]
-    fn split_turn_into_pieces_splits_a_clean_speaker_change_and_sorts_by_start() {
-        // A propósito fuera de orden: la regla 1 (ordenar por start_ms) se
-        // testea acá en vez de con un test aparte.
-        let segments = vec![seg(1, 3_000, 6_000, false), seg(0, 0, 3_000, false)];
-
-        let pieces = split_turn_into_pieces(&segments, 6_000);
-
-        assert_eq!(
-            pieces,
-            vec![
-                TurnPiece {
-                    start_ms: 0,
-                    end_ms: 3_000,
-                    speaker: Some(0),
-                    overlapped: false,
-                },
-                TurnPiece {
-                    start_ms: 3_000,
-                    end_ms: 6_000,
-                    speaker: Some(1),
-                    overlapped: false,
-                },
-            ]
-        );
-    }
-
-    #[test]
-    fn split_turn_into_pieces_merges_a_major_overlap_into_one_mixed_piece() {
-        // A = [0, 2000), B = [500, 2500): se pisan 1500ms de los 2000ms de
-        // cada una -- 75% > OVERLAP_MERGE_RATIO (60%).
-        let segments = vec![seg(0, 0, 2_000, false), seg(1, 500, 2_500, false)];
-
-        let pieces = split_turn_into_pieces(&segments, 2_500);
-
-        assert_eq!(
-            pieces,
-            vec![TurnPiece {
-                start_ms: 0,
-                end_ms: 2_500,
-                speaker: None,
-                overlapped: true,
-            }],
-            "un solape mayor al 60% del más corto es voz mezclada: no separable con un mic"
-        );
-    }
-
-    #[test]
-    fn split_turn_into_pieces_trims_a_minor_overlap_between_speakers() {
-        // A = [0, 3000), B = [2800, 5000): se pisan 200ms de los 2200ms de
-        // B -- 9%, muy por debajo del 60%.
-        let segments = vec![seg(0, 0, 3_000, false), seg(1, 2_800, 5_000, false)];
-
-        let pieces = split_turn_into_pieces(&segments, 5_000);
-
-        assert_eq!(
-            pieces,
-            vec![
-                TurnPiece {
-                    start_ms: 0,
-                    end_ms: 3_000,
-                    speaker: Some(0),
-                    overlapped: false,
-                },
-                TurnPiece {
-                    start_ms: 3_000,
-                    end_ms: 5_000,
-                    speaker: Some(1),
-                    overlapped: false,
-                },
-            ],
-            "un solape chico recorta el inicio del posterior al fin del anterior"
-        );
-    }
-
-    #[test]
-    fn split_turn_into_pieces_merges_a_tiny_piece_into_the_larger_previous_one() {
-        let segments = vec![
-            seg(0, 0, 3_000, false),     // 3000ms, la más larga
-            seg(1, 3_000, 3_400, false), // 400ms, < MIN_PIECE_MS (700ms)
-            seg(0, 3_400, 6_000, false), // 2600ms
-        ];
-
-        let pieces = split_turn_into_pieces(&segments, 6_000);
-
-        assert_eq!(
-            pieces,
-            vec![
-                TurnPiece {
-                    start_ms: 0,
-                    end_ms: 3_400,
-                    speaker: Some(0),
-                    overlapped: false,
-                },
-                TurnPiece {
-                    start_ms: 3_400,
-                    end_ms: 6_000,
-                    speaker: Some(0),
-                    overlapped: false,
-                },
-            ],
-            "la pieza diminuta se funde con la anterior, conservando el hablante de la mayor"
-        );
-    }
-
-    #[test]
-    fn split_turn_into_pieces_merges_a_leading_tiny_piece_with_the_next_one() {
-        let segments = vec![
-            seg(0, 0, 300, false),     // 300ms, primera pieza, diminuta
-            seg(1, 300, 4_000, false), // 3700ms
-        ];
-
-        let pieces = split_turn_into_pieces(&segments, 4_000);
-
-        assert_eq!(
-            pieces,
-            vec![TurnPiece {
-                start_ms: 0,
-                end_ms: 4_000,
-                speaker: Some(1),
-                overlapped: false,
-            }],
-            "sin pieza anterior, la diminuta se funde con la siguiente"
-        );
-    }
-
-    #[test]
-    fn extract_ranges_concatenates_and_clamps_out_of_bounds() {
-        let samples: Vec<f32> = (0..16_000).map(|i| i as f32).collect(); // 1s a 16kHz
-        let extracted = extract_ranges(&samples, &[(0, 250), (500, 750)], 16_000);
-        assert_eq!(extracted.len(), 8_000);
-        assert_eq!(extracted[0], 0.0);
-        assert_eq!(extracted[4_000], 8_000.0);
-
-        // Un rango que se pasa del final del buffer se recorta en vez de
-        // entrar en pánico (diarize trabaja con frames redondeados).
-        let clamped = extract_ranges(&samples, &[(900, 5_000)], 16_000);
-        assert_eq!(clamped.len(), 1_600);
-    }
-
-    // ------------------------------------------------------------------
-    // T014: process_turn_pieces con stubs -- integra split_turn_into_pieces
-    // + extract_ranges + SpeakerRegistry + persist_and_emit_segment sin
-    // cargar ningún modelo real, con un turno sintético de 2 hablantes.
-    // ------------------------------------------------------------------
-
-    #[test]
-    fn process_turn_pieces_persists_one_row_per_piece_with_absolute_offsets() {
-        let dir = temp_db_path("process-turn-pieces");
+    fn persist_and_emit_run_resolves_local_speaker_to_a_real_id() {
+        let dir = temp_db_path("persist-run-speaker");
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
 
-        // 6000ms de audio a 16kHz: los primeros 3000ms "son" el hablante 0
-        // (valor 0.1), los últimos 3000ms el hablante 1 (valor 0.9) -- el
-        // stub de embed de abajo lee ese valor para decidir qué vector
-        // devolver, así el test no depende de ningún modelo real.
-        let mut samples = vec![0.1_f32; 48_000];
-        samples.extend(vec![0.9_f32; 48_000]);
-        let turn = CompletedTurn {
-            samples,
-            started_at_ms: 10_000,
-            ended_at_ms: 16_000,
+        let run = AttributedRun {
+            text: "dale".into(),
+            speaker: Some(2),
+            start_ms: 0,
+            end_ms: 1_200,
         };
-        let segments = vec![seg(0, 0, 3_000, false), seg(1, 3_000, 6_000, false)];
+        let segment = segments_from_runs(std::slice::from_ref(&run))
+            .into_iter()
+            .next()
+            .unwrap();
+        assert_eq!(
+            segment.speaker_id,
+            Some(2),
+            "segments_from_runs deja el índice local tal cual, sin resolver"
+        );
+        let mut local_speakers = HashMap::new();
 
-        let embed: &dyn Fn(&[f32]) -> Option<Vec<f32>> = &|samples: &[f32]| {
-            if samples.first().copied().unwrap_or(0.0) < 0.5 {
-                Some(unit_at(0.0))
-            } else {
-                Some(unit_at(90.0)) // bien lejos del primero: otra voz
-            }
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-            &|samples: Vec<f32>| Ok(format!("pieza de {} samples", samples.len()));
-
-        let mut registry = SpeakerRegistry::default();
-        let results = process_turn_pieces(
+        let segment = persist_and_emit_run(
             &conn,
             NO_APP,
             meeting_id,
-            &turn,
-            &segments,
-            &mut registry,
-            embed,
-            transcribe,
-        );
-
-        assert_eq!(results.len(), 2, "un turno de 2 hablantes -> 2 piezas");
-        for result in &results {
-            assert!(
-                matches!(result, Ok(Some(_))),
-                "cada pieza debería persistirse: {:?}",
-                result.as_ref().err()
-            );
-        }
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT speaker_id, started_at_ms, ended_at_ms FROM meeting_segments \
-                 ORDER BY id",
-            )
-            .unwrap();
-        let rows: Vec<(Option<i64>, i64, i64)> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
-            .unwrap()
-            .map(|r| r.unwrap())
-            .collect();
-
-        assert_eq!(
-            rows.len(),
-            2,
-            "dos filas en meeting_segments, una por pieza"
-        );
-        assert_eq!(
-            (rows[0].1, rows[0].2),
-            (10_000, 13_000),
-            "offsets absolutos = turn.started_at_ms + límites de la pieza"
-        );
-        assert_eq!((rows[1].1, rows[1].2), (13_000, 16_000));
-        assert!(
-            rows[0].0.is_some() && rows[1].0.is_some(),
-            "ambas piezas tienen suficiente audio limpio para atribuirse"
-        );
-        assert_ne!(
-            rows[0].0, rows[1].0,
-            "dos voces bien distintas deben terminar en dos hablantes distintos"
-        );
-        assert_eq!(registry.entries.len(), 2);
-
-        drop(stmt);
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn speaker_registry_creates_a_speaker_for_the_first_voice_it_hears() {
-        let dir = temp_db_path("registry-first-voice");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
-        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let mut registry = SpeakerRegistry::default();
-        let id = registry
-            .resolve(&conn, meeting_id, Some(&unit_at(0.0)))
-            .expect("resolve")
-            .expect("la primera voz siempre estrena hablante");
-
-        let (label, display_name): (String, Option<String>) = conn
-            .query_row(
-                "SELECT label, display_name FROM meeting_speakers WHERE id = ?1",
-                [id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .expect("la fila del hablante debe existir");
-        assert_eq!(label, "Hablante 1");
-        assert_eq!(display_name, None, "el nombre lo pone el usuario (FR-005)");
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn speaker_registry_reuses_a_known_voice_and_creates_one_for_a_new_voice() {
-        let dir = temp_db_path("registry-two-voices");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
-        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let mut registry = SpeakerRegistry::default();
-        let first = registry
-            .resolve(&conn, meeting_id, Some(&unit_at(0.0)))
-            .unwrap()
-            .unwrap();
-        // 10° -> cos = 0.985: claramente la misma voz.
-        let again = registry
-            .resolve(&conn, meeting_id, Some(&unit_at(10.0)))
-            .unwrap()
-            .unwrap();
-        // 90° -> cos = 0: claramente otra persona.
-        let other = registry
-            .resolve(&conn, meeting_id, Some(&unit_at(90.0)))
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(first, again, "la misma voz no debe estrenar hablante");
-        assert_ne!(other, first, "una voz distinta debe estrenar hablante");
-
-        let labels: Vec<String> = {
-            let mut stmt = conn
-                .prepare("SELECT label FROM meeting_speakers WHERE meeting_id = ?1 ORDER BY id")
-                .unwrap();
-            let rows = stmt
-                .query_map([meeting_id], |row| row.get(0))
-                .unwrap()
-                .map(|r| r.unwrap())
-                .collect();
-            rows
-        };
-        assert_eq!(labels, vec!["Hablante 1", "Hablante 2"]);
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn speaker_registry_leaves_an_ambiguous_voice_unattributed() {
-        let mut registry = SpeakerRegistry::default();
-        registry.entries.push(SpeakerEntry {
-            id: 1,
-            centroid: unit_at(0.0),
-            turns: 1,
-        });
-
-        // 60° -> cos = 0.5, justo en el medio de la banda de
-        // incertidumbre: ni se asigna al conocido ni se inventa uno nuevo.
-        assert_eq!(
-            registry.classify(&unit_at(60.0)),
-            SpeakerMatch::Uncertain,
-            "FR-004: en la duda, ningún hablante"
-        );
-    }
-
-    #[test]
-    fn speaker_registry_refuses_to_pick_between_two_equally_close_speakers() {
-        let mut registry = SpeakerRegistry::default();
-        registry.entries.push(SpeakerEntry {
-            id: 1,
-            centroid: unit_at(20.0), // cos(20°) = 0.940 contra el turno
-            turns: 1,
-        });
-        registry.entries.push(SpeakerEntry {
-            id: 2,
-            centroid: unit_at(25.0), // cos(25°) = 0.906 -> margen 0.034
-            turns: 1,
-        });
-
-        assert_eq!(
-            registry.classify(&unit_at(0.0)),
-            SpeakerMatch::Uncertain,
-            "dos hablantes conocidos casi igual de parecidos: asignar al mejor es adivinar"
-        );
-    }
-
-    #[test]
-    fn speaker_registry_reinforce_moves_the_centroid_toward_the_new_turn() {
-        let mut registry = SpeakerRegistry::default();
-        registry.entries.push(SpeakerEntry {
-            id: 1,
-            centroid: unit_at(0.0),
-            turns: 1,
-        });
-
-        registry.reinforce(0, &unit_at(20.0));
-
-        let centroid = &registry.entries[0].centroid;
-        let sim_new = cosine_similarity(centroid, &unit_at(20.0));
-        let sim_old = cosine_similarity(centroid, &unit_at(0.0));
-        assert!(
-            (sim_new - sim_old).abs() < 1e-5,
-            "la media de dos turnos debe quedar equidistante de ambos, quedó {sim_old} vs {sim_new}"
-        );
-        assert_eq!(registry.entries[0].turns, 2);
-    }
-
-    #[test]
-    fn speaker_registry_resolve_is_none_without_an_embedding() {
-        let dir = temp_db_path("registry-no-embedding");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
-        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let mut registry = SpeakerRegistry::default();
-        assert_eq!(registry.resolve(&conn, meeting_id, None).unwrap(), None);
-
-        let speakers: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_speakers", [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(
-            speakers, 0,
-            "un turno incierto no debe estrenar un hablante fantasma"
-        );
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    #[test]
-    fn persist_and_emit_segment_stores_speaker_and_overlap() {
-        let dir = temp_db_path("persist-segment-speaker");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
-        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
-        let conn = manager.get_connection().expect("get_connection");
-
-        let speaker_id = insert_speaker(&conn, meeting_id).expect("insert_speaker");
-        let turn = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 1_200,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("dale".to_string());
-
-        let segment = persist_and_emit_segment(
-            &conn,
-            NO_APP,
-            meeting_id,
-            turn,
-            Some(speaker_id),
-            true,
-            transcribe,
+            segment,
+            run.speaker,
+            &mut local_speakers,
         )
         .expect("persisting should succeed")
-        .expect("non-empty transcription");
+        .expect("non-empty text");
 
-        assert_eq!(segment.speaker_id, Some(speaker_id));
-        assert!(segment.overlapped);
-
+        assert_ne!(
+            segment.speaker_id,
+            Some(2),
+            "el id persistido es el real de meeting_speakers, no el índice local"
+        );
         let (stored_speaker, stored_overlap): (Option<i64>, bool) = conn
             .query_row(
                 "SELECT speaker_id, overlapped FROM meeting_segments WHERE id = ?1",
@@ -4766,8 +3541,164 @@ mod tests {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .expect("readable back");
-        assert_eq!(stored_speaker, Some(speaker_id));
-        assert!(stored_overlap);
+        assert_eq!(stored_speaker, segment.speaker_id);
+        assert!(!stored_overlap);
+        assert_eq!(local_speakers.get(&2), Some(&segment.speaker_id.unwrap()));
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn persist_and_emit_run_skips_empty_text() {
+        let dir = temp_db_path("persist-run-empty");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let run = AttributedRun {
+            text: "   ".into(),
+            speaker: None,
+            start_ms: 0,
+            end_ms: 500,
+        };
+        let segment = segments_from_runs(std::slice::from_ref(&run))
+            .into_iter()
+            .next()
+            .unwrap();
+        let mut local_speakers = HashMap::new();
+
+        let result = persist_and_emit_run(
+            &conn,
+            NO_APP,
+            meeting_id,
+            segment,
+            run.speaker,
+            &mut local_speakers,
+        )
+        .expect("an empty text is not an error");
+        assert!(
+            result.is_none(),
+            "a blank text should not produce a segment"
+        );
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
+                row.get(0)
+            })
+            .expect("count meeting_segments");
+        assert_eq!(count, 0, "nothing should be inserted for empty text");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    // ------------------------------------------------------------------
+    // maybe_persist_new_runs — el núcleo del hilo diarizador: recalcula
+    // `align::attribute` sobre lo acumulado y sólo persiste las
+    // intervenciones que ya no pueden cambiar. La última run se retiene
+    // hasta que aparece una más detrás, o hasta el cierre (`include_last`).
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn maybe_persist_new_runs_retiene_la_ultima_run_hasta_que_aparece_otra() {
+        let dir = temp_db_path("maybe-persist-retains-last");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let state = Mutex::new(TranscriptState {
+            tokens: vec![TimedToken {
+                text: "hola".into(),
+                start_ms: 0,
+                end_ms: 300,
+            }],
+            spans: vec![SpeakerSpan {
+                start_ms: 0,
+                end_ms: 300,
+                speaker: 0,
+            }],
+            persisted_runs: 0,
+            local_speakers: HashMap::new(),
+        });
+        let mut turn_failure_reported = false;
+
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            false,
+            &mut turn_failure_reported,
+        );
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            count, 0,
+            "con una sola run en curso, nada se persiste todavía"
+        );
+
+        // Llega un segundo hablante: la primera run ya no puede cambiar.
+        {
+            let mut guard = state.lock().unwrap();
+            guard.tokens.push(TimedToken {
+                text: " chao".into(),
+                start_ms: 400,
+                end_ms: 700,
+            });
+            guard.spans.push(SpeakerSpan {
+                start_ms: 400,
+                end_ms: 700,
+                speaker: 1,
+            });
+        }
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            false,
+            &mut turn_failure_reported,
+        );
+
+        let texts: Vec<String> = {
+            let mut stmt = conn
+                .prepare("SELECT text FROM meeting_segments ORDER BY id")
+                .unwrap();
+            stmt.query_map([], |row| row.get(0))
+                .unwrap()
+                .map(|r| r.unwrap())
+                .collect()
+        };
+        assert_eq!(
+            texts,
+            vec!["hola".to_string()],
+            "sólo la run cerrada (la primera) se persiste; la segunda sigue en curso"
+        );
+
+        // Cierre de la reunión: ahora sí se persiste la última.
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            true,
+            &mut turn_failure_reported,
+        );
+        let final_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(
+            final_count, 2,
+            "al cerrar, la última run también se persiste"
+        );
 
         drop(conn);
         drop(manager);
@@ -4813,16 +3744,8 @@ mod tests {
             let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
             meeting_id = manager.start_meeting("presencial").expect("start_meeting");
             let conn = manager.get_connection().expect("get_connection");
-            let turn = CompletedTurn {
-                samples: vec![0.0; 20_000],
-                started_at_ms: 0,
-                ended_at_ms: 30_000, // 30 s hablados antes del crash
-            };
-            let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-                &|_| Ok("alcanzó a decir esto".to_string());
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, None, false, transcribe)
-                .expect("persistir")
-                .expect("segmento");
+            // 30 s hablados antes del crash.
+            insert_test_segment(&conn, meeting_id, None, "alcanzó a decir esto", 0, 30_000);
         } // <- acá "muere" el proceso
 
         let manager = MeetingManager::new(dir.clone()).expect("reabrir");
@@ -4986,15 +3909,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        let turn = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 500,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("algo".to_string());
-        persist_and_emit_segment(&conn, NO_APP, with_content, turn, None, false, transcribe)
-            .expect("persistir")
-            .expect("segmento");
+        insert_test_segment(&conn, with_content, None, "algo", 0, 500);
 
         manager.discard_meeting(with_content);
         let still_there: i64 = conn
@@ -5077,23 +3992,14 @@ mod tests {
         let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
 
         // Un segmento atribuido al hablante que se va a fusionar.
-        let turn = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 900,
-        };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("hola".to_string());
-        let segment =
-            persist_and_emit_segment(&conn, NO_APP, meeting_id, turn, Some(a), false, transcribe)
-                .expect("persistir")
-                .expect("segmento");
+        let segment_id = insert_test_segment(&conn, meeting_id, Some(a), "hola", 0, 900);
 
         manager.merge_speakers(meeting_id, a, b).expect("fusionar");
 
         let stored: Option<i64> = conn
             .query_row(
                 "SELECT speaker_id FROM meeting_segments WHERE id = ?1",
-                [segment.id],
+                [segment_id],
                 |row| row.get(0),
             )
             .unwrap();
@@ -5395,7 +4301,7 @@ mod tests {
     }
 
     #[test]
-    fn each_persisted_segment_emits_meeting_segment_incrementally() {
+    fn each_persisted_run_emits_meeting_segment_incrementally() {
         let app = mock_app_with_events();
         let handle = app.handle().clone();
 
@@ -5411,28 +4317,31 @@ mod tests {
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
-        let speaker_id = insert_speaker(&conn, meeting_id).expect("insert_speaker");
+        let mut local_speakers = HashMap::new();
 
-        // Tres turnos consecutivos, como los que produce la captura en vivo.
-        for i in 0..3 {
-            let turn = CompletedTurn {
-                samples: vec![0.0; 20_000],
-                started_at_ms: i * 1_000,
-                ended_at_ms: i * 1_000 + 800,
+        // Tres intervenciones consecutivas, como las que produce la
+        // captura en vivo.
+        for i in 0..3u64 {
+            let run = AttributedRun {
+                text: format!("turno {i}"),
+                speaker: Some(0),
+                start_ms: i * 1_000,
+                end_ms: i * 1_000 + 800,
             };
-            let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-                &move |_| Ok(format!("turno {i}"));
-            persist_and_emit_segment(
+            let segment = segments_from_runs(std::slice::from_ref(&run))
+                .into_iter()
+                .next()
+                .unwrap();
+            persist_and_emit_run(
                 &conn,
                 Some(&handle),
                 meeting_id,
-                turn,
-                Some(speaker_id),
-                false,
-                transcribe,
+                segment,
+                run.speaker,
+                &mut local_speakers,
             )
             .expect("persisting should succeed")
-            .expect("non-empty transcription");
+            .expect("non-empty text");
         }
 
         let received = received.lock().unwrap();
@@ -5447,12 +4356,15 @@ mod tests {
         // un rename silencioso rompa al frontend sin romper ningún test.
         let first = &received[0];
         assert_eq!(first["text"], "turno 0");
-        assert_eq!(first["speaker_id"], speaker_id);
+        assert!(first["speaker_id"].is_number());
         assert_eq!(first["started_at_ms"], 0);
         assert_eq!(first["ended_at_ms"], 800);
         assert_eq!(first["overlapped"], false);
         assert!(first["id"].is_number());
         assert_eq!(received[2]["text"], "turno 2");
+        // Las tres intervenciones vinieron del mismo índice local (0):
+        // deben resolver al mismo speaker_id real.
+        assert_eq!(first["speaker_id"], received[2]["speaker_id"]);
 
         drop(conn);
         drop(manager);
@@ -5460,7 +4372,7 @@ mod tests {
     }
 
     #[test]
-    fn an_empty_transcription_emits_nothing() {
+    fn a_blank_run_emits_nothing() {
         let app = mock_app_with_events();
         let handle = app.handle().clone();
 
@@ -5475,20 +4387,24 @@ mod tests {
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
 
-        let turn = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 500,
+        let run = AttributedRun {
+            text: "   ".into(),
+            speaker: None,
+            start_ms: 0,
+            end_ms: 500,
         };
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("   ".to_string());
-        let result = persist_and_emit_segment(
+        let segment = segments_from_runs(std::slice::from_ref(&run))
+            .into_iter()
+            .next()
+            .unwrap();
+        let mut local_speakers = HashMap::new();
+        let result = persist_and_emit_run(
             &conn,
             Some(&handle),
             meeting_id,
-            turn,
-            None,
-            false,
-            transcribe,
+            segment,
+            run.speaker,
+            &mut local_speakers,
         )
         .expect("persisting should succeed");
 
@@ -5496,7 +4412,7 @@ mod tests {
         assert_eq!(
             *received.lock().unwrap(),
             0,
-            "el ruido que el VAD deja pasar no debe ensuciar el transcript en vivo"
+            "un texto en blanco no debe ensuciar el transcript en vivo"
         );
 
         drop(conn);
@@ -5576,34 +4492,12 @@ mod tests {
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
 
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("segmento".to_string());
         // Persistidos fuera de orden a propósito: lo que tiene que ordenar
         // `get_meeting` es `started_at_ms`, no el orden de inserción (que acá
         // es justo el contrario).
-        let turn_b = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 5_000,
-            ended_at_ms: 6_000,
-        };
-        let turn_a = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 1_000,
-        };
-        let turn_c = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 10_000,
-            ended_at_ms: 11_000,
-        };
-        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_b, None, false, transcribe)
-            .expect("persistir b")
-            .expect("segmento b");
-        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_a, None, false, transcribe)
-            .expect("persistir a")
-            .expect("segmento a");
-        persist_and_emit_segment(&conn, NO_APP, meeting_id, turn_c, None, false, transcribe)
-            .expect("persistir c")
-            .expect("segmento c");
+        insert_test_segment(&conn, meeting_id, None, "segmento b", 5_000, 6_000);
+        insert_test_segment(&conn, meeting_id, None, "segmento a", 0, 1_000);
+        insert_test_segment(&conn, meeting_id, None, "segmento c", 10_000, 11_000);
 
         let meeting = manager.get_meeting(meeting_id).expect("get_meeting");
         let starts: Vec<i64> = meeting.segments.iter().map(|s| s.started_at_ms).collect();
@@ -5629,39 +4523,9 @@ mod tests {
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
         let (meeting_id, a, b, conn) = meeting_with_two_speakers(&manager);
 
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &|_| Ok("hola".to_string());
-        let turn_a = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 0,
-            ended_at_ms: 1_000,
-        };
-        let turn_uncertain = CompletedTurn {
-            samples: vec![0.0; 20_000],
-            started_at_ms: 2_000,
-            ended_at_ms: 3_000,
-        };
-        let segment_a = persist_and_emit_segment(
-            &conn,
-            NO_APP,
-            meeting_id,
-            turn_a,
-            Some(a),
-            false,
-            transcribe,
-        )
-        .expect("persistir")
-        .expect("segmento de A");
-        let segment_uncertain = persist_and_emit_segment(
-            &conn,
-            NO_APP,
-            meeting_id,
-            turn_uncertain,
-            None,
-            false,
-            transcribe,
-        )
-        .expect("persistir")
-        .expect("segmento incierto");
+        let segment_a_id = insert_test_segment(&conn, meeting_id, Some(a), "hola", 0, 1_000);
+        let segment_uncertain_id =
+            insert_test_segment(&conn, meeting_id, None, "hola", 2_000, 3_000);
 
         manager
             .merge_speakers(meeting_id, a, b)
@@ -5672,7 +4536,7 @@ mod tests {
         let resolved_a = meeting
             .segments
             .iter()
-            .find(|s| s.id == segment_a.id)
+            .find(|s| s.id == segment_a_id)
             .expect("el segmento de A sigue presente");
         assert_eq!(
             resolved_a.speaker_id,
@@ -5683,7 +4547,7 @@ mod tests {
         let still_uncertain = meeting
             .segments
             .iter()
-            .find(|s| s.id == segment_uncertain.id)
+            .find(|s| s.id == segment_uncertain_id)
             .expect("el segmento incierto sigue presente");
         assert_eq!(
             still_uncertain.speaker_id, None,
@@ -5717,193 +4581,6 @@ mod tests {
 
         drop(manager);
         let _ = std::fs::remove_file(&dir);
-    }
-
-    // ------------------------------------------------------------------
-    // End-to-end de la atribución con AMBOS modelos reales, sobre el mismo
-    // fixture de 4 hablantes que usa `managers/diarization.rs`. Requiere red
-    // (baja el modelo de embeddings ~27MB y el wav ~1.8MB), por eso
-    // `#[ignore]` — mismo criterio que el test end-to-end de T009. Se corrió
-    // a mano en esta tarea; el resultado está en el reporte.
-    //
-    // Lo que verifica es justo lo que los tests sintéticos NO pueden: que
-    // turnos SEPARADOS de la misma persona real caigan en el mismo
-    // `speaker_id`, que es la propiedad que hace útil al registro.
-    // ------------------------------------------------------------------
-    #[tokio::test]
-    #[ignore = "requiere red: descarga el modelo de embeddings y un wav de prueba reales"]
-    async fn attribution_reidentifies_the_same_real_voice_across_turns() {
-        let tmp = tempfile::tempdir().expect("tempdir");
-        let embedding_path =
-            crate::managers::diarization_models::ensure_embedding_model_downloaded(tmp.path())
-                .await
-                .expect("modelo de embeddings");
-        let segmentation_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("resources/models/pyannote_segmentation_3_0.onnx");
-
-        let wav_bytes = reqwest::get(
-            "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/0-four-speakers-zh.wav",
-        )
-        .await
-        .expect("descargando el wav")
-        .bytes()
-        .await
-        .expect("leyendo el wav");
-        let wav_path = tmp.path().join("0-four-speakers-zh.wav");
-        std::fs::write(&wav_path, &wav_bytes).expect("escribiendo el wav");
-        let mut reader = hound::WavReader::open(&wav_path).expect("abriendo el wav");
-        let samples: Vec<f32> = reader
-            .samples::<i16>()
-            .map(|s| s.expect("sample") as f32 / i16::MAX as f32)
-            .collect();
-
-        let engine = DiarizationEngine::load(&segmentation_path, &embedding_path)
-            .expect("ambos modelos deben cargar");
-
-        // Diarizar el audio completo da la verdad de referencia: quién habla
-        // en cada tramo. Cada tramo se vuelve a alimentar como si fuera un
-        // turno independiente del pipeline en vivo.
-        let truth = engine
-            .diarize(&samples, DIARIZATION_SAMPLE_RATE)
-            .expect("diarize completo");
-        assert!(!truth.is_empty());
-
-        let dir = temp_db_path("attribution-e2e");
-        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
-        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
-        let conn = manager.get_connection().expect("get_connection");
-        let mut registry = SpeakerRegistry::default();
-
-        let mut assigned: HashMap<usize, Vec<Option<i64>>> = HashMap::new();
-        let mut processed = 0usize;
-        for turn in &truth {
-            let audio = extract_ranges(
-                &samples,
-                &[(turn.start_ms, turn.end_ms)],
-                DIARIZATION_SAMPLE_RATE,
-            );
-            if audio.len() < MIN_EMBED_SAMPLES {
-                continue;
-            }
-            processed += 1;
-            let embedding = embed_piece(&engine, &audio);
-            let speaker_id = registry
-                .resolve(&conn, meeting_id, embedding.as_deref())
-                .expect("resolve");
-            assigned.entry(turn.speaker).or_default().push(speaker_id);
-        }
-
-        let attributed_total: usize = assigned.values().flatten().flatten().count();
-        eprintln!(
-            "turnos procesados: {processed}, atribuidos: {attributed_total}, hablantes creados: {}",
-            registry.entries.len()
-        );
-
-        assert!(
-            assigned.len() >= 2,
-            "el fixture tiene 4 voces reales: la referencia debe traer al menos 2"
-        );
-        // Sin esto, el test pasaría en vacío si TODO quedara incierto —
-        // que es justo el modo de falla más plausible de este diseño.
-        assert!(
-            attributed_total * 2 >= processed,
-            "al menos la mitad de los turnos debería quedar atribuida, quedaron \
-             {attributed_total}/{processed}"
-        );
-        assert!(
-            registry.entries.len() >= 2,
-            "el registro debe distinguir al menos dos voces, distinguió {}",
-            registry.entries.len()
-        );
-
-        for (truth_speaker, ids) in &assigned {
-            let attributed: Vec<i64> = ids.iter().flatten().copied().collect();
-            if attributed.is_empty() {
-                continue;
-            }
-            let modal = attributed
-                .iter()
-                .max_by_key(|id| attributed.iter().filter(|x| x == id).count())
-                .copied()
-                .unwrap();
-            let consistent = attributed.iter().filter(|id| **id == modal).count();
-            assert!(
-                consistent * 100 / attributed.len() >= 80,
-                "los turnos del hablante real {truth_speaker} deberían caer mayoritariamente en \
-                 un mismo speaker_id (SC-001: >80%), cayeron {consistent}/{}",
-                attributed.len()
-            );
-        }
-
-        drop(conn);
-        drop(manager);
-        let _ = std::fs::remove_file(&dir);
-    }
-
-    // ------------------------------------------------------------------
-    // El modelo se descarga en medio de la reunión: el turno se recarga y
-    // se reintenta UNA vez, en vez de perderse en silencio (y con él todos
-    // los siguientes, que es lo que pasaba).
-    // ------------------------------------------------------------------
-
-    #[test]
-    fn a_turn_is_retried_once_after_reloading_an_unloaded_model() {
-        let attempts = Arc::new(Mutex::new(Vec::<usize>::new()));
-        let reloads = Arc::new(Mutex::new(0usize));
-
-        let attempts_cb = Arc::clone(&attempts);
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &move |samples: Vec<f32>| {
-            let mut attempts = attempts_cb.lock().unwrap();
-            attempts.push(samples.len());
-            if attempts.len() == 1 {
-                Err(anyhow::anyhow!("Model is not loaded for transcription."))
-            } else {
-                Ok("lo que se dijo".to_string())
-            }
-        };
-        let reloads_cb = Arc::clone(&reloads);
-        let reload: &dyn Fn() = &move || *reloads_cb.lock().unwrap() += 1;
-
-        let text = transcribe_with_reload(vec![0.5; 1234], transcribe, reload)
-            .expect("el reintento tras recargar debería transcribir el turno");
-
-        assert_eq!(text, "lo que se dijo");
-        assert_eq!(*reloads.lock().unwrap(), 1, "hay que recargar el modelo");
-        assert_eq!(
-            *attempts.lock().unwrap(),
-            vec![1234, 1234],
-            "el reintento tiene que llevar el MISMO audio, no un turno vacío"
-        );
-    }
-
-    #[test]
-    fn a_second_model_failure_is_not_retried_forever() {
-        let attempts = Arc::new(Mutex::new(0usize));
-        let attempts_cb = Arc::clone(&attempts);
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> = &move |_| {
-            *attempts_cb.lock().unwrap() += 1;
-            Err(anyhow::anyhow!("Model is not loaded for transcription."))
-        };
-        let reload: &dyn Fn() = &|| {};
-
-        assert!(transcribe_with_reload(vec![0.0; 10], transcribe, reload).is_err());
-        assert_eq!(
-            *attempts.lock().unwrap(),
-            2,
-            "un reintento por turno: reintentar en bucle trabaría la cola detrás de éste"
-        );
-    }
-
-    #[test]
-    fn an_error_that_is_not_about_the_model_does_not_reload_anything() {
-        let reloads = Arc::new(Mutex::new(0usize));
-        let transcribe: &dyn Fn(Vec<f32>) -> Result<String> =
-            &|_| Err(anyhow::anyhow!("el motor explotó"));
-        let reloads_cb = Arc::clone(&reloads);
-        let reload: &dyn Fn() = &move || *reloads_cb.lock().unwrap() += 1;
-
-        assert!(transcribe_with_reload(vec![0.0; 10], transcribe, reload).is_err());
-        assert_eq!(*reloads.lock().unwrap(), 0);
     }
 
     // ------------------------------------------------------------------
