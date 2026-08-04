@@ -1532,6 +1532,13 @@ fn run_pipeline(models: &LoadedModels, audio: &[f32]) -> Result<Vec<DiarizedSegm
 /// Ver su doc comment para el diseño completo.
 pub mod sortformer;
 
+/// Alineador de tokens con hablantes (Task 4 del plan "reuniones en
+/// streaming"): pega cada `TimedToken` de la Task 3 al `SpeakerSpan` de la
+/// Task 2 con mayor solape temporal y agrupa tokens consecutivos del mismo
+/// hablante en intervenciones. Lógica pura, sin ONNX ni estado. Ver su doc
+/// comment para el diseño completo.
+pub mod align;
+
 #[cfg(test)]
 mod tests {
     use super::*;
