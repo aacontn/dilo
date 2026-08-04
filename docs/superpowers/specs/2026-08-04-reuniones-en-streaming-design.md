@@ -64,7 +64,9 @@ Las etiquetas de hablante se **pegan al texto según cambia la voz**, en vivo. N
 | DiariZen                    | 13,3%                 | flexible    | Python + PyTorch: no entra en Tauri       |
 | PyannoteAI                  | 11,2%                 | flexible    | Comercial                                 |
 
-Sortformer le gana a LS-EEND y EEND-GLA en pruebas reales y es el más rápido por lejos (214× tiempo real). Es **ONNX opset 17** → corre con `ort`, que Dilo ya usa, sin dependencias nuevas. Licencia **CC-BY-4.0**, la misma de canary, que ya distribuimos.
+Sortformer le gana a LS-EEND y EEND-GLA en pruebas reales y es el más rápido por lejos (214× tiempo real). Es **ONNX opset 17** → corre con `ort`, que Dilo ya usa, sin dependencias nuevas. Licencia **CC-BY-4.0** en la versión **v2** — la misma de canary, que ya distribuimos.
+
+**Ojo con la versión, verificado el 2026-08-04:** `diar_streaming_sortformer_4spk-v2` es CC-BY-4.0, pero `…-v2.1` cambió a `nvidia-open-model-license`, que hay que leer antes de distribuir. **Se usa v2**, y no v2.1, precisamente por eso.
 
 **Y hay una implementación de referencia:** el fork de sherpa-onnx del [issue #3497](https://github.com/k2-fsa/sherpa-onnx/issues/3497) reporta ~99,5% de paridad con NeMo, probado con 2-4 hablantes en audios de 10 a 60 minutos. Nuestra diarización actual la portamos de sherpa-onnx, así que traducir ese código a Rust es territorio conocido.
 
