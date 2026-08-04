@@ -172,24 +172,21 @@ enum LoadedEngine {
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
 /// Ensures the loading flag is always reset, even on early returns or panics.
+///
+/// Delegates to [`TranscriptionManager::finish_loading`] rather than poking
+/// `is_loading` directly, so a model request that arrived (and got queued,
+/// see `decide_model_load_action`) while `switch_active_model` held this
+/// guard for its synchronous load gets picked up the same way it would after
+/// `initiate_model_load_id`'s own background load — see Causa 2 del reporte
+/// de arreglo de reuniones (2026-08-03): before this, a request that raced
+/// either kind of in-flight load was silently dropped.
 pub struct LoadingGuard {
-    is_loading: Arc<Mutex<bool>>,
-    loading_condvar: Arc<Condvar>,
+    manager: TranscriptionManager,
 }
 
 impl Drop for LoadingGuard {
     fn drop(&mut self) {
-        // Recover from a poisoned mutex instead of panicking —
-        // a panic inside Drop calls abort().
-        let mut is_loading = match self.is_loading.lock() {
-            Ok(g) => g,
-            Err(e) => {
-                warn!("Recovered poisoned is_loading mutex during LoadingGuard drop — a panic occurred earlier this session");
-                e.into_inner()
-            }
-        };
-        *is_loading = false;
-        self.loading_condvar.notify_all();
+        self.manager.finish_loading();
     }
 }
 
@@ -236,6 +233,25 @@ pub struct TranscriptionManager {
     is_loading: Arc<Mutex<bool>>,
     loading_condvar: Arc<Condvar>,
     reload_model_on_next_use: Arc<AtomicBool>,
+    /// Model id the in-flight load (if any) is loading. `None` whenever
+    /// `is_loading` is false. Lets `initiate_model_load_id` tell "the load
+    /// already running targets this exact model" (a cheap no-op, unchanged
+    /// from before) apart from "a DIFFERENT model was requested" (queued
+    /// into `pending_model_id` instead of dropped). Only set by
+    /// `initiate_model_load_id`'s own background load — `try_start_loading`
+    /// (the slot `switch_active_model` uses for dictation's synchronous
+    /// load) leaves it `None`, which is still correct: it just means a
+    /// request racing THAT load always queues rather than deduping, at the
+    /// cost of one harmless extra no-op once it's replayed.
+    loading_target: Arc<Mutex<Option<String>>>,
+    /// A model id requested via `initiate_model_load_id` while a different
+    /// load was already in flight. `finish_loading` consumes it once that
+    /// load ends and starts it. Only the latest request survives — an older
+    /// queued id is simply overwritten, since only the last choice matters.
+    /// This is Causa 2 del reporte de arreglo de reuniones (2026-08-03): a
+    /// meeting's model request no longer disappears silently when it races
+    /// the dictation model selector's own load.
+    pending_model_id: Arc<Mutex<Option<String>>>,
     /// Routes real-time audio frames to the active streaming worker; see
     /// [`StreamRouter`]. Shared with the audio recorder so per-frame feeds skip
     /// Tauri state and the manager lock.
@@ -266,6 +282,46 @@ pub struct TranscriptionManager {
     meeting_capture_active: Arc<AtomicBool>,
 }
 
+/// What `initiate_model_load_id` should do about a request, given the
+/// current loading state. Pulled out of the method as a pure function —
+/// no `AppHandle`, no locks, no threads — so the "don't drop a request for a
+/// different model" rule (Causa 2 del reporte de arreglo de reuniones,
+/// 2026-08-03) can be unit-tested directly instead of only through the
+/// method's side effects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModelLoadAction {
+    /// Nothing to do: either no load is in flight and `requested_model_id`
+    /// is already current (and no forced reload is pending), or a load IS
+    /// in flight and it already targets `requested_model_id`.
+    Noop,
+    /// No load is in flight (or one is, but a forced reload makes this a
+    /// fresh request anyway): start loading `requested_model_id` now.
+    Start,
+    /// A load is in flight for a DIFFERENT model: remember this request
+    /// instead of dropping it. Whoever finishes that load starts this one.
+    Queue,
+}
+
+fn decide_model_load_action(
+    is_loading: bool,
+    loading_target: Option<&str>,
+    current_model: Option<&str>,
+    reload_pending: bool,
+    requested_model_id: &str,
+) -> ModelLoadAction {
+    if is_loading {
+        if loading_target == Some(requested_model_id) {
+            ModelLoadAction::Noop
+        } else {
+            ModelLoadAction::Queue
+        }
+    } else if !reload_pending && current_model == Some(requested_model_id) {
+        ModelLoadAction::Noop
+    } else {
+        ModelLoadAction::Start
+    }
+}
+
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
         let manager = Self {
@@ -279,6 +335,8 @@ impl TranscriptionManager {
             is_loading: Arc::new(Mutex::new(false)),
             loading_condvar: Arc::new(Condvar::new()),
             reload_model_on_next_use: Arc::new(AtomicBool::new(false)),
+            loading_target: Arc::new(Mutex::new(None)),
+            pending_model_id: Arc::new(Mutex::new(None)),
             router: Arc::new(StreamRouter::new()),
             stream_active: Arc::new(AtomicBool::new(false)),
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
@@ -399,8 +457,7 @@ impl TranscriptionManager {
         }
         *is_loading = true;
         Some(LoadingGuard {
-            is_loading: self.is_loading.clone(),
-            loading_condvar: self.loading_condvar.clone(),
+            manager: self.clone(),
         })
     }
 
@@ -768,18 +825,43 @@ impl TranscriptionManager {
     /// `model_id` instead of leaving the wrong one in place — the bug that
     /// motivated splitting this out of the old `initiate_model_load`, whose
     /// blanket `is_model_loaded()` check would have skipped the switch back.
+    ///
+    /// Also idempotent against a load *already in flight* for this exact
+    /// `model_id` — calling this repeatedly for the same target while it's
+    /// (being) loaded stays a cheap no-op, which is what lets meeting
+    /// capture call it on every turn (Causa 3 del reporte de arreglo) without
+    /// real cost. But a call for a DIFFERENT model while another load is in
+    /// flight is no longer dropped silently (Causa 2 del mismo reporte): it
+    /// is queued in `pending_model_id` and started by `finish_loading` as
+    /// soon as the in-flight load ends — see `decide_model_load_action` for
+    /// the pure decision behind this, and its unit tests below.
     pub fn initiate_model_load_id(&self, model_id: String) {
         let mut is_loading = self.is_loading.lock().unwrap();
-        if *is_loading {
-            return;
-        }
-
         let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
-        if !reload_pending && self.get_current_model().as_deref() == Some(model_id.as_str()) {
-            return;
+        let action = {
+            let loading_target = self.loading_target.lock().unwrap();
+            decide_model_load_action(
+                *is_loading,
+                loading_target.as_deref(),
+                self.get_current_model().as_deref(),
+                reload_pending,
+                &model_id,
+            )
+        };
+
+        match action {
+            ModelLoadAction::Noop => return,
+            ModelLoadAction::Queue => {
+                *self.pending_model_id.lock().unwrap() = Some(model_id);
+                return;
+            }
+            ModelLoadAction::Start => {}
         }
 
         *is_loading = true;
+        *self.loading_target.lock().unwrap() = Some(model_id.clone());
+        drop(is_loading);
+
         let self_clone = self.clone();
         thread::spawn(move || {
             if reload_pending {
@@ -790,10 +872,40 @@ impl TranscriptionManager {
             if let Err(e) = self_clone.load_model(&model_id) {
                 error!("Failed to load model: {}", e);
             }
-            let mut is_loading = self_clone.is_loading.lock().unwrap();
-            *is_loading = false;
-            self_clone.loading_condvar.notify_all();
+            self_clone.finish_loading();
         });
+    }
+
+    /// Clears the in-flight bookkeeping (`is_loading`, `loading_target`) and
+    /// wakes anyone blocked in `wait_for_model_load`, then starts the next
+    /// queued request if one arrived while this load was running
+    /// (`pending_model_id`). Shared by `initiate_model_load_id`'s own
+    /// background thread and by [`LoadingGuard`] (the slot
+    /// `switch_active_model` holds for dictation's synchronous load), so a
+    /// request queued during either kind of load gets picked up the same
+    /// way.
+    fn finish_loading(&self) {
+        {
+            let mut is_loading = self
+                .is_loading
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *is_loading = false;
+            let mut loading_target = self
+                .loading_target
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *loading_target = None;
+            self.loading_condvar.notify_all();
+        }
+        let next = self
+            .pending_model_id
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .take();
+        if let Some(next_id) = next {
+            self.initiate_model_load_id(next_id);
+        }
     }
 
     pub fn get_current_model(&self) -> Option<String> {
@@ -2000,6 +2112,80 @@ mod tests {
         assert!(matches!(plan.task, Task::Transcribe));
         assert_eq!(plan.language.as_deref(), Some("es"));
         assert_eq!(plan.target_language, None);
+    }
+
+    // ---------- decide_model_load_action (Causa 2, reporte de arreglo de
+    // reuniones 2026-08-03: no descartar en silencio una petición de un
+    // modelo distinto al que ya se está cargando) ----------
+
+    #[test]
+    fn decide_model_load_action_noop_when_already_current() {
+        // El camino de dictado más común: nada cargando, y el modelo pedido
+        // ya es el que está cargado. Tiene que seguir siendo barato — es lo
+        // que permite llamar esto en cada turno de una reunión sin costo.
+        assert_eq!(
+            decide_model_load_action(false, None, Some("whisper-small"), false, "whisper-small"),
+            ModelLoadAction::Noop
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_starts_when_different_from_current() {
+        assert_eq!(
+            decide_model_load_action(false, None, Some("whisper-small"), false, "parakeet-tdt"),
+            ModelLoadAction::Start
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_starts_when_no_model_loaded_yet() {
+        assert_eq!(
+            decide_model_load_action(false, None, None, false, "whisper-small"),
+            ModelLoadAction::Start
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_starts_on_forced_reload_even_if_current() {
+        // Accelerator change: mismo id, pero `reload_model_on_next_use` fuerza
+        // una recarga igual.
+        assert_eq!(
+            decide_model_load_action(false, None, Some("whisper-small"), true, "whisper-small"),
+            ModelLoadAction::Start
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_noop_when_already_loading_same_target() {
+        // Pedir el modelo que YA se está cargando (o cargándose) tiene que
+        // seguir siendo un no-op barato — lo pide explícitamente el reporte.
+        assert_eq!(
+            decide_model_load_action(true, Some("whisper-small"), None, false, "whisper-small"),
+            ModelLoadAction::Noop
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_queues_different_model_while_loading() {
+        // El bug central de Causa 2: una reunión pide su propio modelo
+        // mientras el selector de dictado ya está cargando otro distinto.
+        // Antes esto se descartaba en silencio (`return` sin más); ahora se
+        // encola.
+        assert_eq!(
+            decide_model_load_action(true, Some("whisper-small"), None, false, "parakeet-tdt"),
+            ModelLoadAction::Queue
+        );
+    }
+
+    #[test]
+    fn decide_model_load_action_queues_when_loading_target_unknown() {
+        // `try_start_loading` (el camino síncrono de `switch_active_model`)
+        // no registra `loading_target` — con el target en `None` cualquier
+        // petición concurrente se encola en vez de asumirse redundante.
+        assert_eq!(
+            decide_model_load_action(true, None, None, false, "whisper-small"),
+            ModelLoadAction::Queue
+        );
     }
 }
 
