@@ -315,12 +315,14 @@ impl SystemAudioRecorder {
     /// vivo**, a medida que el hilo consumidor los remuestrea — misma forma
     /// y mismas garantías que `AudioRecorder::with_audio_callback` (en
     /// orden, en el hilo consumidor, barato: ver el comentario del módulo
-    /// sobre "keep the callback cheap"). A diferencia del callback del
-    /// micrófono, éste entrega las muestras **sin filtrar por VAD**: este
-    /// módulo no tiene ningún VAD propio (el del micrófono vive adentro de
-    /// `AudioRecorder`). Quien necesite el mismo corte por voz que el
-    /// micrófono debe aplicar su propio VAD sobre estas muestras antes de
-    /// usarlas — ver `managers/meeting.rs::build_meeting_system_audio_recorder`.
+    /// sobre "keep the callback cheap"). Este módulo no tiene ningún VAD
+    /// propio (el del micrófono vive adentro de `AudioRecorder`) y entrega
+    /// las muestras **sin filtrar**. Desde 2026-08-04 eso ya no es una
+    /// diferencia con el micrófono: el camino de reuniones dejó de gatear
+    /// por VAD en las dos fuentes (el micrófono arranca con
+    /// `VadPolicy::Disabled`) y filtra, si acaso, con una compuerta de
+    /// energía río abajo — ver `managers/meeting.rs`
+    /// (`build_meeting_system_audio_recorder`, `ENERGY_GATE_RMS`).
     ///
     /// Debe llamarse ANTES de `open()`: `open()` clona esta referencia hacia
     /// el hilo consumidor que crea, así que registrarlo después de abrir la

@@ -3,22 +3,29 @@
 //! (migrations), and T006 added `get_connection()` so later tasks can open
 //! per-operation connections against the migrated database, mirroring
 //! `HistoryManager`'s pattern. T011 added the first real business logic,
-//! `start_meeting()` — it only creates the `meetings` row. T012 (this task)
-//! wires real microphone capture + VAD + incremental transcription into a
-//! meeting session — see [`MeetingManager::start_capture`] and the
+//! `start_meeting()` — it only creates the `meetings` row. T012 wired real
+//! microphone capture + VAD + incremental transcription into a meeting
+//! session — see [`MeetingManager::start_capture`] and the
 //! coexistence-with-dictation decision documented just above it. T013 adds
 //! per-turn speaker attribution on top of that pipeline — see the
 //! "T013: diarización incremental" section below.
+//!
+//! **2026-08-04: el VAD neuronal salió del camino de reuniones.** Medido
+//! contra `meetings.db` real, Silero (afinado para dictado: micrófono
+//! cerca, una sola voz, silencio alrededor) descartaba entre 13% y 79% del
+//! audio de reuniones reales — peor cuanto más se mezclaba la voz con
+//! música o compresión de video. El reemplazo es una compuerta de energía
+//! (RMS) mucho más permisiva: ver [`has_energy`] y el comentario de
+//! [`ENERGY_GATE_RMS`] para la justificación del umbral, y el comentario de
+//! [`TurnAccumulator`] para cómo pasó a cerrar los turnos sin la señal que
+//! antes le daba el VAD. El VAD del dictado (`managers/audio.rs`) no se
+//! tocó: ahí filtrar sigue siendo correcto.
 
 use crate::audio_toolkit::{
     audio::{system_audio_available, CaptureDiagnosis, SystemAudioRecorder},
-    vad::{
-        SmoothedVad, VadFrame, VAD_OFFLINE_HANGOVER_FRAMES, VAD_ONSET_FRAMES, VAD_PREFILL_FRAMES,
-        VAD_STREAMING_HANGOVER_FRAMES,
-    },
-    AudioRecorder, SileroVad, VadPolicy, VoiceActivityDetector,
+    AudioRecorder, VadPolicy,
 };
-use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter, VAD_THRESHOLD};
+use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter};
 use crate::managers::diarization::{
     cosine_similarity, DiarizationEngine, DiarizedSegment, CLUSTER_THRESHOLD,
 };
@@ -32,7 +39,7 @@ use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use rusqlite_migration::{Migrations, M};
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -336,7 +343,8 @@ impl PendingMeetingAudioNotices {
     }
 }
 
-// --- T012: microphone capture -> VAD -> incremental transcription -----
+// --- T012: microphone/system-audio capture -> energy gate -> incremental
+// --- transcription --------------------------------------------------------
 //
 // # Coexistence with dictation (architecture decision, T012)
 //
@@ -451,9 +459,18 @@ impl PendingMeetingAudioNotices {
 // whoever runs T053's SC-004 validation knows to watch both memory *and*
 // segment-latency-over-time, not just memory.
 
-/// One completed VAD-detected speech turn, ready to transcribe. `research.md`
-/// §2's "ventanas cortas superpuestas" decision maps one VAD turn to one
-/// transcription window — no more sophisticated windowing than that.
+/// One completed audio turn, ready to run through the energy gate and (if it
+/// passes) transcribe. `research.md` §2's "ventanas cortas superpuestas"
+/// decision maps one turn to one transcription window — no more
+/// sophisticated windowing than that.
+///
+/// Pre-2026-08-04 this was "one completed VAD-detected speech turn" — a turn
+/// only ever contained audio the neural VAD had already classified as
+/// speech. Since the VAD no longer gates meeting audio (see the module doc
+/// comment), a turn now contains whatever the capture backend delivered,
+/// unfiltered, and may turn out to be mostly or entirely silence — that's
+/// exactly what [`has_energy`] checks before a turn reaches the
+/// transcriber.
 ///
 /// `#[allow(dead_code)]` throughout this section: everything below is wired
 /// only through `start_capture`/`stop_capture`, which the brief for this
@@ -469,49 +486,76 @@ struct CompletedTurn {
     ended_at_ms: i64,
 }
 
-/// Groups a live stream of VAD-passed speech frames into discrete
-/// [`CompletedTurn`]s. Deliberately decoupled from real time and from
-/// `AudioRecorder`/cpal: the live capture path drives it from
-/// `push_speech`/`take_if_silent` off a wall-clock watchdog, while tests
-/// drive the exact same buffering/timestamp logic deterministically by
-/// feeding pre-recorded frames through the real Silero+`SmoothedVad` engine
-/// directly and calling `push_speech`/`take_remaining` at the VAD's own
-/// Speech->Noise transitions — no live timing, no hardware, no flakiness.
+/// Groups a live stream of audio frames into discrete [`CompletedTurn`]s.
+/// Deliberately decoupled from real time and from `AudioRecorder`/cpal: the
+/// live capture path drives it from `push`/`take_if_quiet` off a wall-clock
+/// watchdog, while tests drive the exact same buffering/timestamp logic by
+/// feeding synthetic or pre-recorded frames directly and calling
+/// `push`/`take_remaining` themselves — no live timing, no hardware, no
+/// flakiness.
+///
+/// **2026-08-04: turn closing no longer depends on frames stopping.** Before
+/// this change, every frame reaching this accumulator had already survived
+/// the neural VAD, so "no `push` call for a while" and "real silence" were
+/// the same event — the VAD's hangover tail simply stopped delivering
+/// frames once speech ended. Now every frame the capture backend produces
+/// arrives here, silence included (that's the whole point: the VAD is gone,
+/// see the module doc comment), so `push` is called continuously for the
+/// entire recording. Turn closing therefore can't watch for "frames stopped
+/// arriving" anymore — it watches the *content* of what keeps arriving:
+/// `quiet_since` tracks how long the frames have been below
+/// [`ENERGY_GATE_RMS`], and [`Self::take_if_quiet`] closes the turn once
+/// that stretch reaches [`TURN_SILENCE_GAP`], the same role `take_if_silent`
+/// used to play against `last_frame_at`.
 #[derive(Default)]
 #[allow(dead_code)]
 struct TurnAccumulator {
     buffer: Vec<f32>,
     turn_started_ms: Option<i64>,
-    last_frame_at: Option<Instant>,
+    /// `Some(when the current continuous low-energy stretch started)`,
+    /// `None` while the most recent frame had energy (or before any frame
+    /// arrived). Set once when a quiet frame follows a loud one (or the
+    /// first frame is quiet) and left alone by every quiet frame after
+    /// that, so its age is real wall-clock time spent quiet — not reset by
+    /// each individual quiet `push` call.
+    quiet_since: Option<Instant>,
 }
 
 impl TurnAccumulator {
-    /// Feed one chunk of VAD-passed speech audio. `now_ms` is the caller's
-    /// clock (ms since capture started) and only used to timestamp the
-    /// start of a fresh turn.
+    /// Feed one chunk of audio — every frame the capture backend delivers,
+    /// loud or quiet; nothing is filtered out before this point anymore
+    /// (see the struct doc comment). `now_ms` is the caller's clock (ms
+    /// since capture started) and only used to timestamp the start of a
+    /// fresh turn.
     #[allow(dead_code)]
-    fn push_speech(&mut self, samples: &[f32], now_ms: i64) {
+    fn push(&mut self, samples: &[f32], now_ms: i64) {
         if self.buffer.is_empty() {
             self.turn_started_ms = Some(now_ms);
         }
         self.buffer.extend_from_slice(samples);
-        self.last_frame_at = Some(Instant::now());
+        if has_energy(samples) {
+            self.quiet_since = None;
+        } else if self.quiet_since.is_none() {
+            self.quiet_since = Some(Instant::now());
+        }
     }
 
-    /// If a turn is in progress and has been silent for at least `gap`
-    /// (no `push_speech` call in that long), take and return it. Used by
-    /// the live watchdog thread.
+    /// If a turn is in progress and has been below the energy gate
+    /// continuously for at least `gap`, take and return it. Used by the
+    /// live watchdog thread — the energy-gate equivalent of the old
+    /// `take_if_silent`, see the struct doc comment for why frame arrival
+    /// alone no longer signals silence.
     #[allow(dead_code)]
-    fn take_if_silent(&mut self, gap: Duration, now_ms: i64) -> Option<CompletedTurn> {
-        let idle_for = self.last_frame_at?.elapsed();
-        if self.buffer.is_empty() || idle_for < gap {
+    fn take_if_quiet(&mut self, gap: Duration, now_ms: i64) -> Option<CompletedTurn> {
+        let quiet_for = self.quiet_since?.elapsed();
+        if self.buffer.is_empty() || quiet_for < gap {
             return None;
         }
         self.take_remaining(now_ms)
     }
 
     /// Si hay un turno en curso y acumuló al menos `max_ms` de audio, lo
-    /// cierra aunque siga entrando voz — a diferencia de `take_if_silent`,
+    /// cierra aunque siga entrando voz — a diferencia de `take_if_quiet`,
     /// que nunca dispara en conversación continua porque nunca hay
     /// `TURN_SILENCE_GAP` de silencio real. Es el tope duro que evita que un
     /// turno crezca sin límite (ver `MAX_TURN_MS`).
@@ -532,17 +576,16 @@ impl TurnAccumulator {
         self.take_remaining(now_ms)
     }
 
-    /// Unconditionally take whatever is buffered, regardless of silence
-    /// gap. Used by tests (driven off real VAD Speech->Noise transitions
-    /// instead of wall-clock silence) and by `stop_capture` to flush a
-    /// trailing partial turn when capture ends mid-speech.
+    /// Unconditionally take whatever is buffered, regardless of the quiet
+    /// gap. Used by tests and by `stop_capture` to flush a trailing partial
+    /// turn when capture ends mid-speech.
     #[allow(dead_code)]
     fn take_remaining(&mut self, now_ms: i64) -> Option<CompletedTurn> {
         if self.buffer.is_empty() {
             return None;
         }
         let started_at_ms = self.turn_started_ms.take()?;
-        self.last_frame_at = None;
+        self.quiet_since = None;
         Some(CompletedTurn {
             samples: std::mem::take(&mut self.buffer),
             started_at_ms,
@@ -551,30 +594,119 @@ impl TurnAccumulator {
     }
 }
 
-/// How long a turn must go without a new speech frame before the live
-/// watchdog finalizes it. This is not just "does the turn eventually
-/// close" — it's the number that decides WHERE the cut lands, so it has to
-/// line up with a real end-of-utterance pause, not with frame-to-frame
-/// jitter.
+/// How long a turn must stay below the energy gate before the live watchdog
+/// finalizes it. This is not just "does the turn eventually close" — it's
+/// the number that decides WHERE the cut lands, so it has to line up with a
+/// real end-of-utterance pause, not with frame-to-frame jitter.
 ///
-/// Frames arrive ~every 30ms while the VAD considers a turn ongoing
-/// (including its hangover tail), so by the time frames actually stop
-/// arriving, `VAD_OFFLINE_HANGOVER_FRAMES` worth of real silence has
-/// already elapsed and been absorbed without ever reaching this timer — a
-/// normal ~200-300ms breathing pause between words never gets this far.
-/// The real silence a turn needs before it closes is hangover + this gap:
-/// 15 frames * 30ms (`VAD_OFFLINE_HANGOVER_FRAMES`) + 400ms = 850ms, which
-/// lands on a sentence-final pause (roughly 500-1000ms), not a paragraph
-/// break. `VAD_OFFLINE_HANGOVER_FRAMES` is shared with dictation
-/// (`managers/audio.rs`) and stays untouched; only this gap is meeting-only
-/// and tunable here.
+/// **2026-08-04: this used to be 400ms, on top of a VAD hangover tail that
+/// did most of the work.** Frames only arrived here once the neural VAD
+/// called them speech, and its `VAD_OFFLINE_HANGOVER_FRAMES` (15 frames *
+/// 30ms = 450ms) hangover tail kept delivering frames for a while after
+/// speech actually ended — so the real silence a turn needed before closing
+/// was hangover (450ms) + the old 400ms gap = 850ms, and only the last
+/// 400ms of that was ever spent waiting on this constant. Now there is no
+/// VAD and no hangover: frames keep arriving continuously regardless of
+/// content (see the module doc comment and `TurnAccumulator`), and
+/// `quiet_since` starts counting the instant the energy gate first sees a
+/// quiet frame — nothing pads it. For a turn to still close at roughly the
+/// same real silence point it always did (and keep landing on a
+/// sentence-final pause, not a mid-sentence breathing gap), this constant
+/// now has to cover that whole ~850ms by itself, so it moved from 400ms to
+/// 850ms rather than staying at 400ms and closing turns twice as eagerly as
+/// before by accident.
 ///
-/// Measured against a real 126s recording: at 200ms this produced 15 turns
+/// Measured against a real 126s recording (back when this was tuned against
+/// the VAD path): at 200ms total silence budget this produced 15 turns
 /// averaging 3.2s, a third of them under 2s and isolated enough to
 /// hallucinate on their own (a stray "weon" mid-English-sentence, a
-/// phonetic-alphabet spelling split word by word). 400ms targets 4-8s turns
-/// instead, while still comfortably closing before `MAX_TURN_MS`.
-const TURN_SILENCE_GAP: Duration = Duration::from_millis(400);
+/// phonetic-alphabet spelling split word by word); 850ms was the budget
+/// that landed on 4-8s turns instead. Not re-measured against real audio
+/// after this change (no real meeting hardware in this environment) — flagged
+/// for whoever runs the next real-meeting validation pass.
+const TURN_SILENCE_GAP: Duration = Duration::from_millis(850);
+
+/// Umbral de energía (RMS, en la misma escala [-1.0, 1.0] que las muestras
+/// que entrega `cpal`) por debajo del cual un tramo de audio se trata como
+/// silencio para el pipeline de reuniones: no cierra por contenido, no
+/// alimenta `quiet_since` como "hay algo sonando", y — sobre el turno
+/// completo, ver [`has_energy`] usado en el hilo transcriptor — no se manda
+/// a transcribir.
+///
+/// **Por qué RMS y no el VAD neuronal que reemplaza.** El VAD (Silero) es un
+/// clasificador voz/no-voz: le pasa lo que reconoce como habla humana y
+/// descarta el resto, así que música, aplausos, una risa, o voz muy
+/// comprimida/mezclada con audio de sistema puede no "sonarle" a voz y
+/// quedar afuera — exactamente lo medido contra `meetings.db` real que
+/// motivó este cambio (39-79% del audio de reuniones con video/música
+/// descartado). RMS no clasifica nada: sólo mide cuánta energía hay. Es
+/// mucho más tonto y por eso mucho más permisivo — música, aplausos, voz
+/// comprimida, todo lo que tenga amplitud real pasa igual — pero sigue
+/// distinguiendo lo único que de verdad hay que distinguir acá: silencio
+/// digital (o un piso de ruido tan bajo que no vale la pena transcribirlo)
+/// contra cualquier otra cosa.
+///
+/// **Por qué no [`crate::audio_toolkit::audio::has_nonzero_sample`]**, la
+/// señal que ya existe en el módulo de audio del sistema: esa función
+/// contesta "¿hay AL MENOS UNA muestra distinta de cero?", pensada para
+/// distinguir silencio digital exacto (el síntoma de grabar sin permiso de
+/// audio del sistema, ver `system_audio.rs`) de cualquier captura con
+/// contenido real. Sirve para ese diagnóstico puntual, pero es demasiado
+/// laxa para gatillar transcripción: un piso de ruido eléctrico bajo, o un
+/// solo sample de redondeo que no sea exactamente 0.0, ya la satisface sin
+/// que haya nada que valga la pena transcribir. RMS sobre el tramo entero no
+/// tiene ese problema: una sola muestra alta en un mar de ceros apenas mueve
+/// el promedio cuadrático.
+///
+/// **El valor: 0.005 lineal, ≈ -46 dBFS** (`20 * log10(0.005) ≈ -46.02`).
+/// Elegido para caer claramente entre dos franjas:
+/// - **Por debajo, y por lo tanto rechazado:** silencio digital exacto
+///   (RMS 0.0, el caso que motivó `has_nonzero_sample` en primer lugar) y el
+///   piso de ruido típico de un micrófono o de audio de sistema sin nada
+///   sonando — ruido térmico/eléctrico y de cuantización, que en la
+///   práctica se queda bastante por debajo de -50 dBFS salvo hardware
+///   defectuoso o ganancia de entrada anormalmente alta.
+/// - **Por encima, y por lo tanto aceptado:** voz conversacional a nivel de
+///   grabación normal (típicamente -25 a -15 dBFS de RMS) y música o audio
+///   de sistema mezclado, incluso bajo o distante (-35 dBFS para abajo es ya
+///   un caso extremo). Un margen de al menos ~20 dB separa el umbral de
+///   cualquier contenido real que interese transcribir, así que un hablante
+///   grabando bajo, o un video con volumen bajo, sigue pasando con margen de
+///   sobra.
+///
+/// No hay una medición contra hardware real que calibre esto con precisión
+/// (mismo límite que el resto de este módulo: sin audio real disponible en
+/// este entorno) — el valor es una estimación de ingeniería a partir de
+/// niveles típicos de dBFS, deliberadamente conservadora hacia el lado
+/// permisivo (más cerca del piso de ruido que del contenido real), porque el
+/// costo de dejar pasar un tramo casi silencioso (un turno vacío que no
+/// transcribe nada, `persist_and_emit_segment` ya lo descarta si el texto
+/// sale vacío) es mucho menor que el de cortar voz real.
+const ENERGY_GATE_RMS: f32 = 0.005;
+
+/// Energía RMS (root-mean-square) de `samples`, en la misma escala que las
+/// muestras de entrada. `0.0` para un buffer vacío. Acumula en `f64` para no
+/// perder precisión sobre un turno largo (hasta 128_000 muestras, el tope de
+/// `MAX_TURN_MS`) antes de volver a `f32`.
+fn rms_energy(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    let sum_sq: f64 = samples.iter().map(|&s| (s as f64) * (s as f64)).sum();
+    ((sum_sq / samples.len() as f64).sqrt()) as f32
+}
+
+/// La compuerta de energía en sí: `true` si `samples` tiene suficiente
+/// energía como para no ser silencio digital ni piso de ruido — ver
+/// [`ENERGY_GATE_RMS`]. Función pura, usada tanto por frame (30ms, dentro de
+/// `TurnAccumulator::push`) como sobre un turno completo (dentro del hilo
+/// transcriptor, antes de gastar un ciclo de transcripción en él) — RMS no
+/// depende del tamaño del buffer, así que el mismo umbral sirve para los
+/// dos.
+fn has_energy(samples: &[f32]) -> bool {
+    rms_energy(samples) >= ENERGY_GATE_RMS
+}
+
 /// Tope duro de duración de un turno. En conversación continua nunca hay
 /// `TURN_SILENCE_GAP` de silencio real, así que sin este tope un turno crece
 /// sin límite y colapsa una reunión de varias personas en un solo bloque sin
@@ -793,36 +925,33 @@ fn spawn_capture_abort(app_handle: &AppHandle, meeting_id: i64) {
     });
 }
 
-/// Build the `AudioRecorder` a meeting capture session uses: same reusable
-/// building blocks as dictation's `create_audio_recorder` in
-/// `managers/audio.rs` (Silero VAD wrapped in `SmoothedVad`, the shared
-/// `VAD_THRESHOLD`), wired to a different callback — this one feeds
-/// `audio_cb`'s caller-supplied turn accumulator instead of dictation's
-/// `StreamRouter` (which is a single global dictation-only route, not
-/// suited to a meeting's own long-running, independently-timed session).
-/// Not reusing `create_audio_recorder` itself since it's hardwired to that
-/// router; reusing the primitives it's built from instead.
+/// Build the `AudioRecorder` a meeting capture session uses. Wired to a
+/// different callback than dictation's `create_audio_recorder`
+/// (`managers/audio.rs`) — this one feeds `audio_cb`'s caller-supplied turn
+/// accumulator instead of dictation's `StreamRouter` (which is a single
+/// global dictation-only route, not suited to a meeting's own long-running,
+/// independently-timed session).
+///
+/// **2026-08-04: no VAD attached anymore.** This used to build a Silero VAD
+/// wrapped in `SmoothedVad` (mirroring dictation's own setup) and register
+/// it via `with_vad`, gating every frame through `VadPolicy::Offline`. Now
+/// it starts the recorder with `VadPolicy::Disabled` (see `MeetingRecorder::
+/// start`) — a policy `recorder.rs` already had for exactly this ("Bypass
+/// VAD and forward every frame") but that the meeting path never used
+/// before this change — so there's nothing left for a VAD to gate here, and
+/// no `vad_path`/model to load for it either. See the module doc comment
+/// for why: the neural VAD dropped a large fraction of real meeting audio
+/// (tuned for dictation's near-mic single-voice silence, not system audio
+/// mixed with music/compression), and every frame this recorder now
+/// forwards passes through the energy gate instead (`ENERGY_GATE_RMS`,
+/// applied inside `TurnAccumulator`/the transcriber thread — see
+/// `start_capture`), which is far more permissive.
 #[allow(dead_code)]
 fn build_meeting_recorder(
-    vad_path: &Path,
     audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
 ) -> Result<AudioRecorder> {
-    let silero = SileroVad::new(vad_path, VAD_THRESHOLD)
-        .map_err(|e| anyhow::anyhow!("Failed to create SileroVad for meeting capture: {}", e))?;
-    let smoothed_vad = SmoothedVad::new(
-        Box::new(silero),
-        VAD_PREFILL_FRAMES,
-        VAD_OFFLINE_HANGOVER_FRAMES,
-        VAD_ONSET_FRAMES,
-    );
-
     let recorder = AudioRecorder::new()
         .map_err(|e| anyhow::anyhow!("Failed to create AudioRecorder for meeting capture: {}", e))?
-        .with_vad(
-            Box::new(smoothed_vad),
-            VAD_OFFLINE_HANGOVER_FRAMES,
-            VAD_STREAMING_HANGOVER_FRAMES,
-        )
         .with_audio_callback(audio_cb);
 
     Ok(recorder)
@@ -920,55 +1049,26 @@ pub fn resolve_meeting_model_id(meeting_model_id: Option<&str>, selected_model: 
 
 /// Build the `SystemAudioRecorder` a meeting capture session uses cuando la
 /// fuente resuelta es `MeetingAudioSource::SystemAudio`. Espejo de
-/// `build_meeting_recorder`, con una diferencia que importa:
-/// `SystemAudioRecorder` no tiene ningún VAD propio (el del micrófono vive
-/// ADENTRO de `AudioRecorder` — ver `with_audio_callback` en
-/// `audio_toolkit/audio/recorder.rs`), así que `with_frame_callback` entrega
-/// las muestras del tap **sin filtrar**. Para que el resto del pipeline
-/// (acumulador de turnos, corte por voz, diarización) reciba exactamente lo
-/// mismo que hoy recibe del micrófono, este helper aplica acá el mismo VAD
-/// (`SileroVad` + `SmoothedVad`, mismas constantes que `build_meeting_recorder`
-/// para `VadPolicy::Offline` — la única política que usa una reunión) antes
-/// de llamar a `audio_cb`.
+/// `build_meeting_recorder`.
 ///
-/// `Mutex` en vez de un VAD por hilo: el callback es `Fn`, no `FnMut` (misma
-/// restricción que `AudioRecorder::with_audio_callback`), y el VAD necesita
-/// mutar su estado interno (buffer de prefill, contador de hangover) entre
-/// frames — mismo patrón que `VadConfig` usa en `recorder.rs` para el
-/// micrófono. Un solo hilo llama a este callback (el consumidor de
-/// `SystemAudioRecorder`, ver `system_audio/macos.rs`), así que el `Mutex`
-/// nunca compite de verdad; existe sólo para satisfacer el tipo.
-///
-/// M4 (reporte de seguimiento): a diferencia del VAD del micrófono
-/// (`AudioRecordingManager`, que reusa el mismo `AudioRecorder` entre
-/// grabaciones y por eso lo resetea explícitamente en cada `Cmd::Start` —
-/// código de dictado, no se toca acá), este VAD nunca necesita un
-/// `reset()` propio: este helper se llama una vez por sesión de captura
-/// (`start_capture` construye un `SystemAudioRecorder` nuevo, con un
-/// `SmoothedVad::new()` nuevo, en cada llamada), nunca se reutiliza entre
-/// reuniones. Un `SmoothedVad` recién construido ya arranca sin estado
-/// previo — no hay nada que resetear.
-///
-/// M6 (reporte de cableado): este símbolo tenía `#[allow(dead_code)]`
-/// aunque ya se usa en `start_capture` — quitado.
+/// **2026-08-04: ya no aplica ningún VAD.** `SystemAudioRecorder` nunca tuvo
+/// VAD propio — `with_frame_callback` siempre entregó las muestras del tap
+/// sin filtrar (ver su doc comment en `system_audio/macos.rs`). Hasta este
+/// cambio, este helper compensaba eso aplicando acá mismo el mismo VAD
+/// (`SileroVad` + `SmoothedVad`) que usaba el camino del micrófono, para que
+/// el resto del pipeline recibiera exactamente lo mismo de las dos fuentes.
+/// Ahora el camino del micrófono tampoco filtra por VAD (`build_meeting_recorder`,
+/// `VadPolicy::Disabled`), así que "lo mismo de las dos fuentes" pasó a ser
+/// "sin filtrar en ninguna" — este helper vuelve a ser lo que su nombre
+/// sugiere: sólo construye el recorder y conecta `audio_cb` directo, sin
+/// nada en el medio. La compuerta de energía (`ENERGY_GATE_RMS`) que
+/// reemplaza al VAD vive más abajo en el pipeline (`TurnAccumulator` y el
+/// hilo transcriptor en `start_capture`), no acá, porque tiene que ver el
+/// turno completo (o al menos el frame que corresponde), no cada backend
+/// por separado.
 fn build_meeting_system_audio_recorder(
-    vad_path: &Path,
     audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
 ) -> Result<SystemAudioRecorder> {
-    let silero = SileroVad::new(vad_path, VAD_THRESHOLD).map_err(|e| {
-        anyhow::anyhow!(
-            "Failed to create SileroVad for system-audio meeting capture: {}",
-            e
-        )
-    })?;
-    let smoothed_vad = SmoothedVad::new(
-        Box::new(silero),
-        VAD_PREFILL_FRAMES,
-        VAD_OFFLINE_HANGOVER_FRAMES,
-        VAD_ONSET_FRAMES,
-    );
-    let vad: Mutex<Box<dyn VoiceActivityDetector>> = Mutex::new(Box::new(smoothed_vad));
-
     let recorder = SystemAudioRecorder::new()
         .map_err(|e| {
             anyhow::anyhow!(
@@ -976,32 +1076,17 @@ fn build_meeting_system_audio_recorder(
                 e
             )
         })?
-        .with_frame_callback(move |frame: &[f32]| {
-            let mut vad = vad.lock().unwrap();
-            match vad.push_frame(frame) {
-                Ok(VadFrame::Speech(buf)) => audio_cb(buf),
-                Ok(VadFrame::Noise) => {}
-                Err(e) => {
-                    // Fail open, igual que `handle_frame` en
-                    // `audio_toolkit/audio/recorder.rs`
-                    // (`unwrap_or(VadFrame::Speech(samples))`): preferir de
-                    // más a perder audio de la reunión por un fallo puntual
-                    // del VAD.
-                    warn!("VAD del audio del sistema falló, se deja pasar el frame: {e}");
-                    audio_cb(frame);
-                }
-            }
-        });
+        .with_frame_callback(move |frame: &[f32]| audio_cb(frame));
 
     Ok(recorder)
 }
 
 /// Uno de los dos backends de audio que puede alimentar una sesión de
-/// reunión — ver `resolve_meeting_audio_source`. `AudioRecorder` trae su
-/// propio VAD y su propio ciclo start/stop con `VadPolicy`; `SystemAudioRecorder`
-/// no tiene VAD propio (aplicado por `build_meeting_system_audio_recorder`
-/// antes de llegar acá) y su `start()`/`stop()` no toman política. Esta
-/// enum absorbe esa diferencia de forma para que `CaptureSession` y
+/// reunión — ver `resolve_meeting_audio_source`. `AudioRecorder` tiene su
+/// propio ciclo start/stop con `VadPolicy` (arranca con `VadPolicy::Disabled`
+/// desde el 2026-08-04 — ver `build_meeting_recorder`); `SystemAudioRecorder`
+/// nunca tuvo VAD y su `start()`/`stop()` no toman política. Esta enum
+/// absorbe esa diferencia de forma para que `CaptureSession` y
 /// `start_capture`/`stop_capture` no tengan que ramificar en cada punto de
 /// uso.
 ///
@@ -1034,8 +1119,14 @@ impl MeetingRecorder {
 
     fn start(&self) -> Result<()> {
         match self {
+            // `VadPolicy::Disabled` ("Bypass VAD and forward every frame",
+            // `audio_toolkit/audio/recorder.rs`) since 2026-08-04 — see the
+            // module doc comment and `build_meeting_recorder` for why the
+            // meeting path stopped gating on the neural VAD. The energy
+            // gate that replaces it (`ENERGY_GATE_RMS`) runs downstream, on
+            // whatever this delivers unfiltered.
             MeetingRecorder::Microphone(r) => r
-                .start(VadPolicy::Offline)
+                .start(VadPolicy::Disabled)
                 .map_err(|e| anyhow::anyhow!("{e}")),
             MeetingRecorder::SystemAudio(r) => r
                 .lock()
@@ -2046,14 +2137,6 @@ impl MeetingManager {
             })?;
 
         let start_result = (|| -> Result<CaptureSession> {
-            let vad_path = app_handle
-                .path()
-                .resolve(
-                    "resources/models/silero_vad_v4.onnx",
-                    tauri::path::BaseDirectory::Resource,
-                )
-                .map_err(|e| anyhow::anyhow!("Failed to resolve VAD path: {}", e))?;
-
             let accumulator = Arc::new(Mutex::new(TurnAccumulator::default()));
             let capture_started = Instant::now();
             let (turn_tx, turn_rx) = mpsc::channel::<CompletedTurn>();
@@ -2066,11 +2149,18 @@ impl MeetingManager {
             // seguimiento puede necesitar construir el micrófono DESPUÉS de
             // que audio del sistema ya se haya intentado y fallado, así que
             // esto es una fábrica en vez de un valor único.
+            //
+            // 2026-08-04: recibe TODO frame que entregue el backend, no sólo
+            // los que un VAD hubiera clasificado como voz — ver el
+            // comentario del módulo y `TurnAccumulator::push`. La compuerta
+            // de energía corre más abajo (acá dentro de `push`, para decidir
+            // cuándo cerrar el turno, y sobre el turno completo en el hilo
+            // transcriptor antes de gastar un ciclo de transcripción).
             let build_audio_cb = || {
                 let accumulator = Arc::clone(&accumulator);
                 move |frame: &[f32]| {
                     let now_ms = capture_started.elapsed().as_millis() as i64;
-                    accumulator.lock().unwrap().push_speech(frame, now_ms);
+                    accumulator.lock().unwrap().push(frame, now_ms);
                 }
             };
             let mic_device = || {
@@ -2088,14 +2178,12 @@ impl MeetingManager {
             let audio_source = resolve_meeting_audio_source(kind, system_audio_available());
 
             let mut recorder = match audio_source {
-                MeetingAudioSource::Microphone => MeetingRecorder::Microphone(
-                    build_meeting_recorder(&vad_path, build_audio_cb())?,
-                ),
-                MeetingAudioSource::SystemAudio => {
-                    MeetingRecorder::SystemAudio(Arc::new(Mutex::new(
-                        build_meeting_system_audio_recorder(&vad_path, build_audio_cb())?,
-                    )))
+                MeetingAudioSource::Microphone => {
+                    MeetingRecorder::Microphone(build_meeting_recorder(build_audio_cb())?)
                 }
+                MeetingAudioSource::SystemAudio => MeetingRecorder::SystemAudio(Arc::new(
+                    Mutex::new(build_meeting_system_audio_recorder(build_audio_cb())?),
+                )),
             };
             // El micrófono elegido en Ajustes sólo aplica a esa rama: la
             // reunión tiene su propio `AudioRecorder`, así que sin esto
@@ -2134,10 +2222,7 @@ impl MeetingManager {
                 // más es la variante real de `recorder` (ya reconstruido
                 // como `Microphone` abajo) y `fell_back_to_microphone`.
                 fell_back_to_microphone = true;
-                recorder = MeetingRecorder::Microphone(build_meeting_recorder(
-                    &vad_path,
-                    build_audio_cb(),
-                )?);
+                recorder = MeetingRecorder::Microphone(build_meeting_recorder(build_audio_cb())?);
                 if let Err(e) = recorder.open(mic_device()).and_then(|_| recorder.start()) {
                     recorder.close();
                     bail!("Failed to start meeting capture: {}", e);
@@ -2214,12 +2299,13 @@ impl MeetingManager {
                         transcription_manager.touch_activity();
                         let now_ms = capture_started.elapsed().as_millis() as i64;
                         // Tope duro primero: en conversación continua nunca
-                        // hay silencio, así que `take_if_silent` solo no
-                        // basta para cerrar el turno (ver MAX_TURN_MS).
+                        // hay un tramo de baja energía sostenido, así que
+                        // `take_if_quiet` solo no basta para cerrar el turno
+                        // (ver MAX_TURN_MS).
                         let completed = {
                             let mut acc = accumulator.lock().unwrap();
                             acc.take_if_over(MAX_TURN_MS, now_ms)
-                                .or_else(|| acc.take_if_silent(TURN_SILENCE_GAP, now_ms))
+                                .or_else(|| acc.take_if_quiet(TURN_SILENCE_GAP, now_ms))
                         };
                         if let Some(turn) = completed {
                             let depth = queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
@@ -2359,6 +2445,27 @@ impl MeetingManager {
                             Ordering::Relaxed,
                             |depth| depth.checked_sub(1),
                         );
+
+                        // Compuerta de energía sobre el turno completo
+                        // (2026-08-04): sin VAD, un turno puede ser
+                        // enteramente silencio o piso de ruido — cerrado por
+                        // `take_if_over`/`take_if_quiet` igual que cualquier
+                        // otro. Descartarlo ACÁ, antes de diarizar o
+                        // transcribir, es lo que evita mandarle silencio
+                        // digital al modelo de transcripción: los modelos
+                        // tipo Whisper alucinan texto sobre silencio puro,
+                        // así que la alternativa de "transcribir igual y
+                        // confiar en que salga vacío" es justo el problema
+                        // que este cambio busca evitar, no una red de
+                        // seguridad equivalente. Ver `ENERGY_GATE_RMS`.
+                        if !has_energy(&turn.samples) {
+                            debug!(
+                                "Meeting {}: turno [{}, {}]ms por debajo del umbral de energía, \
+                                 se descarta sin transcribir",
+                                meeting_id, turn.started_at_ms, turn.ended_at_ms
+                            );
+                            continue;
+                        }
 
                         // Causa 3 del reporte de arreglo (2026-08-03):
                         // transcribir con el modelo equivocado NO falla —
@@ -3611,7 +3718,99 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
+    // 2026-08-04: has_energy/rms_energy — the energy gate that replaced the
+    // neural VAD in the meeting path. Pure, deterministic, no model needed
+    // (this is exactly the kind of thing the neural VAD couldn't offer:
+    // testable without loading 16MB of ONNX). Synthetic sine waves at
+    // chosen amplitudes stand in for "digital silence", "low background
+    // noise floor", and "speech/music" — see `ENERGY_GATE_RMS`'s doc
+    // comment for the dBFS reasoning behind the thresholds picked below.
+    // ------------------------------------------------------------------
+
+    /// A synthetic tone at `amplitude`, used to stand in for either speech,
+    /// music, or (at a tiny amplitude) a quiet noise floor — real recorded
+    /// audio isn't available in this environment, but RMS only cares about
+    /// amplitude, not waveform shape, so a sine at the right level is a
+    /// faithful stand-in for what `has_energy` actually measures.
+    fn tone(amplitude: f32, n: usize) -> Vec<f32> {
+        (0..n)
+            .map(|i| amplitude * ((i as f32) * 0.3).sin())
+            .collect()
+    }
+
+    #[test]
+    fn has_energy_rejects_exact_digital_silence() {
+        // The exact symptom `has_nonzero_sample` was built to catch
+        // (recording without the system-audio permission granted): every
+        // sample is precisely 0.0.
+        assert!(!has_energy(&vec![0.0; 480]));
+    }
+
+    #[test]
+    fn has_energy_rejects_empty_buffer() {
+        assert!(!has_energy(&[]));
+    }
+
+    #[test]
+    fn has_energy_rejects_low_background_noise_floor() {
+        // ~0.0007 RMS (amplitude 0.001) — well under a typical mic/system
+        // noise floor's -50dBFS, several orders of magnitude under
+        // ENERGY_GATE_RMS (~-46dBFS). This is the case the task explicitly
+        // calls out: a low noise floor must not gate a transcription.
+        let quiet = tone(0.001, 480);
+        assert!(
+            !has_energy(&quiet),
+            "a quiet noise floor must stay below the gate"
+        );
+    }
+
+    #[test]
+    fn has_energy_accepts_conversational_speech_level_signal() {
+        // amplitude 0.1 -> RMS ~0.0707, comfortably inside typical
+        // conversational-recording levels (-25 to -15dBFS-ish) and well
+        // above ENERGY_GATE_RMS.
+        let speech = tone(0.1, 480);
+        assert!(has_energy(&speech));
+    }
+
+    #[test]
+    fn has_energy_accepts_music_like_mixed_signal() {
+        // Two mixed frequencies at moderate amplitude, standing in for
+        // music or system audio mixed with voice — the case the neural VAD
+        // was measured dropping the most of (up to 79% of a real meeting's
+        // audio, see the module doc comment).
+        let music: Vec<f32> = (0..480)
+            .map(|i| 0.08 * ((i as f32) * 0.3).sin() + 0.05 * ((i as f32) * 0.9).sin())
+            .collect();
+        assert!(has_energy(&music));
+    }
+
+    #[test]
+    fn has_energy_threshold_boundary_is_inclusive() {
+        // A flat signal at exactly ENERGY_GATE_RMS has RMS == ENERGY_GATE_RMS
+        // (RMS of a constant signal is its own absolute value) — pins `>=`
+        // over `>` at the boundary.
+        let boundary = vec![ENERGY_GATE_RMS; 10];
+        assert!(has_energy(&boundary));
+    }
+
+    #[test]
+    fn rms_energy_of_full_scale_square_wave_is_one() {
+        // A signal pinned at +/-1.0 the whole way has RMS exactly 1.0 —
+        // the simplest possible non-degenerate check on the formula itself,
+        // independent of the gate threshold.
+        assert!((rms_energy(&[1.0, -1.0, 1.0, -1.0]) - 1.0).abs() < 1e-6);
+    }
+
+    // ------------------------------------------------------------------
     // T012: TurnAccumulator — pure, deterministic, no VAD/model needed.
+    //
+    // 2026-08-04: `push`/`take_if_quiet` replaced `push_speech`/
+    // `take_if_silent` — every frame is pushed now (loud or quiet, see the
+    // struct doc comment), so these tests represent a "quiet" stretch with
+    // an actual low-amplitude push (e.g. `&[0.0]`), not by simply not
+    // calling anything. `[1.0]`/`[2.0]`/`[0.5; N]` below are "loud" (their
+    // RMS is far above `ENERGY_GATE_RMS`); `[0.0]`/`[0.0; N]` are "quiet".
     // ------------------------------------------------------------------
 
     #[test]
@@ -3622,8 +3821,8 @@ mod tests {
             "nothing buffered yet -> no turn"
         );
 
-        acc.push_speech(&[0.1, 0.2], 100);
-        acc.push_speech(&[0.3], 150);
+        acc.push(&[0.1, 0.2], 100);
+        acc.push(&[0.3], 150);
 
         let turn = acc
             .take_remaining(200)
@@ -3641,70 +3840,85 @@ mod tests {
     #[test]
     fn turn_accumulator_starts_a_fresh_turn_after_take() {
         let mut acc = TurnAccumulator::default();
-        acc.push_speech(&[1.0], 0);
+        acc.push(&[1.0], 0);
         let first = acc.take_remaining(50).expect("first turn");
         assert_eq!(first.started_at_ms, 0);
         assert_eq!(first.samples, vec![1.0]);
 
-        acc.push_speech(&[2.0], 500);
+        acc.push(&[2.0], 500);
         let second = acc.take_remaining(550).expect("second turn");
         assert_eq!(second.started_at_ms, 500);
         assert_eq!(second.samples, vec![2.0]);
     }
 
     #[test]
-    fn turn_accumulator_take_if_silent_waits_for_the_gap() {
+    fn turn_accumulator_take_if_quiet_waits_for_the_gap() {
         let mut acc = TurnAccumulator::default();
-        acc.push_speech(&[1.0], 0);
+        acc.push(&[1.0], 0); // loud: speech present, quiet_since stays None
+
+        // A quiet frame arrives, starting the quiet-stretch timer.
+        acc.push(&[0.0], 10);
 
         assert!(
-            acc.take_if_silent(Duration::from_secs(5), 10).is_none(),
+            acc.take_if_quiet(Duration::from_secs(5), 10).is_none(),
             "gap has not elapsed yet"
         );
 
         std::thread::sleep(Duration::from_millis(30));
 
         let turn = acc
-            .take_if_silent(Duration::from_millis(5), 40)
+            .take_if_quiet(Duration::from_millis(5), 40)
             .expect("gap has elapsed; the turn should finalize");
-        assert_eq!(turn.samples, vec![1.0]);
+        assert_eq!(turn.samples, vec![1.0, 0.0]);
         assert_eq!(turn.ended_at_ms, 40);
     }
 
     #[test]
-    fn turn_accumulator_take_if_silent_survives_a_short_speech_pause() {
+    fn turn_accumulator_take_if_quiet_survives_a_short_pause() {
         // Pins the intent behind `TURN_SILENCE_GAP`: a normal ~200-300ms
         // breathing pause between words is word-to-word jitter, not the
         // end of an utterance, and must not fragment the turn. Uses the
         // real production constant (not an arbitrary `Duration`, unlike
-        // `turn_accumulator_take_if_silent_waits_for_the_gap` above) so a
+        // `turn_accumulator_take_if_quiet_waits_for_the_gap` above) so a
         // future regression that shrinks the gap back toward inter-word
         // jitter fails this test.
         let mut acc = TurnAccumulator::default();
-        acc.push_speech(&[1.0], 0);
+        acc.push(&[1.0], 0); // speech
 
+        acc.push(&[0.0], 10); // the pause begins: a quiet frame arrives
         std::thread::sleep(Duration::from_millis(250));
         assert!(
-            acc.take_if_silent(TURN_SILENCE_GAP, 250).is_none(),
-            "a ~250ms speech pause must not close the turn"
+            acc.take_if_quiet(TURN_SILENCE_GAP, 250).is_none(),
+            "a ~250ms pause must not close the turn (well under the 850ms gap)"
         );
 
         // Speech resumes within the same turn — exactly what should happen
         // for a short pause instead of a hard split.
-        acc.push_speech(&[2.0], 250);
+        acc.push(&[2.0], 250);
         let turn = acc.take_remaining(300).expect("turn should still be open");
-        assert_eq!(turn.samples, vec![1.0, 2.0]);
+        assert_eq!(turn.samples, vec![1.0, 0.0, 2.0]);
     }
 
     #[test]
-    fn turn_accumulator_take_if_silent_is_none_with_nothing_buffered() {
+    fn turn_accumulator_take_if_quiet_is_none_with_nothing_buffered() {
         let mut acc = TurnAccumulator::default();
-        assert!(acc.take_if_silent(Duration::from_millis(0), 0).is_none());
+        assert!(acc.take_if_quiet(Duration::from_millis(0), 0).is_none());
+    }
+
+    #[test]
+    fn turn_accumulator_take_if_quiet_is_none_while_still_loud() {
+        // Without ever seeing a quiet frame, `quiet_since` never gets set —
+        // the turn must never close on content alone, no matter how long
+        // real time elapses, because the content never actually went quiet.
+        let mut acc = TurnAccumulator::default();
+        acc.push(&[1.0], 0);
+        std::thread::sleep(Duration::from_millis(20));
+        assert!(acc.take_if_quiet(Duration::from_millis(1), 20).is_none());
     }
 
     // ------------------------------------------------------------------
     // T014: take_if_over — el tope duro de MAX_TURN_MS, independiente de
-    // take_if_silent (arriba). La duración se mide en samples (16kHz), no
+    // take_if_quiet (arriba). La duración se mide en samples (16kHz), no
     // en reloj de pared, así que estos tests no necesitan `sleep`.
     // ------------------------------------------------------------------
 
@@ -3712,17 +3926,16 @@ mod tests {
     fn turn_accumulator_take_if_over_does_not_fire_before_the_cap() {
         let mut acc = TurnAccumulator::default();
         // 7999ms de audio a 16kHz: justo bajo el tope de 8000ms.
-        acc.push_speech(&vec![0.0; 127_999], 0);
+        acc.push(&vec![0.0; 127_999], 0);
 
         assert!(
             acc.take_if_over(8_000, 8_000).is_none(),
             "el tope no se superó todavía"
         );
-        // take_if_silent tampoco debe verse afectado por este chequeo: el
-        // turno sigue intacto y disponible.
-        assert!(acc
-            .take_if_silent(Duration::from_millis(0), 8_000)
-            .is_some());
+        // take_if_quiet tampoco debe verse afectado por este chequeo: el
+        // turno sigue intacto y disponible (y estas muestras son todo
+        // ceros, así que ya está "quieto" desde la primera).
+        assert!(acc.take_if_quiet(Duration::from_millis(0), 8_000).is_some());
     }
 
     #[test]
@@ -3730,7 +3943,7 @@ mod tests {
         let mut acc = TurnAccumulator::default();
         // 8000ms exactos de audio a 16kHz (128_000 samples): en el punto
         // justo del tope, ya debe cerrar.
-        acc.push_speech(&vec![0.5; 128_000], 100);
+        acc.push(&vec![0.5; 128_000], 100);
 
         let turn = acc
             .take_if_over(8_000, 8_100)
@@ -3930,13 +4143,12 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
-    // End-to-end test against real speech audio: drives the real Silero +
-    // SmoothedVad engine (the committed `silero_vad_v4.onnx`, no download
-    // needed for the model itself) over a real multi-speaker recording,
-    // through the exact same `TurnAccumulator` and `persist_and_emit_segment`
-    // the live capture path uses (with a stub transcriber standing in for a
-    // loaded ML model), and asserts multiple segments land in
-    // `meeting_segments` in order with sane timestamps.
+    // End-to-end test against real speech audio: drives the real energy
+    // gate (`has_energy`) over a real multi-speaker recording, through the
+    // exact same `TurnAccumulator` and `persist_and_emit_segment` the live
+    // capture path uses (with a stub transcriber standing in for a loaded
+    // ML model), and asserts multiple segments land in `meeting_segments`
+    // in order with sane timestamps.
     //
     // Reuses the same fixture wav `diarization.rs`'s T009 end-to-end test
     // downloads (real speech with natural pauses between speakers — good
@@ -3946,17 +4158,19 @@ mod tests {
     // fixture/pattern actually lives in diarization.rs (T009), the closest
     // sibling task, which is what this test follows.
     //
-    // Requires network (downloads the ~1.8MB test wav only; the VAD model
-    // is already committed under resources/models/) -- #[ignore], same
+    // Requires network (downloads the ~1.8MB test wav) -- #[ignore], same
     // convention as diarization.rs. Run manually with:
     //   cargo test --lib managers::meeting::tests::capture_pipeline_segments_real_speech_audio -- --ignored
+    //
+    // 2026-08-04: no VAD involved anymore (there's none left in the meeting
+    // path to exercise) — this now validates the assumption the energy-gate
+    // redesign actually depends on: that `has_energy`'s dumb RMS threshold
+    // still tells real speech from a real pause in an actual recording,
+    // without a neural classifier's help.
     // ------------------------------------------------------------------
     #[tokio::test]
-    #[ignore = "requiere red: descarga un wav de prueba real (el modelo VAD ya está committeado)"]
+    #[ignore = "requiere red: descarga un wav de prueba real"]
     async fn capture_pipeline_segments_real_speech_audio() {
-        use crate::audio_toolkit::vad::VadFrame;
-        use crate::audio_toolkit::VoiceActivityDetector;
-
         let tmp = tempfile::tempdir().expect("tempdir");
         let wav_path = tmp.path().join("0-four-speakers-zh.wav");
         let wav_bytes = reqwest::get(
@@ -3972,35 +4186,34 @@ mod tests {
         let samples =
             crate::audio_toolkit::read_wav_samples(&wav_path).expect("reading wav samples");
 
-        let vad_model_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("resources/models/silero_vad_v4.onnx");
-        let silero = SileroVad::new(&vad_model_path, VAD_THRESHOLD)
-            .expect("the committed VAD model should load");
-        let mut vad = SmoothedVad::new(
-            Box::new(silero),
-            VAD_PREFILL_FRAMES,
-            VAD_OFFLINE_HANGOVER_FRAMES,
-            VAD_ONSET_FRAMES,
-        );
-
-        // Drive the same TurnAccumulator the live capture path uses, but
-        // deterministically off the VAD's own Speech->Noise transitions
-        // instead of a wall-clock silence timer (see the module doc comment
-        // on `TurnAccumulator` for why that's the intended test seam).
+        // Drive the same TurnAccumulator the live capture path uses
+        // (`push`/`take_remaining`), but deterministically off a
+        // sample-counted quiet run instead of `take_if_quiet`'s real
+        // `Instant`-based wall clock — same trick the pre-2026-08-04 version
+        // of this test used against the VAD's own Speech->Noise
+        // transitions: exercise the real buffering/timestamp logic without
+        // needing actual `TURN_SILENCE_GAP`-long sleeps over a real
+        // recording (see the module doc comment on `TurnAccumulator`).
         let frame_len = 480usize; // 30ms @ 16kHz
+        let quiet_frames_needed = (TURN_SILENCE_GAP.as_millis() / 30).max(1) as usize;
         let mut acc = TurnAccumulator::default();
         let mut turns = Vec::new();
+        let mut consecutive_quiet = 0usize;
         for (i, frame) in samples.chunks(frame_len).enumerate() {
             if frame.len() < frame_len {
                 break; // drop a trailing partial frame, same as the resampler would
             }
             let now_ms = (i * 30) as i64;
-            match vad.push_frame(frame).expect("push_frame should not fail") {
-                VadFrame::Speech(buf) => acc.push_speech(buf, now_ms),
-                VadFrame::Noise => {
+            acc.push(frame, now_ms);
+            if has_energy(frame) {
+                consecutive_quiet = 0;
+            } else {
+                consecutive_quiet += 1;
+                if consecutive_quiet >= quiet_frames_needed {
                     if let Some(turn) = acc.take_remaining(now_ms) {
                         turns.push(turn);
                     }
+                    consecutive_quiet = 0;
                 }
             }
         }
