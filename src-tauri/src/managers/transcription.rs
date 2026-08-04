@@ -18,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use transcribe_cpp::{
     Backend, Feature, Model, ModelOptions, RunExtension, RunOptions, Session, StreamOptions, Task,
-    WhisperRunOptions,
+    TimestampKind, WhisperRunOptions,
 };
 use transcribe_rs::{
     onnx::{
@@ -44,6 +44,34 @@ pub struct ModelStateEvent {
     pub error: Option<String>,
 }
 
+/// Un token con marcas de tiempo *reales* — nunca interpoladas sobre la
+/// duración del audio. `start_ms`/`end_ms` son milisegundos relativos al
+/// inicio del turno de streaming. La Task 4 (alineación con diarización) los
+/// cruza contra los tramos de hablante para atribuir cada palabra a quien la
+/// dijo; una marca fabricada produciría una atribución que parece funcionar
+/// pero está mal — por eso sólo se emiten cuando el motor los entrega de
+/// verdad (ver `run_stream_worker`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Type)]
+pub struct TimedToken {
+    pub text: String,
+    pub start_ms: u64,
+    pub end_ms: u64,
+}
+
+/// Concatena el texto plano de una secuencia de tokens con tiempo, en orden.
+/// Es la garantía de que agregar tokens con tiempo al evento de streaming no
+/// cambia el texto que el overlay del dictado (`RecordingOverlay.tsx`) ya
+/// consume — ese overlay sigue leyendo sólo `committed`/`tentative`.
+///
+/// Sin consumidor productivo todavía: la Task 4 (alineación con diarización)
+/// es quien la va a usar para reconstruir el texto de un tramo de hablante a
+/// partir de sus tokens. `managers` no es público, así que sin esto rustc la
+/// marca dead_code — se documenta en vez de fabricar un llamador falso.
+#[allow(dead_code)]
+pub fn plain_text(tokens: &[TimedToken]) -> String {
+    tokens.iter().map(|t| t.text.as_str()).collect()
+}
+
 /// Live transcription snapshot emitted to the overlay during a streaming run.
 /// `committed` is the append-only, flicker-free prefix; `tentative` is the
 /// volatile suffix the model may still rewrite.
@@ -51,6 +79,13 @@ pub struct ModelStateEvent {
 pub struct StreamTextEvent {
     pub committed: String,
     pub tentative: String,
+    /// Tokens con tiempo del turno en curso. Se completa sólo durante
+    /// captura de reuniones (`is_meeting_capture_active`) y sólo si el motor
+    /// los entrega de verdad para el modelo cargado; `None` en cualquier
+    /// otro caso, dictado incluido — el overlay del dictado no lee este
+    /// campo, así que agregarlo no le cambia el comportamiento.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tokens: Option<Vec<TimedToken>>,
 }
 
 /// Phase of the streaming overlay card, emitted to drive its UI state.
@@ -1074,10 +1109,20 @@ impl TranscriptionManager {
             &languages,
             supports_translate,
         );
+        // Marcas por token: sólo durante captura de reuniones (Task 4 las
+        // necesita para alinear con la diarización). El dictado se queda con
+        // `TimestampKind::Auto` — el default de siempre — así que su
+        // comportamiento no cambia un bit.
+        let is_meeting = self.is_meeting_capture_active();
         let run_options = RunOptions {
             task: run_plan.task,
             language: run_plan.language,
             target_language: run_plan.target_language,
+            timestamps: if is_meeting {
+                TimestampKind::Token
+            } else {
+                TimestampKind::Auto
+            },
             ..Default::default()
         };
 
@@ -1134,7 +1179,15 @@ impl TranscriptionManager {
                                 if update.committed_changed || update.tentative_changed {
                                     let text = stream.text();
                                     perf.record_emit();
-                                    self.emit_stream_text(&text.committed, &text.tentative);
+                                    // `snapshot()` materializa segmentos/palabras/tokens
+                                    // desde el motor — un costo extra que sólo vale la
+                                    // pena pagar en reuniones, nunca en dictado.
+                                    let tokens = if is_meeting {
+                                        Some(timed_tokens_from_snapshot(&stream))
+                                    } else {
+                                        None
+                                    };
+                                    self.emit_stream_text(&text.committed, &text.tentative, tokens);
                                 }
                                 perf.maybe_log();
                             }
@@ -1275,10 +1328,11 @@ impl TranscriptionManager {
         .emit(&self.app_handle);
     }
 
-    fn emit_stream_text(&self, committed: &str, tentative: &str) {
+    fn emit_stream_text(&self, committed: &str, tentative: &str, tokens: Option<Vec<TimedToken>>) {
         let _ = StreamTextEvent {
             committed: committed.to_string(),
             tentative: tentative.to_string(),
+            tokens,
         }
         .emit(&self.app_handle);
     }
@@ -1448,8 +1502,20 @@ impl TranscriptionManager {
                             })
                     }
                     LoadedEngine::Parakeet(parakeet_engine) => {
+                        // Reuniones piden granularidad por token (real, no
+                        // interpolada — transcribe-rs la arma por token igual
+                        // que por segmento, sólo cambia cómo agrupa
+                        // `.segments`); dictado se queda con `Segment` como
+                        // hasta ahora. `.text` no cambia con la granularidad
+                        // elegida en ningún caso — este `match` sólo extrae
+                        // `.text`, así que el dictado queda bit a bit igual.
+                        let granularity = if self.is_meeting_capture_active() {
+                            TimestampGranularity::Token
+                        } else {
+                            TimestampGranularity::Segment
+                        };
                         let params = ParakeetParams {
-                            timestamp_granularity: Some(TimestampGranularity::Segment),
+                            timestamp_granularity: Some(granularity),
                             ..Default::default()
                         };
                         parakeet_engine
@@ -1848,6 +1914,26 @@ fn drain_until_finalize(rx: mpsc::Receiver<StreamCmd>) {
     }
 }
 
+/// Extrae los tokens con tiempo *reales* de la hipótesis actual de un stream
+/// activo. Requiere que el stream se haya abierto con `timestamps:
+/// TimestampKind::Token` (ver `run_stream_worker`) — si no, el motor
+/// simplemente no llena `Transcript.tokens` y esto devuelve un vector vacío
+/// en vez de inventar marcas. Confirmado con audio real: el motor GGUF
+/// (transcribe-cpp, familia Nemotron/parakeet) sí entrega `t0_ms`/`t1_ms`
+/// por token cuando se pide esta granularidad.
+fn timed_tokens_from_snapshot(stream: &transcribe_cpp::Stream<'_>) -> Vec<TimedToken> {
+    stream
+        .snapshot()
+        .tokens
+        .into_iter()
+        .map(|token| TimedToken {
+            text: token.text,
+            start_ms: token.t0_ms.max(0) as u64,
+            end_ms: token.t1_ms.max(0) as u64,
+        })
+        .collect()
+}
+
 /// Initialize the transcribe-cpp native backend once at startup: route native +
 /// ggml diagnostics into the `log` facade and register compute backend modules.
 /// In a static build (macOS Metal) `init_backends_default` is a harmless no-op;
@@ -2076,6 +2162,32 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    // ---------- TimedToken / plain_text (Task 3: marcas por token) ----------
+
+    #[test]
+    fn los_tokens_con_tiempo_conservan_el_texto_plano() {
+        // El overlay del dictado consume `committed`/`tentative` como texto.
+        // Agregar tokens con tiempo no puede cambiar lo que ese camino ve.
+        let tokens = vec![
+            TimedToken {
+                text: "hola".into(),
+                start_ms: 0,
+                end_ms: 300,
+            },
+            TimedToken {
+                text: " mundo".into(),
+                start_ms: 300,
+                end_ms: 700,
+            },
+        ];
+        assert_eq!(plain_text(&tokens), "hola mundo");
+    }
+
+    #[test]
+    fn tokens_vacios_dan_texto_vacio() {
+        assert_eq!(plain_text(&[]), "");
     }
 
     #[test]

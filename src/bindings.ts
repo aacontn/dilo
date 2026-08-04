@@ -1805,7 +1805,15 @@ kind?: StreamWorkKind | null }
  * `committed` is the append-only, flicker-free prefix; `tentative` is the
  * volatile suffix the model may still rewrite.
  */
-export type StreamTextEvent = { committed: string; tentative: string }
+export type StreamTextEvent = { committed: string; tentative: string; 
+/**
+ * Tokens con tiempo del turno en curso. Se completa sólo durante
+ * captura de reuniones (`is_meeting_capture_active`) y sólo si el motor
+ * los entrega de verdad para el modelo cargado; `None` en cualquier
+ * otro caso, dictado incluido — el overlay del dictado no lee este
+ * campo, así que agregarlo no le cambia el comportamiento.
+ */
+tokens?: TimedToken[] | null }
 /**
  * Semantic kind of "working" phase, used to localize the spinner label.
  */
@@ -1815,6 +1823,16 @@ export type StreamWorkKind = "transcribing" | "polishing"
  * and `Dark` force one of the two palettes Dilo already ships.
  */
 export type Theme = "system" | "light" | "dark"
+/**
+ * Un token con marcas de tiempo *reales* — nunca interpoladas sobre la
+ * duración del audio. `start_ms`/`end_ms` son milisegundos relativos al
+ * inicio del turno de streaming. La Task 4 (alineación con diarización) los
+ * cruza contra los tramos de hablante para atribuir cada palabra a quien la
+ * dijo; una marca fabricada produciría una atribución que parece funcionar
+ * pero está mal — por eso sólo se emiten cuando el motor los entrega de
+ * verdad (ver `run_stream_worker`).
+ */
+export type TimedToken = { text: string; start_ms: number; end_ms: number }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TrayIconState = "idle" | "recording" | "transcribing"
 /**
