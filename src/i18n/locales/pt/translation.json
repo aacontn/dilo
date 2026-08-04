@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Nenhum áudio detectado",
       "audioNoAudioCapturedDescription": "O Dilo não capta nenhum som do áudio deste computador há um tempo. Verifique se você compartilhou o áudio e se a chamada não está saindo pelo telefone em vez do computador.",
       "audioFellBackToMicrophone": "Gravando com o microfone",
-      "audioFellBackToMicrophoneDescription": "O Dilo não conseguiu abrir o áudio deste computador para esta reunião, então está gravando com o microfone."
+      "audioFellBackToMicrophoneDescription": "O Dilo não conseguiu abrir o áudio deste computador para esta reunião, então está gravando com o microfone.",
+      "recordingBusy": "Já há uma reunião sendo gravada",
+      "recordingBusyDescription": "Você não pode gravar duas reuniões ao mesmo tempo. Pare essa reunião primeiro, ou vá dar uma olhada nela.",
+      "recordingBusyAction": "Ver reunião"
     },
     "transcript": {
       "title": "Transcrição ao vivo",

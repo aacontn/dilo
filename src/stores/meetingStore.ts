@@ -41,6 +41,11 @@ interface MeetingStore {
   appendSegment: (segment: MeetingSegment) => void;
   markFinished: () => void;
   markErrored: () => void;
+  adoptActive: (
+    meetingId: number,
+    segments: MeetingSegment[],
+    speakerNames: Record<number, string>,
+  ) => void;
   setSpeakerName: (speakerId: number, name: string) => void;
   reset: () => void;
 }
@@ -117,6 +122,21 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
   // persistidos (FR-007) y borrarlos de la pantalla haría parecer que se
   // perdió lo que sí se guardó.
   markErrored: () => set({ activeMeetingId: null, status: null }),
+
+  // Adopta una reunión que ya está grabando en el backend pero que esta
+  // ventana todavía no conoce — por ejemplo, se empezó desde el popover
+  // mientras la ventana de reuniones estaba escondida o recién se creó (ver
+  // `useMeetingActiveSync` en `hooks/useMeetings.ts`, el único llamador).
+  // Sólo tiene sentido cuando `activeMeetingId` acá es `null`: si esta
+  // ventana ya sabe de una sesión propia, `useMeetingActiveSync` no llama a
+  // esto, así que no hace falta guardarlo de nuevo.
+  adoptActive: (meetingId, segments, speakerNames) =>
+    set({
+      activeMeetingId: meetingId,
+      status: "recording",
+      segments,
+      speakerNames,
+    }),
 
   setSpeakerName: (speakerId, name) =>
     set((state) => {

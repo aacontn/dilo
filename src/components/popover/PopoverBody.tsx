@@ -14,6 +14,7 @@ import {
   Loader2,
   LogOut,
   Mic,
+  MonitorSpeaker,
   Settings2,
   Square,
   Video,
@@ -25,12 +26,18 @@ import {
   commands,
   events,
   type MeetingSegment,
-  type MeetingSummary,
   type TrayIconState,
   type TtsVoiceInfo,
 } from "@/bindings";
 import { formatDuration } from "@/components/meeting/meetingFormat";
 import { TranscriptList } from "@/components/meeting";
+import { useActiveMeeting } from "@/lib/activeMeeting";
+import { isRecordingBusyError } from "@/lib/meetingErrors";
+import {
+  kindFromPersistedSource,
+  resolveDisplayedAudioSource,
+  resolveIndicatorLabelKey,
+} from "@/lib/meetingKind";
 import { useModelStore } from "@/stores/modelStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 
@@ -51,17 +58,16 @@ import { useSettingsStore } from "@/stores/settingsStore";
  *   intervenciones con su hablante. El transcript completo sigue viviendo en
  *   la ventana de reuniones; acá es sólo un vistazo.
  *
- * **Por qué este componente lee todo de `listMeetings`/eventos y no del
+ * **Por qué este componente lee todo de `useActiveMeeting`/eventos y no del
  * `meetingStore`.** El popover se esconde, nunca se destruye (`popover.rs`),
  * así que su webview monta una sola vez en toda la vida del proceso — y aun
  * si montara de nuevo, `useMeetingStore` es una instancia de Zustand propia
  * de *esta* ventana: `startMeeting` corre en el runtime de la ventana de
  * reuniones, así que `activeMeetingId` acá sería `null` para siempre. La
- * verdad de qué hay grabando vive en el backend. `list_meetings(1, 0)`
- * alcanza para saberlo: si algo está grabando, es siempre la fila más
- * reciente — no se puede empezar una reunión nueva mientras otra sigue en
- * `recording` (el backend lo rechaza), así que ninguna fila puede haberse
- * insertado después de la que está grabando.
+ * verdad de qué hay grabando vive en el backend, y `useActiveMeeting`
+ * (`@/lib/activeMeeting`) es quien la resuelve — la misma función que usa
+ * `useMeetingActiveSync` para que la ventana de reuniones deje de "correr en
+ * paralelo" con esta tarjeta (reporte del dueño, 2026-08-04).
  *
  * Los eventos de Tauri (`meeting-segment`, etc.) sí llegan directo a esta
  * ventana como a cualquier otra — lo que no cruza ventanas es el *store*, no
@@ -72,7 +78,6 @@ import { useSettingsStore } from "@/stores/settingsStore";
 export const PopoverBody: React.FC = () => {
   const { t } = useTranslation();
 
-  const [recording, setRecording] = useState<MeetingSummary | null>(null);
   const [starting, setStarting] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [copying, setCopying] = useState(false);
@@ -83,6 +88,11 @@ export const PopoverBody: React.FC = () => {
   const [dictationState, setDictationState] = useState<TrayIconState | null>(
     null,
   );
+  // Igual criterio que `RecordingControls`: `null` mientras se consulta, no
+  // "no disponible", para no parpadear el aviso en el primer render.
+  const [systemAudioAvailable, setSystemAudioAvailable] = useState<
+    boolean | null
+  >(null);
   const [liveSegments, setLiveSegments] = useState<MeetingSegment[]>([]);
   const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -99,32 +109,27 @@ export const PopoverBody: React.FC = () => {
   );
   const updateSetting = useSettingsStore((state) => state.updateSetting);
 
-  // Si hay algo grabando, es siempre la fila más reciente — ver el doc
-  // comment de arriba.
-  const load = useCallback(async () => {
-    try {
-      const result = await commands.listMeetings(1, 0);
-      if (result.status === "ok") {
-        const [top] = result.data.meetings;
-        setRecording(top?.status === "recording" ? top : null);
-      } else {
-        toast.error(t("popover.loadFailed"), { description: result.error });
-      }
-    } catch (error) {
+  const onActiveMeetingError = useCallback(
+    (error: unknown) => {
       toast.error(t("popover.loadFailed"), {
         description: error instanceof Error ? error.message : String(error),
       });
-    }
-  }, [t]);
+    },
+    [t],
+  );
+  const { activeMeeting: recording, refresh: refreshActiveMeeting } =
+    useActiveMeeting(onActiveMeetingError);
 
-  // Carga inicial.
+  // Carga inicial. `refreshActiveMeeting` ya se llama sola al montar (ver
+  // `useActiveMeeting`), así que acá sólo queda lo que le es propio a esta
+  // tarjeta.
   useEffect(() => {
-    void load();
     void initializeModels();
     void refreshSettings();
     void commands.getAppVersion().then(setVersion);
     void commands.ttsListVoices().then(setVoices);
-  }, [load, initializeModels, refreshSettings]);
+    void commands.isSystemAudioAvailable().then(setSystemAudioAvailable);
+  }, [initializeModels, refreshSettings]);
 
   // El estado del dictado (reposo/grabando/transcribiendo) no vive en
   // ningún store de esta ventana — se pregunta al montar y de ahí en más se
@@ -143,38 +148,20 @@ export const PopoverBody: React.FC = () => {
     };
   }, []);
 
-  // El popover no se destruye al esconderse (ver nota de arriba), así que el
-  // fin de una sesión —en curso mientras estaba escondido, o iniciada en la
-  // ventana de reuniones mientras tanto— sólo llega por evento.
-  useEffect(() => {
-    const unlistenFinished = events.meetingFinished.listen(() => void load());
-    const unlistenInterrupted = events.meetingInterrupted.listen(
-      () => void load(),
-    );
-    return () => {
-      void unlistenFinished.then((fn) => fn());
-      void unlistenInterrupted.then((fn) => fn());
-    };
-  }, [load]);
-
   // El popover se muestra volviendo a tomar foco tras estar escondido — ese
-  // es el momento de reabrir, así que es también el momento de refrescar
-  // (incluidos los ajustes: pueden haber cambiado desde la ventana de Dilo
-  // mientras el popover estaba escondido). No hay evento de "empezó a
-  // grabar" en el backend; este es el mecanismo por el que una reunión
-  // iniciada en otra ventana aparece acá como en curso.
+  // es el momento de reabrir, así que es también el momento de refrescar los
+  // ajustes (pueden haber cambiado desde la ventana de Dilo mientras el
+  // popover estaba escondido). `useActiveMeeting` ya se encarga de refrescar
+  // la reunión en curso con el mismo evento.
   useEffect(() => {
     const win = getCurrentWindow();
     const unlisten = win.onFocusChanged(({ payload: focused }) => {
-      if (focused) {
-        void load();
-        void refreshSettings();
-      }
+      if (focused) void refreshSettings();
     });
     return () => {
       void unlisten.then((fn) => fn());
     };
-  }, [load, refreshSettings]);
+  }, [refreshSettings]);
 
   // Mini transcript en vivo: los segmentos llegan por el mismo evento que
   // alimenta la ventana de reuniones (`meeting-segment`) — los eventos de
@@ -239,13 +226,50 @@ export const PopoverBody: React.FC = () => {
     [models],
   );
 
+  // Qué tipo de reunión (y qué fuente de audio real) va a usar el botón de
+  // "Grabar" de acá abajo — la última elección guardada en
+  // `settings.meeting_audio_source`, mismo criterio que `RecordingControls`
+  // (`kindFromPersistedSource`/`resolveDisplayedAudioSource`, extraídas a
+  // `@/lib/meetingKind` para que las dos ventanas compartan la regla en vez
+  // de cada una la suya). El pedido del dueño fue explícito: sin selector
+  // grande acá, pero la tarjeta tiene que mostrar cuál va a usar antes de
+  // apretar.
+  const meetingKind = useMemo(
+    () => kindFromPersistedSource(settings?.meeting_audio_source),
+    [settings?.meeting_audio_source],
+  );
+  const displayedAudioSource = useMemo(
+    () => resolveDisplayedAudioSource(meetingKind, systemAudioAvailable),
+    [meetingKind, systemAudioAvailable],
+  );
+
   const handleStart = async () => {
     setStarting(true);
     try {
-      const result = await commands.startMeeting("presencial");
+      // Respeta la última elección de tipo de reunión
+      // (`settings.meeting_audio_source`, vía `kindFromPersistedSource`) en
+      // vez de forzar `"presencial"` a secas — el popover no tiene espacio
+      // para el selector completo de `RecordingControls`, así que usa la
+      // última elección y la muestra abajo antes de apretar (reporte del
+      // dueño, 2026-08-04).
+      const result = await commands.startMeeting(meetingKind);
       if (result.status === "error") throw new Error(result.error);
-      await load();
+      await refreshActiveMeeting();
     } catch (error) {
+      // `recording_busy`: ya hay una reunión grabando en otra ventana. El
+      // string crudo no dice nada por sí solo — `isRecordingBusyError` es
+      // el único lugar que lo reconoce (compartido con `RecordingControls`)
+      // para que los dos digan lo mismo y ofrezcan lo mismo: ir a verla.
+      if (isRecordingBusyError(error)) {
+        toast.error(t("meeting.errors.recordingBusy"), {
+          description: t("meeting.errors.recordingBusyDescription"),
+          action: {
+            label: t("meeting.errors.recordingBusyAction"),
+            onClick: () => void open("transcript"),
+          },
+        });
+        return;
+      }
       toast.error(t("meeting.controls.startFailed"), {
         description: error instanceof Error ? error.message : String(error),
       });
@@ -259,7 +283,7 @@ export const PopoverBody: React.FC = () => {
     try {
       const result = await commands.stopMeeting(meetingId);
       if (result.status === "error") throw new Error(result.error);
-      await load();
+      await refreshActiveMeeting();
     } catch (error) {
       toast.error(t("meeting.controls.stopFailed"), {
         description: error instanceof Error ? error.message : String(error),
@@ -440,17 +464,31 @@ export const PopoverBody: React.FC = () => {
         </div>
       </section>
 
-      <button
-        type="button"
-        onClick={() => void handleStart()}
-        disabled={starting}
-        className="flex items-center justify-center gap-2 rounded-xl bg-logo-primary/15 px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-logo-primary/25 disabled:opacity-60"
-      >
-        <Mic className="size-4 shrink-0" />
-        {starting
-          ? t("meeting.controls.starting")
-          : t("meeting.controls.start")}
-      </button>
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => void handleStart()}
+          disabled={starting}
+          className="flex items-center justify-center gap-2 rounded-xl bg-logo-primary/15 px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-logo-primary/25 disabled:opacity-60"
+        >
+          <Mic className="size-4 shrink-0" />
+          {starting
+            ? t("meeting.controls.starting")
+            : t("meeting.controls.start")}
+        </button>
+        {/* Compacta a propósito — no es el selector completo de
+            `RecordingControls`, sólo dice cuál se va a usar. Cambiarla vive
+            en la ventana de reuniones (submenú "Reuniones" de Ajustes) o en
+            su selector de tipo. */}
+        <span className="flex items-center justify-center gap-1.5 px-1 text-[11px] text-muted-text">
+          {displayedAudioSource === "system_audio" ? (
+            <MonitorSpeaker className="size-3 shrink-0" />
+          ) : (
+            <Mic className="size-3 shrink-0" />
+          )}
+          {t(resolveIndicatorLabelKey(meetingKind, displayedAudioSource))}
+        </span>
+      </div>
 
       <div className="mt-auto flex flex-col gap-2">
         <footer className="flex gap-2">

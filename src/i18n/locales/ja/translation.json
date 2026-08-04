@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "音声が検出されていません",
       "audioNoAudioCapturedDescription": "しばらくこのコンピューターの音声が検出されていません。音声を共有しているか、通話がコンピューターではなくスマートフォン経由になっていないか確認してください。",
       "audioFellBackToMicrophone": "マイクで録音しています",
-      "audioFellBackToMicrophoneDescription": "この会議でコンピューターの音声を開けなかったため、代わりにマイクで録音しています。"
+      "audioFellBackToMicrophoneDescription": "この会議でコンピューターの音声を開けなかったため、代わりにマイクで録音しています。",
+      "recordingBusy": "すでに録音中の会議があります",
+      "recordingBusyDescription": "同時に2つの会議は録音できません。先にその会議を停止するか、確認しに行ってください。",
+      "recordingBusyAction": "会議を見る"
     },
     "transcript": {
       "title": "ライブ文字起こし",

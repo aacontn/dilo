@@ -1,5 +1,8 @@
 import React from "react";
-import { useMeetingEvents } from "../../hooks/useMeetings";
+import {
+  useMeetingActiveSync,
+  useMeetingEvents,
+} from "../../hooks/useMeetings";
 import { RecordingControls } from "./RecordingControls";
 import { LiveTranscript } from "./LiveTranscript";
 import { SpeakerAssignment } from "./SpeakerAssignment";
@@ -23,6 +26,12 @@ export const MeetingSession: React.FC = () => {
   // Un solo punto de suscripción para toda la pantalla — ver el doc comment
   // de `useMeetingEvents`.
   useMeetingEvents();
+  // Igual criterio: un solo punto que adopta contra el backend una reunión
+  // que ya está grabando y que esta ventana todavía no sabe que existe (ver
+  // el doc comment de `useMeetingActiveSync`) — antes esta ventana sólo
+  // confiaba en su propio store, y por eso podía "correr en paralelo" con
+  // el popover mostrando cosas distintas (reporte del dueño, 2026-08-04).
+  useMeetingActiveSync();
 
   return (
     <div className="w-full mx-auto space-y-6">

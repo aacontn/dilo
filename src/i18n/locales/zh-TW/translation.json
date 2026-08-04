@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "未偵測到音訊",
       "audioNoAudioCapturedDescription": "Dilo 已經有一段時間沒有從這台電腦的音訊中偵測到任何聲音了。請確認你已分享音訊，並且通話不是透過手機而不是電腦進行的。",
       "audioFellBackToMicrophone": "改用麥克風錄製",
-      "audioFellBackToMicrophoneDescription": "Dilo 無法為這次會議開啟電腦音訊，因此改用麥克風錄製。"
+      "audioFellBackToMicrophoneDescription": "Dilo 無法為這次會議開啟電腦音訊，因此改用麥克風錄製。",
+      "recordingBusy": "已經有一場會議正在錄製",
+      "recordingBusyDescription": "不能同時錄製兩場會議。先停止那場會議，或是去看看它。",
+      "recordingBusyAction": "查看會議"
     },
     "transcript": {
       "title": "即時逐字稿",

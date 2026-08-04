@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Nie wykryto dźwięku",
       "audioNoAudioCapturedDescription": "Dilo od jakiegoś czasu nie odbiera żadnego dźwięku z tego komputera. Sprawdź, czy udostępniłeś dźwięk i czy rozmowa nie idzie przez telefon zamiast przez komputer.",
       "audioFellBackToMicrophone": "Nagrywanie z mikrofonu",
-      "audioFellBackToMicrophoneDescription": "Dilo nie mógł otworzyć dźwięku tego komputera dla tego spotkania, więc nagrywa z mikrofonu."
+      "audioFellBackToMicrophoneDescription": "Dilo nie mógł otworzyć dźwięku tego komputera dla tego spotkania, więc nagrywa z mikrofonu.",
+      "recordingBusy": "Już trwa nagrywanie innego spotkania",
+      "recordingBusyDescription": "Nie możesz nagrywać dwóch spotkań naraz. Najpierw zatrzymaj to spotkanie albo przejdź, żeby je zobaczyć.",
+      "recordingBusyAction": "Zobacz spotkanie"
     },
     "transcript": {
       "title": "Transkrypcja na żywo",

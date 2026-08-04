@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Не е засечен звук",
       "audioNoAudioCapturedDescription": "От известно време Dilo не улавя звук от този компютър. Провери дали си споделил звука и дали разговорът не минава през телефона вместо през компютъра.",
       "audioFellBackToMicrophone": "Записва се през микрофона",
-      "audioFellBackToMicrophoneDescription": "Dilo не успя да отвори звука на този компютър за тази среща, затова записва през микрофона."
+      "audioFellBackToMicrophoneDescription": "Dilo не успя да отвори звука на този компютър за тази среща, затова записва през микрофона.",
+      "recordingBusy": "Вече има среща, която се записва",
+      "recordingBusyDescription": "Не можеш да записваш две срещи едновременно. Спри тази среща първо или отиди да я видиш.",
+      "recordingBusyAction": "Виж срещата"
     },
     "transcript": {
       "title": "Препис на живо",

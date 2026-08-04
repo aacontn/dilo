@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "لم يتم اكتشاف صوت",
       "audioNoAudioCapturedDescription": "لم يلتقط Dilo أي صوت من هذا الكمبيوتر منذ فترة. تحقق من أنك شاركت الصوت، وأن المكالمة لا تمر عبر هاتفك بدلاً من الكمبيوتر.",
       "audioFellBackToMicrophone": "التسجيل جارٍ عبر الميكروفون",
-      "audioFellBackToMicrophoneDescription": "لم يتمكن Dilo من فتح صوت هذا الكمبيوتر لهذا الاجتماع، لذا يسجل عبر الميكروفون بدلاً من ذلك."
+      "audioFellBackToMicrophoneDescription": "لم يتمكن Dilo من فتح صوت هذا الكمبيوتر لهذا الاجتماع، لذا يسجل عبر الميكروفون بدلاً من ذلك.",
+      "recordingBusy": "هناك اجتماع قيد التسجيل بالفعل",
+      "recordingBusyDescription": "لا يمكنك تسجيل اجتماعين في آن واحد. أوقف ذلك الاجتماع أولاً، أو اذهب لمشاهدته.",
+      "recordingBusyAction": "عرض الاجتماع"
     },
     "transcript": {
       "title": "النص المباشر",

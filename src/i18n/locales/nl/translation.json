@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Geen geluid gedetecteerd",
       "audioNoAudioCapturedDescription": "Dilo pikt al een tijdje geen geluid op van deze computer. Controleer of je het geluid hebt gedeeld en of het gesprek niet via je telefoon loopt in plaats van de computer.",
       "audioFellBackToMicrophone": "Opname loopt nu via de microfoon",
-      "audioFellBackToMicrophoneDescription": "Dilo kon het systeemgeluid voor deze vergadering niet openen en neemt in plaats daarvan op via de microfoon."
+      "audioFellBackToMicrophoneDescription": "Dilo kon het systeemgeluid voor deze vergadering niet openen en neemt in plaats daarvan op via de microfoon.",
+      "recordingBusy": "Er wordt al een vergadering opgenomen",
+      "recordingBusyDescription": "Je kunt niet twee vergaderingen tegelijk opnemen. Stop eerst die vergadering, of ga ernaar kijken.",
+      "recordingBusyAction": "Vergadering bekijken"
     },
     "transcript": {
       "title": "Live transcript",

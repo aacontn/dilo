@@ -20,6 +20,8 @@ const PopoverWindow: React.FC = () => (
             "glass-toast rounded-xl px-4 py-3 flex items-center gap-3 text-sm",
           title: "font-medium",
           description: "text-muted-text",
+          actionButton:
+            "shrink-0 cursor-pointer rounded-lg bg-text/10 px-2 py-1 text-xs font-medium text-text transition-colors hover:bg-text/20",
         },
       }}
     />

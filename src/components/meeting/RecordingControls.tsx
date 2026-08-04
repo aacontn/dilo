@@ -6,34 +6,15 @@ import { Button } from "../ui/Button";
 import { useMeetings } from "../../hooks/useMeetings";
 import { useModelStore } from "../../stores/modelStore";
 import { useSettings } from "../../hooks/useSettings";
-import { commands, type MeetingAudioSource } from "@/bindings";
+import { commands } from "@/bindings";
+import { isRecordingBusyError } from "@/lib/meetingErrors";
+import {
+  kindFromPersistedSource,
+  resolveDisplayedAudioSource,
+  resolveIndicatorLabelKey,
+  sourceFromKind,
+} from "@/lib/meetingKind";
 import type { MeetingKind } from "../../stores/meetingStore";
-
-/**
- * Deriva la fuente de audio que el backend va a usar REALMENTE, mismo
- * criterio que `managers::meeting::resolve_meeting_audio_source` en Rust
- * (I3 del reporte de cableado de audio: la interfaz tiene que mostrar lo que
- * de verdad va a grabar, no un ajuste que puede quedar incoherente).
- * `systemAudioAvailable === null` (todavía consultando) se trata como
- * disponible para no parpadear al primer render — igual criterio que ya
- * usaba este componente para el botón de "audio de este equipo".
- */
-const resolveDisplayedAudioSource = (
-  kind: MeetingKind,
-  systemAudioAvailable: boolean | null,
-): MeetingAudioSource =>
-  kind === "virtual" && systemAudioAvailable !== false
-    ? "system_audio"
-    : "microphone";
-
-/** `settings.meeting_audio_source` sólo recuerda la última elección para
- * preseleccionarla (ver su doc comment en `settings.rs`) — este componente
- * es el único lugar que la traduce de/a un tipo de reunión. */
-const kindFromPersistedSource = (
-  source: MeetingAudioSource | undefined,
-): MeetingKind => (source === "microphone" ? "presencial" : "virtual");
-const sourceFromKind = (kind: MeetingKind): MeetingAudioSource =>
-  kind === "presencial" ? "microphone" : "system_audio";
 
 /**
  * Qué modelo STT va a usar la reunión REALMENTE — mismo criterio que
@@ -54,25 +35,6 @@ const resolveMeetingModelId = (
 ): string => {
   const trimmed = meetingModelId?.trim();
   return trimmed ? trimmed : dictationModelId;
-};
-
-/**
- * Clave de traducción para el indicador de arriba (icono + texto junto al
- * botón de grabar). Tres combinaciones reales, no dos: una reunión online
- * en una máquina sin audio de sistema (Windows, Linux, macOS viejo) graba
- * con el micrófono igual que una presencial, pero SIGUE siendo una reunión
- * online — reusar el texto de "Presencial" ahí sería mentir sobre el tipo,
- * no sólo sobre la fuente. `audioSourceUnavailable` (más abajo, junto al
- * selector) ya explica el porqué del micrófono en ese caso.
- */
-const resolveIndicatorLabelKey = (
-  kind: MeetingKind,
-  displayedAudioSource: MeetingAudioSource,
-): string => {
-  if (kind === "presencial") return "meeting.controls.kindPresencial";
-  return displayedAudioSource === "system_audio"
-    ? "meeting.controls.kindOnlineSystemAudio"
-    : "meeting.controls.kindOnlineMicrophoneFallback";
 };
 
 /**
@@ -180,6 +142,19 @@ export const RecordingControls: React.FC = () => {
       // interfaz.
       await startMeeting(meetingKind);
     } catch (error) {
+      // `recording_busy` no debería llegar acá en el uso normal —
+      // `useMeetingActiveSync` (montado en `MeetingSession`) ya adopta una
+      // reunión en curso apenas la detecta, así que este botón debería
+      // haber cambiado a "detener" antes. Queda como red de seguridad ante
+      // una carrera (la otra ventana empezó una reunión un instante antes
+      // de que se resolviera la sincronización acá) — mismo mensaje que usa
+      // el popover para el mismo caso (`isRecordingBusyError`).
+      if (isRecordingBusyError(error)) {
+        toast.error(t("meeting.errors.recordingBusy"), {
+          description: t("meeting.errors.recordingBusyDescription"),
+        });
+        return;
+      }
       toast.error(t("meeting.controls.startFailed"), {
         description: error instanceof Error ? error.message : String(error),
       });

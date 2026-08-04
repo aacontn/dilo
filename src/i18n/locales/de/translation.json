@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Kein Ton erkannt",
       "audioNoAudioCapturedDescription": "Dilo empfängt seit einer Weile keinen Ton vom Audio dieses Computers. Prüfe, ob du den Ton geteilt hast und ob das Gespräch nicht über dein Telefon statt über den Computer läuft.",
       "audioFellBackToMicrophone": "Aufnahme läuft jetzt über das Mikrofon",
-      "audioFellBackToMicrophoneDescription": "Dilo konnte den Systemton für dieses Meeting nicht öffnen und nimmt stattdessen über das Mikrofon auf."
+      "audioFellBackToMicrophoneDescription": "Dilo konnte den Systemton für dieses Meeting nicht öffnen und nimmt stattdessen über das Mikrofon auf.",
+      "recordingBusy": "Es läuft bereits eine Aufnahme",
+      "recordingBusyDescription": "Du kannst nicht zwei Meetings gleichzeitig aufnehmen. Beende das laufende zuerst oder sieh es dir an.",
+      "recordingBusyAction": "Meeting ansehen"
     },
     "transcript": {
       "title": "Live-Transkript",

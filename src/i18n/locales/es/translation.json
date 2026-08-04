@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "No se está captando audio",
       "audioNoAudioCapturedDescription": "Dilo lleva un rato sin captar nada del audio de este equipo. Revisa que hayas compartido el audio, y que la llamada no esté saliendo por tu teléfono en vez del computador.",
       "audioFellBackToMicrophone": "Grabando con el micrófono",
-      "audioFellBackToMicrophoneDescription": "Dilo no pudo abrir el audio de este equipo para esta reunión, así que está grabando con el micrófono."
+      "audioFellBackToMicrophoneDescription": "Dilo no pudo abrir el audio de este equipo para esta reunión, así que está grabando con el micrófono.",
+      "recordingBusy": "Ya hay una reunión grabando",
+      "recordingBusyDescription": "No puedes grabar dos reuniones a la vez. Detén esa primero, o ve a verla.",
+      "recordingBusyAction": "Ver reunión"
     },
     "transcript": {
       "title": "Transcript en vivo",

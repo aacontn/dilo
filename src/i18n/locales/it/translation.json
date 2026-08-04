@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Nessun audio rilevato",
       "audioNoAudioCapturedDescription": "Dilo non rileva alcun suono dall'audio di questo computer da un po'. Controlla di aver condiviso l'audio e che la chiamata non stia passando dal telefono invece che dal computer.",
       "audioFellBackToMicrophone": "Registrazione con il microfono",
-      "audioFellBackToMicrophoneDescription": "Dilo non è riuscito ad aprire l'audio di questo computer per questa riunione, quindi sta registrando con il microfono."
+      "audioFellBackToMicrophoneDescription": "Dilo non è riuscito ad aprire l'audio di questo computer per questa riunione, quindi sta registrando con il microfono.",
+      "recordingBusy": "C'è già una riunione in registrazione",
+      "recordingBusyDescription": "Non puoi registrare due riunioni insieme. Ferma prima quella in corso, oppure vai a vederla.",
+      "recordingBusyAction": "Vedi riunione"
     },
     "transcript": {
       "title": "Trascrizione dal vivo",

@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Ses algılanmadı",
       "audioNoAudioCapturedDescription": "Dilo bir süredir bu bilgisayarın sesinden hiçbir şey almıyor. Sesi paylaştığından ve görüşmenin bilgisayar yerine telefonundan gitmediğinden emin ol.",
       "audioFellBackToMicrophone": "Kayıt mikrofonla devam ediyor",
-      "audioFellBackToMicrophoneDescription": "Dilo bu toplantı için bilgisayarın sesini açamadı, bu yüzden mikrofonla kayıt yapıyor."
+      "audioFellBackToMicrophoneDescription": "Dilo bu toplantı için bilgisayarın sesini açamadı, bu yüzden mikrofonla kayıt yapıyor.",
+      "recordingBusy": "Zaten kaydedilen bir toplantı var",
+      "recordingBusyDescription": "Aynı anda iki toplantı kaydedemezsin. Önce o toplantıyı durdur ya da gidip bak.",
+      "recordingBusyAction": "Toplantıyı görüntüle"
     },
     "transcript": {
       "title": "Canlı döküm",

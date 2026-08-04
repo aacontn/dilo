@@ -9,6 +9,7 @@ import {
   type MeetingAudioWarningKind,
   type MeetingSegment,
 } from "@/bindings";
+import { useActiveMeeting } from "@/lib/activeMeeting";
 import { useMeetingStore, type MeetingKind } from "../stores/meetingStore";
 
 interface UseMeetingsReturn {
@@ -158,6 +159,61 @@ export const useMeetingEvents = (): void => {
       void unlistenFocus.then((fn) => fn());
     };
   }, [appendSegment, markFinished, markErrored, t]);
+};
+
+/**
+ * Adopta, si hace falta, una reunión que ya está grabando en el backend
+ * pero que esta ventana todavía no conoce — la mitad que le faltaba a esta
+ * ventana frente al popover (que ya resolvía esto para su propia tarjeta;
+ * ver el doc comment de `PopoverBody` y de `useActiveMeeting`). Sin esto,
+ * empezar una reunión desde el popover dejaba la ventana de reuniones
+ * mostrando "listo para grabar" para siempre: su `useMeetingStore` es una
+ * instancia de Zustand propia de este webview, y nada la actualizaba salvo
+ * los propios `startMeeting`/`stopMeeting` de esta ventana.
+ *
+ * **Va en UN solo componente** (junto a `useMeetingEvents`, hoy
+ * `MeetingSession`), no en `useMeetings`: si viviera en el hook de estado,
+ * cada componente que lo usa (`RecordingControls`, `LiveTranscript`,
+ * `SpeakerAssignment`) pediría su propio `get_meeting` de más.
+ *
+ * Sólo adopta cuando `activeMeetingId` acá es `null`: si esta ventana ya
+ * tiene una sesión propia en curso —la empezó ella misma, o ya la adoptó
+ * antes— lo que reporte el backend no debe pisarle el estado local, ni
+ * siquiera a medio detener (`status === "processing"` sigue teniendo
+ * `activeMeetingId` puesto hasta que llega `meeting-finished`).
+ */
+export const useMeetingActiveSync = (): void => {
+  const { t } = useTranslation();
+  const activeMeetingId = useMeetingStore((state) => state.activeMeetingId);
+  const adoptActive = useMeetingStore((state) => state.adoptActive);
+
+  const onError = useCallback(
+    (error: unknown) => {
+      console.error("No se pudo resolver la reunión activa:", error);
+      toast.error(t("popover.loadFailed"), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    },
+    [t],
+  );
+  const { activeMeeting } = useActiveMeeting(onError);
+
+  useEffect(() => {
+    if (activeMeeting === null || activeMeetingId !== null) return;
+    let cancelled = false;
+    void commands.getMeeting(activeMeeting.id).then((result) => {
+      if (cancelled || result.status !== "ok") return;
+      const speakerNames: Record<number, string> = {};
+      for (const speaker of result.data.speakers) {
+        if (speaker.display_name)
+          speakerNames[speaker.id] = speaker.display_name;
+      }
+      adoptActive(activeMeeting.id, result.data.segments, speakerNames);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMeeting, activeMeetingId, adoptActive]);
 };
 
 /** Estado y acciones de la sesión en curso. No suscribe a nada. */

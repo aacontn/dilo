@@ -123,7 +123,10 @@
       "audioNoAudioCaptured": "No audio detected",
       "audioNoAudioCapturedDescription": "Dilo hasn't picked up any sound from this computer's audio in a while. Check that you shared audio, and that the call isn't going through your phone instead.",
       "audioFellBackToMicrophone": "Recording with the microphone instead",
-      "audioFellBackToMicrophoneDescription": "Dilo couldn't open this computer's audio for this meeting, so it's recording with the microphone instead."
+      "audioFellBackToMicrophoneDescription": "Dilo couldn't open this computer's audio for this meeting, so it's recording with the microphone instead.",
+      "recordingBusy": "A meeting is already recording",
+      "recordingBusyDescription": "You can't record two meetings at once. Stop that one first, or go check on it.",
+      "recordingBusyAction": "View meeting"
     },
     "transcript": {
       "title": "Live transcript",

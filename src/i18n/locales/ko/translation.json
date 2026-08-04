@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "감지된 소리가 없습니다",
       "audioNoAudioCapturedDescription": "Dilo가 한동안 이 컴퓨터의 오디오에서 아무 소리도 감지하지 못했습니다. 오디오를 공유했는지, 통화가 컴퓨터 대신 휴대폰을 통해 진행되고 있지 않은지 확인하세요.",
       "audioFellBackToMicrophone": "마이크로 녹음 중입니다",
-      "audioFellBackToMicrophoneDescription": "Dilo가 이 회의에서 컴퓨터 오디오를 열지 못해 대신 마이크로 녹음하고 있습니다."
+      "audioFellBackToMicrophoneDescription": "Dilo가 이 회의에서 컴퓨터 오디오를 열지 못해 대신 마이크로 녹음하고 있습니다.",
+      "recordingBusy": "이미 녹음 중인 회의가 있습니다",
+      "recordingBusyDescription": "회의는 한 번에 하나만 녹음할 수 있습니다. 진행 중인 회의를 먼저 멈추거나, 가서 확인해 보세요.",
+      "recordingBusyAction": "회의 보기"
     },
     "transcript": {
       "title": "실시간 대화록",

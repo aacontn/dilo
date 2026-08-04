@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "לא זוהה קול",
       "audioNoAudioCapturedDescription": "Dilo לא קולט קול מהאודיו של המחשב הזה כבר זמן מה. ודא ששיתפת את האודיו, ושהשיחה לא עוברת דרך הטלפון במקום המחשב.",
       "audioFellBackToMicrophone": "מקליט דרך המיקרופון במקום זאת",
-      "audioFellBackToMicrophoneDescription": "Dilo לא הצליח לפתוח את האודיו של המחשב לפגישה הזו, ולכן הוא מקליט דרך המיקרופון במקום זאת."
+      "audioFellBackToMicrophoneDescription": "Dilo לא הצליח לפתוח את האודיו של המחשב לפגישה הזו, ולכן הוא מקליט דרך המיקרופון במקום זאת.",
+      "recordingBusy": "כבר יש פגישה שמוקלטת",
+      "recordingBusyDescription": "אי אפשר להקליט שתי פגישות בו-זמנית. עצור קודם את הפגישה הזו, או עבור לצפות בה.",
+      "recordingBusyAction": "הצג פגישה"
     },
     "transcript": {
       "title": "תמלול חי",

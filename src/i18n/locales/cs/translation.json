@@ -928,7 +928,10 @@
       "audioNoAudioCaptured": "Nebyl zaznamenán žádný zvuk",
       "audioNoAudioCapturedDescription": "Dilo už chvíli nezaznamenává žádný zvuk z tohoto počítače. Zkontroluj, že jsi sdílel zvuk a že hovor neprobíhá přes telefon místo počítače.",
       "audioFellBackToMicrophone": "Nahrávání přes mikrofon",
-      "audioFellBackToMicrophoneDescription": "Dilo se nepodařilo otevřít zvuk tohoto počítače pro tuto schůzku, takže nahrává přes mikrofon."
+      "audioFellBackToMicrophoneDescription": "Dilo se nepodařilo otevřít zvuk tohoto počítače pro tuto schůzku, takže nahrává přes mikrofon.",
+      "recordingBusy": "Už se nahrává jiná schůzka",
+      "recordingBusyDescription": "Nemůžeš nahrávat dvě schůzky najednou. Nejdřív tu probíhající zastav, nebo se na ni podívej.",
+      "recordingBusyAction": "Zobrazit schůzku"
     },
     "transcript": {
       "title": "Živý přepis",
