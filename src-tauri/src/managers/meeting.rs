@@ -1080,6 +1080,85 @@ enum DiarizerCmd {
     Flush,
 }
 
+/// Estado de los dos relojes que lleva `audio_cb` frame a frame: `asr_ms`
+/// (sólo lo que pasó la compuerta de energía, lo que ve el ASR) y
+/// `total_ms` (TODO lo que llegó, pase o no la compuerta — lo que ve
+/// `StreamingDiarizer`, ver Important 4 del fix round 1). `was_gap` es
+/// interno: si el frame anterior no tenía energía (o todavía no llegó
+/// ninguno), para saber cuándo `step_audio_clock` tiene que marcar un
+/// punto de referencia nuevo.
+///
+/// `Default` es manual, NO `#[derive(Default)]` — a propósito. `was_gap`
+/// arranca en `true`, no en el `false` que un derive le daría a un `bool`:
+/// el estado inicial, antes de que llegue el primer frame, tiene que
+/// contar como "veníamos de un hueco" para que el PRIMER frame con
+/// energía dispare el primer punto de referencia en `AudioToWallClock`
+/// (en `(0, 0)`, el arranque de la captura). El test
+/// `step_audio_clock_todos_los_frames_con_energia_avanzan_igual` lo
+/// ejercita — con un derive, ese primer quiebre nunca se marcaría y
+/// `to_wall_ms` quedaría sin ningún punto de referencia hasta el primer
+/// silencio real, exactamente la misma clase de desalineación que N1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct AudioClockState {
+    asr_ms: u64,
+    total_ms: u64,
+    was_gap: bool,
+}
+
+impl Default for AudioClockState {
+    fn default() -> Self {
+        Self {
+            asr_ms: 0,
+            total_ms: 0,
+            was_gap: true,
+        }
+    }
+}
+
+/// Punto de referencia a marcar en `AudioToWallClock`, si corresponde —
+/// devuelto por [`step_audio_clock`] cuando ESTE frame es el que reanuda
+/// al ASR después de un hueco.
+type AudioClockMark = Option<(u64, u64)>;
+
+/// Aplica UN frame (con o sin energía, de `frame_ms` milisegundos) al
+/// estado de los dos relojes — la lógica que `audio_cb` corre en vivo,
+/// acá aislada de sus efectos de lado (`stream_router.feed`,
+/// `AudioToWallClock::mark`) para poder probarla sin hardware ni threads.
+///
+/// **N2 del fix round 3 — qué prueba esto y qué no.** La re-revisión
+/// demostró que el test de monotonía de `AudioToWallClock::to_wall_ms`
+/// (fix round 2) no hubiera detectado la regresión de N1: construye sus
+/// quiebres a mano, ya monótonos por construcción, así que verifica una
+/// propiedad de la interpolación (que nunca estuvo rota) y no ejercita el
+/// caso patológico real — cuánto avanza cada reloj frame a frame. Lo que
+/// puede volver a romperse es esto: que `total_ms` deje de sumar cuando
+/// el frame no tiene energía (por ejemplo, si alguien "simplifica" el
+/// código y mueve la suma de vuelta adentro del `if has_energy`). Esta
+/// función es el punto exacto donde ese invariante vive, aislado para que
+/// un test lo pueda ejercitar directamente en vez de a través de
+/// `audio_cb` completo (que necesitaría un recorder real).
+fn step_audio_clock(
+    mut state: AudioClockState,
+    has_energy: bool,
+    frame_ms: u64,
+) -> (AudioClockState, AudioClockMark) {
+    let mut mark = None;
+    if has_energy {
+        if state.was_gap {
+            mark = Some((state.asr_ms, state.total_ms));
+            state.was_gap = false;
+        }
+        state.asr_ms += frame_ms;
+    } else {
+        state.was_gap = true;
+    }
+    // Fuera del `if has_energy` a propósito: `total_ms` tiene que sumar
+    // CADA frame, tenga o no energía — es lo único que lo mantiene igual
+    // al reloj de `StreamingDiarizer`, que recibe todo sin filtrar.
+    state.total_ms += frame_ms;
+    (state, mark)
+}
+
 /// Traduce milisegundos "de reconocimiento" (los que cuenta el ASR en
 /// streaming — sólo avanzan cuando `audio_cb` deja pasar un frame por la
 /// compuerta de energía, ver [`has_energy`]) a milisegundos "de reunión":
@@ -1916,16 +1995,12 @@ impl MeetingManager {
             // no reloj de pared) y el comentario del módulo (Important 3/4
             // del fix round 1).
             let clock = Arc::new(Mutex::new(AudioToWallClock::default()));
-            // (asr_ms, total_ms, was_gap): `asr_ms` es cuánto audio ya se
-            // le entregó al ASR (sólo lo que pasó la compuerta); `total_ms`
-            // es la suma de TODOS los frames que pasaron por `audio_cb`,
-            // pasen o no la compuerta — exactamente lo mismo que ve
-            // `StreamingDiarizer` (Important 4), así que es su reloj por
-            // construcción, no una aproximación de reloj de pared. Único
-            // hilo escritor (`audio_cb`), por eso alcanza un `Mutex`
-            // compartido en vez de átomos separados que podrían quedar
-            // inconsistentes entre sí.
-            let asr_clock = Arc::new(Mutex::new((0u64, 0u64, true)));
+            // Estado de los dos relojes (`AudioClockState` — `asr_ms` sólo
+            // lo que pasó la compuerta, `total_ms` TODO lo que llegó, ver
+            // `step_audio_clock`). Único hilo escritor (`audio_cb`), por
+            // eso alcanza un `Mutex` en vez de átomos separados que
+            // podrían quedar inconsistentes entre sí.
+            let asr_clock = Arc::new(Mutex::new(AudioClockState::default()));
 
             // Cada intento de abrir un recorder necesita su propio callback
             // (`audio_cb` consume el que le pasan) — I2 del reporte de
@@ -1954,20 +2029,19 @@ impl MeetingManager {
                     // 16 kHz mono, igual que el resto del pipeline de
                     // reuniones (ver `AudioRecorder`/`StreamingDiarizer`).
                     let frame_ms = (frame.len() as u64 * 1000) / 16_000;
-                    let mut guard = asr_clock.lock().unwrap();
-                    let (asr_ms, total_ms, was_gap) = &mut *guard;
-                    if has_energy(frame) {
-                        if *was_gap {
-                            clock.lock().unwrap().mark(*asr_ms, *total_ms);
-                            *was_gap = false;
-                        }
-                        stream_router.feed(frame);
-                        *asr_ms += frame_ms;
-                    } else {
-                        *was_gap = true;
+                    let has_energy = has_energy(frame);
+                    let mark = {
+                        let mut guard = asr_clock.lock().unwrap();
+                        let (new_state, mark) = step_audio_clock(*guard, has_energy, frame_ms);
+                        *guard = new_state;
+                        mark
+                    };
+                    if let Some((asr_ms, total_ms)) = mark {
+                        clock.lock().unwrap().mark(asr_ms, total_ms);
                     }
-                    *total_ms += frame_ms;
-                    drop(guard);
+                    if has_energy {
+                        stream_router.feed(frame);
+                    }
 
                     // Sin filtrar: ver Important 4 arriba.
                     let depth = diar_queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
@@ -3859,15 +3933,18 @@ mod tests {
 
     #[test]
     fn to_wall_ms_es_monotona_sobre_una_secuencia_de_quiebres() {
-        // Justo lo que N1 rompía: con el ancla equivocada (reloj de pared
-        // real, sujeto a jitter de ráfaga y deriva del hilo consumidor),
-        // un quiebre posterior podía marcar un `meeting_ms` MENOR que uno
-        // anterior, y `to_wall_ms` dejaba de ser monótona -- tokens que
-        // "retroceden" en reloj de reunión, y `run.end_ms <=
-        // persisted_until_ms` los lee como ya persistidos, perdiendo una
-        // intervención real sin ningún error. Con el ancla correcta
-        // (`total_ms`, que sólo puede crecer) esto no puede pasar: se
-        // afirma acá para que una futura regresión lo note.
+        // OJO — qué prueba esto y qué no (corregido en el fix round 3,
+        // N2): esto verifica la INTERPOLACIÓN de `AudioToWallClock` sobre
+        // quiebres que ya son monótonos por construcción (se arman a
+        // mano, ordenados). Nunca estuvo rota y este test no hubiera
+        // detectado la regresión de N1 — se comprobó insertándolo tal
+        // cual en el commit de antes del arreglo (`29c8edfe`) y pasó
+        // igual, porque el problema de N1 no estaba en la interpolación
+        // sino en QUÉ la alimentaba (`capture_started.elapsed()` en vez
+        // de `total_ms`). El test que sí hubiera detectado esa clase de
+        // regresión es sobre `step_audio_clock`, más abajo (N2 del fix
+        // round 3) — ahí es donde vive el invariante real: que `total_ms`
+        // sume TODOS los frames, no sólo los que pasan la compuerta.
         let mut clock = AudioToWallClock::default();
         let breaks = [(0, 0), (50, 200), (120, 500), (121, 501), (500, 2_000)];
         for &(asr_ms, meeting_ms) in &breaks {
@@ -3883,6 +3960,117 @@ mod tests {
             );
             last = wall_ms;
         }
+    }
+
+    // ------------------------------------------------------------------
+    // N2 del fix round 3: `step_audio_clock` es donde vive el invariante
+    // que puede volver a romperse — que `total_ms` sume TODOS los frames,
+    // tenga o no energía cada uno. Simula lo que `audio_cb` le haría al
+    // reloj a lo largo de una secuencia, sin recorder ni hilos.
+    // ------------------------------------------------------------------
+
+    /// Aplica `frames` (cada uno `(tiene_energía, frame_ms)`) en orden y
+    /// devuelve el estado final más los quiebres que se habrían marcado —
+    /// la misma secuencia de llamadas que hace `audio_cb`, una por frame.
+    fn simulate_audio_clock(frames: &[(bool, u64)]) -> (AudioClockState, Vec<(u64, u64)>) {
+        let mut state = AudioClockState::default();
+        let mut marks = Vec::new();
+        for &(has_energy, frame_ms) in frames {
+            let (new_state, mark) = step_audio_clock(state, has_energy, frame_ms);
+            state = new_state;
+            if let Some(m) = mark {
+                marks.push(m);
+            }
+        }
+        (state, marks)
+    }
+
+    #[test]
+    fn step_audio_clock_todos_los_frames_con_energia_avanzan_igual() {
+        // Sin ningún hueco, los dos relojes tienen que terminar exactamente
+        // iguales -- un solo quiebre, al principio, en (0, 0).
+        let frames: Vec<(bool, u64)> = (0..10).map(|_| (true, 30)).collect();
+        let (state, marks) = simulate_audio_clock(&frames);
+        assert_eq!(state.asr_ms, 300);
+        assert_eq!(state.total_ms, 300);
+        assert_eq!(
+            state.asr_ms, state.total_ms,
+            "sin huecos, los dos relojes coinciden"
+        );
+        assert_eq!(marks, vec![(0, 0)]);
+    }
+
+    #[test]
+    fn step_audio_clock_el_silencio_intercalado_avanza_total_ms_sin_avanzar_asr_ms() {
+        // El corazón del asunto (N2): mientras un frame no tiene energía,
+        // `asr_ms` tiene que quedarse quieto y `total_ms` tiene que seguir
+        // sumando igual. Es justo lo que se rompe si alguien vuelve a
+        // meter la suma de `total_ms` adentro del `if has_energy`.
+        let mut state = AudioClockState::default();
+
+        let (s1, _) = step_audio_clock(state, true, 30); // voz
+        state = s1;
+        assert_eq!((state.asr_ms, state.total_ms), (30, 30));
+
+        let (s2, mark2) = step_audio_clock(state, false, 30); // silencio
+        state = s2;
+        assert_eq!(
+            (state.asr_ms, state.total_ms),
+            (30, 60),
+            "total_ms debe avanzar en el frame de silencio aunque asr_ms no se mueva"
+        );
+        assert_eq!(mark2, None, "un frame de silencio no marca ningún quiebre");
+
+        let (s3, _) = step_audio_clock(state, false, 30); // más silencio
+        state = s3;
+        assert_eq!(
+            (state.asr_ms, state.total_ms),
+            (30, 90),
+            "total_ms sigue avanzando frame a frame aunque el silencio se extienda"
+        );
+
+        let (s4, mark4) = step_audio_clock(state, true, 30); // vuelve la voz
+        state = s4;
+        assert_eq!((state.asr_ms, state.total_ms), (60, 120));
+        assert_eq!(
+            mark4,
+            Some((30, 90)),
+            "al retomar tras el hueco, marca el punto donde asr_ms y total_ms volvieron a \
+             coincidir"
+        );
+    }
+
+    #[test]
+    fn step_audio_clock_secuencia_larga_alternada_la_diferencia_crece_exacto_lo_descartado() {
+        // energía, energía, silencio x3, energía, energía, silencio x2,
+        // energía -- 30ms por frame. La diferencia entre total_ms y
+        // asr_ms en todo momento tiene que ser EXACTAMENTE la suma de los
+        // frames de silencio vistos hasta ahí, sin deriva de ningún tipo.
+        let pattern = [
+            true, true, false, false, false, true, true, false, false, true,
+        ];
+        let frames: Vec<(bool, u64)> = pattern.iter().map(|&e| (e, 30)).collect();
+
+        let mut state = AudioClockState::default();
+        let mut discarded_ms = 0u64;
+        for &(has_energy, frame_ms) in &frames {
+            let (new_state, _) = step_audio_clock(state, has_energy, frame_ms);
+            state = new_state;
+            if !has_energy {
+                discarded_ms += frame_ms;
+            }
+            assert_eq!(
+                state.total_ms - state.asr_ms,
+                discarded_ms,
+                "la diferencia entre los dos relojes tiene que ser exactamente el silencio \
+                 descartado hasta ahora, sin deriva"
+            );
+        }
+
+        let loud_frames = pattern.iter().filter(|&&e| e).count() as u64;
+        let quiet_frames = pattern.iter().filter(|&&e| !e).count() as u64;
+        assert_eq!(state.asr_ms, loud_frames * 30);
+        assert_eq!(state.total_ms, (loud_frames + quiet_frames) * 30);
     }
 
     // ------------------------------------------------------------------
