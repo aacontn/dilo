@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo לא הצליח לפתוח את האודיו של המחשב לפגישה הזו, ולכן הוא מקליט דרך המיקרופון במקום זאת.",
       "recordingBusy": "כבר יש פגישה שמוקלטת",
       "recordingBusyDescription": "אי אפשר להקליט שתי פגישות בו-זמנית. עצור קודם את הפגישה הזו, או עבור לצפות בה.",
-      "recordingBusyAction": "הצג פגישה"
+      "recordingBusyAction": "הצג פגישה",
+      "modelNotStreaming": "אי אפשר להשתמש במודל הזה לפגישות",
+      "modelNotStreamingDescription": "{{name}} לא תומך בתמלול בזמן אמת. בחר מודל אחר לפגישות בתפריט המודלים."
     },
     "transcript": {
       "title": "תמלול חי",

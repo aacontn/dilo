@@ -64,7 +64,7 @@ interface TranscriptListProps {
 
 /**
  * Cuerpo del transcript: un `<article>` por segmento, con su chip de
- * hablante y la marca de voces encimadas.
+ * hablante.
  *
  * Extraído de `LiveTranscript` (T018) para que `MeetingDetail` (Historia 4)
  * lo reutilice sin duplicar la lógica de chips — mismo componente para el
@@ -72,18 +72,26 @@ interface TranscriptListProps {
  * popover. No trae wrapper propio (ni `divide-y` ni scroll): cada pantalla
  * decide su propio contenedor.
  *
- * Los `segments` que llegan son los que persiste el backend, cortados cada
- * `MAX_TURN_MS` aunque el mismo hablante siga con la palabra (ver el doc
- * comment de `groupConsecutiveSegments`). Se agrupan acá, en el único punto
- * por el que pasan las tres superficies, para que ninguna tenga que acordarse
- * de hacerlo por su cuenta.
+ * Los `segments` que llegan son los que persiste el backend, uno por
+ * intervención atribuida (ver el doc comment de `groupConsecutiveSegments`
+ * para por qué igual se agrupan acá). Se agrupan en el único punto por el
+ * que pasan las tres superficies, para que ninguna tenga que acordarse de
+ * hacerlo por su cuenta.
+ *
+ * M9 del fix round 1 (Task 5, "reuniones en streaming"): la insignia de
+ * "voces encimadas" que pintaba `segment.overlapped` se sacó — desde que la
+ * diarización en vivo pasó a `StreamingDiarizer`, ese campo queda siempre
+ * en `false` (Sortformer ya resuelve los solapes de hablantes ANTES de
+ * devolver un tramo, ver `flatten_overlaps` en `sortformer.rs`; no hay
+ * ninguna señal de solape que reponer). Dejar la insignia habría sido
+ * mentirle al usuario con un "nunca se encimaron voces" que en realidad es
+ * "ya no lo sabemos". El campo sigue en el contrato (`MeetingSegment.
+ * overlapped`, base de datos incluida) sin cambios — esto es sólo la UI.
  */
 export const TranscriptList: React.FC<TranscriptListProps> = ({
   segments,
   speakerNames,
 }) => {
-  const { t } = useTranslation();
-
   const groupedSegments = groupConsecutiveSegments(segments);
 
   // Orden de aparición de cada hablante, para el color y la etiqueta.
@@ -116,11 +124,6 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
                     : (speakerNames[segment.speaker_id] ?? null)
                 }
               />
-              {segment.overlapped && (
-                <span className="text-xs text-muted-text">
-                  {t("meeting.transcript.overlapped")}
-                </span>
-              )}
             </div>
             <p className="mt-1 text-sm leading-relaxed text-text">
               {segment.text}

@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo bu toplantı için bilgisayarın sesini açamadı, bu yüzden mikrofonla kayıt yapıyor.",
       "recordingBusy": "Zaten kaydedilen bir toplantı var",
       "recordingBusyDescription": "Aynı anda iki toplantı kaydedemezsin. Önce o toplantıyı durdur ya da gidip bak.",
-      "recordingBusyAction": "Toplantıyı görüntüle"
+      "recordingBusyAction": "Toplantıyı görüntüle",
+      "modelNotStreaming": "Bu model toplantılar için kullanılamaz",
+      "modelNotStreamingDescription": "{{name}} canlı deşifreyi desteklemiyor. Model menüsünden toplantılar için başka bir model seç."
     },
     "transcript": {
       "title": "Canlı döküm",

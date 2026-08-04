@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo 無法為這次會議開啟電腦音訊，因此改用麥克風錄製。",
       "recordingBusy": "已經有一場會議正在錄製",
       "recordingBusyDescription": "不能同時錄製兩場會議。先停止那場會議，或是去看看它。",
-      "recordingBusyAction": "查看會議"
+      "recordingBusyAction": "查看會議",
+      "modelNotStreaming": "這個模型不能用於會議",
+      "modelNotStreamingDescription": "{{name}} 不支援即時轉錄。請在模型選單中為會議選擇其他模型。"
     },
     "transcript": {
       "title": "即時逐字稿",

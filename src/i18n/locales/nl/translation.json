@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo kon het systeemgeluid voor deze vergadering niet openen en neemt in plaats daarvan op via de microfoon.",
       "recordingBusy": "Er wordt al een vergadering opgenomen",
       "recordingBusyDescription": "Je kunt niet twee vergaderingen tegelijk opnemen. Stop eerst die vergadering, of ga ernaar kijken.",
-      "recordingBusyAction": "Vergadering bekijken"
+      "recordingBusyAction": "Vergadering bekijken",
+      "modelNotStreaming": "Dit model werkt niet voor vergaderingen",
+      "modelNotStreamingDescription": "{{name}} ondersteunt geen live transcriptie. Kies in het modellenmenu een ander model voor vergaderingen."
     },
     "transcript": {
       "title": "Live transcript",

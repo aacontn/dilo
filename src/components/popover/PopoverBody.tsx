@@ -32,7 +32,10 @@ import {
 import { formatDuration } from "@/components/meeting/meetingFormat";
 import { TranscriptList } from "@/components/meeting";
 import { useActiveMeeting } from "@/lib/activeMeeting";
-import { isRecordingBusyError } from "@/lib/meetingErrors";
+import {
+  isRecordingBusyError,
+  modelNotStreamingErrorModelId,
+} from "@/lib/meetingErrors";
 import {
   kindFromPersistedSource,
   resolveDisplayedAudioSource,
@@ -226,6 +229,20 @@ export const PopoverBody: React.FC = () => {
     [models],
   );
 
+  // Desde la Task 5 del plan "reuniones en streaming", el reconocimiento en
+  // vivo es el ÚNICO camino de texto de una reunión (antes había un
+  // reintento por turno que andaba con cualquier motor) — `start_capture`
+  // rechaza de plano un modelo sin streaming. Ofrecerlo acá igual dejaría al
+  // usuario elegir algo que sabemos de antemano que no va a grabar nada.
+  const streamingModels = useMemo(
+    () =>
+      [...models]
+        .filter((m) => m.is_downloaded && m.supports_streaming)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((m) => ({ id: m.id, name: m.name })),
+    [models],
+  );
+
   // Qué tipo de reunión (y qué fuente de audio real) va a usar el botón de
   // "Grabar" de acá abajo — la última elección guardada en
   // `settings.meeting_audio_source`, mismo criterio que `RecordingControls`
@@ -267,6 +284,22 @@ export const PopoverBody: React.FC = () => {
             label: t("meeting.errors.recordingBusyAction"),
             onClick: () => void open("transcript"),
           },
+        });
+        return;
+      }
+      // Mismo rechazo que `RecordingControls`: el modelo resuelto para la
+      // reunión no soporta streaming, el único camino de texto desde la
+      // Task 5. `streamingModels` de abajo ya evita que el usuario elija
+      // uno así acá, pero "heredar del dictado" puede seguir apuntando a
+      // uno que no sirve.
+      const badModelId = modelNotStreamingErrorModelId(error);
+      if (badModelId !== null) {
+        const badModelName =
+          models.find((model) => model.id === badModelId)?.name ?? badModelId;
+        toast.error(t("meeting.errors.modelNotStreaming"), {
+          description: t("meeting.errors.modelNotStreamingDescription", {
+            name: badModelName,
+          }),
         });
         return;
       }
@@ -441,7 +474,7 @@ export const PopoverBody: React.FC = () => {
             }
             options={[
               { id: "", name: t("popover.models.inherit") },
-              ...downloadedModels,
+              ...streamingModels,
             ]}
           />
           <ModelSelectRow

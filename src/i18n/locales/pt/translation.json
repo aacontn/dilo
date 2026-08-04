@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "O Dilo não conseguiu abrir o áudio deste computador para esta reunião, então está gravando com o microfone.",
       "recordingBusy": "Já há uma reunião sendo gravada",
       "recordingBusyDescription": "Você não pode gravar duas reuniões ao mesmo tempo. Pare essa reunião primeiro, ou vá dar uma olhada nela.",
-      "recordingBusyAction": "Ver reunião"
+      "recordingBusyAction": "Ver reunião",
+      "modelNotStreaming": "Este modelo não serve para reuniões",
+      "modelNotStreamingDescription": "{{name}} não é compatível com transcrição ao vivo. Escolha outro modelo para reuniões no menu de modelos."
     },
     "transcript": {
       "title": "Transcrição ao vivo",

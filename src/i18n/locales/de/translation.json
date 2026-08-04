@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo konnte den Systemton für dieses Meeting nicht öffnen und nimmt stattdessen über das Mikrofon auf.",
       "recordingBusy": "Es läuft bereits eine Aufnahme",
       "recordingBusyDescription": "Du kannst nicht zwei Meetings gleichzeitig aufnehmen. Beende das laufende zuerst oder sieh es dir an.",
-      "recordingBusyAction": "Meeting ansehen"
+      "recordingBusyAction": "Meeting ansehen",
+      "modelNotStreaming": "Dieses Modell eignet sich nicht für Meetings",
+      "modelNotStreamingDescription": "{{name}} unterstützt keine Live-Transkription. Wähle im Modellmenü ein anderes Modell für Meetings."
     },
     "transcript": {
       "title": "Live-Transkript",

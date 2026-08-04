@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo가 이 회의에서 컴퓨터 오디오를 열지 못해 대신 마이크로 녹음하고 있습니다.",
       "recordingBusy": "이미 녹음 중인 회의가 있습니다",
       "recordingBusyDescription": "회의는 한 번에 하나만 녹음할 수 있습니다. 진행 중인 회의를 먼저 멈추거나, 가서 확인해 보세요.",
-      "recordingBusyAction": "회의 보기"
+      "recordingBusyAction": "회의 보기",
+      "modelNotStreaming": "이 모델은 회의에 사용할 수 없어요",
+      "modelNotStreamingDescription": "{{name}}은(는) 실시간 전사를 지원하지 않아요. 모델 메뉴에서 회의용 모델을 다시 선택해 주세요."
     },
     "transcript": {
       "title": "실시간 대화록",

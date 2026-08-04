@@ -8,3 +8,28 @@
  */
 export const isRecordingBusyError = (error: unknown): boolean =>
   error instanceof Error && error.message === "recording_busy";
+
+/**
+ * Prefijo del error que `start_capture` (Rust, `managers/meeting.rs`) manda
+ * cuando el modelo resuelto para la reunión (propio o heredado del dictado)
+ * no soporta reconocimiento en streaming — desde la Task 5 del plan
+ * "reuniones en streaming" ese es el ÚNICO camino de texto de una reunión,
+ * así que grabar con un modelo sin streaming no perdía turnos como antes:
+ * no guardaba nada, en silencio. El id del modelo va después del prefijo
+ * (`meeting_model_not_streaming:parakeet-tdt-0.6b-v3`, por ejemplo) para
+ * poder nombrarlo en el toast sin adivinar cuál era.
+ */
+const MODEL_NOT_STREAMING_PREFIX = "meeting_model_not_streaming:";
+
+/**
+ * Si `error` es el rechazo de arriba, devuelve el id del modelo que no
+ * sirve; si no, `null`. El llamador lo cruza contra `useModelStore` para
+ * mostrar el nombre visible en vez del id crudo.
+ */
+export const modelNotStreamingErrorModelId = (
+  error: unknown,
+): string | null => {
+  if (!(error instanceof Error)) return null;
+  if (!error.message.startsWith(MODEL_NOT_STREAMING_PREFIX)) return null;
+  return error.message.slice(MODEL_NOT_STREAMING_PREFIX.length);
+};

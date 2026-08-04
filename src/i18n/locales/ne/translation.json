@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo ले यो बैठकको लागि कम्प्युटरको अडियो खोल्न सकेन, त्यसैले अहिले माइक्रोफोनबाट रेकर्ड गरिरहेको छ।",
       "recordingBusy": "पहिले नै एउटा बैठक रेकर्ड भइरहेको छ",
       "recordingBusyDescription": "एकैपटक दुई बैठक रेकर्ड गर्न मिल्दैन। पहिले त्यो बैठक रोक्नुहोस्, वा हेर्न जानुहोस्।",
-      "recordingBusyAction": "बैठक हेर्नुहोस्"
+      "recordingBusyAction": "बैठक हेर्नुहोस्",
+      "modelNotStreaming": "यो मोडेल बैठकका लागि काम गर्दैन",
+      "modelNotStreamingDescription": "{{name}} ले प्रत्यक्ष ट्रान्सक्रिप्सन समर्थन गर्दैन। मोडेल मेनुमा बैठकका लागि अर्को मोडेल छान्नुहोस्।"
     },
     "transcript": {
       "title": "प्रत्यक्ष ट्रान्सक्रिप्ट",

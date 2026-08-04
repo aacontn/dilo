@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo n'a pas pu ouvrir l'audio de cet ordinateur pour cette réunion, il enregistre donc avec le micro à la place.",
       "recordingBusy": "Une réunion est déjà en cours d'enregistrement",
       "recordingBusyDescription": "Impossible d'enregistrer deux réunions à la fois. Arrête d'abord celle en cours, ou va y jeter un œil.",
-      "recordingBusyAction": "Voir la réunion"
+      "recordingBusyAction": "Voir la réunion",
+      "modelNotStreaming": "Ce modèle ne peut pas être utilisé pour les réunions",
+      "modelNotStreamingDescription": "{{name}} ne prend pas en charge la transcription en direct. Choisis un autre modèle pour les réunions dans le menu des modèles."
     },
     "transcript": {
       "title": "Transcription en direct",

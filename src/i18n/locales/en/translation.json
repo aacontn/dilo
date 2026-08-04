@@ -126,7 +126,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo couldn't open this computer's audio for this meeting, so it's recording with the microphone instead.",
       "recordingBusy": "A meeting is already recording",
       "recordingBusyDescription": "You can't record two meetings at once. Stop that one first, or go check on it.",
-      "recordingBusyAction": "View meeting"
+      "recordingBusyAction": "View meeting",
+      "modelNotStreaming": "This model can't record meetings",
+      "modelNotStreamingDescription": "{{name}} doesn't support live transcription. Pick a different model for meetings in the model menu."
     },
     "transcript": {
       "title": "Live transcript",

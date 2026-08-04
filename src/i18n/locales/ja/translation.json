@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "この会議でコンピューターの音声を開けなかったため、代わりにマイクで録音しています。",
       "recordingBusy": "すでに録音中の会議があります",
       "recordingBusyDescription": "同時に2つの会議は録音できません。先にその会議を停止するか、確認しに行ってください。",
-      "recordingBusyAction": "会議を見る"
+      "recordingBusyAction": "会議を見る",
+      "modelNotStreaming": "このモデルは会議の録音に使えません",
+      "modelNotStreamingDescription": "{{name}}はライブ文字起こしに対応していません。モデルメニューで会議用に別のモデルを選んでください。"
     },
     "transcript": {
       "title": "ライブ文字起こし",

@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo kunde inte öppna datorns ljud för det här mötet, så det spelar in med mikrofonen istället.",
       "recordingBusy": "Ett möte spelas redan in",
       "recordingBusyDescription": "Du kan inte spela in två möten samtidigt. Stoppa det pågående mötet först, eller gå och titta på det.",
-      "recordingBusyAction": "Visa mötet"
+      "recordingBusyAction": "Visa mötet",
+      "modelNotStreaming": "Den här modellen fungerar inte för möten",
+      "modelNotStreamingDescription": "{{name}} stöder inte livetranskribering. Välj en annan modell för möten i modellmenyn."
     },
     "transcript": {
       "title": "Direkttranskript",

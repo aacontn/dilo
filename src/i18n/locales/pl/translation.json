@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo nie mógł otworzyć dźwięku tego komputera dla tego spotkania, więc nagrywa z mikrofonu.",
       "recordingBusy": "Już trwa nagrywanie innego spotkania",
       "recordingBusyDescription": "Nie możesz nagrywać dwóch spotkań naraz. Najpierw zatrzymaj to spotkanie albo przejdź, żeby je zobaczyć.",
-      "recordingBusyAction": "Zobacz spotkanie"
+      "recordingBusyAction": "Zobacz spotkanie",
+      "modelNotStreaming": "Ten model nie nadaje się do spotkań",
+      "modelNotStreamingDescription": "{{name}} nie obsługuje transkrypcji na żywo. Wybierz inny model do spotkań w menu modeli."
     },
     "transcript": {
       "title": "Transkrypcja na żywo",

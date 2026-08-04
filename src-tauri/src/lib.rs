@@ -250,6 +250,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 app_handle.clone(),
                 transcription_manager.clone(),
                 mic_arbiter,
+                model_manager.clone(),
                 meeting_models_dir,
             ),
     );

@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo 无法为这次会议打开电脑音频，因此改用麦克风录制。",
       "recordingBusy": "已经有一场会议正在录制",
       "recordingBusyDescription": "不能同时录制两场会议。先停止那场会议，或者去看看它。",
-      "recordingBusyAction": "查看会议"
+      "recordingBusyAction": "查看会议",
+      "modelNotStreaming": "这个模型不能用于会议",
+      "modelNotStreamingDescription": "{{name}} 不支持实时转录。请在模型菜单中为会议选择其他模型。"
     },
     "transcript": {
       "title": "实时转写",

@@ -7,7 +7,10 @@ import { useMeetings } from "../../hooks/useMeetings";
 import { useModelStore } from "../../stores/modelStore";
 import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
-import { isRecordingBusyError } from "@/lib/meetingErrors";
+import {
+  isRecordingBusyError,
+  modelNotStreamingErrorModelId,
+} from "@/lib/meetingErrors";
 import {
   kindFromPersistedSource,
   resolveDisplayedAudioSource,
@@ -152,6 +155,24 @@ export const RecordingControls: React.FC = () => {
       if (isRecordingBusyError(error)) {
         toast.error(t("meeting.errors.recordingBusy"), {
           description: t("meeting.errors.recordingBusyDescription"),
+        });
+        return;
+      }
+      // El modelo resuelto para la reunión (propio o heredado del dictado,
+      // ver `resolveMeetingModelId` arriba) no soporta streaming — desde la
+      // Task 5 ese es el único camino de texto, así que grabar con uno así
+      // no perdía turnos: no guardaba nada. El popover ya filtra el
+      // selector de modelos de reunión a los que sirven, pero el heredado
+      // del dictado puede seguir sin soportarlo, así que este chequeo
+      // igual hace falta acá.
+      const badModelId = modelNotStreamingErrorModelId(error);
+      if (badModelId !== null) {
+        const badModelName =
+          models.find((model) => model.id === badModelId)?.name ?? badModelId;
+        toast.error(t("meeting.errors.modelNotStreaming"), {
+          description: t("meeting.errors.modelNotStreamingDescription", {
+            name: badModelName,
+          }),
         });
         return;
       }

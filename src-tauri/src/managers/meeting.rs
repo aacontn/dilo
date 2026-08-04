@@ -53,6 +53,7 @@ use crate::managers::audio::{AudioRecordingManager, MicOwner, MicrophoneArbiter}
 use crate::managers::diarization::align::{attribute, AttributedRun};
 use crate::managers::diarization::sortformer::{SpeakerSpan, StreamingDiarizer};
 use crate::managers::diarization_models;
+use crate::managers::model::ModelManager;
 use crate::managers::transcription::{
     StreamPurpose, StreamTextEvent, TimedToken, TranscriptionManager,
 };
@@ -743,7 +744,9 @@ fn spawn_capture_abort(app_handle: &AppHandle, meeting_id: i64) {
 /// forwards passes through the energy gate instead (`ENERGY_GATE_RMS`,
 /// applied inside `audio_cb` — see `start_capture`), which is far more
 /// permissive.
-#[allow(dead_code)]
+///
+/// M10 (fix round 1): este símbolo tenía `#[allow(dead_code)]` aunque ya
+/// tiene dos llamadores reales en `start_capture` — quitado.
 fn build_meeting_recorder(
     audio_cb: impl Fn(&[f32]) + Send + Sync + 'static,
 ) -> Result<AudioRecorder> {
@@ -1011,8 +1014,7 @@ struct AudioWarningState {
 // El audio ya no se corta en turnos: [`MeetingManager::start_capture`]
 // alimenta el reconocimiento de voz en streaming (`TimedToken`s con marca
 // real, Task 3) y [`StreamingDiarizer::push`] (`SpeakerSpan`s, Task 2) en
-// paralelo, sobre exactamente el mismo audio filtrado por la compuerta de
-// energía. `align::attribute` (Task 4) cruza ambos flujos por solape
+// paralelo. `align::attribute` (Task 4) cruza ambos flujos por solape
 // temporal y arma [`AttributedRun`]s — la unidad que sobrevive incluso una
 // interrupción de un solo token, el problema que motivó todo este plan.
 // [`segments_from_runs`] convierte cada `AttributedRun` en el
@@ -1020,6 +1022,31 @@ struct AudioWarningState {
 // `start_capture` es quien decide CUÁNDO una run ya está cerrada (ver
 // [`maybe_persist_new_runs`]) y quien resuelve su hablante local antes de
 // guardarla ([`persist_and_emit_run`]).
+//
+// # Important 4/3 del fix round 1: la compuerta sólo protege al ASR, y las
+// marcas vuelven a ser reloj de reunión
+//
+// La primera versión de esta tarea aplicaba [`has_energy`] por igual a los
+// dos motores, para que sus relojes en milisegundos contaran exactamente el
+// mismo audio y quedaran directamente comparables. Eso rompía dos cosas a
+// la vez: `StreamingDiarizer` documenta que corta turnos por silencio real
+// (`sortformer.rs`, "la emisión sigue cierres de turno"), así que borrarle
+// las pausas antes de que las viera dejaba turnos que no cerraban nunca; y
+// `started_at_ms`/`ended_at_ms` — que el usuario ve en el transcript — pasó
+// a medir la posición dentro del audio CON VOZ, no la posición real dentro
+// de la reunión, corriéndose hacia atrás con cada pausa descartada.
+//
+// Ahora la compuerta sólo protege al reconocimiento de voz (que sí
+// alucina texto sobre silencio digital) — la diarización recibe TODO el
+// audio, silencio incluido, así que su reloj en milisegundos ya ES reloj
+// de reunión sin ninguna conversión. El reconocimiento, en cambio, sigue
+// viendo sólo lo filtrado, así que su reloj queda comprimido respecto al
+// de pared; [`AudioToWallClock`] reconstruye la correspondencia y el
+// listener de `stream-text-event` convierte cada `TimedToken` a reloj de
+// reunión ANTES de guardarlo en [`TranscriptState::tokens`] — para cuando
+// `align::attribute` los cruza contra los `SpeakerSpan`s, los dos ya
+// hablan el mismo reloj, y `segments_from_runs` no necesita saber que la
+// conversión existió.
 //
 // # FR-004 (marcar incierto en vez de adivinar) sigue vigente
 //
@@ -1038,8 +1065,11 @@ struct AudioWarningState {
 /// se preserve tal cual, mismo patrón que `StreamCmd` en
 /// `transcription.rs`.
 enum DiarizerCmd {
-    /// Un tramo de audio ya filtrado por la compuerta de energía, listo
-    /// para `StreamingDiarizer::push`.
+    /// Un tramo de audio, SIN filtrar por la compuerta de energía —
+    /// `StreamingDiarizer` necesita ver el silencio real para cortar
+    /// turnos (Important 4 del fix round 1, ver el comentario de esta
+    /// sección). La compuerta sigue existiendo, pero sólo protege al
+    /// reconocimiento de voz (`stream_router.feed`, en `audio_cb`).
     Audio(Vec<f32>),
     /// Llegaron tokens nuevos por `stream-text-event`: puede haber una
     /// intervención más para cerrar aunque no haya ningún tramo nuevo.
@@ -1050,6 +1080,52 @@ enum DiarizerCmd {
     Flush,
 }
 
+/// Traduce milisegundos "de reconocimiento" (los que cuenta el ASR en
+/// streaming — sólo avanzan cuando `audio_cb` deja pasar un frame por la
+/// compuerta de energía, ver [`has_energy`]) a milisegundos "de reunión"
+/// (reloj de pared desde que arrancó la captura — lo que el usuario ve en
+/// el transcript, y lo que `SpeakerSpan` ya mide directamente porque la
+/// diarización recibe el audio SIN filtrar). Cada silencio digital que la
+/// compuerta descarta comprime el reloj del ASR respecto al de pared; esta
+/// estructura registra, cada vez que `audio_cb` retoma después de un
+/// hueco, el punto exacto donde ambos coincidían (`(asr_ms, wall_ms)`),
+/// para poder reconstruir el reloj de pared de cualquier marca del ASR por
+/// interpolación lineal — entre dos frames consecutivos SIN hueco de por
+/// medio, los dos relojes avanzan 1:1, así que sólo hace falta un punto de
+/// referencia por hueco, no uno por frame.
+///
+/// `mark` lo llama sólo `audio_cb` (un único hilo, en orden estrictamente
+/// creciente de `asr_ms`); `to_wall_ms` lo llama el listener de
+/// `stream-text-event` para convertir tokens antes de guardarlos en
+/// [`TranscriptState::tokens`]. Agregar un punto de referencia nuevo nunca
+/// cambia la interpolación de una marca anterior a él (`to_wall_ms` sólo
+/// mira hacia atrás), así que convertir el mismo `asr_ms` en momentos
+/// distintos siempre da el mismo resultado.
+#[derive(Default)]
+struct AudioToWallClock {
+    breakpoints: Vec<(u64, i64)>,
+}
+
+impl AudioToWallClock {
+    fn mark(&mut self, asr_ms: u64, wall_ms: i64) {
+        self.breakpoints.push((asr_ms, wall_ms));
+    }
+
+    /// Reloj de pared correspondiente a `asr_ms`. Sin ningún punto de
+    /// referencia todavía (nada se alimentó nunca al ASR), devuelve
+    /// `asr_ms` tal cual — mejor aproximación disponible, y el valor que
+    /// ya tenía antes de que esta conversión existiera.
+    fn to_wall_ms(&self, asr_ms: u64) -> u64 {
+        match self.breakpoints.iter().rposition(|&(a, _)| a <= asr_ms) {
+            Some(i) => {
+                let (bp_asr, bp_wall) = self.breakpoints[i];
+                (bp_wall.max(0) as u64) + (asr_ms - bp_asr)
+            }
+            None => asr_ms,
+        }
+    }
+}
+
 /// Estado compartido entre el hilo diarizador (que recibe `SpeakerSpan`s de
 /// `StreamingDiarizer::push`/`flush`) y el listener de `stream-text-event`
 /// (que recibe `TimedToken`s del reconocimiento en streaming) — los dos
@@ -1058,20 +1134,29 @@ enum DiarizerCmd {
 /// por una carrera entre ambos.
 #[derive(Default)]
 struct TranscriptState {
-    /// Snapshot más reciente de `stream-text-event` — reemplaza al
-    /// anterior entero (no se acumula token a token): `StreamTextEvent::
-    /// tokens` ya trae la transcripción completa de la sesión hasta esa
-    /// revisión.
+    /// Snapshot más reciente de `stream-text-event`, YA convertido a reloj
+    /// de reunión (`AudioToWallClock::to_wall_ms`, ver el listener en
+    /// `start_capture`) — reemplaza al anterior entero (no se acumula
+    /// token a token): `StreamTextEvent::tokens` ya trae la transcripción
+    /// completa de la sesión hasta esa revisión.
     tokens: Vec<TimedToken>,
     /// Todos los `SpeakerSpan`s recibidos hasta ahora, en el orden en que
     /// `StreamingDiarizer` los fue emitiendo (monótono, ver
     /// `spans_are_monotonic`).
     spans: Vec<SpeakerSpan>,
-    /// Cuántas `AttributedRun`s de `align::attribute(&tokens, &spans)` ya
-    /// se persistieron como `MeetingSegment`. La ÚLTIMA run calculada no
-    /// cuenta acá hasta que aparece una run más detrás de ella — ver
+    /// Marca de agua por CONTENIDO, no por índice — `end_ms` de la última
+    /// `AttributedRun` persistida con éxito. Important 5 del fix round 1:
+    /// `align::attribute(&tokens, &spans)` recalcula la lista de runs
+    /// ENTERA en cada llamada; un índice fijo (`persisted_runs: usize` en
+    /// la versión anterior) se corrompía si esa lista alguna vez se
+    /// achicaba — por ejemplo si una revisión del ASR retira un token
+    /// todavía tentativo — porque `runs.len()` caía bajo el índice
+    /// guardado y nada se volvía a persistir nunca más. Comparar por
+    /// `end_ms` no tiene ese problema: una run ya cubierta se saltea sin
+    /// importar en qué índice termine cayendo en la próxima recomputación.
+    /// Sólo avanza cuando [`persist_and_emit_run`] devuelve `Ok` — ver
     /// [`maybe_persist_new_runs`].
-    persisted_runs: usize,
+    persisted_until_ms: u64,
     /// Índice local de hablante (`SpeakerSpan::speaker`, 0..
     /// `SORTFORMER_MAX_SPEAKERS`) -> `meeting_speakers.id`. Sortformer ya
     /// mantiene esa identidad estable dentro de la sesión (ver el
@@ -1268,9 +1353,9 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
     }
 }
 
-/// Recalcula `align::attribute(&tokens, &spans)` sobre todo lo acumulado
-/// hasta ahora y persiste+emite las intervenciones que ya se pueden dar por
-/// cerradas.
+/// Recalcula `align::attribute` sobre la cola de tokens/tramos que todavía
+/// no se persistió y persiste+emite las intervenciones que ya se pueden dar
+/// por cerradas.
 ///
 /// **Por qué no persistir la última run todavía.** `attribute` re-agrupa
 /// tokens en runs cada vez que se le llama; mientras la MISMA persona siga
@@ -1282,12 +1367,39 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
 /// `true` una vez, al cerrar la reunión (`DiarizerCmd::Flush`), cuando ya
 /// no va a llegar nada más que pudiera extenderla.
 ///
-/// Se llama tanto desde el hilo diarizador (cuando `StreamingDiarizer::
-/// push`/`flush` deja tramos nuevos) como desde el listener de
-/// `stream-text-event` (cuando llegan tokens nuevos) — las dos rutas
-/// comparten el mismo `state` bajo el mismo lock, así que sea cual sea el
-/// hilo que dispara la persistencia de una run, no hay forma de que las dos
-/// la persistan dos veces ni de que se pisen escribiendo `local_speakers`.
+/// **Por qué recorta la entrada en vez de recalcular sobre toda la
+/// reunión** (Important 6 del fix round 1): `attribute` es O(tokens ×
+/// tramos), y las dos listas crecen con la duración de la reunión —
+/// llamarla sobre la historia completa en cada evento (varias veces por
+/// segundo, durante horas) degrada de forma cuadrática. El corte en
+/// `persisted_until_ms` siempre cae justo en un límite de run real (el
+/// `end_ms` de la última que se persistió), así que ningún token o tramo
+/// anterior a ese punto puede seguir perteneciendo a una run que arranca
+/// después — recortar ahí no cambia el resultado, sólo el costo.
+///
+/// **Por qué no retiene el lock durante la escritura a la base**
+/// (Important 6 también): el listener de `stream-text-event` corre en el
+/// hilo de decodificación del ASR y necesita este mismo `Mutex` para
+/// reemplazar `tokens` en cada actualización — retenerlo acá durante un
+/// `INSERT` de SQLite (o el `emit` a la ventana) lo hacía esperar sin
+/// necesidad, en el camino caliente del reconocimiento. Esta función sólo
+/// toma el lock dos veces, brevemente: una para sacar una copia de lo que
+/// necesita calcular (`tokens`/`spans` ya recortados, `local_speakers` con
+/// `mem::take`), y otra al final para devolver `local_speakers` y publicar
+/// la nueva marca de agua. El cálculo y la escritura a la base, en el
+/// medio, corren sin el lock — seguro porque sólo este hilo (el
+/// diarizador; el listener sólo llega hasta acá mandando
+/// `DiarizerCmd::TokensUpdated`, nunca llamando a esta función
+/// directamente) toca `local_speakers`/`persisted_until_ms`.
+///
+/// **Si `persist_and_emit_run` falla, se corta ahí mismo** (Important 5 del
+/// fix round 1): ni se avanza `persisted_until_ms` para esa run ni se
+/// intentan las que siguen. Seguir de largo hubiera podido persistir una
+/// run POSTERIOR y de todos modos avanzar la marca hasta ella, perdiendo la
+/// que falló para siempre (la marca ya nunca volvería a apuntar tan atrás).
+/// Cortar acá dice "hasta acá llegó lo guardado" de verdad, y deja a la
+/// PRÓXIMA llamada — nueva tanda de audio o de tokens — reintentar desde la
+/// misma run que falló.
 fn maybe_persist_new_runs<R: tauri::Runtime>(
     conn: &Connection,
     app_handle: Option<&AppHandle<R>>,
@@ -1296,37 +1408,75 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
     include_last: bool,
     turn_failure_reported: &mut bool,
 ) {
-    let mut state = state.lock().unwrap();
-    let runs = attribute(&state.tokens, &state.spans);
-    let upto = if include_last {
+    let (tokens, spans, persisted_until_ms, mut local_speakers) = {
+        let mut state = state.lock().unwrap();
+        let watermark = state.persisted_until_ms;
+        let tokens: Vec<TimedToken> = state
+            .tokens
+            .iter()
+            .filter(|t| t.end_ms > watermark)
+            .cloned()
+            .collect();
+        let spans: Vec<SpeakerSpan> = state
+            .spans
+            .iter()
+            .filter(|s| s.end_ms > watermark)
+            .cloned()
+            .collect();
+        (
+            tokens,
+            spans,
+            watermark,
+            std::mem::take(&mut state.local_speakers),
+        )
+    };
+
+    let runs = attribute(&tokens, &spans);
+    let boundary = if include_last {
         runs.len()
     } else {
         runs.len().saturating_sub(1)
     };
-    if upto <= state.persisted_runs {
-        return;
-    }
 
-    let new_runs = &runs[state.persisted_runs..upto];
-    let new_segments = segments_from_runs(new_runs);
-    for (run, segment) in new_runs.iter().zip(new_segments) {
-        if let Err(e) = persist_and_emit_run(
+    let mut new_persisted_until_ms = persisted_until_ms;
+    for run in &runs[..boundary] {
+        // Ya cubierta por una llamada anterior — se saltea, no se
+        // reprocesa. Comparar por contenido (`end_ms`) en vez de por
+        // índice es justo lo que evita que una lista de runs más corta
+        // que antes (una revisión del ASR) trabe la persistencia entera.
+        if run.end_ms <= new_persisted_until_ms {
+            continue;
+        }
+
+        let segment = segments_from_runs(std::slice::from_ref(run))
+            .into_iter()
+            .next()
+            .expect("segments_from_runs conserva el largo de su entrada");
+
+        match persist_and_emit_run(
             conn,
             app_handle,
             meeting_id,
             segment,
             run.speaker,
-            &mut state.local_speakers,
+            &mut local_speakers,
         ) {
-            report_turn_failure(
-                app_handle,
-                meeting_id,
-                turn_failure_reported,
-                format!("no se pudo guardar una intervención transcrita: {e}"),
-            );
+            Ok(_) => new_persisted_until_ms = run.end_ms,
+            Err(e) => {
+                report_turn_failure(
+                    app_handle,
+                    meeting_id,
+                    turn_failure_reported,
+                    format!("no se pudo guardar una intervención transcrita: {e}"),
+                );
+                break;
+            }
         }
     }
-    state.persisted_runs = upto;
+
+    let mut state = state.lock().unwrap();
+    state.local_speakers = local_speakers;
+    state.persisted_until_ms = new_persisted_until_ms;
 }
 
 // --- T035: listado y detalle de reuniones pasadas ----------------------
@@ -1435,6 +1585,14 @@ pub struct MeetingManager {
     app_handle: Option<AppHandle>,
     transcription_manager: Option<Arc<TranscriptionManager>>,
     mic_arbiter: Option<MicrophoneArbiter>,
+    /// Para consultar `supports_streaming` del modelo resuelto de una
+    /// reunión ANTES de abrir el micrófono — fix round 1 de la revisión de
+    /// esta tarea (Critical 1): desde que el streaming es el único camino
+    /// de texto, grabar con un modelo que no lo soporta no perdía turnos
+    /// como en el diseño anterior, grababa horas sin guardar nada. Consulta
+    /// del catálogo (`ModelManager::get_model_info`), no carga ningún
+    /// modelo.
+    model_manager: Option<Arc<ModelManager>>,
     /// Motor de diarización en streaming (Sortformer, Task 2), compartido
     /// entre reuniones. Se carga perezosamente en el primer `start_capture`
     /// (~492 MB, se descarga en runtime la primera vez) y se conserva
@@ -1445,6 +1603,18 @@ pub struct MeetingManager {
     /// cerrar, para que la siguiente arranque sin arrastrar identidades de
     /// la anterior — ver `DiarizerCmd::Flush` en el hilo diarizador.
     streaming_diarizer: Arc<Mutex<Option<StreamingDiarizer>>>,
+    /// M7 del fix round 1: `spawn_sortformer_warmup` se llama una vez por
+    /// `start_capture`, pero la descarga+carga del modelo (~492 MB) puede
+    /// seguir en vuelo cuando una reunión corta termina y otra arranca —
+    /// sin este guard, un segundo `spawn_sortformer_warmup` concurrente
+    /// pasaba el chequeo `is_none()` de `streaming_diarizer` (todavía nadie
+    /// había escrito el resultado del primero) y largaba una SEGUNDA carga
+    /// en paralelo; la que terminara después pisaba `streaming_diarizer`
+    /// con un `StreamingDiarizer` recién nacido, reiniciando `spkcache`/
+    /// `emitted_until_ms` a mitad de la reunión que ya estaba usando el
+    /// anterior. `compare_exchange` en vez de un simple chequeo hace que
+    /// sólo una carga pueda estar en vuelo a la vez.
+    streaming_diarizer_loading: Arc<AtomicBool>,
     /// Mismo directorio de modelos que usa `ModelManager`: es donde vive (o
     /// se descarga) el modelo Sortformer.
     models_dir: Option<PathBuf>,
@@ -1468,7 +1638,9 @@ impl MeetingManager {
             app_handle: None,
             transcription_manager: None,
             mic_arbiter: None,
+            model_manager: None,
             streaming_diarizer: Arc::new(Mutex::new(None)),
+            streaming_diarizer_loading: Arc::new(AtomicBool::new(false)),
             models_dir: None,
             capture: Mutex::new(None),
         };
@@ -1484,11 +1656,13 @@ impl MeetingManager {
         app_handle: AppHandle,
         transcription_manager: Arc<TranscriptionManager>,
         mic_arbiter: MicrophoneArbiter,
+        model_manager: Arc<ModelManager>,
         models_dir: PathBuf,
     ) -> Self {
         self.app_handle = Some(app_handle);
         self.transcription_manager = Some(transcription_manager);
         self.mic_arbiter = Some(mic_arbiter);
+        self.model_manager = Some(model_manager);
         self.models_dir = Some(models_dir);
         self
     }
@@ -1509,8 +1683,24 @@ impl MeetingManager {
         if slot.lock().unwrap().is_some() {
             return;
         }
+        // M7 del fix round 1: reclama el permiso de cargar ANTES de
+        // lanzar la tarea async, no sólo mirar si ya hay algo cargado —
+        // ver el doc comment de `streaming_diarizer_loading`. Si ya hay
+        // una carga en vuelo, esta llamada no hace nada más: la reunión en
+        // curso sigue bufferizando su audio (`backlog`, en el hilo
+        // diarizador de `start_capture`) hasta que esa carga termine.
+        let loading = Arc::clone(&self.streaming_diarizer_loading);
+        if loading
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return;
+        }
 
         tauri::async_runtime::spawn(async move {
+            // RAII no es práctico acá (el guard tendría que sobrevivir el
+            // `.await` de `spawn_blocking` de abajo dentro del mismo
+            // scope) — se libera a mano en cada salida, éxito o error.
             let model_path =
                 match diarization_models::ensure_sortformer_model_downloaded(&models_dir).await {
                     Ok(p) => p,
@@ -1520,6 +1710,7 @@ impl MeetingManager {
                              hablantes: {}",
                             e
                         );
+                        loading.store(false, Ordering::Release);
                         return;
                     }
                 };
@@ -1540,6 +1731,7 @@ impl MeetingManager {
                 }
             })
             .await;
+            loading.store(false, Ordering::Release);
         });
     }
 
@@ -1594,6 +1786,34 @@ impl MeetingManager {
             )
         };
 
+        // Critical 1 del fix round 1 (revisión de esta tarea): el
+        // reconocimiento en streaming es el ÚNICO camino de texto de una
+        // reunión desde que se borró el reintento por turno
+        // (`transcribe_with_reload`) — `TranscriptionManager::start_stream`
+        // exige `supports_streaming` y, si el modelo no lo tiene, se cae en
+        // silencio a "sin streaming" (`run_stream_worker` en
+        // `transcription.rs`) sin avisar a nadie. Antes de esta tarea el
+        // camino por turnos transcribía con cualquier motor, streaming o
+        // no, así que este chequeo no hacía falta. Rechazar acá, ANTES de
+        // abrir el micrófono, es lo único que evita grabar una reunión
+        // entera sin guardar ni un segmento. Consulta del catálogo
+        // (`ModelManager::get_model_info`, sin cargar nada) — el popover ya
+        // filtra su selector de modelo de reuniones a los que soportan
+        // streaming, pero "heredar del dictado" puede seguir apuntando a
+        // uno que no sirve, así que el backend no puede confiar sólo en
+        // eso.
+        let model_manager = self
+            .model_manager
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("MeetingManager capture not configured"))?;
+        let meeting_model_supports_streaming = model_manager
+            .get_model_info(&meeting_model_id)
+            .map(|info| info.supports_streaming)
+            .unwrap_or(false);
+        if !meeting_model_supports_streaming {
+            bail!("meeting_model_not_streaming:{meeting_model_id}");
+        }
+
         // Kick off the ASR model load now (non-blocking, idempotent if
         // already loaded/loading) rather than waiting for the first
         // completed turn to discover it isn't ready. Mirrors how dictation
@@ -1637,6 +1857,15 @@ impl MeetingManager {
             // Profundidad de la cola de audio pendiente de diarizar, sólo
             // para poder avisarlo (ver `QUEUE_DEPTH_WARN_THRESHOLD`).
             let diar_queue_depth = Arc::new(AtomicUsize::new(0));
+            // Reconstruye el reloj de reunión a partir del reloj comprimido
+            // del ASR — ver el doc comment de `AudioToWallClock` y el
+            // comentario del módulo (Important 3/4 del fix round 1).
+            let clock = Arc::new(Mutex::new(AudioToWallClock::default()));
+            // Cuánto audio (en ms) ya se le entregó al ASR — sólo lo que
+            // pasó la compuerta. Único hilo escritor (`audio_cb`), por eso
+            // alcanza un `Mutex` compartido con `was_gap` en vez de átomos
+            // separados que podrían quedar inconsistentes entre sí.
+            let asr_clock = Arc::new(Mutex::new((0u64, true))); // (asr_ms_acumulado, was_gap)
 
             // Cada intento de abrir un recorder necesita su propio callback
             // (`audio_cb` consume el que le pasan) — I2 del reporte de
@@ -1644,23 +1873,41 @@ impl MeetingManager {
             // que audio del sistema ya se haya intentado y fallado, así que
             // esto es una fábrica en vez de un valor único.
             //
-            // Alimenta los DOS motores en vivo con exactamente el mismo
-            // audio, en el mismo orden: la compuerta de energía corre acá,
-            // antes de mandarle nada a ninguno de los dos, porque los dos
-            // cuentan sus marcas de tiempo en milisegundos por muestras
-            // entregadas (no por reloj de pared) — si uno viera un
-            // subconjunto distinto del audio que el otro, sus relojes se
-            // desalinearían y `align::attribute` cruzaría tokens con tramos
-            // que no corresponden. Ver el comentario del módulo.
+            // Important 4 del fix round 1: la compuerta de energía sólo
+            // protege al ASR (`stream_router.feed`) — el reconocimiento sí
+            // alucina texto sobre silencio digital. La diarización recibe
+            // TODO el audio sin filtrar: `StreamingDiarizer` necesita ver
+            // las pausas reales para cortar turnos (ver el comentario del
+            // módulo). Como el ASR ve un subconjunto, su reloj en
+            // milisegundos queda comprimido respecto al de pared —
+            // `AudioToWallClock` (arriba) es quien lo destraduce, marcando
+            // un punto de referencia cada vez que el ASR retoma después de
+            // un hueco de silencio.
             let build_audio_cb = || {
                 let stream_router = Arc::clone(&stream_router);
                 let diar_tx = diar_tx.clone();
                 let diar_queue_depth = Arc::clone(&diar_queue_depth);
+                let clock = Arc::clone(&clock);
+                let asr_clock = Arc::clone(&asr_clock);
                 move |frame: &[f32]| {
-                    if !has_energy(frame) {
-                        return;
+                    if has_energy(frame) {
+                        let wall_ms_now = capture_started.elapsed().as_millis() as i64;
+                        let mut guard = asr_clock.lock().unwrap();
+                        let (asr_ms, was_gap) = &mut *guard;
+                        if *was_gap {
+                            clock.lock().unwrap().mark(*asr_ms, wall_ms_now);
+                            *was_gap = false;
+                        }
+                        stream_router.feed(frame);
+                        // 16 kHz mono, igual que el resto del pipeline de
+                        // reuniones (ver `AudioRecorder`/`StreamingDiarizer`).
+                        *asr_ms += (frame.len() as u64 * 1000) / 16_000;
+                        drop(guard);
+                    } else {
+                        asr_clock.lock().unwrap().1 = true;
                     }
-                    stream_router.feed(frame);
+
+                    // Sin filtrar: ver Important 4 arriba.
                     let depth = diar_queue_depth.fetch_add(1, Ordering::Relaxed) + 1;
                     if depth == QUEUE_DEPTH_WARN_THRESHOLD {
                         warn!(
@@ -1687,25 +1934,21 @@ impl MeetingManager {
             // necesitar releer esta variable.
             let audio_source = resolve_meeting_audio_source(kind, system_audio_available());
 
-            // Arranca el stream de ASR ANTES de que exista un solo frame de
-            // audio real: tiene que contar milisegundos desde la MISMA
-            // muestra cero que la diarización (ver `build_audio_cb`), así
-            // que no puede haber ningún frame alimentando a ninguno de los
-            // dos motores todavía. No bloquea: sólo abre el canal interno y
-            // dispara un hilo aparte que espera a que el modelo (ya en
-            // camino, ver `initiate_model_load_id` arriba) termine de
-            // cargar antes de empezar a decodificar de verdad.
-            //
-            // Límite conocido, sin resolver en esta tarea: si el modelo de
-            // reconocimiento nunca llega a cargar (falla la descarga,
-            // archivo corrupto), `start_stream` se cae en silencio a "sin
-            // streaming" y esta reunión no va a producir ningún segmento —
-            // a diferencia del diseño anterior, ya no hay un reintento
-            // por-turno que pudiera recuperarla a mitad de camino, porque
-            // el motor se toma una sola vez para toda la sesión, no una vez
-            // por turno. No medido contra ese caso de falla real.
-            transcription_manager.start_stream(StreamPurpose::Meeting);
-
+            // Critical 2 del fix round 1 (revisión de esta tarea): antes,
+            // `start_stream` se llamaba ACÁ, antes de construir el
+            // recorder — y `build_meeting_recorder`/
+            // `build_meeting_system_audio_recorder` de más abajo podían
+            // fallar con `?` sin haber cancelado el stream, dejando el
+            // motor de reconocimiento sacado del mutex para siempre (el
+            // worker de `run_stream_worker` queda vivo en `rx.recv()`
+            // esperando comandos que nunca llegan). El dictado siguiente se
+            // encontraba el motor prestado y fallaba con "Model is not
+            // loaded" hasta reiniciar la app, sin ningún aviso, porque el
+            // árbitro del micrófono ya se había soltado. Construir el
+            // recorder PRIMERO y recién después arrancar el stream (todavía
+            // antes de `recorder.start()`, que es lo único que puede
+            // entregar el primer frame) cierra ese hueco: ningún `?` de
+            // construcción puede fallar ya con el stream abierto.
             let mut recorder = match audio_source {
                 MeetingAudioSource::Microphone => {
                     MeetingRecorder::Microphone(build_meeting_recorder(build_audio_cb())?)
@@ -1724,6 +1967,32 @@ impl MeetingManager {
                 MeetingAudioSource::Microphone => mic_device(),
                 MeetingAudioSource::SystemAudio => None,
             };
+
+            // Arranca el stream de ASR ANTES de que exista un solo frame de
+            // audio real (`recorder.start()`, más abajo, es lo primero que
+            // puede entregar uno). No es sólo prolijidad: `StreamRouter::
+            // feed` es un no-op silencioso mientras el router no está
+            // abierto (ver `transcription.rs`) — si un frame con energía
+            // llegara antes de este punto, `audio_cb` lo contaría igual en
+            // su reloj del ASR (`asr_clock`, ver más arriba) aunque el
+            // motor nunca lo hubiera recibido de verdad, desalineando
+            // `AudioToWallClock` desde el primer punto de referencia. No
+            // bloquea: sólo abre el canal interno y dispara un hilo aparte
+            // que espera a que el modelo (ya en camino, ver
+            // `initiate_model_load_id` arriba) termine de cargar antes de
+            // empezar a decodificar de verdad. De acá en adelante,
+            // CUALQUIER camino de salida (`?` o `bail!`) tiene que pasar
+            // por `cancel_stream()` primero — ver Critical 2 arriba.
+            //
+            // Límite conocido, sin resolver en esta tarea: si el modelo de
+            // reconocimiento nunca llega a cargar (falla la descarga,
+            // archivo corrupto), `start_stream` se cae en silencio a "sin
+            // streaming" y esta reunión no va a producir ningún segmento —
+            // a diferencia del diseño anterior, ya no hay un reintento
+            // por-turno que pudiera recuperarla a mitad de camino, porque
+            // el motor se toma una sola vez para toda la sesión, no una vez
+            // por turno. No medido contra ese caso de falla real.
+            transcription_manager.start_stream(StreamPurpose::Meeting);
 
             let mut fell_back_to_microphone = false;
             if let Err(e) = recorder
@@ -1752,7 +2021,16 @@ impl MeetingManager {
                 // más es la variante real de `recorder` (ya reconstruido
                 // como `Microphone` abajo) y `fell_back_to_microphone`.
                 fell_back_to_microphone = true;
-                recorder = MeetingRecorder::Microphone(build_meeting_recorder(build_audio_cb())?);
+                // Sin `?`: el stream ya está abierto acá (Critical 2), así
+                // que un fallo de construcción tiene que cancelarlo antes
+                // de salir, igual que las otras dos salidas de este bloque.
+                recorder = match build_meeting_recorder(build_audio_cb()) {
+                    Ok(r) => MeetingRecorder::Microphone(r),
+                    Err(e) => {
+                        transcription_manager.cancel_stream();
+                        return Err(e);
+                    }
+                };
                 if let Err(e) = recorder.open(mic_device()).and_then(|_| recorder.start()) {
                     recorder.close();
                     transcription_manager.cancel_stream();
@@ -1806,12 +2084,27 @@ impl MeetingManager {
             // `transcription.rs`. Sólo puede haber un stream activo a la vez
             // (exclusión mutua con el dictado, ver la nota de coexistencia),
             // así que mientras esta reunión graba, cualquier evento que
-            // llegue es suyo.
+            // llegue es suyo. Cada token se convierte a reloj de reunión acá
+            // mismo, antes de guardarlo — ver `AudioToWallClock` y el
+            // comentario del módulo (Important 3/4 del fix round 1): así
+            // `TranscriptState::tokens` y `TranscriptState::spans` quedan en
+            // el mismo reloj para cuando `align::attribute` los cruce.
             let stream_listener_id = {
                 let transcript_state = Arc::clone(&transcript_state);
                 let diar_tx = diar_tx.clone();
+                let clock = Arc::clone(&clock);
                 StreamTextEvent::listen(&app_handle, move |event| {
                     if let Some(tokens) = event.payload.tokens {
+                        let clock = clock.lock().unwrap();
+                        let tokens = tokens
+                            .into_iter()
+                            .map(|token| TimedToken {
+                                text: token.text,
+                                start_ms: clock.to_wall_ms(token.start_ms),
+                                end_ms: clock.to_wall_ms(token.end_ms),
+                            })
+                            .collect();
+                        drop(clock);
                         transcript_state.lock().unwrap().tokens = tokens;
                         let _ = diar_tx.send(DiarizerCmd::TokensUpdated);
                     }
@@ -2173,10 +2466,32 @@ impl MeetingManager {
         // este bloqueo sí lo sería.
         if let Some(tm) = &self.transcription_manager {
             if let Err(e) = tm.finalize_stream() {
-                warn!(
-                    "Meeting {}: finalize_stream falló al cerrar la reunión: {}",
-                    meeting_id, e
-                );
+                // M8 del fix round 1: un timeout acá (`finalize_stream`
+                // esperó `STREAM_FINALIZE_REPLY_TIMEOUT` sin respuesta del
+                // hilo de streaming) puede dejar el motor de reconocimiento
+                // sin devolver — el próximo dictado se encontraría con
+                // "Model is not loaded" hasta reiniciar la app, el mismo
+                // síntoma del Critical 2 de esta revisión, pero por un
+                // camino que esta tarea no puede cerrar del todo (el hilo
+                // de streaming vive en `transcription.rs`, fuera de
+                // alcance). Detectarlo y subir el nivel del log a `error!`
+                // (con la consecuencia explícita) es lo mínimo razonable
+                // acá: no hay ningún canal existente hacia el usuario para
+                // "el dictado puede haber quedado roto", y esta reunión ya
+                // está cerrando de todos modos.
+                let timed_out = e.to_string().contains("Timed out waiting");
+                if timed_out {
+                    error!(
+                        "Meeting {}: finalize_stream() se agotó por tiempo al cerrar la \
+                         reunión — el dictado puede quedar sin streaming hasta reiniciar Dilo: {}",
+                        meeting_id, e
+                    );
+                } else {
+                    warn!(
+                        "Meeting {}: finalize_stream falló al cerrar la reunión: {}",
+                        meeting_id, e
+                    );
+                }
             }
         }
         if let Some(app) = &self.app_handle {
@@ -3333,6 +3648,98 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
+    // Fix round 1 (revisión de esta tarea): esta cobertura se había
+    // borrado enterita junto con `TurnAccumulator`/la vieja
+    // `persist_and_emit_segment`, pero medía algo que sigue vivo y que
+    // Important 4 volvió a depender de nuevo: que el umbral RMS de
+    // `has_energy` distingue voz real de una pausa real en una grabación
+    // real, no sintética — desde el fix round 1, esa distinción decide qué
+    // le llega al ASR (la diarización ya recibe todo). Recortada a lo que
+    // sigue existiendo: ya no arma turnos ni persiste nada, corre la
+    // compuerta sobre audio real y reconstruye el reloj de pared con
+    // `AudioToWallClock`, la misma máquina que usa `audio_cb`.
+    //
+    // Requiere red (descarga el mismo wav de prueba de siempre, ~1.8MB) —
+    // `#[ignore]`, mismo criterio que el resto de los tests end-to-end de
+    // este archivo. Correr a mano con:
+    //   cargo test --lib managers::meeting::tests::has_energy_distingue_voz_de_pausas_reales_en_grabacion_real -- --ignored
+    // ------------------------------------------------------------------
+    #[tokio::test]
+    #[ignore = "requiere red: descarga un wav de prueba real"]
+    async fn has_energy_distingue_voz_de_pausas_reales_en_grabacion_real() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let wav_path = tmp.path().join("0-four-speakers-zh.wav");
+        let wav_bytes = reqwest::get(
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/0-four-speakers-zh.wav",
+        )
+        .await
+        .expect("downloading the test wav")
+        .bytes()
+        .await
+        .expect("reading the test wav");
+        std::fs::write(&wav_path, &wav_bytes).expect("writing the test wav");
+
+        let samples =
+            crate::audio_toolkit::read_wav_samples(&wav_path).expect("reading wav samples");
+
+        // Recorre en frames de 30ms @ 16kHz, igual que `audio_cb` —
+        // alimenta la compuerta y `AudioToWallClock` exactamente como el
+        // camino en vivo, para probar los dos juntos sobre audio real.
+        let frame_len = 480usize;
+        let mut clock = AudioToWallClock::default();
+        let mut asr_ms = 0u64;
+        let mut was_gap = true;
+        let mut loud_frames = 0usize;
+        let mut quiet_frames = 0usize;
+
+        for (i, frame) in samples.chunks(frame_len).enumerate() {
+            if frame.len() < frame_len {
+                break; // recorta el último frame parcial, igual que haría el resampler
+            }
+            let wall_ms_now = (i * 30) as i64;
+            if has_energy(frame) {
+                loud_frames += 1;
+                if was_gap {
+                    clock.mark(asr_ms, wall_ms_now);
+                    was_gap = false;
+                }
+                asr_ms += 30;
+            } else {
+                quiet_frames += 1;
+                was_gap = true;
+            }
+        }
+
+        // La asunción de la que depende Important 4: una grabación real de
+        // varios hablantes tiene TANTO tramos con energía como pausas
+        // reales — si `has_energy` no distinguiera nada (todo pasa, o nada
+        // pasa), la compuerta no serviría para proteger al ASR sin también
+        // volverlo sordo a la voz real.
+        assert!(
+            loud_frames > 0,
+            "una grabación real con voz debería tener algún frame con energía"
+        );
+        assert!(
+            quiet_frames > 0,
+            "una grabación real de varios hablantes debería tener pausas reales — la \
+             misma asunción de la que depende Important 4 (la compuerta protege al ASR, \
+             ya no a la diarización)"
+        );
+
+        // Chequeo de cordura sobre `AudioToWallClock::to_wall_ms` con
+        // quiebres reales (no sintéticos): el reloj de reunión
+        // reconstruido nunca puede ir más atrás que el propio reloj
+        // comprimido del ASR, porque cada pausa sólo puede haber hecho que
+        // el reloj de pared avanzara MÁS que el del ASR, nunca menos.
+        let wall_ms_at_end = clock.to_wall_ms(asr_ms);
+        assert!(
+            wall_ms_at_end >= asr_ms,
+            "el reloj de reunión reconstruido no puede ir más atrás que el reloj \
+             comprimido del ASR: {wall_ms_at_end} < {asr_ms}"
+        );
+    }
+
+    // ------------------------------------------------------------------
     // Task 5 ("reuniones en streaming"): segments_from_runs — el test del
     // brief, el síntoma que motivó todo el plan expresado como test sobre
     // la pieza que arma segmentos a partir de intervenciones atribuidas.
@@ -3620,7 +4027,7 @@ mod tests {
                 end_ms: 300,
                 speaker: 0,
             }],
-            persisted_runs: 0,
+            persisted_until_ms: 0,
             local_speakers: HashMap::new(),
         });
         let mut turn_failure_reported = false;

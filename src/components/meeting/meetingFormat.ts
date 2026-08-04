@@ -53,25 +53,29 @@ export const formatDuration = (seconds: number): string => {
 /**
  * Agrupa segmentos consecutivos del mismo hablante en un solo bloque visual.
  *
- * El backend corta un turno cada `MAX_TURN_MS` (8 s, `meeting.rs`) aunque
- * quien habla siga hablando, porque el modelo de segmentación tiene una
- * ventana de 10 s — es un detalle interno de la captura, no una intervención
- * distinta. Sin esto, una persona hablando 20 s seguidos se ve en pantalla
- * como tres o cuatro burbujas separadas. Cada segmento se sigue guardando
- * como llega; esto sólo cambia cómo se agrupan al mostrarlos.
+ * Desde la Task 5 del plan "reuniones en streaming", el backend persiste una
+ * fila por INTERVENCIÓN atribuida (`AttributedRun`, `align::attribute` en
+ * Rust) — cambia de fila cuando cambia quién habla, no por ningún tope de
+ * duración (el viejo corte cada `MAX_TURN_MS` de 8 s ya no existe). Aun así
+ * una persona puede seguir hablando a través de más de una intervención si
+ * hubo un hueco en la diarización de por medio; esto sigue agrupando esas
+ * filas en un solo bloque visual para que no se vean como burbujas
+ * separadas sin motivo. Cada segmento se sigue guardando como llega; esto
+ * sólo cambia cómo se agrupan al mostrarlos.
  *
  * Regla: dos segmentos consecutivos se unen sólo si ambos tienen el mismo
  * `speaker_id` **no nulo**. `speaker_id === null` ("Sin identificar") es al
- * motor negándose a adivinar porque la similitud cayó en su banda de duda
- * (FR-004) — unir dos "sin identificar" seguidos amplificaría esa duda como
- * si fuera una sola, cuando son dos juicios inciertos independientes. Nunca
- * se unen, ni entre sí ni con un hablante identificado vecino.
+ * motor negándose a adivinar porque no hay tramo de hablante que cubra ese
+ * tramo de texto (FR-004) — unir dos "sin identificar" seguidos amplificaría
+ * esa duda como si fuera una sola, cuando son dos juicios inciertos
+ * independientes. Nunca se unen, ni entre sí ni con un hablante identificado
+ * vecino.
  *
- * `overlapped` (voces encimadas) sí viaja con la fusión, con OR: es una
- * marca de calidad de audio sobre CADA trozo, no una señal de que el trozo
- * sea una intervención aparte. Perderla al fusionar escondería que parte del
- * bloque venía de voz mezclada; con OR el aviso se conserva sin multiplicar
- * bloques.
+ * `overlapped` viaja con la fusión, con OR, por si algún día vuelve a tener
+ * una fuente real de datos (ver M9 del fix round 1 de la Task 5:
+ * `StreamingDiarizer` no expone solapes, así que hoy siempre es `false` y
+ * este OR es un no-op) — no hay motivo para tratarlo distinto del resto de
+ * los campos con la fusión.
  *
  * Al unir, la marca de tiempo mostrada (`started_at_ms`) es la del primer
  * trozo del bloque — es la que ya usa `formatOffset` — y `ended_at_ms` pasa

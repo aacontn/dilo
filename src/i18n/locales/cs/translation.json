@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo se nepodařilo otevřít zvuk tohoto počítače pro tuto schůzku, takže nahrává přes mikrofon.",
       "recordingBusy": "Už se nahrává jiná schůzka",
       "recordingBusyDescription": "Nemůžeš nahrávat dvě schůzky najednou. Nejdřív tu probíhající zastav, nebo se na ni podívej.",
-      "recordingBusyAction": "Zobrazit schůzku"
+      "recordingBusyAction": "Zobrazit schůzku",
+      "modelNotStreaming": "Tento model nelze použít pro schůzky",
+      "modelNotStreamingDescription": "{{name}} nepodporuje živý přepis. Vyberte jiný model pro schůzky v nabídce modelů."
     },
     "transcript": {
       "title": "Živý přepis",

@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "لم يتمكن Dilo من فتح صوت هذا الكمبيوتر لهذا الاجتماع، لذا يسجل عبر الميكروفون بدلاً من ذلك.",
       "recordingBusy": "هناك اجتماع قيد التسجيل بالفعل",
       "recordingBusyDescription": "لا يمكنك تسجيل اجتماعين في آن واحد. أوقف ذلك الاجتماع أولاً، أو اذهب لمشاهدته.",
-      "recordingBusyAction": "عرض الاجتماع"
+      "recordingBusyAction": "عرض الاجتماع",
+      "modelNotStreaming": "هذا النموذج لا يصلح للاجتماعات",
+      "modelNotStreamingDescription": "{{name}} لا يدعم النسخ الصوتي المباشر. اختر نموذجًا آخر للاجتماعات من قائمة النماذج."
     },
     "transcript": {
       "title": "النص المباشر",

@@ -931,7 +931,9 @@
       "audioFellBackToMicrophoneDescription": "Dilo non è riuscito ad aprire l'audio di questo computer per questa riunione, quindi sta registrando con il microfono.",
       "recordingBusy": "C'è già una riunione in registrazione",
       "recordingBusyDescription": "Non puoi registrare due riunioni insieme. Ferma prima quella in corso, oppure vai a vederla.",
-      "recordingBusyAction": "Vedi riunione"
+      "recordingBusyAction": "Vedi riunione",
+      "modelNotStreaming": "Questo modello non funziona per le riunioni",
+      "modelNotStreamingDescription": "{{name}} non supporta la trascrizione in diretta. Scegli un altro modello per le riunioni nel menu dei modelli."
     },
     "transcript": {
       "title": "Trascrizione dal vivo",
