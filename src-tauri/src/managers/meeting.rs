@@ -672,6 +672,28 @@ const SETTLE_GRACE_MS: u64 = 30_000;
 /// hablando sin que se guarde nada, sí — con todo funcionando, el primer
 /// segmento aparece a los pocos segundos.
 const NO_SEGMENTS_VOICE_WARNING_MS: u64 = 90_000;
+/// Cuánto audio tiene que haberse acumulado antes de cerrar una tanda
+/// **cuando manda la grace** de [`SETTLE_GRACE_MS`] — ver
+/// [`close_boundary_ms`].
+///
+/// El camino sano no necesita esto: ahí el corte lo pone el diarizador, que
+/// avanza a su propia cadencia de cómputo (`LIVE_CHUNK_LEN`, ~3.84 s en
+/// `sortformer.rs`), así que cada tanda cerrada ya trae unos cuatro
+/// segundos de habla. La grace no tiene ninguna cadencia: avanza con el
+/// reloj, y como se recalcula en cada `stream-text-event` (~250 ms, al
+/// ritmo del habla), cerraba **una fila por palabra**. Sin diarizador todas
+/// esas filas quedan además sin hablante, y dos "sin identificar"
+/// consecutivos no se pueden unir en la interfaz — no sabemos si son la
+/// misma persona (`groupConsecutiveSegments`). El resultado medido: 360
+/// filas de una palabra para 120 s de monólogo, contra 31 filas del camino
+/// sano, y sin posibilidad de reprocesarlas después.
+///
+/// 4 s es entonces la cadencia del camino sano, copiada a mano donde no la
+/// hay: hace que el modo degradado produzca filas del mismo tamaño (~30
+/// para esos mismos 120 s) en vez de una por palabra. No es un tope de
+/// espera adicional — el texto que todavía no se cierra se sigue viendo por
+/// `meeting-pending-segments` mientras se acumula.
+const GRACE_MIN_CLOSE_MS: u64 = 4_000;
 
 /// Avisa al frontend de un fallo que **mata la sesión** (`meeting-error`).
 ///
@@ -1581,6 +1603,17 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
     }
 }
 
+/// I2 de la revisión final: ¿esta sesión lleva bastante rato con alguien
+/// hablando y sin haber guardado ni un segmento?
+///
+/// `voiced_ms` es audio **con voz** (`AudioClockState::asr_ms`, lo que pasó
+/// la compuerta de energía), no tiempo de pared: una reunión que todavía no
+/// empieza no debería disparar nada. `persisted_segments` son filas escritas
+/// de verdad, no runs procesadas.
+fn recording_without_saving(voiced_ms: u64, persisted_segments: u64) -> bool {
+    persisted_segments == 0 && voiced_ms >= NO_SEGMENTS_VOICE_WARNING_MS
+}
+
 /// Hasta qué milisegundo de la reunión se puede **cerrar** texto: el mínimo
 /// entre lo que el ASR da por comprometido y lo que la diarización da por
 /// resuelto, pero nunca más de [`SETTLE_GRACE_MS`] atrás del audio ya
@@ -1598,21 +1631,35 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
 /// Cuando la grace entra en juego, lo que se cierra puede quedar sin
 /// hablante: es la misma degradación honesta de siempre (FR-004, "Sin
 /// identificar"), nunca una suposición.
-/// I2 de la revisión final: ¿esta sesión lleva bastante rato con alguien
-/// hablando y sin haber guardado ni un segmento?
 ///
-/// `voiced_ms` es audio **con voz** (`AudioClockState::asr_ms`, lo que pasó
-/// la compuerta de energía), no tiempo de pared: una reunión que todavía no
-/// empieza no debería disparar nada. `persisted_segments` son filas escritas
-/// de verdad, no runs procesadas.
-fn recording_without_saving(voiced_ms: u64, persisted_segments: u64) -> bool {
-    persisted_segments == 0 && voiced_ms >= NO_SEGMENTS_VOICE_WARNING_MS
-}
-
-fn close_boundary_ms(asr_committed_ms: u64, diar_settled_ms: u64, now_ms: u64) -> u64 {
-    asr_committed_ms
-        .min(diar_settled_ms)
-        .max(now_ms.saturating_sub(SETTLE_GRACE_MS))
+/// **Y cuando manda la grace, se cierra de a tandas.** El corte de los dos
+/// motores tiene cadencia propia — el diarizador emite por chunk, ~3.84 s —
+/// y produce filas de ese tamaño. La grace no tiene ninguna: avanza con el
+/// reloj, y como esto se recalcula con cada actualización de tokens (~250
+/// ms, al ritmo del habla) cerraba **una fila por palabra**. Sin diarizador
+/// esas filas quedan además todas sin hablante, y dos "sin identificar"
+/// consecutivos no se pueden unir en la interfaz (no sabemos si son la
+/// misma persona), así que quedaban 360 bloques de una palabra para 120 s
+/// de monólogo — en la base y en pantalla, sin reproceso posible. Por eso
+/// el corte de la grace sólo avanza cuando ya hay al menos
+/// [`GRACE_MIN_CLOSE_MS`] de audio detrás de él.
+///
+/// Eso no reintroduce C1: lo que espera se sigue **mostrando** como en
+/// curso, y el tope de espera sigue siendo un tope de reloj (grace + 4 s),
+/// no "hasta que alguien cambie de voz".
+fn close_boundary_ms(
+    asr_committed_ms: u64,
+    diar_settled_ms: u64,
+    now_ms: u64,
+    persisted_until_ms: u64,
+) -> u64 {
+    let settled_ms = asr_committed_ms.min(diar_settled_ms);
+    let grace_ms = now_ms.saturating_sub(SETTLE_GRACE_MS);
+    if grace_ms > settled_ms && grace_ms.saturating_sub(persisted_until_ms) >= GRACE_MIN_CLOSE_MS {
+        grace_ms
+    } else {
+        settled_ms
+    }
 }
 
 /// Hasta dónde cerrar en esta llamada a [`maybe_persist_new_runs`].
@@ -1711,10 +1758,18 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
     let (tokens, spans, persisted_until_ms, close_until_ms, mut local_speakers) = {
         let mut state = state.lock().unwrap();
         let watermark = state.persisted_until_ms;
+        // Se descarta por el INICIO, no por el fin: un token que empieza
+        // antes de la marca de agua ya quedó dentro de algo cerrado. Con el
+        // filtro por fin, una revisión del ASR que estirara el `end_ms` de un
+        // token ya persistido lo hacía volver a pasar y se guardaba dos
+        // veces (Minor 2 de la re-revisión) — posible desde que el corte de
+        // la grace puede cerrar texto todavía revisable. Como la marca de
+        // agua siempre cae en el fin de un token real, los dos filtros
+        // seleccionan lo mismo mientras nada se revise.
         let tokens: Vec<TimedToken> = state
             .tokens
             .iter()
-            .filter(|t| t.end_ms > watermark)
+            .filter(|t| t.start_ms >= watermark)
             .cloned()
             .collect();
         let spans: Vec<SpeakerSpan> = state
@@ -1725,9 +1780,12 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
             .collect();
         let close_until_ms = match close_up_to {
             CloseUpTo::Everything => u64::MAX,
-            CloseUpTo::Settled { now_ms } => {
-                close_boundary_ms(state.asr_committed_ms, state.diar_settled_ms, now_ms)
-            }
+            CloseUpTo::Settled { now_ms } => close_boundary_ms(
+                state.asr_committed_ms,
+                state.diar_settled_ms,
+                now_ms,
+                watermark,
+            ),
         };
         (
             tokens,
@@ -1800,7 +1858,7 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
     let pending_runs = attribute(
         &tokens
             .into_iter()
-            .filter(|t| t.end_ms > new_persisted_until_ms)
+            .filter(|t| t.start_ms >= new_persisted_until_ms)
             .collect::<Vec<_>>(),
         &spans,
     );
@@ -5023,8 +5081,8 @@ mod tests {
     fn close_boundary_ms_usa_el_mas_atrasado_de_los_dos_motores() {
         // El corte normal: el mínimo de los dos, porque cerrar exige las dos
         // cosas (texto confirmado Y hablante resuelto).
-        assert_eq!(close_boundary_ms(8_000, 5_000, 10_000), 5_000);
-        assert_eq!(close_boundary_ms(4_000, 9_000, 10_000), 4_000);
+        assert_eq!(close_boundary_ms(8_000, 5_000, 10_000, 0), 5_000);
+        assert_eq!(close_boundary_ms(4_000, 9_000, 10_000, 0), 4_000);
     }
 
     #[test]
@@ -5032,10 +5090,165 @@ mod tests {
         // Un motor clavado no puede congelar la reunión entera: pasado el
         // tope, el corte avanza igual.
         let now = 5 * SETTLE_GRACE_MS;
-        assert_eq!(close_boundary_ms(0, 0, now), now - SETTLE_GRACE_MS);
+        assert_eq!(close_boundary_ms(0, 0, now, 0), now - SETTLE_GRACE_MS);
         // Y al principio de la reunión, antes de que la grace tenga sentido,
         // el corte no se va a negativo.
-        assert_eq!(close_boundary_ms(0, 0, 1_000), 0);
+        assert_eq!(close_boundary_ms(0, 0, 1_000, 0), 0);
+    }
+
+    #[test]
+    fn close_boundary_ms_en_la_grace_espera_a_juntar_una_tanda() {
+        // La grace avanza con el reloj y esto se recalcula cada ~250 ms: sin
+        // el mínimo, cada llamada cerraría la miga que quedó detrás.
+        let now = 5 * SETTLE_GRACE_MS;
+        let grace = now - SETTLE_GRACE_MS;
+        assert_eq!(
+            close_boundary_ms(0, 0, now, grace - (GRACE_MIN_CLOSE_MS - 1)),
+            0,
+            "todavía no hay tanda: no se cierra por la grace"
+        );
+        assert_eq!(
+            close_boundary_ms(0, 0, now, grace - GRACE_MIN_CLOSE_MS),
+            grace,
+            "juntada la tanda, se cierra hasta el tope de la grace"
+        );
+    }
+
+    #[test]
+    fn close_boundary_ms_el_minimo_no_toca_el_camino_sano() {
+        // El mínimo es sólo para la grace: mientras los dos motores manden,
+        // el corte los sigue tal cual, tanda chica incluida (una
+        // interrupción de dos palabras tiene que cerrarse igual).
+        assert_eq!(close_boundary_ms(9_000, 9_000, 10_000, 8_900), 9_000);
+    }
+
+    #[test]
+    fn en_modo_degradado_no_se_cierra_una_fila_por_palabra() {
+        // Important de la re-revisión: con la grace mandando (Sortformer
+        // ausente o descargándose todavía), el corte avanza con el reloj y
+        // se recalcula con cada `stream-text-event` — o sea cada ~250 ms, al
+        // ritmo del habla. Sin acumular, cada llamada cerraba la palabra que
+        // quedó detrás: 360 filas de una palabra para 120 s de monólogo,
+        // todas sin hablante y por lo tanto sin poder unirse en la interfaz.
+        let dir = temp_db_path("maybe-persist-degradado-granularidad");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        const TOKEN_MS: u64 = 250;
+        const TOTAL_MS: u64 = 120_000;
+
+        let state = Mutex::new(TranscriptState::default());
+        let mut turn_failure_reported = false;
+        let mut now_ms = 0u64;
+        let mut word = 0u32;
+        while now_ms < TOTAL_MS {
+            let start_ms = now_ms;
+            now_ms += TOKEN_MS;
+            word += 1;
+            {
+                let mut guard = state.lock().unwrap();
+                guard.tokens.push(TimedToken {
+                    text: format!(" palabra{word}"),
+                    start_ms,
+                    end_ms: now_ms,
+                });
+                // El ASR va confirmando medio segundo atrás; el diarizador
+                // nunca cargó, así que su watermark se queda en 0.
+                guard.asr_committed_ms = now_ms.saturating_sub(500);
+            }
+            maybe_persist_new_runs(
+                &conn,
+                NO_APP,
+                meeting_id,
+                &state,
+                CloseUpTo::Settled { now_ms },
+                &mut turn_failure_reported,
+            );
+        }
+
+        let rows = segment_rows(&conn);
+        assert!(
+            !rows.is_empty(),
+            "sin diarizador el texto igual se tiene que guardar (C1)"
+        );
+        assert!(
+            rows.len() <= 40,
+            "filas de una palabra: {} filas para {} s de monólogo",
+            rows.len(),
+            TOTAL_MS / 1_000
+        );
+        let palabras_por_fila: Vec<usize> = rows
+            .iter()
+            .map(|(text, _)| text.split_whitespace().count())
+            .collect();
+        assert!(
+            palabras_por_fila.iter().all(|&n| n >= 8),
+            "alguna fila quedó demasiado corta: {palabras_por_fila:?}"
+        );
+        assert!(
+            rows.iter().all(|(_, speaker)| speaker.is_none()),
+            "sin diarizador nadie tiene hablante: nunca se adivina uno"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn un_token_ya_cerrado_no_se_repite_si_el_asr_estira_su_marca() {
+        // Minor 2 de la re-revisión: `snapshot()` puede revisar un token que
+        // el corte de la grace ya cerró. Si su `end_ms` crece, con el filtro
+        // por fin volvía a entrar y se guardaba dos veces.
+        let dir = temp_db_path("maybe-persist-token-estirado");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let state = transcript_state_with(
+            vec![TimedToken {
+                text: "hola".into(),
+                start_ms: 0,
+                end_ms: 300,
+            }],
+            Vec::new(),
+            1_000,
+        );
+        let mut turn_failure_reported = false;
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 1_000 },
+            &mut turn_failure_reported,
+        );
+        assert_eq!(segment_rows(&conn).len(), 1);
+
+        // El motor revisa: el mismo token, ahora más largo.
+        state.lock().unwrap().tokens = vec![TimedToken {
+            text: "hola".into(),
+            start_ms: 0,
+            end_ms: 500,
+        }];
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 1_000 },
+            &mut turn_failure_reported,
+        );
+        assert_eq!(
+            segment_rows(&conn),
+            vec![("hola".to_string(), None)],
+            "el token ya cerrado no se persiste de nuevo"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
     }
 
     #[test]

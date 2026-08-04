@@ -97,8 +97,9 @@
 //! aislado como en esta medición) y calidad equivalente al default del
 //! checkpoint en el único audio multi-hablante disponible. Es una mejora
 //! más modesta que la promesa inicial (~3.84&nbsp;s de latencia por
-//! *cómputo*, no de emisión -- ver "La emisión sigue cierres de turno" más
-//! abajo) pero es la que sostiene con evidencia real, no con un clip que
+//! *cómputo*, a la que hay que sumarle el margen de estabilidad de la
+//! emisión -- ver "La emisión sigue el reloj, con un margen" más abajo)
+//! pero es la que sostiene con evidencia real, no con un clip que
 //! no podía mostrar el problema. No se probaron valores entre 24 y 48, y
 //! sólo hay UN audio multi-hablante disponible para esta comparación — ver
 //! preocupaciones en `task-2-report.md`.
@@ -120,36 +121,47 @@
 //! de solape) — es una simplificación deliberada dado que la interfaz no
 //! tiene dónde reportar la ambigüedad.
 //!
-//! ## La emisión sigue cierres de turno, no un reloj fijo
+//! ## La emisión sigue el reloj, con un margen de estabilidad
 //!
 //! El modelo se LLAMA cada `LIVE_CHUNK_LEN` frames nuevos (~3.84&nbsp;s,
-//! cadencia fija) — pero eso es la cadencia de **cómputo**, no la cadencia
-//! de **emisión**. `binarize()` sólo cierra un tramo cuando ve la
+//! cadencia de **cómputo**). `binarize()` sólo cierra un tramo cuando ve la
 //! probabilidad del hablante activo cruzar el umbral de `offset` hacia
-//! abajo (silencio) o cambiar de hablante; mientras alguien habla de
-//! corrido, ese tramo sigue "abierto" y [`StreamingDiarizer::push`]
-//! devuelve `vec![]` para él llamada tras llamada, por largo que sea el
-//! turno — no es que no haya pasado nada, es que todavía no se puede saber
-//! dónde termina. Un corolario directo: **la primera vez que `push()`
-//! devuelve algo no es a los ~3.84&nbsp;s** de audio nuevo, sino recién
-//! cuando el primer cierre de turno real ocurre (medido en Task 2: ~7.8&nbsp;s
-//! sobre audio real, porque el hablante inicial no hizo una pausa antes).
-//! Quien construya el transcript en vivo sobre esto (Task 6+) tiene que
-//! diseñarse para "llega cuando llega, en ráfagas ligadas al habla", no
-//! para un tick de reloj.
+//! abajo (silencio) o cambiar de hablante, así que mientras alguien habla
+//! de corrido ese tramo sigue "abierto": termina en "lo último procesado" y
+//! su final se corre en cada llamada.
+//!
+//! [`StreamingDiarizer::push`] **no** espera a que cierre. Emite la parte
+//! del tramo abierto que ya salió del margen de estabilidad, cortada en
+//! `safe_boundary_ms` ([`SAFE_TAIL_MARGIN_S`], ~1.5&nbsp;s antes de lo
+//! último procesado), y deja el resto para la próxima llamada — ver
+//! [`emit_new_spans`], que es donde vive esa regla y por qué. Concretamente:
+//!
+//! - Un turno largo sale en **varios tramos consecutivos del mismo
+//!   hablante**, no en uno solo. Quien los consume los reagrupa por
+//!   hablante (`align::attribute`), así que para él es indistinto.
+//! - Lo emitido avanza con el audio (~1.5&nbsp;s de atraso sobre lo
+//!   procesado), no con las pausas de quien habla. Un monólogo sin pausas
+//!   también avanza.
+//! - Nada anterior a `safe_boundary_ms` se vuelve a tocar: `emit_new_spans`
+//!   arranca cada tramo nuevo en `emitted_until_ms`, así que la línea de
+//!   tiempo nunca retrocede ni se pisa.
+//!
+//! La versión anterior retenía el tramo abierto **entero** hasta que
+//! cerrara, así que `push()` podía devolver `vec![]` llamada tras llamada
+//! por largo que fuera el turno (medido en Task 2: la primera emisión real
+//! llegó a los ~7.8&nbsp;s, porque el hablante inicial no hizo una pausa
+//! antes). Eso dejaba al transcript en vivo sin ningún tramo con el que
+//! atribuir el texto de quien no para de hablar — ver C1 en la revisión
+//! final de la rama.
 //!
 //! ## Cola sin cerrar
 //!
-//! Consecuencia directa de lo anterior: si nadie sigue empujando audio
-//! después del último `push()` de una reunión, el turno que estaba en
-//! curso en ese momento **nunca se cierra ni se emite** — no son
-//! "unos pocos segundos", es el turno completo que seguía abierto (podían
-//! ser 20, 30&nbsp;s si el hablante no hizo pausas), más hasta
-//! `LIVE_CHUNK_LEN` frames (~3.84&nbsp;s) de audio bufferizado sin
-//! alcanzar a completar un chunk, más el margen de estabilidad
-//! ([`SAFE_TAIL_MARGIN_S`], ~1.5&nbsp;s) sobre lo último que sí se procesó.
-//! En la práctica, sin hacer nada más, eso es un piso de ~5&nbsp;s y sin
-//! techo real (tan largo como el último turno sin pausas).
+//! Al terminar una reunión igual queda un resto sin emitir, pero acotado:
+//! el margen de estabilidad ([`SAFE_TAIL_MARGIN_S`], ~1.5&nbsp;s) sobre lo
+//! último que sí se procesó, más hasta `LIVE_CHUNK_LEN` frames
+//! (~3.84&nbsp;s) de audio bufferizado que no alcanzó a completar un chunk.
+//! En el peor caso ~5.3&nbsp;s — antes del recorte no había techo real, era
+//! tan largo como el último turno sin pausas.
 //!
 //! [`StreamingDiarizer::flush`] existe para esto: se llama al terminar una
 //! reunión, antes de `reset()`, y fuerza dos cosas que `push()` nunca hace
