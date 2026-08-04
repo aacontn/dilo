@@ -63,11 +63,14 @@ pub struct TimedToken {
 /// cambia el texto que el overlay del dictado (`RecordingOverlay.tsx`) ya
 /// consume — ese overlay sigue leyendo sólo `committed`/`tentative`.
 ///
-/// Sin consumidor productivo todavía: la Task 4 (alineación con diarización)
-/// es quien la va a usar para reconstruir el texto de un tramo de hablante a
-/// partir de sus tokens. `managers` no es público, así que sin esto rustc la
-/// marca dead_code — se documenta en vez de fabricar un llamador falso.
-#[allow(dead_code)]
+/// **Sólo para tests** (M3 de la revisión final): la Task 4 iba a ser su
+/// consumidor productivo, pero `align::attribute` terminó concatenando token
+/// a token mientras agrupa por hablante, así que en producción no la llama
+/// nadie. En vez de conservarla viva con un `#[allow(dead_code)]` que
+/// prometía un llamador que nunca llegó, queda detrás de `cfg(test)`: los
+/// tests de esta sección la siguen usando para verificar que los tokens
+/// reconstruyen el texto completo, y no queda código muerto en el binario.
+#[cfg(test)]
 pub fn plain_text(tokens: &[TimedToken]) -> String {
     tokens.iter().map(|t| t.text.as_str()).collect()
 }
@@ -87,6 +90,27 @@ pub struct StreamTextEvent {
     /// el comportamiento.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tokens: Option<Vec<TimedToken>>,
+    /// Hasta qué milisegundo del audio que recibió el motor su transcripción
+    /// ya está comprometida (`StreamUpdate::audio_committed_ms`) — el resto
+    /// de `tokens` es hipótesis todavía revisable. Se completa bajo la misma
+    /// condición que `tokens` (sólo [`StreamPurpose::Meeting`]); `None` en
+    /// dictado.
+    ///
+    /// I3 de la revisión final: reuniones lo necesita para no **cerrar**
+    /// (persistir) texto que el ASR todavía puede reescribir. Hasta ahora
+    /// ese límite llegaba a `run_stream_worker` y se descartaba, y la
+    /// colisión se evitaba por casualidad — porque el margen de estabilidad
+    /// del diarizador (`SAFE_TAIL_MARGIN_S`) suele ser mayor que la ventana
+    /// tentativa del ASR. Depender de que dos constantes de dos modelos
+    /// distintos queden siempre en ese orden es un acoplamiento no
+    /// declarado; esto lo vuelve explícito.
+    ///
+    /// El propio motor lo documenta como *hint* de progreso de la familia,
+    /// no como garantía dura, así que quien lo consuma no debe tratarlo como
+    /// única red de seguridad — ver `close_boundary_ms` en `meeting.rs`, que
+    /// lo cruza con el reloj del diarizador y con un tope de espera.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio_committed_ms: Option<u64>,
 }
 
 /// Phase of the streaming overlay card, emitted to drive its UI state.
@@ -128,11 +152,8 @@ pub struct StreamPhaseEvent {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StreamPurpose {
     Dictation,
-    // Sin llamador todavía — lo agrega la Task 5 cuando conecte reuniones a
-    // este mismo streaming. La variante ya está definida a propósito, para
-    // que el `match`/`matches!` en `run_stream_worker` no requiera tocar de
-    // nuevo la lógica de granularidad ese día, sólo el llamador.
-    #[allow(dead_code)]
+    /// `MeetingManager::start_capture` (`meeting.rs`) — pide marcas por token
+    /// y el límite comprometido del audio, que sólo reuniones consume.
     Meeting,
 }
 
@@ -1230,12 +1251,20 @@ impl TranscriptionManager {
                                     // `snapshot()` materializa segmentos/palabras/tokens
                                     // desde el motor — un costo extra que sólo vale la
                                     // pena pagar en reuniones, nunca en dictado.
-                                    let tokens = if is_meeting {
-                                        Some(timed_tokens_from_snapshot(&stream))
+                                    let (tokens, committed_ms) = if is_meeting {
+                                        (
+                                            Some(timed_tokens_from_snapshot(&stream)),
+                                            Some(update.audio_committed_ms.max(0) as u64),
+                                        )
                                     } else {
-                                        None
+                                        (None, None)
                                     };
-                                    self.emit_stream_text(&text.committed, &text.tentative, tokens);
+                                    self.emit_stream_text(
+                                        &text.committed,
+                                        &text.tentative,
+                                        tokens,
+                                        committed_ms,
+                                    );
                                 }
                                 perf.maybe_log();
                             }
@@ -1376,11 +1405,18 @@ impl TranscriptionManager {
         .emit(&self.app_handle);
     }
 
-    fn emit_stream_text(&self, committed: &str, tentative: &str, tokens: Option<Vec<TimedToken>>) {
+    fn emit_stream_text(
+        &self,
+        committed: &str,
+        tentative: &str,
+        tokens: Option<Vec<TimedToken>>,
+        audio_committed_ms: Option<u64>,
+    ) {
         let _ = StreamTextEvent {
             committed: committed.to_string(),
             tentative: tentative.to_string(),
             tokens,
+            audio_committed_ms,
         }
         .emit(&self.app_handle);
     }

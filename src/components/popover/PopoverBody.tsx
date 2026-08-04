@@ -34,6 +34,7 @@ import { TranscriptList } from "@/components/meeting";
 import { useActiveMeeting } from "@/lib/activeMeeting";
 import {
   isRecordingBusyError,
+  modelNoTimestampsErrorModelId,
   modelNotStreamingErrorModelId,
 } from "@/lib/meetingErrors";
 import {
@@ -97,6 +98,10 @@ export const PopoverBody: React.FC = () => {
     boolean | null
   >(null);
   const [liveSegments, setLiveSegments] = useState<MeetingSegment[]>([]);
+  // Lo que se está diciendo ahora y el backend todavía no cierra
+  // (`meeting-pending-segments`, C1 de la revisión final). Se reemplaza
+  // entero en cada actualización, no se acumula.
+  const [pendingSegments, setPendingSegments] = useState<MeetingSegment[]>([]);
   const [speakerNames, setSpeakerNames] = useState<Record<number, string>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -180,8 +185,12 @@ export const PopoverBody: React.FC = () => {
           : [...prev, event.payload],
       );
     });
+    const unlistenPending = events.meetingPendingSegments.listen((event) => {
+      setPendingSegments(event.payload.segments);
+    });
     return () => {
       void unlisten.then((fn) => fn());
+      void unlistenPending.then((fn) => fn());
     };
   }, []);
 
@@ -192,6 +201,7 @@ export const PopoverBody: React.FC = () => {
   useEffect(() => {
     if (recordingId === null) {
       setLiveSegments([]);
+      setPendingSegments([]);
       setSpeakerNames({});
       return;
     }
@@ -210,7 +220,21 @@ export const PopoverBody: React.FC = () => {
     };
   }, [recordingId]);
 
-  const miniSegments = useMemo(() => liveSegments.slice(-5), [liveSegments]);
+  // Las últimas 5 líneas del hilo completo — lo ya guardado más lo que se
+  // está diciendo ahora, que es justo lo que alguien mirando el popover
+  // quiere ver. Claves negativas para lo pendiente: todavía no tiene fila,
+  // así que llega con `id: 0`.
+  const miniSegments = useMemo(
+    () =>
+      [
+        ...liveSegments,
+        ...pendingSegments.map((segment, index) => ({
+          ...segment,
+          id: -1 - index,
+        })),
+      ].slice(-5),
+    [liveSegments, pendingSegments],
+  );
 
   useEffect(() => {
     if (!recording) return;
@@ -234,10 +258,22 @@ export const PopoverBody: React.FC = () => {
   // reintento por turno que andaba con cualquier motor) — `start_capture`
   // rechaza de plano un modelo sin streaming. Ofrecerlo acá igual dejaría al
   // usuario elegir algo que sabemos de antemano que no va a grabar nada.
+  //
+  // Y se piden las DOS capacidades, no sólo streaming (I1 de la revisión
+  // final): un modelo que hace streaming pero no entrega marcas por token
+  // —`Voxtral-Mini-4B-Realtime` es exactamente eso— deja el transcript sin
+  // nada con qué cruzar los hablantes, así que graba y no guarda. La
+  // compuerta del backend exige lo mismo; acá se filtra para que ni siquiera
+  // aparezca en el selector.
   const streamingModels = useMemo(
     () =>
       [...models]
-        .filter((m) => m.is_downloaded && m.supports_streaming)
+        .filter(
+          (m) =>
+            m.is_downloaded &&
+            m.supports_streaming &&
+            m.supports_token_timestamps,
+        )
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((m) => ({ id: m.id, name: m.name })),
     [models],
@@ -298,6 +334,21 @@ export const PopoverBody: React.FC = () => {
           models.find((model) => model.id === badModelId)?.name ?? badModelId;
         toast.error(t("meeting.errors.modelNotStreaming"), {
           description: t("meeting.errors.modelNotStreamingDescription", {
+            name: badModelName,
+          }),
+        });
+        return;
+      }
+      // El otro rechazo del mismo chequeo: hace streaming pero no entrega
+      // marcas de tiempo por token, así que no hay con qué pegarle el texto
+      // a cada hablante y la reunión no guardaría nada.
+      const noTimestampsModelId = modelNoTimestampsErrorModelId(error);
+      if (noTimestampsModelId !== null) {
+        const badModelName =
+          models.find((model) => model.id === noTimestampsModelId)?.name ??
+          noTimestampsModelId;
+        toast.error(t("meeting.errors.modelNotStreaming"), {
+          description: t("meeting.errors.modelNoTimestampsDescription", {
             name: badModelName,
           }),
         });
@@ -407,7 +458,7 @@ export const PopoverBody: React.FC = () => {
               <TranscriptList
                 segments={miniSegments}
                 speakerNames={speakerNames}
-                inProgress
+                inProgress={pendingSegments.length > 0}
               />
               <div ref={bottomRef} />
             </div>

@@ -31,6 +31,14 @@ interface MeetingStore {
   status: MeetingStatus | null;
   /** Segmentos de la sesión en curso, en el orden en que llegaron. */
   segments: MeetingSegment[];
+  /**
+   * Lo que se está diciendo ahora y el backend todavía no cierra
+   * (`meeting-pending-segments`). No está persistido: se reemplaza entero en
+   * cada actualización y se vacía al terminar la sesión. Es la mitad "en
+   * curso" del transcript en vivo — la misma distinción que el overlay del
+   * dictado hace entre `committed` y `tentative`.
+   */
+  pendingSegments: MeetingSegment[];
   /** Nombres puestos por el usuario, por id de hablante. */
   speakerNames: Record<number, string>;
   isStarting: boolean;
@@ -39,6 +47,7 @@ interface MeetingStore {
   startMeeting: (kind: MeetingKind) => Promise<void>;
   stopMeeting: () => Promise<void>;
   appendSegment: (segment: MeetingSegment) => void;
+  setPendingSegments: (segments: MeetingSegment[]) => void;
   markFinished: () => void;
   markErrored: () => void;
   adoptActive: (
@@ -54,6 +63,7 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
   activeMeetingId: null,
   status: null,
   segments: [],
+  pendingSegments: [],
   speakerNames: {},
   isStarting: false,
   isStopping: false,
@@ -68,6 +78,7 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
         activeMeetingId: result.data,
         status: "recording",
         segments: [],
+        pendingSegments: [],
         speakerNames: {},
       });
     } finally {
@@ -101,6 +112,8 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
         : { segments: [...state.segments, segment] },
     ),
 
+  setPendingSegments: (segments) => set({ pendingSegments: segments }),
+
   // La sesión terminó normalmente. Limpia `activeMeetingId` igual que
   // `markErrored` de aquí abajo, y por la misma razón: mientras quede un id
   // puesto, `startMeeting` cree que sigue habiendo una reunión viva en esta
@@ -111,7 +124,13 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
   // tiene persistidos (FR-007) y borrarlos de la pantalla haría parecer que
   // se perdió lo que sí se guardó. `startMeeting` los limpia recién cuando
   // arranca la próxima reunión de verdad.
-  markFinished: () => set({ activeMeetingId: null, status: "ready" }),
+  //
+  // Lo pendiente sí se limpia (a diferencia de los segmentos ya guardados):
+  // no está persistido en ningún lado y, con la sesión cerrada, ya no puede
+  // crecer ni confirmarse. Lo que valía de ahí se cerró con el `Flush` del
+  // backend y llegó como `meeting-segment`.
+  markFinished: () =>
+    set({ activeMeetingId: null, status: "ready", pendingSegments: [] }),
 
   // La sesión murió (falla del pipeline de captura o del cierre). Vuelve a
   // "listo para grabar" — sin esto la pantalla quedaba clavada en "Cerrando…"
@@ -121,7 +140,8 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
   // Los segmentos ya mostrados NO se borran: el backend los tiene
   // persistidos (FR-007) y borrarlos de la pantalla haría parecer que se
   // perdió lo que sí se guardó.
-  markErrored: () => set({ activeMeetingId: null, status: null }),
+  markErrored: () =>
+    set({ activeMeetingId: null, status: null, pendingSegments: [] }),
 
   // Adopta una reunión que ya está grabando en el backend pero que esta
   // ventana todavía no conoce — por ejemplo, se empezó desde el popover
@@ -135,6 +155,7 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
       activeMeetingId: meetingId,
       status: "recording",
       segments,
+      pendingSegments: [],
       speakerNames,
     }),
 
@@ -154,6 +175,7 @@ export const useMeetingStore = create<MeetingStore>()((set, get) => ({
       activeMeetingId: null,
       status: null,
       segments: [],
+      pendingSegments: [],
       speakerNames: {},
     }),
 }));

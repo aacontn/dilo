@@ -22,6 +22,15 @@ export const isRecordingBusyError = (error: unknown): boolean =>
 const MODEL_NOT_STREAMING_PREFIX = "meeting_model_not_streaming:";
 
 /**
+ * El otro rechazo del mismo chequeo: el modelo sí hace streaming, pero no
+ * entrega marcas de tiempo **por token** (`capabilities.timestamps`). Sin
+ * ellas no hay con qué cruzar el texto contra los tramos de hablante, así
+ * que la reunión grabaría sin guardar un solo segmento — el mismo desenlace
+ * que un modelo sin streaming, por otro motivo, y por eso se avisa distinto.
+ */
+const MODEL_NO_TIMESTAMPS_PREFIX = "meeting_model_no_timestamps:";
+
+/**
  * Si `error` es el rechazo de arriba, devuelve el id del modelo que no
  * sirve; si no, `null`. El llamador lo cruza contra `useModelStore` para
  * mostrar el nombre visible en vez del id crudo.
@@ -32,4 +41,13 @@ export const modelNotStreamingErrorModelId = (
   if (!(error instanceof Error)) return null;
   if (!error.message.startsWith(MODEL_NOT_STREAMING_PREFIX)) return null;
   return error.message.slice(MODEL_NOT_STREAMING_PREFIX.length);
+};
+
+/** Igual que la anterior, para el rechazo por falta de marcas por token. */
+export const modelNoTimestampsErrorModelId = (
+  error: unknown,
+): string | null => {
+  if (!(error instanceof Error)) return null;
+  if (!error.message.startsWith(MODEL_NO_TIMESTAMPS_PREFIX)) return null;
+  return error.message.slice(MODEL_NO_TIMESTAMPS_PREFIX.length);
 };

@@ -124,11 +124,14 @@
       "audioNoAudioCapturedDescription": "Dilo hasn't picked up any sound from this computer's audio in a while. Check that you shared audio, and that the call isn't going through your phone instead.",
       "audioFellBackToMicrophone": "Recording with the microphone instead",
       "audioFellBackToMicrophoneDescription": "Dilo couldn't open this computer's audio for this meeting, so it's recording with the microphone instead.",
+      "audioNoSegments": "Recording, but nothing is being saved",
+      "audioNoSegmentsDescription": "You've been talking for a while and Dilo hasn't saved a single line of the transcript. Something is wrong: stop the meeting and check which model you picked for meetings.",
       "recordingBusy": "A meeting is already recording",
       "recordingBusyDescription": "You can't record two meetings at once. Stop that one first, or go check on it.",
       "recordingBusyAction": "View meeting",
       "modelNotStreaming": "This model can't record meetings",
-      "modelNotStreamingDescription": "{{name}} doesn't support live transcription. Pick a different model for meetings in the model menu."
+      "modelNotStreamingDescription": "{{name}} doesn't support live transcription. Pick a different model for meetings in the model menu.",
+      "modelNoTimestampsDescription": "{{name}} transcribes live, but it doesn't time-stamp each word, so Dilo can't tell who said what. Pick a different model for meetings in the model menu."
     },
     "transcript": {
       "title": "Live transcript",

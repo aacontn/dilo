@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo har inte fångat upp något ljud från datorns ljud på ett tag. Kontrollera att du delat ljudet och att samtalet inte går via telefonen istället för datorn.",
       "audioFellBackToMicrophone": "Spelar in med mikrofonen istället",
       "audioFellBackToMicrophoneDescription": "Dilo kunde inte öppna datorns ljud för det här mötet, så det spelar in med mikrofonen istället.",
+      "audioNoSegments": "Det spelas in, men inget sparas",
+      "audioNoSegmentsDescription": "Du har pratat ett tag och Dilo har inte sparat en enda rad av transkriptet. Något är fel: stoppa mötet och kontrollera vilken modell du valt för möten.",
       "recordingBusy": "Ett möte spelas redan in",
       "recordingBusyDescription": "Du kan inte spela in två möten samtidigt. Stoppa det pågående mötet först, eller gå och titta på det.",
       "recordingBusyAction": "Visa mötet",
       "modelNotStreaming": "Den här modellen fungerar inte för möten",
-      "modelNotStreamingDescription": "{{name}} stöder inte livetranskribering. Välj en annan modell för möten i modellmenyn."
+      "modelNotStreamingDescription": "{{name}} stöder inte livetranskribering. Välj en annan modell för möten i modellmenyn.",
+      "modelNoTimestampsDescription": "{{name}} transkriberar live, men tidsmärker inte varje ord, så Dilo kan inte veta vem som sa vad. Välj en annan modell för möten i modellmenyn."
     },
     "transcript": {
       "title": "Direkttranskript",

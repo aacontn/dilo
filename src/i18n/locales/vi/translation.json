@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo đã một lúc không thu được âm thanh nào từ máy tính này. Hãy kiểm tra xem bạn đã chia sẻ âm thanh chưa, và cuộc gọi có đang đi qua điện thoại thay vì máy tính không.",
       "audioFellBackToMicrophone": "Đang ghi âm bằng micro",
       "audioFellBackToMicrophoneDescription": "Dilo không thể mở âm thanh máy tính cho cuộc họp này, nên đang ghi âm bằng micro thay thế.",
+      "audioNoSegments": "Đang ghi nhưng không lưu được gì",
+      "audioNoSegmentsDescription": "Bạn đã nói một lúc rồi mà Dilo chưa lưu được dòng nào của bản ghi. Có gì đó không ổn: hãy dừng cuộc họp và kiểm tra mô hình bạn đã chọn cho cuộc họp.",
       "recordingBusy": "Đã có một cuộc họp đang được ghi âm",
       "recordingBusyDescription": "Bạn không thể ghi âm hai cuộc họp cùng lúc. Hãy dừng cuộc họp đó trước, hoặc vào xem cuộc họp đó.",
       "recordingBusyAction": "Xem cuộc họp",
       "modelNotStreaming": "Mô hình này không dùng được cho cuộc họp",
-      "modelNotStreamingDescription": "{{name}} không hỗ trợ phiên âm trực tiếp. Hãy chọn mô hình khác cho cuộc họp trong menu mô hình."
+      "modelNotStreamingDescription": "{{name}} không hỗ trợ phiên âm trực tiếp. Hãy chọn mô hình khác cho cuộc họp trong menu mô hình.",
+      "modelNoTimestampsDescription": "{{name}} phiên âm trực tiếp nhưng không đánh dấu thời gian từng từ, nên Dilo không biết ai đã nói gì. Hãy chọn mô hình khác cho cuộc họp trong menu mô hình."
     },
     "transcript": {
       "title": "Bản ghi trực tiếp",

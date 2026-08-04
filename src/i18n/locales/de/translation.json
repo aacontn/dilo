@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo empfängt seit einer Weile keinen Ton vom Audio dieses Computers. Prüfe, ob du den Ton geteilt hast und ob das Gespräch nicht über dein Telefon statt über den Computer läuft.",
       "audioFellBackToMicrophone": "Aufnahme läuft jetzt über das Mikrofon",
       "audioFellBackToMicrophoneDescription": "Dilo konnte den Systemton für dieses Meeting nicht öffnen und nimmt stattdessen über das Mikrofon auf.",
+      "audioNoSegments": "Es wird aufgenommen, aber nichts gespeichert",
+      "audioNoSegmentsDescription": "Du sprichst schon eine Weile, und Dilo hat noch keine einzige Zeile des Transkripts gespeichert. Da stimmt etwas nicht: Beende das Meeting und prüfe, welches Modell du für Meetings ausgewählt hast.",
       "recordingBusy": "Es läuft bereits eine Aufnahme",
       "recordingBusyDescription": "Du kannst nicht zwei Meetings gleichzeitig aufnehmen. Beende das laufende zuerst oder sieh es dir an.",
       "recordingBusyAction": "Meeting ansehen",
       "modelNotStreaming": "Dieses Modell eignet sich nicht für Meetings",
-      "modelNotStreamingDescription": "{{name}} unterstützt keine Live-Transkription. Wähle im Modellmenü ein anderes Modell für Meetings."
+      "modelNotStreamingDescription": "{{name}} unterstützt keine Live-Transkription. Wähle im Modellmenü ein anderes Modell für Meetings.",
+      "modelNoTimestampsDescription": "{{name}} transkribiert live, setzt aber keine Zeitmarken pro Wort, also kann Dilo nicht zuordnen, wer was gesagt hat. Wähle im Modellmenü ein anderes Modell für Meetings."
     },
     "transcript": {
       "title": "Live-Transkript",

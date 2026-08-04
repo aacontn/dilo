@@ -15,20 +15,37 @@ import { TranscriptList } from "./TranscriptList";
  */
 export const LiveTranscript: React.FC = () => {
   const { t } = useTranslation();
-  const { segments, speakerNames, isRecording, isProcessing } = useMeetings();
+  const { segments, pendingSegments, speakerNames, isRecording, isProcessing } =
+    useMeetings();
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Lo cerrado y lo que se está diciendo ahora, en un solo hilo: los
+  // pendientes van siempre al final (son lo más reciente por construcción) y
+  // se distinguen porque el último bloque lleva el cursor de "en curso".
+  // Claves negativas para no chocar con los `id` reales de la base — los
+  // pendientes todavía no tienen fila, así que llegan todos con `id: 0`.
+  const shownSegments = React.useMemo(
+    () => [
+      ...segments,
+      ...pendingSegments.map((segment, index) => ({
+        ...segment,
+        id: -1 - index,
+      })),
+    ],
+    [segments, pendingSegments],
+  );
 
   // Seguir el hilo mientras la reunión corre. Al terminar deja de auto
   // scrollear para no pelear con quien está releyendo.
   useEffect(() => {
     if (!isRecording && !isProcessing) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [segments.length, isRecording, isProcessing]);
+  }, [shownSegments.length, isRecording, isProcessing]);
 
   // Cuántos hablantes distintos llevan la cuenta, para el contador del
   // header (la propia lista recalcula el orden para pintar los chips).
   const speakerCount = new Set(
-    segments
+    shownSegments
       .map((segment) => segment.speaker_id)
       .filter((id): id is number => id !== null),
   ).size;
@@ -53,7 +70,7 @@ export const LiveTranscript: React.FC = () => {
       </div>
 
       <div className="glass-surface max-h-[26rem] overflow-y-auto rounded-xl">
-        {segments.length === 0 ? (
+        {shownSegments.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-text">
             {isRecording
               ? t("meeting.transcript.listening")
@@ -62,9 +79,9 @@ export const LiveTranscript: React.FC = () => {
         ) : (
           <div className="divide-y divide-mid-gray/15">
             <TranscriptList
-              segments={segments}
+              segments={shownSegments}
               speakerNames={speakerNames}
-              inProgress={isRecording}
+              inProgress={pendingSegments.length > 0}
             />
             <div ref={bottomRef} />
           </div>

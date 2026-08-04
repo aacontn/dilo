@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo לא קולט קול מהאודיו של המחשב הזה כבר זמן מה. ודא ששיתפת את האודיו, ושהשיחה לא עוברת דרך הטלפון במקום המחשב.",
       "audioFellBackToMicrophone": "מקליט דרך המיקרופון במקום זאת",
       "audioFellBackToMicrophoneDescription": "Dilo לא הצליח לפתוח את האודיו של המחשב לפגישה הזו, ולכן הוא מקליט דרך המיקרופון במקום זאת.",
+      "audioNoSegments": "ההקלטה רצה, אבל שום דבר לא נשמר",
+      "audioNoSegmentsDescription": "אתה מדבר כבר זמן מה ו-Dilo לא שמר אפילו שורה אחת של התמלול. משהו לא בסדר: עצור את הפגישה ובדוק איזה מודל בחרת לפגישות.",
       "recordingBusy": "כבר יש פגישה שמוקלטת",
       "recordingBusyDescription": "אי אפשר להקליט שתי פגישות בו-זמנית. עצור קודם את הפגישה הזו, או עבור לצפות בה.",
       "recordingBusyAction": "הצג פגישה",
       "modelNotStreaming": "אי אפשר להשתמש במודל הזה לפגישות",
-      "modelNotStreamingDescription": "{{name}} לא תומך בתמלול בזמן אמת. בחר מודל אחר לפגישות בתפריט המודלים."
+      "modelNotStreamingDescription": "{{name}} לא תומך בתמלול בזמן אמת. בחר מודל אחר לפגישות בתפריט המודלים.",
+      "modelNoTimestampsDescription": "{{name}} מתמלל בזמן אמת, אבל לא מסמן זמן לכל מילה, ולכן Dilo לא יכול לדעת מי אמר מה. בחר מודל אחר לפגישות בתפריט המודלים."
     },
     "transcript": {
       "title": "תמלול חי",

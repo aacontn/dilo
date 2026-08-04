@@ -83,9 +83,23 @@ struct CatalogCaps {
     streaming: bool,
     translate: bool,
     lang_detect: bool,
-    // `timestamps` (a string enum) is present in the catalog but has no
-    // `CapabilityProbe` field yet — wire it through when the probe gains one.
+    /// Finest timestamp granularity the model reports: `"token"`, `"segment"`
+    /// or `"none"`. Meetings need per-token marks to line transcript up with
+    /// diarization, so this is a hard requirement there — see
+    /// [`TOKEN_TIMESTAMPS`] and `MeetingManager::start_capture`. Defaults to
+    /// `"none"` for an entry that omits it: claiming timestamps a model may
+    /// not have would record a meeting that saves nothing.
+    #[serde(default)]
+    timestamps: String,
 }
+
+/// The `capabilities.timestamps` value that means "one timestamp per token".
+/// I1 of the final branch review: `Voxtral-Mini-4B-Realtime` advertises
+/// `streaming: true` with `timestamps: "none"`, and gating meetings on
+/// streaming alone let it record for hours while `timed_tokens_from_snapshot`
+/// (correctly) returned an empty vector — no tokens, no attributed runs, no
+/// segments, no warning.
+pub const TOKEN_TIMESTAMPS: &str = "token";
 
 impl From<&CatalogModel> for ModelDescriptor {
     fn from(m: &CatalogModel) -> Self {
@@ -124,6 +138,7 @@ impl From<&CatalogModel> for ModelDescriptor {
                 supports_streaming: Some(m.capabilities.streaming),
                 supports_translation: Some(m.capabilities.translate),
                 supports_language_detect: Some(m.capabilities.lang_detect),
+                supports_token_timestamps: Some(m.capabilities.timestamps == TOKEN_TIMESTAMPS),
             },
             files: m.files.clone(),
             default_quant: m.default_quant.clone(),
@@ -232,6 +247,41 @@ mod tests {
         let before = ids.len();
         ids.dedup();
         assert_eq!(before, ids.len(), "catalog descriptor ids must be unique");
+    }
+
+    #[test]
+    fn streaming_no_implica_marcas_por_token() {
+        // I1 de la revisión final: la trampa concreta. De los dos modelos
+        // del catálogo con `streaming: true`, uno NO entrega marcas por
+        // token — y era el que un usuario elegiría para una reunión por el
+        // nombre. Las dos capacidades tienen que llegar separadas hasta el
+        // descriptor; si alguna vez se colapsan en una sola, este test cae.
+        let streaming: Vec<&ModelDescriptor> = CATALOG
+            .iter()
+            .filter(|d| d.caps.supports_streaming == Some(true))
+            .collect();
+        assert!(
+            streaming.len() >= 2,
+            "el catálogo tenía al menos dos modelos con streaming"
+        );
+        let nemotron = streaming
+            .iter()
+            .find(|d| d.id.contains("nemotron-3.5-asr-streaming"))
+            .expect("nemotron sigue en el catálogo");
+        assert_eq!(
+            nemotron.caps.supports_token_timestamps,
+            Some(true),
+            "nemotron sí entrega marcas por token: es el modelo de reuniones"
+        );
+        let voxtral_realtime = streaming
+            .iter()
+            .find(|d| d.id.contains("Voxtral-Mini-4B-Realtime"))
+            .expect("Voxtral Realtime sigue en el catálogo");
+        assert_eq!(
+            voxtral_realtime.caps.supports_token_timestamps,
+            Some(false),
+            "hace streaming pero sin marcas por token: no sirve para reuniones"
+        );
     }
 
     #[test]

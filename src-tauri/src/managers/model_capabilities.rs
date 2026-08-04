@@ -56,6 +56,10 @@ const KEY_LANGUAGES: &str = "general.languages";
 const KEY_CAP_STREAMING: &str = "stt.capability.streaming";
 const KEY_CAP_TRANSLATE: &str = "stt.capability.translate";
 const KEY_CAP_LANG_DETECT: &str = "stt.capability.lang_detect";
+/// Granularidad de marcas de tiempo declarada en el header (`"token"`,
+/// `"segment"`, `"none"`) — el mismo vocabulario que `capabilities.timestamps`
+/// del catálogo. Reuniones exige `"token"` (I1 de la revisión final).
+const KEY_CAP_TIMESTAMPS: &str = "stt.capability.timestamps";
 const PROBE_KEYS: &[&str] = &[
     KEY_ARCH,
     KEY_NAME,
@@ -64,6 +68,7 @@ const PROBE_KEYS: &[&str] = &[
     KEY_CAP_STREAMING,
     KEY_CAP_TRANSLATE,
     KEY_CAP_LANG_DETECT,
+    KEY_CAP_TIMESTAMPS,
 ];
 
 /// How confident we are that Dilo can run a given model, judged from its GGUF
@@ -104,6 +109,12 @@ pub struct CapabilityProbe {
     pub supports_translation: Option<bool>,
     /// `stt.capability.lang_detect` — automatic language detection.
     pub supports_language_detect: Option<bool>,
+    /// `stt.capability.timestamps == "token"` — one timestamp per token, la
+    /// granularidad que reuniones necesita para cruzar texto con hablantes
+    /// (`align::attribute`). `None` = el header no lo declara: no se asume
+    /// que las tenga, porque un modelo sin marcas por token graba una
+    /// reunión entera sin guardar ni un segmento (I1 de la revisión final).
+    pub supports_token_timestamps: Option<bool>,
 }
 
 impl CapabilityProbe {
@@ -136,6 +147,9 @@ impl CapabilityProbe {
             supports_streaming: meta.get_bool(KEY_CAP_STREAMING),
             supports_translation: meta.get_bool(KEY_CAP_TRANSLATE),
             supports_language_detect: meta.get_bool(KEY_CAP_LANG_DETECT),
+            supports_token_timestamps: meta
+                .get_str(KEY_CAP_TIMESTAMPS)
+                .map(|granularity| granularity == crate::catalog::TOKEN_TIMESTAMPS),
         }
     }
 }

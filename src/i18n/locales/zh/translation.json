@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo 有一段时间没有从这台电脑的音频中捕捉到任何声音了。请确认你已共享音频，并且通话不是通过手机而不是电脑进行的。",
       "audioFellBackToMicrophone": "改用麦克风录制",
       "audioFellBackToMicrophoneDescription": "Dilo 无法为这次会议打开电脑音频，因此改用麦克风录制。",
+      "audioNoSegments": "正在录音，但什么都没保存",
+      "audioNoSegmentsDescription": "你已经说了一会儿，Dilo 却一行转录都没保存。有问题：先停止会议，检查你为会议选的模型。",
       "recordingBusy": "已经有一场会议正在录制",
       "recordingBusyDescription": "不能同时录制两场会议。先停止那场会议，或者去看看它。",
       "recordingBusyAction": "查看会议",
       "modelNotStreaming": "这个模型不能用于会议",
-      "modelNotStreamingDescription": "{{name}} 不支持实时转录。请在模型菜单中为会议选择其他模型。"
+      "modelNotStreamingDescription": "{{name}} 不支持实时转录。请在模型菜单中为会议选择其他模型。",
+      "modelNoTimestampsDescription": "{{name}} 能实时转录，但不会为每个词标记时间，所以 Dilo 无法分辨谁说了什么。请在模型菜单中为会议选择其他模型。"
     },
     "transcript": {
       "title": "实时转写",

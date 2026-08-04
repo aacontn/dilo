@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo 已經有一段時間沒有從這台電腦的音訊中偵測到任何聲音了。請確認你已分享音訊，並且通話不是透過手機而不是電腦進行的。",
       "audioFellBackToMicrophone": "改用麥克風錄製",
       "audioFellBackToMicrophoneDescription": "Dilo 無法為這次會議開啟電腦音訊，因此改用麥克風錄製。",
+      "audioNoSegments": "正在錄音，但什麼都沒儲存",
+      "audioNoSegmentsDescription": "你已經說了一陣子，Dilo 卻一行逐字稿都沒儲存。有問題：先停止會議，檢查你為會議選的模型。",
       "recordingBusy": "已經有一場會議正在錄製",
       "recordingBusyDescription": "不能同時錄製兩場會議。先停止那場會議，或是去看看它。",
       "recordingBusyAction": "查看會議",
       "modelNotStreaming": "這個模型不能用於會議",
-      "modelNotStreamingDescription": "{{name}} 不支援即時轉錄。請在模型選單中為會議選擇其他模型。"
+      "modelNotStreamingDescription": "{{name}} 不支援即時轉錄。請在模型選單中為會議選擇其他模型。",
+      "modelNoTimestampsDescription": "{{name}} 能即時轉錄，但不會為每個字標記時間，所以 Dilo 無法分辨誰說了什麼。請在模型選單中為會議選擇其他模型。"
     },
     "transcript": {
       "title": "即時逐字稿",

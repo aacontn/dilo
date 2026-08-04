@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo od jakiegoś czasu nie odbiera żadnego dźwięku z tego komputera. Sprawdź, czy udostępniłeś dźwięk i czy rozmowa nie idzie przez telefon zamiast przez komputer.",
       "audioFellBackToMicrophone": "Nagrywanie z mikrofonu",
       "audioFellBackToMicrophoneDescription": "Dilo nie mógł otworzyć dźwięku tego komputera dla tego spotkania, więc nagrywa z mikrofonu.",
+      "audioNoSegments": "Nagrywa, ale nic się nie zapisuje",
+      "audioNoSegmentsDescription": "Mówisz już dłuższą chwilę, a Dilo nie zapisało ani jednej linijki transkrypcji. Coś jest nie tak: zatrzymaj spotkanie i sprawdź, który model wybrałeś do spotkań.",
       "recordingBusy": "Już trwa nagrywanie innego spotkania",
       "recordingBusyDescription": "Nie możesz nagrywać dwóch spotkań naraz. Najpierw zatrzymaj to spotkanie albo przejdź, żeby je zobaczyć.",
       "recordingBusyAction": "Zobacz spotkanie",
       "modelNotStreaming": "Ten model nie nadaje się do spotkań",
-      "modelNotStreamingDescription": "{{name}} nie obsługuje transkrypcji na żywo. Wybierz inny model do spotkań w menu modeli."
+      "modelNotStreamingDescription": "{{name}} nie obsługuje transkrypcji na żywo. Wybierz inny model do spotkań w menu modeli.",
+      "modelNoTimestampsDescription": "{{name}} transkrybuje na żywo, ale nie oznacza czasu każdego słowa, więc Dilo nie wie, kto co powiedział. Wybierz inny model do spotkań w menu modeli."
     },
     "transcript": {
       "title": "Transkrypcja na żywo",

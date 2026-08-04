@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo pikt al een tijdje geen geluid op van deze computer. Controleer of je het geluid hebt gedeeld en of het gesprek niet via je telefoon loopt in plaats van de computer.",
       "audioFellBackToMicrophone": "Opname loopt nu via de microfoon",
       "audioFellBackToMicrophoneDescription": "Dilo kon het systeemgeluid voor deze vergadering niet openen en neemt in plaats daarvan op via de microfoon.",
+      "audioNoSegments": "Er wordt opgenomen, maar niets opgeslagen",
+      "audioNoSegmentsDescription": "Je praat al een tijdje en Dilo heeft nog geen enkele regel van het transcript opgeslagen. Er klopt iets niet: stop de vergadering en controleer welk model je voor vergaderingen hebt gekozen.",
       "recordingBusy": "Er wordt al een vergadering opgenomen",
       "recordingBusyDescription": "Je kunt niet twee vergaderingen tegelijk opnemen. Stop eerst die vergadering, of ga ernaar kijken.",
       "recordingBusyAction": "Vergadering bekijken",
       "modelNotStreaming": "Dit model werkt niet voor vergaderingen",
-      "modelNotStreamingDescription": "{{name}} ondersteunt geen live transcriptie. Kies in het modellenmenu een ander model voor vergaderingen."
+      "modelNotStreamingDescription": "{{name}} ondersteunt geen live transcriptie. Kies in het modellenmenu een ander model voor vergaderingen.",
+      "modelNoTimestampsDescription": "{{name}} transcribeert live, maar zet geen tijdstempel per woord, dus Dilo kan niet zien wie wat zei. Kies in het modellenmenu een ander model voor vergaderingen."
     },
     "transcript": {
       "title": "Live transcript",

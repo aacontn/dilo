@@ -851,6 +851,7 @@ pub fn run(cli_args: CliArgs) {
             managers::transcription::StreamPhaseEvent,
             actions::PostProcessFallback,
             managers::meeting::MeetingSegment,
+            managers::meeting::MeetingPendingSegments,
             managers::meeting::MeetingProgress,
             managers::meeting::MeetingFinished,
             managers::meeting::MeetingError,

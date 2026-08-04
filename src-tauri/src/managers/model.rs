@@ -77,6 +77,12 @@ pub struct ModelInfo {
     pub supports_language_selection: bool, // Whether the user can explicitly pick a language
     pub is_custom: bool,            // Whether this is a user-provided custom model
     pub supports_streaming: bool, // Whether this model supports live streaming preview (transcribe-cpp)
+    /// Whether the model reports one timestamp **per token**
+    /// (`capabilities.timestamps == "token"`). Meetings require it: without
+    /// per-token marks there is nothing to line the transcript up with the
+    /// diarization, so the recording produces no segments at all (I1 of the
+    /// final branch review). Dictation ignores it.
+    pub supports_token_timestamps: bool,
     pub supports_language_detection: bool, // Whether the model can auto-detect language (gates the "Auto" option)
 }
 
@@ -215,6 +221,7 @@ impl ModelDescriptor {
             // custom files (those bypass the descriptor and set this directly).
             is_custom: false,
             supports_streaming: self.caps.supports_streaming.unwrap_or(false),
+            supports_token_timestamps: self.caps.supports_token_timestamps.unwrap_or(false),
             supports_language_detection: self.caps.supports_language_detect.unwrap_or(false),
         }
     }
@@ -321,6 +328,7 @@ fn probed_display_name(probe: &CapabilityProbe) -> Option<String> {
 /// surface capabilities identically.
 struct LocalCaps {
     supports_streaming: bool,
+    supports_token_timestamps: bool,
     supports_translation: bool,
     supports_language_selection: bool,
     supports_language_detection: bool,
@@ -331,6 +339,7 @@ fn local_caps(probe: &CapabilityProbe) -> LocalCaps {
     let languages = canonicalize_supported_languages(probe.languages.clone().unwrap_or_default());
     LocalCaps {
         supports_streaming: probe.supports_streaming.unwrap_or(false),
+        supports_token_timestamps: probe.supports_token_timestamps.unwrap_or(false),
         supports_translation: probe.supports_translation.unwrap_or(false),
         // Only offer a language picker when there's more than one to choose.
         supports_language_selection: languages.len() > 1,
@@ -527,6 +536,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -560,6 +570,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -592,6 +603,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -624,6 +636,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -657,6 +670,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -690,6 +704,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -732,6 +747,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -764,6 +780,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -797,6 +814,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -830,6 +848,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -863,6 +882,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -902,6 +922,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -937,6 +958,7 @@ impl ModelManager {
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -976,6 +998,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 // Canary (NeMo) requires an explicit source language — no auto-detect.
                 supports_language_detection: false,
             },
@@ -1019,6 +1042,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 // Canary (NeMo) requires an explicit source language — no auto-detect.
                 supports_language_detection: false,
             },
@@ -1059,6 +1083,7 @@ impl ModelManager {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 supports_language_detection: true,
             },
         );
@@ -1570,6 +1595,7 @@ impl ModelManager {
                     supports_language_selection: caps.supports_language_selection,
                     is_custom: true,
                     supports_streaming: caps.supports_streaming,
+                    supports_token_timestamps: caps.supports_token_timestamps,
                     supports_language_detection: caps.supports_language_detection,
                 },
             );
@@ -1692,6 +1718,7 @@ impl ModelManager {
                         supports_language_selection: caps.supports_language_selection,
                         is_custom: false,
                         supports_streaming: caps.supports_streaming,
+                        supports_token_timestamps: caps.supports_token_timestamps,
                         supports_language_detection: caps.supports_language_detection,
                     },
                 );
@@ -2743,6 +2770,7 @@ mod tests {
                 supports_language_selection: true,
                 is_custom: false,
                 supports_streaming: false,
+                supports_token_timestamps: false,
                 // Legacy entry: preserve the historical "Auto offered" behavior.
                 // (Catalog GGUFs and on-disk probes derive this from metadata.)
                 supports_language_detection: true,

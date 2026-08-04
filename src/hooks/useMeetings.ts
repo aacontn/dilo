@@ -19,6 +19,8 @@ interface UseMeetingsReturn {
   isStarting: boolean;
   isStopping: boolean;
   segments: MeetingSegment[];
+  /** Lo que se está diciendo ahora y todavía no se cierra (ver el store). */
+  pendingSegments: MeetingSegment[];
   speakerNames: Record<number, string>;
 
   startMeeting: (kind: MeetingKind) => Promise<void>;
@@ -62,6 +64,12 @@ const showAudioWarningToast = (
         description: t("meeting.errors.audioFellBackToMicrophoneDescription"),
       });
       break;
+    case "no_transcript_saved":
+      toast.warning(t("meeting.errors.audioNoSegments"), {
+        description: t("meeting.errors.audioNoSegmentsDescription"),
+        duration: 15000,
+      });
+      break;
   }
 };
 
@@ -82,12 +90,22 @@ const showAudioWarningToast = (
 export const useMeetingEvents = (): void => {
   const { t } = useTranslation();
   const appendSegment = useMeetingStore((state) => state.appendSegment);
+  const setPendingSegments = useMeetingStore(
+    (state) => state.setPendingSegments,
+  );
   const markFinished = useMeetingStore((state) => state.markFinished);
   const markErrored = useMeetingStore((state) => state.markErrored);
 
   useEffect(() => {
     const unlistenSegment = events.meetingSegment.listen((event) => {
       appendSegment(event.payload);
+    });
+    // La otra mitad del transcript en vivo: lo que todavía se está diciendo
+    // y el backend NO persistió (C1 de la revisión final). Llega entero en
+    // cada actualización y reemplaza lo anterior — no se acumula, a
+    // diferencia de `meeting-segment`.
+    const unlistenPending = events.meetingPendingSegments.listen((event) => {
+      setPendingSegments(event.payload.segments);
     });
     const unlistenFinished = events.meetingFinished.listen(() => {
       markFinished();
@@ -152,13 +170,14 @@ export const useMeetingEvents = (): void => {
 
     return () => {
       void unlistenSegment.then((fn) => fn());
+      void unlistenPending.then((fn) => fn());
       void unlistenFinished.then((fn) => fn());
       void unlistenError.then((fn) => fn());
       void unlistenTurnFailed.then((fn) => fn());
       void unlistenAudioWarning.then((fn) => fn());
       void unlistenFocus.then((fn) => fn());
     };
-  }, [appendSegment, markFinished, markErrored, t]);
+  }, [appendSegment, setPendingSegments, markFinished, markErrored, t]);
 };
 
 /**
@@ -222,6 +241,7 @@ export const useMeetings = (): UseMeetingsReturn => {
     activeMeetingId,
     status,
     segments,
+    pendingSegments,
     speakerNames,
     isStarting,
     isStopping,
@@ -243,6 +263,7 @@ export const useMeetings = (): UseMeetingsReturn => {
     isStarting,
     isStopping,
     segments,
+    pendingSegments,
     speakerNames,
     startMeeting: start,
     stopMeeting,

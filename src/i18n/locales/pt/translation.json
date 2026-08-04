@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "O Dilo não capta nenhum som do áudio deste computador há um tempo. Verifique se você compartilhou o áudio e se a chamada não está saindo pelo telefone em vez do computador.",
       "audioFellBackToMicrophone": "Gravando com o microfone",
       "audioFellBackToMicrophoneDescription": "O Dilo não conseguiu abrir o áudio deste computador para esta reunião, então está gravando com o microfone.",
+      "audioNoSegments": "Está gravando, mas não salva nada",
+      "audioNoSegmentsDescription": "Você está falando há um tempo e o Dilo não salvou nenhuma linha da transcrição. Tem algo errado: pare a reunião e confira qual modelo você escolheu para reuniões.",
       "recordingBusy": "Já há uma reunião sendo gravada",
       "recordingBusyDescription": "Você não pode gravar duas reuniões ao mesmo tempo. Pare essa reunião primeiro, ou vá dar uma olhada nela.",
       "recordingBusyAction": "Ver reunião",
       "modelNotStreaming": "Este modelo não serve para reuniões",
-      "modelNotStreamingDescription": "{{name}} não é compatível com transcrição ao vivo. Escolha outro modelo para reuniões no menu de modelos."
+      "modelNotStreamingDescription": "{{name}} não é compatível com transcrição ao vivo. Escolha outro modelo para reuniões no menu de modelos.",
+      "modelNoTimestampsDescription": "{{name}} transcreve ao vivo, mas não marca o tempo de cada palavra, então o Dilo não consegue saber quem disse o quê. Escolha outro modelo para reuniões no menu de modelos."
     },
     "transcript": {
       "title": "Transcrição ao vivo",

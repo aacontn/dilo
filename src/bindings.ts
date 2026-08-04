@@ -1374,6 +1374,7 @@ meetingCallEnded: MeetingCallEnded,
 meetingError: MeetingError,
 meetingFinished: MeetingFinished,
 meetingInterrupted: MeetingInterrupted,
+meetingPendingSegments: MeetingPendingSegments,
 meetingProgress: MeetingProgress,
 meetingSegment: MeetingSegment,
 meetingTurnFailed: MeetingTurnFailed,
@@ -1389,6 +1390,7 @@ meetingCallEnded: "meeting-call-ended",
 meetingError: "meeting-error",
 meetingFinished: "meeting-finished",
 meetingInterrupted: "meeting-interrupted",
+meetingPendingSegments: "meeting-pending-segments",
 meetingProgress: "meeting-progress",
 meetingSegment: "meeting-segment",
 meetingTurnFailed: "meeting-turn-failed",
@@ -1639,7 +1641,23 @@ export type MeetingAudioWarningKind =
  * ejemplo, `AudioHardwareCreateProcessTap` falló) — la reunión sigue
  * grabando, mediante el micrófono, en vez de abortar.
  */
-"fell_back_to_microphone"
+"fell_back_to_microphone" | 
+/**
+ * I2 de la revisión final: la sesión lleva
+ * [`NO_SEGMENTS_VOICE_WARNING_MS`] de audio **con voz** (no silencio: lo
+ * que pasó la compuerta de energía) y no guardó ni un solo segmento.
+ * 
+ * A diferencia del resto de este enum, no es propio del audio del
+ * sistema: aplica también a una reunión por micrófono. Es el guardián
+ * que faltaba sobre el modo de falla que esta rama repitió tres veces
+ * —el modelo de reconocimiento que nunca carga, el que no entrega
+ * marcas por token, el diarizador que no cierra ninguna intervención—
+ * y que en los tres casos se veía igual desde afuera: la reunión graba
+ * como si nada y no guarda nada. No termina la sesión: dice que algo
+ * anda mal para que el usuario pueda detener y revisar en vez de
+ * enterarse a los 40 minutos.
+ */
+"no_transcript_saved"
 /**
  * An active video call was detected with no recording in progress
  * (User Story 3, FR-017). `call_source` is the detected app name when it
@@ -1671,6 +1689,36 @@ export type MeetingFinished = { meeting_id: number }
  * previous session (crash recovery, FR-008).
  */
 export type MeetingInterrupted = { meeting_id: number }
+/**
+ * Lo que se está diciendo **ahora mismo** y todavía no se puede cerrar:
+ * intervenciones que la interfaz debe mostrar como en curso y que el
+ * backend **no** persistió (C1 de la revisión final).
+ * 
+ * # Por qué existe un segundo evento en vez de persistir y corregir
+ * 
+ * `align::attribute` agrupa por hablante, no por tramo: mientras hable la
+ * misma persona, todo su texto es UNA sola `AttributedRun` que sigue
+ * creciendo. Cerrarla apenas aparece es persistir una atribución (y un
+ * texto) que todavía puede cambiar — el problema que
+ * [`maybe_persist_new_runs`] evita difiriendo la última run. Pero diferir
+ * **también** el mostrarla es lo que dejaba una reunión de un solo
+ * expositor sin una sola línea en pantalla hasta apretar detener.
+ * 
+ * La separación es entonces la misma que el dictado ya hace entre
+ * `committed` y `tentative`: `meeting-segment` es lo cerrado (persistido,
+ * sobrevive a un cierre inesperado) y `meeting-pending-segments` es la
+ * hipótesis en curso (volátil, se reemplaza entera en cada actualización y
+ * se vacía al cerrar la reunión). Los `id` van en `0`: nada de esto tiene
+ * fila en `meeting_segments` todavía.
+ * 
+ * `speaker_id` sólo trae un hablante ya conocido de esta reunión (uno que
+ * ya se resolvió contra `meeting_speakers` al persistir algo suyo); un
+ * índice local que todavía no se vio queda en `None` — "Sin identificar"
+ * hasta que se cierre. Es a propósito: crear la fila del hablante acá
+ * dejaría "Hablante 3" en el registro de la reunión por una atribución
+ * tentativa que puede no terminar existiendo.
+ */
+export type MeetingPendingSegments = { meeting_id: number; segments: MeetingSegment[] }
 /**
  * Emitted while a finished recording is being processed (summary,
  * diarization if it runs as a separate step, etc.).
@@ -1709,7 +1757,15 @@ export type MeetingSummary = { id: number; title: string; kind: string; started_
  * app. Esto se muestra como aviso y no toca el estado de la sesión.
  */
 export type MeetingTurnFailed = { meeting_id: number; error: string }
-export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
+export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; 
+/**
+ * Whether the model reports one timestamp **per token**
+ * (`capabilities.timestamps == "token"`). Meetings require it: without
+ * per-token marks there is nothing to line the transcript up with the
+ * diarization, so the recording produces no segments at all (I1 of the
+ * final branch review). Dictation ignores it.
+ */
+supports_token_timestamps: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
  * Where a model comes from and how Dilo obtains it — the routing discriminant
@@ -1807,13 +1863,36 @@ kind?: StreamWorkKind | null }
  */
 export type StreamTextEvent = { committed: string; tentative: string; 
 /**
- * Tokens con tiempo del turno en curso. Se completa sólo durante
- * captura de reuniones (`is_meeting_capture_active`) y sólo si el motor
- * los entrega de verdad para el modelo cargado; `None` en cualquier
- * otro caso, dictado incluido — el overlay del dictado no lee este
- * campo, así que agregarlo no le cambia el comportamiento.
+ * Tokens con tiempo del turno en curso. Se completa sólo cuando quien
+ * abrió el stream lo hizo con [`StreamPurpose::Meeting`] (ver
+ * `start_stream`) y sólo si el motor los entrega de verdad para el
+ * modelo cargado; `None` en cualquier otro caso, dictado incluido — el
+ * overlay del dictado no lee este campo, así que agregarlo no le cambia
+ * el comportamiento.
  */
-tokens?: TimedToken[] | null }
+tokens?: TimedToken[] | null; 
+/**
+ * Hasta qué milisegundo del audio que recibió el motor su transcripción
+ * ya está comprometida (`StreamUpdate::audio_committed_ms`) — el resto
+ * de `tokens` es hipótesis todavía revisable. Se completa bajo la misma
+ * condición que `tokens` (sólo [`StreamPurpose::Meeting`]); `None` en
+ * dictado.
+ * 
+ * I3 de la revisión final: reuniones lo necesita para no **cerrar**
+ * (persistir) texto que el ASR todavía puede reescribir. Hasta ahora
+ * ese límite llegaba a `run_stream_worker` y se descartaba, y la
+ * colisión se evitaba por casualidad — porque el margen de estabilidad
+ * del diarizador (`SAFE_TAIL_MARGIN_S`) suele ser mayor que la ventana
+ * tentativa del ASR. Depender de que dos constantes de dos modelos
+ * distintos queden siempre en ese orden es un acoplamiento no
+ * declarado; esto lo vuelve explícito.
+ * 
+ * El propio motor lo documenta como *hint* de progreso de la familia,
+ * no como garantía dura, así que quien lo consuma no debe tratarlo como
+ * única red de seguridad — ver `close_boundary_ms` en `meeting.rs`, que
+ * lo cruza con el reloj del diarizador y con un tope de espera.
+ */
+audio_committed_ms?: number | null }
 /**
  * Semantic kind of "working" phase, used to localize the spinner label.
  */

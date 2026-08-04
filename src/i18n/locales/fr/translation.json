@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo ne capte aucun son de cet ordinateur depuis un moment. Vérifie que tu as bien partagé l'audio, et que l'appel ne passe pas par ton téléphone au lieu de l'ordinateur.",
       "audioFellBackToMicrophone": "Enregistrement avec le micro à la place",
       "audioFellBackToMicrophoneDescription": "Dilo n'a pas pu ouvrir l'audio de cet ordinateur pour cette réunion, il enregistre donc avec le micro à la place.",
+      "audioNoSegments": "Ça enregistre, mais rien n'est sauvegardé",
+      "audioNoSegmentsDescription": "Tu parles depuis un moment et Dilo n'a sauvegardé aucune ligne de la transcription. Quelque chose ne va pas : arrête la réunion et vérifie le modèle choisi pour les réunions.",
       "recordingBusy": "Une réunion est déjà en cours d'enregistrement",
       "recordingBusyDescription": "Impossible d'enregistrer deux réunions à la fois. Arrête d'abord celle en cours, ou va y jeter un œil.",
       "recordingBusyAction": "Voir la réunion",
       "modelNotStreaming": "Ce modèle ne peut pas être utilisé pour les réunions",
-      "modelNotStreamingDescription": "{{name}} ne prend pas en charge la transcription en direct. Choisis un autre modèle pour les réunions dans le menu des modèles."
+      "modelNotStreamingDescription": "{{name}} ne prend pas en charge la transcription en direct. Choisis un autre modèle pour les réunions dans le menu des modèles.",
+      "modelNoTimestampsDescription": "{{name}} transcrit en direct, mais sans horodatage mot par mot, donc Dilo ne peut pas savoir qui a dit quoi. Choisis un autre modèle pour les réunions dans le menu des modèles."
     },
     "transcript": {
       "title": "Transcription en direct",

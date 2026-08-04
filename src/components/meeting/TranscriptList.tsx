@@ -62,16 +62,21 @@ interface TranscriptListProps {
   /** Nombre puesto por el usuario, por id de hablante (sólo los que lo tienen). */
   speakerNames: Record<number, string>;
   /**
-   * `true` mientras la reunión sigue grabando: el diarizador no emite un
-   * tramo hasta que el hablante se calla (diseño 2026-08-04), así que el
-   * último bloque del listado puede seguir creciendo con la próxima
-   * intervención de la misma persona. Ese bloque se distingue del resto —
-   * igual que el overlay del dictado separa `tentative` de `committed` —
-   * con un cursor parpadeante al final del texto en vez de aparecer como un
-   * bloque más, ya cerrado.
+   * `true` cuando el último bloque del listado es texto **todavía no
+   * cerrado** — lo que llega por `meeting-pending-segments`, la hipótesis en
+   * curso que el backend aún no persiste (C1 de la revisión final). Ese
+   * bloque se distingue del resto con un cursor parpadeante al final del
+   * texto, igual que el overlay del dictado separa `tentative` de
+   * `committed`.
    *
-   * En una reunión guardada (`MeetingDetail`) no hay nada "en curso": se
-   * deja en `false` (default) y todos los bloques se ven cerrados.
+   * Quien monta esta lista tiene que pasarlo mirando si hay pendientes, no
+   * si la reunión está grabando: mientras el backend difería la última
+   * intervención, esto se pasaba como "está grabando" y el cursor terminaba
+   * marcando el último bloque **ya guardado** — es decir, mintiendo sobre
+   * cuál podía crecer.
+   *
+   * En una reunión guardada (`MeetingDetail`) no hay nada en curso: se deja
+   * en `false` (default) y todos los bloques se ven cerrados.
    */
   inProgress?: boolean;
 }
@@ -127,8 +132,8 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
     .filter((id): id is number => id !== null);
   const speakerCapNotice = exceedsSpeakerCap(distinctSpeakerIds);
 
-  // Sólo el último bloque puede seguir creciendo: es el único que todavía
-  // podría recibir la próxima intervención de la misma persona.
+  // Sólo el último bloque puede estar en curso: los pendientes van siempre
+  // al final del hilo (ver `inProgress`).
   const lastIndex = groupedSegments.length - 1;
 
   return (
@@ -167,9 +172,10 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({
               <p className="mt-1 text-sm leading-relaxed text-text">
                 {segment.text}
                 {/* Bloque en curso: mismo cursor parpadeante que separa
-                    `tentative` de `committed` en el overlay del dictado —
-                    acá dice "esto todavía puede crecer", no "esto es
-                    provisorio" (el texto ya está persistido). */}
+                    `tentative` de `committed` en el overlay del dictado, y
+                    con el mismo significado — esto todavía puede crecer,
+                    cambiar de hablante o corregirse, y no está guardado
+                    hasta que el backend lo cierre. */}
                 {open && (
                   <span
                     aria-hidden="true"

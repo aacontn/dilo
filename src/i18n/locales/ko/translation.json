@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo가 한동안 이 컴퓨터의 오디오에서 아무 소리도 감지하지 못했습니다. 오디오를 공유했는지, 통화가 컴퓨터 대신 휴대폰을 통해 진행되고 있지 않은지 확인하세요.",
       "audioFellBackToMicrophone": "마이크로 녹음 중입니다",
       "audioFellBackToMicrophoneDescription": "Dilo가 이 회의에서 컴퓨터 오디오를 열지 못해 대신 마이크로 녹음하고 있습니다.",
+      "audioNoSegments": "녹음 중인데 아무것도 저장되지 않아요",
+      "audioNoSegmentsDescription": "한참 말했는데 Dilo가 전사를 한 줄도 저장하지 못했어요. 뭔가 잘못됐으니 회의를 멈추고 회의용으로 고른 모델을 확인해 주세요.",
       "recordingBusy": "이미 녹음 중인 회의가 있습니다",
       "recordingBusyDescription": "회의는 한 번에 하나만 녹음할 수 있습니다. 진행 중인 회의를 먼저 멈추거나, 가서 확인해 보세요.",
       "recordingBusyAction": "회의 보기",
       "modelNotStreaming": "이 모델은 회의에 사용할 수 없어요",
-      "modelNotStreamingDescription": "{{name}}은(는) 실시간 전사를 지원하지 않아요. 모델 메뉴에서 회의용 모델을 다시 선택해 주세요."
+      "modelNotStreamingDescription": "{{name}}은(는) 실시간 전사를 지원하지 않아요. 모델 메뉴에서 회의용 모델을 다시 선택해 주세요.",
+      "modelNoTimestampsDescription": "{{name}}은(는) 실시간 전사는 되지만 단어마다 시간을 표시하지 않아서 누가 말했는지 구분할 수 없어요. 모델 메뉴에서 회의용 모델을 다시 선택해 주세요."
     },
     "transcript": {
       "title": "실시간 대화록",

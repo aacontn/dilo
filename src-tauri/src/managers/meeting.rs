@@ -204,6 +204,39 @@ pub struct MeetingSegment {
     pub overlapped: bool,
 }
 
+/// Lo que se está diciendo **ahora mismo** y todavía no se puede cerrar:
+/// intervenciones que la interfaz debe mostrar como en curso y que el
+/// backend **no** persistió (C1 de la revisión final).
+///
+/// # Por qué existe un segundo evento en vez de persistir y corregir
+///
+/// `align::attribute` agrupa por hablante, no por tramo: mientras hable la
+/// misma persona, todo su texto es UNA sola `AttributedRun` que sigue
+/// creciendo. Cerrarla apenas aparece es persistir una atribución (y un
+/// texto) que todavía puede cambiar — el problema que
+/// [`maybe_persist_new_runs`] evita difiriendo la última run. Pero diferir
+/// **también** el mostrarla es lo que dejaba una reunión de un solo
+/// expositor sin una sola línea en pantalla hasta apretar detener.
+///
+/// La separación es entonces la misma que el dictado ya hace entre
+/// `committed` y `tentative`: `meeting-segment` es lo cerrado (persistido,
+/// sobrevive a un cierre inesperado) y `meeting-pending-segments` es la
+/// hipótesis en curso (volátil, se reemplaza entera en cada actualización y
+/// se vacía al cerrar la reunión). Los `id` van en `0`: nada de esto tiene
+/// fila en `meeting_segments` todavía.
+///
+/// `speaker_id` sólo trae un hablante ya conocido de esta reunión (uno que
+/// ya se resolvió contra `meeting_speakers` al persistir algo suyo); un
+/// índice local que todavía no se vio queda en `None` — "Sin identificar"
+/// hasta que se cierre. Es a propósito: crear la fila del hablante acá
+/// dejaría "Hablante 3" en el registro de la reunión por una atribución
+/// tentativa que puede no terminar existiendo.
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct MeetingPendingSegments {
+    pub meeting_id: i64,
+    pub segments: Vec<MeetingSegment>,
+}
+
 /// Phase of post-recording processing (summary generation, diarization when
 /// it runs as a separate step, etc.), reported via [`MeetingProgress`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -308,6 +341,20 @@ pub enum MeetingAudioWarningKind {
     /// ejemplo, `AudioHardwareCreateProcessTap` falló) — la reunión sigue
     /// grabando, mediante el micrófono, en vez de abortar.
     FellBackToMicrophone,
+    /// I2 de la revisión final: la sesión lleva
+    /// [`NO_SEGMENTS_VOICE_WARNING_MS`] de audio **con voz** (no silencio: lo
+    /// que pasó la compuerta de energía) y no guardó ni un solo segmento.
+    ///
+    /// A diferencia del resto de este enum, no es propio del audio del
+    /// sistema: aplica también a una reunión por micrófono. Es el guardián
+    /// que faltaba sobre el modo de falla que esta rama repitió tres veces
+    /// —el modelo de reconocimiento que nunca carga, el que no entrega
+    /// marcas por token, el diarizador que no cierra ninguna intervención—
+    /// y que en los tres casos se veía igual desde afuera: la reunión graba
+    /// como si nada y no guarda nada. No termina la sesión: dice que algo
+    /// anda mal para que el usuario pueda detener y revisar en vez de
+    /// enterarse a los 40 minutos.
+    NoTranscriptSaved,
 }
 
 /// Aviso durante una grabación con audio del sistema — no termina la
@@ -599,6 +646,32 @@ const SILENCE_WARNING_THRESHOLD: Duration = Duration::from_secs(120);
 /// esto al menos deja rastro en `handy.log` de que pasó, en vez de un
 /// consumo de memoria inexplicable.
 const QUEUE_DEPTH_WARN_THRESHOLD: usize = 50;
+/// C1 de la revisión final: cuánto se espera, como mucho, a que los dos
+/// motores confirmen un tramo antes de cerrarlo igual (ver
+/// [`close_boundary_ms`]).
+///
+/// En operación normal no se usa nunca: el límite comprometido del ASR y el
+/// del diarizador van 1–2 s detrás del audio, así que el corte real siempre
+/// es el de ellos. Esto sólo entra cuando alguno se queda clavado —el modelo
+/// Sortformer que nunca termina de cargar, una diarización más lenta que
+/// tiempo real, un motor que no reporta progreso— y su trabajo es que en ese
+/// caso la reunión siga guardando texto (sin hablante, que es la degradación
+/// honesta de siempre) en vez de acumularlo en memoria hasta el final.
+///
+/// Medio minuto es deliberadamente generoso: la primera intervención de una
+/// reunión puede tardar ~8 s en cerrarse, y esperar de más sólo cuesta
+/// atraso; esperar de menos cuesta hablantes que sí se iban a poder
+/// identificar.
+const SETTLE_GRACE_MS: u64 = 30_000;
+/// I2 de la revisión final: cuántos milisegundos de audio **con voz** (los
+/// que pasan la compuerta de energía, no tiempo de pared) puede llevar una
+/// sesión sin guardar ni un segmento antes de avisarle al usuario.
+///
+/// Se mide en audio con voz a propósito: una reunión que todavía no empieza,
+/// o una pausa larga, no tiene por qué producir texto. Minuto y medio
+/// hablando sin que se guarde nada, sí — con todo funcionando, el primer
+/// segmento aparece a los pocos segundos.
+const NO_SEGMENTS_VOICE_WARNING_MS: u64 = 90_000;
 
 /// Avisa al frontend de un fallo que **mata la sesión** (`meeting-error`).
 ///
@@ -1289,6 +1362,24 @@ struct TranscriptState {
     /// Sólo avanza cuando [`persist_and_emit_run`] devuelve `Ok` — ver
     /// [`maybe_persist_new_runs`].
     persisted_until_ms: u64,
+    /// Hasta qué milisegundo de reunión el ASR da su texto por comprometido
+    /// (`StreamUpdate::audio_committed_ms`, ya convertido por
+    /// [`AudioToWallClock`]) — I3 de la revisión final. Lo que viene después
+    /// es hipótesis: se muestra, no se guarda.
+    asr_committed_ms: u64,
+    /// Hasta qué milisegundo la diarización ya no puede cambiar de opinión
+    /// (`StreamingDiarizer::emitted_until_ms`). Queda en `0` mientras el
+    /// modelo no esté cargado, que es justamente el caso que
+    /// [`SETTLE_GRACE_MS`] destraba.
+    diar_settled_ms: u64,
+    /// Cuántas intervenciones se guardaron de verdad en esta sesión (filas
+    /// insertadas, no runs saltadas por texto en blanco). Lo lee el watchdog
+    /// para el aviso de "grabando y sin guardar nada" (I2).
+    persisted_segments: u64,
+    /// Texto de lo último que se emitió como en curso
+    /// (`meeting-pending-segments`), para no reemitir el mismo evento en
+    /// cada actualización de tokens que no cambió nada visible.
+    pending_signature: String,
     /// Índice local de hablante (`SpeakerSpan::speaker`, 0..
     /// `SORTFORMER_MAX_SPEAKERS`) -> `meeting_speakers.id`. Sortformer ya
     /// mantiene esa identidad estable dentro de la sesión (ver el
@@ -1472,10 +1563,15 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
     turn_failure_reported: &mut bool,
 ) {
     match diarizer.push(chunk) {
-        Ok(spans) if !spans.is_empty() => {
-            state.lock().unwrap().spans.extend(spans);
+        Ok(spans) => {
+            // El watermark se publica SIEMPRE, haya tramos nuevos o no: es
+            // lo que decide hasta dónde se puede cerrar (C1), y avanza con
+            // cada chunk procesado aunque el hablante no haya cambiado.
+            let settled = diarizer.emitted_until_ms();
+            let mut state = state.lock().unwrap();
+            state.spans.extend(spans);
+            state.diar_settled_ms = settled;
         }
-        Ok(_) => {}
         Err(e) => report_turn_failure(
             app_handle,
             meeting_id,
@@ -1485,19 +1581,91 @@ fn push_diarizer_chunk<R: tauri::Runtime>(
     }
 }
 
-/// Recalcula `align::attribute` sobre la cola de tokens/tramos que todavía
-/// no se persistió y persiste+emite las intervenciones que ya se pueden dar
-/// por cerradas.
+/// Hasta qué milisegundo de la reunión se puede **cerrar** texto: el mínimo
+/// entre lo que el ASR da por comprometido y lo que la diarización da por
+/// resuelto, pero nunca más de [`SETTLE_GRACE_MS`] atrás del audio ya
+/// recibido.
 ///
-/// **Por qué no persistir la última run todavía.** `attribute` re-agrupa
-/// tokens en runs cada vez que se le llama; mientras la MISMA persona siga
-/// hablando, la última run de la lista puede seguir creciendo con el
-/// próximo token que llegue. Recién cuando aparece una run MÁS detrás de
-/// ella (cambio de hablante, según los tramos ya emitidos) se sabe que la
-/// anterior no va a cambiar más — por eso `include_last` es `false` en
-/// cada llamada normal (nueva tanda de audio o de tokens) y sólo pasa a
-/// `true` una vez, al cerrar la reunión (`DiarizerCmd::Flush`), cuando ya
-/// no va a llegar nada más que pudiera extenderla.
+/// Las dos primeras condiciones son las que hacen que cerrar signifique
+/// cerrar: antes de `asr_committed_ms` el texto ya no se reescribe (I3), y
+/// antes de `diar_settled_ms` ningún tramo futuro puede cambiarle el
+/// hablante (ver `StreamingDiarizer::emitted_until_ms`). La tercera es la
+/// que garantiza que *algo* avance: sin ella, cualquiera de los dos motores
+/// que se quede clavado congela la reunión entera en memoria — que es
+/// exactamente lo que pasaba cuando la única regla era "esperar a que
+/// aparezca otra run detrás" (C1).
+///
+/// Cuando la grace entra en juego, lo que se cierra puede quedar sin
+/// hablante: es la misma degradación honesta de siempre (FR-004, "Sin
+/// identificar"), nunca una suposición.
+/// I2 de la revisión final: ¿esta sesión lleva bastante rato con alguien
+/// hablando y sin haber guardado ni un segmento?
+///
+/// `voiced_ms` es audio **con voz** (`AudioClockState::asr_ms`, lo que pasó
+/// la compuerta de energía), no tiempo de pared: una reunión que todavía no
+/// empieza no debería disparar nada. `persisted_segments` son filas escritas
+/// de verdad, no runs procesadas.
+fn recording_without_saving(voiced_ms: u64, persisted_segments: u64) -> bool {
+    persisted_segments == 0 && voiced_ms >= NO_SEGMENTS_VOICE_WARNING_MS
+}
+
+fn close_boundary_ms(asr_committed_ms: u64, diar_settled_ms: u64, now_ms: u64) -> u64 {
+    asr_committed_ms
+        .min(diar_settled_ms)
+        .max(now_ms.saturating_sub(SETTLE_GRACE_MS))
+}
+
+/// Hasta dónde cerrar en esta llamada a [`maybe_persist_new_runs`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CloseUpTo {
+    /// Camino normal (llegó audio o llegaron tokens): hasta donde los dos
+    /// motores tengan resuelto, calculado con [`close_boundary_ms`] contra
+    /// `now_ms` (el reloj de reunión, `AudioClockState::total_ms`).
+    Settled { now_ms: u64 },
+    /// Fin de la reunión (`DiarizerCmd::Flush`): ya no va a llegar nada que
+    /// pueda cambiar lo que quede, así que se cierra todo.
+    Everything,
+}
+
+/// Recalcula `align::attribute` sobre la cola de tokens/tramos que todavía
+/// no se persistió, persiste+emite las intervenciones ya cerradas
+/// (`meeting-segment`) y publica el resto como en curso
+/// (`meeting-pending-segments`).
+///
+/// # Mostrar no es cerrar (C1 de la revisión final)
+///
+/// `attribute` re-agrupa tokens en runs cada vez que se le llama; mientras
+/// la MISMA persona siga hablando, la última run puede seguir creciendo con
+/// el próximo token — y hasta cambiar de hablante si el diarizador todavía
+/// no resolvió ese tramo. Persistirla apenas aparece sería guardar una
+/// atribución que después cambia.
+///
+/// La versión anterior sacaba de ahí la regla equivocada: difería siempre la
+/// ÚLTIMA run (`include_last = false`) y esperaba a que apareciera otra
+/// detrás. Como `attribute` agrupa por hablante, un monólogo es UNA sola run
+/// para toda la reunión: nunca aparecía otra detrás, nunca se persistía ni
+/// se emitía nada, y un webinar de 40 minutos quedaba en pantalla como "sin
+/// nada" hasta apretar detener — con todo el texto vivo sólo en memoria si
+/// la app se caía. Peor: sin el modelo de diarización cargado, TODOS los
+/// tokens quedan con `speaker: None`, que también es una sola run, así que
+/// "sin hablantes" se degradaba a "sin nada".
+///
+/// Ahora son dos preguntas distintas:
+///
+/// - **Cerrar** (persistir + `meeting-segment`): todo lo que termina antes
+///   del corte de [`close_boundary_ms`]. Ese corte no depende de que
+///   aparezca una run nueva, así que siempre avanza. La última run cerrada
+///   igual puede crecer después: lo que crezca se persiste como una
+///   intervención más del mismo hablante, y la interfaz las une
+///   (`groupConsecutiveSegments`).
+/// - **Mostrar** (`meeting-pending-segments`): lo que queda después del
+///   corte, emitido entero en cada actualización y reemplazado por completo
+///   la vez siguiente. Es lo que hace que el texto se escriba mientras se
+///   habla, y lo que vuelve verdadero el cursor de "en curso" del
+///   transcript — que antes marcaba el último bloque **ya persistido**.
+///
+/// `CloseUpTo::Everything` (sólo al cerrar la reunión) salta el corte:
+/// ya no va a llegar nada que pueda extender o re-atribuir lo que quede.
 ///
 /// **Por qué recorta la entrada en vez de recalcular sobre toda la
 /// reunión** (Important 6 del fix round 1): `attribute` es O(tokens ×
@@ -1537,10 +1705,10 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
     app_handle: Option<&AppHandle<R>>,
     meeting_id: i64,
     state: &Mutex<TranscriptState>,
-    include_last: bool,
+    close_up_to: CloseUpTo,
     turn_failure_reported: &mut bool,
 ) {
-    let (tokens, spans, persisted_until_ms, mut local_speakers) = {
+    let (tokens, spans, persisted_until_ms, close_until_ms, mut local_speakers) = {
         let mut state = state.lock().unwrap();
         let watermark = state.persisted_until_ms;
         let tokens: Vec<TimedToken> = state
@@ -1555,23 +1723,34 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
             .filter(|s| s.end_ms > watermark)
             .cloned()
             .collect();
+        let close_until_ms = match close_up_to {
+            CloseUpTo::Everything => u64::MAX,
+            CloseUpTo::Settled { now_ms } => {
+                close_boundary_ms(state.asr_committed_ms, state.diar_settled_ms, now_ms)
+            }
+        };
         (
             tokens,
             spans,
             watermark,
+            close_until_ms,
             std::mem::take(&mut state.local_speakers),
         )
     };
 
-    let runs = attribute(&tokens, &spans);
-    let boundary = if include_last {
-        runs.len()
-    } else {
-        runs.len().saturating_sub(1)
-    };
+    // Sólo se cierra lo que termina dentro del corte; un token a caballo
+    // sobre el límite queda entero del lado de lo que se muestra, no se
+    // parte por la mitad.
+    let closable: Vec<TimedToken> = tokens
+        .iter()
+        .filter(|t| t.end_ms <= close_until_ms)
+        .cloned()
+        .collect();
+    let runs = attribute(&closable, &spans);
 
     let mut new_persisted_until_ms = persisted_until_ms;
-    for run in &runs[..boundary] {
+    let mut persisted_now: u64 = 0;
+    for run in &runs {
         // Ya cubierta por una llamada anterior — se saltea, no se
         // reprocesa. Comparar por contenido (`end_ms`) en vez de por
         // índice es justo lo que evita que una lista de runs más corta
@@ -1593,7 +1772,16 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
             run.speaker,
             &mut local_speakers,
         ) {
-            Ok(_) => new_persisted_until_ms = run.end_ms,
+            Ok(saved) => {
+                new_persisted_until_ms = run.end_ms;
+                // Sólo cuenta lo que de verdad quedó en una fila: una run de
+                // puro espacio en blanco devuelve `Ok(None)` y no es un
+                // segmento guardado (I2 vigila justamente "no se guardó
+                // nada").
+                if saved.is_some() {
+                    persisted_now += 1;
+                }
+            }
             Err(e) => {
                 report_turn_failure(
                     app_handle,
@@ -1606,9 +1794,81 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
         }
     }
 
-    let mut state = state.lock().unwrap();
-    state.local_speakers = local_speakers;
-    state.persisted_until_ms = new_persisted_until_ms;
+    // Lo que queda después del corte: se muestra como en curso, no se
+    // guarda. Se recalcula sobre la marca de agua NUEVA para que nada
+    // aparezca duplicado (una vez cerrado y otra vez en curso).
+    let pending_runs = attribute(
+        &tokens
+            .into_iter()
+            .filter(|t| t.end_ms > new_persisted_until_ms)
+            .collect::<Vec<_>>(),
+        &spans,
+    );
+    let pending_segments = pending_segments_from_runs(&pending_runs, &local_speakers);
+    let pending_signature = pending_segments
+        .iter()
+        .map(|s| format!("{}\u{1}{:?}\u{1}", s.text, s.speaker_id))
+        .collect::<String>();
+
+    let should_emit = {
+        let mut state = state.lock().unwrap();
+        state.local_speakers = local_speakers;
+        state.persisted_until_ms = new_persisted_until_ms;
+        state.persisted_segments += persisted_now;
+        let changed = state.pending_signature != pending_signature;
+        if changed {
+            state.pending_signature = pending_signature;
+        }
+        changed
+    };
+
+    // Fuera del lock, igual que los `INSERT` de arriba: el listener de
+    // `stream-text-event` necesita este mismo `Mutex` en el camino caliente
+    // del reconocimiento.
+    if should_emit {
+        if let Some(app) = app_handle {
+            let payload = MeetingPendingSegments {
+                meeting_id,
+                segments: pending_segments,
+            };
+            if let Err(e) = payload.emit(app) {
+                warn!(
+                    "Failed to emit meeting-pending-segments for meeting {}: {}",
+                    meeting_id, e
+                );
+            }
+        }
+    }
+}
+
+/// Convierte las intervenciones **todavía en curso** en la carga de
+/// `meeting-pending-segments`: mismo `MeetingSegment` que el transcript ya
+/// sabe pintar, pero sin fila en la base (`id: 0`) y sin crear hablantes.
+///
+/// Un índice local que ya se resolvió antes en esta reunión se traduce a su
+/// `meeting_speakers.id`, para que el bloque en curso muestre el mismo chip
+/// (y el mismo color) que va a tener cuando se cierre. Uno que todavía no
+/// se vio queda en `None` — "Sin identificar" — en vez de crearle la fila:
+/// sería un hablante inventado a partir de una atribución que aún puede
+/// cambiar, y quedaría en el registro de la reunión aunque nunca llegue a
+/// tener un solo segmento.
+fn pending_segments_from_runs(
+    runs: &[AttributedRun],
+    local_speakers: &HashMap<u8, i64>,
+) -> Vec<MeetingSegment> {
+    runs.iter()
+        .filter(|run| !run.text.trim().is_empty())
+        .map(|run| MeetingSegment {
+            id: 0,
+            speaker_id: run
+                .speaker
+                .and_then(|local| local_speakers.get(&local).copied()),
+            text: run.text.clone(),
+            started_at_ms: run.start_ms as i64,
+            ended_at_ms: run.end_ms as i64,
+            overlapped: false,
+        })
+        .collect()
 }
 
 // --- T035: listado y detalle de reuniones pasadas ----------------------
@@ -1918,6 +2178,17 @@ impl MeetingManager {
             )
         };
 
+        // I1 de la revisión final: la compuerta exige DOS capacidades, no
+        // una. `supports_streaming` sola dejaba pasar a
+        // `Voxtral-Mini-4B-Realtime` (`streaming: true`, `timestamps:
+        // "none"`), que abre el stream sin problema pero nunca llena
+        // `Transcript.tokens` — `timed_tokens_from_snapshot` hace lo
+        // correcto y devuelve vacío en vez de inventar marcas, y río abajo
+        // eso es `attribute(&[], &spans) == []`: una reunión entera grabada
+        // sin un solo segmento y sin un solo aviso. Es el mismo Critical de
+        // la Task 5 entrando por la otra puerta, y el nombre del modelo
+        // —*Realtime*— es justo el que alguien elegiría para una reunión.
+        //
         // Critical 1 del fix round 1 (revisión de esta tarea): el
         // reconocimiento en streaming es el ÚNICO camino de texto de una
         // reunión desde que se borró el reintento por turno
@@ -1938,12 +2209,20 @@ impl MeetingManager {
             .model_manager
             .clone()
             .ok_or_else(|| anyhow::anyhow!("MeetingManager capture not configured"))?;
-        let meeting_model_supports_streaming = model_manager
-            .get_model_info(&meeting_model_id)
+        let meeting_model_info = model_manager.get_model_info(&meeting_model_id);
+        if !meeting_model_info
+            .as_ref()
             .map(|info| info.supports_streaming)
-            .unwrap_or(false);
-        if !meeting_model_supports_streaming {
+            .unwrap_or(false)
+        {
             bail!("meeting_model_not_streaming:{meeting_model_id}");
+        }
+        if !meeting_model_info
+            .as_ref()
+            .map(|info| info.supports_token_timestamps)
+            .unwrap_or(false)
+        {
+            bail!("meeting_model_no_timestamps:{meeting_model_id}");
         }
 
         // Kick off the ASR model load now (non-blocking, idempotent if
@@ -2236,8 +2515,23 @@ impl MeetingManager {
                             .into_iter()
                             .map(|token| convert_token_to_meeting_clock(token, &clock))
                             .collect();
+                        // I3: el límite comprometido viene en el mismo reloj
+                        // que las marcas de los tokens (el del ASR), así que
+                        // se convierte igual que ellas antes de guardarlo.
+                        let committed_ms = event
+                            .payload
+                            .audio_committed_ms
+                            .map(|ms| clock.to_wall_ms(ms));
                         drop(clock);
-                        transcript_state.lock().unwrap().tokens = tokens;
+                        let mut state = transcript_state.lock().unwrap();
+                        state.tokens = tokens;
+                        if let Some(ms) = committed_ms {
+                            // Monótono a la fuerza: el motor lo documenta
+                            // como *hint* de progreso, y una marca que
+                            // retrocediera reabriría texto ya cerrado.
+                            state.asr_committed_ms = state.asr_committed_ms.max(ms);
+                        }
+                        drop(state);
                         let _ = diar_tx.send(DiarizerCmd::TokensUpdated);
                     }
                 })
@@ -2248,6 +2542,8 @@ impl MeetingManager {
                 let transcription_manager = Arc::clone(&transcription_manager);
                 let app_handle = app_handle.clone();
                 let audio_warning_state = audio_warning_state.clone();
+                let watchdog_transcript_state = Arc::clone(&transcript_state);
+                let watchdog_asr_clock = Arc::clone(&asr_clock);
                 thread::spawn(move || {
                     // Sondeo del audio del sistema (I6/I5): una vez por
                     // `SYSTEM_AUDIO_DIAGNOSIS_POLL`, no en cada vuelta de
@@ -2264,9 +2560,33 @@ impl MeetingManager {
                     // y volver a avisar más adelante en la misma reunión, así
                     // que `stop_capture` no necesita revisarlo al cerrar.
                     let output_device_warning_reported = AtomicBool::new(false);
+                    // I2: idem, un solo aviso por sesión de "se está
+                    // grabando y no se guarda nada".
+                    let no_segments_warning_reported = AtomicBool::new(false);
 
                     while !shutdown.load(Ordering::Relaxed) {
                         thread::sleep(WATCHDOG_POLL_INTERVAL);
+
+                        // I2 de la revisión final: el guardián que faltaba.
+                        // Nada detectaba "grabamos y no guardamos nada" —
+                        // ni el modelo de reconocimiento que nunca carga, ni
+                        // el que no entrega marcas por token, ni el
+                        // diarizador que no cierra ninguna intervención.
+                        // Los tres se ven igual desde acá: audio con voz
+                        // entrando y cero filas escritas.
+                        if !no_segments_warning_reported.load(Ordering::Relaxed) {
+                            let voiced_ms = watchdog_asr_clock.lock().unwrap().asr_ms;
+                            let persisted_segments =
+                                watchdog_transcript_state.lock().unwrap().persisted_segments;
+                            if recording_without_saving(voiced_ms, persisted_segments) {
+                                report_audio_warning(
+                                    Some(&app_handle),
+                                    meeting_id,
+                                    &no_segments_warning_reported,
+                                    MeetingAudioWarningKind::NoTranscriptSaved,
+                                );
+                            }
+                        }
                         // Mantener vivo el reloj de inactividad del modelo:
                         // el watcher de `TranscriptionManager` sólo mira el
                         // dictado, y un tramo callado de la reunión (una
@@ -2363,6 +2683,10 @@ impl MeetingManager {
                 let streaming_diarizer = Arc::clone(&self.streaming_diarizer);
                 let transcript_state = Arc::clone(&transcript_state);
                 let diar_queue_depth = Arc::clone(&diar_queue_depth);
+                // El reloj de reunión (`total_ms`) es el "ahora" con el que
+                // se calcula hasta dónde se puede cerrar — ver
+                // `close_boundary_ms`.
+                let diar_asr_clock = Arc::clone(&asr_clock);
                 thread::spawn(move || {
                     // Un solo aviso de intervención perdida por sesión de
                     // captura, ver `report_turn_failure`.
@@ -2435,7 +2759,9 @@ impl MeetingManager {
                                             Some(&app_handle),
                                             meeting_id,
                                             &transcript_state,
-                                            false,
+                                            CloseUpTo::Settled {
+                                                now_ms: diar_asr_clock.lock().unwrap().total_ms,
+                                            },
                                             &mut turn_failure_reported,
                                         );
                                     }
@@ -2451,7 +2777,9 @@ impl MeetingManager {
                                     Some(&app_handle),
                                     meeting_id,
                                     &transcript_state,
-                                    false,
+                                    CloseUpTo::Settled {
+                                        now_ms: diar_asr_clock.lock().unwrap().total_ms,
+                                    },
                                     &mut turn_failure_reported,
                                 );
                             }
@@ -2471,7 +2799,10 @@ impl MeetingManager {
                                     }
                                     match diarizer.flush() {
                                         Ok(spans) => {
-                                            transcript_state.lock().unwrap().spans.extend(spans);
+                                            let settled = diarizer.emitted_until_ms();
+                                            let mut state = transcript_state.lock().unwrap();
+                                            state.spans.extend(spans);
+                                            state.diar_settled_ms = settled;
                                         }
                                         Err(e) => warn!(
                                             "Meeting {}: flush() de la diarización en vivo \
@@ -2490,7 +2821,7 @@ impl MeetingManager {
                                     Some(&app_handle),
                                     meeting_id,
                                     &transcript_state,
-                                    true,
+                                    CloseUpTo::Everything,
                                     &mut turn_failure_reported,
                                 );
                                 break;
@@ -4381,14 +4712,202 @@ mod tests {
 
     // ------------------------------------------------------------------
     // maybe_persist_new_runs — el núcleo del hilo diarizador: recalcula
-    // `align::attribute` sobre lo acumulado y sólo persiste las
-    // intervenciones que ya no pueden cambiar. La última run se retiene
-    // hasta que aparece una más detrás, o hasta el cierre (`include_last`).
+    // `align::attribute` sobre lo acumulado, CIERRA (persiste + emite) lo
+    // que ya no puede cambiar y deja el resto como en curso. C1 de la
+    // revisión final: el corte lo decide `close_boundary_ms`, no "apareció
+    // otra run detrás" — con un solo hablante nunca aparecía ninguna.
     // ------------------------------------------------------------------
 
+    /// Estado con los dos relojes ya resueltos hasta `settled_ms`, que es el
+    /// caso normal en una reunión sana (ASR y diarización van 1–2 s detrás
+    /// del audio, no clavados).
+    fn transcript_state_with(
+        tokens: Vec<TimedToken>,
+        spans: Vec<SpeakerSpan>,
+        settled_ms: u64,
+    ) -> Mutex<TranscriptState> {
+        Mutex::new(TranscriptState {
+            tokens,
+            spans,
+            asr_committed_ms: settled_ms,
+            diar_settled_ms: settled_ms,
+            ..Default::default()
+        })
+    }
+
+    fn segment_rows(conn: &Connection) -> Vec<(String, Option<i64>)> {
+        let mut stmt = conn
+            .prepare("SELECT text, speaker_id FROM meeting_segments ORDER BY id")
+            .unwrap();
+        let rows = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        rows
+    }
+
     #[test]
-    fn maybe_persist_new_runs_retiene_la_ultima_run_hasta_que_aparece_otra() {
-        let dir = temp_db_path("maybe-persist-retains-last");
+    fn maybe_persist_new_runs_cierra_una_sola_run_sin_esperar_a_que_cambie_la_voz() {
+        // C1: un webinar de un solo expositor es UNA sola `AttributedRun`
+        // para toda la reunión. La regla vieja ("diferir siempre la última")
+        // no persistía nada hasta apretar detener; con el corte por reloj,
+        // lo que ya está resuelto se cierra igual.
+        let dir = temp_db_path("maybe-persist-monologo");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let state = transcript_state_with(
+            vec![TimedToken {
+                text: "hola".into(),
+                start_ms: 0,
+                end_ms: 300,
+            }],
+            vec![SpeakerSpan {
+                start_ms: 0,
+                end_ms: 300,
+                speaker: 0,
+            }],
+            1_000,
+        );
+        let mut turn_failure_reported = false;
+
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 1_000 },
+            &mut turn_failure_reported,
+        );
+
+        let rows = segment_rows(&conn);
+        assert_eq!(
+            rows.len(),
+            1,
+            "con un solo hablante también tiene que salir texto antes de detener"
+        );
+        assert_eq!(rows[0].0, "hola");
+        assert!(rows[0].1.is_some(), "y con su hablante resuelto");
+        assert_eq!(state.lock().unwrap().persisted_segments, 1);
+
+        // Sigue hablando la MISMA persona: lo nuevo se cierra como otra
+        // intervención suya (la interfaz las une), no se pierde esperando un
+        // cambio de voz que no va a llegar.
+        {
+            let mut guard = state.lock().unwrap();
+            guard.tokens.push(TimedToken {
+                text: " que tal".into(),
+                start_ms: 400,
+                end_ms: 900,
+            });
+            guard.spans.push(SpeakerSpan {
+                start_ms: 400,
+                end_ms: 900,
+                speaker: 0,
+            });
+            guard.asr_committed_ms = 2_000;
+            guard.diar_settled_ms = 2_000;
+        }
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 2_000 },
+            &mut turn_failure_reported,
+        );
+
+        let rows = segment_rows(&conn);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[1].0, " que tal");
+        assert_eq!(
+            rows[0].1, rows[1].1,
+            "las dos son de la misma persona, con el mismo id"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn maybe_persist_new_runs_no_cierra_texto_que_el_asr_todavia_puede_revisar() {
+        // I3: `snapshot()` es la hipótesis actual, tentativo incluido. Lo
+        // que el ASR no dio por comprometido se MUESTRA, no se guarda.
+        let dir = temp_db_path("maybe-persist-tentativo");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        let state = transcript_state_with(
+            vec![TimedToken {
+                text: "hola".into(),
+                start_ms: 0,
+                end_ms: 300,
+            }],
+            vec![SpeakerSpan {
+                start_ms: 0,
+                end_ms: 300,
+                speaker: 0,
+            }],
+            5_000,
+        );
+        // El diarizador ya resolvió ese tramo, el ASR todavía no.
+        state.lock().unwrap().asr_committed_ms = 100;
+        let mut turn_failure_reported = false;
+
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 300 },
+            &mut turn_failure_reported,
+        );
+        assert!(
+            segment_rows(&conn).is_empty(),
+            "el token todavía revisable no se persiste"
+        );
+        assert_eq!(
+            state.lock().unwrap().pending_signature,
+            "hola\u{1}None\u{1}",
+            "pero sí se publica como en curso — sin hablante todavía, porque \
+             ese índice local no se resolvió contra ninguna fila (no se \
+             inventa una para algo que aún puede cambiar)"
+        );
+
+        // El ASR lo compromete: recién ahí se cierra.
+        state.lock().unwrap().asr_committed_ms = 300;
+        maybe_persist_new_runs(
+            &conn,
+            NO_APP,
+            meeting_id,
+            &state,
+            CloseUpTo::Settled { now_ms: 300 },
+            &mut turn_failure_reported,
+        );
+        assert_eq!(segment_rows(&conn).len(), 1);
+        assert_eq!(
+            state.lock().unwrap().pending_signature,
+            "",
+            "y deja de estar en curso"
+        );
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn maybe_persist_new_runs_sin_diarizador_guarda_igual_pasado_el_tope() {
+        // C1, tercera consecuencia: si Sortformer no carga, TODOS los tokens
+        // quedan sin hablante — una sola run, cero segmentos, y el audio
+        // creciendo en memoria. "Sin hablantes" no puede degradar a "sin
+        // nada": pasado `SETTLE_GRACE_MS` se guarda igual, sin hablante y
+        // sin adivinar ninguno.
+        let dir = temp_db_path("maybe-persist-sin-diarizador");
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
@@ -4399,13 +4918,11 @@ mod tests {
                 start_ms: 0,
                 end_ms: 300,
             }],
-            spans: vec![SpeakerSpan {
-                start_ms: 0,
-                end_ms: 300,
-                speaker: 0,
-            }],
-            persisted_until_ms: 0,
-            local_speakers: HashMap::new(),
+            // Sin un solo tramo: el modelo nunca cargó.
+            spans: Vec::new(),
+            asr_committed_ms: 60_000,
+            diar_settled_ms: 0,
+            ..Default::default()
         });
         let mut turn_failure_reported = false;
 
@@ -4414,79 +4931,166 @@ mod tests {
             NO_APP,
             meeting_id,
             &state,
-            false,
+            CloseUpTo::Settled {
+                now_ms: SETTLE_GRACE_MS + 30_000,
+            },
             &mut turn_failure_reported,
         );
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(
-            count, 0,
-            "con una sola run en curso, nada se persiste todavía"
-        );
 
-        // Llega un segundo hablante: la primera run ya no puede cambiar.
-        {
-            let mut guard = state.lock().unwrap();
-            guard.tokens.push(TimedToken {
-                text: " chao".into(),
-                start_ms: 400,
-                end_ms: 700,
-            });
-            guard.spans.push(SpeakerSpan {
-                start_ms: 400,
-                end_ms: 700,
-                speaker: 1,
-            });
-        }
+        let rows = segment_rows(&conn);
+        assert_eq!(rows.len(), 1, "la reunión igual guarda lo que se dijo");
+        assert_eq!(rows[0].1, None, "sin hablante: nunca se adivina uno");
+
+        drop(conn);
+        drop(manager);
+        let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn maybe_persist_new_runs_al_cerrar_persiste_todo_lo_que_quede() {
+        let dir = temp_db_path("maybe-persist-flush");
+        let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
+        let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
+        let conn = manager.get_connection().expect("get_connection");
+
+        // Los dos relojes clavados en 0: sin el cierre explícito, nada de
+        // esto entraría en el corte.
+        let state = transcript_state_with(
+            vec![
+                TimedToken {
+                    text: "hola".into(),
+                    start_ms: 0,
+                    end_ms: 300,
+                },
+                TimedToken {
+                    text: " chao".into(),
+                    start_ms: 400,
+                    end_ms: 700,
+                },
+            ],
+            vec![
+                SpeakerSpan {
+                    start_ms: 0,
+                    end_ms: 300,
+                    speaker: 0,
+                },
+                SpeakerSpan {
+                    start_ms: 400,
+                    end_ms: 700,
+                    speaker: 1,
+                },
+            ],
+            0,
+        );
+        let mut turn_failure_reported = false;
+
         maybe_persist_new_runs(
             &conn,
             NO_APP,
             meeting_id,
             &state,
-            false,
+            CloseUpTo::Settled { now_ms: 700 },
             &mut turn_failure_reported,
         );
-
-        let texts: Vec<String> = {
-            let mut stmt = conn
-                .prepare("SELECT text FROM meeting_segments ORDER BY id")
-                .unwrap();
-            stmt.query_map([], |row| row.get(0))
-                .unwrap()
-                .map(|r| r.unwrap())
-                .collect()
-        };
-        assert_eq!(
-            texts,
-            vec!["hola".to_string()],
-            "sólo la run cerrada (la primera) se persiste; la segunda sigue en curso"
+        assert!(
+            segment_rows(&conn).is_empty(),
+            "con los dos motores sin confirmar nada todavía, no se cierra nada"
         );
 
-        // Cierre de la reunión: ahora sí se persiste la última.
         maybe_persist_new_runs(
             &conn,
             NO_APP,
             meeting_id,
             &state,
-            true,
+            CloseUpTo::Everything,
             &mut turn_failure_reported,
         );
-        let final_count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM meeting_segments", [], |row| {
-                row.get(0)
-            })
-            .unwrap();
+        let rows = segment_rows(&conn);
+        assert_eq!(rows.len(), 2, "al cerrar sale todo lo que quedaba");
+        assert_ne!(rows[0].1, rows[1].1, "cada una con su hablante");
         assert_eq!(
-            final_count, 2,
-            "al cerrar, la última run también se persiste"
+            state.lock().unwrap().pending_signature,
+            "",
+            "y no queda nada marcado como en curso"
         );
 
         drop(conn);
         drop(manager);
         let _ = std::fs::remove_file(&dir);
+    }
+
+    #[test]
+    fn close_boundary_ms_usa_el_mas_atrasado_de_los_dos_motores() {
+        // El corte normal: el mínimo de los dos, porque cerrar exige las dos
+        // cosas (texto confirmado Y hablante resuelto).
+        assert_eq!(close_boundary_ms(8_000, 5_000, 10_000), 5_000);
+        assert_eq!(close_boundary_ms(4_000, 9_000, 10_000), 4_000);
+    }
+
+    #[test]
+    fn close_boundary_ms_no_se_queda_mas_de_la_grace_atras() {
+        // Un motor clavado no puede congelar la reunión entera: pasado el
+        // tope, el corte avanza igual.
+        let now = 5 * SETTLE_GRACE_MS;
+        assert_eq!(close_boundary_ms(0, 0, now), now - SETTLE_GRACE_MS);
+        // Y al principio de la reunión, antes de que la grace tenga sentido,
+        // el corte no se va a negativo.
+        assert_eq!(close_boundary_ms(0, 0, 1_000), 0);
+    }
+
+    #[test]
+    fn recording_without_saving_avisa_solo_con_voz_y_sin_nada_guardado() {
+        // I2: el guardián que faltaba. Se mide en audio con voz, no en
+        // tiempo de pared — una reunión callada no tiene por qué avisar.
+        assert!(
+            recording_without_saving(NO_SEGMENTS_VOICE_WARNING_MS, 0),
+            "minuto y medio hablando y cero segmentos: hay que avisar"
+        );
+        assert!(
+            !recording_without_saving(NO_SEGMENTS_VOICE_WARNING_MS, 1),
+            "si algo se guardó, la reunión está funcionando"
+        );
+        assert!(
+            !recording_without_saving(NO_SEGMENTS_VOICE_WARNING_MS - 1, 0),
+            "todavía es pronto: el primer segmento puede estar en camino"
+        );
+    }
+
+    #[test]
+    fn pending_segments_from_runs_no_inventa_hablantes() {
+        // Lo que se muestra en curso usa un hablante YA resuelto; uno que
+        // todavía no se vio queda "Sin identificar" en vez de crearle una
+        // fila que quizás nunca tenga un segmento.
+        let mut known = HashMap::new();
+        known.insert(0u8, 42i64);
+        let runs = vec![
+            AttributedRun {
+                text: "hola".into(),
+                speaker: Some(0),
+                start_ms: 0,
+                end_ms: 300,
+            },
+            AttributedRun {
+                text: "chao".into(),
+                speaker: Some(3),
+                start_ms: 300,
+                end_ms: 600,
+            },
+            AttributedRun {
+                text: "   ".into(),
+                speaker: None,
+                start_ms: 600,
+                end_ms: 700,
+            },
+        ];
+        let segments = pending_segments_from_runs(&runs, &known);
+        assert_eq!(segments.len(), 2, "el texto en blanco no se muestra");
+        assert_eq!(segments[0].speaker_id, Some(42));
+        assert_eq!(segments[1].speaker_id, None);
+        assert!(
+            segments.iter().all(|s| s.id == 0),
+            "nada de esto tiene fila"
+        );
     }
 
     // ------------------------------------------------------------------

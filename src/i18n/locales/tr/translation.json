@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo bir süredir bu bilgisayarın sesinden hiçbir şey almıyor. Sesi paylaştığından ve görüşmenin bilgisayar yerine telefonundan gitmediğinden emin ol.",
       "audioFellBackToMicrophone": "Kayıt mikrofonla devam ediyor",
       "audioFellBackToMicrophoneDescription": "Dilo bu toplantı için bilgisayarın sesini açamadı, bu yüzden mikrofonla kayıt yapıyor.",
+      "audioNoSegments": "Kayıt sürüyor ama hiçbir şey kaydedilmiyor",
+      "audioNoSegmentsDescription": "Bir süredir konuşuyorsun ve Dilo dökümün tek bir satırını bile kaydetmedi. Bir sorun var: toplantıyı durdur ve toplantılar için seçtiğin modeli kontrol et.",
       "recordingBusy": "Zaten kaydedilen bir toplantı var",
       "recordingBusyDescription": "Aynı anda iki toplantı kaydedemezsin. Önce o toplantıyı durdur ya da gidip bak.",
       "recordingBusyAction": "Toplantıyı görüntüle",
       "modelNotStreaming": "Bu model toplantılar için kullanılamaz",
-      "modelNotStreamingDescription": "{{name}} canlı deşifreyi desteklemiyor. Model menüsünden toplantılar için başka bir model seç."
+      "modelNotStreamingDescription": "{{name}} canlı deşifreyi desteklemiyor. Model menüsünden toplantılar için başka bir model seç.",
+      "modelNoTimestampsDescription": "{{name}} canlı deşifre ediyor ama her kelimenin zamanını işaretlemiyor, bu yüzden Dilo kimin ne dediğini bilemiyor. Model menüsünden toplantılar için başka bir model seç."
     },
     "transcript": {
       "title": "Canlı döküm",

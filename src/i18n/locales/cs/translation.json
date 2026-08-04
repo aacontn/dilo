@@ -929,11 +929,14 @@
       "audioNoAudioCapturedDescription": "Dilo už chvíli nezaznamenává žádný zvuk z tohoto počítače. Zkontroluj, že jsi sdílel zvuk a že hovor neprobíhá přes telefon místo počítače.",
       "audioFellBackToMicrophone": "Nahrávání přes mikrofon",
       "audioFellBackToMicrophoneDescription": "Dilo se nepodařilo otevřít zvuk tohoto počítače pro tuto schůzku, takže nahrává přes mikrofon.",
+      "audioNoSegments": "Nahrává se, ale nic se neukládá",
+      "audioNoSegmentsDescription": "Mluvíš už delší chvíli a Dilo neuložilo ani jeden řádek přepisu. Něco je špatně: zastav schůzku a zkontroluj, který model jsi vybral pro schůzky.",
       "recordingBusy": "Už se nahrává jiná schůzka",
       "recordingBusyDescription": "Nemůžeš nahrávat dvě schůzky najednou. Nejdřív tu probíhající zastav, nebo se na ni podívej.",
       "recordingBusyAction": "Zobrazit schůzku",
       "modelNotStreaming": "Tento model nelze použít pro schůzky",
-      "modelNotStreamingDescription": "{{name}} nepodporuje živý přepis. Vyberte jiný model pro schůzky v nabídce modelů."
+      "modelNotStreamingDescription": "{{name}} nepodporuje živý přepis. Vyberte jiný model pro schůzky v nabídce modelů.",
+      "modelNoTimestampsDescription": "{{name}} přepisuje živě, ale neoznačuje čas u každého slova, takže Dilo nepozná, kdo co řekl. Vyber v nabídce modelů jiný model pro schůzky."
     },
     "transcript": {
       "title": "Živý přepis",

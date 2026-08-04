@@ -1201,6 +1201,25 @@ pub fn spans_are_monotonic(spans: &[SpeakerSpan]) -> bool {
 /// solapes); `safe_boundary_ms` es el límite hasta donde animarse a emitir
 /// (`u64::MAX` = sin límite, el caso de `flush`); `emitted_until_ms` se
 /// actualiza in-place con el nuevo watermark.
+///
+/// # C1 de la revisión final: un tramo abierto se emite RECORTADO
+///
+/// La versión anterior retenía entero cualquier tramo cuyo **fin** cayera
+/// dentro del margen de estabilidad ([`SAFE_TAIL_MARGIN_S`]) — y el tramo en
+/// curso siempre termina en "lo último procesado", así que mientras alguien
+/// hablara de corrido no se emitía nada de él, por largo que fuera. Con un
+/// solo hablante eso dejaba a `align::attribute` sin ningún tramo con el que
+/// atribuir texto, y el transcript en vivo no avanzaba nunca (ver el doc
+/// comment de `maybe_persist_new_runs` en `meeting.rs`).
+///
+/// Ahora se emite la parte del tramo que **ya está fuera** del margen de
+/// estabilidad, cortada exactamente en `safe_boundary_ms`, y el resto queda
+/// para la próxima llamada. Es la misma promesa de estabilidad de siempre —
+/// nada anterior a `safe_boundary_ms` se vuelve a tocar — aplicada por
+/// milisegundo en vez de por tramo entero. Un turno largo sale entonces en
+/// varios `SpeakerSpan` consecutivos del mismo hablante en vez de uno solo:
+/// para quien los consume da igual (`attribute` reagrupa por hablante, no
+/// por tramo) y el contrato de [`spans_are_monotonic`] se mantiene.
 fn emit_new_spans(
     flat: &[(f32, f32, usize)],
     safe_boundary_ms: u64,
@@ -1208,18 +1227,14 @@ fn emit_new_spans(
 ) -> Vec<SpeakerSpan> {
     let mut new_spans = Vec::new();
     for &(s, e, spk) in flat {
-        let end_ms = (e * 1000.0).round() as u64;
-        if end_ms > safe_boundary_ms {
+        let start_ms = ((s * 1000.0).round() as u64).max(*emitted_until_ms);
+        if start_ms >= safe_boundary_ms {
             // `flat` viene ordenado por inicio y, por construcción de
             // `flatten_overlaps`, también por fin -- todo lo que sigue es
             // más tarde todavía.
             break;
         }
-        if end_ms <= *emitted_until_ms {
-            continue;
-        }
-        let start_ms = (s * 1000.0).round() as u64;
-        let start_ms = start_ms.max(*emitted_until_ms);
+        let end_ms = ((e * 1000.0).round() as u64).min(safe_boundary_ms);
         if start_ms >= end_ms {
             continue;
         }
@@ -1275,6 +1290,19 @@ impl StreamingDiarizer {
             all_preds: Vec::new(),
             emitted_until_ms: 0,
         })
+    }
+
+    /// Hasta qué milisegundo del stream la diarización ya está **resuelta**:
+    /// ningún `SpeakerSpan` futuro va a empezar antes de este punto (ver el
+    /// `start_ms.max(*emitted_until_ms)` de [`emit_new_spans`]), así que un
+    /// token que termina acá o antes ya tiene su hablante definitivo — o su
+    /// ausencia definitiva de hablante, si ningún tramo lo cubre.
+    ///
+    /// Es lo que `meeting.rs` cruza con el límite comprometido del ASR para
+    /// decidir qué intervención se puede cerrar y persistir sin que después
+    /// cambie de hablante (C1/I3 de la revisión final).
+    pub fn emitted_until_ms(&self) -> u64 {
+        self.emitted_until_ms
     }
 
     fn feed_size(&self) -> usize {
@@ -1552,12 +1580,41 @@ mod tests {
 
     #[test]
     fn emit_new_spans_corta_en_el_margen_de_seguridad() {
-        // El segundo tramo (4..6) termina después del margen (5.5s) -- se
-        // retiene, igual que hace `push()` mientras el margen de
-        // estabilidad no lo confirma.
+        // El segundo tramo (4..6) termina después del margen (5.5s) -- sale
+        // RECORTADO ahí (C1 de la revisión final), no retenido entero: lo
+        // anterior al margen ya es estable, y retener el tramo completo
+        // dejaba sin atribuir el texto de un hablante que no para de hablar.
         let flat = vec![(0.0, 3.0, 0), (4.0, 6.0, 1)];
         let mut watermark = 0u64;
         let spans = emit_new_spans(&flat, 5_500, &mut watermark);
+        assert_eq!(
+            spans,
+            vec![
+                SpeakerSpan {
+                    start_ms: 0,
+                    end_ms: 3000,
+                    speaker: 0
+                },
+                SpeakerSpan {
+                    start_ms: 4000,
+                    end_ms: 5500,
+                    speaker: 1
+                },
+            ]
+        );
+        assert_eq!(
+            watermark, 5500,
+            "el watermark avanza hasta el margen, no más allá"
+        );
+    }
+
+    #[test]
+    fn emit_new_spans_no_emite_nada_que_empiece_despues_del_margen() {
+        // La otra cara del recorte: un tramo que arranca DESPUÉS del margen
+        // de estabilidad no tiene ni un milisegundo estable que emitir.
+        let flat = vec![(0.0, 3.0, 0), (4.0, 6.0, 1)];
+        let mut watermark = 0u64;
+        let spans = emit_new_spans(&flat, 3_500, &mut watermark);
         assert_eq!(
             spans,
             vec![SpeakerSpan {
@@ -1566,7 +1623,26 @@ mod tests {
                 speaker: 0
             }]
         );
-        assert_eq!(watermark, 3000, "el watermark no avanza sobre lo retenido");
+        assert_eq!(watermark, 3000);
+    }
+
+    #[test]
+    fn emit_new_spans_un_turno_sin_pausas_avanza_llamada_a_llamada() {
+        // C1: el caso del monólogo. `binarize()` devuelve UN tramo abierto
+        // que se extiende hasta lo último procesado, así que antes del
+        // recorte `push()` no emitía NADA mientras la persona no se
+        // callara. Ahora cada llamada emite la parte que ya salió del
+        // margen de estabilidad.
+        let mut watermark = 0u64;
+        let a = emit_new_spans(&[(0.0, 5.0, 0)], 3_500, &mut watermark);
+        let b = emit_new_spans(&[(0.0, 9.0, 0)], 7_500, &mut watermark);
+        assert_eq!(a.len(), 1);
+        assert_eq!(a[0].end_ms, 3_500);
+        assert_eq!(b.len(), 1);
+        assert_eq!((b[0].start_ms, b[0].end_ms), (3_500, 7_500));
+        let mut all = a;
+        all.extend(b);
+        assert!(spans_are_monotonic(&all));
     }
 
     #[test]

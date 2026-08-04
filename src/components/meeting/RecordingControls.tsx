@@ -9,6 +9,7 @@ import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
 import {
   isRecordingBusyError,
+  modelNoTimestampsErrorModelId,
   modelNotStreamingErrorModelId,
 } from "@/lib/meetingErrors";
 import {
@@ -171,6 +172,21 @@ export const RecordingControls: React.FC = () => {
           models.find((model) => model.id === badModelId)?.name ?? badModelId;
         toast.error(t("meeting.errors.modelNotStreaming"), {
           description: t("meeting.errors.modelNotStreamingDescription", {
+            name: badModelName,
+          }),
+        });
+        return;
+      }
+      // El otro rechazo del mismo chequeo: hace streaming pero no entrega
+      // marcas de tiempo por token, así que no hay con qué pegarle el texto
+      // a cada hablante y la reunión no guardaría nada.
+      const noTimestampsModelId = modelNoTimestampsErrorModelId(error);
+      if (noTimestampsModelId !== null) {
+        const badModelName =
+          models.find((model) => model.id === noTimestampsModelId)?.name ??
+          noTimestampsModelId;
+        toast.error(t("meeting.errors.modelNotStreaming"), {
+          description: t("meeting.errors.modelNoTimestampsDescription", {
             name: badModelName,
           }),
         });
