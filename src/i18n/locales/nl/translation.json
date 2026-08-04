@@ -891,10 +891,6 @@
       "openButton": "Vergaderingenvenster openen",
       "openFailed": "Het vergaderingenvenster kon niet worden geopend"
     },
-    "page": {
-      "title": "Vergaderingen",
-      "description": "Neem een fysieke vergadering op en zie het transcript verschijnen, met elke stem apart. Alles gebeurt op je eigen computer."
-    },
     "controls": {
       "stateIdle": "Klaar om op te nemen",
       "stateRecording": "Aan het opnemen",

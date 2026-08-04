@@ -891,10 +891,6 @@
       "openButton": "Apri la finestra delle riunioni",
       "openFailed": "Impossibile aprire la finestra delle riunioni"
     },
-    "page": {
-      "title": "Riunioni",
-      "description": "Registra una riunione in presenza e guarda la trascrizione comparire, con ogni voce separata. Tutto succede sul tuo computer."
-    },
     "controls": {
       "stateIdle": "Pronto a registrare",
       "stateRecording": "Registrazione",

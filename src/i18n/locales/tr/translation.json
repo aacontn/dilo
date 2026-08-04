@@ -891,10 +891,6 @@
       "openButton": "Toplantılar penceresini aç",
       "openFailed": "Toplantılar penceresi açılamadı"
     },
-    "page": {
-      "title": "Toplantılar",
-      "description": "Yüz yüze bir toplantıyı kaydet ve her sesi ayrı ayrı gösteren döküm oluşurken izle. Her şey kendi bilgisayarında olur."
-    },
     "controls": {
       "stateIdle": "Kayda hazır",
       "stateRecording": "Kaydediliyor",

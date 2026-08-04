@@ -891,10 +891,6 @@
       "openButton": "打开会议窗口",
       "openFailed": "无法打开会议窗口"
     },
-    "page": {
-      "title": "会议",
-      "description": "录制一场线下会议，看着转写逐句出现，并且区分每个人的声音。一切都在你自己的电脑上完成。"
-    },
     "controls": {
       "stateIdle": "准备录制",
       "stateRecording": "录制中",

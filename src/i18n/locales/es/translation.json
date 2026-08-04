@@ -891,10 +891,6 @@
       "openButton": "Abrir ventana de reuniones",
       "openFailed": "No se pudo abrir la ventana de reuniones"
     },
-    "page": {
-      "title": "Reuniones",
-      "description": "Graba una reunión presencial y mira el transcript aparecer, con cada voz separada. Todo pasa en tu computador."
-    },
     "controls": {
       "stateIdle": "Listo para grabar",
       "stateRecording": "Grabando",

@@ -86,10 +86,6 @@
       "openButton": "Open the meetings window",
       "openFailed": "Couldn't open the meetings window"
     },
-    "page": {
-      "title": "Meetings",
-      "description": "Record an in-person meeting and watch the transcript appear, with each voice kept apart. Everything runs on your computer."
-    },
     "controls": {
       "stateIdle": "Ready to record",
       "stateRecording": "Recording",

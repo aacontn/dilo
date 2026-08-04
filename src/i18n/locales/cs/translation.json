@@ -891,10 +891,6 @@
       "openButton": "Otevřít okno schůzek",
       "openFailed": "Okno schůzek se nepodařilo otevřít"
     },
-    "page": {
-      "title": "Schůzky",
-      "description": "Nahraj schůzku naživo a sleduj, jak vzniká přepis s oddělenými hlasy. Všechno běží na tvém počítači."
-    },
     "controls": {
       "stateIdle": "Připraveno k nahrávání",
       "stateRecording": "Nahrává se",

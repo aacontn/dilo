@@ -891,10 +891,6 @@
       "openButton": "Otwórz okno spotkań",
       "openFailed": "Nie udało się otworzyć okna spotkań"
     },
-    "page": {
-      "title": "Spotkania",
-      "description": "Nagraj spotkanie na żywo i patrz, jak powstaje transkrypcja z rozdzielonymi głosami. Wszystko dzieje się na twoim komputerze."
-    },
     "controls": {
       "stateIdle": "Gotowe do nagrywania",
       "stateRecording": "Nagrywanie",

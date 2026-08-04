@@ -891,10 +891,6 @@
       "openButton": "Mở cửa sổ cuộc họp",
       "openFailed": "Không mở được cửa sổ cuộc họp"
     },
-    "page": {
-      "title": "Cuộc họp",
-      "description": "Ghi âm một cuộc họp trực tiếp và xem bản ghi hiện ra, tách riêng từng giọng nói. Mọi thứ diễn ra trên máy của bạn."
-    },
     "controls": {
       "stateIdle": "Sẵn sàng ghi",
       "stateRecording": "Đang ghi",

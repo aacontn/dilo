@@ -891,10 +891,6 @@
       "openButton": "Ouvrir la fenêtre des réunions",
       "openFailed": "Impossible d'ouvrir la fenêtre des réunions"
     },
-    "page": {
-      "title": "Réunions",
-      "description": "Enregistre une réunion en présentiel et vois la transcription apparaître, chaque voix séparée. Tout se passe sur ton ordinateur."
-    },
     "controls": {
       "stateIdle": "Prêt à enregistrer",
       "stateRecording": "Enregistrement",

@@ -891,10 +891,6 @@
       "openButton": "Meeting-Fenster öffnen",
       "openFailed": "Das Meeting-Fenster konnte nicht geöffnet werden"
     },
-    "page": {
-      "title": "Meetings",
-      "description": "Nimm ein Meeting vor Ort auf und sieh das Transkript entstehen, mit getrennten Stimmen. Alles läuft auf deinem Rechner."
-    },
     "controls": {
       "stateIdle": "Bereit zur Aufnahme",
       "stateRecording": "Nimmt auf",
