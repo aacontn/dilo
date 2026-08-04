@@ -552,12 +552,29 @@ impl TurnAccumulator {
 }
 
 /// How long a turn must go without a new speech frame before the live
-/// watchdog finalizes it. Frames arrive ~every 30ms while the VAD considers
-/// a turn ongoing (including its hangover tail), so this only needs to
-/// comfortably exceed normal frame-to-frame jitter, not the VAD's own
-/// hangover (which has already elapsed by the time frames stop arriving).
-#[allow(dead_code)]
-const TURN_SILENCE_GAP: Duration = Duration::from_millis(200);
+/// watchdog finalizes it. This is not just "does the turn eventually
+/// close" — it's the number that decides WHERE the cut lands, so it has to
+/// line up with a real end-of-utterance pause, not with frame-to-frame
+/// jitter.
+///
+/// Frames arrive ~every 30ms while the VAD considers a turn ongoing
+/// (including its hangover tail), so by the time frames actually stop
+/// arriving, `VAD_OFFLINE_HANGOVER_FRAMES` worth of real silence has
+/// already elapsed and been absorbed without ever reaching this timer — a
+/// normal ~200-300ms breathing pause between words never gets this far.
+/// The real silence a turn needs before it closes is hangover + this gap:
+/// 15 frames * 30ms (`VAD_OFFLINE_HANGOVER_FRAMES`) + 400ms = 850ms, which
+/// lands on a sentence-final pause (roughly 500-1000ms), not a paragraph
+/// break. `VAD_OFFLINE_HANGOVER_FRAMES` is shared with dictation
+/// (`managers/audio.rs`) and stays untouched; only this gap is meeting-only
+/// and tunable here.
+///
+/// Measured against a real 126s recording: at 200ms this produced 15 turns
+/// averaging 3.2s, a third of them under 2s and isolated enough to
+/// hallucinate on their own (a stray "weon" mid-English-sentence, a
+/// phonetic-alphabet spelling split word by word). 400ms targets 4-8s turns
+/// instead, while still comfortably closing before `MAX_TURN_MS`.
+const TURN_SILENCE_GAP: Duration = Duration::from_millis(400);
 /// Tope duro de duración de un turno. En conversación continua nunca hay
 /// `TURN_SILENCE_GAP` de silencio real, así que sin este tope un turno crece
 /// sin límite y colapsa una reunión de varias personas en un solo bloque sin
@@ -3652,6 +3669,31 @@ mod tests {
             .expect("gap has elapsed; the turn should finalize");
         assert_eq!(turn.samples, vec![1.0]);
         assert_eq!(turn.ended_at_ms, 40);
+    }
+
+    #[test]
+    fn turn_accumulator_take_if_silent_survives_a_short_speech_pause() {
+        // Pins the intent behind `TURN_SILENCE_GAP`: a normal ~200-300ms
+        // breathing pause between words is word-to-word jitter, not the
+        // end of an utterance, and must not fragment the turn. Uses the
+        // real production constant (not an arbitrary `Duration`, unlike
+        // `turn_accumulator_take_if_silent_waits_for_the_gap` above) so a
+        // future regression that shrinks the gap back toward inter-word
+        // jitter fails this test.
+        let mut acc = TurnAccumulator::default();
+        acc.push_speech(&[1.0], 0);
+
+        std::thread::sleep(Duration::from_millis(250));
+        assert!(
+            acc.take_if_silent(TURN_SILENCE_GAP, 250).is_none(),
+            "a ~250ms speech pause must not close the turn"
+        );
+
+        // Speech resumes within the same turn — exactly what should happen
+        // for a short pause instead of a hard split.
+        acc.push_speech(&[2.0], 250);
+        let turn = acc.take_remaining(300).expect("turn should still be open");
+        assert_eq!(turn.samples, vec![1.0, 2.0]);
     }
 
     #[test]
