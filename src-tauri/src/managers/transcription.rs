@@ -79,11 +79,12 @@ pub fn plain_text(tokens: &[TimedToken]) -> String {
 pub struct StreamTextEvent {
     pub committed: String,
     pub tentative: String,
-    /// Tokens con tiempo del turno en curso. Se completa sólo durante
-    /// captura de reuniones (`is_meeting_capture_active`) y sólo si el motor
-    /// los entrega de verdad para el modelo cargado; `None` en cualquier
-    /// otro caso, dictado incluido — el overlay del dictado no lee este
-    /// campo, así que agregarlo no le cambia el comportamiento.
+    /// Tokens con tiempo del turno en curso. Se completa sólo cuando quien
+    /// abrió el stream lo hizo con [`StreamPurpose::Meeting`] (ver
+    /// `start_stream`) y sólo si el motor los entrega de verdad para el
+    /// modelo cargado; `None` en cualquier otro caso, dictado incluido — el
+    /// overlay del dictado no lee este campo, así que agregarlo no le cambia
+    /// el comportamiento.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tokens: Option<Vec<TimedToken>>,
 }
@@ -115,6 +116,24 @@ pub struct StreamPhaseEvent {
     /// Present only when `phase` is `Working`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<StreamWorkKind>,
+}
+
+/// Quién abre un stream de reconocimiento continuo — dicho explícitamente por
+/// el llamador de [`TranscriptionManager::start_stream`], nunca inferido
+/// leyendo estado global compartido (p.ej. `is_meeting_capture_active`). Hoy
+/// dictado es el único llamador real; la Task 5 va a agregar reuniones como
+/// segundo llamador del mismo worker, y en ese momento "¿hay una reunión
+/// activa en algún lado?" deja de alcanzar para distinguirlos — por eso la
+/// intención viaja como parámetro en vez de ambiente.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StreamPurpose {
+    Dictation,
+    // Sin llamador todavía — lo agrega la Task 5 cuando conecte reuniones a
+    // este mismo streaming. La variante ya está definida a propósito, para
+    // que el `match`/`matches!` en `run_stream_worker` no requiera tocar de
+    // nuevo la lógica de granularidad ese día, sólo el llamador.
+    #[allow(dead_code)]
+    Meeting,
 }
 
 /// Commands sent to the streaming worker thread. Audio frames and the finalize
@@ -979,12 +998,20 @@ impl TranscriptionManager {
     /// audio recorder) are decoded incrementally and emitted to the overlay as
     /// [`StreamTextEvent`].
     ///
+    /// `purpose` es quién abre el stream, dicho explícitamente por el llamador
+    /// — no se infiere leyendo `is_meeting_capture_active()` (una bandera
+    /// global). Hoy dictado y reuniones nunca coexisten porque el
+    /// `MicrophoneArbiter` lo impide, así que ambas fuentes coinciden en la
+    /// práctica; pero cuando la Task 5 conecte reuniones a este mismo
+    /// streaming va a haber dos llamadores reales, y sólo el parámetro
+    /// explícito los distingue de forma confiable.
+    ///
     /// Non-blocking: spawns a worker that waits for any in-progress model load,
     /// verifies the model supports streaming, then begins the stream. If the
     /// model can't stream, the worker idles until finalize/cancel and reports
     /// `None` so the caller falls back to batch transcription. Frames sent
     /// before the stream begins queue on the channel and are not lost.
-    pub fn start_stream(&self) {
+    pub fn start_stream(&self, purpose: StreamPurpose) {
         if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
             warn!("start_stream called while a stream worker is already active");
             return;
@@ -1002,10 +1029,15 @@ impl TranscriptionManager {
         self.stream_active.store(false, Ordering::Release);
 
         let manager = self.clone();
-        thread::spawn(move || manager.run_stream_worker(rx, worker_id));
+        thread::spawn(move || manager.run_stream_worker(rx, worker_id, purpose));
     }
 
-    fn run_stream_worker(&self, rx: mpsc::Receiver<StreamCmd>, worker_id: u64) {
+    fn run_stream_worker(
+        &self,
+        rx: mpsc::Receiver<StreamCmd>,
+        worker_id: u64,
+        purpose: StreamPurpose,
+    ) {
         let _worker = StreamWorkerGuard {
             worker_id,
             active_stream_worker: Arc::clone(&self.active_stream_worker),
@@ -1109,11 +1141,15 @@ impl TranscriptionManager {
             &languages,
             supports_translate,
         );
-        // Marcas por token: sólo durante captura de reuniones (Task 4 las
-        // necesita para alinear con la diarización). El dictado se queda con
-        // `TimestampKind::Auto` — el default de siempre — así que su
-        // comportamiento no cambia un bit.
-        let is_meeting = self.is_meeting_capture_active();
+        // Marcas por token: sólo cuando quien abrió el stream dijo que era una
+        // reunión (Task 4 las necesita para alinear con la diarización). El
+        // dictado (`StreamPurpose::Dictation`, el único llamador real hoy) se
+        // queda con `TimestampKind::Auto` — el default de siempre — así que su
+        // comportamiento no cambia un bit. Deliberadamente NO se lee
+        // `is_meeting_capture_active()` aquí: esa bandera es ambiente global
+        // compartido, y la Task 5 va a hacer que dictado y reuniones sean dos
+        // llamadores reales de este mismo worker.
+        let is_meeting = matches!(purpose, StreamPurpose::Meeting);
         let run_options = RunOptions {
             task: run_plan.task,
             language: run_plan.language,
@@ -2183,6 +2219,89 @@ mod tests {
             },
         ];
         assert_eq!(plain_text(&tokens), "hola mundo");
+    }
+
+    // ------------------------------------------------------------------
+    // Sonda manual (requiere el .gguf real de Nemotron Streaming y un WAV
+    // 16 kHz mono con voz en disco -- no corre en CI). Deja reproducible la
+    // evidencia de que `timed_tokens_from_snapshot` devuelve marcas por
+    // token *reales* del motor (no interpoladas): la corrí a mano una vez
+    // con el modelo ya descargado localmente y una frase sintetizada con
+    // `say` -- 44 tokens con t0_ms/t1_ms crecientes y coherentes con el
+    // audio. Ver task-3-report.md para esos números. El mismo patrón que
+    // `push_incremental_sobre_audio_real` en
+    // `managers/diarization/sortformer.rs` (env vars + `#[ignore]`).
+    // ------------------------------------------------------------------
+
+    #[test]
+    #[ignore = "requiere DILO_NEMOTRON_WAV (WAV 16 kHz mono con voz real) y \
+                DILO_NEMOTRON_MODEL_PATH (el .gguf de Nemotron Streaming) en disco \
+                -- ver task-3-report.md"]
+    fn token_timestamps_del_stream_son_reales_no_interpoladas() -> anyhow::Result<()> {
+        use anyhow::Context;
+
+        let wav_path = std::env::var("DILO_NEMOTRON_WAV")
+            .context("seteá DILO_NEMOTRON_WAV con la ruta a un WAV de 16 kHz mono con voz")?;
+        let model_path = std::env::var("DILO_NEMOTRON_MODEL_PATH")
+            .context("seteá DILO_NEMOTRON_MODEL_PATH con la ruta al .gguf de Nemotron Streaming")?;
+        // El motor rechazó `language: None` (auto-detect) contra este
+        // modelo en mis pruebas -- necesita un código BCP-47 exacto de los
+        // que declara `Capabilities::languages` (p.ej. "es-ES", no "es").
+        let language =
+            std::env::var("DILO_NEMOTRON_LANGUAGE").unwrap_or_else(|_| "es-ES".to_string());
+
+        {
+            let reader = hound::WavReader::open(&wav_path)
+                .with_context(|| format!("abriendo {wav_path}"))?;
+            let spec = reader.spec();
+            if spec.sample_rate != 16_000 || spec.channels != 1 {
+                anyhow::bail!(
+                    "{wav_path}: se esperaba 16 kHz mono, es {} Hz / {} canal(es)",
+                    spec.sample_rate,
+                    spec.channels
+                );
+            }
+        }
+        let audio = crate::audio_toolkit::read_wav_samples(&wav_path)?;
+
+        transcribe_cpp::init_logging();
+        let _ = transcribe_cpp::init_backends_default();
+        let model = transcribe_cpp::Model::load(&model_path)
+            .with_context(|| format!("cargando {model_path}"))?;
+        let mut session = model.session().context("abriendo sesión")?;
+
+        let run_options = RunOptions {
+            timestamps: TimestampKind::Token,
+            language: Some(language),
+            ..Default::default()
+        };
+        let mut stream = session
+            .stream(&run_options, &StreamOptions::default())
+            .context("abriendo stream")?;
+        stream.feed(&audio).context("feed")?;
+        stream.finalize().context("finalize")?;
+
+        // La misma función que usa `run_stream_worker` en producción --
+        // ejercitarla acá es lo que hace reproducible la evidencia, no una
+        // reimplementación paralela.
+        let tokens = timed_tokens_from_snapshot(&stream);
+        assert!(
+            !tokens.is_empty(),
+            "el motor no devolvió tokens con tiempo para este modelo/audio -- \
+             si esto pasa de verdad, NO fabricar marcas interpolando: repórtalo."
+        );
+        for t in &tokens {
+            assert!(
+                t.end_ms >= t.start_ms,
+                "token {t:?} con end_ms < start_ms -- marca no monotónica"
+            );
+        }
+
+        println!("texto reconstruido: {:?}", plain_text(&tokens));
+        for t in &tokens {
+            println!("  {:>6}ms - {:>6}ms  {:?}", t.start_ms, t.end_ms, t.text);
+        }
+        Ok(())
     }
 
     #[test]

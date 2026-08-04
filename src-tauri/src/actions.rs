@@ -5,6 +5,7 @@ use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
+use crate::managers::transcription::StreamPurpose;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{
@@ -796,7 +797,9 @@ impl ShortcutAction for TranscribeAction {
             VadPolicy::Offline
         };
         if model_supports_streaming {
-            tm.start_stream();
+            // Este llamador es dictado, siempre — se lo decimos al worker en
+            // vez de dejar que lo adivine leyendo estado global.
+            tm.start_stream(StreamPurpose::Dictation);
         }
         let plan_elapsed = plan_started.elapsed();
 
