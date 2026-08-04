@@ -22,10 +22,13 @@
 //! (~99.5% de paridad con NeMo documentada por sherpa-onnx). Cada función
 //! porteada conserva su doc comment con la función C++ de origen. Lo nuevo
 //! de esta tarea es la capa incremental: [`MelStream`] (extracción de mel
-//! frame a frame según llega audio, en vez de sobre el WAV completo) y
+//! frame a frame según llega audio, en vez de sobre el WAV completo),
 //! [`StreamingDiarizer::push`] (alimenta el modelo en cuanto hay un chunk
 //! completo disponible y devuelve sólo los tramos que ya se pueden dar por
-//! estables — ver "Cola sin cerrar" más abajo), más [`flatten_overlaps`]
+//! estables — la emisión sigue los cierres de turno, no un reloj fijo, ver
+//! "Cola sin cerrar" más abajo), [`StreamingDiarizer::flush`] (fuerza la
+//! salida de lo que quede pendiente al terminar una reunión, sin esperar
+//! un cierre de turno que puede no llegar nunca) y [`flatten_overlaps`]
 //! (nuevo, sin equivalente en la referencia — ver esa sección).
 //!
 //! ## Modelo: v2, no v2.1
@@ -77,8 +80,16 @@
 //! todavía alucina ese tercer hablante (más corto, pero presente); recién
 //! en `48` (~3.84&nbsp;s de audio nuevo por llamada) el resultado vuelve a
 //! tener los mismos 2 hablantes y los mismos bloques largos que el
-//! checkpoint por default, con una sola discrepancia menor (un tramo falso
-//! de ~2.6&nbsp;s cerca del arranque, ausente en la referencia).
+//! checkpoint por default, con una sola discrepancia menor: un tramo falso
+//! de ~2.6&nbsp;s cerca del arranque (5.13s→7.76s, hablante 1), ausente en
+//! la referencia offline. Atribuible a **arranque en frío**: a los pocos
+//! segundos de empezar el stream, `spkcache`/`fifo`/`mean_sil_emb`
+//! (`StreamState`) todavía no acumularon suficiente historia para
+//! distinguir hablantes con confianza, y con `chunk_len=48` el contexto
+//! disponible en esa ventana inicial es más corto que con el default
+//! (124) -- no se confirmó con etiquetado manual, es la lectura más
+//! plausible dado dónde cae (siempre al principio, nunca en medio de la
+//! grabación) y no una causa verificada distinta.
 //!
 //! [`LIVE_CHUNK_LEN`] queda en 48: RTF 0.122× medido sobre los 180&nbsp;s
 //! reales (~8.2× de margen bajo tiempo real -- importa porque en producción
@@ -86,12 +97,11 @@
 //! aislado como en esta medición) y calidad equivalente al default del
 //! checkpoint en el único audio multi-hablante disponible. Es una mejora
 //! más modesta que la promesa inicial (~3.84&nbsp;s de latencia por
-//! actualización, no ~1&nbsp;s) pero es la que sostiene con evidencia
-//! real, no con un clip que no podía mostrar el problema. No se probaron
-//! valores entre 24 y 48, no hay etiquetado manual que confirme que la
-//! discrepancia de ~2.6&nbsp;s cerca del arranque es ruido y no una señal
-//! real, y sólo hay UN audio multi-hablante disponible para esta
-//! comparación — ver preocupaciones en `task-2-report.md`.
+//! *cómputo*, no de emisión -- ver "La emisión sigue cierres de turno" más
+//! abajo) pero es la que sostiene con evidencia real, no con un clip que
+//! no podía mostrar el problema. No se probaron valores entre 24 y 48, y
+//! sólo hay UN audio multi-hablante disponible para esta comparación — ver
+//! preocupaciones en `task-2-report.md`.
 //!
 //! ## Hablante activo único: `flatten_overlaps`
 //!
@@ -110,23 +120,52 @@
 //! de solape) — es una simplificación deliberada dado que la interfaz no
 //! tiene dónde reportar la ambigüedad.
 //!
+//! ## La emisión sigue cierres de turno, no un reloj fijo
+//!
+//! El modelo se LLAMA cada `LIVE_CHUNK_LEN` frames nuevos (~3.84&nbsp;s,
+//! cadencia fija) — pero eso es la cadencia de **cómputo**, no la cadencia
+//! de **emisión**. `binarize()` sólo cierra un tramo cuando ve la
+//! probabilidad del hablante activo cruzar el umbral de `offset` hacia
+//! abajo (silencio) o cambiar de hablante; mientras alguien habla de
+//! corrido, ese tramo sigue "abierto" y [`StreamingDiarizer::push`]
+//! devuelve `vec![]` para él llamada tras llamada, por largo que sea el
+//! turno — no es que no haya pasado nada, es que todavía no se puede saber
+//! dónde termina. Un corolario directo: **la primera vez que `push()`
+//! devuelve algo no es a los ~3.84&nbsp;s** de audio nuevo, sino recién
+//! cuando el primer cierre de turno real ocurre (medido en Task 2: ~7.8&nbsp;s
+//! sobre audio real, porque el hablante inicial no hizo una pausa antes).
+//! Quien construya el transcript en vivo sobre esto (Task 6+) tiene que
+//! diseñarse para "llega cuando llega, en ráfagas ligadas al habla", no
+//! para un tick de reloj.
+//!
 //! ## Cola sin cerrar
 //!
-//! `push()` nunca alimenta al modelo un chunk incompleto (parcial,
-//! rellenado con ceros) — a diferencia de la sonda offline, que sí lo hacía
-//! para el último chunk de un WAV de duración conocida. En streaming no
-//! hay forma de saber si el trozo que falta para completar
-//! [`LIVE_CHUNK_LEN`] va a llegar o la reunión ya terminó, y esta interfaz
-//! no tiene un método `finish()`/`flush()`. Consecuencia: hasta
-//! `LIVE_CHUNK_LEN` frames (~3.84&nbsp;s) de audio al final de cada
-//! `push()` quedan bufferizados sin diarizar hasta que llegue más audio que
-//! complete el chunk: si la reunión termina ahí, esos últimos segundos se
-//! pierden (no se emiten nunca, ni con `reset()`, que sólo limpia estado).
-//! Además, por el margen de estabilidad descrito abajo, los últimos
-//! [`SAFE_TAIL_MARGIN_S`] de audio ya procesado por el modelo tampoco se
-//! emiten todavía en cada llamada — se emiten en la siguiente vez que
-//! `push()` avanza lo suficiente. Documentado, no resuelto: ver
-//! preocupaciones en `task-2-report.md`.
+//! Consecuencia directa de lo anterior: si nadie sigue empujando audio
+//! después del último `push()` de una reunión, el turno que estaba en
+//! curso en ese momento **nunca se cierra ni se emite** — no son
+//! "unos pocos segundos", es el turno completo que seguía abierto (podían
+//! ser 20, 30&nbsp;s si el hablante no hizo pausas), más hasta
+//! `LIVE_CHUNK_LEN` frames (~3.84&nbsp;s) de audio bufferizado sin
+//! alcanzar a completar un chunk, más el margen de estabilidad
+//! ([`SAFE_TAIL_MARGIN_S`], ~1.5&nbsp;s) sobre lo último que sí se procesó.
+//! En la práctica, sin hacer nada más, eso es un piso de ~5&nbsp;s y sin
+//! techo real (tan largo como el último turno sin pausas).
+//!
+//! [`StreamingDiarizer::flush`] existe para esto: se llama al terminar una
+//! reunión, antes de `reset()`, y fuerza dos cosas que `push()` nunca hace
+//! por su cuenta — (a) alimenta al modelo lo que haya bufferizado sin
+//! completar un chunk, relleno con ceros hasta `LIVE_CHUNK_LEN` (mismo
+//! truco que la sonda offline usaba para el último chunk de un WAV de
+//! duración conocida) y (b) emite todo lo pendiente **sin** esperar el
+//! margen de estabilidad ni un cierre de turno futuro que ya no va a
+//! llegar. `flush()` no limpia el caché de hablantes -- para arrancar una
+//! reunión nueva hay que llamar a `reset()` después. Sigue sin ser
+//! perfecto: el post-proceso que decide dónde termina un tramo
+//! (histéresis + filtro de mediana) nunca vio el "silencio real" que
+//! vendría después del final de la reunión, así que el corte de `flush()`
+//! es la mejor estimación con los datos que hay, no la verdad de
+//! `binarize()` sobre una grabación completa -- ver preocupaciones en
+//! `task-2-report.md`.
 
 #![allow(dead_code)]
 
@@ -491,6 +530,28 @@ impl MelStream {
         let chunk = self.pending[..feed_size * N_MELS].to_vec();
         self.pending.drain(0..stride * N_MELS);
         Some(chunk)
+    }
+
+    /// Para [`StreamingDiarizer::flush`]: si queda algo pendiente (menos de
+    /// `feed_size` frames, o `take_chunk` nunca habría dejado que se
+    /// acumulara tanto), arma un último chunk con eso relleno de ceros hasta
+    /// `feed_size` -- igual que el último chunk de un WAV de duración
+    /// conocida en la sonda offline de Task 1 -- y vacía la cola por
+    /// completo (a diferencia de `take_chunk`, acá no queda lookahead que
+    /// retener: es el cierre). Devuelve `(chunk, current_len)`, con
+    /// `current_len` la cantidad real de frames válidos (el resto es
+    /// padding) para que el modelo sepa qué parte del tensor ignorar.
+    /// `None` si no había nada pendiente.
+    fn take_final_chunk(&mut self, feed_size: usize) -> Option<(Vec<f32>, usize)> {
+        let current_len = self.pending_rows().min(feed_size);
+        if current_len == 0 {
+            return None;
+        }
+        let mut chunk = vec![0.0f32; feed_size * N_MELS];
+        let have = current_len * N_MELS;
+        chunk[..have].copy_from_slice(&self.pending[..have]);
+        self.pending.clear();
+        Some((chunk, current_len))
     }
 }
 
@@ -1122,10 +1183,54 @@ pub struct SpeakerSpan {
 
 /// Invariante del contrato de [`StreamingDiarizer::push`]: los tramos que
 /// devuelve, en el orden en que los devuelve, nunca se solapan ni retroceden
-/// -- quien los consume puede concatenarlos directamente. Función pura, sin
-/// estado, para poder testearla sin cargar ningún modelo.
+/// -- quien los consume puede concatenarlos directamente. También rechaza
+/// un tramo individual invertido (`start_ms > end_ms`), que técnicamente no
+/// "se solapa ni retrocede" respecto al anterior pero rompe la misma
+/// promesa de que la lista se puede leer como una línea de tiempo válida.
+/// Función pura, sin estado, para poder testearla sin cargar ningún modelo.
 pub fn spans_are_monotonic(spans: &[SpeakerSpan]) -> bool {
-    spans.windows(2).all(|w| w[1].start_ms >= w[0].end_ms)
+    spans.iter().all(|s| s.start_ms <= s.end_ms)
+        && spans.windows(2).all(|w| w[1].start_ms >= w[0].end_ms)
+}
+
+/// Núcleo mutable de [`StreamingDiarizer::push`]/[`StreamingDiarizer::flush`],
+/// extraído a función pura para poder testearlo sin cargar el modelo (era la
+/// parte frágil sin cobertura automática: el corte por `safe_boundary_ms`,
+/// el clamp con `emitted_until_ms` y el salto de lo ya emitido). `flat` es
+/// la salida ya aplanada de [`flatten_overlaps`] (ordenada por inicio, sin
+/// solapes); `safe_boundary_ms` es el límite hasta donde animarse a emitir
+/// (`u64::MAX` = sin límite, el caso de `flush`); `emitted_until_ms` se
+/// actualiza in-place con el nuevo watermark.
+fn emit_new_spans(
+    flat: &[(f32, f32, usize)],
+    safe_boundary_ms: u64,
+    emitted_until_ms: &mut u64,
+) -> Vec<SpeakerSpan> {
+    let mut new_spans = Vec::new();
+    for &(s, e, spk) in flat {
+        let end_ms = (e * 1000.0).round() as u64;
+        if end_ms > safe_boundary_ms {
+            // `flat` viene ordenado por inicio y, por construcción de
+            // `flatten_overlaps`, también por fin -- todo lo que sigue es
+            // más tarde todavía.
+            break;
+        }
+        if end_ms <= *emitted_until_ms {
+            continue;
+        }
+        let start_ms = (s * 1000.0).round() as u64;
+        let start_ms = start_ms.max(*emitted_until_ms);
+        if start_ms >= end_ms {
+            continue;
+        }
+        new_spans.push(SpeakerSpan {
+            start_ms,
+            end_ms,
+            speaker: spk as u8,
+        });
+        *emitted_until_ms = end_ms;
+    }
+    new_spans
 }
 
 /// Motor de diarización en streaming: ventana deslizante sobre audio que
@@ -1185,11 +1290,14 @@ impl StreamingDiarizer {
 
     /// Alimenta `samples` (16&nbsp;kHz mono, cualquier cantidad) al motor y
     /// devuelve los tramos nuevos que ya se pueden dar por estables desde la
-    /// última llamada -- puede ser un vector vacío si todavía no se juntó
-    /// suficiente audio nuevo para una actualización del modelo, o si el
-    /// resultado sigue dentro del margen de estabilidad ([`SAFE_TAIL_MARGIN_S`]).
-    /// Ver "Cola sin cerrar" en el doc comment del módulo para las
-    /// consecuencias de este diseño.
+    /// última llamada -- casi siempre un vector vacío: la emisión sigue
+    /// cierres de turno (silencio o cambio de hablante), no la cadencia de
+    /// llamadas al modelo, así que mientras alguien hable de corrido
+    /// `push()` no devuelve nada para ese turno por largo que sea. Ver "La
+    /// emisión sigue cierres de turno, no un reloj fijo" y "Cola sin
+    /// cerrar" en el doc comment del módulo -- y llamar a
+    /// [`Self::flush`] al terminar una reunión, para no perder el turno que
+    /// haya quedado abierto.
     pub fn push(&mut self, samples: &[f32]) -> Result<Vec<SpeakerSpan>> {
         if samples.is_empty() {
             return Ok(Vec::new());
@@ -1216,50 +1324,75 @@ impl StreamingDiarizer {
         }
 
         let total_model_frames = self.all_preds.len() / NUM_SPEAKERS;
+        let flat = self.flatten_current_predictions(total_model_frames);
+
+        let processed_s = total_model_frames as f32 * SUBSAMPLING as f32 * AUDIO_FRAME_DURATION_S;
+        let safe_boundary_ms = ((processed_s - SAFE_TAIL_MARGIN_S).max(0.0) * 1000.0) as u64;
+
+        Ok(emit_new_spans(
+            &flat,
+            safe_boundary_ms,
+            &mut self.emitted_until_ms,
+        ))
+    }
+
+    /// Fuerza la salida de lo que `push()` todavía tenía retenido -- pensado
+    /// para llamarse al terminar una reunión, antes de [`Self::reset`],
+    /// cuando ya no va a llegar más audio y no tiene sentido seguir
+    /// esperando un cierre de turno que puede no llegar nunca. A diferencia
+    /// de `push()`, si queda audio bufferizado sin completar un chunk
+    /// (menos de `LIVE_CHUNK_LEN` frames de mel), lo alimenta al modelo
+    /// relleno con ceros -- mismo truco que la sonda offline de Task 1 usaba
+    /// para el último chunk de un WAV de duración conocida -- y emite todo
+    /// lo pendiente sin aplicar el margen de estabilidad
+    /// ([`SAFE_TAIL_MARGIN_S`]). No limpia el caché de hablantes: seguir
+    /// llamando a `push()` después funciona (no es un `finish()` que cierra
+    /// el stream), pero para arrancar una reunión nueva hay que llamar a
+    /// [`Self::reset`] aparte. Ver "Cola sin cerrar" en el doc comment del
+    /// módulo para las limitaciones que sigue teniendo el corte que hace
+    /// `flush()`.
+    pub fn flush(&mut self) -> Result<Vec<SpeakerSpan>> {
+        let feed_size = self.feed_size();
+        if let Some((chunk_feat, current_len)) = self.mel.take_final_chunk(feed_size) {
+            let chunk_preds = streaming_update(
+                &mut self.session,
+                &self.cfg,
+                &mut self.state,
+                &chunk_feat,
+                current_len as i64,
+            )?;
+            self.all_preds.extend_from_slice(&chunk_preds);
+        }
+
+        if self.all_preds.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let total_model_frames = self.all_preds.len() / NUM_SPEAKERS;
+        let flat = self.flatten_current_predictions(total_model_frames);
+
+        Ok(emit_new_spans(&flat, u64::MAX, &mut self.emitted_until_ms))
+    }
+
+    /// `binarize()` + [`flatten_overlaps`] sobre el historial completo de
+    /// predicciones -- compartido por `push()` y `flush()`, que sólo
+    /// difieren en qué margen de seguridad le aplican al resultado (ver
+    /// [`emit_new_spans`]).
+    fn flatten_current_predictions(&self, total_model_frames: usize) -> Vec<(f32, f32, usize)> {
         let per_speaker = binarize(
             &self.all_preds,
             total_model_frames,
             self.mel.total_raw_samples,
             &self.cfg,
         );
-        let flat = flatten_overlaps(per_speaker);
-
-        let processed_s = total_model_frames as f32 * SUBSAMPLING as f32 * AUDIO_FRAME_DURATION_S;
-        let safe_boundary_ms = ((processed_s - SAFE_TAIL_MARGIN_S).max(0.0) * 1000.0) as u64;
-
-        let mut new_spans = Vec::new();
-        for (s, e, spk) in flat {
-            let end_ms = (e * 1000.0).round() as u64;
-            if end_ms > safe_boundary_ms {
-                // `flat` viene ordenado por inicio y, por construcción de
-                // `flatten_overlaps`, también por fin -- todo lo que sigue
-                // es más tarde todavía.
-                break;
-            }
-            if end_ms <= self.emitted_until_ms {
-                continue;
-            }
-            let start_ms = (s * 1000.0).round() as u64;
-            let start_ms = start_ms.max(self.emitted_until_ms);
-            if start_ms >= end_ms {
-                continue;
-            }
-            new_spans.push(SpeakerSpan {
-                start_ms,
-                end_ms,
-                speaker: spk as u8,
-            });
-            self.emitted_until_ms = end_ms;
-        }
-
-        Ok(new_spans)
+        flatten_overlaps(per_speaker)
     }
 
     /// Limpia el caché de hablantes (`spkcache`/`fifo`), el historial de
     /// predicciones y el buffer de features -- para arrancar una reunión
     /// nueva sin recargar el modelo (~470&nbsp;MB, caro de recargar). El
-    /// audio bufferizado sin diarizar todavía (menos de un chunk, ver "Cola
-    /// sin cerrar") se descarta.
+    /// audio bufferizado sin diarizar todavía (ver "Cola sin cerrar") se
+    /// descarta -- llamar a [`Self::flush`] antes si no se quiere perderlo.
     pub fn reset(&mut self) {
         self.state = StreamState::new();
         self.mel.reset();
@@ -1320,6 +1453,19 @@ mod tests {
         assert_eq!(SORTFORMER_MAX_SPEAKERS, 4);
     }
 
+    #[test]
+    fn spans_monotonic_rechaza_un_tramo_invertido() {
+        // start_ms > end_ms en un único tramo: no "se solapa ni retrocede"
+        // respecto a nada anterior, pero tampoco es una línea de tiempo
+        // válida -- M1 de la revisión de Task 2.
+        let spans = vec![SpeakerSpan {
+            start_ms: 100,
+            end_ms: 50,
+            speaker: 0,
+        }];
+        assert!(!spans_are_monotonic(&spans));
+    }
+
     // ------------------------------------------------------------------
     // Tests puros adicionales -- sin ONNX.
     // ------------------------------------------------------------------
@@ -1376,10 +1522,136 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
+    // emit_new_spans -- el núcleo mutable de push()/flush() (Important 2
+    // de la revisión de Task 2: antes sólo lo ejercitaba el test #[ignore]
+    // que necesita el .onnx real).
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn emit_new_spans_emite_lo_que_entra_bajo_el_margen() {
+        let flat = vec![(0.0, 3.0, 0), (4.0, 6.0, 1)];
+        let mut watermark = 0u64;
+        let spans = emit_new_spans(&flat, 6_000, &mut watermark);
+        assert_eq!(
+            spans,
+            vec![
+                SpeakerSpan {
+                    start_ms: 0,
+                    end_ms: 3000,
+                    speaker: 0
+                },
+                SpeakerSpan {
+                    start_ms: 4000,
+                    end_ms: 6000,
+                    speaker: 1
+                },
+            ]
+        );
+        assert_eq!(watermark, 6000);
+    }
+
+    #[test]
+    fn emit_new_spans_corta_en_el_margen_de_seguridad() {
+        // El segundo tramo (4..6) termina después del margen (5.5s) -- se
+        // retiene, igual que hace `push()` mientras el margen de
+        // estabilidad no lo confirma.
+        let flat = vec![(0.0, 3.0, 0), (4.0, 6.0, 1)];
+        let mut watermark = 0u64;
+        let spans = emit_new_spans(&flat, 5_500, &mut watermark);
+        assert_eq!(
+            spans,
+            vec![SpeakerSpan {
+                start_ms: 0,
+                end_ms: 3000,
+                speaker: 0
+            }]
+        );
+        assert_eq!(watermark, 3000, "el watermark no avanza sobre lo retenido");
+    }
+
+    #[test]
+    fn emit_new_spans_no_repite_lo_ya_emitido() {
+        let mut watermark = 3_000u64;
+        let flat = vec![(0.0, 3.0, 0), (4.0, 6.0, 1)];
+        let spans = emit_new_spans(&flat, 10_000, &mut watermark);
+        // El primer tramo ya estaba cubierto por el watermark -- sólo sale
+        // el segundo, nuevo.
+        assert_eq!(
+            spans,
+            vec![SpeakerSpan {
+                start_ms: 4000,
+                end_ms: 6000,
+                speaker: 1
+            }]
+        );
+    }
+
+    #[test]
+    fn emit_new_spans_llamado_dos_veces_no_duplica_nada() {
+        // Simula dos llamadas a push() sobre el mismo `flat` (nada cambió
+        // entre medio): la segunda no debe devolver nada.
+        let flat = vec![(0.0, 3.0, 0)];
+        let mut watermark = 0u64;
+        let first = emit_new_spans(&flat, 3_000, &mut watermark);
+        let second = emit_new_spans(&flat, 3_000, &mut watermark);
+        assert_eq!(first.len(), 1);
+        assert!(second.is_empty());
+    }
+
+    #[test]
+    fn emit_new_spans_un_turno_que_crece_entre_llamadas_sale_partido_en_dos() {
+        // El caso que la revisión pidió explícitamente cubrir: un mismo
+        // hablante sigue sosteniendo el mismo tramo (mismo inicio) pero
+        // `binarize()` lo va extendiendo llamada a llamada porque el
+        // hablante no hizo pausa. `push()` no puede "corregir" el tramo ya
+        // emitido -- sólo puede emitir la continuación, contigua.
+        let mut watermark = 0u64;
+
+        // Llamada 1: el tramo (0..5) ya cruzó el margen, se emite.
+        let first = emit_new_spans(&[(0.0, 5.0, 0)], 5_000, &mut watermark);
+        assert_eq!(
+            first,
+            vec![SpeakerSpan {
+                start_ms: 0,
+                end_ms: 5000,
+                speaker: 0
+            }]
+        );
+
+        // Llamada 2: el mismo tramo, ahora más largo (0..8) porque el
+        // hablante seguía hablando -- debe salir SÓLO la parte nueva
+        // (5..8), contigua a lo ya emitido, no el tramo completo de vuelta.
+        let second = emit_new_spans(&[(0.0, 8.0, 0)], 8_000, &mut watermark);
+        assert_eq!(
+            second,
+            vec![SpeakerSpan {
+                start_ms: 5000,
+                end_ms: 8000,
+                speaker: 0
+            }]
+        );
+
+        // Concatenado, el historial completo sigue siendo una línea de
+        // tiempo válida -- la garantía real que le importa a quien consume
+        // push().
+        let mut all = first;
+        all.extend(second);
+        assert!(spans_are_monotonic(&all));
+    }
+
+    #[test]
+    fn emit_new_spans_tramo_completo_antes_del_watermark_se_ignora() {
+        let mut watermark = 5_000u64;
+        let spans = emit_new_spans(&[(0.0, 3.0, 1)], 10_000, &mut watermark);
+        assert!(spans.is_empty());
+        assert_eq!(watermark, 5_000, "no retrocede");
+    }
+
+    // ------------------------------------------------------------------
     // Sonda manual (requiere el .onnx real y un WAV 16 kHz mono en disco --
     // no corre en CI). Reemplaza el test manual de la sonda de Task 1;
-    // ahora ejercita `push()`/`reset()`, la API pública de verdad, no
-    // funciones internas. Ver task-2-report.md para los números.
+    // ahora ejercita `push()`/`reset()`/`flush()`, la API pública de
+    // verdad, no funciones internas. Ver task-2-report.md para los números.
     // ------------------------------------------------------------------
 
     #[test]
@@ -1435,9 +1707,19 @@ mod tests {
         }
         let elapsed = t0.elapsed();
 
+        // `flush()`: recupera el turno que haya quedado abierto + el resto
+        // sin diarizar -- ver "Cola sin cerrar" en el doc comment del
+        // módulo. Sin esto, todo lo posterior al último cierre de turno
+        // real se pierde en silencio.
+        let flushed = diarizer.flush()?;
+        assert!(
+            spans_are_monotonic(&flushed),
+            "flush() devolvió tramos no monotónicos"
+        );
+        all_spans.extend(flushed.clone());
         assert!(
             spans_are_monotonic(&all_spans),
-            "el historial completo de tramos devueltos no es monotónico"
+            "el historial completo (push + flush) no es monotónico"
         );
 
         println!("\n=== StreamingDiarizer sobre {wav_path} ({audio_duration_s:.2}s) ===");
@@ -1451,14 +1733,19 @@ mod tests {
         }
         let speakers: std::collections::BTreeSet<u8> =
             all_spans.iter().map(|s| s.speaker).collect();
+        let flushed_tail_s = flushed
+            .last()
+            .map(|s| s.end_ms as f32 / 1000.0 - flushed.first().unwrap().start_ms as f32 / 1000.0);
         println!(
             "hablantes distintos: {} | llamadas a push() con salida: {push_calls_with_output} | \
              primera salida a los {:.2}s de audio empujado | tiempo total: {:.2}s para {audio_duration_s:.2}s \
-             de audio ({:.3}x tiempo real)",
+             de audio ({:.3}x tiempo real) | flush() recuperó {} tramo(s) ({:?}s cubiertos)",
             speakers.len(),
             first_output_at_s.unwrap_or(-1.0),
             elapsed.as_secs_f32(),
-            elapsed.as_secs_f32() / audio_duration_s.max(0.001)
+            elapsed.as_secs_f32() / audio_duration_s.max(0.001),
+            flushed.len(),
+            flushed_tail_s
         );
 
         Ok(())

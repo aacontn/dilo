@@ -38,6 +38,7 @@
 #![allow(dead_code)]
 
 use anyhow::{bail, Context, Result};
+use futures_util::StreamExt;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -241,6 +242,19 @@ pub const SORTFORMER_MODEL_FILENAME: &str = "diar_streaming_sortformer_4spk-v2.o
 /// using the same licences from NVIDIA. I only exported them to ONNX").
 /// Verificado en Task 2: el SHA-256 de abajo coincide exactamente con el
 /// `X-Linked-ETag` que Hugging Face reporta para este mismo blob.
+///
+/// **Bloqueante, no resuelto** (revisión de Task 2, Important 3): esto
+/// apunta a un repo personal de un tercero en Hugging Face, exactamente el
+/// tipo de dependencia que ya rompió las descargas de Dilo cuando Hugging
+/// Face migró a Xet (ver `dilo-models-xet.md` en la memoria del proyecto) y
+/// que obligó a re-hostear los 13 modelos del catálogo a
+/// `github.com/aacontn/dilo-models/releases`. Este modelo debería
+/// re-hostearse ahí mismo antes de que una tarea futura lo cablee de
+/// verdad — no se hizo en Task 2 porque publicar un release público es una
+/// acción que requiere confirmación explícita del dueño, no algo para
+/// decidir en silencio dentro de una tarea de código. La URL y el SHA-256
+/// de acá ya están verificados y listos para que quien lo suba los use
+/// directo, sin tener que re-descargar ni re-verificar nada.
 pub const SORTFORMER_MODEL_URL: &str = "https://huggingface.co/altunenes/parakeet-rs/resolve/a61d2818df4659c956b9661a9447f46e98c15126/diar_streaming_sortformer_4spk-v2.onnx";
 
 /// SHA-256 del archivo, calculado localmente en Task 2 sobre la descarga y
@@ -278,11 +292,46 @@ pub fn is_sortformer_model_downloaded(models_dir: &Path) -> bool {
     sortformer_model_path(models_dir).is_file()
 }
 
+/// SHA-256 de un archivo en disco, leyendo en bloques de 64&nbsp;KB en vez
+/// de cargarlo entero a memoria -- mismo patrón que
+/// `ModelManager::compute_sha256` en `managers/model.rs`. A diferencia de
+/// [`sha256_hex`] (que sí recibe un `&[u8]` ya en memoria, usado por el
+/// modelo de embeddings de ~27&nbsp;MB de arriba), este modelo pesa
+/// ~470&nbsp;MB: hashearlo desde un buffer en RAM significaría tenerlo
+/// completo ahí, encima del propio archivo que ya se está escribiendo a
+/// disco -- justo lo que la revisión de Task 2 (Important 3) pidió evitar.
+fn sha256_hex_of_file(path: &Path) -> Result<String> {
+    use std::io::Read;
+    let mut file =
+        std::fs::File::open(path).with_context(|| format!("abriendo {}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 65536];
+    loop {
+        let n = file.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buffer[..n]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 /// Descarga el modelo Sortformer si falta, verificando tamaño y SHA-256
-/// antes de dejarlo en su ubicación final. Mismo patrón que
-/// [`ensure_embedding_model_downloaded`] (descarga simple, sin resume ni
-/// eventos de progreso a la UI -- este modelo tampoco es algo que el
-/// usuario elija o cancele desde el selector de modelos).
+/// antes de dejarlo en su ubicación final. A diferencia de
+/// [`ensure_embedding_model_downloaded`] (~27&nbsp;MB, cabe cómodo en RAM),
+/// este modelo pesa ~470&nbsp;MB: la descarga va directo a un archivo
+/// `.partial` en streaming (nunca el archivo completo en memoria) y
+/// soporta resumir con `Range` si un intento anterior quedó a medias --
+/// mismo patrón de streaming+resume que ya usa
+/// `ModelManager::download_model`/`download_from_mirror` en
+/// `managers/model.rs`, sin la parte de eventos de progreso a la UI (este
+/// módulo sigue desacoplado de `AppHandle`, ver el doc comment de más
+/// arriba -- cablear progreso queda para la tarea que integre esto de
+/// verdad).
+///
+/// **Ver el doc comment de [`SORTFORMER_MODEL_URL`]**: sigue apuntando a un
+/// repo personal de terceros, sin re-hostear todavía -- bloqueante
+/// documentado, no resuelto acá.
 pub async fn ensure_sortformer_model_downloaded(models_dir: &Path) -> Result<PathBuf> {
     let dest = sortformer_model_path(models_dir);
     if dest.is_file() {
@@ -292,31 +341,96 @@ pub async fn ensure_sortformer_model_downloaded(models_dir: &Path) -> Result<Pat
     std::fs::create_dir_all(models_dir)
         .with_context(|| format!("creando {}", models_dir.display()))?;
 
-    let response = reqwest::get(SORTFORMER_MODEL_URL)
+    let partial = models_dir.join(format!("{SORTFORMER_MODEL_FILENAME}.partial"));
+    let mut resume_from = match partial.metadata() {
+        Ok(meta) if meta.len() < SORTFORMER_MODEL_SIZE_BYTES => meta.len(),
+        Ok(_) => {
+            // Ya tiene el tamaño completo (o más -- restos corruptos de un
+            // intento previo): no hay nada válido que resumir, se reinicia.
+            let _ = std::fs::remove_file(&partial);
+            0
+        }
+        Err(_) => 0,
+    };
+
+    let client = reqwest::Client::new();
+    let mut request = client.get(SORTFORMER_MODEL_URL);
+    if resume_from > 0 {
+        request = request.header("Range", format!("bytes={resume_from}-"));
+    }
+    let mut response = request
+        .send()
         .await
         .with_context(|| format!("descargando {SORTFORMER_MODEL_URL}"))?;
-    if !response.status().is_success() {
+
+    // El servidor no soporta rangos (devuelve 200 en vez de 206 Partial
+    // Content pese al header Range): el cuerpo es el archivo completo de
+    // nuevo, no el resto -- reiniciar en vez de arriesgar un archivo
+    // corrupto por concatenar de más.
+    if resume_from > 0 && response.status() == reqwest::StatusCode::OK {
+        drop(response);
+        let _ = std::fs::remove_file(&partial);
+        resume_from = 0;
+        response = client
+            .get(SORTFORMER_MODEL_URL)
+            .send()
+            .await
+            .with_context(|| format!("descargando {SORTFORMER_MODEL_URL}"))?;
+    }
+
+    if !response.status().is_success() && response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+    {
         bail!(
             "descarga del modelo Sortformer falló: HTTP {}",
             response.status()
         );
     }
-    let bytes = response
-        .bytes()
-        .await
-        .context("leyendo el cuerpo de la respuesta del modelo Sortformer")?;
 
-    if bytes.len() as u64 != SORTFORMER_MODEL_SIZE_BYTES {
+    {
+        use std::io::Write;
+        let mut file = if resume_from > 0 {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&partial)
+        } else {
+            std::fs::File::create(&partial)
+        }
+        .with_context(|| format!("abriendo {}", partial.display()))?;
+
+        let mut stream = response.bytes_stream();
+        while let Some(chunk) = stream.next().await {
+            let chunk = chunk.context("leyendo un chunk del modelo Sortformer")?;
+            file.write_all(&chunk)
+                .with_context(|| format!("escribiendo en {}", partial.display()))?;
+        }
+        file.flush()
+            .with_context(|| format!("cerrando {}", partial.display()))?;
+        // `file` se dropea acá, antes de leerlo de vuelta para el hash.
+    }
+
+    let actual_size = partial
+        .metadata()
+        .with_context(|| format!("leyendo el tamaño de {}", partial.display()))?
+        .len();
+    if actual_size != SORTFORMER_MODEL_SIZE_BYTES {
+        // Se mantiene el `.partial` a propósito -- es justo lo que permite
+        // resumir en el próximo intento en vez de volver a bajar ~470 MB
+        // desde cero por un corte de red.
         bail!(
-            "tamaño del modelo Sortformer no coincide: esperado {} bytes, obtenido {} \
-             (descarga incompleta o el archivo upstream cambió)",
+            "descarga del modelo Sortformer incompleta: esperado {} bytes, hay {} \
+             (se guardó el .partial para resumir en el próximo intento)",
             SORTFORMER_MODEL_SIZE_BYTES,
-            bytes.len()
+            actual_size
         );
     }
 
-    let actual_sha256 = sha256_hex(&bytes);
+    let actual_sha256 = sha256_hex_of_file(&partial)?;
     if actual_sha256 != SORTFORMER_MODEL_SHA256 {
+        // Acá sí se borra: un hash que no matchea con el tamaño correcto es
+        // corrupción real, no un corte de red -- no hay nada seguro que
+        // resumir sobre datos corruptos.
+        let _ = std::fs::remove_file(&partial);
         bail!(
             "SHA-256 del modelo Sortformer no coincide: esperado {}, obtenido {} \
              (descarga corrupta o el archivo upstream cambió -- no continuar sin \
@@ -326,9 +440,6 @@ pub async fn ensure_sortformer_model_downloaded(models_dir: &Path) -> Result<Pat
         );
     }
 
-    let partial = models_dir.join(format!("{SORTFORMER_MODEL_FILENAME}.partial"));
-    std::fs::write(&partial, &bytes)
-        .with_context(|| format!("escribiendo {}", partial.display()))?;
     std::fs::rename(&partial, &dest).with_context(|| format!("moviendo a {}", dest.display()))?;
 
     Ok(dest)
@@ -375,5 +486,51 @@ mod tests {
     fn is_sortformer_model_downloaded_false_when_missing() {
         let dir = Path::new("/tmp/dilo-app-data-does-not-exist/models");
         assert!(!is_sortformer_model_downloaded(dir));
+    }
+
+    #[test]
+    fn sha256_hex_of_file_matches_known_vector() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("abc.txt");
+        std::fs::write(&path, b"abc").unwrap();
+        assert_eq!(
+            sha256_hex_of_file(&path).unwrap(),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    /// Descarga real (~470&nbsp;MB) contra Hugging Face -- no corre en CI,
+    /// pensada para validar a mano el fix de la revisión de Task 2
+    /// (Important 3: streaming a disco + resume, no todo el archivo en
+    /// RAM). Ejercita las dos ramas reales: descarga fresca y, truncando el
+    /// archivo ya bajado a un `.partial` incompleto, resume vía `Range`.
+    #[tokio::test]
+    #[ignore = "descarga ~470 MB reales desde Hugging Face -- correr a mano"]
+    async fn ensure_sortformer_model_downloaded_baja_y_resume_de_verdad() {
+        let dir = tempfile::tempdir().unwrap();
+        let models_dir = dir.path();
+
+        // Rama 1: descarga fresca (sin .partial previo).
+        let dest = ensure_sortformer_model_downloaded(models_dir)
+            .await
+            .expect("descarga fresca");
+        assert!(dest.is_file());
+        assert_eq!(dest.metadata().unwrap().len(), SORTFORMER_MODEL_SIZE_BYTES);
+
+        // Rama 2: resume. Se trunca una copia del archivo completo a un
+        // `.partial` (simula un corte de red a mitad de descarga) y se
+        // vuelve a llamar -- debe completar sólo el resto vía `Range`, no
+        // rehacer todo, y el resultado final tiene que verificar igual.
+        let partial = models_dir.join(format!("{SORTFORMER_MODEL_FILENAME}.partial"));
+        let full_bytes = std::fs::read(&dest).unwrap();
+        std::fs::remove_file(&dest).unwrap();
+        std::fs::write(&partial, &full_bytes[..full_bytes.len() / 2]).unwrap();
+
+        let dest2 = ensure_sortformer_model_downloaded(models_dir)
+            .await
+            .expect("resume");
+        assert_eq!(dest2, dest);
+        assert!(!partial.exists(), ".partial se renombra al terminar");
+        assert_eq!(sha256_hex_of_file(&dest2).unwrap(), SORTFORMER_MODEL_SHA256);
     }
 }
