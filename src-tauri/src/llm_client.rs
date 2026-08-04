@@ -1,23 +1,30 @@
 //! Cliente HTTP del post-proceso y del asistente.
 //!
-//! Habla dos formas del mismo contrato de texto:
+//! Un modelo vive en una **superficie**: una ruta base más un protocolo.
+//!
+//! Los dos protocolos son dos formas del mismo contrato de texto:
 //!
 //! - `/chat/completions`, la clásica, la que usan Google, Groq, Anthropic,
 //!   OpenRouter, Ollama y compañía. Es siempre el primer intento.
 //! - `/responses`, la nueva de OpenAI, que algunos modelos (la familia GPT-5.6
 //!   en adelante) hablan en exclusiva.
 //!
-//! Cuál habla cada modelo no se decide por una lista de nombres: se descubre
-//! del servidor. Si `/chat/completions` responde con el error que dice que ese
-//! modelo no soporta ese endpoint, se reintenta contra `/responses` y se
-//! recuerda el modelo para no pagar el viaje perdido en cada dictado.
+//! Y la ruta base no siempre es la del proveedor: hay pasarelas que hospedan
+//! cada familia de modelos bajo su propio prefijo (`…/v1` para unas,
+//! `…/{familia}/v1` para otras).
+//!
+//! Qué superficie le toca a cada modelo no se decide por una lista de nombres:
+//! se descubre del servidor. Si un intento responde con el error que dice que
+//! ese modelo no soporta ese endpoint —o que ahí no hay nada—, se prueba la
+//! siguiente superficie del plan y se recuerda la que funcionó, para no pagar
+//! el viaje perdido en cada dictado.
 
 use crate::settings::PostProcessProvider;
 use log::{debug, info, warn};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, REFERER, USER_AGENT};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
@@ -86,14 +93,14 @@ struct ChatMessageResponse {
 }
 
 /// Error de una llamada al proveedor. Sólo se distingue un caso del resto: el
-/// servidor diciendo que ese modelo no habla `/chat/completions`, que es el
-/// único que justifica reintentar contra `/responses`.
+/// servidor diciendo que el modelo no vive en la superficie que se probó, que
+/// es el único que justifica seguir buscando en la siguiente.
 #[derive(Debug)]
 enum LlmError {
-    /// El modelo existe y la credencial sirve; lo que no soporta es el
-    /// endpoint clásico.
-    ChatCompletionsUnsupported(String),
-    /// Cualquier otra cosa: red, credencial, cuota, modelo inexistente...
+    /// La credencial sirve y la petición está bien formada; el modelo no
+    /// atiende en esta superficie. Vale la pena probar la que sigue.
+    WrongSurface(String),
+    /// Cualquier otra cosa: red, credencial, cuota, esquema inválido...
     /// El texto ya viene con el formato que espera el llamador.
     Other(String),
 }
@@ -101,59 +108,166 @@ enum LlmError {
 impl From<LlmError> for String {
     fn from(err: LlmError) -> String {
         match err {
-            LlmError::ChatCompletionsUnsupported(detail) | LlmError::Other(detail) => detail,
+            LlmError::WrongSurface(detail) | LlmError::Other(detail) => detail,
         }
     }
 }
 
-/// Modelos que ya demostraron hablar sólo la Responses API, por
-/// `base_url` + modelo. Vive lo que vive el proceso: alcanza para que el
-/// segundo dictado en adelante vaya derecho al endpoint bueno, y no persiste
-/// nada en disco (una config que cambia de servidor se re-descubre sola al
-/// próximo arranque).
-static RESPONSES_API_MODELS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
-
-fn responses_api_memory() -> &'static Mutex<HashSet<String>> {
-    RESPONSES_API_MODELS.get_or_init(|| Mutex::new(HashSet::new()))
+/// Cuál de las dos formas del contrato de texto habla una superficie.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Protocol {
+    /// `POST {base}/chat/completions`
+    ChatCompletions,
+    /// `POST {base}/responses`
+    Responses,
 }
 
-/// `base_url` y modelo juntos: el mismo nombre de modelo puede existir en dos
-/// proveedores distintos y hablar APIs distintas. El separador es un carácter
-/// de control que no aparece ni en una URL ni en un id de modelo.
-fn responses_api_key(base_url: &str, model: &str) -> String {
-    format!("{}\u{1f}{}", base_url, model)
+/// Dónde atiende un modelo: ruta base más protocolo. Es lo que se descubre y
+/// lo que se recuerda.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Surface {
+    base_url: String,
+    protocol: Protocol,
 }
 
-/// ¿Ya sabemos que este modelo sólo habla la Responses API?
-fn model_uses_responses_api(base_url: &str, model: &str) -> bool {
-    responses_api_memory()
-        .lock()
-        .map(|set| set.contains(&responses_api_key(base_url, model)))
-        .unwrap_or(false)
-}
+impl Surface {
+    fn new(base_url: &str, protocol: Protocol) -> Self {
+        Surface {
+            base_url: base_url.to_string(),
+            protocol,
+        }
+    }
 
-fn remember_responses_api(base_url: &str, model: &str) {
-    if let Ok(mut set) = responses_api_memory().lock() {
-        set.insert(responses_api_key(base_url, model));
+    /// La URL exacta que se va a golpear. Existe para poder afirmarla en los
+    /// tests sin salir a la red.
+    fn url(&self) -> String {
+        match self.protocol {
+            Protocol::ChatCompletions => format!("{}/chat/completions", self.base_url),
+            Protocol::Responses => format!("{}/responses", self.base_url),
+        }
     }
 }
 
-/// ¿Este error es el que dice "este modelo no habla `/chat/completions`"?
+/// Superficies ya descubiertas, por `base_url` configurada + modelo. Vive lo
+/// que vive el proceso: alcanza para que el segundo dictado en adelante vaya
+/// derecho a la superficie buena, y no persiste nada en disco (una config que
+/// cambia de servidor se re-descubre sola al próximo arranque).
+static KNOWN_SURFACES: OnceLock<Mutex<HashMap<String, Surface>>> = OnceLock::new();
+
+fn surface_memory() -> &'static Mutex<HashMap<String, Surface>> {
+    KNOWN_SURFACES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// `base_url` y modelo juntos: el mismo nombre de modelo puede existir en dos
+/// proveedores distintos y atender en superficies distintas. El separador es
+/// un carácter de control que no aparece ni en una URL ni en un id de modelo.
+fn surface_key(base_url: &str, model: &str) -> String {
+    format!("{}\u{1f}{}", base_url, model)
+}
+
+/// ¿Ya sabemos dónde atiende este modelo?
+fn remembered_surface(base_url: &str, model: &str) -> Option<Surface> {
+    surface_memory()
+        .lock()
+        .ok()
+        .and_then(|map| map.get(&surface_key(base_url, model)).cloned())
+}
+
+fn remember_surface(base_url: &str, model: &str, surface: &Surface) {
+    if let Ok(mut map) = surface_memory().lock() {
+        map.insert(surface_key(base_url, model), surface.clone());
+    }
+}
+
+/// El prefijo de familia de un id de modelo, si lo tiene: `openai` en
+/// `openai.gpt-5.6-luna`, `mistral` en `mistral.voxtral-small-24b-2507`.
+///
+/// Se exige que lo que viene después del punto empiece con una letra, para no
+/// confundir un número de versión con una familia: `gpt-3.5-turbo` y
+/// `llama-3.1-8b` no tienen prefijo, tienen decimales.
+fn model_family(model: &str) -> Option<&str> {
+    let (family, rest) = model.split_once('.')?;
+    if !rest.starts_with(|c: char| c.is_ascii_alphabetic()) {
+        return None;
+    }
+    let plausible_segment = !family.is_empty()
+        && family.starts_with(|c: char| c.is_ascii_alphabetic())
+        && family
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    plausible_segment.then_some(family)
+}
+
+/// ¿Este último tramo de la ruta es una versión de API (`v1`, `v2`, `v1beta`)?
+fn is_version_segment(segment: &str) -> bool {
+    let mut chars = segment.chars();
+    chars.next() == Some('v') && chars.next().is_some_and(|c| c.is_ascii_digit())
+}
+
+/// La ruta base alternativa donde una pasarela podría hospedar a la familia de
+/// este modelo: `https://host/v1` + `openai.…` → `https://host/openai/v1`.
+///
+/// Se deriva del id del modelo, no de una lista de proveedores: sirve igual
+/// para familias que todavía no existen. Devuelve `None` cuando no hay nada
+/// razonable que derivar (modelo sin familia, base sin versión, o la familia
+/// ya está en la ruta).
+fn family_scoped_base_url(base_url: &str, model: &str) -> Option<String> {
+    let family = model_family(model)?;
+    let (root, version) = base_url.rsplit_once('/')?;
+    if root.is_empty() || !is_version_segment(version) {
+        return None;
+    }
+    if root.ends_with(&format!("/{}", family)) {
+        return None;
+    }
+    Some(format!("{}/{}/{}", root, family, version))
+}
+
+/// Las superficies a probar, en orden. Primero lo que funciona hoy —la ruta
+/// configurada, protocolo clásico— para no penalizar a los proveedores que
+/// andan bien; las derivadas van al final y sólo se llega a ellas si el
+/// servidor dijo explícitamente que el modelo no atiende antes.
+fn attempt_plan(base_url: &str, model: &str) -> Vec<Surface> {
+    let mut bases = vec![base_url.to_string()];
+    if let Some(scoped) = family_scoped_base_url(base_url, model) {
+        bases.push(scoped);
+    }
+
+    let mut plan = Vec::with_capacity(bases.len() * 2);
+    for base in bases {
+        plan.push(Surface::new(&base, Protocol::ChatCompletions));
+        plan.push(Surface::new(&base, Protocol::Responses));
+    }
+    plan
+}
+
+/// ¿Este error dice que el modelo no atiende en la superficie que se probó?
 ///
 /// Se reconoce por el mensaje, no por el status: un 400 puede ser cualquier
-/// cosa (credencial, cuota, esquema inválido) y reintentar contra `/responses`
-/// en esos casos sólo agregaría un segundo error al log. Se aceptan las dos
-/// redacciones vistas en la práctica:
+/// cosa (credencial, cuota, esquema inválido) y seguir buscando en esos casos
+/// sólo agregaría errores al log. Se aceptan las redacciones vistas en la
+/// práctica:
 ///
 /// - Bedrock Mantle: `The model 'X' does not support the '/v1/chat/completions' API`
 /// - OpenAI: `This model is only supported in v1/responses and not in v1/chat/completions`
-fn is_chat_completions_unsupported(status: reqwest::StatusCode, body: &str) -> bool {
+///
+/// Aparte, un 404/405 sobre la URL misma se toma como superficie inexistente:
+/// ahí no hay endpoint que valga, así que probar el siguiente candidato no le
+/// quita nada a nadie.
+fn is_wrong_surface(status: reqwest::StatusCode, body: &str) -> bool {
+    if status == reqwest::StatusCode::NOT_FOUND || status == reqwest::StatusCode::METHOD_NOT_ALLOWED
+    {
+        return true;
+    }
     if !status.is_client_error() {
         return false;
     }
 
     let body = body.to_ascii_lowercase();
-    let mentions_endpoint = body.contains("chat/completions") || body.contains("chat completions");
+    let mentions_endpoint = body.contains("chat/completions")
+        || body.contains("chat completions")
+        || body.contains("/responses")
+        || body.contains("responses api");
     let mentions_unsupported = body.contains("does not support")
         || body.contains("not supported")
         || body.contains("unsupported")
@@ -251,57 +365,80 @@ pub async fn send_chat_completion_with_schema(
     let base_url = provider.base_url.trim_end_matches('/');
     let client = create_client(provider, &api_key)?;
 
-    // Modelo ya conocido como "sólo Responses": derecho al endpoint bueno, sin
-    // pagar el 400 de ida.
-    if model_uses_responses_api(base_url, model) {
-        debug!(
-            "Model '{}' is known to speak the Responses API; skipping /chat/completions",
-            model
-        );
-        return send_via_responses(
-            &client,
-            base_url,
-            model,
-            user_content,
-            system_prompt,
-            json_schema,
-        )
-        .await
-        .map_err(String::from);
+    // El plan por defecto, con la superficie ya descubierta (si la hay) al
+    // frente. Ponerla al frente en vez de reemplazar el plan deja que una
+    // memoria vieja —el servidor cambió— caiga sola al resto de los intentos.
+    let default_plan = attempt_plan(base_url, model);
+    let mut plan = default_plan.clone();
+    if let Some(known) = remembered_surface(base_url, model) {
+        debug!("Model '{}' is known to live at {}", model, known.url());
+        plan.retain(|surface| *surface != known);
+        plan.insert(0, known);
     }
 
-    match send_via_chat_completions(
-        &client,
-        base_url,
-        model,
-        user_content.clone(),
-        system_prompt.clone(),
-        json_schema.clone(),
-        reasoning_effort,
-        reasoning,
-    )
-    .await
-    {
-        Ok(content) => Ok(content),
-        Err(LlmError::ChatCompletionsUnsupported(detail)) => {
-            info!(
-                "Model '{}' rejected /chat/completions ({}); retrying via /responses",
-                model, detail
-            );
-            remember_responses_api(base_url, model);
-            send_via_responses(
-                &client,
-                base_url,
-                model,
-                user_content,
-                system_prompt,
-                json_schema,
-            )
-            .await
-            .map_err(String::from)
+    // El error del primer intento es el que describe la configuración del
+    // usuario; los siguientes son de superficies que Dilo se inventó, así que
+    // no son lo que hay que mostrarle si al final ninguna anduvo.
+    let mut first_error: Option<String> = None;
+
+    for surface in &plan {
+        let attempt = match surface.protocol {
+            Protocol::ChatCompletions => {
+                send_via_chat_completions(
+                    &client,
+                    &surface.base_url,
+                    model,
+                    user_content.clone(),
+                    system_prompt.clone(),
+                    json_schema.clone(),
+                    reasoning_effort.clone(),
+                    reasoning.clone(),
+                )
+                .await
+            }
+            Protocol::Responses => {
+                send_via_responses(
+                    &client,
+                    &surface.base_url,
+                    model,
+                    user_content.clone(),
+                    system_prompt.clone(),
+                    json_schema.clone(),
+                )
+                .await
+            }
+        };
+
+        match attempt {
+            Ok(content) => {
+                // Sólo se recuerda lo que no es el camino por defecto: los
+                // proveedores que andan bien ni tocan la memoria.
+                if default_plan.first() != Some(surface) {
+                    info!(
+                        "Model '{}' answered at {}; remembering it",
+                        model,
+                        surface.url()
+                    );
+                    remember_surface(base_url, model, surface);
+                }
+                return Ok(content);
+            }
+            Err(LlmError::WrongSurface(detail)) => {
+                info!(
+                    "Model '{}' does not answer at {} ({}); trying the next surface",
+                    model,
+                    surface.url(),
+                    detail
+                );
+                if first_error.is_none() {
+                    first_error = Some(detail);
+                }
+            }
+            Err(LlmError::Other(detail)) => return Err(detail),
         }
-        Err(other) => Err(String::from(other)),
     }
+
+    Err(first_error.unwrap_or_else(|| format!("No surface answered for model '{}'", model)))
 }
 
 /// La ruta clásica: `POST {base_url}/chat/completions`. Es la que usan todos
@@ -317,7 +454,7 @@ async fn send_via_chat_completions(
     reasoning_effort: Option<String>,
     reasoning: Option<ReasoningConfig>,
 ) -> Result<Option<String>, LlmError> {
-    let url = format!("{}/chat/completions", base_url);
+    let url = Surface::new(base_url, Protocol::ChatCompletions).url();
 
     debug!("Sending chat completion request to: {}", url);
 
@@ -344,8 +481,8 @@ async fn send_via_chat_completions(
             .await
             .unwrap_or_else(|_| "Failed to read error response".to_string());
         let detail = format!("API request failed with status {}: {}", status, error_text);
-        return Err(if is_chat_completions_unsupported(status, &error_text) {
-            LlmError::ChatCompletionsUnsupported(detail)
+        return Err(if is_wrong_surface(status, &error_text) {
+            LlmError::WrongSurface(detail)
         } else {
             LlmError::Other(detail)
         });
@@ -427,7 +564,7 @@ async fn send_via_responses(
     system_prompt: Option<String>,
     json_schema: Option<Value>,
 ) -> Result<Option<String>, LlmError> {
-    let url = format!("{}/responses", base_url);
+    let url = Surface::new(base_url, Protocol::Responses).url();
 
     debug!("Sending responses request to: {}", url);
 
@@ -447,10 +584,15 @@ async fn send_via_responses(
             .text()
             .await
             .unwrap_or_else(|_| "Failed to read error response".to_string());
-        return Err(LlmError::Other(format!(
+        let detail = format!(
             "Responses API request failed with status {}: {}",
             status, error_text
-        )));
+        );
+        return Err(if is_wrong_surface(status, &error_text) {
+            LlmError::WrongSurface(detail)
+        } else {
+            LlmError::Other(detail)
+        });
     }
 
     let payload: Value = response
@@ -808,23 +950,30 @@ mod tests {
     fn recognizes_the_unsupported_endpoint_error() {
         // Cuerpo textual del servidor de Mantle (log del 2026-08-04).
         let mantle = r#"{"error":{"code":"validation_error","message":"The model 'openai.gpt-5.6-luna' does not support the '/v1/chat/completions' API","param":null,"type":"invalid_request_error"}}"#;
-        assert!(is_chat_completions_unsupported(
-            StatusCode::BAD_REQUEST,
-            mantle
-        ));
+        assert!(is_wrong_surface(StatusCode::BAD_REQUEST, mantle));
+
+        // El mismo servidor, para el otro endpoint de la misma ruta base: si
+        // esto no se reconociera, la búsqueda se cortaría antes de llegar a la
+        // ruta de la familia.
+        let mantle_responses = r#"{"error":{"code":"validation_error","message":"The model 'openai.gpt-5.6-luna' does not support the '/v1/responses' API","param":null,"type":"invalid_request_error"}}"#;
+        assert!(is_wrong_surface(StatusCode::BAD_REQUEST, mantle_responses));
 
         // Redacción de OpenAI para el mismo caso.
         let openai = r#"{"error":{"message":"This model is only supported in v1/responses and not in v1/chat/completions.","type":"invalid_request_error"}}"#;
-        assert!(is_chat_completions_unsupported(
-            StatusCode::BAD_REQUEST,
-            openai
+        assert!(is_wrong_surface(StatusCode::BAD_REQUEST, openai));
+
+        // Un 404/405 sobre la URL misma: ahí no hay endpoint que valga.
+        assert!(is_wrong_surface(StatusCode::NOT_FOUND, "Not Found"));
+        assert!(is_wrong_surface(
+            StatusCode::METHOD_NOT_ALLOWED,
+            "Method Not Allowed"
         ));
     }
 
     #[test]
     fn other_400s_do_not_trigger_the_retry() {
-        // Un 400 puede ser cualquier cosa: si se reintentara contra
-        // /responses, sólo se agregaría un segundo error al log.
+        // Un 400 puede ser cualquier cosa: si se siguiera buscando, sólo se
+        // agregarían más errores al log.
         for body in [
             r#"{"error":{"message":"Invalid API key provided","type":"invalid_request_error"}}"#,
             r#"{"error":{"message":"This model's maximum context length is 8192 tokens","type":"invalid_request_error"}}"#,
@@ -833,7 +982,7 @@ mod tests {
             "",
         ] {
             assert!(
-                !is_chat_completions_unsupported(StatusCode::BAD_REQUEST, body),
+                !is_wrong_surface(StatusCode::BAD_REQUEST, body),
                 "no debería disparar el reintento: {}",
                 body
             );
@@ -841,37 +990,151 @@ mod tests {
 
         // Ni un 401/429 con el mismo texto de cortesía, ni un 500 que devuelva
         // el cuerpo del error espejado.
-        assert!(!is_chat_completions_unsupported(
+        assert!(!is_wrong_surface(
             StatusCode::UNAUTHORIZED,
             r#"{"error":{"message":"Invalid API key"}}"#
         ));
-        assert!(!is_chat_completions_unsupported(
+        assert!(!is_wrong_surface(
             StatusCode::INTERNAL_SERVER_ERROR,
             r#"{"error":{"message":"The model 'x' does not support the '/v1/chat/completions' API"}}"#
         ));
     }
 
-    // --- Memoria del modelo -------------------------------------------------
+    // --- El plan de intentos ------------------------------------------------
+
+    fn urls(plan: &[Surface]) -> Vec<String> {
+        plan.iter().map(|surface| surface.url()).collect()
+    }
 
     #[test]
-    fn remembering_a_model_is_per_model_and_per_base_url() {
+    fn the_classic_surface_is_always_first() {
+        // Lo que anda hoy no paga nada por lo que se agregó: primer intento,
+        // ruta configurada, protocolo clásico.
+        for model in ["gemini-2.5-flash", "openai.gpt-5.6-luna", "gpt-oss-120b"] {
+            assert_eq!(
+                attempt_plan("https://x.example/v1", model)[0].url(),
+                "https://x.example/v1/chat/completions",
+                "modelo {}",
+                model
+            );
+        }
+    }
+
+    #[test]
+    fn a_model_without_family_only_has_the_configured_base() {
+        // Gemini, Groq, Anthropic, OpenRouter, Ollama: el plan es exactamente
+        // el de siempre, dos intentos sobre la ruta configurada.
+        assert_eq!(
+            urls(&attempt_plan(
+                "https://generativelanguage.googleapis.com/v1beta/openai",
+                "gemini-2.5-flash"
+            )),
+            vec![
+                "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                "https://generativelanguage.googleapis.com/v1beta/openai/responses",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_family_prefixed_model_adds_the_scoped_base_at_the_end() {
+        // El caso de Mantle: los modelos de OpenAI viven en /openai/v1 y los
+        // demás en /v1. La ruta derivada va última, nunca primera.
+        assert_eq!(
+            urls(&attempt_plan(
+                "https://bedrock-mantle.us-east-1.api.aws/v1",
+                "openai.gpt-5.6-luna"
+            )),
+            vec![
+                "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
+                "https://bedrock-mantle.us-east-1.api.aws/v1/responses",
+                "https://bedrock-mantle.us-east-1.api.aws/openai/v1/chat/completions",
+                "https://bedrock-mantle.us-east-1.api.aws/openai/v1/responses",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_scoped_base_is_derived_not_hardcoded() {
+        // Nada dice "openai" en el código: la familia sale del id del modelo,
+        // así que una familia que todavía no existe funciona igual.
+        assert_eq!(
+            family_scoped_base_url("https://host.example/v1", "familianueva.modelo-x").as_deref(),
+            Some("https://host.example/familianueva/v1")
+        );
+        assert_eq!(
+            family_scoped_base_url("https://host.example/v1", "mistral.voxtral-small-24b-2507")
+                .as_deref(),
+            Some("https://host.example/mistral/v1")
+        );
+    }
+
+    #[test]
+    fn no_scoped_base_when_there_is_nothing_sane_to_derive() {
+        // Un decimal no es una familia: gpt-3.5 y llama-3.1 no inventan rutas.
+        assert_eq!(model_family("gpt-3.5-turbo"), None);
+        assert_eq!(model_family("llama-3.1-8b-instant"), None);
+        assert_eq!(model_family("gemini-2.5-flash"), None);
+        assert_eq!(model_family(".sin-familia"), None);
+        assert_eq!(model_family("openai.gpt-5.6-luna"), Some("openai"));
+
+        // Base sin versión al final: no hay dónde insertar el tramo.
+        assert_eq!(
+            family_scoped_base_url("https://host.example/api", "openai.gpt-5.6-luna"),
+            None
+        );
+        assert_eq!(
+            family_scoped_base_url("https://host.example", "openai.x"),
+            None
+        );
+        // Y si la familia ya está en la ruta, no se duplica.
+        assert_eq!(
+            family_scoped_base_url("https://host.example/openai/v1", "openai.gpt-5.6-luna"),
+            None
+        );
+        assert_eq!(
+            urls(&attempt_plan(
+                "https://host.example/api",
+                "openai.gpt-5.6-luna"
+            )),
+            vec![
+                "https://host.example/api/chat/completions",
+                "https://host.example/api/responses",
+            ]
+        );
+    }
+
+    // --- Memoria de la superficie -------------------------------------------
+
+    #[test]
+    fn remembering_is_per_model_and_per_base_url() {
         // Claves propias de este test: la memoria es global al proceso y los
         // tests corren en paralelo.
         let base = "https://memoria-test.example/v1";
         let other_base = "https://otra-memoria-test.example/v1";
-        let model = "modelo-solo-responses";
+        let model = "familiax.modelo-lejano";
         let other_model = "modelo-clasico";
+        let found = Surface::new(
+            "https://memoria-test.example/familiax/v1",
+            Protocol::Responses,
+        );
 
-        assert!(!model_uses_responses_api(base, model));
+        assert_eq!(remembered_surface(base, model), None);
 
-        remember_responses_api(base, model);
+        remember_surface(base, model, &found);
 
-        // El segundo dictado con el mismo modelo va derecho a /responses.
-        assert!(model_uses_responses_api(base, model));
+        // El segundo dictado con el mismo modelo va derecho a la superficie
+        // buena: ruta base y protocolo, no sólo protocolo.
+        let known = remembered_surface(base, model).expect("recordada");
+        assert_eq!(known, found);
+        assert_eq!(
+            known.url(),
+            "https://memoria-test.example/familiax/v1/responses"
+        );
         // Y no arrastra a los vecinos: ni otro modelo del mismo proveedor
         // (Mantle hospeda los dos tipos), ni el mismo nombre en otro servidor.
-        assert!(!model_uses_responses_api(base, other_model));
-        assert!(!model_uses_responses_api(other_base, model));
+        assert_eq!(remembered_surface(base, other_model), None);
+        assert_eq!(remembered_surface(other_base, model), None);
     }
 
     // --- El viaje completo, contra un servidor de mentira -------------------
@@ -1089,6 +1352,104 @@ mod tests {
         );
     }
 
+    /// El servidor de Mantle tal como lo vio el dueño: en `/v1` no existe
+    /// ningún modelo `openai.*` (los dos endpoints contestan el mismo 400), y
+    /// la familia atiende en `/openai/v1`, ahí sí con la API clásica.
+    const UNSUPPORTED_RESPONSES_BODY: &str = r#"{"error":{"code":"validation_error","message":"The model 'openai.gpt-5.6-luna' does not support the '/v1/responses' API","param":null,"type":"invalid_request_error"}}"#;
+
+    #[tokio::test]
+    async fn walks_to_the_family_scoped_base_and_remembers_it() {
+        let server = spawn_fake_server(|path| {
+            if path.starts_with("/openai/v1") {
+                (
+                    200,
+                    json!({ "choices": [ { "message": { "content": "{\"transcription\":\"listo\"}" } } ] })
+                        .to_string(),
+                )
+            } else if path.ends_with("/chat/completions") {
+                (400, UNSUPPORTED_BODY.to_string())
+            } else {
+                (400, UNSUPPORTED_RESPONSES_BODY.to_string())
+            }
+        });
+        let provider = provider_at(&server.base_url());
+
+        let first = send_chat_completion_with_schema(
+            &provider,
+            "clave".to_string(),
+            "openai.gpt-5.6-luna",
+            "hola".to_string(),
+            Some("sos un editor".to_string()),
+            Some(schema()),
+            None,
+            None,
+        )
+        .await
+        .expect("la ruta de la familia responde");
+        assert_eq!(first.as_deref(), Some("{\"transcription\":\"listo\"}"));
+
+        // Primer dictado: la ruta configurada primero (las dos formas), y
+        // recién después la derivada del id del modelo.
+        assert_eq!(
+            server.paths(),
+            vec![
+                "/v1/chat/completions",
+                "/v1/responses",
+                "/openai/v1/chat/completions",
+            ]
+        );
+
+        // Y lo que llegó allá es el cuerpo clásico de siempre.
+        let sent = server.body_for("/openai/v1/chat/completions");
+        assert_eq!(sent["model"], "openai.gpt-5.6-luna");
+        assert_eq!(sent["messages"][0]["role"], "system");
+        assert_eq!(sent["response_format"]["json_schema"]["strict"], true);
+        assert!(sent.get("input").is_none());
+
+        let second = send_chat_completion_with_schema(
+            &provider,
+            "clave".to_string(),
+            "openai.gpt-5.6-luna",
+            "otra vez".to_string(),
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect("la ruta de la familia responde");
+        assert_eq!(second.as_deref(), Some("{\"transcription\":\"listo\"}"));
+
+        // Segundo dictado: un solo viaje, derecho a la superficie descubierta.
+        assert_eq!(
+            server.paths(),
+            vec![
+                "/v1/chat/completions",
+                "/v1/responses",
+                "/openai/v1/chat/completions",
+                "/openai/v1/chat/completions",
+            ]
+        );
+
+        // Y el vecino sin prefijo de familia ni siquiera conoce esa ruta: su
+        // plan es el de siempre, dos intentos sobre la ruta configurada.
+        let _ = send_chat_completion_with_schema(
+            &provider,
+            "clave".to_string(),
+            "gpt-oss-120b",
+            "hola".to_string(),
+            None,
+            None,
+            None,
+            None,
+        )
+        .await;
+        assert_eq!(
+            server.paths()[4..],
+            ["/v1/chat/completions", "/v1/responses"]
+        );
+    }
+
     #[tokio::test]
     async fn a_different_400_does_not_reach_responses() {
         let server = spawn_fake_server(|_| {
@@ -1157,10 +1518,14 @@ mod tests {
         // Si la clave fuera una concatenación cruda, "…/v1" + "bmodelo"
         // colisionaría con "…/v1b" + "modelo", y recordar uno marcaría al otro.
         assert_ne!(
-            responses_api_key("https://x.example/v1", "bmodelo"),
-            responses_api_key("https://x.example/v1b", "modelo")
+            surface_key("https://x.example/v1", "bmodelo"),
+            surface_key("https://x.example/v1b", "modelo")
         );
-        remember_responses_api("https://x.example/v1", "bmodelo");
-        assert!(!model_uses_responses_api("https://x.example/v1b", "modelo"));
+        remember_surface(
+            "https://x.example/v1",
+            "bmodelo",
+            &Surface::new("https://x.example/v1", Protocol::Responses),
+        );
+        assert_eq!(remembered_surface("https://x.example/v1b", "modelo"), None);
     }
 }
