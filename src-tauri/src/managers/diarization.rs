@@ -1525,13 +1525,12 @@ fn run_pipeline(models: &LoadedModels, audio: &[f32]) -> Result<Vec<DiarizedSegm
     ))
 }
 
-/// Sonda temporal de la Task 1 (plan "reuniones en streaming"): compara
-/// Sortformer streaming contra este mismo motor sobre audio real en
-/// español. Ver el doc comment del propio archivo para el detalle. Sólo
-/// contiene un test `#[ignore]` que corre a mano -- por eso el módulo entero
-/// vive detrás de `#[cfg(test)]` y no aparece en builds normales.
-#[cfg(test)]
-mod sortformer_probe;
+/// Motor de diarización en streaming con Sortformer (Task 2 del plan
+/// "reuniones en streaming"): ventana deslizante + caché de hablantes entre
+/// trozos + salida incremental. Reemplaza la sonda descartable de la Task 1
+/// (`sortformer_probe.rs`, borrada en el commit que agregó este módulo).
+/// Ver su doc comment para el diseño completo.
+pub mod sortformer;
 
 #[cfg(test)]
 mod tests {

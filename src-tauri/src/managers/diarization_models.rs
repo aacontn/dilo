@@ -210,6 +210,130 @@ pub async fn ensure_embedding_model_downloaded(models_dir: &Path) -> Result<Path
     Ok(dest)
 }
 
+// ============================================================================
+// Modelo de diarización en streaming (Sortformer, NVIDIA NeMo) — Task 2 del
+// plan "reuniones en streaming"
+// (`.superpowers/sdd/2026-08-04-reuniones-en-streaming/`). Descarga en
+// runtime, mismo patrón que el modelo de embeddings de arriba (~470 MB, muy
+// por encima del umbral de "committear directo" que sí aplica al modelo de
+// segmentación).
+//
+// Deliberadamente NO está en `catalog/catalog.json`: ese catálogo alimenta
+// el selector de modelos de transcripción de la UI
+// (`catalog::ModelDescriptor`, mapeado siempre a
+// `EngineType::TranscribeCpp`, el motor GGML/GGUF) — agregar acá un modelo
+// ONNX de diarización lo haría aparecer como si fuera un modelo de
+// transcripción seleccionable, que es exactamente la confusión que el doc
+// comment del módulo (arriba) ya explica para el modelo de embeddings. Este
+// modelo sigue el mismo patrón: funciones libres, desacopladas de
+// `AppHandle`/`ModelManager`/`ModelInfo`.
+// ============================================================================
+
+/// Nombre de archivo del modelo Sortformer, tal como se guarda en disco.
+pub const SORTFORMER_MODEL_FILENAME: &str = "diar_streaming_sortformer_4spk-v2.onnx";
+
+/// URL de origen, pineada a un commit específico (no `main`) para que el
+/// hash de abajo sea estable. `nvidia/diar_streaming_sortformer_4spk-v2`
+/// (el checkpoint real, licencia verificada más abajo) sólo publica un
+/// checkpoint `.nemo` — sin export ONNX propio. El archivo de acá es la
+/// exportación de <https://huggingface.co/altunenes/parakeet-rs> (usada
+/// para su port a Rust de modelos NeMo; su propio README dice "All models
+/// using the same licences from NVIDIA. I only exported them to ONNX").
+/// Verificado en Task 2: el SHA-256 de abajo coincide exactamente con el
+/// `X-Linked-ETag` que Hugging Face reporta para este mismo blob.
+pub const SORTFORMER_MODEL_URL: &str = "https://huggingface.co/altunenes/parakeet-rs/resolve/a61d2818df4659c956b9661a9447f46e98c15126/diar_streaming_sortformer_4spk-v2.onnx";
+
+/// SHA-256 del archivo, calculado localmente en Task 2 sobre la descarga y
+/// verificado contra el `X-Linked-ETag` que reporta Hugging Face para ese
+/// mismo blob (dos fuentes independientes, coinciden).
+pub const SORTFORMER_MODEL_SHA256: &str =
+    "cc520901a8cc25a8d7f7c2c8561a465709b67dd4f1df0572a97530087f3fbc73";
+
+/// Tamaño esperado en bytes.
+pub const SORTFORMER_MODEL_SIZE_BYTES: u64 = 492_243_002;
+
+/// Licencia verificada del checkpoint real (`nvidia/diar_streaming_sortformer_4spk-v2`,
+/// **sin el `.1`**): `cc-by-4.0`, confirmada contra
+/// `huggingface.co/api/models/nvidia/diar_streaming_sortformer_4spk-v2`
+/// (tag `license:cc-by-4.0` en la respuesta de la API, no sólo en el
+/// README). Es la misma licencia que Canary, que Dilo ya distribuye. La
+/// versión `v2.1` (con el punto uno) es un checkpoint EMPAREJADO pero
+/// DISTINTO, con mejor DER pero licencia `nvidia-open-model-license` sin
+/// verificar para distribución — por eso Task 2 usa v2, no v2.1 (ver
+/// `task-2-report.md` para la comparación empírica de calidad entre
+/// ambos). El repo que sirve el `.onnx` (`altunenes/parakeet-rs`) no
+/// declara su propio tag de licencia pero su README remite explícitamente
+/// a la licencia de NVIDIA para el checkpoint de origen.
+pub const SORTFORMER_MODEL_LICENSE: &str =
+    "CC-BY-4.0 (nvidia/diar_streaming_sortformer_4spk-v2, ver task-2-report.md)";
+
+/// Ruta absoluta donde debería vivir el modelo Sortformer dentro del
+/// directorio de modelos de la app.
+pub fn sortformer_model_path(models_dir: &Path) -> PathBuf {
+    models_dir.join(SORTFORMER_MODEL_FILENAME)
+}
+
+/// Si el modelo Sortformer ya está descargado en disco.
+pub fn is_sortformer_model_downloaded(models_dir: &Path) -> bool {
+    sortformer_model_path(models_dir).is_file()
+}
+
+/// Descarga el modelo Sortformer si falta, verificando tamaño y SHA-256
+/// antes de dejarlo en su ubicación final. Mismo patrón que
+/// [`ensure_embedding_model_downloaded`] (descarga simple, sin resume ni
+/// eventos de progreso a la UI -- este modelo tampoco es algo que el
+/// usuario elija o cancele desde el selector de modelos).
+pub async fn ensure_sortformer_model_downloaded(models_dir: &Path) -> Result<PathBuf> {
+    let dest = sortformer_model_path(models_dir);
+    if dest.is_file() {
+        return Ok(dest);
+    }
+
+    std::fs::create_dir_all(models_dir)
+        .with_context(|| format!("creando {}", models_dir.display()))?;
+
+    let response = reqwest::get(SORTFORMER_MODEL_URL)
+        .await
+        .with_context(|| format!("descargando {SORTFORMER_MODEL_URL}"))?;
+    if !response.status().is_success() {
+        bail!(
+            "descarga del modelo Sortformer falló: HTTP {}",
+            response.status()
+        );
+    }
+    let bytes = response
+        .bytes()
+        .await
+        .context("leyendo el cuerpo de la respuesta del modelo Sortformer")?;
+
+    if bytes.len() as u64 != SORTFORMER_MODEL_SIZE_BYTES {
+        bail!(
+            "tamaño del modelo Sortformer no coincide: esperado {} bytes, obtenido {} \
+             (descarga incompleta o el archivo upstream cambió)",
+            SORTFORMER_MODEL_SIZE_BYTES,
+            bytes.len()
+        );
+    }
+
+    let actual_sha256 = sha256_hex(&bytes);
+    if actual_sha256 != SORTFORMER_MODEL_SHA256 {
+        bail!(
+            "SHA-256 del modelo Sortformer no coincide: esperado {}, obtenido {} \
+             (descarga corrupta o el archivo upstream cambió -- no continuar sin \
+             re-verificar la licencia)",
+            SORTFORMER_MODEL_SHA256,
+            actual_sha256
+        );
+    }
+
+    let partial = models_dir.join(format!("{SORTFORMER_MODEL_FILENAME}.partial"));
+    std::fs::write(&partial, &bytes)
+        .with_context(|| format!("escribiendo {}", partial.display()))?;
+    std::fs::rename(&partial, &dest).with_context(|| format!("moviendo a {}", dest.display()))?;
+
+    Ok(dest)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,5 +360,20 @@ mod tests {
             sha256_hex(b"abc"),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn sortformer_model_path_joins_filename() {
+        let dir = Path::new("/tmp/dilo-app-data/models");
+        assert_eq!(
+            sortformer_model_path(dir),
+            dir.join("diar_streaming_sortformer_4spk-v2.onnx")
+        );
+    }
+
+    #[test]
+    fn is_sortformer_model_downloaded_false_when_missing() {
+        let dir = Path::new("/tmp/dilo-app-data-does-not-exist/models");
+        assert!(!is_sortformer_model_downloaded(dir));
     }
 }
