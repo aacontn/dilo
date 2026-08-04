@@ -689,10 +689,19 @@ const NO_SEGMENTS_VOICE_WARNING_MS: u64 = 90_000;
 /// sano, y sin posibilidad de reprocesarlas después.
 ///
 /// 4 s es entonces la cadencia del camino sano, copiada a mano donde no la
-/// hay: hace que el modo degradado produzca filas del mismo tamaño (~30
-/// para esos mismos 120 s) en vez de una por palabra. No es un tope de
+/// hay: hace que el modo degradado produzca filas del mismo tamaño (22 para
+/// esos mismos 120 s, medidas) en vez de una por palabra. No es un tope de
 /// espera adicional — el texto que todavía no se cierra se sigue viendo por
 /// `meeting-pending-segments` mientras se acumula.
+///
+/// **Se cuenta desde el corte anterior, no desde el último token guardado**
+/// (`TranscriptState::last_cut_ms`). Contra el último token guardado, un
+/// silencio se gastaba el crédito de la tanda: mientras la grace cruzaba la
+/// pausa la marca de agua se quedaba clavada en el token de antes, así que
+/// el primer token de después ya llegaba con más de 4 s de diferencia y se
+/// cerraba solo. Medido con una pausa de 6 s en un monólogo de 120 s:
+/// aparecía una fila de UNA palabra en el borde del silencio — el defecto
+/// original filtrándose por ahí.
 const GRACE_MIN_CLOSE_MS: u64 = 4_000;
 
 /// Avisa al frontend de un fallo que **mata la sesión** (`meeting-error`).
@@ -1398,6 +1407,16 @@ struct TranscriptState {
     /// insertadas, no runs saltadas por texto en blanco). Lo lee el watchdog
     /// para el aviso de "grabando y sin guardar nada" (I2).
     persisted_segments: u64,
+    /// Último corte de cierre que se usó, sea el de los dos motores o el de
+    /// la grace — la referencia contra la que se mide si ya hay tanda
+    /// suficiente para volver a cerrar por grace ([`GRACE_MIN_CLOSE_MS`]).
+    ///
+    /// Es un campo propio y no `persisted_until_ms` a propósito: la marca de
+    /// agua es el fin del último token GUARDADO, así que durante un silencio
+    /// se queda quieta y el crédito de la tanda se acumula sin que pase nada
+    /// — y el primer token después de la pausa se cerraba solo. El corte, en
+    /// cambio, avanza aunque no haya nada que guardar.
+    last_cut_ms: u64,
     /// Texto de lo último que se emitió como en curso
     /// (`meeting-pending-segments`), para no reemitir el mismo evento en
     /// cada actualización de tokens que no cambió nada visible.
@@ -1647,15 +1666,19 @@ fn recording_without_saving(voiced_ms: u64, persisted_segments: u64) -> bool {
 /// Eso no reintroduce C1: lo que espera se sigue **mostrando** como en
 /// curso, y el tope de espera sigue siendo un tope de reloj (grace + 4 s),
 /// no "hasta que alguien cambie de voz".
+///
+/// `last_cut_ms` es el corte anterior (`TranscriptState::last_cut_ms`), no
+/// la marca de agua de lo persistido — ver el doc de [`GRACE_MIN_CLOSE_MS`]
+/// para por qué la diferencia importa justo en los bordes de silencio.
 fn close_boundary_ms(
     asr_committed_ms: u64,
     diar_settled_ms: u64,
     now_ms: u64,
-    persisted_until_ms: u64,
+    last_cut_ms: u64,
 ) -> u64 {
     let settled_ms = asr_committed_ms.min(diar_settled_ms);
     let grace_ms = now_ms.saturating_sub(SETTLE_GRACE_MS);
-    if grace_ms > settled_ms && grace_ms.saturating_sub(persisted_until_ms) >= GRACE_MIN_CLOSE_MS {
+    if grace_ms > settled_ms && grace_ms.saturating_sub(last_cut_ms) >= GRACE_MIN_CLOSE_MS {
         grace_ms
     } else {
         settled_ms
@@ -1780,12 +1803,19 @@ fn maybe_persist_new_runs<R: tauri::Runtime>(
             .collect();
         let close_until_ms = match close_up_to {
             CloseUpTo::Everything => u64::MAX,
-            CloseUpTo::Settled { now_ms } => close_boundary_ms(
-                state.asr_committed_ms,
-                state.diar_settled_ms,
-                now_ms,
-                watermark,
-            ),
+            CloseUpTo::Settled { now_ms } => {
+                let cut_ms = close_boundary_ms(
+                    state.asr_committed_ms,
+                    state.diar_settled_ms,
+                    now_ms,
+                    state.last_cut_ms,
+                );
+                // El corte avanza aunque esta tanda no tenga nada que
+                // guardar (un silencio): es lo que evita que el crédito de
+                // la próxima se acumule mientras nadie habla.
+                state.last_cut_ms = state.last_cut_ms.max(cut_ms);
+                cut_ms
+            }
         };
         (
             tokens,
@@ -5122,29 +5152,36 @@ mod tests {
         assert_eq!(close_boundary_ms(9_000, 9_000, 10_000, 8_900), 9_000);
     }
 
-    #[test]
-    fn en_modo_degradado_no_se_cierra_una_fila_por_palabra() {
-        // Important de la re-revisión: con la grace mandando (Sortformer
-        // ausente o descargándose todavía), el corte avanza con el reloj y
-        // se recalcula con cada `stream-text-event` — o sea cada ~250 ms, al
-        // ritmo del habla. Sin acumular, cada llamada cerraba la palabra que
-        // quedó detrás: 360 filas de una palabra para 120 s de monólogo,
-        // todas sin hablante y por lo tanto sin poder unirse en la interfaz.
-        let dir = temp_db_path("maybe-persist-degradado-granularidad");
+    /// Simula una reunión en modo degradado (Sortformer nunca cargó) y
+    /// devuelve cuántas palabras quedaron en cada fila guardada.
+    ///
+    /// `hablando` decide, para cada tramo de `TOKEN_MS`, si llegó un token o
+    /// si ese pedazo fue silencio. Fiel a cómo corre de verdad: sin
+    /// diarizador, `maybe_persist_new_runs` sólo se llama desde
+    /// `DiarizerCmd::TokensUpdated` (el camino de audio se limita a
+    /// bufferizar), así que un tramo callado no genera ninguna llamada.
+    fn palabras_por_fila_en_modo_degradado(
+        etiqueta: &str,
+        total_ms: u64,
+        hablando: impl Fn(u64) -> bool,
+    ) -> Vec<usize> {
+        const TOKEN_MS: u64 = 250;
+
+        let dir = temp_db_path(etiqueta);
         let manager = MeetingManager::new(dir.clone()).expect("MeetingManager::new");
         let meeting_id = manager.start_meeting("presencial").expect("start_meeting");
         let conn = manager.get_connection().expect("get_connection");
-
-        const TOKEN_MS: u64 = 250;
-        const TOTAL_MS: u64 = 120_000;
 
         let state = Mutex::new(TranscriptState::default());
         let mut turn_failure_reported = false;
         let mut now_ms = 0u64;
         let mut word = 0u32;
-        while now_ms < TOTAL_MS {
+        while now_ms < total_ms {
             let start_ms = now_ms;
             now_ms += TOKEN_MS;
+            if !hablando(start_ms) {
+                continue;
+            }
             word += 1;
             {
                 let mut guard = state.lock().unwrap();
@@ -5169,31 +5206,68 @@ mod tests {
 
         let rows = segment_rows(&conn);
         assert!(
-            !rows.is_empty(),
-            "sin diarizador el texto igual se tiene que guardar (C1)"
-        );
-        assert!(
-            rows.len() <= 40,
-            "filas de una palabra: {} filas para {} s de monólogo",
-            rows.len(),
-            TOTAL_MS / 1_000
-        );
-        let palabras_por_fila: Vec<usize> = rows
-            .iter()
-            .map(|(text, _)| text.split_whitespace().count())
-            .collect();
-        assert!(
-            palabras_por_fila.iter().all(|&n| n >= 8),
-            "alguna fila quedó demasiado corta: {palabras_por_fila:?}"
-        );
-        assert!(
             rows.iter().all(|(_, speaker)| speaker.is_none()),
             "sin diarizador nadie tiene hablante: nunca se adivina uno"
         );
+        let palabras = rows
+            .iter()
+            .map(|(text, _)| text.split_whitespace().count())
+            .collect();
 
         drop(conn);
         drop(manager);
         let _ = std::fs::remove_file(&dir);
+        palabras
+    }
+
+    #[test]
+    fn en_modo_degradado_no_se_cierra_una_fila_por_palabra() {
+        // Important de la re-revisión: con la grace mandando (Sortformer
+        // ausente o descargándose todavía), el corte avanza con el reloj y
+        // se recalcula con cada `stream-text-event` — o sea cada ~250 ms, al
+        // ritmo del habla. Sin acumular, cada llamada cerraba la palabra que
+        // quedó detrás: 360 filas de una palabra para 120 s de monólogo,
+        // todas sin hablante y por lo tanto sin poder unirse en la interfaz.
+        let palabras = palabras_por_fila_en_modo_degradado("degradado-continuo", 120_000, |_| true);
+
+        assert!(
+            !palabras.is_empty(),
+            "sin diarizador el texto igual se tiene que guardar (C1)"
+        );
+        assert!(
+            palabras.len() <= 40,
+            "filas de una palabra: {} filas para 120 s de monólogo",
+            palabras.len()
+        );
+        assert!(
+            palabras.iter().all(|&n| n >= 8),
+            "alguna fila quedó demasiado corta: {palabras:?}"
+        );
+    }
+
+    #[test]
+    fn en_modo_degradado_una_pausa_no_deja_una_fila_de_una_palabra() {
+        // Minor de la tercera revisión: el mínimo se medía contra la marca
+        // de agua (el fin del último token GUARDADO), que durante un
+        // silencio se queda quieta. Cuando la grace terminaba de cruzar la
+        // pausa ya había más de 4 s de diferencia acumulados, así que el
+        // primer token de después se cerraba solo — el defecto original
+        // filtrándose en cada borde de silencio. Medirlo contra el corte
+        // anterior lo cierra: el corte avanza aunque no haya nada que
+        // guardar.
+        let palabras = palabras_por_fila_en_modo_degradado("degradado-con-pausa", 120_000, |ms| {
+            !(40_000..46_000).contains(&ms)
+        });
+
+        assert!(
+            palabras.len() <= 40,
+            "{} filas para 120 s con una pausa",
+            palabras.len()
+        );
+        assert!(
+            palabras.iter().all(|&n| n >= 4),
+            "el borde del silencio dejó una fila diminuta: {palabras:?}"
+        );
     }
 
     #[test]
