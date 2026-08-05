@@ -2505,7 +2505,7 @@ impl MeetingManager {
             {
                 recorder.close();
                 if audio_source != MeetingAudioSource::SystemAudio {
-                    transcription_manager.cancel_stream();
+                    transcription_manager.cancel_stream(StreamPurpose::Meeting);
                     bail!("Failed to start meeting capture: {}", e);
                 }
                 // I2 del reporte de seguimiento: `resolve_meeting_audio_source`
@@ -2531,13 +2531,13 @@ impl MeetingManager {
                 recorder = match build_meeting_recorder(build_audio_cb()) {
                     Ok(r) => MeetingRecorder::Microphone(r),
                     Err(e) => {
-                        transcription_manager.cancel_stream();
+                        transcription_manager.cancel_stream(StreamPurpose::Meeting);
                         return Err(e);
                     }
                 };
                 if let Err(e) = recorder.open(mic_device()).and_then(|_| recorder.start()) {
                     recorder.close();
-                    transcription_manager.cancel_stream();
+                    transcription_manager.cancel_stream(StreamPurpose::Meeting);
                     bail!("Failed to start meeting capture: {}", e);
                 }
             }
@@ -3017,7 +3017,7 @@ impl MeetingManager {
         // palabras que seguían tentativas), no una carrera de datos: sin
         // este bloqueo sí lo sería.
         if let Some(tm) = &self.transcription_manager {
-            if let Err(e) = tm.finalize_stream() {
+            if let Err(e) = tm.finalize_stream(StreamPurpose::Meeting) {
                 // M8 del fix round 1: un timeout acá (`finalize_stream`
                 // esperó `STREAM_FINALIZE_REPLY_TIMEOUT` sin respuesta del
                 // hilo de streaming) puede dejar el motor de reconocimiento

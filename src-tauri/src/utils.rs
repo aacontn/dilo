@@ -1,5 +1,5 @@
 use crate::managers::audio::AudioRecordingManager;
-use crate::managers::transcription::TranscriptionManager;
+use crate::managers::transcription::{StreamPurpose, TranscriptionManager};
 use crate::shortcut;
 use crate::TranscriptionCoordinator;
 use log::info;
@@ -27,7 +27,7 @@ pub fn cancel_current_operation(app: &AppHandle) {
 
     // Abandon any live streaming transcription
     let tm = app.state::<Arc<TranscriptionManager>>();
-    tm.cancel_stream();
+    tm.cancel_stream(StreamPurpose::Dictation);
 
     // Update tray icon and hide overlay
     change_tray_icon(app, crate::tray::TrayIconState::Idle);

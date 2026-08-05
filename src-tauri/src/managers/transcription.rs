@@ -157,6 +157,46 @@ pub enum StreamPurpose {
     Meeting,
 }
 
+/// El propósito del stream vivo cuando **no** es el de quien pide cerrarlo —
+/// o sea, cuando cerrarlo sería apagarle el motor a otro. `None` significa
+/// "adelante": o no hay stream, o es del mismo propósito.
+///
+/// Pura a propósito: la regla que impide que un dictado fallido mate una
+/// reunión en curso se prueba acá directamente, sin levantar Tauri.
+fn foreign_stream_owner(
+    owner: Option<StreamPurpose>,
+    caller: StreamPurpose,
+) -> Option<StreamPurpose> {
+    match owner {
+        Some(owner) if owner != caller => Some(owner),
+        _ => None,
+    }
+}
+
+/// Núcleo de [`TranscriptionManager::cancel_stream`], sin `AppHandle` ni
+/// manager, para poder probar contra un router de verdad que un cancel ajeno
+/// no toca nada: ni cierra el canal, ni manda `Cancel`, ni baja la bandera de
+/// stream vivo.
+fn cancel_stream_on(
+    router: &StreamRouter,
+    stream_active: &AtomicBool,
+    owner: Option<StreamPurpose>,
+    caller: StreamPurpose,
+) -> bool {
+    if let Some(owner) = foreign_stream_owner(owner, caller) {
+        warn!(
+            "cancel_stream de {:?} ignorado: el stream vivo es de {:?}",
+            caller, owner
+        );
+        return false;
+    }
+    if let Some(tx) = router.take() {
+        let _ = tx.send(StreamCmd::Cancel);
+    }
+    stream_active.store(false, Ordering::Release);
+    true
+}
+
 /// Commands sent to the streaming worker thread. Audio frames and the finalize
 /// request travel the same channel so FIFO ordering guarantees every fed frame
 /// is processed before finalize runs.
@@ -274,12 +314,23 @@ struct StreamWorkerGuard {
     active_stream_worker: Arc<AtomicU64>,
     active_engine_lease: Arc<AtomicU64>,
     stream_active: Arc<AtomicBool>,
+    /// Dueño del stream vivo (ver `TranscriptionManager::stream_owner`). Se
+    /// limpia acá, y **antes** de soltar `active_stream_worker`, para que no
+    /// exista un instante en el que un stream nuevo ya pudo arrancar y el
+    /// dueño anotado siga siendo el del worker que se está muriendo.
+    stream_owner: Arc<Mutex<Option<(u64, StreamPurpose)>>>,
 }
 
 impl Drop for StreamWorkerGuard {
     fn drop(&mut self) {
         if self.active_stream_worker.load(Ordering::Acquire) == self.worker_id {
             self.stream_active.store(false, Ordering::Release);
+        }
+        {
+            let mut owner = self.stream_owner.lock().unwrap();
+            if matches!(*owner, Some((id, _)) if id == self.worker_id) {
+                *owner = None;
+            }
         }
         let _ = self.active_engine_lease.compare_exchange(
             self.worker_id,
@@ -348,6 +399,19 @@ pub struct TranscriptionManager {
     /// `is_model_loaded()` consults this so the model still reports "loaded"
     /// while the worker holds it.
     active_engine_lease: Arc<AtomicU64>,
+    /// Quién abrió el stream vivo y con qué worker — lo fija `start_stream`
+    /// con el `purpose` que le pasó el llamador, y lo limpia el propio worker
+    /// al salir ([`StreamWorkerGuard`]).
+    ///
+    /// Existe porque apagar un stream es una operación **con dueño**: un
+    /// dictado que falla al abrir el micrófono (típico: hay una reunión
+    /// grabando y el `MicrophoneArbiter` le niega el micrófono) llama a
+    /// `cancel_stream` en su camino de reversa, y sin esta marca ese cancel
+    /// mataba el motor de la reunión en curso — que seguía capturando audio
+    /// sin nadie que lo transcribiera (reporte del dueño, 2026-08-04).
+    /// `cancel_stream`/`finalize_stream` consultan esto y se niegan a tocar
+    /// un stream de otro propósito.
+    stream_owner: Arc<Mutex<Option<(u64, StreamPurpose)>>>,
     /// True mientras una reunión tiene el micrófono abierto. La captura de
     /// reunión no pasa por `AudioRecordingManager`, así que las dos rutas de
     /// descarga del modelo (el watcher de inactividad y
@@ -417,6 +481,7 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
+            stream_owner: Arc::new(Mutex::new(None)),
             meeting_capture_active: Arc::new(AtomicBool::new(false)),
         };
 
@@ -1058,6 +1123,7 @@ impl TranscriptionManager {
             warn!("start_stream lost a race with another stream worker");
             return;
         }
+        *self.stream_owner.lock().unwrap() = Some((worker_id, purpose));
         let rx = self.router.open();
         self.stream_active.store(false, Ordering::Release);
 
@@ -1076,6 +1142,7 @@ impl TranscriptionManager {
             active_stream_worker: Arc::clone(&self.active_stream_worker),
             active_engine_lease: Arc::clone(&self.active_engine_lease),
             stream_active: Arc::clone(&self.stream_active),
+            stream_owner: Arc::clone(&self.stream_owner),
         };
 
         // Wait for any in-progress model load to finish (start_stream races the
@@ -1352,13 +1419,33 @@ impl TranscriptionManager {
         }
     }
 
+    /// Dueño del stream vivo, si hay uno (ver [`Self::stream_owner`]).
+    fn stream_owner_purpose(&self) -> Option<StreamPurpose> {
+        self.stream_owner
+            .lock()
+            .unwrap()
+            .map(|(_, purpose)| purpose)
+    }
+
     /// Flush the active stream and return its final, post-filtered text.
+    ///
+    /// `caller` es quién pide cerrar: si el stream vivo lo abrió otro
+    /// propósito (dictado contra reunión), esto devuelve `Ok(None)` sin
+    /// tocarlo — el texto de una reunión no es el dictado de nadie, y
+    /// cerrarlo dejaría a la reunión capturando audio sin transcribir.
     ///
     /// `Ok(None)` means no usable stream was active and the caller may fall back
     /// to batch transcription. `Err` means finalize itself failed or timed out.
     /// A timeout may still leave the worker holding the engine, so callers
     /// should surface it instead of immediately starting a batch fallback.
-    pub fn finalize_stream(&self) -> Result<Option<String>> {
+    pub fn finalize_stream(&self, caller: StreamPurpose) -> Result<Option<String>> {
+        if let Some(owner) = foreign_stream_owner(self.stream_owner_purpose(), caller) {
+            warn!(
+                "finalize_stream de {:?} ignorado: el stream vivo es de {:?}",
+                caller, owner
+            );
+            return Ok(None);
+        }
         let Some(tx) = self.router.take() else {
             return Ok(None);
         };
@@ -1389,11 +1476,19 @@ impl TranscriptionManager {
     }
 
     /// Abandon any active stream without producing text (e.g. on cancel).
-    pub fn cancel_stream(&self) {
-        if let Some(tx) = self.router.take() {
-            let _ = tx.send(StreamCmd::Cancel);
-        }
-        self.stream_active.store(false, Ordering::Release);
+    ///
+    /// `caller` es quién cancela. Un stream abierto por otro propósito no se
+    /// toca: el caso real es un dictado que no consigue el micrófono porque
+    /// hay una reunión grabando y, al deshacer su propio arranque, apagaba el
+    /// motor de esa reunión (reporte del dueño, 2026-08-04). Devuelve si de
+    /// verdad canceló algo.
+    pub fn cancel_stream(&self, caller: StreamPurpose) -> bool {
+        cancel_stream_on(
+            &self.router,
+            &self.stream_active,
+            self.stream_owner_purpose(),
+            caller,
+        )
     }
 
     /// Emit a working-phase event to the streaming overlay (spinner + label).
@@ -2246,6 +2341,96 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    // ---------- Dueño del stream (bug crítico del 2026-08-04) ----------
+
+    #[test]
+    fn un_dictado_no_puede_cancelar_el_stream_de_una_reunion() {
+        // El caso real: hay una reunión grabando, el dueño aprieta el atajo
+        // de dictado, el árbitro le niega el micrófono y el camino de reversa
+        // del dictado llama a cancelar. Ese cancel NO puede tocar el motor de
+        // la reunión: si lo apaga, la reunión sigue capturando audio y nadie
+        // transcribe.
+        let router = StreamRouter::new();
+        let rx = router.open();
+        let stream_active = AtomicBool::new(true);
+
+        let cancelled = cancel_stream_on(
+            &router,
+            &stream_active,
+            Some(StreamPurpose::Meeting),
+            StreamPurpose::Dictation,
+        );
+
+        assert!(!cancelled, "el dictado no debe cancelar un stream ajeno");
+        assert!(router.is_open(), "el canal de la reunión sigue abierto");
+        assert!(
+            stream_active.load(Ordering::Acquire),
+            "la reunión sigue marcada como transcribiendo en vivo"
+        );
+        assert!(
+            matches!(rx.try_recv(), Err(mpsc::TryRecvError::Empty)),
+            "al worker de la reunión no le llegó ningún comando"
+        );
+        // Y el router sigue sirviendo audio a la reunión.
+        router.feed(&[0.0, 0.1]);
+        assert!(
+            matches!(rx.try_recv(), Ok(StreamCmd::Feed(_))),
+            "el audio de la reunión sigue llegando al motor"
+        );
+    }
+
+    #[test]
+    fn el_dueno_del_stream_si_puede_cancelarlo() {
+        let router = StreamRouter::new();
+        let rx = router.open();
+        let stream_active = AtomicBool::new(true);
+
+        let cancelled = cancel_stream_on(
+            &router,
+            &stream_active,
+            Some(StreamPurpose::Meeting),
+            StreamPurpose::Meeting,
+        );
+
+        assert!(cancelled);
+        assert!(!router.is_open());
+        assert!(!stream_active.load(Ordering::Acquire));
+        assert!(matches!(rx.try_recv(), Ok(StreamCmd::Cancel)));
+    }
+
+    #[test]
+    fn sin_stream_vivo_cualquiera_puede_cancelar() {
+        // Sin dueño anotado no hay nada que proteger: el cancel tiene que
+        // seguir limpiando por si quedó un canal abierto (es lo que evita que
+        // el próximo `start_stream` se encuentre el puesto ocupado).
+        let router = StreamRouter::new();
+        let stream_active = AtomicBool::new(false);
+        assert!(cancel_stream_on(
+            &router,
+            &stream_active,
+            None,
+            StreamPurpose::Dictation
+        ));
+    }
+
+    #[test]
+    fn la_regla_de_dueno_es_simetrica() {
+        // Ni la reunión apaga el dictado ni al revés; cada uno sí el suyo.
+        assert_eq!(
+            foreign_stream_owner(Some(StreamPurpose::Meeting), StreamPurpose::Dictation),
+            Some(StreamPurpose::Meeting)
+        );
+        assert_eq!(
+            foreign_stream_owner(Some(StreamPurpose::Dictation), StreamPurpose::Meeting),
+            Some(StreamPurpose::Dictation)
+        );
+        assert_eq!(
+            foreign_stream_owner(Some(StreamPurpose::Dictation), StreamPurpose::Dictation),
+            None
+        );
+        assert_eq!(foreign_stream_owner(None, StreamPurpose::Meeting), None);
     }
 
     // ---------- TimedToken / plain_text (Task 3: marcas por token) ----------

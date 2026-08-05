@@ -873,7 +873,7 @@ impl ShortcutAction for TranscribeAction {
         } else {
             // Starting failed (for example due to blocked microphone permissions).
             // Revert UI state so we don't stay stuck in the recording overlay.
-            tm.cancel_stream();
+            tm.cancel_stream(StreamPurpose::Dictation);
             utils::hide_recording_overlay(app);
             change_tray_icon(app, TrayIconState::Idle);
             if let Some(err) = recording_error {
@@ -968,7 +968,7 @@ impl ShortcutAction for TranscribeAction {
 
                 if rm.was_cancelled_since(cancel_generation) {
                     debug!("Transcription operation cancelled after recording stop");
-                    tm.cancel_stream();
+                    tm.cancel_stream(StreamPurpose::Dictation);
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
                     return;
@@ -978,7 +978,7 @@ impl ShortcutAction for TranscribeAction {
                     debug!("Recording produced no audio samples; skipping persistence");
                     // Tear down any streaming worker so its channel doesn't leak
                     // and block the next start_stream.
-                    tm.cancel_stream();
+                    tm.cancel_stream(StreamPurpose::Dictation);
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
                 } else {
@@ -996,7 +996,7 @@ impl ShortcutAction for TranscribeAction {
                     // running, finalize it and use its text (all audio was already
                     // fed to the stream); otherwise batch-transcribe the samples.
                     let transcription_time = Instant::now();
-                    let transcription_result = match tm.finalize_stream() {
+                    let transcription_result = match tm.finalize_stream(StreamPurpose::Dictation) {
                         // A finalized stream with usable text wins. An empty result
                         // (no active stream, produced nothing, or a finalize error
                         // after the engine was returned) falls back to a full batch
@@ -1203,7 +1203,7 @@ impl ShortcutAction for TranscribeAction {
             } else {
                 debug!("No samples retrieved from recording stop");
                 // Tear down any streaming worker so its channel doesn't leak.
-                tm.cancel_stream();
+                tm.cancel_stream(StreamPurpose::Dictation);
                 utils::hide_recording_overlay(&ah);
                 change_tray_icon(&ah, TrayIconState::Idle);
             }
