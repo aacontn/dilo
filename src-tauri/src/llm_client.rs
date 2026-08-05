@@ -37,6 +37,18 @@ const STRUCTURED_OUTPUT_NAME: &str = "transcription_output";
 /// servidor no contesta, mejor un error visible que un spinner eterno.
 const MODELS_REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 
+/// Techo para cada petición de texto (chat/responses). Sin esto, un endpoint
+/// que acepta la conexión y nunca contesta deja el post-proceso colgado para
+/// siempre y el dictado nunca aparece.
+///
+/// Es por petición, no por dictado — pero el descubrimiento de superficie
+/// (ver la nota del módulo) sólo reintenta cuando el servidor CONTESTA que
+/// ese modelo no vive ahí; un timeout es `LlmError::Other` y corta la cadena
+/// en el acto, así que el techo real que paga el usuario es este número, no
+/// su múltiplo. Un minuto deja pasar modelos lentos con razonamiento sin
+/// convertir "no contesta" en "esperá para siempre".
+const CHAT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[derive(Debug, Serialize)]
 struct ChatMessage {
     role: String,
@@ -315,11 +327,33 @@ fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<Header
 
 /// Create an HTTP client with provider-specific headers
 fn create_client(provider: &PostProcessProvider, api_key: &str) -> Result<reqwest::Client, String> {
+    create_client_with_timeout(provider, api_key, CHAT_REQUEST_TIMEOUT)
+}
+
+/// Igual que [`create_client`], con el techo de espera explícito para que los
+/// tests puedan comprobar el camino del timeout sin esperar un minuto.
+fn create_client_with_timeout(
+    provider: &PostProcessProvider,
+    api_key: &str,
+    timeout: Duration,
+) -> Result<reqwest::Client, String> {
     let headers = build_headers(provider, api_key)?;
     reqwest::Client::builder()
         .default_headers(headers)
+        .timeout(timeout)
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))
+}
+
+/// Traduce una falla de envío a algo que el usuario pueda leer. Un servidor
+/// que no contesta es el caso frecuente y tiene su propio texto: "falló la
+/// petición HTTP" no dice nada accionable, "se agotó el tiempo" sí.
+fn describe_send_error(url: &str, error: &reqwest::Error) -> String {
+    if error.is_timeout() {
+        format!("Se agotó el tiempo de espera: {} no respondió", url)
+    } else {
+        format!("HTTP request failed: {}", error)
+    }
 }
 
 /// Send a chat completion request to an OpenAI-compatible API
@@ -472,7 +506,7 @@ async fn send_via_chat_completions(
         .json(&request_body)
         .send()
         .await
-        .map_err(|e| LlmError::Other(format!("HTTP request failed: {}", e)))?;
+        .map_err(|e| LlmError::Other(describe_send_error(&url, &e)))?;
 
     let status = response.status();
     if !status.is_success() {
@@ -576,7 +610,7 @@ async fn send_via_responses(
         .json(&request_body)
         .send()
         .await
-        .map_err(|e| LlmError::Other(format!("HTTP request failed: {}", e)))?;
+        .map_err(|e| LlmError::Other(describe_send_error(&url, &e)))?;
 
     let status = response.status();
     if !status.is_success() {
@@ -707,7 +741,7 @@ pub async fn fetch_models(
         .await
         .map_err(|e| {
             warn!("Failed to fetch models from {}: {}", url, e);
-            format!("Failed to fetch models: {}", e)
+            describe_send_error(&url, &e)
         })?;
 
     let status = response.status();
@@ -1175,6 +1209,16 @@ mod tests {
     fn spawn_fake_server(
         responder: impl Fn(&str) -> (u16, String) + Send + 'static,
     ) -> Arc<FakeServer> {
+        spawn_fake_server_after(Duration::ZERO, responder)
+    }
+
+    /// Igual, pero se toma `delay` antes de contestar: así se puede probar un
+    /// endpoint que acepta la conexión y se queda callado, que es el caso que
+    /// dejaba el post-proceso colgado para siempre.
+    fn spawn_fake_server_after(
+        delay: Duration,
+        responder: impl Fn(&str) -> (u16, String) + Send + 'static,
+    ) -> Arc<FakeServer> {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let port = listener.local_addr().expect("addr").port();
         let calls: Arc<Mutex<Vec<(String, String)>>> = Arc::new(Mutex::new(Vec::new()));
@@ -1222,6 +1266,9 @@ mod tests {
                     .expect("lock")
                     .push((path.clone(), String::from_utf8_lossy(&body).to_string()));
 
+                if !delay.is_zero() {
+                    std::thread::sleep(delay);
+                }
                 let (status, payload) = responder(&path);
                 let response = format!(
                     "HTTP/1.1 {} Status\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
@@ -1250,6 +1297,52 @@ mod tests {
     }
 
     const UNSUPPORTED_BODY: &str = r#"{"error":{"code":"validation_error","message":"The model 'openai.gpt-5.6-luna' does not support the '/v1/chat/completions' API","param":null,"type":"invalid_request_error"}}"#;
+
+    #[tokio::test]
+    async fn un_endpoint_mudo_corta_por_tiempo_y_el_error_lo_dice() {
+        // El endpoint acepta la conexión y contesta recién a los 3 s. Sin
+        // techo de espera, el post-proceso se quedaba ahí para siempre y el
+        // dictado nunca aparecía (reporte del dueño, 0.2.1).
+        let server = spawn_fake_server_after(Duration::from_secs(3), |_| {
+            (200, json!({ "choices": [] }).to_string())
+        });
+        let provider = provider_at(&server.base_url());
+        let client = create_client_with_timeout(&provider, "clave", Duration::from_millis(200))
+            .expect("cliente");
+
+        let started = std::time::Instant::now();
+        let error = send_via_chat_completions(
+            &client,
+            &provider.base_url,
+            "modelo-lento",
+            "hola".to_string(),
+            None,
+            None,
+            None,
+            None,
+        )
+        .await
+        .expect_err("una petición sin respuesta tiene que fallar, no esperar para siempre");
+
+        let detail: String = error.into();
+        assert!(
+            detail.contains("Se agotó el tiempo"),
+            "el error tiene que hablar de tiempo agotado, no de una falla genérica: {}",
+            detail
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "cortó por tiempo, no esperó la respuesta tardía"
+        );
+    }
+
+    #[test]
+    fn el_techo_de_espera_del_post_proceso_es_finito_y_humano() {
+        // Techo por petición: suficiente para un modelo lento con
+        // razonamiento, lejos de "para siempre".
+        assert!(CHAT_REQUEST_TIMEOUT >= Duration::from_secs(30));
+        assert!(CHAT_REQUEST_TIMEOUT <= Duration::from_secs(120));
+    }
 
     #[tokio::test]
     async fn retries_via_responses_and_remembers_the_model() {
