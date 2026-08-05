@@ -416,6 +416,10 @@
         "label": "Taskleistensymbol anzeigen",
         "description": "Das Dilo-Symbol in der Taskleiste anzeigen."
       },
+      "showDockIcon": {
+        "label": "Dock-Symbol anzeigen",
+        "description": "Dilo im Dock und in Cmd-Tab anzeigen. Deaktivieren, damit Dilo nur in der Menüleiste bleibt."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

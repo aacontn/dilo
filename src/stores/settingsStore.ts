@@ -154,6 +154,8 @@ const settingUpdaters: {
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   show_tray_icon: (value) =>
     commands.changeShowTrayIconSetting(value as boolean),
+  show_dock_icon: (value) =>
+    commands.changeShowDockIconSetting(value as boolean),
   transcribe_accelerator: (value) =>
     commands.changeTranscribeAcceleratorSetting(
       value as TranscribeAcceleratorSetting,

@@ -416,6 +416,10 @@
         "label": "Икона в системната област",
         "description": "Показване на иконата на Dilo в системната област."
       },
+      "showDockIcon": {
+        "label": "Икона в Dock",
+        "description": "Показване на Dilo в Dock и в Cmd-Tab. Изключете го, за да остане Dilo само в лентата с менюта."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

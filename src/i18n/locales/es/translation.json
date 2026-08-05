@@ -416,6 +416,10 @@
         "label": "Ícono en la bandeja",
         "description": "Muestra el ícono de Dilo en la bandeja del sistema."
       },
+      "showDockIcon": {
+        "label": "Ícono en el Dock",
+        "description": "Muestra Dilo en el Dock y en Cmd-Tab. Apágalo si prefieres que viva sólo en la barra de menú."
+      },
       "overlay": {
         "style": {
           "title": "Indicador de grabación",

@@ -416,6 +416,10 @@
         "label": "ट्रे आइकन देखाउनुहोस्",
         "description": "सिस्टम ट्रेमा Dilo आइकन देखाउनुहोस्।"
       },
+      "showDockIcon": {
+        "label": "Dock मा आइकन देखाउनुहोस्",
+        "description": "Dock र Cmd-Tab मा Dilo देखाउनुहोस्। बन्द गर्नुभयो भने Dilo मेनु बारमा मात्र रहन्छ।"
+      },
       "overlay": {
         "style": {
           "title": "ओभरले",

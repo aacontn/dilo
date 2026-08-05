@@ -395,6 +395,10 @@
         "label": "إظهار أيقونة شريط النظام",
         "description": ".عرض أيقونة Dilo في شريط النظام"
       },
+      "showDockIcon": {
+        "label": "إظهار الأيقونة في الـ Dock",
+        "description": "إظهار Dilo في الـ Dock وفي Cmd-Tab. عطّله لإبقاء Dilo في شريط القوائم فقط."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

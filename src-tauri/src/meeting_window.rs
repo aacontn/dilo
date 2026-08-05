@@ -164,13 +164,12 @@ pub fn open_meetings_window(app: AppHandle) -> Result<(), String> {
     }
 
     // El sidebar que abre esta ventana sólo es clickeable con "main" visible,
-    // así que la policy ya debería ser Regular — pero si en el futuro se abre
-    // por otra vía (p. ej. un flag de CLI) con el ícono del Dock oculto, esto
-    // la asegura igual. Mismo patrón que `show_main_window`.
+    // así que la policy ya debería ser la correcta — pero si en el futuro se
+    // abre por otra vía (p. ej. un flag de CLI), esto la asegura igual. Mismo
+    // patrón que `show_main_window`: la decide `apply_dock_policy`, que
+    // respeta el ajuste "sólo barra de menú" en vez de forzar `Regular`.
     #[cfg(target_os = "macos")]
-    {
-        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
-    }
+    crate::apply_dock_policy(&app, true);
 
     // Reuniones toma el relevo: la ventana de ajustes se esconde para no
     // dejar dos ventanas de Dilo compitiendo en pantalla mientras grabas.

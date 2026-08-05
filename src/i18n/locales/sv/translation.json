@@ -416,6 +416,10 @@
         "label": "Visa ikon i systemfältet",
         "description": "Visa Dilo-ikonen i systemfältet."
       },
+      "showDockIcon": {
+        "label": "Visa ikon i Dock",
+        "description": "Visa Dilo i Dock och i Cmd-Tab. Stäng av för att låta Dilo bara ligga i menyraden."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

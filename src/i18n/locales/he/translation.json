@@ -416,6 +416,10 @@
         "label": "הצג אייקון במגש",
         "description": "הצג את האייקון של Dilo במגש המערכת."
       },
+      "showDockIcon": {
+        "label": "הצג אייקון ב-Dock",
+        "description": "הצג את Dilo ב-Dock וב-Cmd-Tab. כבה כדי שהאפליקציה תישאר רק בשורת התפריטים."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

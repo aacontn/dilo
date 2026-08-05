@@ -416,6 +416,10 @@
         "label": "显示托盘图标",
         "description": "在系统托盘中显示 Dilo 图标。"
       },
+      "showDockIcon": {
+        "label": "显示 Dock 图标",
+        "description": "在 Dock 和 Cmd-Tab 中显示 Dilo。关闭后，Dilo 只留在菜单栏。"
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

@@ -170,12 +170,9 @@ fn show_main_window(app: &AppHandle) {
     // estar sólo escondida (`open_meetings_window` la esconde), y en ese
     // caso su React no monta de nuevo.
     crate::utils::emit_window_shown(app, "main");
-    #[cfg(target_os = "macos")]
-    {
-        if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
-            log::error!("Failed to set activation policy to Regular: {}", e);
-        }
-    }
+    // Hay una ventana a la vista: el Dock vuelve, salvo que el usuario haya
+    // pedido que Dilo viva sólo en la barra de menú (ver `apply_dock_policy`).
+    apply_dock_policy(app, true);
 }
 
 #[allow(unused_variables)]
@@ -311,14 +308,14 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     #[cfg(unix)]
     signal_handle::setup_signal_handler(app_handle.clone(), signals);
 
-    // Apply macOS Accessory policy if starting hidden and tray is available.
-    // If the tray icon is disabled, keep the dock icon so the user can reopen.
+    // Apply macOS Accessory policy if starting hidden and tray is available,
+    // or if the user asked to live in the menu bar only. If the tray icon is
+    // disabled, keep the dock icon so the user can reopen (ver
+    // `desired_dock_policy`).
     #[cfg(target_os = "macos")]
     {
-        let settings = settings::get_settings(app_handle);
-        if settings.start_hidden && settings.show_tray_icon {
-            let _ = app_handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
-        }
+        let starts_with_window_visible = !settings::get_settings(app_handle).start_hidden;
+        apply_dock_policy(app_handle, starts_with_window_visible);
     }
     // Get the current theme to set the appropriate initial icon
     let initial_theme = tray::get_current_theme(app_handle);
@@ -481,6 +478,93 @@ fn no_relevant_window_visible<'a>(windows: impl IntoIterator<Item = (&'a str, bo
     !windows
         .into_iter()
         .any(|(label, visible)| visible && DOCK_RELEVANT_WINDOW_LABELS.contains(&label))
+}
+
+/// Cómo tiene que aparecer Dilo en macOS: con ícono en el Dock y en Cmd-Tab
+/// (`Regular`) o sólo en la barra de menú (`Accessory`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DockPolicy {
+    Regular,
+    Accessory,
+}
+
+/// La política que corresponde ahora mismo. Pura y testeable: recibe el ajuste
+/// del usuario, si la bandeja está realmente disponible y si queda alguna
+/// ventana relevante a la vista.
+///
+/// La bandeja manda sobre el ajuste: sin ícono en la barra de menú, el Dock es
+/// la única forma de volver a abrir Ajustes, así que "esconderme del Dock" se
+/// ignora antes que dejar al usuario sin ninguna puerta (reporte del dueño,
+/// 2026-08-04: "lo que manda aquí es el top bar").
+fn desired_dock_policy(
+    show_dock_icon: bool,
+    tray_available: bool,
+    relevant_window_visible: bool,
+) -> DockPolicy {
+    if !tray_available {
+        return DockPolicy::Regular;
+    }
+    if !show_dock_icon {
+        return DockPolicy::Accessory;
+    }
+    if relevant_window_visible {
+        DockPolicy::Regular
+    } else {
+        DockPolicy::Accessory
+    }
+}
+
+/// Aplica [`desired_dock_policy`] leyendo ajustes y CLI. `relevant_window_visible`
+/// lo dice el llamador porque el momento importa: al mostrar una ventana hay
+/// que decidir antes de que el sistema la reporte visible.
+#[cfg_attr(not(target_os = "macos"), allow(unused_variables))]
+pub(crate) fn apply_dock_policy(app: &AppHandle, relevant_window_visible: bool) {
+    #[cfg(target_os = "macos")]
+    {
+        let settings = settings::get_settings(app);
+        let no_tray = app
+            .try_state::<CliArgs>()
+            .map(|args| args.no_tray)
+            .unwrap_or(false);
+        let tray_available = settings.show_tray_icon && !no_tray;
+        let policy = match desired_dock_policy(
+            settings.show_dock_icon,
+            tray_available,
+            relevant_window_visible,
+        ) {
+            DockPolicy::Regular => tauri::ActivationPolicy::Regular,
+            DockPolicy::Accessory => tauri::ActivationPolicy::Accessory,
+        };
+        if let Err(e) = app.set_activation_policy(policy) {
+            log::error!("Failed to set activation policy: {}", e);
+        }
+    }
+}
+
+/// Si alguna ventana relevante (`DOCK_RELEVANT_WINDOW_LABELS`) está a la vista
+/// según el estado real de las ventanas.
+pub(crate) fn any_relevant_window_visible(app: &AppHandle) -> bool {
+    let visibility: Vec<(String, bool)> = app
+        .webview_windows()
+        .iter()
+        // Si no se puede saber, se asume visible: es más seguro dejar el
+        // ícono del Dock puesto de más que esconderlo con una ventana en
+        // pantalla.
+        .map(|(label, w)| (label.clone(), w.is_visible().unwrap_or(true)))
+        .collect();
+    !no_relevant_window_visible(visibility.iter().map(|(label, v)| (label.as_str(), *v)))
+}
+
+/// Guarda el ajuste del ícono del Dock y lo aplica en el acto — sin reiniciar
+/// la app.
+#[tauri::command]
+#[specta::specta]
+fn change_show_dock_icon_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.show_dock_icon = enabled;
+    settings::write_settings(&app, settings);
+    apply_dock_policy(&app, any_relevant_window_visible(&app));
+    Ok(())
 }
 
 #[tauri::command]
@@ -757,6 +841,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_keyboard_implementation_setting,
             shortcut::get_keyboard_implementation,
             shortcut::change_show_tray_icon_setting,
+            change_show_dock_icon_setting,
             shortcut::change_transcribe_accelerator_setting,
             shortcut::change_ort_accelerator_setting,
             shortcut::change_transcribe_gpu_device,
@@ -1107,36 +1192,8 @@ pub fn run(cli_args: CliArgs) {
                 // `no_relevant_window_visible`).
                 #[cfg(target_os = "macos")]
                 if DOCK_RELEVANT_WINDOW_LABELS.contains(&window.label()) {
-                    let settings = get_settings(window.app_handle());
-                    let tray_visible =
-                        settings.show_tray_icon && !window.app_handle().state::<CliArgs>().no_tray;
-                    let visibility: Vec<(String, bool)> = window
-                        .app_handle()
-                        .webview_windows()
-                        .iter()
-                        .map(|(label, w)| {
-                            // Si no se puede saber, se asume visible: es más
-                            // seguro dejar el ícono del Dock puesto de más
-                            // que esconderlo con una ventana en pantalla.
-                            (label.clone(), w.is_visible().unwrap_or(true))
-                        })
-                        .collect();
-                    if tray_visible
-                        && no_relevant_window_visible(
-                            visibility.iter().map(|(label, v)| (label.as_str(), *v)),
-                        )
-                    {
-                        // Tray is available and no relevant window is left visible:
-                        // hide the dock icon, app lives in the tray.
-                        let res = window
-                            .app_handle()
-                            .set_activation_policy(tauri::ActivationPolicy::Accessory);
-                        if let Err(e) = res {
-                            log::error!("Failed to set activation policy: {}", e);
-                        }
-                    }
-                    // No tray, or another relevant window is still visible:
-                    // keep the dock icon visible.
+                    let app = window.app_handle();
+                    apply_dock_policy(app, any_relevant_window_visible(app));
                 }
             }
             tauri::WindowEvent::ThemeChanged(theme) => {
@@ -1192,7 +1249,48 @@ pub fn run(cli_args: CliArgs) {
 
 #[cfg(test)]
 mod tests {
-    use super::no_relevant_window_visible;
+    use super::{desired_dock_policy, no_relevant_window_visible, DockPolicy};
+
+    #[test]
+    fn por_omision_el_dock_se_comporta_como_siempre() {
+        // Sin tocar el ajuste (true), la regla vieja intacta: ventana a la
+        // vista = ícono en el Dock; nada abierto = sólo bandeja.
+        assert_eq!(
+            desired_dock_policy(true, true, true),
+            DockPolicy::Regular,
+            "con una ventana abierta, el ícono se queda"
+        );
+        assert_eq!(
+            desired_dock_policy(true, true, false),
+            DockPolicy::Accessory,
+            "sin ventanas, la app se va a la bandeja"
+        );
+    }
+
+    #[test]
+    fn quien_pide_barra_de_menu_no_recupera_el_dock_al_abrir_ajustes() {
+        // El pedido del dueño: "lo que manda aquí es el top bar". Con el
+        // ajuste apagado, ni siquiera mostrar Ajustes devuelve el ícono.
+        assert_eq!(
+            desired_dock_policy(false, true, true),
+            DockPolicy::Accessory
+        );
+        assert_eq!(
+            desired_dock_policy(false, true, false),
+            DockPolicy::Accessory
+        );
+    }
+
+    #[test]
+    fn sin_bandeja_el_dock_se_queda_pase_lo_que_pase() {
+        // Sin ícono en la barra de menú, el Dock es la única puerta de vuelta
+        // a Ajustes: esconderlo dejaría la app inalcanzable.
+        assert_eq!(
+            desired_dock_policy(false, false, false),
+            DockPolicy::Regular
+        );
+        assert_eq!(desired_dock_policy(true, false, false), DockPolicy::Regular);
+    }
 
     #[test]
     fn hides_dock_icon_when_no_relevant_window_is_visible() {

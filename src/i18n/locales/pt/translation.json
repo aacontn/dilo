@@ -416,6 +416,10 @@
         "label": "Mostrar ícone na bandeja",
         "description": "Exibir o ícone do Dilo na bandeja do sistema."
       },
+      "showDockIcon": {
+        "label": "Mostrar ícone no Dock",
+        "description": "Mostrar o Dilo no Dock e no Cmd-Tab. Desligue para manter o Dilo apenas na barra de menus."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

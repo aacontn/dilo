@@ -416,6 +416,10 @@
         "label": "트레이 아이콘 표시",
         "description": "시스템 트레이에 Dilo 아이콘을 표시합니다."
       },
+      "showDockIcon": {
+        "label": "Dock 아이콘 표시",
+        "description": "Dock과 Cmd-Tab에 Dilo를 표시합니다. 끄면 메뉴 막대에만 남습니다."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

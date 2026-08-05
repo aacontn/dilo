@@ -416,6 +416,10 @@
         "label": "トレイアイコンを表示",
         "description": "システムトレイに Dilo のアイコンを表示します。"
       },
+      "showDockIcon": {
+        "label": "Dock アイコンを表示",
+        "description": "Dock と Cmd-Tab に Dilo を表示します。オフにすると、メニューバーだけに常駐します。"
+      },
       "overlay": {
         "style": {
           "title": "オーバーレイ",

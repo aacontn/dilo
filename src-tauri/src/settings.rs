@@ -515,6 +515,14 @@ pub struct AppSettings {
     pub keyboard_implementation: KeyboardImplementation,
     #[serde(default = "default_show_tray_icon")]
     pub show_tray_icon: bool,
+    /// macOS: si Dilo aparece en el Dock (y en Cmd-Tab) o vive sólo en la
+    /// barra de menú (`ActivationPolicy::Accessory`). Por omisión `true` —
+    /// el comportamiento de siempre; esconder el Dock es una elección del
+    /// usuario, no un cambio que se le hace sin avisar. La bandeja manda: sin
+    /// ella el Dock es la única puerta para volver a Ajustes, así que el
+    /// ícono se queda aunque esta bandera diga que no.
+    #[serde(default = "default_show_dock_icon")]
+    pub show_dock_icon: bool,
     #[serde(default = "default_paste_delay_ms")]
     pub paste_delay_ms: u64,
     #[serde(default = "default_paste_delay_after_ms")]
@@ -722,6 +730,10 @@ fn default_app_language() -> String {
 }
 
 fn default_show_tray_icon() -> bool {
+    true
+}
+
+fn default_show_dock_icon() -> bool {
     true
 }
 
@@ -1165,6 +1177,7 @@ pub fn get_default_settings() -> AppSettings {
         lazy_stream_close: false,
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
+        show_dock_icon: default_show_dock_icon(),
         paste_delay_ms: default_paste_delay_ms(),
         paste_delay_after_ms: default_paste_delay_after_ms(),
         typing_tool: default_typing_tool(),

@@ -416,6 +416,10 @@
         "label": "Pokaż ikonę w zasobniku",
         "description": "Wyświetlaj ikonę Dilo w zasobniku systemowym."
       },
+      "showDockIcon": {
+        "label": "Pokaż ikonę w Docku",
+        "description": "Pokazuj Dilo w Docku i w Cmd-Tab. Wyłącz, aby Dilo zostało tylko na pasku menu."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

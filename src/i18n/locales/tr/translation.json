@@ -416,6 +416,10 @@
         "label": "Tepsi simgesini göster",
         "description": "Dilo simgesini sistem tepsisinde göster."
       },
+      "showDockIcon": {
+        "label": "Dock simgesini göster",
+        "description": "Dilo'yu Dock'ta ve Cmd-Tab'da göster. Kapatırsan Dilo yalnızca menü çubuğunda kalır."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

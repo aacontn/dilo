@@ -416,6 +416,10 @@
         "label": "Zobrazit ikonu v systémové liště",
         "description": "Zobrazit ikonu Dilo v systémové liště."
       },
+      "showDockIcon": {
+        "label": "Zobrazit ikonu v Docku",
+        "description": "Zobrazit Dilo v Docku a v Cmd-Tab. Vypněte, ať Dilo zůstane jen v panelu nabídek."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

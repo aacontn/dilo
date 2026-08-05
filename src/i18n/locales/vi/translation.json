@@ -416,6 +416,10 @@
         "label": "Hiển thị biểu tượng khay",
         "description": "Hiển thị biểu tượng Dilo trong khay hệ thống."
       },
+      "showDockIcon": {
+        "label": "Hiển thị biểu tượng trên Dock",
+        "description": "Hiển thị Dilo trên Dock và trong Cmd-Tab. Tắt để Dilo chỉ nằm trên thanh menu."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

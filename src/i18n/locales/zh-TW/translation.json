@@ -416,6 +416,10 @@
         "label": "顯示系統匣圖示",
         "description": "在系統匣中顯示 Dilo 圖示"
       },
+      "showDockIcon": {
+        "label": "顯示 Dock 圖示",
+        "description": "在 Dock 和 Cmd-Tab 中顯示 Dilo。關閉後，Dilo 只留在選單列。"
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

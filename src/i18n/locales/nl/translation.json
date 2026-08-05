@@ -416,6 +416,10 @@
         "label": "Pictogram in systeemvak tonen",
         "description": "Toon het Dilo-pictogram in het systeemvak."
       },
+      "showDockIcon": {
+        "label": "Dock-pictogram tonen",
+        "description": "Toon Dilo in het Dock en in Cmd-Tab. Zet dit uit om Dilo alleen in de menubalk te houden."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

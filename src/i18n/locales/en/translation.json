@@ -524,6 +524,10 @@
         "label": "Show Tray Icon",
         "description": "Display the Dilo icon in the system tray."
       },
+      "showDockIcon": {
+        "label": "Show Dock Icon",
+        "description": "Show Dilo in the Dock and in Cmd-Tab. Turn it off to keep Dilo in the menu bar only."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

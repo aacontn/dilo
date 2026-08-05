@@ -416,6 +416,10 @@
         "label": "Показати значок у треї",
         "description": "Відображати значок Dilo у системному треї."
       },
+      "showDockIcon": {
+        "label": "Показати значок у Dock",
+        "description": "Показувати Dilo у Dock і в Cmd-Tab. Вимкніть, щоб Dilo залишався лише в рядку меню."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

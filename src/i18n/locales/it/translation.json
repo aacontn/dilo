@@ -416,6 +416,10 @@
         "label": "Mostra icona nella barra di sistema",
         "description": "Mostra l'icona di Dilo nella barra di sistema."
       },
+      "showDockIcon": {
+        "label": "Mostra icona nel Dock",
+        "description": "Mostra Dilo nel Dock e in Cmd-Tab. Disattivalo per tenere Dilo solo nella barra dei menu."
+      },
       "overlay": {
         "style": {
           "title": "Overlay",

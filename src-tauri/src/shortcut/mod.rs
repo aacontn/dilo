@@ -1390,6 +1390,10 @@ pub fn change_show_tray_icon_setting(app: AppHandle, enabled: bool) -> Result<()
 
     // Apply change immediately
     tray::set_tray_visibility(&app, enabled);
+    // Y revisar el Dock: sin bandeja, el ícono del Dock tiene que volver
+    // aunque el usuario lo haya apagado, o se queda sin ninguna puerta para
+    // reabrir Ajustes (ver `desired_dock_policy`).
+    crate::apply_dock_policy(&app, crate::any_relevant_window_visible(&app));
 
     Ok(())
 }
