@@ -289,7 +289,24 @@ pub struct DownloadProgress {
 /// Uses hf-hub's stock location (HF_HOME or ~/.cache/huggingface/hub) so
 /// downloads are shared with other tools.
 fn hf_cached_path(repo_id: &str, revision: &str, filename: &str) -> Option<PathBuf> {
-    Cache::from_env()
+    hf_cached_path_in(hf_cache_root().as_path(), repo_id, revision, filename)
+}
+
+/// Raíz de la caché compartida de HuggingFace (`HF_HOME` o
+/// `~/.cache/huggingface/hub`).
+fn hf_cache_root() -> PathBuf {
+    Cache::from_env().path().clone()
+}
+
+/// Igual que [`hf_cached_path`] contra una raíz de caché explícita, para poder
+/// probar el reciclado de disco contra un árbol sintético.
+fn hf_cached_path_in(
+    cache_root: &Path,
+    repo_id: &str,
+    revision: &str,
+    filename: &str,
+) -> Option<PathBuf> {
+    Cache::new(cache_root.to_path_buf())
         .repo(Repo::with_revision(
             repo_id.to_string(),
             RepoType::Model,
@@ -305,8 +322,182 @@ fn hf_cached_path(repo_id: &str, revision: &str, filename: &str) -> Option<PathB
 /// model nor make them re-download. Returns `None` when the id doesn't carry a
 /// `/{filename}` suffix (defensive) or the file isn't cached.
 fn url_model_hf_cache_path(model_id: &str, filename: &str) -> Option<PathBuf> {
+    url_model_hf_cache_path_in(hf_cache_root().as_path(), model_id, filename)
+}
+
+fn url_model_hf_cache_path_in(
+    cache_root: &Path,
+    model_id: &str,
+    filename: &str,
+) -> Option<PathBuf> {
     let repo_id = model_id.strip_suffix(&format!("/{filename}"))?;
-    hf_cached_path(repo_id, "main", filename)
+    hf_cached_path_in(cache_root, repo_id, "main", filename)
+}
+
+// ---------------------------------------------------------------------------
+// Reciclado de disco al borrar un modelo (reporte del dueño, 2026-08-04:
+// "tenemos que asegurarnos de que si se borren en Dilo, se borren del disco").
+//
+// Lo que hay en `models_dir` muchas veces no es el archivo: es un enlace al
+// blob de la caché compartida de HuggingFace (`~/.cache/huggingface/hub/
+// models--<repo>/blobs/<sha>`). Borrar el enlace deja el blob — 12 GB de
+// caché contra 1,6 GB visibles, medido en su máquina. Y la caché es
+// compartida: el mismo blob puede tener más de un dueño, así que antes de
+// liberar hay que preguntar quién más lo usa.
+// ---------------------------------------------------------------------------
+
+/// ¿Hay algo en `path`, aunque sea un enlace roto? `Path::exists` sigue los
+/// enlaces, así que contesta `false` para un enlace cuyo destino ya no está —
+/// y esa entrada igual ocupa lugar y hay que sacarla.
+fn path_or_link_exists(path: &Path) -> bool {
+    fs::symlink_metadata(path).is_ok()
+}
+
+/// El archivo real dentro de `cache_root` al que lleva `path` (siguiendo
+/// enlaces), o `None` si `path` no existe, no resuelve a un archivo, o resuelve
+/// fuera de la caché. Resolver contra la raíz ya canonicalizada evita que
+/// `/var` contra `/private/var` (macOS) haga fallar la comparación.
+fn hf_blob_behind(path: &Path, canonical_cache_root: &Path) -> Option<PathBuf> {
+    let resolved = fs::canonicalize(path).ok()?;
+    if !resolved.starts_with(canonical_cache_root) {
+        return None;
+    }
+    if !resolved.is_file() {
+        return None;
+    }
+    Some(resolved)
+}
+
+/// Todos los blobs de la caché que un modelo instalado está usando: por su
+/// entrada en `models_dir` (que puede ser un enlace) y por la ruta que le
+/// corresponde en la caché según su origen.
+fn hf_blobs_used_by(model: &ModelInfo, models_dir: &Path, cache_root: &Path) -> Vec<PathBuf> {
+    let Ok(canonical_root) = fs::canonicalize(cache_root) else {
+        return Vec::new();
+    };
+    let mut candidates: Vec<PathBuf> = vec![models_dir.join(&model.filename)];
+    match &model.source {
+        ModelSource::HuggingFace { repo_id, revision } => {
+            if let Some(path) = hf_cached_path_in(cache_root, repo_id, revision, &model.filename) {
+                candidates.push(path);
+            }
+        }
+        ModelSource::Url { .. } => {
+            if let Some(path) = url_model_hf_cache_path_in(cache_root, &model.id, &model.filename) {
+                candidates.push(path);
+            }
+        }
+        ModelSource::Local => {}
+    }
+
+    let mut blobs: Vec<PathBuf> = Vec::new();
+    for candidate in candidates {
+        if let Some(blob) = hf_blob_behind(&candidate, &canonical_root) {
+            if !blobs.contains(&blob) {
+                blobs.push(blob);
+            }
+        }
+    }
+    blobs
+}
+
+/// Los blobs que quedarían huérfanos al borrar `victim`: los suyos menos los
+/// que cualquier otro modelo **instalado** sigue usando. Es la salvaguarda que
+/// pide el caso compartido — dos modelos instalados apuntando al mismo blob no
+/// pueden perderlo porque se borró uno.
+fn hf_blobs_freed_by_deleting(
+    victim: &ModelInfo,
+    others: &[ModelInfo],
+    models_dir: &Path,
+    cache_root: &Path,
+) -> Vec<PathBuf> {
+    let still_used: HashSet<PathBuf> = others
+        .iter()
+        .filter(|other| other.id != victim.id && other.is_downloaded)
+        .flat_map(|other| hf_blobs_used_by(other, models_dir, cache_root))
+        .collect();
+
+    hf_blobs_used_by(victim, models_dir, cache_root)
+        .into_iter()
+        .filter(|blob| !still_used.contains(blob))
+        .collect()
+}
+
+/// Borra los blobs indicados y limpia lo que queda colgando: los enlaces del
+/// `snapshots/` de ese mismo repo que ya no apuntan a nada y, si el repo se
+/// quedó sin un solo blob, el repo entero. Nunca sale del repo al que
+/// pertenece cada blob, así que no toca repos que Dilo no instaló.
+/// Devuelve los bytes liberados.
+fn free_hf_blobs(blobs: &[PathBuf]) -> u64 {
+    let mut freed = 0u64;
+    let mut repos: Vec<PathBuf> = Vec::new();
+    for blob in blobs {
+        let size = fs::metadata(blob).map(|m| m.len()).unwrap_or(0);
+        match fs::remove_file(blob) {
+            Ok(()) => {
+                info!(
+                    "Liberado blob de la caché de HF: {:?} ({} bytes)",
+                    blob, size
+                );
+                freed += size;
+            }
+            Err(e) => {
+                warn!("No se pudo liberar el blob {:?}: {}", blob, e);
+                continue;
+            }
+        }
+        // `<repo>/blobs/<sha>` -> `<repo>`
+        if let Some(repo) = blob.parent().and_then(|blobs_dir| blobs_dir.parent()) {
+            if repo
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("models--"))
+                && !repos.contains(&repo.to_path_buf())
+            {
+                repos.push(repo.to_path_buf());
+            }
+        }
+    }
+
+    for repo in repos {
+        prune_dangling_snapshot_links(&repo.join("snapshots"));
+        let blobs_left = fs::read_dir(repo.join("blobs"))
+            .map(|entries| entries.flatten().count())
+            .unwrap_or(0);
+        if blobs_left == 0 {
+            info!(
+                "Repo de la caché de HF sin blobs; se elimina entero: {:?}",
+                repo
+            );
+            if let Err(e) = fs::remove_dir_all(&repo) {
+                warn!("No se pudo eliminar el repo vacío {:?}: {}", repo, e);
+            }
+        }
+    }
+    freed
+}
+
+/// Saca los enlaces de `snapshots/` que quedaron apuntando a un blob que ya no
+/// existe. Sin esto la caché queda con punteros rotos que confunden tanto a
+/// Dilo como a cualquier otra herramienta que la comparta.
+fn prune_dangling_snapshot_links(snapshots_dir: &Path) {
+    let Ok(revisions) = fs::read_dir(snapshots_dir) else {
+        return;
+    };
+    for revision in revisions.flatten() {
+        let Ok(files) = fs::read_dir(revision.path()) else {
+            continue;
+        };
+        for file in files.flatten() {
+            let path = file.path();
+            let is_link = fs::symlink_metadata(&path)
+                .map(|m| m.file_type().is_symlink())
+                .unwrap_or(false);
+            if is_link && !path.exists() {
+                let _ = fs::remove_file(&path);
+            }
+        }
+    }
 }
 
 /// Friendly name advertised by GGUF metadata, if present. Empty strings are not
@@ -2426,37 +2617,41 @@ impl ModelManager {
 
         debug!("ModelManager: Found model info: {:?}", model_info);
 
-        if let ModelSource::HuggingFace { repo_id, revision } = &model_info.source {
-            // Cached at <cache>/models--org--name/snapshots/<rev>/<file>; remove
-            // the whole repo dir (blobs + refs + snapshots). Per product decision,
-            // delete hard-removes from the shared HF cache.
+        // Qué blobs de la caché compartida quedan huérfanos al borrar esto.
+        // Se calcula ANTES de tocar nada: el archivo de `models_dir` suele ser
+        // un enlace al blob, y una vez borrado ya no hay a quién seguir.
+        let cache_root = hf_cache_root();
+        let others: Vec<ModelInfo> = {
+            let models = self.available_models.lock().unwrap();
+            models.values().cloned().collect()
+        };
+        let doomed_blobs =
+            hf_blobs_freed_by_deleting(&model_info, &others, &self.models_dir, &cache_root);
+
+        if let ModelSource::HuggingFace { .. } = &model_info.source {
+            // Per product decision, delete hard-removes from the shared HF
+            // cache — pero blob por blob (y el repo sólo si queda sin
+            // ninguno), no el repo entero: ese atajo se llevaba puesto a otro
+            // modelo instalado que compartiera el repo.
             let mut deleted = false;
-            if let Some(file) = hf_cached_path(repo_id, revision, &model_info.filename) {
-                if let Some(repo_dir) = file.ancestors().nth(3) {
-                    if repo_dir
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .is_some_and(|n| n.starts_with("models--"))
-                    {
-                        info!("Deleting HF cache repo at: {:?}", repo_dir);
-                        fs::remove_dir_all(repo_dir)?;
-                        deleted = true;
-                    }
-                }
-            }
             // Also remove a models_dir copy (mirror fallback download) and any
-            // resumable partial next to it.
+            // resumable partial next to it. Se hace ANTES de liberar los
+            // blobs: si la entrada es un enlace al blob, liberarlo primero la
+            // dejaría colgando y `exists()` (que sigue el enlace) ya no la
+            // vería.
             for path in [
                 self.models_dir.join(&model_info.filename),
                 self.models_dir
                     .join(format!("{}.partial", &model_info.filename)),
             ] {
-                if path.exists() {
+                if path_or_link_exists(&path) {
                     info!("Deleting model file at: {:?}", path);
                     fs::remove_file(&path)?;
                     deleted = true;
                 }
             }
+            deleted |= !doomed_blobs.is_empty();
+            free_hf_blobs(&doomed_blobs);
             if !deleted {
                 return Err(anyhow::anyhow!("No model files found to delete"));
             }
@@ -2483,8 +2678,11 @@ impl ModelManager {
                 deleted_something = true;
             }
         } else {
-            // Delete complete model file if it exists
-            if model_path.exists() {
+            // Delete complete model file if it exists. `path_or_link_exists`
+            // en vez de `exists()`: la entrada puede ser un enlace al blob de
+            // la caché de HF, y `exists()` sigue el enlace (un enlace roto
+            // sería invisible).
+            if path_or_link_exists(&model_path) {
                 info!("Deleting model file at: {:?}", model_path);
                 fs::remove_file(&model_path)?;
                 info!("Model file deleted successfully");
@@ -2499,6 +2697,14 @@ impl ModelManager {
             info!("Partial file deleted successfully");
             deleted_something = true;
         }
+
+        // Y el consumo fantasma: el blob de la caché compartida al que
+        // apuntaba lo que se acaba de borrar, salvo que otro modelo instalado
+        // siga usándolo. Un modelo que vivía SÓLO en la caché (nada en
+        // `models_dir`) también cuenta como borrado — antes ni siquiera se
+        // dejaba borrar.
+        deleted_something |= !doomed_blobs.is_empty();
+        free_hf_blobs(&doomed_blobs);
 
         if !deleted_something {
             return Err(anyhow::anyhow!("No model files found to delete"));
@@ -2641,6 +2847,204 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::TempDir;
+
+    // ---------- Borrar libera disco de verdad (reporte 2026-08-04) ----------
+
+    fn installed_model(id: &str, filename: &str, source: ModelSource) -> ModelInfo {
+        ModelInfo {
+            id: id.to_string(),
+            name: id.to_string(),
+            description: String::new(),
+            filename: filename.to_string(),
+            source,
+            size_mb: 1,
+            is_downloaded: true,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: EngineType::TranscribeCpp,
+            accuracy_score: 0.0,
+            speed_score: 0.0,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: Vec::new(),
+            supports_language_selection: false,
+            is_custom: false,
+            supports_streaming: false,
+            supports_token_timestamps: false,
+            supports_language_detection: false,
+        }
+    }
+
+    /// Escribe un repo de caché de HF con un blob y su enlace en
+    /// `snapshots/<rev>/<archivo>`, tal como lo deja hf-hub. Devuelve el blob.
+    fn write_cache_repo(
+        cache_root: &Path,
+        repo_id: &str,
+        revision: &str,
+        filename: &str,
+        sha: &str,
+        bytes: &[u8],
+    ) -> PathBuf {
+        let repo = cache_root.join(format!("models--{}", repo_id.replace('/', "--")));
+        let blob = repo.join("blobs").join(sha);
+        let snapshot = repo.join("snapshots").join(revision);
+        fs::create_dir_all(blob.parent().unwrap()).unwrap();
+        fs::create_dir_all(&snapshot).unwrap();
+        fs::create_dir_all(repo.join("refs")).unwrap();
+        fs::write(repo.join("refs").join("main"), revision).unwrap();
+        fs::write(&blob, bytes).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&blob, snapshot.join(filename)).unwrap();
+        blob
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn borrar_un_modelo_libera_el_blob_al_que_apuntaba_el_enlace() {
+        // Lo que hay en `models_dir` es un enlace al blob de la caché: borrar
+        // sólo el enlace deja el consumo fantasma que reportó el dueño.
+        let tmp = TempDir::new().unwrap();
+        let cache_root = tmp.path().join("hf");
+        let models_dir = tmp.path().join("models");
+        fs::create_dir_all(&models_dir).unwrap();
+
+        let blob = write_cache_repo(
+            &cache_root,
+            "handy-computer/whisper-small-gguf",
+            "main",
+            "whisper-small-Q8_0.gguf",
+            "sha-small",
+            b"pesos",
+        );
+        std::os::unix::fs::symlink(&blob, models_dir.join("whisper-small-Q8_0.gguf")).unwrap();
+
+        let victim = installed_model(
+            "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf",
+            "whisper-small-Q8_0.gguf",
+            ModelSource::Url {
+                url: "https://example.test/whisper-small-Q8_0.gguf".to_string(),
+                sha256: None,
+            },
+        );
+
+        let doomed = hf_blobs_freed_by_deleting(&victim, &[], &models_dir, &cache_root);
+        assert_eq!(doomed.len(), 1, "el blob del modelo tiene que quedar libre");
+
+        let freed = free_hf_blobs(&doomed);
+        assert_eq!(freed, 5, "informa los bytes que liberó");
+        assert!(!blob.exists(), "el blob se fue del disco");
+        assert!(
+            !cache_root
+                .join("models--handy-computer--whisper-small-gguf")
+                .exists(),
+            "el repo quedó sin blobs, se va entero"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn un_blob_compartido_por_dos_modelos_instalados_no_se_toca() {
+        // El caso que hay que cuidar: la caché es por contenido, así que dos
+        // modelos instalados pueden apuntar al MISMO blob. Borrar uno no
+        // puede dejar al otro sin archivo.
+        let tmp = TempDir::new().unwrap();
+        let cache_root = tmp.path().join("hf");
+        let models_dir = tmp.path().join("models");
+        fs::create_dir_all(&models_dir).unwrap();
+
+        let blob = write_cache_repo(
+            &cache_root,
+            "handy-computer/asr-gguf",
+            "main",
+            "asr-Q8_0.gguf",
+            "sha-compartido",
+            b"pesos",
+        );
+        std::os::unix::fs::symlink(&blob, models_dir.join("asr-Q8_0.gguf")).unwrap();
+        std::os::unix::fs::symlink(&blob, models_dir.join("asr-copia.gguf")).unwrap();
+
+        let victim = installed_model(
+            "handy-computer/asr-gguf/asr-Q8_0.gguf",
+            "asr-Q8_0.gguf",
+            ModelSource::Url {
+                url: "https://example.test/asr-Q8_0.gguf".to_string(),
+                sha256: None,
+            },
+        );
+        let vecino = installed_model("local/asr-copia.gguf", "asr-copia.gguf", ModelSource::Local);
+
+        let doomed = hf_blobs_freed_by_deleting(
+            &victim,
+            std::slice::from_ref(&vecino),
+            &models_dir,
+            &cache_root,
+        );
+        assert!(
+            doomed.is_empty(),
+            "el blob lo sigue usando otro modelo instalado: no se toca"
+        );
+
+        // Y si ese vecino ya no está instalado, sí se libera.
+        let mut desinstalado = vecino.clone();
+        desinstalado.is_downloaded = false;
+        fs::remove_file(models_dir.join("asr-copia.gguf")).unwrap();
+        let doomed = hf_blobs_freed_by_deleting(&victim, &[desinstalado], &models_dir, &cache_root);
+        assert_eq!(doomed, vec![fs::canonicalize(&blob).unwrap()]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn liberar_un_blob_no_toca_los_repos_vecinos() {
+        let tmp = TempDir::new().unwrap();
+        let cache_root = tmp.path().join("hf");
+        let models_dir = tmp.path().join("models");
+        fs::create_dir_all(&models_dir).unwrap();
+
+        let victima = write_cache_repo(
+            &cache_root,
+            "handy-computer/uno-gguf",
+            "main",
+            "uno.gguf",
+            "sha-uno",
+            b"uno",
+        );
+        // Repo que Dilo no instaló: no se puede tocar.
+        let ajeno = write_cache_repo(
+            &cache_root,
+            "otra-gente/dos-gguf",
+            "main",
+            "dos.gguf",
+            "sha-dos",
+            b"dos",
+        );
+        // Y un segundo blob dentro del MISMO repo de la víctima (otro quant
+        // que el usuario bajó por su cuenta): el repo no puede irse entero.
+        let hermano = cache_root
+            .join("models--handy-computer--uno-gguf")
+            .join("blobs")
+            .join("sha-uno-q4");
+        fs::write(&hermano, b"otro quant").unwrap();
+
+        free_hf_blobs(std::slice::from_ref(&victima));
+
+        assert!(!victima.exists());
+        assert!(hermano.exists(), "el otro quant del mismo repo sigue ahí");
+        assert!(
+            cache_root.join("models--handy-computer--uno-gguf").exists(),
+            "el repo con blobs vivos no se elimina"
+        );
+        assert!(ajeno.exists(), "el repo ajeno no se toca");
+        assert!(
+            !cache_root
+                .join("models--handy-computer--uno-gguf")
+                .join("snapshots")
+                .join("main")
+                .join("uno.gguf")
+                .exists(),
+            "el enlace que quedó colgando se limpia"
+        );
+    }
 
     #[test]
     fn test_effective_language_accepts_chinese_script_intent_for_zh_capability() {
