@@ -6,6 +6,7 @@ import { commands } from "@/bindings";
 import { Dropdown } from "../../ui/Dropdown";
 import { useSettings } from "../../../hooks/useSettings";
 import { APPLE_PROVIDER_ID } from "../PostProcessingSettingsApi/usePostProcessProviderState";
+import { pickProviderForScope } from "@/lib/postProcessPresets";
 
 type Scope = "general" | "local" | "online";
 
@@ -105,16 +106,20 @@ export const ModeProviderSelect: React.FC<ModeProviderSelectProps> = ({
       if (saved) setScope(next);
       return;
     }
-    // Al cambiar de lado, se preselecciona el primero de ese lado para que el
-    // bloque nunca quede en un estado a medias (elegido "Local" pero sin
-    // proveedor). Si ese lado no tiene ningún proveedor (p. ej. Local en una
+    // Al cambiar de lado se preselecciona un proveedor de ese lado para que
+    // el bloque nunca quede en un estado a medias (elegido "Local" pero sin
+    // proveedor). Cuál, lo decide `pickProviderForScope`: el general si es de
+    // ese lado, si no el primero con clave — nunca a ciegas el primero del
+    // catálogo, que era lo que hacía aparecer "falta la clave" con la clave
+    // puesta. Si ese lado no tiene ningún proveedor (p. ej. Local en una
     // máquina sin Apple Intelligence y con Custom apuntando a un servidor
     // remoto), no hay nada que preseleccionar: no movemos el segmentado,
     // porque hacerlo sin guardar dejaría al usuario creyendo que activó ese
     // lado cuando el modo sigue enrutando al proveedor anterior.
-    const first = providers.find((p) =>
-      next === "local" ? p.is_local : !p.is_local,
-    );
+    const first = pickProviderForScope(providers, next, {
+      post_process_provider_id: settings?.post_process_provider_id,
+      post_process_api_keys: settings?.post_process_api_keys ?? undefined,
+    });
     if (!first) {
       setEmptyScopeAttempt(next);
       return;

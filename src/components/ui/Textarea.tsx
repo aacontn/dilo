@@ -2,7 +2,7 @@ import React from "react";
 
 interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  variant?: "default" | "compact";
+  variant?: "default" | "compact" | "prompt";
 }
 
 export const Textarea: React.FC<TextareaProps> = ({
@@ -16,6 +16,11 @@ export const Textarea: React.FC<TextareaProps> = ({
   const variantClasses = {
     default: "px-3 py-2 min-h-[100px]",
     compact: "px-2 py-1 min-h-[80px]",
+    // Instrucciones de un modo de dictado: los de fábrica tienen entre 600 y
+    // 900 caracteres, que en 100px se ven por la ventanita de un sobre
+    // ("el prompt no se ve completo", reporte del dueño). Con 280px entran
+    // enteros; sigue siendo redimensionable (`resize-y`) para los largos.
+    prompt: "px-3 py-2 min-h-[280px] font-normal leading-relaxed",
   };
 
   return (
