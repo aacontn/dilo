@@ -203,6 +203,38 @@ export const formatKeyCombination = (
 };
 
 /**
+ * Payload shape shared with the backend's `handy-keys-event` — just the
+ * fields needed to build a combo string (see `HandyKeysEvent` in
+ * `HandyKeysShortcutInput.tsx` and `ModeShortcutInput.tsx` for the full
+ * event, which also carries `is_key_down`/`hotkey_string`).
+ */
+export interface HandyKeysComboEvent {
+  modifiers: string[];
+  key: string | null;
+}
+
+/**
+ * Build a hotkey combo string ("fn+f17") from a handy-keys recorder event.
+ *
+ * This is a pure, native-recorder equivalent of the combo-building that
+ * `getKeyName`/`normalizeKey` do for browser `KeyboardEvent`s. It exists
+ * because on macOS the `fn` key never reaches the browser as a keydown/keyup
+ * event, so any capture path built on `window.addEventListener` silently
+ * drops it — the native handy-keys listener sees it, so callers that need
+ * `fn` (e.g. per-mode shortcuts) must build their combo from this payload
+ * instead of DOM events.
+ */
+export const comboFromHandyKeysEvent = (
+  payload: HandyKeysComboEvent,
+): string => {
+  const parts = payload.modifiers.map((modifier) => modifier.toLowerCase());
+  if (payload.key) {
+    parts.push(payload.key.toLowerCase());
+  }
+  return parts.join("+");
+};
+
+/**
  * Normalize modifier keys to handle left/right variants
  */
 export const normalizeKey = (key: string): string => {

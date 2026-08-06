@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { listen } from "@tauri-apps/api/event";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import {
+  comboFromHandyKeysEvent,
   formatKeyCombination,
   getKeyName,
   normalizeKey,
@@ -20,6 +22,18 @@ interface ModeShortcutInputProps {
    * clickable card doesn't react to shortcut edits.
    */
   compact?: boolean;
+}
+
+/**
+ * Mirrors the `HandyKeysEvent` payload emitted by the backend (see
+ * `HandyKeysShortcutInput.tsx`). Declared locally rather than shared because
+ * that component is a reference implementation we don't touch.
+ */
+interface HandyKeysEvent {
+  modifiers: string[];
+  key: string | null;
+  is_key_down: boolean;
+  hotkey_string: string;
 }
 
 const MODIFIERS = [
@@ -47,13 +61,22 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
-  const { refreshSettings } = useSettings();
+  const { getSetting, refreshSettings } = useSettings();
   const osType = useOsType();
+  // Mode shortcuts must be captured the same way general shortcuts are for
+  // the active keyboard implementation (see `ShortcutInput.tsx`): the native
+  // handy-keys recorder when it's active — it's the only one that sees `fn`
+  // on macOS — and the browser-event capture otherwise (e.g. Linux, whose
+  // default implementation is "tauri").
+  const usesHandyKeys = getSetting("keyboard_implementation") === "handy_keys";
   const [editing, setEditing] = useState(false);
   const [keyPressed, setKeyPressed] = useState<string[]>([]);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
   const originalRef = useRef<string>("");
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const unlistenRef = useRef<(() => void) | null>(null);
+  // Tracks the latest native combo for the key-up handler (avoids stale closures).
+  const currentComboRef = useRef<string>("");
 
   const applyShortcut = async (value: string) => {
     const result = await commands.changeModeShortcut(promptId, value);
@@ -67,6 +90,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
     setEditing(false);
     setKeyPressed([]);
     setRecordedKeys([]);
+    currentComboRef.current = "";
   };
 
   const startEditing = async () => {
@@ -78,12 +102,42 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
     } catch (error) {
       console.error("Failed to release mode shortcut:", error);
     }
+
+    if (usesHandyKeys) {
+      try {
+        await commands.startHandyKeysRecording(promptId);
+      } catch (error) {
+        console.error("Failed to start mode shortcut recording:", error);
+        toast.error(
+          t("settings.general.shortcut.errors.set", {
+            error: String(error),
+          }),
+        );
+        if (originalRef.current) {
+          try {
+            await applyShortcut(originalRef.current);
+          } catch (restoreError) {
+            console.error("Failed to restore mode shortcut:", restoreError);
+          }
+        }
+        return;
+      }
+    }
+
     setEditing(true);
     setKeyPressed([]);
     setRecordedKeys([]);
+    currentComboRef.current = "";
   };
 
   const cancelEditing = async () => {
+    if (usesHandyKeys) {
+      if (unlistenRef.current) {
+        unlistenRef.current();
+        unlistenRef.current = null;
+      }
+      await commands.stopHandyKeysRecording().catch(console.error);
+    }
     stopEditing();
     if (originalRef.current) {
       try {
@@ -102,8 +156,75 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
     }
   };
 
+  // Native (handy-keys) capture — the only path that sees `fn` on macOS.
   useEffect(() => {
-    if (!editing) return;
+    if (!editing || !usesHandyKeys) return;
+    let cleanup = false;
+
+    const setupListener = async () => {
+      const unlisten = await listen<HandyKeysEvent>(
+        "handy-keys-event",
+        async (event) => {
+          if (cleanup) return;
+          const { modifiers, key, is_key_down } = event.payload;
+
+          if (is_key_down) {
+            const combo = comboFromHandyKeysEvent({ modifiers, key });
+            if (combo) {
+              currentComboRef.current = combo;
+              setRecordedKeys(combo.split("+"));
+            }
+          } else if (!is_key_down && currentComboRef.current) {
+            // Key released - commit the shortcut using the ref value.
+            const comboToCommit = currentComboRef.current;
+
+            if (unlistenRef.current) {
+              unlistenRef.current();
+              unlistenRef.current = null;
+            }
+            await commands.stopHandyKeysRecording().catch(console.error);
+            stopEditing();
+
+            try {
+              await applyShortcut(comboToCommit);
+            } catch (error) {
+              toast.error(String(error));
+              if (originalRef.current) {
+                try {
+                  await applyShortcut(originalRef.current);
+                } catch (restoreError) {
+                  console.error(
+                    "Failed to restore mode shortcut:",
+                    restoreError,
+                  );
+                }
+              }
+            }
+          }
+        },
+      );
+
+      unlistenRef.current = unlisten;
+    };
+
+    setupListener();
+
+    return () => {
+      cleanup = true;
+      if (unlistenRef.current) {
+        unlistenRef.current();
+        unlistenRef.current = null;
+      }
+      // Stop backend recording on unmount to prevent orphaned recording loops.
+      commands.stopHandyKeysRecording().catch(console.error);
+    };
+  }, [editing, usesHandyKeys, promptId]);
+
+  // Browser-event capture — fallback for the "tauri" keyboard implementation,
+  // which has no native recorder to fall back on (same limitation as
+  // `GlobalShortcutInput.tsx`: `fn` won't be seen on macOS there either).
+  useEffect(() => {
+    if (!editing || usesHandyKeys) return;
     let cleanup = false;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,6 +266,20 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
       }
     };
 
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      cleanup = true;
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [editing, usesHandyKeys, keyPressed, recordedKeys, osType]);
+
+  // Click outside — shared by both capture paths.
+  useEffect(() => {
+    if (!editing) return;
+    let cleanup = false;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (cleanup) return;
       const el = containerRef.current;
@@ -153,16 +288,12 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
     window.addEventListener("click", handleClickOutside);
     return () => {
       cleanup = true;
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("click", handleClickOutside);
     };
-  }, [editing, keyPressed, recordedKeys, osType]);
+  }, [editing]);
 
   const display = editing
     ? recordedKeys.length > 0
