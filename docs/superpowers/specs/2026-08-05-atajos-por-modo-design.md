@@ -14,10 +14,10 @@ Y sobre la pantalla: _"es súper confusa y no agradable"_.
 
 ### Lo que se midió en su instalación
 
-| Atajo | Valor guardado |
-| --- | --- |
-| Transformar (general) | `fn+f17` |
-| Modo "Correo" | `f17` — **sin el `fn`** |
+| Atajo                 | Valor guardado          |
+| --------------------- | ----------------------- |
+| Transformar (general) | `fn+f17`                |
+| Modo "Correo"         | `f17` — **sin el `fn`** |
 
 Su teclado emite `fn+f17`. El atajo general coincide y dispara; **el del modo
 no coincide nunca.** Por eso reportó que "toma solamente el mismo botón": el

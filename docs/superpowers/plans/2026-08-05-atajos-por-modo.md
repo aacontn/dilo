@@ -33,16 +33,16 @@ La máquina del dueño tiene 16 GB y **se le congeló dos veces por compilacione
 
 ## Estructura de archivos
 
-| Archivo | Responsabilidad | Tarea |
-| --- | --- | --- |
-| `src/components/settings/ModeShortcutInput.tsx` | Captura del atajo de un modo — **hoy usa eventos del navegador, ahí está el bug** | 1 |
-| `src/components/settings/HandyKeysShortcutInput.tsx` | Captura de los atajos generales — **el patrón correcto a seguir**, no se modifica | 1 (referencia) |
-| `src/lib/utils/shortcutConflicts.ts` | Detectar que una tecla ya está ocupada (nuevo) | 2 |
-| `src-tauri/src/settings.rs` | Campo del modo activo y su migración | 3 |
-| `src-tauri/src/shortcut/mod.rs` | Registro de atajos de modo; lógica del modo activo | 3 |
-| `src-tauri/src/actions.rs` | Resolución de qué prompt aplicar | 3 |
-| `src/components/settings/post-processing/PostProcessingSettings.tsx` | Pantalla Transformar → dos pestañas | 4 |
-| `src/components/home/HomeDashboard.tsx`, `DictationModes.tsx` | Inicio: estado + recordatorio de teclas | 5 |
+| Archivo                                                              | Responsabilidad                                                                   | Tarea          |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------- |
+| `src/components/settings/ModeShortcutInput.tsx`                      | Captura del atajo de un modo — **hoy usa eventos del navegador, ahí está el bug** | 1              |
+| `src/components/settings/HandyKeysShortcutInput.tsx`                 | Captura de los atajos generales — **el patrón correcto a seguir**, no se modifica | 1 (referencia) |
+| `src/lib/utils/shortcutConflicts.ts`                                 | Detectar que una tecla ya está ocupada (nuevo)                                    | 2              |
+| `src-tauri/src/settings.rs`                                          | Campo del modo activo y su migración                                              | 3              |
+| `src-tauri/src/shortcut/mod.rs`                                      | Registro de atajos de modo; lógica del modo activo                                | 3              |
+| `src-tauri/src/actions.rs`                                           | Resolución de qué prompt aplicar                                                  | 3              |
+| `src/components/settings/post-processing/PostProcessingSettings.tsx` | Pantalla Transformar → dos pestañas                                               | 4              |
+| `src/components/home/HomeDashboard.tsx`, `DictationModes.tsx`        | Inicio: estado + recordatorio de teclas                                           | 5              |
 
 ---
 
@@ -56,10 +56,12 @@ La máquina del dueño tiene 16 GB y **se le congeló dos veces por compilacione
 - `ModeShortcutInput.tsx:156-157` usa `window.addEventListener("keydown"/"keyup")` — **eventos del navegador**, y en macOS **`fn` no genera evento de navegador**.
 
 **Files:**
+
 - Modify: `src/components/settings/ModeShortcutInput.tsx`
 - Reference (NO modificar): `src/components/settings/HandyKeysShortcutInput.tsx`
 
 **Interfaces:**
+
 - Consume: `commands.startHandyKeysRecording()` / `commands.stopHandyKeysRecording()` y el evento `HandyKeysEvent`, tal como los usa `HandyKeysShortcutInput.tsx`.
 - Produce: `ModeShortcutInput` guarda con `commands.changeModeShortcut(promptId, value)` (ya existe, línea 59) — la firma no cambia, sólo de dónde sale `value`.
 
@@ -77,9 +79,9 @@ import { comboFromHandyKeysEvent } from "@/lib/utils/keyboard";
 
 describe("captura de atajos de modo", () => {
   it("conserva fn, que el navegador nunca reporta en macOS", () => {
-    expect(
-      comboFromHandyKeysEvent({ modifiers: ["fn"], key: "F17" }),
-    ).toBe("fn+f17");
+    expect(comboFromHandyKeysEvent({ modifiers: ["fn"], key: "F17" })).toBe(
+      "fn+f17",
+    );
   });
 
   it("una tecla sin modificadores queda sola", () => {
@@ -122,12 +124,15 @@ git commit -m "fix(atajos): los atajos de modo se capturan con el grabador nativ
 Hoy asignar una tecla ya usada deja un atajo muerto en silencio. Con un atajo por modo esto pasa a ser mucho más probable.
 
 **Files:**
+
 - Create: `src/lib/utils/shortcutConflicts.ts`
 - Create: `tests/unit/shortcutConflicts.test.ts`
 - Modify: `src/components/settings/ModeShortcutInput.tsx`
 
 **Interfaces:**
+
 - Produce:
+
   ```ts
   export interface ShortcutOwner {
     kind: "binding" | "mode";
@@ -149,13 +154,20 @@ import { describe, expect, it } from "bun:test";
 import { findShortcutConflict } from "@/lib/utils/shortcutConflicts";
 
 const owners = [
-  { kind: "binding" as const, id: "transcribe", name: "Dictado", combo: "fn+f19" },
+  {
+    kind: "binding" as const,
+    id: "transcribe",
+    name: "Dictado",
+    combo: "fn+f19",
+  },
   { kind: "mode" as const, id: "dilo-email", name: "Correo", combo: "fn+f15" },
 ];
 
 describe("conflictos de atajos", () => {
   it("detecta que la tecla ya la usa el dictado", () => {
-    expect(findShortcutConflict("fn+f19", owners, "dilo-clean")?.name).toBe("Dictado");
+    expect(findShortcutConflict("fn+f19", owners, "dilo-clean")?.name).toBe(
+      "Dictado",
+    );
   });
 
   it("un modo no choca consigo mismo al reasignar la misma tecla", () => {
@@ -198,11 +210,13 @@ git commit -m "feat(atajos): avisar cuando la tecla ya está ocupada"
 ## Task 3: Fuera el modo activo — backend y migración
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs:501` (campo), `:1171` (default), `:1706` (fixture de test)
 - Modify: `src-tauri/src/actions.rs:306,709` (resolución del prompt)
 - Modify: `src-tauri/src/shortcut/mod.rs:1266-1267,1330` (lógica del modo activo)
 
 **Interfaces:**
+
 - Consume: `LLMPrompt { id, name, prompt, shortcut, provider_id, model }` (ya existe en `settings.rs`).
 - Produce: `post_process_selected_prompt_id` deja de existir. `resolve_mode_prompt` pasa a depender sólo del `binding_id` (`mode:<prompt_id>`), sin fallback al modo activo.
 
@@ -278,6 +292,7 @@ git commit -m "feat(transformar): cada modo tiene su tecla, se acaba el modo act
 ## Task 4: Transformar en dos pestañas
 
 **Files:**
+
 - Modify: `src/components/settings/post-processing/PostProcessingSettings.tsx`
 - Modify: `src/components/settings/post-processing/ModeProviderSelect.tsx`
 
@@ -317,6 +332,7 @@ git commit -m "feat(transformar): separar modos de la configuración del proveed
 ## Task 5: Inicio con estado y recordatorio de teclas
 
 **Files:**
+
 - Modify: `src/components/home/HomeDashboard.tsx`
 - Modify: `src/components/home/DictationModes.tsx`
 
