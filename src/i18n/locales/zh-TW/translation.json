@@ -282,6 +282,9 @@
     "unloadModelTooltip": "立即釋放記憶體，且不需要關閉 Dilo。下次聽寫時會自動重新載入——Dilo 在閒置一段時間後也會自動執行此動作。"
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "該按鍵已被{{name}}占用，請選擇其他按鍵。"
+    },
     "modelSettings": {
       "title": "{{model}} 設定"
     },

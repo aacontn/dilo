@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Libera a memória agora mesmo sem fechar o Dilo. Ele recarrega automaticamente na próxima vez que você ditar — o Dilo também faz isso sozinho depois de um tempo de inatividade."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Essa tecla já está sendo usada por {{name}}. Escolha outra."
+    },
     "modelSettings": {
       "title": "Configurações de {{model}}"
     },

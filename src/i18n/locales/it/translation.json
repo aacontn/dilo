@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Libera subito la memoria senza chiudere Dilo. Si ricarica automaticamente la prossima volta che detti — Dilo lo fa anche da solo dopo un periodo di inattività."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Questo tasto è già usato da {{name}}. Scegline un altro."
+    },
     "modelSettings": {
       "title": "Impostazioni di {{model}}"
     },

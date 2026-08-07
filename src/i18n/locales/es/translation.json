@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Libera la RAM ahora sin cerrar Dilo. Se recarga sola la próxima vez que dictes; Dilo también la libera sola después de un rato sin uso."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Esa tecla ya la usa {{name}}. Elige otra."
+    },
     "modelSettings": {
       "title": "Ajustes de {{model}}"
     },

@@ -442,6 +442,9 @@
         "description": "Hold to record, release to stop"
       }
     },
+    "shortcuts": {
+      "conflict": "That key is already used by {{name}}. Choose another."
+    },
     "models": {
       "title": "Transcription Models",
       "description": "Select a transcription model or download additional models. Different models offer varying levels of accuracy and speed.",

@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Gibt sofort Speicher frei, ohne Dilo zu schließen. Beim nächsten Diktieren wird das Modell automatisch neu geladen – das macht Dilo nach einer Weile Inaktivität auch von selbst."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Diese Taste wird bereits von {{name}} verwendet. Wähle eine andere."
+    },
     "modelSettings": {
       "title": "{{model}}-Einstellungen"
     },

@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Maakt meteen geheugen vrij zonder Dilo te sluiten. Het wordt automatisch opnieuw geladen de volgende keer dat je dicteert — Dilo doet dit ook vanzelf na een tijdje inactiviteit."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Deze toets wordt al gebruikt door {{name}}. Kies een andere."
+    },
     "modelSettings": {
       "title": "Instellingen voor {{model}}"
     },

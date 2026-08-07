@@ -282,6 +282,9 @@
     "unloadModelTooltip": "立即释放内存，且无需关闭 Dilo。下次听写时会自动重新加载——Dilo 在阀置一段时间后也会自动执行此操作。"
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "该按键已被{{name}}占用，请选择其他按键。"
+    },
     "modelSettings": {
       "title": "{{model}} 设置"
     },

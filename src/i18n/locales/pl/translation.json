@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Natychmiast zwalnia pamięć bez zamykania Dilo. Model wczyta się ponownie automatycznie, gdy następnym razem zaczniesz dyktować — Dilo robi to samo również samo po chwili bezczynności."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Ten klawisz jest już używany przez {{name}}. Wybierz inny."
+    },
     "modelSettings": {
       "title": "Ustawienia {{model}}"
     },

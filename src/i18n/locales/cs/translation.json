@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Okamžitě uvolní paměť, aniž by se Dilo zavřelo. Při příštím diktování se model znovu načte automaticky – Dilo to dělá i samo po chvíli nečinnosti."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Tuto klávesu už používá {{name}}. Vyberte jinou."
+    },
     "modelSettings": {
       "title": "Nastavení {{model}}"
     },

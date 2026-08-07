@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Dilo'yu kapatmadan belleği hemen boşaltir. Bir sonraki dikte edişinizde otomatik olarak yeniden yüklenir — Dilo bunu bir süre işlem yapılmadığında zaten kendiliğinden de yapar."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Bu tuş zaten {{name}} tarafından kullanılıyor. Başka bir tuş seç."
+    },
     "modelSettings": {
       "title": "{{model}} Ayarları"
     },

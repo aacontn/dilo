@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Giải phóng bộ nhớ ngay mà không cần đóng Dilo. Mô hình sẽ tự động tải lại vào lần bạn đọc chính tả tiếp theo — Dilo cũng tự làm việc này sau một thời gian không hoạt động."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Phím này đã được {{name}} sử dụng. Hãy chọn phím khác."
+    },
     "modelSettings": {
       "title": "Cài đặt {{model}}"
     },

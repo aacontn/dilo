@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Frigör minnet direkt utan att stänga Dilo. Det laddas automatiskt igen nästa gång du dikterar — Dilo gör det även själv efter en stunds inaktivitet."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "Den tangenten används redan av {{name}}. Välj en annan."
+    },
     "modelSettings": {
       "title": "{{model}}-inställningar"
     },

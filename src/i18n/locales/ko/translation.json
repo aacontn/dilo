@@ -282,6 +282,9 @@
     "unloadModelTooltip": "Dilo를 종료하지 않고 지금 바로 메모리를 해제합니다. 다음에 받아쓰기할 때 자동으로 다시 로드됩니다. Dilo는 일정 시간 사용하지 않으면 이 작업을 스스로도 수행합니다."
   },
   "settings": {
+    "shortcuts": {
+      "conflict": "이 키는 이미 {{name}}에서 사용 중입니다. 다른 키를 선택하세요."
+    },
     "modelSettings": {
       "title": "{{model}} 설정"
     },

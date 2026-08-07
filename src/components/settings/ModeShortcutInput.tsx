@@ -11,6 +11,7 @@ import {
   getKeyName,
   normalizeKey,
 } from "../../lib/utils/keyboard";
+import { resolveShortcutConflict } from "../../lib/utils/shortcutConflicts";
 import { useOsType } from "../../hooks/useOsType";
 import { useSettings } from "../../hooks/useSettings";
 
@@ -62,7 +63,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
-  const { getSetting, refreshSettings } = useSettings();
+  const { getSetting, refreshSettings, settings } = useSettings();
   const osType = useOsType();
   // Mode shortcuts must be captured the same way general shortcuts are for
   // the active keyboard implementation (see `ShortcutInput.tsx`): the native
@@ -85,6 +86,38 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
       throw new Error(result.error);
     }
     await refreshSettings();
+  };
+
+  const restoreOriginal = async () => {
+    if (!originalRef.current) return;
+    try {
+      await applyShortcut(originalRef.current);
+    } catch (restoreError) {
+      console.error("Failed to restore mode shortcut:", restoreError);
+    }
+  };
+
+  /**
+   * Commit a freshly recorded combo, but only after checking it isn't
+   * already claimed by a general binding or another mode (see
+   * `shortcutConflicts.ts`). This is advisory-but-blocking: on conflict we
+   * warn and restore the original shortcut instead of silently creating a
+   * dead hotkey where one of the two owners never fires.
+   */
+  const commitShortcut = async (combo: string) => {
+    const conflict = resolveShortcutConflict(combo, settings, promptId);
+    if (conflict) {
+      toast.error(t("settings.shortcuts.conflict", { name: conflict.name }));
+      await restoreOriginal();
+      return;
+    }
+
+    try {
+      await applyShortcut(combo);
+    } catch (error) {
+      toast.error(String(error));
+      await restoreOriginal();
+    }
   };
 
   const stopEditing = () => {
@@ -114,13 +147,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
             error: String(error),
           }),
         );
-        if (originalRef.current) {
-          try {
-            await applyShortcut(originalRef.current);
-          } catch (restoreError) {
-            console.error("Failed to restore mode shortcut:", restoreError);
-          }
-        }
+        await restoreOriginal();
         return;
       }
     }
@@ -140,13 +167,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
       await commands.stopHandyKeysRecording().catch(console.error);
     }
     stopEditing();
-    if (originalRef.current) {
-      try {
-        await applyShortcut(originalRef.current);
-      } catch (error) {
-        console.error("Failed to restore mode shortcut:", error);
-      }
-    }
+    await restoreOriginal();
   };
 
   const clearShortcut = async () => {
@@ -186,21 +207,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
             await commands.stopHandyKeysRecording().catch(console.error);
             stopEditing();
 
-            try {
-              await applyShortcut(comboToCommit);
-            } catch (error) {
-              toast.error(String(error));
-              if (originalRef.current) {
-                try {
-                  await applyShortcut(originalRef.current);
-                } catch (restoreError) {
-                  console.error(
-                    "Failed to restore mode shortcut:",
-                    restoreError,
-                  );
-                }
-              }
-            }
+            await commitShortcut(comboToCommit);
           }
         },
       );
@@ -259,18 +266,7 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
           return 0;
         });
         stopEditing();
-        try {
-          await applyShortcut(sorted.join("+"));
-        } catch (error) {
-          toast.error(String(error));
-          if (originalRef.current) {
-            try {
-              await applyShortcut(originalRef.current);
-            } catch (restoreError) {
-              console.error("Failed to restore mode shortcut:", restoreError);
-            }
-          }
-        }
+        await commitShortcut(sorted.join("+"));
       }
     };
 
