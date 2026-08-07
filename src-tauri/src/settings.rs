@@ -1471,6 +1471,10 @@ const LEGACY_SELECTED_PROMPT_KEY: &str = "post_process_selected_prompt_id";
 /// El atajo general de post-proceso, el que aplicaba el modo activo.
 const POST_PROCESS_BINDING_ID: &str = "transcribe_with_post_process";
 
+/// El proveedor cuyo endpoint pone la persona (Ollama, LM Studio, un servidor
+/// de la LAN). Funciona sin clave aunque su `base_url` no sea loopback.
+const CUSTOM_PROVIDER_ID: &str = "custom";
+
 /// `true` si el atajo lleva al menos un modificador (`fn+f17`,
 /// `option+shift+space`) en vez de ser una tecla pelada (`f17`).
 fn has_modifiers(shortcut: &str) -> bool {
@@ -1495,12 +1499,14 @@ fn mode_shortcut(prompt: &LLMPrompt) -> &str {
 ///   dispararse.** Va antes que la 1 para que el modo activo pueda heredar la
 ///   tecla del atajo general una vez que quedó libre — al revés, el modo
 ///   activo del dueño (con `f17` guardado) se habría quedado sin nada.
-/// - **Regla 1: el modo activo hereda la tecla del atajo general**, para no
-///   perder la elección de la persona. La tecla se **muda**: si el atajo
-///   general se quedara con ella, las dos se registrarían sobre la misma
-///   combinación.
-/// - **Regla 3: un proveedor de modo sin clave vuelve a `None`** (usa el
-///   general).
+/// - **Regla 1: el modo activo hereda la tecla del atajo general** —sólo si el
+///   post-proceso estaba encendido—, para no perder la elección de la persona.
+///   La tecla se **muda**: si el atajo general se quedara con ella, las dos se
+///   registrarían sobre la misma combinación (y las dos implementaciones de
+///   teclado rechazan duplicados, así que el que se quedaba sin registrar era
+///   el modo). El atajo general suelta su tecla haya heredero o no.
+/// - **Regla 3: un proveedor de modo que necesita clave y no la tiene vuelve a
+///   `None`** (usa el general).
 fn migrate_active_mode_to_mode_shortcuts(
     settings: &mut AppSettings,
     settings_value: &serde_json::Value,
@@ -1544,49 +1550,68 @@ fn migrate_active_mode_to_mode_shortcuts(
     }
 
     // --- Regla 1: el modo activo hereda la tecla del atajo general ---------
-    if let Some(active_id) = selected.as_str().filter(|id| !id.is_empty()) {
-        let general = settings
-            .bindings
-            .get(POST_PROCESS_BINDING_ID)
-            .map(|binding| binding.current_binding.trim().to_string())
-            .unwrap_or_default();
-        let mut inherited = false;
-        if !general.is_empty() {
-            if let Some(prompt) = settings
-                .post_process_prompts
-                .iter_mut()
-                .find(|prompt| prompt.id == active_id)
-            {
-                // Un modo que ya tenía su propia tecla se la queda: era una
-                // elección más explícita que la del desplegable.
-                if mode_shortcut(prompt).is_empty() {
-                    debug!(
-                        "El modo activo '{}' hereda el atajo general '{}'",
-                        prompt.name, general
-                    );
-                    prompt.shortcut = Some(general);
-                    inherited = true;
+    let general = settings
+        .bindings
+        .get(POST_PROCESS_BINDING_ID)
+        .map(|binding| binding.current_binding.trim().to_string())
+        .unwrap_or_default();
+    if !general.is_empty() {
+        // Heredar pide dos cosas: que hubiera un modo elegido y que el
+        // post-proceso estuviera **encendido**. El desplegable de 0.2.2
+        // persistía la selección con sólo abrir un prompt para editarlo, sin
+        // encender nada; y los bindings `mode:<id>` no consultan
+        // `post_process_enabled` (sólo lo hace el atajo general, por su id
+        // literal). Sin esta condición, alguien con el post-proceso apagado se
+        // despertaría con una tecla viva mandando sus dictados al LLM sin
+        // haberlo pedido.
+        if settings.post_process_enabled {
+            if let Some(active_id) = selected.as_str().filter(|id| !id.is_empty()) {
+                if let Some(prompt) = settings
+                    .post_process_prompts
+                    .iter_mut()
+                    .find(|prompt| prompt.id == active_id)
+                {
+                    // Un modo que ya tenía su propia tecla se la queda: era una
+                    // elección más explícita que la del desplegable.
+                    if mode_shortcut(prompt).is_empty() {
+                        debug!(
+                            "El modo activo '{}' hereda el atajo general '{}'",
+                            prompt.name, general
+                        );
+                        prompt.shortcut = Some(general);
+                    }
                 }
             }
         }
-        if inherited {
-            if let Some(binding) = settings.bindings.get_mut(POST_PROCESS_BINDING_ID) {
-                binding.current_binding = String::new();
-                binding.default_binding = String::new();
-            }
-            updated = true;
+
+        // La tecla se suelta **siempre**, haya heredero o no. Tras esta
+        // migración el atajo general no puede hacer nada útil en ningún caso:
+        // dispara el post-proceso sin ningún modo que aplicar, así que pega el
+        // dictado crudo — una tecla que promete transformar y sólo duplica el
+        // dictado. Por eso las instalaciones nuevas también lo traen vacío.
+        if let Some(binding) = settings.bindings.get_mut(POST_PROCESS_BINDING_ID) {
+            binding.current_binding = String::new();
+            binding.default_binding = String::new();
         }
+        updated = true;
     }
 
     // --- Regla 3: un proveedor de modo sin clave vuelve al general ---------
     //
     // Residuo del bug corregido en 0.2.2, donde elegir "Online" preseleccionaba
-    // el primer proveedor del catálogo en vez del que la persona ya usaba. Los
-    // proveedores locales quedan fuera: no llevan clave por diseño.
+    // el primer proveedor del catálogo en vez del que la persona ya usaba.
+    //
+    // "Sin clave" no es lo mismo que "no es loopback": los proveedores locales
+    // quedan fuera porque no llevan clave por diseño, y `custom` también —es el
+    // endpoint que pone la persona, y un Ollama en la LAN
+    // (`http://192.168.1.20:11434`) funciona sin clave aunque no sea loopback.
+    // Confundirlos le borraría el proveedor al modo y mandaría sus dictados al
+    // general, típicamente a la nube. Mismo criterio que
+    // `fetch_post_process_models` en `shortcut/mod.rs`.
     let unusable: Vec<String> = settings
         .post_process_providers
         .iter()
-        .filter(|provider| !provider_is_local(provider))
+        .filter(|provider| !provider_is_local(provider) && provider.id != CUSTOM_PROVIDER_ID)
         .filter(|provider| {
             settings
                 .post_process_api_keys
@@ -1791,7 +1816,8 @@ mod tests {
 
     /// Frozen snapshot of a real v0.9.0-era settings store, as written to
     /// disk. This pins backwards compatibility: it must always parse strictly
-    /// (no salvage) and require no migration rewrite.
+    /// (no salvage), and the only thing a migration may change in it is the
+    /// retired post-processing shortcut.
     ///
     /// If a schema change breaks this test, do NOT just update the fixture —
     /// it stands in for the stores on users' machines. Add a
@@ -1801,11 +1827,12 @@ mod tests {
     ///
     /// `post_process_selected_prompt_id` stays in the fixture on purpose even
     /// though the field is gone: real stores still have it, and this pins that
-    /// a store carrying it is neither rejected nor needlessly rewritten (this
-    /// one has nothing to migrate — no active mode, no mode shortcuts, and its
-    /// `f13` binding says this keyboard emits bare function keys).
+    /// a store carrying it is neither rejected nor rewritten beyond that one
+    /// shortcut (this one has no active mode, no mode shortcuts and no
+    /// per-mode provider, and its `f13` binding says the keyboard emits bare
+    /// function keys, so nothing else has anything to migrate).
     #[test]
-    fn frozen_v0_9_store_parses_strictly_without_migration() {
+    fn frozen_v0_9_store_parses_strictly_and_only_the_retired_shortcut_migrates() {
         // Note "log_level": 2 — the legacy numeric format, kept deliberately.
         let stored: serde_json::Value = serde_json::from_str(
             r##"{
@@ -1909,8 +1936,23 @@ mod tests {
         assert_eq!(settings.log_level, LogLevel::Debug);
         assert_eq!(settings.sound_theme, SoundTheme::Pop);
 
-        // A current-format store must not be rewritten on every read.
-        assert!(!apply_settings_migrations(&mut settings, &stored));
+        // Lo único que cambia: el atajo general de post-proceso suelta su
+        // tecla, porque sin modo activo ya no puede aplicar ningún prompt.
+        let mut expected = serde_json::to_value(&settings).unwrap();
+        expected["bindings"][POST_PROCESS_BINDING_ID]["current_binding"] = serde_json::json!("");
+        expected["bindings"][POST_PROCESS_BINDING_ID]["default_binding"] = serde_json::json!("");
+
+        assert!(apply_settings_migrations(&mut settings, &stored));
+        assert_eq!(
+            serde_json::to_value(&settings).unwrap(),
+            expected,
+            "nada más de un store v0.9 se toca al migrar"
+        );
+
+        // Y esa reescritura pasa una sola vez: releído (ya sin la clave
+        // retirada) el store no se vuelve a tocar.
+        let rewritten = serde_json::to_value(&settings).unwrap();
+        assert!(!apply_settings_migrations(&mut settings, &rewritten));
     }
 
     #[test]
@@ -2331,13 +2373,14 @@ mod tests {
     // ---------------------------------------------------------------------
 
     /// Un `settings.json` con la forma que dejó la 0.2.2: el modo activo
-    /// existe como clave, los atajos generales salieron del grabador nativo
-    /// (por eso traen `fn`) y los modos tienen los suyos. Cada test ajusta
-    /// sólo lo que le toca probar.
+    /// existe como clave, el post-proceso está encendido, los atajos generales
+    /// salieron del grabador nativo (por eso traen `fn`) y los modos tienen los
+    /// suyos. Cada test ajusta sólo lo que le toca probar.
     fn store_with_active_mode() -> serde_json::Value {
         let mut stored = default_settings_json();
         {
             let map = stored.as_object_mut().unwrap();
+            map.insert("post_process_enabled".into(), serde_json::json!(true));
             map.insert(
                 "post_process_selected_prompt_id".into(),
                 serde_json::Value::Null,
@@ -2417,6 +2460,52 @@ mod tests {
     }
 
     #[test]
+    fn el_modo_activo_no_hereda_si_el_post_proceso_estaba_apagado() {
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+        // El desplegable de 0.2.2 persistía la selección con sólo abrir un
+        // prompt para editarlo, sin encender nada.
+        stored["post_process_enabled"] = serde_json::json!(false);
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut,
+            None,
+            "heredar acá dejaría una tecla viva mandando dictados al LLM sin haberlo pedido"
+        );
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "y la tecla igual se suelta: ya no puede aplicar ningún prompt"
+        );
+    }
+
+    #[test]
+    fn el_atajo_general_suelta_la_tecla_aunque_nadie_la_herede() {
+        // Modo activo que apunta a un prompt que la persona borró. Lo mismo da
+        // `null` o un modo que ya tenía tecla propia: en los tres casos el
+        // atajo general se quedaría disparando post-proceso sin ningún prompt
+        // que aplicar, o sea pegando el dictado crudo.
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("un-modo-que-ya-no-existe");
+
+        let (settings, updated) = migrated(&stored);
+
+        assert!(updated);
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "una tecla que no puede hacer nada útil no se deja puesta"
+        );
+        assert!(
+            settings
+                .post_process_prompts
+                .iter()
+                .all(|prompt| prompt.shortcut.is_none()),
+            "y no se le regala a nadie"
+        );
+    }
+
+    #[test]
     fn un_atajo_sin_modificadores_se_borra_si_el_resto_los_tiene() {
         let mut stored = store_with_active_mode();
         // El caso del dueño: el teclado emite `fn+f17`, así que un `f17`
@@ -2454,6 +2543,29 @@ mod tests {
         assert_eq!(
             mode(&settings, "dilo-email").shortcut.as_deref(),
             Some("f17")
+        );
+    }
+
+    #[test]
+    fn un_teclado_mixto_no_borra_ningun_atajo_de_modo() {
+        // El caso que separa "todos los generales llevan modificador" de
+        // "alguno lo lleva": `transcribe` pelado y el de post-proceso con
+        // modificadores. Acá la referencia no dice nada sobre qué emite el
+        // teclado —hay evidencia de las dos cosas—, así que se elige lo
+        // conservador: no borrar. Borrar con esta evidencia le sacaría al
+        // usuario una tecla que puede estarle funcionando.
+        let mut stored = store_with_active_mode();
+        stored["bindings"]["transcribe"]["current_binding"] = serde_json::json!("f13");
+        stored["bindings"]["transcribe_with_post_process"]["current_binding"] =
+            serde_json::json!("option+shift+space");
+        stored["post_process_prompts"][1]["shortcut"] = serde_json::json!("f17");
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut.as_deref(),
+            Some("f17"),
+            "con evidencia mixta no se borra: hace falta que TODOS los generales lleven modificador"
         );
     }
 
@@ -2498,6 +2610,32 @@ mod tests {
             mode(&settings, "dilo-email").provider_id.as_deref(),
             Some("custom")
         );
+    }
+
+    #[test]
+    fn un_custom_en_la_red_local_se_queda_aunque_no_sea_loopback() {
+        let mut stored = store_with_active_mode();
+        // Ollama en otra máquina de la casa: no es loopback, no lleva clave, y
+        // borrarle el proveedor al modo mandaría sus dictados al general —
+        // típicamente a la nube, sin avisar.
+        for provider in stored["post_process_providers"].as_array_mut().unwrap() {
+            if provider["id"] == serde_json::json!("custom") {
+                provider["base_url"] = serde_json::json!("http://192.168.1.20:11434/v1");
+                provider["is_local"] = serde_json::json!(false);
+            }
+        }
+        stored["post_process_prompts"][1]["provider_id"] = serde_json::json!("custom");
+        stored["post_process_prompts"][1]["model"] = serde_json::json!("qwen3:8b");
+
+        let (settings, _) = migrated(&stored);
+
+        let email = mode(&settings, "dilo-email");
+        assert_eq!(
+            email.provider_id.as_deref(),
+            Some("custom"),
+            "'no es loopback' no significa 'necesita clave'"
+        );
+        assert_eq!(email.model.as_deref(), Some("qwen3:8b"));
     }
 
     #[test]
