@@ -148,14 +148,15 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
 
 const PostProcessingSettingsPromptsComponent: React.FC = () => {
   const { t } = useTranslation();
-  const { getSetting, updateSetting, isUpdating, refreshSettings } =
-    useSettings();
+  const { getSetting, refreshSettings } = useSettings();
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [draftText, setDraftText] = useState("");
+  // Qué modo se está editando. Es estado de esta pantalla, no configuración:
+  // ya no hay "modo activo" que elegir, cada modo se invoca por su tecla.
+  const [selectedPromptId, setSelectedPromptId] = useState("");
 
   const prompts = getSetting("post_process_prompts") || [];
-  const selectedPromptId = getSetting("post_process_selected_prompt_id") || "";
   const selectedPrompt =
     prompts.find((prompt) => prompt.id === selectedPromptId) || null;
 
@@ -178,7 +179,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
 
   const handlePromptSelect = (promptId: string | null) => {
     if (!promptId) return;
-    updateSetting("post_process_selected_prompt_id", promptId);
+    setSelectedPromptId(promptId);
     setIsCreating(false);
   };
 
@@ -192,7 +193,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
       );
       if (result.status === "ok") {
         await refreshSettings();
-        updateSetting("post_process_selected_prompt_id", result.data.id);
+        setSelectedPromptId(result.data.id);
         setIsCreating(false);
       }
     } catch (error) {
@@ -221,6 +222,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
     try {
       await commands.deletePostProcessPrompt(promptId);
       await refreshSettings();
+      setSelectedPromptId("");
       setIsCreating(false);
     } catch (error) {
       console.error("Failed to delete prompt:", error);
@@ -274,9 +276,7 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
                 ? t("settings.postProcessing.prompts.noPrompts")
                 : t("settings.postProcessing.prompts.selectPrompt")
             }
-            disabled={
-              isUpdating("post_process_selected_prompt_id") || isCreating
-            }
+            disabled={isCreating}
             className="flex-1 min-w-0"
           />
           <Button

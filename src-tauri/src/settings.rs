@@ -495,10 +495,12 @@ pub struct AppSettings {
     pub post_process_api_keys: SecretMap,
     #[serde(default = "default_post_process_models")]
     pub post_process_models: HashMap<String, String>,
+    /// Los modos de transformación. Cada uno es prompt + tecla + proveedor, y
+    /// se invoca por su propia tecla (binding `mode:<id>`): no hay "modo
+    /// activo". El campo `post_process_selected_prompt_id` que lo elegía se
+    /// retiró en 0.2.3 — ver `migrate_active_mode_to_mode_shortcuts`.
     #[serde(default = "default_post_process_prompts")]
     pub post_process_prompts: Vec<LLMPrompt>,
-    #[serde(default)]
-    pub post_process_selected_prompt_id: Option<String>,
     #[serde(default)]
     pub mute_while_recording: bool,
     #[serde(default)]
@@ -957,8 +959,24 @@ fn dilo_post_process_presets() -> Vec<LLMPrompt> {
     ]
 }
 
+/// Tecla de fábrica del modo Limpio: la que hasta la 0.2.2 era "transformar".
+/// Una instalación nueva tiene así algo funcionando de inmediato, sin tener
+/// que asignar nada.
+const DEFAULT_CLEAN_MODE_SHORTCUT: &str = "fn+F17";
+
+/// Los modos de fábrica **de una instalación nueva**: los mismos presets, con
+/// la tecla de Limpio ya puesta.
+///
+/// A propósito no es lo que usa `ensure_post_process_defaults` para rellenar
+/// un store existente: ahí los presets entran sin tecla, porque quedarse con
+/// una combinación que la persona ya usa para otra cosa sería robarle un
+/// atajo en una actualización.
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
-    dilo_post_process_presets()
+    let mut prompts = dilo_post_process_presets();
+    if let Some(clean) = prompts.iter_mut().find(|prompt| prompt.id == "dilo-clean") {
+        clean.shortcut = Some(DEFAULT_CLEAN_MODE_SHORTCUT.to_string());
+    }
+    prompts
 }
 
 fn default_transcribe_gpu_device() -> i32 {
@@ -1079,15 +1097,11 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_shortcut.to_string(),
         },
     );
-    #[cfg(target_os = "windows")]
-    let default_post_process_shortcut = "ctrl+shift+space";
-    #[cfg(target_os = "macos")]
-    let default_post_process_shortcut = "option+shift+space";
-    #[cfg(target_os = "linux")]
-    let default_post_process_shortcut = "ctrl+shift+space";
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    let default_post_process_shortcut = "alt+shift+space";
-
+    // El atajo general de post-proceso llega **sin tecla**. Aplicaba el "modo
+    // activo", y ese concepto ya no existe: sin un modo que aplicar no tendría
+    // nada que hacer más que pegar el dictado crudo, o sea sería una tecla
+    // muerta. Quien transforma lo hace con la tecla del modo que quiere
+    // (`mode:<id>`); de fábrica, Limpio en `fn+F17`.
     bindings.insert(
         "transcribe_with_post_process".to_string(),
         ShortcutBinding {
@@ -1095,8 +1109,8 @@ pub fn get_default_settings() -> AppSettings {
             name: "Transcribe with Post-Processing".to_string(),
             description: "Converts your speech into text and applies AI post-processing."
                 .to_string(),
-            default_binding: default_post_process_shortcut.to_string(),
-            current_binding: default_post_process_shortcut.to_string(),
+            default_binding: String::new(),
+            current_binding: String::new(),
         },
     );
     bindings.insert(
@@ -1168,7 +1182,6 @@ pub fn get_default_settings() -> AppSettings {
         post_process_api_keys: default_post_process_api_keys(),
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
-        post_process_selected_prompt_id: None,
         mute_while_recording: false,
         append_trailing_space: false,
         app_language: default_app_language(),
@@ -1443,6 +1456,163 @@ fn apply_settings_migrations(
         updated = true;
     }
 
+    if migrate_active_mode_to_mode_shortcuts(settings, settings_value) {
+        updated = true;
+    }
+
+    updated
+}
+
+/// La clave del "modo activo" de la 0.2.2. Ya no es un campo: que siga escrita
+/// en el JSON guardado es justamente lo que marca un store anterior a los
+/// atajos por modo.
+const LEGACY_SELECTED_PROMPT_KEY: &str = "post_process_selected_prompt_id";
+
+/// El atajo general de post-proceso, el que aplicaba el modo activo.
+const POST_PROCESS_BINDING_ID: &str = "transcribe_with_post_process";
+
+/// `true` si el atajo lleva al menos un modificador (`fn+f17`,
+/// `option+shift+space`) en vez de ser una tecla pelada (`f17`).
+fn has_modifiers(shortcut: &str) -> bool {
+    shortcut.contains('+')
+}
+
+/// El atajo del modo, ya sin espacios, o `""` si no tiene.
+fn mode_shortcut(prompt: &LLMPrompt) -> &str {
+    prompt.shortcut.as_deref().unwrap_or("").trim()
+}
+
+/// Migración del "modo activo" (0.2.2) a un atajo por modo.
+///
+/// Corre una sola vez: sólo mira stores donde la clave retirada sigue escrita,
+/// y `get_settings` reescribe el archivo —ya sin ella— cuando algo cambió.
+/// Es idempotente igual: si no hay nada que mover devuelve `false` y el store
+/// se queda como está.
+///
+/// Tres reglas (numeradas como en el diseño), aplicadas en este orden:
+///
+/// - **Regla 2 primero: se borran los atajos de modo que no pueden
+///   dispararse.** Va antes que la 1 para que el modo activo pueda heredar la
+///   tecla del atajo general una vez que quedó libre — al revés, el modo
+///   activo del dueño (con `f17` guardado) se habría quedado sin nada.
+/// - **Regla 1: el modo activo hereda la tecla del atajo general**, para no
+///   perder la elección de la persona. La tecla se **muda**: si el atajo
+///   general se quedara con ella, las dos se registrarían sobre la misma
+///   combinación.
+/// - **Regla 3: un proveedor de modo sin clave vuelve a `None`** (usa el
+///   general).
+fn migrate_active_mode_to_mode_shortcuts(
+    settings: &mut AppSettings,
+    settings_value: &serde_json::Value,
+) -> bool {
+    let Some(selected) = settings_value.get(LEGACY_SELECTED_PROMPT_KEY) else {
+        return false;
+    };
+    let mut updated = false;
+
+    // --- Regla 2: los atajos que no pueden dispararse se borran ------------
+    //
+    // Un `f17` pelado en un teclado que emite `fn+f17` no dispara nunca, y la
+    // app no sabe qué teclado hay: inventarle el `fn` sería otro atajo
+    // fantasma. Los atajos generales son la única referencia confiable de lo
+    // que emite este teclado, porque siempre se capturaron con el grabador
+    // nativo (los de modo venían de eventos del navegador, que en macOS no ven
+    // `fn` — ésa es la causa raíz). `cancel` queda fuera de la referencia: es
+    // Escape a propósito, una tecla pelada de fábrica.
+    let keyboard_uses_modifiers = {
+        let reference: Vec<&str> = settings
+            .bindings
+            .iter()
+            .filter(|(id, _)| id.as_str() != "cancel")
+            .map(|(_, binding)| binding.current_binding.trim())
+            .filter(|shortcut| !shortcut.is_empty())
+            .collect();
+        !reference.is_empty() && reference.iter().all(|shortcut| has_modifiers(shortcut))
+    };
+    if keyboard_uses_modifiers {
+        for prompt in settings.post_process_prompts.iter_mut() {
+            let shortcut = mode_shortcut(prompt);
+            if !shortcut.is_empty() && !has_modifiers(shortcut) {
+                warn!(
+                    "El atajo '{}' del modo '{}' no puede dispararse con este teclado; el modo queda sin tecla",
+                    shortcut, prompt.name
+                );
+                prompt.shortcut = None;
+                updated = true;
+            }
+        }
+    }
+
+    // --- Regla 1: el modo activo hereda la tecla del atajo general ---------
+    if let Some(active_id) = selected.as_str().filter(|id| !id.is_empty()) {
+        let general = settings
+            .bindings
+            .get(POST_PROCESS_BINDING_ID)
+            .map(|binding| binding.current_binding.trim().to_string())
+            .unwrap_or_default();
+        let mut inherited = false;
+        if !general.is_empty() {
+            if let Some(prompt) = settings
+                .post_process_prompts
+                .iter_mut()
+                .find(|prompt| prompt.id == active_id)
+            {
+                // Un modo que ya tenía su propia tecla se la queda: era una
+                // elección más explícita que la del desplegable.
+                if mode_shortcut(prompt).is_empty() {
+                    debug!(
+                        "El modo activo '{}' hereda el atajo general '{}'",
+                        prompt.name, general
+                    );
+                    prompt.shortcut = Some(general);
+                    inherited = true;
+                }
+            }
+        }
+        if inherited {
+            if let Some(binding) = settings.bindings.get_mut(POST_PROCESS_BINDING_ID) {
+                binding.current_binding = String::new();
+                binding.default_binding = String::new();
+            }
+            updated = true;
+        }
+    }
+
+    // --- Regla 3: un proveedor de modo sin clave vuelve al general ---------
+    //
+    // Residuo del bug corregido en 0.2.2, donde elegir "Online" preseleccionaba
+    // el primer proveedor del catálogo en vez del que la persona ya usaba. Los
+    // proveedores locales quedan fuera: no llevan clave por diseño.
+    let unusable: Vec<String> = settings
+        .post_process_providers
+        .iter()
+        .filter(|provider| !provider_is_local(provider))
+        .filter(|provider| {
+            settings
+                .post_process_api_keys
+                .get(&provider.id)
+                .is_none_or(|key| key.trim().is_empty())
+        })
+        .map(|provider| provider.id.clone())
+        .collect();
+    for prompt in settings.post_process_prompts.iter_mut() {
+        let orphan = prompt
+            .provider_id
+            .as_deref()
+            .is_some_and(|id| unusable.iter().any(|unusable_id| unusable_id == id));
+        if orphan {
+            debug!(
+                "El modo '{}' apuntaba a un proveedor sin clave; vuelve al general",
+                prompt.name
+            );
+            prompt.provider_id = None;
+            // Un modelo sin proveedor no significa nada (misma regla que
+            // `apply_post_process_prompt_provider`).
+            prompt.model = None;
+            updated = true;
+        }
+    }
+
     updated
 }
 
@@ -1628,6 +1798,12 @@ mod tests {
     /// `#[serde(alias)]`/`#[serde(other)]` or a one-time migration in
     /// `apply_settings_migrations` so old values keep loading, and only extend
     /// the fixture alongside that.
+    ///
+    /// `post_process_selected_prompt_id` stays in the fixture on purpose even
+    /// though the field is gone: real stores still have it, and this pins that
+    /// a store carrying it is neither rejected nor needlessly rewritten (this
+    /// one has nothing to migrate — no active mode, no mode shortcuts, and its
+    /// `f13` binding says this keyboard emits bare function keys).
     #[test]
     fn frozen_v0_9_store_parses_strictly_without_migration() {
         // Note "log_level": 2 — the legacy numeric format, kept deliberately.
@@ -2147,6 +2323,204 @@ mod tests {
         assert!(
             resolve_mode_provider(&settings, &code_mode(&settings)).is_none(),
             "sin modelo no hay a qué llamar: cuenta como no disponible"
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // Migración del "modo activo" (0.2.2 → un atajo por modo)
+    // ---------------------------------------------------------------------
+
+    /// Un `settings.json` con la forma que dejó la 0.2.2: el modo activo
+    /// existe como clave, los atajos generales salieron del grabador nativo
+    /// (por eso traen `fn`) y los modos tienen los suyos. Cada test ajusta
+    /// sólo lo que le toca probar.
+    fn store_with_active_mode() -> serde_json::Value {
+        let mut stored = default_settings_json();
+        {
+            let map = stored.as_object_mut().unwrap();
+            map.insert(
+                "post_process_selected_prompt_id".into(),
+                serde_json::Value::Null,
+            );
+            map.insert(
+                "post_process_prompts".into(),
+                serde_json::json!([
+                    {
+                        "id": "dilo-clean",
+                        "name": "Limpio",
+                        "prompt": "Limpia esta transcripción.",
+                        "shortcut": null,
+                        "provider_id": null,
+                        "model": null
+                    },
+                    {
+                        "id": "dilo-email",
+                        "name": "Correo",
+                        "prompt": "Escribe esto como correo.",
+                        "shortcut": null,
+                        "provider_id": null,
+                        "model": null
+                    }
+                ]),
+            );
+            map.insert(
+                "post_process_api_keys".into(),
+                serde_json::json!({ "openai": "", "groq": "gsk-la-que-sí-puso", "custom": "" }),
+            );
+        }
+        stored["bindings"]["transcribe"]["current_binding"] = serde_json::json!("fn+f19");
+        stored["bindings"]["transcribe_with_post_process"]["current_binding"] =
+            serde_json::json!("fn+f17");
+        stored
+    }
+
+    fn migrated(stored: &serde_json::Value) -> (AppSettings, bool) {
+        let mut settings: AppSettings = serde_json::from_value(stored.clone())
+            .expect("un settings.json de 0.2.2 tiene que seguir parseando");
+        let updated = apply_settings_migrations(&mut settings, stored);
+        (settings, updated)
+    }
+
+    fn mode<'a>(settings: &'a AppSettings, id: &str) -> &'a LLMPrompt {
+        settings
+            .post_process_prompts
+            .iter()
+            .find(|prompt| prompt.id == id)
+            .unwrap_or_else(|| panic!("el modo '{id}' sigue en la lista"))
+    }
+
+    #[test]
+    fn el_modo_activo_hereda_el_atajo_general() {
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+
+        let (settings, updated) = migrated(&stored);
+
+        assert!(updated, "la migración reescribe el store una vez");
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut.as_deref(),
+            Some("fn+f17"),
+            "la elección de la persona sobrevive como la tecla del modo"
+        );
+        // La tecla se muda, no se copia: si el atajo general se quedara con
+        // ella, las dos se registrarían sobre la misma combinación y el modo
+        // volvería a ser un atajo fantasma.
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "el atajo general suelta la tecla que entregó"
+        );
+        assert_eq!(
+            mode(&settings, "dilo-clean").shortcut,
+            None,
+            "los demás modos no heredan nada"
+        );
+    }
+
+    #[test]
+    fn un_atajo_sin_modificadores_se_borra_si_el_resto_los_tiene() {
+        let mut stored = store_with_active_mode();
+        // El caso del dueño: el teclado emite `fn+f17`, así que un `f17`
+        // pelado guardado por la captura vieja no dispara nunca.
+        stored["post_process_prompts"][1]["shortcut"] = serde_json::json!("f17");
+        stored["post_process_prompts"][0]["shortcut"] = serde_json::json!("fn+f15");
+
+        let (settings, updated) = migrated(&stored);
+
+        assert!(updated);
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut,
+            None,
+            "el atajo que no puede dispararse se borra, no se adivina"
+        );
+        assert_eq!(
+            mode(&settings, "dilo-clean").shortcut.as_deref(),
+            Some("fn+f15"),
+            "un atajo que sí puede dispararse no se toca"
+        );
+    }
+
+    #[test]
+    fn un_atajo_sin_modificadores_se_queda_si_los_generales_tampoco_los_tienen() {
+        let mut stored = store_with_active_mode();
+        // Teclado que emite las teclas de función peladas: acá `f17` sí
+        // dispara, y borrarlo sería quitarle una tecla que le funciona.
+        stored["bindings"]["transcribe"]["current_binding"] = serde_json::json!("f13");
+        stored["bindings"]["transcribe_with_post_process"]["current_binding"] =
+            serde_json::json!("f14");
+        stored["post_process_prompts"][1]["shortcut"] = serde_json::json!("f17");
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut.as_deref(),
+            Some("f17")
+        );
+    }
+
+    #[test]
+    fn un_proveedor_de_modo_sin_clave_vuelve_al_general() {
+        let mut stored = store_with_active_mode();
+        stored["post_process_prompts"][1]["provider_id"] = serde_json::json!("openai");
+        stored["post_process_prompts"][1]["model"] = serde_json::json!("gpt-4o-mini");
+        stored["post_process_prompts"][0]["provider_id"] = serde_json::json!("groq");
+        stored["post_process_prompts"][0]["model"] = serde_json::json!("llama-3.3-70b");
+
+        let (settings, updated) = migrated(&stored);
+
+        assert!(updated);
+        let email = mode(&settings, "dilo-email");
+        assert_eq!(
+            email.provider_id, None,
+            "residuo del bug de la 0.2.2: sin clave no puede llamar a nadie"
+        );
+        assert_eq!(
+            email.model, None,
+            "un modelo sin proveedor no significa nada"
+        );
+        let clean = mode(&settings, "dilo-clean");
+        assert_eq!(
+            clean.provider_id.as_deref(),
+            Some("groq"),
+            "el proveedor que sí tiene clave se queda"
+        );
+        assert_eq!(clean.model.as_deref(), Some("llama-3.3-70b"));
+    }
+
+    #[test]
+    fn un_proveedor_local_de_modo_se_queda_aunque_no_tenga_clave() {
+        let mut stored = store_with_active_mode();
+        // `custom` apunta a Ollama en localhost: no lleva clave por diseño.
+        stored["post_process_prompts"][1]["provider_id"] = serde_json::json!("custom");
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-email").provider_id.as_deref(),
+            Some("custom")
+        );
+    }
+
+    #[test]
+    fn instalacion_nueva_trae_limpio_en_fn_f17() {
+        let settings = AppSettings::default();
+
+        let clean = mode(&settings, "dilo-clean");
+        assert_eq!(
+            clean.shortcut.as_deref(),
+            Some("fn+F17"),
+            "una instalación nueva tiene algo funcionando de inmediato"
+        );
+        assert!(
+            settings
+                .post_process_prompts
+                .iter()
+                .filter(|prompt| prompt.id != "dilo-clean")
+                .all(|prompt| prompt.shortcut.is_none()),
+            "los demás modos llegan sin tecla; cada persona asigna las que quiera"
+        );
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "sin modo activo el atajo general no tiene qué prompt aplicar"
         );
     }
 }

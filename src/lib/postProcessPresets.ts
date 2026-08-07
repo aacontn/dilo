@@ -34,16 +34,6 @@ export const DICTATION_MODE_PRESETS: DictationModePreset[] = [
   },
 ];
 
-export type DictationModeId = "literal" | string;
-
-export const getActiveDictationMode = (settings: {
-  post_process_enabled?: boolean;
-  post_process_selected_prompt_id?: string | null;
-}): DictationModeId => {
-  if (!settings.post_process_enabled) return "literal";
-  return settings.post_process_selected_prompt_id || "literal";
-};
-
 /**
  * El proveedor que de verdad va a procesar un modo, con la misma regla que
  * `resolve_mode_provider` en `settings.rs`: si el modo no fija proveedor

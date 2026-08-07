@@ -300,14 +300,13 @@ async fn post_process_transcription(
         return None;
     }
 
-    // El override de modo (atajo `mode:<id>`) manda sobre el modo seleccionado.
-    let selected_prompt_id = match prompt_override
-        .map(str::to_string)
-        .or_else(|| settings.post_process_selected_prompt_id.clone())
-    {
-        Some(id) => id,
+    // Qué modo aplicar sale sólo del atajo que disparó el dictado
+    // (`mode:<id>`). No hay modo activo al que caer: un dictado que llegó por
+    // otra tecla no transforma nada.
+    let selected_prompt_id = match prompt_override {
+        Some(id) => id.to_string(),
         None => {
-            debug!("Post-processing skipped because no prompt is selected");
+            debug!("Post-processing skipped because the shortcut carries no mode");
             return None;
         }
     };
@@ -704,10 +703,7 @@ pub(crate) async fn process_transcription_output(
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
-            let used_prompt_id = mode_override
-                .as_ref()
-                .or(settings.post_process_selected_prompt_id.as_ref());
-            if let Some(prompt_id) = used_prompt_id {
+            if let Some(prompt_id) = mode_override.as_ref() {
                 if let Some(prompt) = settings
                     .post_process_prompts
                     .iter()

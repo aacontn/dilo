@@ -1,5 +1,4 @@
 import {
-  Check,
   Code2,
   Info,
   Mail,
@@ -11,7 +10,6 @@ import {
 import { useTranslation } from "react-i18next";
 import {
   DICTATION_MODE_PRESETS,
-  getActiveDictationMode,
   resolveModeProviderId,
 } from "@/lib/postProcessPresets";
 import { useSettings } from "@/hooks/useSettings";
@@ -33,10 +31,9 @@ interface DictationModesProps {
 
 export const DictationModes = ({ onCustomize }: DictationModesProps) => {
   const { t } = useTranslation();
-  const { settings, updateSetting, isUpdating } = useSettings();
+  const { settings } = useSettings();
   if (!settings) return null;
 
-  const activeMode = getActiveDictationMode(settings);
   const providerId = settings.post_process_provider_id || "openai";
   const providerModel = settings.post_process_models?.[providerId]?.trim();
   const providerApiKey = settings.post_process_api_keys?.[providerId]?.trim();
@@ -45,22 +42,9 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
     (providerId === "apple_intelligence" ||
       providerId === "custom" ||
       Boolean(providerApiKey));
-  const busy =
-    isUpdating("post_process_enabled") ||
-    isUpdating("post_process_selected_prompt_id");
-
   const prompts = settings.post_process_prompts || [];
   const shortcutFor = (id: string) =>
     prompts.find((prompt) => prompt.id === id)?.shortcut ?? null;
-
-  const chooseLiteral = async () => {
-    await updateSetting("post_process_enabled", false);
-  };
-
-  const chooseMode = async (promptId: string) => {
-    await updateSetting("post_process_selected_prompt_id", promptId);
-    await updateSetting("post_process_enabled", true);
-  };
 
   // Presets first (with translated labels/icons), then any user-created prompts.
   const presetModes = DICTATION_MODE_PRESETS.map((preset) => ({
@@ -81,25 +65,16 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
       icon: Sparkles,
     }));
 
-  const modes = [
-    {
-      id: "literal",
-      promptId: null as string | null,
-      label: t("home.modes.literal.title"),
-      description: t("home.modes.literal.description"),
-      icon: Quote,
-    },
-    ...presetModes,
-    ...customModes,
-  ];
+  // Sin "modo activo" no hay nada que seleccionar: la lista muestra qué modos
+  // hay y con qué tecla se invoca cada uno. El dictado sin transformar es
+  // simplemente la tecla de dictado, así que ya no aparece como una opción.
+  const modes = [...presetModes, ...customModes];
 
   // Etiqueta LOCAL/ONLINE según el proveedor efectivo del modo: la misma
   // regla que usa el backend para resolverlo (`resolveModeProviderId`), no
   // sólo el `provider_id` crudo — si ese proveedor no existe o no tiene
   // modelo utilizable, el modo en realidad corre con el general.
-  // "literal" no pasa por IA, así que no lleva etiqueta.
-  const providerBadgeFor = (promptId: string | null) => {
-    if (promptId === null) return null;
+  const providerBadgeFor = (promptId: string) => {
     const prompt = prompts.find((p) => p.id === promptId);
     const modeProviderId = resolveModeProviderId(prompt, settings);
     const provider = settings.post_process_providers?.find(
@@ -132,32 +107,15 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
       <div className="dictation-modes-grid grid gap-3">
         {modes.map((mode) => {
           const Icon = mode.icon;
-          const selected = activeMode === mode.id;
           const providerBadge = providerBadgeFor(mode.promptId);
           return (
             <div
               key={mode.id}
-              className={`glass-surface dictation-mode-card flex flex-col rounded-xl ${
-                selected ? "dictation-mode-card--selected" : ""
-              }`}
+              className="glass-surface dictation-mode-card flex flex-col rounded-xl"
             >
-              <button
-                type="button"
-                onClick={
-                  mode.promptId
-                    ? () => chooseMode(mode.promptId as string)
-                    : chooseLiteral
-                }
-                disabled={busy}
-                aria-pressed={selected}
-                className="dictation-mode-card-main flex flex-1 flex-col gap-1 p-3 text-start disabled:cursor-not-allowed disabled:opacity-50"
-              >
+              <div className="dictation-mode-card-main flex flex-1 flex-col gap-1 p-3 text-start">
                 <span className="flex items-center gap-2">
-                  <Icon
-                    className={`size-4 shrink-0 ${
-                      selected ? "text-accent-text" : "text-muted-text"
-                    }`}
-                  />
+                  <Icon className="size-4 shrink-0 text-muted-text" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
                     {mode.label}
                   </span>
@@ -166,28 +124,23 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
                       {providerBadge}
                     </span>
                   )}
-                  {selected && (
-                    <Check className="size-3.5 shrink-0 text-accent-text" />
-                  )}
                 </span>
                 <span className="dictation-mode-card-desc text-xs text-muted-text">
                   {mode.description}
                 </span>
-              </button>
-              {mode.promptId && (
-                <div className="dictation-mode-card-footer flex items-center px-3 py-2">
-                  <ModeShortcutInput
-                    compact
-                    promptId={mode.promptId}
-                    shortcut={shortcutFor(mode.promptId)}
-                  />
-                </div>
-              )}
+              </div>
+              <div className="dictation-mode-card-footer flex items-center px-3 py-2">
+                <ModeShortcutInput
+                  compact
+                  promptId={mode.promptId}
+                  shortcut={shortcutFor(mode.promptId)}
+                />
+              </div>
             </div>
           );
         })}
       </div>
-      {activeMode !== "literal" && !providerReady && (
+      {!providerReady && (
         <div className="mt-3 flex items-center gap-2 px-0.5 text-xs text-muted-text">
           <Info className="size-4 shrink-0" />
           {t("home.modes.needsProvider")}
