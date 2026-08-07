@@ -1,8 +1,10 @@
+import type { TFunction } from "i18next";
 import type {
   LLMPrompt,
   PostProcessProvider,
   ShortcutBinding,
 } from "@/bindings";
+import { formatKeyCombination, type OSType } from "@/lib/utils/keyboard";
 
 /**
  * `""`, `null` y `undefined` significan lo mismo para un atajo: no hay tecla
@@ -351,3 +353,101 @@ export const buildDictationModeEntries = (
 
   return [...presetEntries, ...customEntries];
 };
+
+/**
+ * Fila de atajo general ya lista para renderizar: nada que componer en el
+ * componente, sólo mapear a JSX.
+ */
+export interface GeneralShortcutRow {
+  id: string;
+  label: string;
+  shortcutText: string;
+  hasShortcut: boolean;
+}
+
+/**
+ * Arma las filas de atajos generales **con el texto ya traducido**, a
+ * partir de `settings.bindings` crudo y la función `t` del componente.
+ *
+ * Esto existe porque la primera versión de este recordatorio dejaba dos
+ * pasos sueltos en `DictationModes.tsx`: la llamada a
+ * `buildGeneralShortcutReminderEntries(settings.bindings)` y, aparte, el
+ * `t()`/`formatKeyCombination()` que convertía cada entrada en texto. Una
+ * revisión mutó el argumento de esa llamada (`settings.bindings` →
+ * `undefined`) y ningún test lo notó — la composición vivía en el JSX del
+ * componente, no en código que `bun test` pueda ejercitar sin montar React.
+ * Ahora **toda** esa composición (armar las entradas + traducir + formatear
+ * la tecla) vive acá, así que el componente pasa `settings.bindings` tal
+ * cual (sin transformarlo) y sólo mapea el resultado.
+ */
+export const buildGeneralShortcutRows = (
+  bindings:
+    | Partial<{ [key: string]: Pick<ShortcutBinding, "current_binding"> }>
+    | null
+    | undefined,
+  osType: OSType,
+  t: TFunction,
+): GeneralShortcutRow[] =>
+  buildGeneralShortcutReminderEntries(bindings).map((entry) => ({
+    id: entry.id,
+    label: t(`settings.general.shortcut.bindings.${entry.id}.name`),
+    shortcutText: entry.shortcut
+      ? formatKeyCombination(entry.shortcut, osType)
+      : t("home.shortcuts.unassigned"),
+    hasShortcut: entry.shortcut !== null,
+  }));
+
+/**
+ * Fila de modo ya lista para renderizar: nada que componer en el
+ * componente, sólo mapear a JSX (el ícono se elige por `id` ahí mismo, es
+ * un lookup trivial en un mapa fijo, no una decisión).
+ */
+export interface DictationModeRow {
+  id: string;
+  promptId: string;
+  label: string;
+  description: string;
+  shortcutText: string;
+  hasShortcut: boolean;
+  badgeText: string | null;
+}
+
+/**
+ * Arma las filas de modo **con el texto ya traducido**, a partir de
+ * `post_process_prompts` y `settings` crudos y la función `t` del
+ * componente.
+ *
+ * Mismo motivo que `buildGeneralShortcutRows`: antes el componente hacía
+ * `entry.isPreset ? t(entry.labelKey ?? "") : (entry.name ?? "")` (y su
+ * espejo para `description` y para la insignia LOCAL/ONLINE) directamente
+ * en el `.map()` del JSX. Una revisión invirtió ese ternario —presets sin
+ * nombre, modos propios mostrando la clave i18n cruda— y `bun test` siguió
+ * en verde porque nada fuera del componente ejercitaba esa rama. Con la
+ * composición acá adentro, `buildDictationModeEntries(prompts, settings)`
+ * ya resuelto pasa por `t` una sola vez, en un solo lugar cubierto por
+ * `postProcessPresets.test.ts`, y el componente recibe la fila terminada.
+ */
+export const buildDictationModeRows = (
+  prompts: LLMPrompt[],
+  settings: Parameters<typeof buildDictationModeEntries>[1],
+  osType: OSType,
+  t: TFunction,
+): DictationModeRow[] =>
+  buildDictationModeEntries(prompts, settings).map((entry) => ({
+    id: entry.id,
+    promptId: entry.promptId,
+    label: entry.isPreset ? t(entry.labelKey ?? "") : (entry.name ?? ""),
+    description: entry.isPreset
+      ? t(entry.descriptionKey ?? "")
+      : (entry.description ?? ""),
+    shortcutText: entry.shortcut
+      ? formatKeyCombination(entry.shortcut, osType)
+      : t("home.shortcuts.unassigned"),
+    hasShortcut: entry.shortcut !== null,
+    badgeText:
+      entry.badge === "local"
+        ? t("settings.postProcessing.modeProvider.badgeLocal")
+        : entry.badge === "online"
+          ? t("settings.postProcessing.modeProvider.badgeOnline")
+          : null,
+  }));

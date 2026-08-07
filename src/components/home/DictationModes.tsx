@@ -9,12 +9,11 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  buildDictationModeEntries,
-  buildGeneralShortcutReminderEntries,
+  buildDictationModeRows,
+  buildGeneralShortcutRows,
 } from "@/lib/postProcessPresets";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
-import { formatKeyCombination } from "@/lib/utils/keyboard";
 
 const ICONS = {
   "dilo-clean": Sparkles,
@@ -33,27 +32,29 @@ interface DictationModesProps {
  * modos) o a Ajustes generales (dictar/cancelar). Antes esta misma tarjeta
  * traía un capturador de tecla interactivo — se retiró junto con "Modo
  * inteligente activo" para que Inicio deje de ser una segunda pantalla de
- * edición.
+ * edición. El texto ya viene resuelto (`shortcutText`/`hasShortcut`) desde
+ * `postProcessPresets.ts` — este componente sólo elige qué etiqueta usar.
  */
-const ShortcutReminder = ({ shortcut }: { shortcut: string | null }) => {
-  const { t } = useTranslation();
-  const osType = useOsType();
-  if (!shortcut) {
-    return (
-      <span className="text-xs text-muted-text">
-        {t("home.shortcuts.unassigned")}
-      </span>
-    );
+const ShortcutReminder = ({
+  shortcutText,
+  hasShortcut,
+}: {
+  shortcutText: string;
+  hasShortcut: boolean;
+}) => {
+  if (!hasShortcut) {
+    return <span className="text-xs text-muted-text">{shortcutText}</span>;
   }
   return (
     <kbd className="dilo-keycap font-mono text-xs rounded-md px-2 py-1 text-text whitespace-nowrap">
-      {formatKeyCombination(shortcut, osType)}
+      {shortcutText}
     </kbd>
   );
 };
 
 export const DictationModes = ({ onCustomize }: DictationModesProps) => {
   const { t } = useTranslation();
+  const osType = useOsType();
   const { settings } = useSettings();
   if (!settings) return null;
 
@@ -67,14 +68,14 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
       Boolean(providerApiKey));
   const prompts = settings.post_process_prompts || [];
 
-  // Todo lo que decide qué se lista, en qué orden y qué atajo le
-  // corresponde a cada fila vive en `postProcessPresets.ts` (funciones
-  // puras, cubiertas en `postProcessPresets.test.ts`) — este componente
-  // sólo llama y mapea el resultado.
-  const generalShortcuts = buildGeneralShortcutReminderEntries(
-    settings.bindings,
-  );
-  const modeEntries = buildDictationModeEntries(prompts, settings);
+  // Todo lo que decide qué se lista, en qué orden, y el texto ya traducido
+  // de cada fila (etiqueta, descripción, tecla o "Sin tecla", insignia)
+  // vive en `postProcessPresets.ts` (funciones puras, cubiertas en
+  // `postProcessPresets.test.ts`). Acá sólo se pasan las props crudas
+  // (`settings.bindings`, `prompts`, `settings`, `t`, `osType`) tal cual,
+  // sin componer nada — el componente sólo mapea el resultado a JSX.
+  const generalRows = buildGeneralShortcutRows(settings.bindings, osType, t);
+  const modeRows = buildDictationModeRows(prompts, settings, osType, t);
 
   return (
     <section className="dictation-modes-section">
@@ -96,57 +97,49 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
       </div>
 
       <ul className="dictation-modes-general mb-3 flex flex-wrap gap-2">
-        {generalShortcuts.map((entry) => (
+        {generalRows.map((row) => (
           <li
-            key={entry.id}
+            key={row.id}
             className="glass-surface flex items-center gap-2 rounded-lg px-3 py-1.5"
           >
-            <span className="text-xs font-medium text-text">
-              {t(`settings.general.shortcut.bindings.${entry.id}.name`)}
-            </span>
-            <ShortcutReminder shortcut={entry.shortcut} />
+            <span className="text-xs font-medium text-text">{row.label}</span>
+            <ShortcutReminder
+              shortcutText={row.shortcutText}
+              hasShortcut={row.hasShortcut}
+            />
           </li>
         ))}
       </ul>
 
       <div className="dictation-modes-grid grid gap-3">
-        {modeEntries.map((entry) => {
-          const Icon = ICONS[entry.id as keyof typeof ICONS] || Sparkles;
-          const label = entry.isPreset
-            ? t(entry.labelKey ?? "")
-            : (entry.name ?? "");
-          const description = entry.isPreset
-            ? t(entry.descriptionKey ?? "")
-            : (entry.description ?? "");
-          const providerBadge =
-            entry.badge === "local"
-              ? t("settings.postProcessing.modeProvider.badgeLocal")
-              : entry.badge === "online"
-                ? t("settings.postProcessing.modeProvider.badgeOnline")
-                : null;
+        {modeRows.map((row) => {
+          const Icon = ICONS[row.id as keyof typeof ICONS] || Sparkles;
           return (
             <div
-              key={entry.id}
+              key={row.id}
               className="glass-surface dictation-mode-card flex flex-col rounded-xl"
             >
               <div className="dictation-mode-card-main flex flex-1 flex-col gap-1 p-3 text-start">
                 <span className="flex items-center gap-2">
                   <Icon className="size-4 shrink-0 text-muted-text" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
-                    {label}
+                    {row.label}
                   </span>
-                  {providerBadge && (
+                  {row.badgeText && (
                     <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
-                      {providerBadge}
+                      {row.badgeText}
                     </span>
                   )}
                 </span>
                 <span className="dictation-mode-card-desc text-xs text-muted-text">
-                  {description}
+                  {row.description}
                 </span>
               </div>
               <div className="dictation-mode-card-footer flex items-center px-3 py-2">
-                <ShortcutReminder shortcut={entry.shortcut} />
+                <ShortcutReminder
+                  shortcutText={row.shortcutText}
+                  hasShortcut={row.hasShortcut}
+                />
               </div>
             </div>
           );

@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import type { TFunction } from "i18next";
 import {
   buildDictationModeEntries,
+  buildDictationModeRows,
   buildGeneralShortcutReminderEntries,
+  buildGeneralShortcutRows,
   buildModeListEntries,
   DICTATION_MODE_PRESETS,
   GENERAL_SHORTCUT_REMINDER_IDS,
@@ -14,6 +17,17 @@ import {
   resolveModesView,
 } from "@/lib/postProcessPresets";
 import type { LLMPrompt, PostProcessProvider } from "@/bindings";
+import { formatKeyCombination } from "@/lib/utils/keyboard";
+
+/**
+ * Traductor de mentira para probar la composición de
+ * `buildGeneralShortcutRows`/`buildDictationModeRows` sin i18next real: cada
+ * clave vuelve tal cual (identidad). Alcanza porque estas pruebas verifican
+ * *qué clave/valor se usó para cada campo*, no la traducción en sí (eso ya
+ * lo cubre `check:translations` + la revisión a mano por idioma) — y una
+ * clave devuelta intacta deja rastro fácil de comparar con `toBe`.
+ */
+const identityT = ((key: string) => key) as unknown as TFunction;
 
 describe("dictation modes", () => {
   test("ships five stable smart presets", () => {
@@ -603,5 +617,162 @@ describe("buildModeListEntries", () => {
     expect(
       buildModeListEntries([], { post_process_provider_id: "openai" }),
     ).toEqual([]);
+  });
+});
+
+// Regresión (segunda vuelta de revisión): un revisor mutó dos puntos que
+// antes vivían compuestos dentro del JSX de `DictationModes.tsx` —
+// `buildGeneralShortcutReminderEntries(settings.bindings)` cambiado a
+// `(undefined)`, y el ternario `entry.isPreset ? t(labelKey) : name`
+// invertido— y `bun test` siguió en verde porque esa composición no tenía
+// ningún test propio (los de arriba prueban las funciones que arman las
+// *entradas*, no el texto final que ve la persona). `buildGeneralShortcutRows`
+// y `buildDictationModeRows` mueven esa composición completa (armar la
+// entrada + `t()` + `formatKeyCombination`) a `postProcessPresets.ts`, así
+// que el componente pasa `settings.bindings`/`prompts`/`settings` tal cual
+// (sin transformarlos) y las pruebas de acá abajo cubren exactamente lo que
+// antes sólo vivía en el JSX.
+describe("buildGeneralShortcutRows", () => {
+  test("usa la clave traducida de cada binding y la tecla real formateada", () => {
+    const rows = buildGeneralShortcutRows(
+      {
+        transcribe: { current_binding: "option+space" },
+        cancel: { current_binding: "escape" },
+      },
+      "macos",
+      identityT,
+    );
+
+    expect(rows).toEqual([
+      {
+        id: "transcribe",
+        label: "settings.general.shortcut.bindings.transcribe.name",
+        shortcutText: formatKeyCombination("option+space", "macos"),
+        hasShortcut: true,
+      },
+      {
+        id: "cancel",
+        label: "settings.general.shortcut.bindings.cancel.name",
+        shortcutText: formatKeyCombination("escape", "macos"),
+        hasShortcut: true,
+      },
+    ]);
+  });
+
+  // La mutación exacta que se coló sin que ningún test la cazara: pasar
+  // `undefined` en vez de los bindings reales. Con los bindings de verdad
+  // puestos más arriba, esta prueba falla si alguien reintroduce ese bug
+  // adentro de `buildGeneralShortcutRows`.
+  test("sin bindings reales, cada fila cae a Sin tecla (no se inventa una)", () => {
+    const rows = buildGeneralShortcutRows(undefined, "macos", identityT);
+    expect(rows.every((row) => row.hasShortcut === false)).toBe(true);
+    expect(
+      rows.every((row) => row.shortcutText === "home.shortcuts.unassigned"),
+    ).toBe(true);
+  });
+
+  test("un binding sin tecla (string vacío) muestra Sin tecla, no un keycap vacío", () => {
+    const rows = buildGeneralShortcutRows(
+      { transcribe: { current_binding: "" } },
+      "macos",
+      identityT,
+    );
+    const transcribeRow = rows.find((row) => row.id === "transcribe");
+    expect(transcribeRow?.hasShortcut).toBe(false);
+    expect(transcribeRow?.shortcutText).toBe("home.shortcuts.unassigned");
+  });
+});
+
+describe("buildDictationModeRows", () => {
+  const local: PostProcessProvider = {
+    id: "apple_intelligence",
+    label: "Apple Intelligence",
+    base_url: "",
+    is_local: true,
+  };
+  const online: PostProcessProvider = {
+    id: "openai",
+    label: "OpenAI",
+    base_url: "https://api.openai.com/v1",
+    is_local: false,
+  };
+  const settings = {
+    post_process_provider_id: "openai",
+    post_process_providers: [local, online],
+    post_process_models: { apple_intelligence: "on-device" },
+  };
+
+  const clean: LLMPrompt = {
+    id: "dilo-clean",
+    name: "Limpio",
+    prompt: "Mejora la gramática: ${output}",
+    shortcut: "fn+f17",
+    provider_id: "apple_intelligence",
+    model: null,
+  };
+  const custom: LLMPrompt = {
+    id: "mi-modo",
+    name: "Mi modo",
+    prompt: "Instrucciones propias: ${output}",
+    shortcut: null,
+    provider_id: null,
+    model: null,
+  };
+
+  // La mutación exacta que se coló: invertir
+  // `entry.isPreset ? t(labelKey) : name`. Con el ternario correcto, un
+  // preset muestra la clave i18n traducida (acá, devuelta tal cual por el
+  // traductor identidad) y un modo propio muestra su nombre crudo. Si se
+  // invierte, el preset queda con label "" (su `name` es `null`) y el modo
+  // propio muestra la clave i18n cruda en vez de su nombre — ambos casos
+  // failan acá.
+  test("un preset usa la clave i18n traducida, no su nombre (no tiene)", () => {
+    const rows = buildDictationModeRows([clean], settings, "macos", identityT);
+    const cleanRow = rows.find((row) => row.id === "dilo-clean");
+    expect(cleanRow?.label).toBe("home.modes.clean.title");
+    expect(cleanRow?.description).toBe("home.modes.clean.description");
+  });
+
+  test("un modo propio usa su nombre/instrucciones crudos, no una clave i18n", () => {
+    const rows = buildDictationModeRows(
+      [clean, custom],
+      settings,
+      "macos",
+      identityT,
+    );
+    const customRow = rows.find((row) => row.id === "mi-modo");
+    expect(customRow?.label).toBe("Mi modo");
+    expect(customRow?.description).toBe("Instrucciones propias: ${output}");
+  });
+
+  test("la tecla se formatea para el OS, y sin tecla cae a Sin tecla", () => {
+    const rows = buildDictationModeRows([clean], settings, "macos", identityT);
+    const cleanRow = rows.find((row) => row.id === "dilo-clean");
+    const emailRow = rows.find((row) => row.id === "dilo-email");
+    expect(cleanRow?.shortcutText).toBe(
+      formatKeyCombination("fn+f17", "macos"),
+    );
+    expect(cleanRow?.hasShortcut).toBe(true);
+    expect(emailRow?.shortcutText).toBe("home.shortcuts.unassigned");
+    expect(emailRow?.hasShortcut).toBe(false);
+  });
+
+  test("la insignia sale traducida según el proveedor efectivo del modo", () => {
+    const rows = buildDictationModeRows([clean], settings, "macos", identityT);
+    const cleanRow = rows.find((row) => row.id === "dilo-clean");
+    expect(cleanRow?.badgeText).toBe(
+      "settings.postProcessing.modeProvider.badgeLocal",
+    );
+  });
+
+  test("sin proveedor resuelto, la insignia es null (no un texto vacío)", () => {
+    const rows = buildDictationModeRows(
+      [clean],
+      { post_process_provider_id: "borrado", post_process_providers: [] },
+      "macos",
+      identityT,
+    );
+    const cleanRow = rows.find((row) => row.id === "dilo-clean");
+    expect(cleanRow?.badgeText).toBeNull();
   });
 });
