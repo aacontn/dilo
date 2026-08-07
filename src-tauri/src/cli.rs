@@ -16,9 +16,12 @@ pub struct CliArgs {
     #[arg(long)]
     pub toggle_transcription: bool,
 
-    /// Toggle transcription with post-processing on/off (sent to running instance)
-    #[arg(long)]
-    pub toggle_post_process: bool,
+    /// Toggle transcription with a transformation mode on/off (sent to running
+    /// instance). Optionally pick the mode by id or name
+    /// (`--toggle-post-process=dilo-code`); without a value Dilo uses the first
+    /// mode that has a key assigned — the same one its key would run.
+    #[arg(long, value_name = "MODE", num_args = 0..=1, require_equals = true, default_missing_value = "")]
+    pub toggle_post_process: Option<String>,
 
     /// Cancel the current operation (sent to running instance)
     #[arg(long)]
@@ -60,4 +63,42 @@ pub struct CliArgs {
     /// Emit --transcribe-file results as JSON.
     #[arg(long)]
     pub json: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CliArgs;
+    use clap::{CommandFactory, Parser};
+
+    #[test]
+    fn la_definicion_de_la_cli_es_coherente() {
+        // `debug_assert` es el chequeo interno de clap: pilla las
+        // combinaciones inválidas de `num_args`/`require_equals`/
+        // `default_missing_value` acá y no como pánico al arrancar la app.
+        CliArgs::command().debug_assert();
+    }
+
+    #[test]
+    fn toggle_post_process_lleva_un_modo_opcional() {
+        // Sin valor = "el modo de mi tecla de transformar"; con valor = ese
+        // modo por id o por nombre. Ver `signal_handle::resolve_post_process_target`.
+        let sin_modo = CliArgs::parse_from(["dilo", "--toggle-post-process"]);
+        assert_eq!(sin_modo.toggle_post_process.as_deref(), Some(""));
+
+        let con_modo = CliArgs::parse_from(["dilo", "--toggle-post-process=dilo-code"]);
+        assert_eq!(con_modo.toggle_post_process.as_deref(), Some("dilo-code"));
+
+        let ausente = CliArgs::parse_from(["dilo"]);
+        assert_eq!(ausente.toggle_post_process, None);
+    }
+
+    #[test]
+    fn el_modo_no_se_come_la_bandera_siguiente() {
+        // `require_equals` existe por esto: sin él, `num_args = 0..=1` haría
+        // que `--toggle-post-process --debug` se tragara `--debug` como
+        // nombre de modo.
+        let args = CliArgs::parse_from(["dilo", "--toggle-post-process", "--debug"]);
+        assert_eq!(args.toggle_post_process.as_deref(), Some(""));
+        assert!(args.debug);
+    }
 }

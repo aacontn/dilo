@@ -1034,8 +1034,19 @@ pub fn run(cli_args: CliArgs) {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             if args.iter().any(|a| a == "--toggle-transcription") {
                 signal_handle::send_transcription_input(app, "transcribe", "CLI");
-            } else if args.iter().any(|a| a == "--toggle-post-process") {
-                signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
+            } else if let Some(mode) = args.iter().find_map(|a| {
+                // La bandera acepta un modo opcional
+                // (`--toggle-post-process=dilo-code`); sin valor, el modo lo
+                // elige `resolve_post_process_target`. Antes disparaba el
+                // atajo general retirado, que sin modo activo pegaba el
+                // dictado crudo.
+                if a == "--toggle-post-process" {
+                    Some("")
+                } else {
+                    a.strip_prefix("--toggle-post-process=")
+                }
+            }) {
+                signal_handle::send_post_process_input(app, mode, "CLI");
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
             } else {

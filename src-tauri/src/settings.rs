@@ -1486,6 +1486,32 @@ fn mode_shortcut(prompt: &LLMPrompt) -> &str {
     prompt.shortcut.as_deref().unwrap_or("").trim()
 }
 
+/// El atajo listo para comparar: minúsculas, sin la variante izquierda/derecha
+/// del modificador (`"left option"` → `"option"`) y con las partes ordenadas,
+/// para que `shift+fn` y `fn+shift` no cuenten como teclas distintas.
+///
+/// Espejo de `normalizeCombo` en `src/lib/utils/shortcutConflicts.ts`, que es
+/// la que decide si la interfaz avisa de un choque. Acá sirve para lo mismo
+/// del otro lado: que la migración no le regale a un modo una combinación que
+/// otro ya tiene.
+fn normalized_combo(shortcut: &str) -> String {
+    fn normalized_key(part: &str) -> String {
+        let part = part.trim().to_lowercase();
+        match part.split_once(' ') {
+            Some((side, key)) if side == "left" || side == "right" => key.to_string(),
+            _ => part.to_string(),
+        }
+    }
+
+    let mut parts: Vec<String> = shortcut
+        .split('+')
+        .map(normalized_key)
+        .filter(|part| !part.is_empty())
+        .collect();
+    parts.sort();
+    parts.join("+")
+}
+
 /// Migración del "modo activo" (0.2.2) a un atajo por modo.
 ///
 /// Corre una sola vez: sólo mira stores donde la clave retirada sigue escrita,
@@ -1500,7 +1526,8 @@ fn mode_shortcut(prompt: &LLMPrompt) -> &str {
 ///   tecla del atajo general una vez que quedó libre — al revés, el modo
 ///   activo del dueño (con `f17` guardado) se habría quedado sin nada.
 /// - **Regla 1: el modo activo hereda la tecla del atajo general** —sólo si el
-///   post-proceso estaba encendido—, para no perder la elección de la persona.
+///   post-proceso estaba encendido y si ningún otro modo tiene ya esa
+///   combinación—, para no perder la elección de la persona.
 ///   La tecla se **muda**: si el atajo general se quedara con ella, las dos se
 ///   registrarían sobre la misma combinación (y las dos implementaciones de
 ///   teclado rechazan duplicados, así que el que se quedaba sin registrar era
@@ -1566,6 +1593,17 @@ fn migrate_active_mode_to_mode_shortcuts(
         // haberlo pedido.
         if settings.post_process_enabled {
             if let Some(active_id) = selected.as_str().filter(|id| !id.is_empty()) {
+                // Y una tercera: que esa combinación esté libre. Heredar una
+                // tecla que **otro** modo ya tiene deja dos bindings sobre la
+                // misma combinación, y las dos implementaciones de teclado
+                // rechazan duplicados (`HotkeyAlreadyRegistered`): al arrancar,
+                // `register_mode_shortcuts` sólo loguea un `warn!` y el segundo
+                // del `Vec` queda mudo. Sería reintroducir por la migración el
+                // mismo atajo fantasma que esta versión vino a matar.
+                let combo = normalized_combo(&general);
+                let ocupada_por_otro = settings.post_process_prompts.iter().any(|prompt| {
+                    prompt.id != active_id && normalized_combo(mode_shortcut(prompt)) == combo
+                });
                 if let Some(prompt) = settings
                     .post_process_prompts
                     .iter_mut()
@@ -1573,7 +1611,12 @@ fn migrate_active_mode_to_mode_shortcuts(
                 {
                     // Un modo que ya tenía su propia tecla se la queda: era una
                     // elección más explícita que la del desplegable.
-                    if mode_shortcut(prompt).is_empty() {
+                    if ocupada_por_otro {
+                        warn!(
+                            "El modo activo '{}' no hereda '{}': otro modo ya tiene esa tecla",
+                            prompt.name, general
+                        );
+                    } else if mode_shortcut(prompt).is_empty() {
                         debug!(
                             "El modo activo '{}' hereda el atajo general '{}'",
                             prompt.name, general
@@ -2456,6 +2499,78 @@ mod tests {
             mode(&settings, "dilo-clean").shortcut,
             None,
             "los demás modos no heredan nada"
+        );
+    }
+
+    #[test]
+    fn el_modo_activo_con_un_atajo_muerto_igual_hereda_el_general() {
+        // El store real que motivó todo el trabajo, y la intersección que no
+        // cubría ningún test: modo activo `dilo-email` **con** un `f17` pelado
+        // guardado (que este teclado no dispara) y el general en `fn+f17`.
+        //
+        // Es lo único que fija el orden regla 2 → regla 1. Al revés, el `f17`
+        // muerto contaría como "ya tenía tecla propia", bloquearía la herencia
+        // y recién después se borraría: el dueño se despertaría con el modo
+        // que usaba todos los días sin ninguna tecla.
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+        stored["post_process_prompts"][1]["shortcut"] = serde_json::json!("f17");
+
+        let (settings, updated) = migrated(&stored);
+
+        assert!(updated);
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut.as_deref(),
+            Some("fn+f17"),
+            "primero se borra el atajo que no dispara, después se hereda el general"
+        );
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "y el general suelta la tecla que entregó"
+        );
+    }
+
+    #[test]
+    fn el_modo_activo_no_hereda_una_tecla_que_otro_modo_ya_tiene() {
+        // Heredar acá dejaría dos modos en `fn+f17`. Las dos implementaciones
+        // de teclado rechazan duplicados y `register_mode_shortcuts` sólo hace
+        // `warn!`: uno de los dos arranca mudo, en silencio.
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+        stored["post_process_prompts"][0]["shortcut"] = serde_json::json!("fn+f17");
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-clean").shortcut.as_deref(),
+            Some("fn+f17"),
+            "el modo que ya tenía la tecla se la queda"
+        );
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut,
+            None,
+            "el heredero se queda sin tecla antes que dejar dos modos mudos a medias"
+        );
+        assert_eq!(
+            settings.bindings["transcribe_with_post_process"].current_binding, "",
+            "el general suelta la tecla igual: ya no puede aplicar ningún modo"
+        );
+    }
+
+    #[test]
+    fn la_tecla_ocupada_se_detecta_aunque_este_escrita_distinto() {
+        // El choque no siempre es literal: `Fn + F17` y `fn+f17` son la misma
+        // tecla, y compararlas como strings crudos diría que está libre.
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+        stored["post_process_prompts"][0]["shortcut"] = serde_json::json!("F17 + Fn");
+
+        let (settings, _) = migrated(&stored);
+
+        assert_eq!(
+            mode(&settings, "dilo-email").shortcut,
+            None,
+            "el orden y las mayúsculas no hacen que la tecla esté libre"
         );
     }
 

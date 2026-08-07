@@ -10,6 +10,7 @@ import {
   GENERAL_SHORTCUT_REMINDER_IDS,
   isLastRemainingMode,
   isModeDraftDirty,
+  modeDeleteBlock,
   normalizeShortcut,
   pickProviderForScope,
   resolveModeProviderBadge,
@@ -551,6 +552,44 @@ describe("isLastRemainingMode", () => {
 
   test("no hay nada que borrar en una lista vacía", () => {
     expect(isLastRemainingMode([])).toBe(true);
+  });
+});
+
+describe("modeDeleteBlock", () => {
+  const varios = [
+    { id: "dilo-clean" },
+    { id: "dilo-email" },
+    { id: "mio-1234" },
+    { id: "mio-5678" },
+  ];
+
+  // El bug: "Eliminar" un modo de fábrica no lo borraba, sólo le sacaba la
+  // tecla. `ensure_post_process_defaults` lo reinyecta en cada lectura de los
+  // ajustes, y el que vuelve es el preset pelado de
+  // `dilo_post_process_presets()`, que no trae atajo. Antes de esta versión
+  // sólo se perdía una fila que reaparecía; ahora se pierde la tecla asignada.
+  test("los cinco modos de fábrica no se pueden eliminar", () => {
+    for (const preset of DICTATION_MODE_PRESETS) {
+      expect(modeDeleteBlock(varios, preset.id)).toBe("factory-preset");
+    }
+  });
+
+  test("un modo propio sí se puede eliminar", () => {
+    expect(modeDeleteBlock(varios, "mio-1234")).toBe(null);
+  });
+
+  test("el último modo que queda sigue sin poder borrarse", () => {
+    expect(modeDeleteBlock([{ id: "mio-1234" }], "mio-1234")).toBe(
+      "last-remaining",
+    );
+  });
+
+  test("ser de fábrica gana sobre ser el último", () => {
+    // Los dos motivos a la vez: el mensaje que se muestra tiene que explicar
+    // el que la persona no puede resolver borrando otro modo.
+    expect(modeDeleteBlock([{ id: "dilo-clean" }], "dilo-clean")).toBe(
+      "factory-preset",
+    );
   });
 });
 

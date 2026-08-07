@@ -225,20 +225,32 @@ Dilo supports command-line parameters on all platforms for integration with scri
 
 **Implementation:** `cli.rs` (definitions), `main.rs` (parsing), `lib.rs` (applying), `signal_handle.rs` (shared logic)
 
-| Flag                     | Description                                                |
-| ------------------------ | ---------------------------------------------------------- |
-| `--toggle-transcription` | Toggle recording on/off on a running instance              |
-| `--toggle-post-process`  | Toggle recording with post-processing on/off               |
-| `--cancel`               | Cancel the current operation on a running instance         |
-| `--start-hidden`         | Launch without showing the main window (tray icon visible) |
-| `--no-tray`              | Launch without system tray (closing window quits the app)  |
-| `--debug`                | Enable debug mode with verbose (Trace) logging             |
+| Flag                             | Description                                                    |
+| -------------------------------- | -------------------------------------------------------------- |
+| `--toggle-transcription`         | Toggle recording on/off on a running instance                  |
+| `--toggle-post-process[=<mode>]` | Toggle recording with a transformation mode on/off (see below) |
+| `--cancel`                       | Cancel the current operation on a running instance             |
+| `--start-hidden`                 | Launch without showing the main window (tray icon visible)     |
+| `--no-tray`                      | Launch without system tray (closing window quits the app)      |
+| `--debug`                        | Enable debug mode with verbose (Trace) logging                 |
 
 **Key design decisions:**
 
 - CLI flags are runtime-only overrides — they do NOT modify persisted settings
 - Remote control flags work via `tauri_plugin_single_instance`: second instance sends args, then exits
 - `send_transcription_input()` in `signal_handle.rs` is shared between signal handlers and CLI
+
+**`--toggle-post-process` and `SIGUSR1` (0.2.3):** there is no "active mode"
+anymore — a transformation mode comes from the shortcut that started the
+dictation (`mode:<id>`). Both entry points now resolve a real mode through
+`signal_handle::resolve_post_process_target()`: the optional value picks it by
+id or by name (`--toggle-post-process=dilo-code`,
+`--toggle-post-process="Correo"`), and without a value (always, for `SIGUSR1`,
+which carries no arguments) Dilo uses the **first mode that has a key
+assigned** — the same one that key would run. If nothing resolves, it logs and
+records nothing instead of pasting raw dictation under a promise of
+transforming it. The `transcribe_with_post_process` binding is no longer
+triggered by anything.
 
 ## Debug Mode
 

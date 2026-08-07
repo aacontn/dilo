@@ -50,6 +50,17 @@ export const showRecordingErrorToast = (
   // ("El micrófono está en uso…"), que además mentía sobre la causa —
   // una reunión por audio del sistema jamás abre el micrófono (ver
   // `MicOwner::busy_error_message` en `managers/audio.rs`).
+  // La tecla de un modo se apretó con "Transformar" apagado (Ajustes ›
+  // Avanzado). El backend no graba nada — mandar el dictado al proveedor
+  // contradiría una preferencia explícita — así que la tecla se sentiría rota
+  // sin este aviso. Ver `mode_shortcut_is_blocked` en `actions.rs`.
+  if (error_type === "post_process_disabled") {
+    toast.error(t("errors.postProcessDisabledTitle"), {
+      description: t("errors.postProcessDisabled"),
+    });
+    return;
+  }
+
   if (error_type === "meeting_recording_active") {
     toast.error(t("errors.meetingRecordingActiveTitle"), {
       description: t("errors.meetingRecordingActive"),

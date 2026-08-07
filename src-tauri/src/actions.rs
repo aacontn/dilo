@@ -43,6 +43,23 @@ pub fn mode_prompt_id(binding_id: &str) -> Option<&str> {
     binding_id.strip_prefix("mode:").filter(|id| !id.is_empty())
 }
 
+/// Si una tecla de modo tiene que quedarse quieta porque "Transformar" está
+/// apagado (Ajustes › Avanzado, `post_process_enabled`).
+///
+/// El toggle sólo se consultaba por el id literal del atajo general retirado
+/// (`transcribe_with_post_process`, ver `shortcut/mod.rs`), así que los
+/// bindings `mode:<id>` se registraban y disparaban igual. Con el atajo
+/// general fuera, apagarlo dejó de apagar nada: de fábrica el flag es `false`
+/// y el modo Limpio sale con tecla, o sea que una instalación nueva tiene
+/// "Transformar" apagado y una tecla que manda el dictado al proveedor. Es la
+/// misma fuga que la regla 1 de la migración se niega a crear
+/// (`settings.rs`), sólo que servida de fábrica.
+///
+/// Un atajo que no es de modo nunca se bloquea: el dictado no cambia.
+pub(crate) fn mode_shortcut_is_blocked(binding_id: &str, post_process_enabled: bool) -> bool {
+    mode_prompt_id(binding_id).is_some() && !post_process_enabled
+}
+
 /// Como `ACTION_MAP.get`, pero los bindings dinámicos de modo (`mode:*`)
 /// resuelven al TranscribeAction con post-proceso.
 pub fn resolve_action(binding_id: &str) -> Option<Arc<dyn ShortcutAction>> {
@@ -744,6 +761,26 @@ impl ShortcutAction for TranscribeAction {
             return;
         }
 
+        // Transformar apagado: la tecla del modo no manda el dictado al
+        // proveedor. Mismo criterio que el guard de arriba — avisar y no
+        // actuar, en vez de contradecir en silencio una preferencia
+        // explícita. Ver `mode_shortcut_is_blocked`.
+        if mode_shortcut_is_blocked(binding_id, get_settings(app).post_process_enabled) {
+            debug!(
+                "Transformar está apagado en ajustes; ignorando el atajo de modo '{}'",
+                binding_id
+            );
+            utils::emit_ui_notice(
+                app,
+                "recording-error",
+                RecordingErrorEvent {
+                    error_type: "post_process_disabled".to_string(),
+                    detail: None,
+                },
+            );
+            return;
+        }
+
         // Cada dictado fija (o limpia) el override de modo de esta captura.
         if let Ok(mut override_slot) = MODE_PROMPT_OVERRIDE.lock() {
             *override_slot = mode_prompt_id(binding_id).map(str::to_string);
@@ -1360,6 +1397,28 @@ mod tests {
         assert_eq!(super::mode_prompt_id("mode:abc"), Some("abc"));
         assert_eq!(super::mode_prompt_id("transcribe"), None);
         assert_eq!(super::mode_prompt_id("mode:"), None); // vacío no es un modo
+    }
+
+    #[test]
+    fn una_tecla_de_modo_no_dispara_con_transformar_apagado() {
+        // El agujero que dejó retirar el atajo general: el toggle
+        // "Transformar" sólo se consultaba por el id literal
+        // `transcribe_with_post_process`, así que apagarlo no impedía que un
+        // `mode:<id>` mandara el dictado al proveedor. De fábrica el flag es
+        // `false` y Limpio trae tecla, o sea que era el estado por defecto.
+        assert!(super::mode_shortcut_is_blocked("mode:dilo-clean", false));
+        assert!(!super::mode_shortcut_is_blocked("mode:dilo-clean", true));
+    }
+
+    #[test]
+    fn transformar_apagado_no_toca_el_dictado_ni_el_asistente() {
+        // La restricción dura: el dictado no cambia. Sólo se bloquean los
+        // bindings de modo, nunca los demás.
+        assert!(!super::mode_shortcut_is_blocked("transcribe", false));
+        assert!(!super::mode_shortcut_is_blocked("voice_assistant", false));
+        assert!(!super::mode_shortcut_is_blocked("quick_note", false));
+        // `mode:` pelado no es un modo (mismo criterio que `mode_prompt_id`).
+        assert!(!super::mode_shortcut_is_blocked("mode:", false));
     }
 
     #[test]

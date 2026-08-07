@@ -29,8 +29,8 @@ import { useSettings } from "../../../hooks/useSettings";
 import { PageHeader } from "../../ui/PageHeader";
 import {
   buildModeListEntries,
-  isLastRemainingMode,
   isModeDraftDirty,
+  modeDeleteBlock,
   resolveModesView,
   type ModeProviderBadge,
   type ModesTabView,
@@ -320,6 +320,13 @@ const PostProcessingSettingsModesComponent: React.FC = () => {
     selectedPrompt,
   );
 
+  // Por qué "Eliminar" no se puede apretar (`null` = sí se puede). Los modos
+  // de fábrica vuelven solos y sin tecla, así que el botón no promete un
+  // borrado que no puede cumplir. Ver `modeDeleteBlock`.
+  const deleteBlock = selectedPrompt
+    ? modeDeleteBlock(prompts, selectedPrompt.id)
+    : null;
+
   const backButton = (
     <button
       type="button"
@@ -494,11 +501,16 @@ const PostProcessingSettingsModesComponent: React.FC = () => {
               onClick={handleDeletePrompt}
               variant="secondary"
               size="md"
-              disabled={isLastRemainingMode(prompts)}
+              disabled={deleteBlock !== null}
             >
               {t("settings.postProcessing.prompts.deletePrompt")}
             </Button>
           </div>
+          {deleteBlock === "factory-preset" && (
+            <p className="text-xs text-muted-text">
+              {t("settings.postProcessing.prompts.presetCannotBeDeleted")}
+            </p>
+          )}
         </div>
       </SettingsGroup>
     </div>

@@ -201,6 +201,35 @@ export const buildModeListEntries = (
 export const isLastRemainingMode = (prompts: unknown[]): boolean =>
   prompts.length <= 1;
 
+/** Por qué "Eliminar" está bloqueado, o `null` si el modo sí se puede borrar. */
+export type ModeDeleteBlock = "factory-preset" | "last-remaining";
+
+/**
+ * Si "Eliminar" puede cumplir lo que promete para este modo.
+ *
+ * Los cinco modos de fábrica **no se pueden borrar**: `ensure_post_process_defaults`
+ * (`settings.rs`) los vuelve a inyectar en cada lectura de los ajustes, así que
+ * el borrado duraba hasta el siguiente `refreshSettings` y lo único que
+ * quedaba borrado de verdad era su tecla — el preset volvía tal como sale de
+ * `dilo_post_process_presets()`, que no trae ninguna. Con un atajo por modo eso
+ * pasó de rareza cosmética a perder la tecla que la persona acababa de asignar.
+ * Mientras la reinyección exista, la interfaz no promete un borrado que no
+ * puede cumplir.
+ *
+ * `last-remaining` es la regla vieja (ver `isLastRemainingMode`) y se conserva
+ * para los modos propios.
+ */
+export const modeDeleteBlock = (
+  prompts: { id: string }[],
+  promptId: string,
+): ModeDeleteBlock | null => {
+  if (DICTATION_MODE_PRESETS.some((preset) => preset.id === promptId)) {
+    return "factory-preset";
+  }
+  if (isLastRemainingMode(prompts)) return "last-remaining";
+  return null;
+};
+
 /**
  * Vista de la pestaña "Modos" en `PostProcessingSettings.tsx`: lista de
  * modos, o el detalle de uno (editar), o el formulario de creación. Ya no
