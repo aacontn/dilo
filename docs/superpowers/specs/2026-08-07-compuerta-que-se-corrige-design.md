@@ -34,12 +34,57 @@ la prueba estaba sobre el audio**. Para reuniones va al revés: perder habla
 es catastrófico e irrecuperable; dejar pasar un tramo dudoso cuesta, a lo
 más, un pedazo sin texto.
 
+### Corrección al diagnóstico (mismo día, 18:30): faltaba una fuente entera
+
+Al preguntar Alfonso _"¿por qué no pesca ni el micrófono las reuniones?"_ se
+verificó en el código (`meeting.rs:929`) que una reunión online captura
+**sólo el audio del sistema** — el micrófono no se abre nunca. Y la propia
+voz no suena por los parlantes durante una llamada: WhatsApp la manda al
+otro lado, no la reproduce localmente. **Todo lo que Alfonso dijo en la
+reunión 27 jamás entró a la captura.** El hueco de 27,8 s son,
+con toda probabilidad, sus propios turnos; el 43 % de cobertura calza con
+una conversación de dos donde sólo se oye a uno.
+
+Ese comportamiento venía de un mandato suyo anterior ("por el audio del
+computador, no del micrófono; el micrófono sólo como opción para
+presencial"), razonable en su momento pero que nadie advirtió que dejaba la
+propia voz fuera de toda reunión online. **Ese mandato queda derogado por
+este diseño**: la compuerta era un problema real pero secundario — primero
+hay que capturar la conversación completa.
+
 ## El principio
 
-**El audio entra salvo que se demuestre que no es nada.** Y cuando el
-sistema igual se equivoca, el error se detecta, se muestra, se corrige la
-causa y se repara el daño. Cuatro capas, cada una cubriendo la falla de la
-anterior: **medir → mostrar → adaptar → reparar**.
+**Primero, capturar todo; después, no botar nada.** El audio entra salvo
+que se demuestre que no es nada, y cuando el sistema igual se equivoca, el
+error se detecta, se muestra, se corrige la causa y se repara el daño.
+Capas, cada una cubriendo la falla de la anterior:
+**capturar → medir → mostrar → adaptar → reparar**.
+
+## Capa −1 — La fuente completa: micrófono + sistema, mezclados
+
+En reunión online se capturan **las dos fuentes a la vez**: el audio del
+sistema trae a los demás participantes; el micrófono trae a quien está
+frente al computador. Se mezclan a una sola señal de 16 kHz mono antes del
+pipeline — Sortformer separa a los hablantes de la mezcla igual que lo
+haría con una grabación de sala, así que el resto del camino (ASR,
+alineador, persistencia) no cambia.
+
+Decisiones que esto arrastra:
+
+- **El árbitro del micrófono** (`MicrophoneArbiter`): la reunión online
+  pasa a reclamar `MicOwner::Meeting` siempre, no sólo en presencial. La
+  exclusión mutua con el dictado ya existe y se conserva.
+- **Sin micrófono disponible** (ocupado, sin permiso, desconectado): la
+  reunión arranca igual con sólo el sistema, avisando por el canal de
+  avisos de audio que ya existe (`MeetingAudioWarning`) — capturar a los
+  demás sin ti es mejor que no capturar nada, pero se dice.
+- **Eco:** la voz remota puede entrar dos veces (por el tap del sistema y,
+  si suena por parlantes, re-captada por el micrófono). Con audífonos —el
+  caso normal de una llamada— no existe. Sin audífonos se acepta como
+  limitación conocida en esta fase: el ASR transcribe la mezcla y el
+  duplicado no crea texto doble, sólo ensucia la diarización. Se anota, no
+  se resuelve acá (cancelación de eco es un proyecto en sí).
+- **Presencial no cambia**: sigue siendo sólo micrófono.
 
 ## Capa 0 — La compuerta bien hecha (el default invertido)
 
@@ -120,10 +165,24 @@ solaparse con lo ya transcrito ni duplicarlo. Reglas duras:
 - La regla de no adivinar sigue: su hablante sale del cruce con los tramos
   de Sortformer, y sin tramo que lo cubra queda "Sin identificar".
 
+## Fases
+
+Esto es demasiado para un solo plan, y las capas no valen lo mismo:
+
+- **Fase 1 (el próximo plan): capturar y no botar.** Capa −1 (la mezcla),
+  capa 0 (la compuerta bien hecha), capa 1 (el árbitro que mide) y capa 2
+  (el medidor y el aviso). Con esto la prueba de fuego ya es alcanzable — la
+  reunión 27 se habría capturado casi completa.
+- **Fase 2 (plan aparte, después de verificar la fase 1 en vivo):** capa 3
+  (el lazo que adapta el piso) y capa 4 (la reparación retroactiva). Son las
+  más delicadas y necesitan la telemetría de la fase 1 funcionando para
+  calibrarse contra datos reales.
+
 ## Alcance
 
-**Entra:** las cinco capas, la persistencia del piso por fuente, el medidor
-en las dos superficies de grabación, y la telemetría de compuerta en el log.
+**Entra:** las capas según su fase, la persistencia del piso por fuente, el
+medidor en las dos superficies de grabación, y la telemetría de compuerta en
+el log.
 
 **No entra:**
 
