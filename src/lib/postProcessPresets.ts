@@ -102,6 +102,33 @@ export const pickProviderForScope = (
   return candidates.find(hasKey) ?? candidates[0];
 };
 
+/**
+ * ¿Este proveedor deja editar su URL base?
+ *
+ * Lo dice el propio proveedor (`allow_base_url_edit`, el mismo campo que
+ * valida el backend en `change_post_process_base_url_setting`), no una lista
+ * de ids en la UI: hay proveedores cuya URL sólo cambia en un tramo —la
+ * región, por ejemplo— y no tendrían por qué tocar este archivo.
+ *
+ * El campo es opcional en el binding (`allow_base_url_edit?: boolean`), así
+ * que ausente significa "no".
+ */
+export const canEditBaseUrl = (
+  provider: Pick<PostProcessProvider, "allow_base_url_edit"> | undefined | null,
+): boolean => provider?.allow_base_url_edit === true;
+
+/**
+ * ¿Este proveedor publica un catálogo de modelos que Dilo pueda pedir?
+ *
+ * `models_endpoint` en `null` significa que no hay lista que traer y que el id
+ * del modelo se escribe a mano. Sin esta pregunta, Ajustes ofrece un botón de
+ * "actualizar modelos" que sólo puede fallar, y el desplegable se queda vacío
+ * sin explicar por qué.
+ */
+export const publishesModelCatalog = (
+  provider: Pick<PostProcessProvider, "models_endpoint"> | undefined | null,
+): boolean => Boolean(provider?.models_endpoint?.trim());
+
 export const resolveModeProviderId = (
   mode: Pick<LLMPrompt, "provider_id" | "model"> | undefined,
   settings: {

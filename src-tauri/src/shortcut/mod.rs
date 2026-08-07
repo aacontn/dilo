@@ -1064,24 +1064,11 @@ pub fn change_post_process_base_url_setting(
     provider_id: String,
     base_url: String,
 ) -> Result<(), String> {
+    // La regla de quién puede mover su URL base vive en `AppSettings` (ver
+    // `set_post_process_base_url`), no acá: así se puede probar sin levantar
+    // media aplicación para conseguir un `AppHandle`.
     let mut settings = settings::get_settings(&app);
-    let label = settings
-        .post_process_provider(&provider_id)
-        .map(|provider| provider.label.clone())
-        .ok_or_else(|| format!("Provider '{}' not found", provider_id))?;
-
-    let provider = settings
-        .post_process_provider_mut(&provider_id)
-        .expect("Provider looked up above must exist");
-
-    if provider.id != "custom" {
-        return Err(format!(
-            "Provider '{}' does not allow editing the base URL",
-            label
-        ));
-    }
-
-    provider.base_url = base_url;
+    settings.set_post_process_base_url(&provider_id, base_url)?;
     settings::write_settings(&app, settings);
     Ok(())
 }

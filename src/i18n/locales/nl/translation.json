@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Basis-URL",
-          "description": "API-basis-URL voor de geselecteerde provider. Alleen de aangepaste provider kan worden bewerkt.",
+          "description": "Basis-URL van de API. Pas deze aan als je provider een andere regio gebruikt of als je naar je eigen server wijst.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Model",
           "descriptionCustom": "Geef de model-ID op die door je aangepaste eindpunt wordt verwacht.",
           "descriptionDefault": "Kies een model dat door de geselecteerde provider wordt aangeboden.",
+          "descriptionNoCatalog": "Deze provider publiceert geen modellijst: typ de model-id precies zoals die in de console staat.",
           "placeholderWithOptions": "Zoek of selecteer een model",
           "placeholderNoOptions": "Typ een modelnaam",
           "refreshModels": "Modellen verversen"

@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "基础 URL",
-          "description": "所选提供商的 API 基础 URL。仅自定义提供商可编辑。",
+          "description": "API 的基础 URL。如果你的服务商使用其他区域，或者要指向自己的服务器，就修改它。",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "模型",
           "descriptionCustom": "提供自定义端点期望的模型标识符。",
           "descriptionDefault": "选择所选提供商提供的模型。",
+          "descriptionNoCatalog": "该服务商不提供模型列表：请按其控制台显示的样子输入模型 ID。",
           "placeholderWithOptions": "搜索或选择模型",
           "placeholderNoOptions": "输入模型名称",
           "refreshModels": "刷新模型"

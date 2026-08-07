@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "기본 URL",
-          "description": "선택한 제공자의 API 기본 URL입니다. 사용자 정의 제공자만 편집할 수 있습니다.",
+          "description": "API 기본 URL입니다. 공급자가 다른 리전을 사용하거나 직접 운영하는 서버를 가리킬 때 변경하세요.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "모델",
           "descriptionCustom": "사용자 정의 엔드포인트에서 예상하는 모델 식별자를 제공하세요.",
           "descriptionDefault": "선택한 제공자가 제공하는 모델을 선택하세요.",
+          "descriptionNoCatalog": "이 공급자는 모델 목록을 제공하지 않습니다. 콘솔에 표시된 그대로 모델 ID를 입력하세요.",
           "placeholderWithOptions": "모델 검색 또는 선택",
           "placeholderNoOptions": "모델 이름 입력",
           "refreshModels": "모델 새로고침"

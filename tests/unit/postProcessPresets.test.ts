@@ -6,6 +6,8 @@ import {
   buildGeneralShortcutReminderEntries,
   buildGeneralShortcutRows,
   buildModeListEntries,
+  canEditBaseUrl,
+  publishesModelCatalog,
   DICTATION_MODE_PRESETS,
   GENERAL_SHORTCUT_REMINDER_IDS,
   isLastRemainingMode,
@@ -172,6 +174,51 @@ describe("pickProviderForScope", () => {
 
   test("un lado sin proveedores no devuelve nada", () => {
     expect(pickProviderForScope(online, "local", {})).toBeNull();
+  });
+});
+
+describe("qué deja configurar cada proveedor", () => {
+  // Las tres formas que tiene el catálogo real: el que trae todo fijo
+  // (Mantle), el que deja mover su URL y no publica lista (el endpoint
+  // clásico de Bedrock) y el personalizado.
+  const mantle: PostProcessProvider = {
+    id: "bedrock_mantle",
+    label: "AWS Bedrock (Mantle)",
+    base_url: "https://bedrock-mantle.us-east-1.api.aws/v1",
+    allow_base_url_edit: false,
+    models_endpoint: "/models",
+    is_local: false,
+  };
+  const bedrock: PostProcessProvider = {
+    id: "bedrock",
+    label: "AWS Bedrock",
+    base_url: "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1",
+    allow_base_url_edit: true,
+    models_endpoint: null,
+    is_local: false,
+  };
+
+  test("la URL base sólo se edita donde el proveedor lo permite", () => {
+    expect(canEditBaseUrl(bedrock)).toBe(true);
+    expect(canEditBaseUrl(mantle)).toBe(false);
+    // Campo ausente en el binding (`allow_base_url_edit?`) = no se edita.
+    expect(canEditBaseUrl({ ...mantle, allow_base_url_edit: undefined })).toBe(
+      false,
+    );
+    expect(canEditBaseUrl(undefined)).toBe(false);
+  });
+
+  test("sólo se pide catálogo a quien declara dónde pedirlo", () => {
+    expect(publishesModelCatalog(mantle)).toBe(true);
+    // Sin catálogo: el id del modelo se escribe a mano.
+    expect(publishesModelCatalog(bedrock)).toBe(false);
+    expect(
+      publishesModelCatalog({ ...mantle, models_endpoint: undefined }),
+    ).toBe(false);
+    expect(publishesModelCatalog({ ...mantle, models_endpoint: "   " })).toBe(
+      false,
+    );
+    expect(publishesModelCatalog(null)).toBe(false);
   });
 });
 

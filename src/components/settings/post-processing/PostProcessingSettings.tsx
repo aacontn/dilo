@@ -82,7 +82,7 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
         ) : null
       ) : (
         <>
-          {state.selectedProvider?.id === "custom" && (
+          {state.isBaseUrlEditable && (
             <SettingContainer
               title={t("settings.postProcessing.api.baseUrl.title")}
               description={t("settings.postProcessing.api.baseUrl.description")}
@@ -132,7 +132,9 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
           description={
             state.isCustomProvider
               ? t("settings.postProcessing.api.model.descriptionCustom")
-              : t("settings.postProcessing.api.model.descriptionDefault")
+              : state.hasModelCatalog
+                ? t("settings.postProcessing.api.model.descriptionDefault")
+                : t("settings.postProcessing.api.model.descriptionNoCatalog")
           }
           descriptionMode="tooltip"
           layout="stacked"
@@ -156,16 +158,20 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
               onBlur={() => {}}
               className="flex-1 min-w-[380px]"
             />
-            <ResetButton
-              onClick={state.handleRefreshModels}
-              disabled={state.isFetchingModels}
-              ariaLabel={t("settings.postProcessing.api.model.refreshModels")}
-              className="flex h-10 w-10 items-center justify-center"
-            >
-              <RefreshCcw
-                className={`h-4 w-4 ${state.isFetchingModels ? "animate-spin" : ""}`}
-              />
-            </ResetButton>
+            {/* Sin catálogo que pedir, el botón sólo podría fallar: el id del
+                modelo se escribe en el mismo campo (es creatable). */}
+            {state.hasModelCatalog && (
+              <ResetButton
+                onClick={state.handleRefreshModels}
+                disabled={state.isFetchingModels}
+                ariaLabel={t("settings.postProcessing.api.model.refreshModels")}
+                className="flex h-10 w-10 items-center justify-center"
+              >
+                <RefreshCcw
+                  className={`h-4 w-4 ${state.isFetchingModels ? "animate-spin" : ""}`}
+                />
+              </ResetButton>
+            )}
           </div>
         </SettingContainer>
       )}

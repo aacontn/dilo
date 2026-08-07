@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "כתובת URL בסיסית",
-          "description": "כתובת ה-API הבסיסית עבור הספק הנבחר. רק ספק מותאם אישית ניתן לעריכה.",
+          "description": "כתובת ה-URL הבסיסית של ה-API. שנה אותה אם הספק שלך משתמש באזור אחר או אם אתה מפנה לשרת שלך.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "מודל",
           "descriptionCustom": "ספק את מזהה המודל שה-endpoint המותאם שלך מצפה לו.",
           "descriptionDefault": "בחר מודל שהספק הנבחר חושף.",
+          "descriptionNoCatalog": "הספק הזה לא מפרסם רשימת מודלים: הקלד את מזהה המודל בדיוק כפי שהוא מופיע במסוף שלו.",
           "placeholderWithOptions": "חפש או בחר מודל",
           "placeholderNoOptions": "הקלד שם מודל",
           "refreshModels": "רענן מודלים"

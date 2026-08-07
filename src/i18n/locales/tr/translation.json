@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Temel URL",
-          "description": "Seçili sağlayıcı için API temel URL'si. Yalnızca özel sağlayıcı düzenlenebilir.",
+          "description": "API temel URL'si. Sağlayıcın farklı bir bölge kullanıyorsa ya da kendi sunucunu gösteriyorsan değiştir.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Model",
           "descriptionCustom": "Özel uç noktanızın beklediği model tanımlayıcısını girin.",
           "descriptionDefault": "Seçili sağlayıcının sunduğu bir modeli seçin.",
+          "descriptionNoCatalog": "Bu sağlayıcı model listesi yayınlamıyor: model kimliğini konsolunda göründüğü gibi yaz.",
           "placeholderWithOptions": "Model ara veya seç",
           "placeholderNoOptions": "Model adı yazın",
           "refreshModels": "Modelleri Yenile"

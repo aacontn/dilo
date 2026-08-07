@@ -3,6 +3,10 @@ import { useSettings } from "../../../hooks/useSettings";
 import { commands, type PostProcessProvider } from "@/bindings";
 import type { ModelOption } from "./types";
 import type { DropdownOption } from "../../ui/Dropdown";
+import {
+  canEditBaseUrl,
+  publishesModelCatalog,
+} from "@/lib/postProcessPresets";
 
 type PostProcessProviderState = {
   providerOptions: DropdownOption[];
@@ -10,6 +14,10 @@ type PostProcessProviderState = {
   selectedProvider: PostProcessProvider | undefined;
   isCustomProvider: boolean;
   isAppleProvider: boolean;
+  /** El proveedor elegido deja editar su URL base (ver `canEditBaseUrl`). */
+  isBaseUrlEditable: boolean;
+  /** El proveedor elegido publica catálogo de modelos (ver `publishesModelCatalog`). */
+  hasModelCatalog: boolean;
   appleIntelligenceUnavailable: boolean;
   baseUrl: string;
   handleBaseUrlChange: (value: string) => void;
@@ -97,14 +105,17 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
       // reflects what's actually valid. Without this, a stale model value from
       // a previous provider/base_url can persist and silently 404 at runtime.
       // Skip when the provider isn't configured yet (no API key / empty base URL)
-      // to avoid unnecessary backend errors.
+      // to avoid unnecessary backend errors, y también cuando el proveedor no
+      // publica catálogo: ahí no hay lista que traer y el viaje sólo puede
+      // terminar en error.
       if (providerId !== APPLE_PROVIDER_ID) {
         const provider = providers.find((p) => p.id === providerId);
         const apiKey = settings?.post_process_api_keys?.[providerId] ?? "";
         const hasBaseUrl = (provider?.base_url ?? "").trim() !== "";
         const hasApiKey = apiKey.trim() !== "";
+        const configured = provider?.id === "custom" ? hasBaseUrl : hasApiKey;
 
-        if (provider?.id === "custom" ? hasBaseUrl : hasApiKey) {
+        if (publishesModelCatalog(provider) && configured) {
           void fetchPostProcessModels(providerId);
         }
       }
@@ -120,7 +131,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
 
   const handleBaseUrlChange = useCallback(
     (value: string) => {
-      if (!selectedProvider || selectedProvider.id !== "custom") {
+      if (!selectedProvider || !canEditBaseUrl(selectedProvider)) {
         return;
       }
       const trimmed = value.trim();
@@ -165,10 +176,20 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     [selectedProviderId, updatePostProcessModel],
   );
 
+  const hasModelCatalog = publishesModelCatalog(selectedProvider);
+
   const handleRefreshModels = useCallback(() => {
     if (isAppleProvider) return;
+    // Un proveedor sin catálogo no tiene lista que actualizar: pedírsela sólo
+    // gastaría un viaje que termina en 404.
+    if (!publishesModelCatalog(selectedProvider)) return;
     void fetchPostProcessModels(selectedProviderId);
-  }, [fetchPostProcessModels, isAppleProvider, selectedProviderId]);
+  }, [
+    fetchPostProcessModels,
+    isAppleProvider,
+    selectedProvider,
+    selectedProviderId,
+  ]);
 
   const availableModelsRaw = postProcessModelOptions[selectedProviderId] || [];
 
@@ -217,6 +238,8 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     selectedProvider,
     isCustomProvider,
     isAppleProvider,
+    isBaseUrlEditable: canEditBaseUrl(selectedProvider),
+    hasModelCatalog,
     appleIntelligenceUnavailable,
     baseUrl,
     handleBaseUrlChange,

@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "ベース URL",
-          "description": "選択したプロバイダーの API ベース URL。カスタムプロバイダーのみ編集可能。",
+          "description": "API のベース URL。プロバイダーが別のリージョンを使っている場合や、自分のサーバーを指す場合は変更してください。",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "モデル",
           "descriptionCustom": "カスタムエンドポイントが期待するモデル識別子を指定。",
           "descriptionDefault": "選択したプロバイダーが提供するモデルを選択。",
+          "descriptionNoCatalog": "このプロバイダーはモデル一覧を公開していません。コンソールに表示されるとおりにモデル ID を入力してください。",
           "placeholderWithOptions": "モデルを検索または選択",
           "placeholderNoOptions": "モデル名を入力",
           "refreshModels": "モデルを更新"

@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Adres bazowy",
-          "description": "Bazowy adres API dla wybranego dostawcy. Tylko dostawca niestandardowy może być edytowany.",
+          "description": "Bazowy adres URL API. Zmień go, jeśli dostawca używa innego regionu lub jeśli wskazujesz własny serwer.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Model",
           "descriptionCustom": "Podaj identyfikator modelu wymagany przez Twój niestandardowy endpoint.",
           "descriptionDefault": "Wybierz model udostępniony przez wybranego dostawcę.",
+          "descriptionNoCatalog": "Ten dostawca nie publikuje listy modeli: wpisz identyfikator modelu dokładnie tak, jak pokazuje go jego konsola.",
           "placeholderWithOptions": "Wyszukaj lub wybierz model",
           "placeholderNoOptions": "Wpisz nazwę modelu",
           "refreshModels": "Odśwież modele"

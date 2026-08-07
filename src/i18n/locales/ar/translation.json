@@ -505,7 +505,7 @@
         },
         "baseUrl": {
           "title": "URL الأساسي",
-          "description": "URL الأساسي لـ API للمزود المختار. يمكن تعديل المزود المخصص فقط.",
+          "description": "عنوان URL الأساسي لواجهة API. غيّره إذا كان مزوّدك يستخدم منطقة أخرى أو إذا كنت تشير إلى خادمك الخاص.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -517,6 +517,7 @@
           "title": "النموذج",
           "descriptionCustom": "قدم معرف النموذج المتوقع من قبل نقطة النهاية المخصصة الخاصة بك.",
           "descriptionDefault": "اختر نموذجاً يعرضه المزود المختار.",
+          "descriptionNoCatalog": "هذا المزوّد لا ينشر قائمة النماذج: اكتب معرّف النموذج تمامًا كما يظهر في وحدة التحكم الخاصة به.",
           "placeholderWithOptions": "ابحث عن نموذج أو اختره",
           "placeholderNoOptions": "اكتب اسم النموذج",
           "refreshModels": "تحديث النماذج"

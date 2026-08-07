@@ -721,14 +721,38 @@ fn extract_responses_text(payload: &Value) -> Option<String> {
     Some(text)
 }
 
+/// Dónde pedirle a un proveedor su catálogo de modelos, o `None` si no publica
+/// ninguno.
+///
+/// La ruta sale de `models_endpoint`, que hasta ahora era un campo declarado y
+/// nunca leído: el catálogo se pedía siempre a `{base}/models`. Que ese campo
+/// mande de verdad es lo que le permite a un proveedor decir "acá no hay lista"
+/// sin que Dilo salga igual a golpear una ruta que no existe.
+fn models_url(provider: &PostProcessProvider) -> Option<String> {
+    let endpoint = provider.models_endpoint.as_deref()?.trim();
+    if endpoint.is_empty() {
+        return None;
+    }
+    let base_url = provider.base_url.trim_end_matches('/');
+    Some(if endpoint.starts_with('/') {
+        format!("{}{}", base_url, endpoint)
+    } else {
+        format!("{}/{}", base_url, endpoint)
+    })
+}
+
 /// Fetch available models from an OpenAI-compatible API
 /// Returns a list of model IDs
 pub async fn fetch_models(
     provider: &PostProcessProvider,
     api_key: String,
 ) -> Result<Vec<String>, String> {
-    let base_url = provider.base_url.trim_end_matches('/');
-    let url = format!("{}/models", base_url);
+    let url = models_url(provider).ok_or_else(|| {
+        format!(
+            "El proveedor «{}» no publica un catálogo de modelos: escribe el id del modelo a mano",
+            provider.label
+        )
+    })?;
 
     debug!("Fetching models from: {}", url);
 
@@ -1604,6 +1628,131 @@ mod tests {
         assert_eq!(sent["reasoning_effort"], "none");
         assert!(sent.get("input").is_none());
         assert!(sent.get("text").is_none());
+    }
+
+    // --- El catálogo de modelos es opcional ---------------------------------
+
+    #[test]
+    fn the_models_url_comes_from_the_provider_not_from_a_fixed_path() {
+        let mut provider = provider_at("https://x.example/v1");
+        assert_eq!(
+            models_url(&provider).as_deref(),
+            Some("https://x.example/v1/models")
+        );
+
+        // Una barra de más en la base no duplica la del endpoint.
+        provider.base_url = "https://x.example/v1/".to_string();
+        assert_eq!(
+            models_url(&provider).as_deref(),
+            Some("https://x.example/v1/models")
+        );
+
+        // Y una ruta declarada sin barra tampoco pega los dos tramos.
+        provider.base_url = "https://x.example/v1".to_string();
+        provider.models_endpoint = Some("modelos".to_string());
+        assert_eq!(
+            models_url(&provider).as_deref(),
+            Some("https://x.example/v1/modelos")
+        );
+
+        // Sin catálogo declarado no hay URL que pedir.
+        provider.models_endpoint = None;
+        assert_eq!(models_url(&provider), None);
+        provider.models_endpoint = Some("  ".to_string());
+        assert_eq!(models_url(&provider), None);
+    }
+
+    #[tokio::test]
+    async fn a_provider_without_a_catalog_is_not_asked_for_one() {
+        // El endpoint clásico de Bedrock no publica lista: pedírsela devuelve
+        // un 404 que no le dice nada a nadie. Mejor no salir a la red y
+        // contestar qué tiene que hacer la persona.
+        let server = spawn_fake_server(|_| (404, "<UnknownOperationException/>".to_string()));
+        let mut provider = provider_at(&server.base_url());
+        provider.label = "AWS Bedrock".to_string();
+        provider.models_endpoint = None;
+
+        let error = fetch_models(&provider, "clave".to_string())
+            .await
+            .expect_err("sin catálogo declarado no hay lista que traer");
+        assert!(error.contains("AWS Bedrock"), "{}", error);
+        assert!(error.contains("a mano"), "{}", error);
+        assert!(
+            server.paths().is_empty(),
+            "no tendría que haber salido a la red: {:?}",
+            server.paths()
+        );
+    }
+
+    #[tokio::test]
+    async fn a_provider_with_a_catalog_is_asked_at_its_declared_path() {
+        let server = spawn_fake_server(|_| {
+            (
+                200,
+                json!({ "data": [ { "id": "modelo-uno" } ] }).to_string(),
+            )
+        });
+        let mut provider = provider_at(&server.base_url());
+        provider.models_endpoint = Some("/modelos".to_string());
+
+        let models = fetch_models(&provider, "clave".to_string())
+            .await
+            .expect("el catálogo contesta");
+        assert_eq!(models, vec!["modelo-uno".to_string()]);
+        assert_eq!(server.paths(), vec!["/v1/modelos"]);
+    }
+
+    // --- El endpoint clásico de Bedrock -------------------------------------
+
+    #[test]
+    fn the_classic_bedrock_surface_is_hit_first_and_as_configured() {
+        // La ruta compatible con OpenAI del endpoint clásico ya viene con el
+        // tramo de familia adentro (`/openai/v1`), así que el primer intento
+        // —el único que paga siempre— es la URL exacta que hay que golpear.
+        let base = "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1";
+        for model in [
+            "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "us.meta.llama4-maverick-17b-instruct-v1:0",
+            "deepseek.v3-v1:0",
+        ] {
+            assert_eq!(
+                attempt_plan(base, model)[0].url(),
+                "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1/chat/completions",
+                "modelo {}",
+                model
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn a_bedrock_style_model_id_travels_untouched() {
+        // El id con prefijo de perfil de inferencia (`us.…`) es el que el
+        // servidor espera: nada en el camino lo recorta ni lo reescribe.
+        let server = spawn_fake_server(|_| {
+            (
+                200,
+                json!({ "choices": [ { "message": { "content": "limpio" } } ] }).to_string(),
+            )
+        });
+        let mut provider = provider_at(&server.base_url());
+        provider.id = "bedrock".to_string();
+        provider.supports_structured_output = false;
+
+        let out = send_chat_completion(
+            &provider,
+            "clave".to_string(),
+            "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "hola".to_string(),
+            None,
+            None,
+        )
+        .await
+        .expect("la clásica responde");
+
+        assert_eq!(out.as_deref(), Some("limpio"));
+        assert_eq!(server.paths(), vec!["/v1/chat/completions"]);
+        let sent = server.body_for("/v1/chat/completions");
+        assert_eq!(sent["model"], "us.anthropic.claude-haiku-4-5-20251001-v1:0");
     }
 
     #[test]

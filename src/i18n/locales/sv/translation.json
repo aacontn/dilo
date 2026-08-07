@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Bas-URL",
-          "description": "API-bas-URL för den valda leverantören. Endast den anpassade leverantören kan redigeras.",
+          "description": "API:ets bas-URL. Ändra den om din leverantör använder en annan region eller om du pekar mot din egen server.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Modell",
           "descriptionCustom": "Ange den modellidentifierare som förväntas av din anpassade slutpunkt.",
           "descriptionDefault": "Välj en modell som exponeras av den valda leverantören.",
+          "descriptionNoCatalog": "Den här leverantören publicerar ingen modellista: skriv modell-id:t precis som det står i leverantörens konsol.",
           "placeholderWithOptions": "Sök eller välj en modell",
           "placeholderNoOptions": "Ange ett modellnamn",
           "refreshModels": "Uppdatera modeller"

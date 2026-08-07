@@ -858,7 +858,36 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         });
     }
 
-    // AWS Bedrock via Mantle (OpenAI-compatible endpoint)
+    // AWS Bedrock, la superficie compatible con OpenAI que el servicio expone
+    // en su propio host bajo `/openai/v1`. Es la que alcanza el catálogo
+    // completo de una cuenta (Claude, DeepSeek, MiniMax, GLM, Nova, Llama…),
+    // con la misma API key de Bedrock como bearer.
+    //
+    // Tres decisiones que no son obvias:
+    //
+    // - `allow_base_url_edit: true`: lo único que cambia entre cuentas es la
+    //   región, y está adentro del host. Dejar editar la URL es más barato que
+    //   inventar un campo "región" que sólo este proveedor entendería.
+    // - `models_endpoint: None`: este host no publica catálogo (`/models`
+    //   contesta 404 `UnknownOperationException`), así que el id del modelo se
+    //   escribe a mano — incluido el prefijo de perfil de inferencia que piden
+    //   varios (`us.` y compañía). Declararlo acá es lo que evita que Ajustes
+    //   prometa una lista que nadie va a contestar.
+    // - `supports_structured_output: false`: el esquema JSON depende del modelo
+    //   de abajo, no del endpoint. Con `true`, cada dictado con un modelo que
+    //   no lo acepta pagaría un viaje perdido antes de caer al modo legacy.
+    providers.push(PostProcessProvider {
+        id: "bedrock".to_string(),
+        label: "AWS Bedrock".to_string(),
+        base_url: "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1".to_string(),
+        allow_base_url_edit: true,
+        models_endpoint: None,
+        supports_structured_output: false,
+        is_local: false,
+    });
+
+    // AWS Bedrock via Mantle (OpenAI-compatible endpoint). Se queda tal cual:
+    // el catálogo de proveedores sólo se agrega, nunca se borra ni se muda.
     providers.push(PostProcessProvider {
         id: "bedrock_mantle".to_string(),
         label: "AWS Bedrock (Mantle)".to_string(),
@@ -1243,6 +1272,36 @@ impl AppSettings {
         self.post_process_providers
             .iter_mut()
             .find(|provider| provider.id == provider_id)
+    }
+
+    /// Apunta un proveedor a otra URL base, si ese proveedor lo permite.
+    ///
+    /// Quién puede lo dice el propio proveedor con `allow_base_url_edit`, no
+    /// una lista de ids en la capa de comandos: hay proveedores cuya URL sólo
+    /// cambia en un tramo —la región, por ejemplo— y no tendrían por qué
+    /// obligar a tocar el comando para poder moverla.
+    pub fn set_post_process_base_url(
+        &mut self,
+        provider_id: &str,
+        base_url: String,
+    ) -> Result<(), String> {
+        let provider = self
+            .post_process_provider_mut(provider_id)
+            .ok_or_else(|| format!("Provider '{}' not found", provider_id))?;
+
+        if !provider.allow_base_url_edit {
+            return Err(format!(
+                "Provider '{}' does not allow editing the base URL",
+                provider.label
+            ));
+        }
+
+        provider.base_url = base_url;
+        // `is_local` se calcula de la URL: si la persona apunta el proveedor a
+        // su propia máquina, la insignia LOCAL/ONLINE tiene que decirlo ya, no
+        // recién en la próxima carga de settings.
+        provider.is_local = provider_is_local(provider);
+        Ok(())
     }
 }
 
@@ -1911,6 +1970,203 @@ mod tests {
         assert!(
             custom.is_local,
             "el campo is_local del literal debe nacer en true: el default apunta a localhost"
+        );
+    }
+
+    // --- Los dos endpoints de Bedrock conviven -------------------------------
+
+    #[test]
+    fn the_catalog_offers_bedrocks_classic_endpoint_and_leaves_mantle_alone() {
+        let providers = default_post_process_providers();
+        let find = |id: &str| providers.iter().find(|p| p.id == id).cloned();
+
+        let classic = find("bedrock").expect("el endpoint clásico está en el catálogo");
+        // La ruta compatible con OpenAI vive bajo `/openai/v1` en el host del
+        // servicio: si esto se escribe como `/v1`, el POST cae en una operación
+        // desconocida y ningún modelo contesta.
+        assert_eq!(
+            classic.base_url,
+            "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1"
+        );
+        // La región es lo único que cambia entre cuentas y va adentro del host.
+        assert!(
+            classic.allow_base_url_edit,
+            "sin esto la región queda clavada en us-east-1"
+        );
+        // Este host no publica catálogo: el id del modelo se escribe a mano.
+        assert_eq!(classic.models_endpoint, None);
+        assert!(!classic.is_local);
+
+        // Y el proveedor que ya existía se queda exactamente como estaba: el
+        // catálogo sólo se agrega.
+        let mantle = find("bedrock_mantle").expect("Mantle sigue en el catálogo");
+        assert_eq!(
+            mantle.base_url,
+            "https://bedrock-mantle.us-east-1.api.aws/v1"
+        );
+        assert!(!mantle.allow_base_url_edit);
+        assert_eq!(mantle.models_endpoint.as_deref(), Some("/models"));
+        assert!(mantle.supports_structured_output);
+
+        // Dos entradas distintas, no una que pisa a la otra.
+        let mut ids: Vec<&str> = providers.iter().map(|p| p.id.as_str()).collect();
+        let total = ids.len();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), total, "hay ids repetidos en el catálogo");
+    }
+
+    /// Quien ya tenía Mantle configurado no pierde nada al actualizar: el
+    /// proveedor nuevo se suma, y la clave, el modelo y la URL del viejo
+    /// quedan intactos.
+    #[test]
+    fn an_existing_store_gains_the_new_provider_without_losing_the_old_one() {
+        let mut settings = get_default_settings();
+
+        // Simula el settings.json de antes de este cambio: sin el proveedor
+        // nuevo, y con Mantle ya configurado a mano.
+        settings
+            .post_process_providers
+            .retain(|p| p.id != "bedrock");
+        settings.post_process_api_keys.remove("bedrock");
+        settings.post_process_models.remove("bedrock");
+        settings
+            .post_process_api_keys
+            .insert("bedrock_mantle".to_string(), "clave-del-dueño".to_string());
+        settings.post_process_models.insert(
+            "bedrock_mantle".to_string(),
+            "openai.gpt-oss-120b".to_string(),
+        );
+        settings.post_process_provider_id = "bedrock_mantle".to_string();
+
+        assert!(ensure_post_process_defaults(&mut settings));
+
+        let classic = settings
+            .post_process_providers
+            .iter()
+            .find(|p| p.id == "bedrock")
+            .expect("el proveedor nuevo se suma al cargar");
+        assert_eq!(
+            classic.base_url,
+            "https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1"
+        );
+        // Nace sin clave propia: la del proveedor viejo no se copia (una clave
+        // duplicada en la configuración no la borra nadie después).
+        assert_eq!(
+            settings
+                .post_process_api_keys
+                .get("bedrock")
+                .map(String::as_str),
+            Some("")
+        );
+
+        // Y lo del dueño sigue donde estaba.
+        assert_eq!(
+            settings
+                .post_process_api_keys
+                .get("bedrock_mantle")
+                .map(String::as_str),
+            Some("clave-del-dueño")
+        );
+        assert_eq!(
+            settings
+                .post_process_models
+                .get("bedrock_mantle")
+                .map(String::as_str),
+            Some("openai.gpt-oss-120b")
+        );
+        assert_eq!(settings.post_process_provider_id, "bedrock_mantle");
+        let mantle = settings
+            .post_process_providers
+            .iter()
+            .find(|p| p.id == "bedrock_mantle")
+            .expect("Mantle sigue");
+        assert_eq!(
+            mantle.base_url,
+            "https://bedrock-mantle.us-east-1.api.aws/v1"
+        );
+
+        // Segunda carga: ya no hay nada que agregar.
+        assert!(!ensure_post_process_defaults(&mut settings));
+    }
+
+    #[test]
+    fn only_a_provider_that_allows_it_can_change_its_base_url() {
+        let mut settings = get_default_settings();
+
+        // El endpoint clásico sí: lo único que cambia entre cuentas es la
+        // región, y va adentro del host.
+        settings
+            .set_post_process_base_url(
+                "bedrock",
+                "https://bedrock-runtime.sa-east-1.amazonaws.com/openai/v1".to_string(),
+            )
+            .expect("el proveedor lo permite");
+        assert_eq!(
+            settings.post_process_provider("bedrock").unwrap().base_url,
+            "https://bedrock-runtime.sa-east-1.amazonaws.com/openai/v1"
+        );
+
+        // Mantle no, y su URL queda intacta.
+        let error = settings
+            .set_post_process_base_url("bedrock_mantle", "https://otra.cosa/v1".to_string())
+            .expect_err("Mantle trae su URL fija");
+        assert!(error.contains("does not allow"), "{}", error);
+        assert_eq!(
+            settings
+                .post_process_provider("bedrock_mantle")
+                .unwrap()
+                .base_url,
+            "https://bedrock-mantle.us-east-1.api.aws/v1"
+        );
+
+        // Y un proveedor que no existe no crea nada.
+        assert!(settings
+            .set_post_process_base_url("no-existe", "https://x.example/v1".to_string())
+            .is_err());
+        assert!(settings.post_process_provider("no-existe").is_none());
+    }
+
+    #[test]
+    fn moving_a_provider_to_this_machine_updates_its_local_badge() {
+        // La insignia LOCAL/ONLINE sale de la URL. Sin recalcularla al
+        // guardarla, un Custom apuntado a un servidor remoto seguiría diciendo
+        // LOCAL hasta la próxima carga de settings.
+        let mut settings = get_default_settings();
+
+        settings
+            .set_post_process_base_url("custom", "https://api.midominio.com/v1".to_string())
+            .expect("custom siempre se puede editar");
+        assert!(!settings.post_process_provider("custom").unwrap().is_local);
+
+        settings
+            .set_post_process_base_url("custom", "http://localhost:11434/v1".to_string())
+            .expect("custom siempre se puede editar");
+        assert!(settings.post_process_provider("custom").unwrap().is_local);
+    }
+
+    /// Una URL editada a mano (otra región, otro servidor) es dato del usuario:
+    /// cargar los settings no puede devolverla al default.
+    #[test]
+    fn loading_keeps_a_hand_edited_base_url() {
+        let mut settings = get_default_settings();
+        settings
+            .post_process_providers
+            .iter_mut()
+            .find(|p| p.id == "bedrock")
+            .expect("bedrock")
+            .base_url = "https://bedrock-runtime.sa-east-1.amazonaws.com/openai/v1".to_string();
+
+        ensure_post_process_defaults(&mut settings);
+
+        assert_eq!(
+            settings
+                .post_process_providers
+                .iter()
+                .find(|p| p.id == "bedrock")
+                .unwrap()
+                .base_url,
+            "https://bedrock-runtime.sa-east-1.amazonaws.com/openai/v1"
         );
     }
 

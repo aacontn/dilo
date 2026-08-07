@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Basis-URL",
-          "description": "API-Basis-URL für den ausgewählten Anbieter. Nur der benutzerdefinierte Anbieter kann bearbeitet werden.",
+          "description": "Basis-URL der API. Ändere sie, wenn dein Anbieter eine andere Region nutzt oder du auf deinen eigenen Server zeigst.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Modell",
           "descriptionCustom": "Gib die Modellkennung an, die von deinem benutzerdefinierten Endpunkt erwartet wird.",
           "descriptionDefault": "Wähle ein Modell des ausgewählten Anbieters.",
+          "descriptionNoCatalog": "Dieser Anbieter veröffentlicht keine Modellliste: Gib die Modell-ID genau so ein, wie sie in seiner Konsole steht.",
           "placeholderWithOptions": "Modell suchen oder auswählen",
           "placeholderNoOptions": "Modellnamen eingeben",
           "refreshModels": "Modelle aktualisieren"

@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "Základní URL",
-          "description": "Základní URL API pro vybraného poskytovatele. Upravitelné je pouze u vlastního poskytovatele.",
+          "description": "Základní URL API. Změň ji, pokud tvůj poskytovatel používá jiný region nebo míříš na vlastní server.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Model",
           "descriptionCustom": "Zadejte identifikátor modelu očekávaný vaším vlastním endpointem.",
           "descriptionDefault": "Vyberte model dostupný u vybraného poskytovatele.",
+          "descriptionNoCatalog": "Tento poskytovatel nezveřejňuje seznam modelů: zadej ID modelu přesně tak, jak je uvedeno v jeho konzoli.",
           "placeholderWithOptions": "Vyhledejte nebo vyberte model",
           "placeholderNoOptions": "Zadejte název modelu",
           "refreshModels": "Obnovit modely"

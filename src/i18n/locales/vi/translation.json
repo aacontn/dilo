@@ -526,7 +526,7 @@
         },
         "baseUrl": {
           "title": "URL cơ sở",
-          "description": "URL cơ sở API cho nhà cung cấp đã chọn. Chỉ có thể chỉnh sửa nhà cung cấp tùy chỉnh.",
+          "description": "URL gốc của API. Hãy thay đổi nếu nhà cung cấp của bạn dùng vùng khác hoặc bạn trỏ tới máy chủ của mình.",
           "placeholder": "https://api.openai.com/v1"
         },
         "apiKey": {
@@ -538,6 +538,7 @@
           "title": "Mô hình",
           "descriptionCustom": "Cung cấp định danh mô hình được yêu cầu bởi điểm cuối tùy chỉnh của bạn.",
           "descriptionDefault": "Chọn một mô hình được cung cấp bởi nhà cung cấp đã chọn.",
+          "descriptionNoCatalog": "Nhà cung cấp này không công bố danh sách mô hình: hãy nhập id mô hình đúng như bảng điều khiển của họ hiển thị.",
           "placeholderWithOptions": "Tìm kiếm hoặc chọn một mô hình",
           "placeholderNoOptions": "Nhập tên mô hình",
           "refreshModels": "Làm mới mô hình"
