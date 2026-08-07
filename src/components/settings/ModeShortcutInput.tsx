@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 import { commands } from "@/bindings";
 import {
+  attachOrDiscardListener,
   comboFromHandyKeysEvent,
   formatKeyCombination,
   getKeyName,
@@ -204,7 +205,14 @@ export const ModeShortcutInput: React.FC<ModeShortcutInputProps> = ({
         },
       );
 
-      unlistenRef.current = unlisten;
+      // `cleanup` may already be true here if the effect's cleanup ran
+      // before this promise settled (cancel, commit, or unmount raced
+      // ahead of `listen()`). In that case `unlistenRef` was never touched
+      // by the cleanup below, so store nothing — unsubscribe immediately
+      // instead, or this listener would live for the rest of the app.
+      attachOrDiscardListener(unlisten, cleanup, (fn) => {
+        unlistenRef.current = fn;
+      });
     };
 
     setupListener();

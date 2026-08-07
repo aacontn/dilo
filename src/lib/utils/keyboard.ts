@@ -235,6 +235,33 @@ export const comboFromHandyKeysEvent = (
 };
 
 /**
+ * Resolve the race between an async `listen()` subscription and the effect
+ * that owns it being cleaned up before the subscription promise settles.
+ *
+ * `listen()` (from `@tauri-apps/api/event`) resolves asynchronously. If the
+ * owning React effect's cleanup runs first — the user cancels, the shortcut
+ * commits, or the component unmounts — a naive `unlistenRef.current = await
+ * listen(...)` assigns the unlisten function *after* cleanup already ran and
+ * found the ref empty. Nothing will ever call it again: the Tauri listener
+ * leaks for the lifetime of the app. This makes that check explicit and
+ * testable without mounting React or a real `listen()` call: pass whether
+ * the effect had already been canceled by the time `unlisten` became
+ * available, and this either disposes of it immediately (canceled) or hands
+ * it to `attach` for the caller to store, e.g. in a ref (still live).
+ */
+export const attachOrDiscardListener = (
+  unlisten: () => void,
+  wasCanceled: boolean,
+  attach: (unlisten: () => void) => void,
+): void => {
+  if (wasCanceled) {
+    unlisten();
+    return;
+  }
+  attach(unlisten);
+};
+
+/**
  * Normalize modifier keys to handle left/right variants
  */
 export const normalizeKey = (key: string): string => {
