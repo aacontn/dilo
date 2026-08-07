@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Check,
-  Copy,
-  Cpu,
-  Keyboard,
-  LockKeyhole,
-  Sparkles,
-} from "lucide-react";
+import { Check, Copy, Cpu, LockKeyhole } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   commands,
@@ -48,9 +41,6 @@ export const HomeDashboard = ({ onCustomize }: HomeDashboardProps) => {
   );
   const primaryShortcut =
     settings?.bindings?.transcribe?.current_binding || "option+space";
-  const smartShortcut =
-    settings?.bindings?.transcribe_with_post_process?.current_binding ||
-    "option+shift+space";
 
   const loadRecent = useCallback(async () => {
     const result = await commands.getHistoryEntries(null, 3);
@@ -139,27 +129,6 @@ export const HomeDashboard = ({ onCustomize }: HomeDashboardProps) => {
                 ? t("home.model.streaming")
                 : t("home.model.local")}
             </p>
-          </div>
-
-          <div className="home-status-meta-item">
-            <div className="flex items-center gap-2 text-muted-text">
-              {settings?.post_process_enabled ? (
-                <Sparkles className="size-4" />
-              ) : (
-                <Keyboard className="size-4" />
-              )}
-              <span className="text-xs font-medium uppercase tracking-wide">
-                {t("home.smart.label")}
-              </span>
-            </div>
-            <p className="mt-2 font-semibold text-text">
-              {settings?.post_process_enabled
-                ? t("home.smart.enabled")
-                : t("home.smart.disabled")}
-            </p>
-            <div className="mt-2">
-              <ShortcutBadge binding={smartShortcut} />
-            </div>
           </div>
         </div>
       </section>

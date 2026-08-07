@@ -34,10 +34,9 @@
       "streaming": "Live text · runs locally",
       "local": "Local, offline dictation"
     },
-    "smart": {
-      "label": "Smart dictation",
-      "enabled": "Smart mode enabled",
-      "disabled": "Optional, whenever you need it"
+    "shortcuts": {
+      "title": "Deine Tastenkürzel",
+      "unassigned": "Kein Kurzbefehl"
     },
     "history": {
       "title": "What you said recently",
@@ -46,7 +45,6 @@
       "copy": "Copy dictation"
     },
     "modes": {
-      "title": "How you want Dilo to write",
       "subtitle": "Normal dictation always stays local. Smart modes use the provider you configure.",
       "literal": {
         "title": "Literal",

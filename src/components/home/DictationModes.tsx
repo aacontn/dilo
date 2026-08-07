@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  DICTATION_MODE_PRESETS,
-  resolveModeProviderId,
+  buildDictationModeEntries,
+  buildGeneralShortcutReminderEntries,
 } from "@/lib/postProcessPresets";
 import { useSettings } from "@/hooks/useSettings";
-import { ModeShortcutInput } from "@/components/settings/ModeShortcutInput";
+import { useOsType } from "@/hooks/useOsType";
+import { formatKeyCombination } from "@/lib/utils/keyboard";
 
 const ICONS = {
   "dilo-clean": Sparkles,
@@ -23,11 +24,33 @@ const ICONS = {
   "dilo-code": Code2,
 } as const;
 
-const PRESET_IDS = new Set(DICTATION_MODE_PRESETS.map((preset) => preset.id));
-
 interface DictationModesProps {
   onCustomize: () => void;
 }
+
+/**
+ * Lectura de un atajo, no edición: para cambiarlo se va a Transformar (los
+ * modos) o a Ajustes generales (dictar/cancelar). Antes esta misma tarjeta
+ * traía un capturador de tecla interactivo — se retiró junto con "Modo
+ * inteligente activo" para que Inicio deje de ser una segunda pantalla de
+ * edición.
+ */
+const ShortcutReminder = ({ shortcut }: { shortcut: string | null }) => {
+  const { t } = useTranslation();
+  const osType = useOsType();
+  if (!shortcut) {
+    return (
+      <span className="text-xs text-muted-text">
+        {t("home.shortcuts.unassigned")}
+      </span>
+    );
+  }
+  return (
+    <kbd className="dilo-keycap font-mono text-xs rounded-md px-2 py-1 text-text whitespace-nowrap">
+      {formatKeyCombination(shortcut, osType)}
+    </kbd>
+  );
+};
 
 export const DictationModes = ({ onCustomize }: DictationModesProps) => {
   const { t } = useTranslation();
@@ -43,55 +66,22 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
       providerId === "custom" ||
       Boolean(providerApiKey));
   const prompts = settings.post_process_prompts || [];
-  const shortcutFor = (id: string) =>
-    prompts.find((prompt) => prompt.id === id)?.shortcut ?? null;
 
-  // Presets first (with translated labels/icons), then any user-created prompts.
-  const presetModes = DICTATION_MODE_PRESETS.map((preset) => ({
-    id: preset.id,
-    promptId: preset.id,
-    label: t(preset.labelKey),
-    description: t(preset.descriptionKey),
-    icon: ICONS[preset.id as keyof typeof ICONS] || Sparkles,
-  }));
-
-  const customModes = prompts
-    .filter((prompt) => !PRESET_IDS.has(prompt.id))
-    .map((prompt) => ({
-      id: prompt.id,
-      promptId: prompt.id,
-      label: prompt.name,
-      description: prompt.prompt,
-      icon: Sparkles,
-    }));
-
-  // Sin "modo activo" no hay nada que seleccionar: la lista muestra qué modos
-  // hay y con qué tecla se invoca cada uno. El dictado sin transformar es
-  // simplemente la tecla de dictado, así que ya no aparece como una opción.
-  const modes = [...presetModes, ...customModes];
-
-  // Etiqueta LOCAL/ONLINE según el proveedor efectivo del modo: la misma
-  // regla que usa el backend para resolverlo (`resolveModeProviderId`), no
-  // sólo el `provider_id` crudo — si ese proveedor no existe o no tiene
-  // modelo utilizable, el modo en realidad corre con el general.
-  const providerBadgeFor = (promptId: string) => {
-    const prompt = prompts.find((p) => p.id === promptId);
-    const modeProviderId = resolveModeProviderId(prompt, settings);
-    const provider = settings.post_process_providers?.find(
-      (p) => p.id === modeProviderId,
-    );
-    if (!provider) return null;
-    return provider.is_local
-      ? t("settings.postProcessing.modeProvider.badgeLocal")
-      : t("settings.postProcessing.modeProvider.badgeOnline");
-  };
+  // Todo lo que decide qué se lista, en qué orden y qué atajo le
+  // corresponde a cada fila vive en `postProcessPresets.ts` (funciones
+  // puras, cubiertas en `postProcessPresets.test.ts`) — este componente
+  // sólo llama y mapea el resultado.
+  const generalShortcuts = buildGeneralShortcutReminderEntries(
+    settings.bindings,
+  );
+  const modeEntries = buildDictationModeEntries(prompts, settings);
 
   return (
     <section className="dictation-modes-section">
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <h2 className="font-semibold text-base text-text">
-            {t("home.modes.title")}
+            {t("home.shortcuts.title")}
           </h2>
           <p className="text-xs text-muted-text">{t("home.modes.subtitle")}</p>
         </div>
@@ -104,20 +94,46 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
           {t("home.modes.customize")}
         </button>
       </div>
+
+      <ul className="dictation-modes-general mb-3 flex flex-wrap gap-2">
+        {generalShortcuts.map((entry) => (
+          <li
+            key={entry.id}
+            className="glass-surface flex items-center gap-2 rounded-lg px-3 py-1.5"
+          >
+            <span className="text-xs font-medium text-text">
+              {t(`settings.general.shortcut.bindings.${entry.id}.name`)}
+            </span>
+            <ShortcutReminder shortcut={entry.shortcut} />
+          </li>
+        ))}
+      </ul>
+
       <div className="dictation-modes-grid grid gap-3">
-        {modes.map((mode) => {
-          const Icon = mode.icon;
-          const providerBadge = providerBadgeFor(mode.promptId);
+        {modeEntries.map((entry) => {
+          const Icon = ICONS[entry.id as keyof typeof ICONS] || Sparkles;
+          const label = entry.isPreset
+            ? t(entry.labelKey ?? "")
+            : (entry.name ?? "");
+          const description = entry.isPreset
+            ? t(entry.descriptionKey ?? "")
+            : (entry.description ?? "");
+          const providerBadge =
+            entry.badge === "local"
+              ? t("settings.postProcessing.modeProvider.badgeLocal")
+              : entry.badge === "online"
+                ? t("settings.postProcessing.modeProvider.badgeOnline")
+                : null;
           return (
             <div
-              key={mode.id}
+              key={entry.id}
               className="glass-surface dictation-mode-card flex flex-col rounded-xl"
             >
               <div className="dictation-mode-card-main flex flex-1 flex-col gap-1 p-3 text-start">
                 <span className="flex items-center gap-2">
                   <Icon className="size-4 shrink-0 text-muted-text" />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-text">
-                    {mode.label}
+                    {label}
                   </span>
                   {providerBadge && (
                     <span className="ml-2 rounded-full bg-text/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-text">
@@ -126,15 +142,11 @@ export const DictationModes = ({ onCustomize }: DictationModesProps) => {
                   )}
                 </span>
                 <span className="dictation-mode-card-desc text-xs text-muted-text">
-                  {mode.description}
+                  {description}
                 </span>
               </div>
               <div className="dictation-mode-card-footer flex items-center px-3 py-2">
-                <ModeShortcutInput
-                  compact
-                  promptId={mode.promptId}
-                  shortcut={shortcutFor(mode.promptId)}
-                />
+                <ShortcutReminder shortcut={entry.shortcut} />
               </div>
             </div>
           );

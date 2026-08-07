@@ -34,10 +34,9 @@
       "streaming": "Texto en vivo · corre localmente",
       "local": "Dictado local y offline"
     },
-    "smart": {
-      "label": "Dictado inteligente",
-      "enabled": "Modo inteligente activo",
-      "disabled": "Opcional, cuando lo necesites"
+    "shortcuts": {
+      "title": "Tus teclas",
+      "unassigned": "Sin tecla"
     },
     "history": {
       "title": "Lo último que dijiste",
@@ -46,7 +45,6 @@
       "copy": "Copiar dictado"
     },
     "modes": {
-      "title": "Cómo quieres que escriba",
       "subtitle": "El dictado normal siempre queda local. Los modos inteligentes usan el proveedor que configures.",
       "literal": {
         "title": "Literal",

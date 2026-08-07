@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildDictationModeEntries,
+  buildGeneralShortcutReminderEntries,
   buildModeListEntries,
   DICTATION_MODE_PRESETS,
+  GENERAL_SHORTCUT_REMINDER_IDS,
   isLastRemainingMode,
   isModeDraftDirty,
+  normalizeShortcut,
   pickProviderForScope,
   resolveModeProviderBadge,
   resolveModeProviderId,
@@ -311,6 +315,212 @@ describe("isModeDraftDirty", () => {
 
   test("nunca está sucio sin un modo original (p. ej. creando uno nuevo)", () => {
     expect(isModeDraftDirty({ name: "algo", text: "algo" }, null)).toBe(false);
+  });
+});
+
+describe("normalizeShortcut", () => {
+  test("una tecla real pasa tal cual", () => {
+    expect(normalizeShortcut("fn+f17")).toBe("fn+f17");
+  });
+
+  test("string vacío cuenta como sin tecla (bindings sin tecla de fábrica)", () => {
+    expect(normalizeShortcut("")).toBeNull();
+  });
+
+  test("sólo espacios también cuenta como sin tecla", () => {
+    expect(normalizeShortcut("   ")).toBeNull();
+  });
+
+  test("null y undefined son sin tecla", () => {
+    expect(normalizeShortcut(null)).toBeNull();
+    expect(normalizeShortcut(undefined)).toBeNull();
+  });
+});
+
+// Regresión: `HomeDashboard.tsx` leía `bindings.transcribe_with_post_process`
+// y caía a "option+shift+space" cuando venía vacío — mostrando al dueño una
+// tecla que ya no existe para nada (la Task 3 dejó ese binding vacío para
+// todos). No se puede montar React en `bun test`, así que esto se verifica
+// igual que la regresión equivalente de `PostProcessingSettings.tsx`: leyendo
+// el archivo del componente como texto.
+describe("atajo general muerto en Inicio (retirado)", () => {
+  test("HomeDashboard ya no lee transcribe_with_post_process", async () => {
+    const home = await Bun.file("src/components/home/HomeDashboard.tsx").text();
+    expect(home).not.toContain("transcribe_with_post_process");
+  });
+
+  test("DictationModes ya no monta un ModeShortcutInput editable", async () => {
+    const dictationModes = await Bun.file(
+      "src/components/home/DictationModes.tsx",
+    ).text();
+    // Inicio deja de editar atajos de modo — eso vive sólo en Transformar
+    // (`PostProcessingSettings.tsx`, que sí sigue usando `ModeShortcutInput`).
+    expect(dictationModes).not.toContain("ModeShortcutInput");
+  });
+});
+
+describe("GENERAL_SHORTCUT_REMINDER_IDS", () => {
+  test("son sólo dictar y cancelar, en ese orden", () => {
+    expect(GENERAL_SHORTCUT_REMINDER_IDS).toEqual(["transcribe", "cancel"]);
+  });
+});
+
+describe("buildGeneralShortcutReminderEntries", () => {
+  test("lee la tecla actual de cada binding general", () => {
+    expect(
+      buildGeneralShortcutReminderEntries({
+        transcribe: { current_binding: "option+space" },
+        cancel: { current_binding: "escape" },
+      }),
+    ).toEqual([
+      { id: "transcribe", shortcut: "option+space" },
+      { id: "cancel", shortcut: "escape" },
+    ]);
+  });
+
+  test("un binding sin tecla (string vacío) queda null, no el string vacío", () => {
+    expect(
+      buildGeneralShortcutReminderEntries({
+        transcribe: { current_binding: "" },
+      }),
+    ).toEqual([
+      { id: "transcribe", shortcut: null },
+      { id: "cancel", shortcut: null },
+    ]);
+  });
+
+  test("sin bindings (null/undefined), todo sale sin tecla", () => {
+    expect(buildGeneralShortcutReminderEntries(null)).toEqual([
+      { id: "transcribe", shortcut: null },
+      { id: "cancel", shortcut: null },
+    ]);
+    expect(buildGeneralShortcutReminderEntries(undefined)).toEqual([
+      { id: "transcribe", shortcut: null },
+      { id: "cancel", shortcut: null },
+    ]);
+  });
+});
+
+describe("buildDictationModeEntries", () => {
+  const local: PostProcessProvider = {
+    id: "apple_intelligence",
+    label: "Apple Intelligence",
+    base_url: "",
+    is_local: true,
+  };
+  const online: PostProcessProvider = {
+    id: "openai",
+    label: "OpenAI",
+    base_url: "https://api.openai.com/v1",
+    is_local: false,
+  };
+  const settings = {
+    post_process_provider_id: "openai",
+    post_process_providers: [local, online],
+    post_process_models: { apple_intelligence: "on-device" },
+  };
+
+  const clean: LLMPrompt = {
+    id: "dilo-clean",
+    name: "Limpio",
+    prompt: "Mejora la gramática: ${output}",
+    shortcut: "fn+f17",
+    provider_id: "apple_intelligence",
+    model: null,
+  };
+  const email: LLMPrompt = {
+    id: "dilo-email",
+    name: "Email",
+    prompt: "Convierte en correo: ${output}",
+    shortcut: null,
+    provider_id: null,
+    model: null,
+  };
+  const custom: LLMPrompt = {
+    id: "mi-modo",
+    name: "Mi modo",
+    prompt: "Instrucciones propias: ${output}",
+    shortcut: "",
+    provider_id: null,
+    model: null,
+  };
+
+  test("los cinco presets van primero, en el orden fijo de DICTATION_MODE_PRESETS", () => {
+    const entries = buildDictationModeEntries([clean, email], settings);
+    expect(entries.map((entry) => entry.id)).toEqual([
+      "dilo-clean",
+      "dilo-prompt",
+      "dilo-message",
+      "dilo-email",
+      "dilo-code",
+    ]);
+    expect(entries.every((entry) => entry.isPreset)).toBe(true);
+  });
+
+  test("un modo propio del usuario aparece después de los presets, en el orden de post_process_prompts", () => {
+    const entries = buildDictationModeEntries([clean, custom, email], settings);
+    expect(entries.map((entry) => entry.id)).toEqual([
+      "dilo-clean",
+      "dilo-prompt",
+      "dilo-message",
+      "dilo-email",
+      "dilo-code",
+      "mi-modo",
+    ]);
+    const customEntry = entries.find((entry) => entry.id === "mi-modo");
+    expect(customEntry).toEqual({
+      id: "mi-modo",
+      promptId: "mi-modo",
+      isPreset: false,
+      labelKey: null,
+      descriptionKey: null,
+      name: "Mi modo",
+      description: "Instrucciones propias: ${output}",
+      shortcut: null, // "" normalizado a null
+      badge: resolveModeProviderBadge(custom, settings),
+    });
+  });
+
+  test("un prompt con el mismo id que un preset no se repite como modo propio", () => {
+    const entries = buildDictationModeEntries([clean, email], settings);
+    expect(entries.filter((entry) => entry.id === "dilo-clean")).toHaveLength(
+      1,
+    );
+  });
+
+  test("un preset sin tecla asignada queda con shortcut null, no se esconde de la lista", () => {
+    const entries = buildDictationModeEntries([clean, email], settings);
+    const emailEntry = entries.find((entry) => entry.id === "dilo-email");
+    expect(emailEntry?.shortcut).toBeNull();
+  });
+
+  test("un preset con tecla trae la tecla normalizada", () => {
+    const entries = buildDictationModeEntries([clean, email], settings);
+    const cleanEntry = entries.find((entry) => entry.id === "dilo-clean");
+    expect(cleanEntry?.shortcut).toBe("fn+f17");
+  });
+
+  test("la insignia de cada fila usa la configuración real, no un objeto vacío", () => {
+    const entries = buildDictationModeEntries([clean, email], settings);
+    const cleanEntry = entries.find((entry) => entry.id === "dilo-clean");
+    const emailEntry = entries.find((entry) => entry.id === "dilo-email");
+    expect(cleanEntry?.badge).toBe("local");
+    expect(emailEntry?.badge).toBe("online");
+  });
+
+  test("sin settings (null/undefined), ninguna fila muestra insignia", () => {
+    const entries = buildDictationModeEntries([clean, email], null);
+    expect(entries.every((entry) => entry.badge === null)).toBe(true);
+  });
+
+  test("un preset sin prompt correspondiente igual aparece, sin tecla", () => {
+    // Sin prompt propio, `resolveModeProviderBadge` hereda el proveedor
+    // general (mismo comportamiento que un modo que no fija `provider_id`) —
+    // no es "sin insignia", es la insignia del proveedor general.
+    const entries = buildDictationModeEntries([], settings);
+    expect(entries).toHaveLength(5);
+    expect(entries.every((entry) => entry.shortcut === null)).toBe(true);
+    expect(entries.every((entry) => entry.badge === "online")).toBe(true);
   });
 });
 
