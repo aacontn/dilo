@@ -517,9 +517,6 @@
         "modes": "模式",
         "provider": "提供商"
       },
-      "hotkey": {
-        "title": "快捷键"
-      },
       "api": {
         "title": "API（兼容 OpenAI）",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "提示词",
-        "selectedPrompt": {
-          "title": "已选提示词",
-          "description": "选择用于优化转录的模板或创建新模板。在提示词文本中使用 ${output} 来引用捕获的转录。"
-        },
-        "noPrompts": "没有可用的提示词",
-        "selectPrompt": "选择提示词",
         "createNew": "创建新提示词",
         "promptLabel": "提示词名称",
         "promptLabelPlaceholder": "输入提示词名称",
@@ -566,7 +556,6 @@
         "deletePrompt": "删除提示词",
         "createPrompt": "创建提示词",
         "cancel": "取消",
-        "selectToEdit": "选择上方的提示词以查看和编辑其详细信息。",
         "createFirst": "点击上方的「创建新提示词」来创建您的第一个转换提示词。",
         "modeShortcut": "模式快捷键（可选）",
         "modeShortcutHint": "在任何应用中直接用此模式听写，而不改变所选模式。",

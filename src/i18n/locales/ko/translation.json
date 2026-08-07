@@ -517,9 +517,6 @@
         "modes": "모드",
         "provider": "제공자"
       },
-      "hotkey": {
-        "title": "단축키"
-      },
       "api": {
         "title": "API (OpenAI 호환)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "프롬프트",
-        "selectedPrompt": {
-          "title": "선택된 프롬프트",
-          "description": "텍스트 변환을 개선하기 위한 템플릿을 선택하거나 새로 만드세요. 프롬프트 텍스트 내에서 ${output}를 사용하여 캡처된 텍스트를 참조하세요."
-        },
-        "noPrompts": "사용 가능한 프롬프트 없음",
-        "selectPrompt": "프롬프트 선택",
         "createNew": "새 프롬프트 만들기",
         "promptLabel": "프롬프트 레이블",
         "promptLabelPlaceholder": "프롬프트 이름 입력",
@@ -566,7 +556,6 @@
         "deletePrompt": "프롬프트 삭제",
         "createPrompt": "프롬프트 만들기",
         "cancel": "취소",
-        "selectToEdit": "세부 정보를 보고 편집하려면 위에서 프롬프트를 선택하세요.",
         "createFirst": "첫 번째 변형 프롬프트를 만들려면 위의 '새 프롬프트 만들기'를 클릭하세요.",
         "modeShortcut": "모드 단축키 (선택 사항)",
         "modeShortcutHint": "선택된 모드를 바꾸지 않고 어떤 앱에서든 이 모드로 바로 받아쓰기할 수 있습니다.",

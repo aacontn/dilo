@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildModeListEntries,
   DICTATION_MODE_PRESETS,
+  isLastRemainingMode,
   isModeDraftDirty,
   pickProviderForScope,
   resolveModeProviderBadge,
@@ -309,5 +311,87 @@ describe("isModeDraftDirty", () => {
 
   test("nunca está sucio sin un modo original (p. ej. creando uno nuevo)", () => {
     expect(isModeDraftDirty({ name: "algo", text: "algo" }, null)).toBe(false);
+  });
+});
+
+describe("isLastRemainingMode", () => {
+  test("no se puede borrar cuando es el único modo", () => {
+    expect(isLastRemainingMode([{ id: "dilo-clean" }])).toBe(true);
+  });
+
+  test("se puede borrar cuando hay más de uno", () => {
+    expect(
+      isLastRemainingMode([{ id: "dilo-clean" }, { id: "dilo-email" }]),
+    ).toBe(false);
+  });
+
+  test("no hay nada que borrar en una lista vacía", () => {
+    expect(isLastRemainingMode([])).toBe(true);
+  });
+});
+
+describe("buildModeListEntries", () => {
+  // Regresión: el componente componía `resolveModeProviderBadge(prompt,
+  // settings ?? {})` por fila directamente en el JSX. Esta prueba fija esa
+  // composición completa (prompts + settings crudos, incluido `null`) para
+  // que una mutación al sitio de la llamada —por ejemplo pasar `{}` en vez
+  // de `settings`— la note un test, no sólo la función interna.
+  const local: PostProcessProvider = {
+    id: "apple_intelligence",
+    label: "Apple Intelligence",
+    base_url: "",
+    is_local: true,
+  };
+  const online: PostProcessProvider = {
+    id: "openai",
+    label: "OpenAI",
+    base_url: "https://api.openai.com/v1",
+    is_local: false,
+  };
+  const clean: LLMPrompt = {
+    id: "dilo-clean",
+    name: "Limpio",
+    prompt: "Mejora la gramática: ${output}",
+    shortcut: null,
+    provider_id: "apple_intelligence",
+    model: null,
+  };
+  const email: LLMPrompt = {
+    id: "dilo-email",
+    name: "Email",
+    prompt: "Convierte en correo: ${output}",
+    shortcut: null,
+    provider_id: null,
+    model: null,
+  };
+
+  test("resuelve la insignia de cada modo contra la configuración real", () => {
+    const settings = {
+      post_process_provider_id: "openai",
+      post_process_providers: [local, online],
+      post_process_models: { apple_intelligence: "on-device" },
+    };
+
+    expect(buildModeListEntries([clean, email], settings)).toEqual([
+      { prompt: clean, badge: "local" },
+      { prompt: email, badge: "online" },
+    ]);
+  });
+
+  test("sin settings (null/undefined), ninguna fila muestra insignia", () => {
+    expect(buildModeListEntries([clean, email], null)).toEqual([
+      { prompt: clean, badge: null },
+      { prompt: email, badge: null },
+    ]);
+    expect(buildModeListEntries([clean, email], undefined)).toEqual([
+      { prompt: clean, badge: null },
+      { prompt: email, badge: null },
+    ]);
+  });
+
+  test("lista vacía de prompts da lista vacía de filas", () => {
+    expect(
+      buildModeListEntries([], { post_process_provider_id: "openai" }),
+    ).toEqual([]);
   });
 });

@@ -517,9 +517,6 @@
         "modes": "Tryby",
         "provider": "Dostawca"
       },
-      "hotkey": {
-        "title": "Skrót klawiszowy"
-      },
       "api": {
         "title": "API (zgodne z OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Wybrany prompt",
-          "description": "Wybierz szablon do ulepszania transkrypcji lub utwórz nowy. Użyj ${output} w treści, aby odwołać się do przechwyconej transkrypcji."
-        },
-        "noPrompts": "Brak dostępnych promptów",
-        "selectPrompt": "Wybierz prompt",
         "createNew": "Utwórz nowy prompt",
         "promptLabel": "Etykieta promptu",
         "promptLabelPlaceholder": "Wpisz nazwę promptu",
@@ -566,7 +556,6 @@
         "deletePrompt": "Usuń prompt",
         "createPrompt": "Utwórz prompt",
         "cancel": "Anuluj",
-        "selectToEdit": "Wybierz prompt powyżej, aby zobaczyć i edytować jego szczegóły.",
         "createFirst": "Kliknij 'Utwórz nowy prompt' powyżej, aby utworzyć pierwszy prompt w Przekształcaniu.",
         "modeShortcut": "Skrót trybu (opcjonalnie)",
         "modeShortcutHint": "Dyktuj bezpośrednio w tym trybie z dowolnej aplikacji, bez zmiany wybranego trybu.",

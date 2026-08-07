@@ -517,9 +517,6 @@
         "modes": "模式",
         "provider": "供應商"
       },
-      "hotkey": {
-        "title": "快捷鍵"
-      },
       "api": {
         "title": "API（相容 OpenAI）",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "提示詞",
-        "selectedPrompt": {
-          "title": "已選提示詞",
-          "description": "選擇用於最佳化轉錄的範本或建立新範本。在提示詞文字中使用 ${output} 來引用轉錄結果"
-        },
-        "noPrompts": "沒有可用的提示詞",
-        "selectPrompt": "選擇提示詞",
         "createNew": "建立新提示詞",
         "promptLabel": "提示詞名稱",
         "promptLabelPlaceholder": "輸入提示詞名稱",
@@ -566,7 +556,6 @@
         "deletePrompt": "刪除提示詞",
         "createPrompt": "建立提示詞",
         "cancel": "取消",
-        "selectToEdit": "選擇上方的提示詞以檢視和編輯其詳細資訊",
         "createFirst": "點選上方的「建立新提示詞」來建立您的第一個轉換提示詞",
         "modeShortcut": "模式快速鍵（選填）",
         "modeShortcutHint": "在任何應用程式中直接以此模式聽寫，而不改變所選模式。",

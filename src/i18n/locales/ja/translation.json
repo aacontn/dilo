@@ -517,9 +517,6 @@
         "modes": "モード",
         "provider": "プロバイダー"
       },
-      "hotkey": {
-        "title": "ショートカット"
-      },
       "api": {
         "title": "API (OpenAI 互換)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "プロンプト",
-        "selectedPrompt": {
-          "title": "選択したプロンプト",
-          "description": "文字起こしを改善するテンプレートを選択するか、新しく作成します。プロンプトテキスト内で ${output} を使用して、キャプチャした文字起こしを参照します。"
-        },
-        "noPrompts": "プロンプトがありません",
-        "selectPrompt": "プロンプトを選択",
         "createNew": "新しいプロンプトを作成",
         "promptLabel": "プロンプト名",
         "promptLabelPlaceholder": "プロンプト名を入力",
@@ -566,7 +556,6 @@
         "deletePrompt": "プロンプトを削除",
         "createPrompt": "プロンプトを作成",
         "cancel": "キャンセル",
-        "selectToEdit": "上からプロンプトを選択して、詳細を表示・編集します。",
         "createFirst": "上の「新しいプロンプトを作成」をクリックして、最初の変換プロンプトを作成してください。",
         "modeShortcut": "モードのショートカット（任意）",
         "modeShortcutHint": "選択中のモードを変えずに、どのアプリからでもこのモードで直接音声入力できます。",

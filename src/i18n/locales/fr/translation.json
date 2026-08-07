@@ -517,9 +517,6 @@
         "modes": "Modes",
         "provider": "Fournisseur"
       },
-      "hotkey": {
-        "title": "Raccourci clavier"
-      },
       "api": {
         "title": "API (Compatible OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Prompt sélectionné",
-          "description": "Sélectionnez un modèle pour affiner les transcriptions ou créez-en un nouveau. Utilisez ${output} dans le texte du prompt pour référencer la transcription capturée."
-        },
-        "noPrompts": "Aucun prompt disponible",
-        "selectPrompt": "Sélectionner un prompt",
         "createNew": "Créer un nouveau prompt",
         "promptLabel": "Libellé du prompt",
         "promptLabelPlaceholder": "Entrez le nom du prompt",
@@ -566,7 +556,6 @@
         "deletePrompt": "Supprimer le prompt",
         "createPrompt": "Créer le prompt",
         "cancel": "Annuler",
-        "selectToEdit": "Sélectionnez un prompt ci-dessus pour voir et modifier ses détails.",
         "createFirst": "Cliquez sur 'Créer un nouveau prompt' ci-dessus pour créer votre premier prompt de Transformation.",
         "modeShortcut": "Raccourci du mode (optionnel)",
         "modeShortcutHint": "Dictez directement avec ce mode depuis n'importe quelle app, sans changer le mode sélectionné.",

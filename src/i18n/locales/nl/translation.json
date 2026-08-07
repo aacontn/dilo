@@ -517,9 +517,6 @@
         "modes": "Modi",
         "provider": "Provider"
       },
-      "hotkey": {
-        "title": "Sneltoets"
-      },
       "api": {
         "title": "API (OpenAI-compatibel)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Geselecteerde prompt",
-          "description": "Selecteer een sjabloon voor het verfijnen van transcripties of maak een nieuwe aan. Gebruik ${output} in de prompttekst om naar de gemaakte transcriptie te verwijzen."
-        },
-        "noPrompts": "Geen prompts beschikbaar",
-        "selectPrompt": "Selecteer een prompt",
         "createNew": "Nieuwe prompt maken",
         "promptLabel": "Promptnaam",
         "promptLabelPlaceholder": "Voer promptnaam in",
@@ -566,7 +556,6 @@
         "deletePrompt": "Prompt verwijderen",
         "createPrompt": "Prompt maken",
         "cancel": "Annuleren",
-        "selectToEdit": "Selecteer hierboven een prompt om de details te bekijken en te bewerken.",
         "createFirst": "Klik hierboven op 'Nieuwe prompt maken' om je eerste Transformatie-prompt aan te maken.",
         "modeShortcut": "Modus-sneltoets (optioneel)",
         "modeShortcutHint": "Dicteer rechtstreeks met deze modus vanuit elke app, zonder de geselecteerde modus te wijzigen.",

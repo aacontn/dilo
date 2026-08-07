@@ -517,9 +517,6 @@
         "modes": "Lägen",
         "provider": "Leverantör"
       },
-      "hotkey": {
-        "title": "Snabbkommando"
-      },
       "api": {
         "title": "API (OpenAI-kompatibelt)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Vald prompt",
-          "description": "Välj en mall för att förfina transkriptioner eller skapa en ny. Använd ${output} inuti prompttexten för att referera till den fångade transkriptionen."
-        },
-        "noPrompts": "Inga prompter tillgängliga",
-        "selectPrompt": "Välj en prompt",
         "createNew": "Skapa ny prompt",
         "promptLabel": "Prompt-etikett",
         "promptLabelPlaceholder": "Ange namn på prompt",
@@ -566,7 +556,6 @@
         "deletePrompt": "Ta bort prompt",
         "createPrompt": "Skapa prompt",
         "cancel": "Avbryt",
-        "selectToEdit": "Välj en prompt ovan för att visa och redigera dess detaljer.",
         "createFirst": "Klicka på 'Skapa ny prompt' ovan för att skapa din första prompt för Omvandling.",
         "modeShortcut": "Lägesgenväg (valfritt)",
         "modeShortcutHint": "Diktera direkt med det här läget från vilken app som helst, utan att ändra det valda läget.",

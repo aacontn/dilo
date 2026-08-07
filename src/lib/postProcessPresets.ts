@@ -135,6 +135,54 @@ export const resolveModeProviderBadge = (
   return provider.is_local ? "local" : "online";
 };
 
+/** Una fila de la lista de modos, ya con su insignia resuelta. */
+export interface ModeListEntry {
+  prompt: LLMPrompt;
+  badge: ModeProviderBadge;
+}
+
+/**
+ * Arma las filas de la lista de modos (pestaña "Modos"): cada prompt junto a
+ * su insignia LOCAL/ONLINE ya resuelta.
+ *
+ * Existe para que el componente no tenga que componer
+ * `resolveModeProviderBadge(prompt, settings ?? {})` por fila en el JSX. Esa
+ * composición —trivial, pero viva en el sitio de la llamada— es exactamente
+ * el tipo de wiring que una mutación puede romper (por ejemplo, pasar `{}`
+ * en vez de `settings`) sin que ningún test lo note, porque
+ * `resolveModeProviderBadge` en sí sigue estando bien probada: lo que fallaría
+ * es *qué se le pasa*, no la función. Fusionar la composición acá adentro,
+ * como ya hace `resolveShortcutConflict` en `shortcutConflicts.ts`, deja esa
+ * misma composición cubierta por `postProcessPresets.test.ts` y el
+ * componente sin nada que hacer salvo mapear el resultado.
+ */
+export const buildModeListEntries = (
+  prompts: LLMPrompt[],
+  settings:
+    | {
+        post_process_provider_id?: string;
+        post_process_providers?: PostProcessProvider[];
+        post_process_models?: Partial<{ [key: string]: string }>;
+      }
+    | null
+    | undefined,
+): ModeListEntry[] =>
+  prompts.map((prompt) => ({
+    prompt,
+    badge: resolveModeProviderBadge(prompt, settings ?? {}),
+  }));
+
+/**
+ * Si borrar el modo seleccionado dejaría `post_process_prompts` vacío: sin
+ * ningún modo no hay con qué dictado transformar, así que el último modo no
+ * se puede borrar. Vivía como `prompts.length <= 1` inline en el `disabled`
+ * del botón "Eliminar" — una mutación a `<` (deja borrar el último y vaciar
+ * la lista) pasaba todos los tests porque nada fuera del JSX ejercitaba esa
+ * regla.
+ */
+export const isLastRemainingMode = (prompts: unknown[]): boolean =>
+  prompts.length <= 1;
+
 /**
  * Vista de la pestaña "Modos" en `PostProcessingSettings.tsx`: lista de
  * modos, o el detalle de uno (editar), o el formulario de creación. Ya no

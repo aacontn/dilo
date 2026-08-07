@@ -517,9 +517,6 @@
         "modes": "Modlar",
         "provider": "Sağlayıcı"
       },
-      "hotkey": {
-        "title": "Kısayol Tuşu"
-      },
       "api": {
         "title": "API (OpenAI Uyumlu)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Seçili Prompt",
-          "description": "Transkripsiyonları iyileştirmek için bir şablon seçin veya yeni bir tane oluşturun. Yakalanan transkripte referans vermek için prompt metni içinde ${output} kullanın."
-        },
-        "noPrompts": "Kullanılabilir prompt yok",
-        "selectPrompt": "Prompt Seç",
         "createNew": "Yeni Prompt Oluştur",
         "promptLabel": "Prompt Etiketi",
         "promptLabelPlaceholder": "Prompt adı girin",
@@ -566,7 +556,6 @@
         "deletePrompt": "Promptu Sil",
         "createPrompt": "Prompt Oluştur",
         "cancel": "İptal",
-        "selectToEdit": "Ayrıntılarını görüntülemek ve düzenlemek için yukarıdan bir prompt seçin.",
         "createFirst": "İlk Dönüştürme prompt'unuzu oluşturmak için yukarıdaki “Yeni Prompt Oluştur” seçeneğine tıklayın.",
         "modeShortcut": "Mod kısayolu (isteğe bağlı)",
         "modeShortcutHint": "Seçili modu değiştirmeden herhangi bir uygulamadan doğrudan bu modla dikte et.",

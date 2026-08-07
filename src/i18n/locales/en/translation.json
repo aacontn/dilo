@@ -625,9 +625,6 @@
         "modes": "Modes",
         "provider": "Provider"
       },
-      "hotkey": {
-        "title": "Hotkey"
-      },
       "api": {
         "title": "API (OpenAI Compatible)",
         "provider": {
@@ -657,13 +654,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Selected Prompt",
-          "description": "Select a template for refining transcriptions or create a new one. Use ${output} inside the prompt text to reference the captured transcript."
-        },
-        "noPrompts": "No prompts available",
-        "selectPrompt": "Select a prompt",
         "createNew": "Create New Prompt",
         "promptLabel": "Prompt Label",
         "promptLabelPlaceholder": "Enter prompt name",
@@ -674,7 +664,6 @@
         "deletePrompt": "Delete Prompt",
         "createPrompt": "Create Prompt",
         "cancel": "Cancel",
-        "selectToEdit": "Select a prompt above to view and edit its details.",
         "createFirst": "Click 'Create New Prompt' above to create your first Transform prompt.",
         "modeShortcut": "Mode shortcut (optional)",
         "modeShortcutHint": "Dictate straight into this mode from any app, without changing the selected mode.",

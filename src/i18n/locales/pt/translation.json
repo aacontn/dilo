@@ -517,9 +517,6 @@
         "modes": "Modos",
         "provider": "Provedor"
       },
-      "hotkey": {
-        "title": "Tecla de atalho"
-      },
       "api": {
         "title": "API (Compatível com OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Prompt Selecionado",
-          "description": "Selecione um modelo para refinar transcrições ou crie um novo. Use ${output} dentro do texto do prompt para referenciar a transcrição capturada."
-        },
-        "noPrompts": "Nenhum prompt disponível",
-        "selectPrompt": "Selecionar um prompt",
         "createNew": "Criar Novo Prompt",
         "promptLabel": "Rótulo do Prompt",
         "promptLabelPlaceholder": "Digite o nome do prompt",
@@ -566,7 +556,6 @@
         "deletePrompt": "Excluir Prompt",
         "createPrompt": "Criar Prompt",
         "cancel": "Cancelar",
-        "selectToEdit": "Selecione um prompt acima para visualizar e editar seus detalhes.",
         "createFirst": "Clique em 'Criar Novo Prompt' acima para criar seu primeiro prompt de Transformação.",
         "modeShortcut": "Atalho do modo (opcional)",
         "modeShortcutHint": "Dite diretamente com este modo a partir de qualquer app, sem mudar o modo selecionado.",

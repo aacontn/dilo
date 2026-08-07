@@ -517,9 +517,6 @@
         "modes": "Modi",
         "provider": "Anbieter"
       },
-      "hotkey": {
-        "title": "Tastenkürzel"
-      },
       "api": {
         "title": "API (OpenAI-kompatibel)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Ausgewählter Prompt",
-          "description": "Wähle eine Vorlage zur Verfeinerung von Transkriptionen oder erstelle eine neue. Verwende ${output} im Prompt-Text, um auf das erfasste Transkript zu verweisen."
-        },
-        "noPrompts": "Keine Prompts verfügbar",
-        "selectPrompt": "Prompt auswählen",
         "createNew": "Neuen Prompt erstellen",
         "promptLabel": "Prompt-Name",
         "promptLabelPlaceholder": "Prompt-Namen eingeben",
@@ -566,7 +556,6 @@
         "deletePrompt": "Prompt löschen",
         "createPrompt": "Prompt erstellen",
         "cancel": "Abbrechen",
-        "selectToEdit": "Wähle oben einen Prompt aus, um dessen Details anzuzeigen und zu bearbeiten.",
         "createFirst": "Klicke oben auf 'Neuen Prompt erstellen', um deinen ersten Transformations-Prompt zu erstellen.",
         "modeShortcut": "Modus-Kurzbefehl (optional)",
         "modeShortcutHint": "Diktiere direkt mit diesem Modus aus jeder App, ohne den ausgewählten Modus zu ändern.",

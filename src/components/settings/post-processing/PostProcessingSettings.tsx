@@ -28,8 +28,9 @@ import { ModeProviderSelect } from "./ModeProviderSelect";
 import { useSettings } from "../../../hooks/useSettings";
 import { PageHeader } from "../../ui/PageHeader";
 import {
+  buildModeListEntries,
+  isLastRemainingMode,
   isModeDraftDirty,
-  resolveModeProviderBadge,
   resolveModesView,
   type ModeProviderBadge,
   type ModesTabView,
@@ -344,11 +345,11 @@ const PostProcessingSettingsModesComponent: React.FC = () => {
               {t("settings.postProcessing.prompts.createFirst")}
             </div>
           ) : (
-            prompts.map((prompt) => (
+            buildModeListEntries(prompts, settings).map(({ prompt, badge }) => (
               <ModeRow
                 key={prompt.id}
                 prompt={prompt}
-                badge={resolveModeProviderBadge(prompt, settings ?? {})}
+                badge={badge}
                 onSelect={() =>
                   setView({ kind: "detail", promptId: prompt.id })
                 }
@@ -493,7 +494,7 @@ const PostProcessingSettingsModesComponent: React.FC = () => {
               onClick={handleDeletePrompt}
               variant="secondary"
               size="md"
-              disabled={prompts.length <= 1}
+              disabled={isLastRemainingMode(prompts)}
             >
               {t("settings.postProcessing.prompts.deletePrompt")}
             </Button>

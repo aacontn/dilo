@@ -517,9 +517,6 @@
         "modes": "Chế độ",
         "provider": "Nhà cung cấp"
       },
-      "hotkey": {
-        "title": "Phím tắt"
-      },
       "api": {
         "title": "API (Tương thích OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Prompt đã chọn",
-          "description": "Chọn một mẫu để tinh chỉnh bản ghi hoặc tạo mới. Sử dụng ${output} trong văn bản prompt để tham chiếu bản ghi đã chụp."
-        },
-        "noPrompts": "Không có prompt nào",
-        "selectPrompt": "Chọn một prompt",
         "createNew": "Tạo Prompt mới",
         "promptLabel": "Nhãn Prompt",
         "promptLabelPlaceholder": "Nhập tên prompt",
@@ -566,7 +556,6 @@
         "deletePrompt": "Xóa Prompt",
         "createPrompt": "Tạo Prompt",
         "cancel": "Hủy",
-        "selectToEdit": "Chọn một prompt ở trên để xem và chỉnh sửa chi tiết.",
         "createFirst": "Nhấn 'Tạo Prompt mới' ở trên để tạo prompt Biến đổi đầu tiên của bạn.",
         "modeShortcut": "Phím tắt của chế độ (tùy chọn)",
         "modeShortcutHint": "Đọc chính tả trực tiếp bằng chế độ này từ bất kỳ ứng dụng nào mà không đổi chế độ đang chọn.",

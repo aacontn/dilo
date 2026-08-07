@@ -517,9 +517,6 @@
         "modes": "Modos",
         "provider": "Proveedor"
       },
-      "hotkey": {
-        "title": "Atajo"
-      },
       "api": {
         "title": "API (compatible con OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Prompt activo",
-          "description": "Elige una plantilla para pulir tus dictados o crea la tuya. Usa ${output} dentro del prompt para referirte al texto transcrito."
-        },
-        "noPrompts": "No hay prompts todavía",
-        "selectPrompt": "Elegir un prompt",
         "createNew": "Crear prompt",
         "promptLabel": "Nombre del prompt",
         "promptLabelPlaceholder": "Ponle nombre al prompt",
@@ -566,7 +556,6 @@
         "deletePrompt": "Eliminar prompt",
         "createPrompt": "Crear prompt",
         "cancel": "Cancelar",
-        "selectToEdit": "Elige un prompt arriba para ver y editar sus detalles.",
         "createFirst": "Crea tu primer prompt de Transformar con el botón de arriba.",
         "modeShortcut": "Atajo del modo (opcional)",
         "modeShortcutHint": "Dicta directo con este modo desde cualquier app, sin cambiar el modo seleccionado.",

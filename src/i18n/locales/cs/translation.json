@@ -517,9 +517,6 @@
         "modes": "Režimy",
         "provider": "Poskytovatel"
       },
-      "hotkey": {
-        "title": "Klávesová zkratka"
-      },
       "api": {
         "title": "API (kompatibilní s OpenAI)",
         "provider": {
@@ -549,13 +546,6 @@
         }
       },
       "prompts": {
-        "title": "Prompt",
-        "selectedPrompt": {
-          "title": "Vybraný prompt",
-          "description": "Vyberte šablonu pro zpřesnění přepisu nebo vytvořte novou. V textu promptu použijte ${output} pro vložení zachyceného přepisu."
-        },
-        "noPrompts": "Nejsou k dispozici žádné prompty",
-        "selectPrompt": "Vyberte prompt",
         "createNew": "Vytvořit nový prompt",
         "promptLabel": "Název promptu",
         "promptLabelPlaceholder": "Zadejte název promptu",
@@ -566,7 +556,6 @@
         "deletePrompt": "Smazat prompt",
         "createPrompt": "Vytvořit prompt",
         "cancel": "Zrušit",
-        "selectToEdit": "Vyberte výše prompt, abyste zobrazili a upravili jeho podrobnosti.",
         "createFirst": "Klikněte nahoře na 'Vytvořit nový prompt' a vytvořte svůj první prompt pro Transformaci.",
         "modeShortcut": "Zkratka režimu (volitelné)",
         "modeShortcutHint": "Diktujte přímo v tomto režimu z jakékoli aplikace beze změny vybraného režimu.",
