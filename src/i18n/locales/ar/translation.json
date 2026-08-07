@@ -492,6 +492,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "الأوضاع",
+        "provider": "المزود"
+      },
       "hotkey": {
         "title": "مفتاح الاختصار"
       },
@@ -547,6 +551,9 @@
         "modeShortcutHint": "أملِ مباشرة بهذا الوضع من أي تطبيق دون تغيير الوضع المحدد.",
         "modeShortcutEmpty": "لا يوجد اختصار",
         "modeShortcutClear": "إزالة الاختصار"
+      },
+      "modes": {
+        "back": "العودة إلى الأوضاع"
       },
       "modeProvider": {
         "label": "الذكاء الاصطناعي لهذا الوضع",

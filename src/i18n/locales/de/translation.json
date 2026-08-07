@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modi",
+        "provider": "Anbieter"
+      },
       "hotkey": {
         "title": "Tastenkürzel"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Diktiere direkt mit diesem Modus aus jeder App, ohne den ausgewählten Modus zu ändern.",
         "modeShortcutEmpty": "Kein Kurzbefehl",
         "modeShortcutClear": "Kurzbefehl entfernen"
+      },
+      "modes": {
+        "back": "Zurück zu den Modi"
       },
       "modeProvider": {
         "label": "KI für diesen Modus",

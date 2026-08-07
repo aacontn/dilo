@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modos",
+        "provider": "Provedor"
+      },
       "hotkey": {
         "title": "Tecla de atalho"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Dite diretamente com este modo a partir de qualquer app, sem mudar o modo selecionado.",
         "modeShortcutEmpty": "Sem atalho",
         "modeShortcutClear": "Remover atalho"
+      },
+      "modes": {
+        "back": "Voltar aos modos"
       },
       "modeProvider": {
         "label": "IA deste modo",

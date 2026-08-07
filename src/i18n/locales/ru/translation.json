@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Режимы",
+        "provider": "Поставщик"
+      },
       "hotkey": {
         "title": "Горячая клавиша"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Диктуйте сразу в этом режиме из любого приложения, не меняя выбранный режим.",
         "modeShortcutEmpty": "Нет сочетания",
         "modeShortcutClear": "Убрать сочетание"
+      },
+      "modes": {
+        "back": "Назад к режимам"
       },
       "modeProvider": {
         "label": "ИИ этого режима",

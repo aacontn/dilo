@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modos",
+        "provider": "Proveedor"
+      },
       "hotkey": {
         "title": "Atajo"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Dicta directo con este modo desde cualquier app, sin cambiar el modo seleccionado.",
         "modeShortcutEmpty": "Sin atajo",
         "modeShortcutClear": "Quitar atajo"
+      },
+      "modes": {
+        "back": "Volver a los modos"
       },
       "modeProvider": {
         "label": "IA de este modo",

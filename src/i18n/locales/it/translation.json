@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modalità",
+        "provider": "Provider"
+      },
       "hotkey": {
         "title": "Tasto di scelta rapida"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Detta direttamente con questa modalità da qualsiasi app, senza cambiare la modalità selezionata.",
         "modeShortcutEmpty": "Nessuna scorciatoia",
         "modeShortcutClear": "Rimuovi scorciatoia"
+      },
+      "modes": {
+        "back": "Torna alle modalità"
       },
       "modeProvider": {
         "label": "IA di questa modalità",

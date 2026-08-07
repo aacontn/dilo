@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "모드",
+        "provider": "제공자"
+      },
       "hotkey": {
         "title": "단축키"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "선택된 모드를 바꾸지 않고 어떤 앱에서든 이 모드로 바로 받아쓰기할 수 있습니다.",
         "modeShortcutEmpty": "단축키 없음",
         "modeShortcutClear": "단축키 제거"
+      },
+      "modes": {
+        "back": "모드 목록으로 돌아가기"
       },
       "modeProvider": {
         "label": "이 모드의 AI",

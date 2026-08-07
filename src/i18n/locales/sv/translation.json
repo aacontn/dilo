@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Lägen",
+        "provider": "Leverantör"
+      },
       "hotkey": {
         "title": "Snabbkommando"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Diktera direkt med det här läget från vilken app som helst, utan att ändra det valda läget.",
         "modeShortcutEmpty": "Ingen genväg",
         "modeShortcutClear": "Ta bort genväg"
+      },
+      "modes": {
+        "back": "Tillbaka till lägena"
       },
       "modeProvider": {
         "label": "AI för det här läget",

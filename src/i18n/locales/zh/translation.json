@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "模式",
+        "provider": "提供商"
+      },
       "hotkey": {
         "title": "快捷键"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "在任何应用中直接用此模式听写，而不改变所选模式。",
         "modeShortcutEmpty": "无快捷键",
         "modeShortcutClear": "清除快捷键"
+      },
+      "modes": {
+        "back": "返回模式列表"
       },
       "modeProvider": {
         "label": "此模式的 AI",

@@ -107,3 +107,76 @@ export const resolveModeProviderId = (
 
   return ownId;
 };
+
+/** `"local"`/`"online"` para la insignia de la fila; `null` cuando el proveedor
+ * resuelto ya no está en el catálogo (se borró) — sin este caso la fila
+ * mostraría una insignia mintiendo sobre dónde corre el modo. */
+export type ModeProviderBadge = "local" | "online" | null;
+
+/**
+ * Insignia LOCAL/ONLINE que la lista de modos (pestaña "Modos" de
+ * Transformar) muestra junto a cada fila. Mismo criterio que usa el
+ * dashboard de Inicio (`DictationModes.tsx`, `providerBadgeFor`) para no
+ * resolver el proveedor efectivo con dos reglas distintas en dos pantallas.
+ */
+export const resolveModeProviderBadge = (
+  mode: Pick<LLMPrompt, "provider_id" | "model"> | undefined,
+  settings: {
+    post_process_provider_id?: string;
+    post_process_providers?: PostProcessProvider[];
+    post_process_models?: Partial<{ [key: string]: string }>;
+  },
+): ModeProviderBadge => {
+  const providerId = resolveModeProviderId(mode, settings);
+  const provider = (settings.post_process_providers ?? []).find(
+    (candidate) => candidate.id === providerId,
+  );
+  if (!provider) return null;
+  return provider.is_local ? "local" : "online";
+};
+
+/**
+ * Vista de la pestaña "Modos" en `PostProcessingSettings.tsx`: lista de
+ * modos, o el detalle de uno (editar), o el formulario de creación. Ya no
+ * hay "modo activo" que elegir (retirado en la Task 3) — esto es sólo
+ * navegación de la pantalla, estado local del componente.
+ */
+export type ModesTabView =
+  | { kind: "list" }
+  | { kind: "detail"; promptId: string }
+  | { kind: "create" };
+
+/**
+ * Si la vista pide el detalle de un modo que ya no existe (se borró desde
+ * otro lugar, o quedó un id viejo en el estado), cae al listado en vez de
+ * mostrar un formulario de detalle roto sin datos que mostrar.
+ */
+export const resolveModesView = (
+  view: ModesTabView,
+  prompts: Pick<LLMPrompt, "id">[],
+): ModesTabView => {
+  if (
+    view.kind === "detail" &&
+    !prompts.some((prompt) => prompt.id === view.promptId)
+  ) {
+    return { kind: "list" };
+  }
+  return view;
+};
+
+/**
+ * Si el borrador de nombre + instrucciones difiere de lo guardado: decide
+ * si el botón "Guardar cambios" del detalle de un modo está habilitado.
+ * `null` (nada seleccionado, p. ej. en la vista de creación) nunca está
+ * sucio — no hay contra qué comparar.
+ */
+export const isModeDraftDirty = (
+  draft: { name: string; text: string },
+  original: Pick<LLMPrompt, "name" | "prompt"> | null,
+): boolean => {
+  if (!original) return false;
+  return (
+    draft.name.trim() !== original.name ||
+    draft.text.trim() !== original.prompt.trim()
+  );
+};

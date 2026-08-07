@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Режими",
+        "provider": "Доставчик"
+      },
       "hotkey": {
         "title": "Бърз клавиш"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Диктувай директно с този режим от всяко приложение, без да променяш избрания режим.",
         "modeShortcutEmpty": "Няма пряк път",
         "modeShortcutClear": "Премахни прекия път"
+      },
+      "modes": {
+        "back": "Обратно към режимите"
       },
       "modeProvider": {
         "label": "ИИ за този режим",

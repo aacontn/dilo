@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modes",
+        "provider": "Fournisseur"
+      },
       "hotkey": {
         "title": "Raccourci clavier"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Dictez directement avec ce mode depuis n'importe quelle app, sans changer le mode sélectionné.",
         "modeShortcutEmpty": "Aucun raccourci",
         "modeShortcutClear": "Supprimer le raccourci"
+      },
+      "modes": {
+        "back": "Retour aux modes"
       },
       "modeProvider": {
         "label": "IA de ce mode",

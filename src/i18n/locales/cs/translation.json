@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Režimy",
+        "provider": "Poskytovatel"
+      },
       "hotkey": {
         "title": "Klávesová zkratka"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Diktujte přímo v tomto režimu z jakékoli aplikace beze změny vybraného režimu.",
         "modeShortcutEmpty": "Žádná zkratka",
         "modeShortcutClear": "Odebrat zkratku"
+      },
+      "modes": {
+        "back": "Zpět na režimy"
       },
       "modeProvider": {
         "label": "AI pro tento režim",

@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Chế độ",
+        "provider": "Nhà cung cấp"
+      },
       "hotkey": {
         "title": "Phím tắt"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Đọc chính tả trực tiếp bằng chế độ này từ bất kỳ ứng dụng nào mà không đổi chế độ đang chọn.",
         "modeShortcutEmpty": "Chưa có phím tắt",
         "modeShortcutClear": "Xóa phím tắt"
+      },
+      "modes": {
+        "back": "Quay lại danh sách chế độ"
       },
       "modeProvider": {
         "label": "AI của chế độ này",

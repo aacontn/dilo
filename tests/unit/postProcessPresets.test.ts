@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   DICTATION_MODE_PRESETS,
+  isModeDraftDirty,
   pickProviderForScope,
+  resolveModeProviderBadge,
   resolveModeProviderId,
+  resolveModesView,
 } from "@/lib/postProcessPresets";
-import type { PostProcessProvider } from "@/bindings";
+import type { LLMPrompt, PostProcessProvider } from "@/bindings";
 
 describe("dictation modes", () => {
   test("ships five stable smart presets", () => {
@@ -167,5 +170,144 @@ describe("la ventana del prompt", () => {
     ).text();
     // Los dos textareas de instrucciones (editar y crear).
     expect(settings.split('variant="prompt"').length - 1).toBe(2);
+  });
+});
+
+// Regresión de la revisión de la Task 3: `post_process_selected_prompt_id`
+// desapareció de `AppSettings`, pero la pantalla seguía mostrando un
+// `ShortcutInput shortcutId="transcribe_with_post_process"` sin ningún
+// gate — un control que, tras la migración, queda vacío para todos y que si
+// se asigna dispara la tecla muerta que la Task 3 vino a matar (post-proceso
+// sin ningún modo). No se puede montar React en `bun test` (ver nota en
+// CLAUDE.md), así que esto se verifica igual que el test de arriba: leyendo
+// el archivo del componente directamente.
+describe("atajo general de transformar (retirado)", () => {
+  test("PostProcessingSettings ya no monta el atajo muerto de transcribe_with_post_process", async () => {
+    const settings = await Bun.file(
+      "src/components/settings/post-processing/PostProcessingSettings.tsx",
+    ).text();
+    expect(settings).not.toContain("transcribe_with_post_process");
+  });
+});
+
+describe("resolveModeProviderBadge", () => {
+  const local: PostProcessProvider = {
+    id: "apple_intelligence",
+    label: "Apple Intelligence",
+    base_url: "",
+    is_local: true,
+  };
+  const online: PostProcessProvider = {
+    id: "openai",
+    label: "OpenAI",
+    base_url: "https://api.openai.com/v1",
+    is_local: false,
+  };
+  const settings = {
+    post_process_provider_id: "openai",
+    post_process_providers: [local, online],
+    post_process_models: { apple_intelligence: "on-device" },
+  };
+
+  test("LOCAL cuando el proveedor efectivo es local", () => {
+    expect(
+      resolveModeProviderBadge(
+        { provider_id: "apple_intelligence", model: null },
+        settings,
+      ),
+    ).toBe("local");
+  });
+
+  test("ONLINE cuando el modo hereda el proveedor general y éste no es local", () => {
+    expect(
+      resolveModeProviderBadge({ provider_id: null, model: null }, settings),
+    ).toBe("online");
+  });
+
+  test("null cuando el proveedor resuelto ya no está en el catálogo", () => {
+    expect(
+      resolveModeProviderBadge(
+        { provider_id: null, model: null },
+        { post_process_provider_id: "borrado", post_process_providers: [] },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("resolveModesView", () => {
+  const prompts: Pick<LLMPrompt, "id">[] = [{ id: "dilo-clean" }];
+
+  test("mantiene la vista de lista sin cambios", () => {
+    expect(resolveModesView({ kind: "list" }, prompts)).toEqual({
+      kind: "list",
+    });
+  });
+
+  test("mantiene la vista de creación sin cambios", () => {
+    expect(resolveModesView({ kind: "create" }, prompts)).toEqual({
+      kind: "create",
+    });
+  });
+
+  test("mantiene el detalle si el modo todavía existe", () => {
+    expect(
+      resolveModesView({ kind: "detail", promptId: "dilo-clean" }, prompts),
+    ).toEqual({ kind: "detail", promptId: "dilo-clean" });
+  });
+
+  test("cae al listado si el modo del detalle ya no existe", () => {
+    expect(
+      resolveModesView({ kind: "detail", promptId: "borrado" }, prompts),
+    ).toEqual({ kind: "list" });
+  });
+});
+
+describe("isModeDraftDirty", () => {
+  const original: Pick<LLMPrompt, "name" | "prompt"> = {
+    name: "Limpio",
+    prompt: "Mejora la gramática: ${output}",
+  };
+
+  test("no está sucio cuando el borrador es igual al original", () => {
+    expect(
+      isModeDraftDirty(
+        { name: "Limpio", text: "Mejora la gramática: ${output}" },
+        original,
+      ),
+    ).toBe(false);
+  });
+
+  test("está sucio cuando cambia el nombre", () => {
+    expect(
+      isModeDraftDirty(
+        { name: "Limpio 2", text: "Mejora la gramática: ${output}" },
+        original,
+      ),
+    ).toBe(true);
+  });
+
+  test("está sucio cuando cambian las instrucciones", () => {
+    expect(
+      isModeDraftDirty(
+        { name: "Limpio", text: "Otra cosa: ${output}" },
+        original,
+      ),
+    ).toBe(true);
+  });
+
+  test("ignora espacios sobrantes en los bordes", () => {
+    expect(
+      isModeDraftDirty(
+        {
+          name: "  Limpio  ",
+          text: "  Mejora la gramática: ${output}  ",
+        },
+        original,
+      ),
+    ).toBe(false);
+  });
+
+  test("nunca está sucio sin un modo original (p. ej. creando uno nuevo)", () => {
+    expect(isModeDraftDirty({ name: "algo", text: "algo" }, null)).toBe(false);
   });
 });

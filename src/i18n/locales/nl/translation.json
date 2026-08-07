@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modi",
+        "provider": "Provider"
+      },
       "hotkey": {
         "title": "Sneltoets"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Dicteer rechtstreeks met deze modus vanuit elke app, zonder de geselecteerde modus te wijzigen.",
         "modeShortcutEmpty": "Geen sneltoets",
         "modeShortcutClear": "Sneltoets wissen"
+      },
+      "modes": {
+        "back": "Terug naar de modi"
       },
       "modeProvider": {
         "label": "AI voor deze modus",

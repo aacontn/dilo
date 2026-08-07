@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "モード",
+        "provider": "プロバイダー"
+      },
       "hotkey": {
         "title": "ショートカット"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "選択中のモードを変えずに、どのアプリからでもこのモードで直接音声入力できます。",
         "modeShortcutEmpty": "ショートカットなし",
         "modeShortcutClear": "ショートカットを削除"
+      },
+      "modes": {
+        "back": "モード一覧に戻る"
       },
       "modeProvider": {
         "label": "このモードのAI",

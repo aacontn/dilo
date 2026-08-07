@@ -621,6 +621,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modes",
+        "provider": "Provider"
+      },
       "hotkey": {
         "title": "Hotkey"
       },
@@ -676,6 +680,9 @@
         "modeShortcutHint": "Dictate straight into this mode from any app, without changing the selected mode.",
         "modeShortcutEmpty": "No shortcut",
         "modeShortcutClear": "Clear shortcut"
+      },
+      "modes": {
+        "back": "Back to modes"
       },
       "modeProvider": {
         "label": "This mode's AI",

@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Modlar",
+        "provider": "Sağlayıcı"
+      },
       "hotkey": {
         "title": "Kısayol Tuşu"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Seçili modu değiştirmeden herhangi bir uygulamadan doğrudan bu modla dikte et.",
         "modeShortcutEmpty": "Kısayol yok",
         "modeShortcutClear": "Kısayolu kaldır"
+      },
+      "modes": {
+        "back": "Modlara dön"
       },
       "modeProvider": {
         "label": "Bu modun yapay zekâsı",

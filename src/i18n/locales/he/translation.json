@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "מצבים",
+        "provider": "ספק"
+      },
       "hotkey": {
         "title": "קיצור מקשים"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "הכתב ישירות במצב הזה מכל אפליקציה, בלי לשנות את המצב הנבחר.",
         "modeShortcutEmpty": "אין קיצור דרך",
         "modeShortcutClear": "הסר קיצור דרך"
+      },
+      "modes": {
+        "back": "חזרה למצבים"
       },
       "modeProvider": {
         "label": "הבינה המלאכותית של המצב הזה",

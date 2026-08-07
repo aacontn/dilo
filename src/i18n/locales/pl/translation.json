@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "Tryby",
+        "provider": "Dostawca"
+      },
       "hotkey": {
         "title": "Skrót klawiszowy"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "Dyktuj bezpośrednio w tym trybie z dowolnej aplikacji, bez zmiany wybranego trybu.",
         "modeShortcutEmpty": "Brak skrótu",
         "modeShortcutClear": "Usuń skrót"
+      },
+      "modes": {
+        "back": "Wróć do trybów"
       },
       "modeProvider": {
         "label": "AI tego trybu",

@@ -513,6 +513,10 @@
       }
     },
     "postProcessing": {
+      "tabs": {
+        "modes": "मोडहरू",
+        "provider": "प्रदायक"
+      },
       "hotkey": {
         "title": "हटकी"
       },
@@ -568,6 +572,9 @@
         "modeShortcutHint": "चयन गरिएको मोड नबदली जुनसुकै एपबाट सिधै यो मोडमा बोलेर लेख्नुहोस्।",
         "modeShortcutEmpty": "सर्टकट छैन",
         "modeShortcutClear": "सर्टकट हटाउनुहोस्"
+      },
+      "modes": {
+        "back": "मोडहरूमा फर्कनुहोस्"
       },
       "modeProvider": {
         "label": "यो मोडको एआई",
