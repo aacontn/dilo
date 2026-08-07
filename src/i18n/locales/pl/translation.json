@@ -562,7 +562,9 @@
         "modeShortcutClear": "Usuń skrót"
       },
       "modes": {
-        "back": "Wróć do trybów"
+        "back": "Wróć do trybów",
+        "clearedNoticeTitle": "Usunięto klawisze trybów",
+        "clearedNotice": "Twoja klawiatura nie potrafiła uruchomić tych klawiszy, więc tryby zostały bez żadnego: {{modes}}. Przypisz im nowe w sekcji „Przekształcanie”."
       },
       "modeProvider": {
         "label": "AI tego trybu",

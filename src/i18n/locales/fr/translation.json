@@ -562,7 +562,9 @@
         "modeShortcutClear": "Supprimer le raccourci"
       },
       "modes": {
-        "back": "Retour aux modes"
+        "back": "Retour aux modes",
+        "clearedNoticeTitle": "Touches de mode retirées",
+        "clearedNotice": "Ton clavier ne pouvait pas déclencher ces touches, les modes sont donc restés sans raccourci : {{modes}}. Attribue-leur-en de nouvelles dans « Transformation »."
       },
       "modeProvider": {
         "label": "IA de ce mode",

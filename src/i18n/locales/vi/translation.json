@@ -562,7 +562,9 @@
         "modeShortcutClear": "Xóa phím tắt"
       },
       "modes": {
-        "back": "Quay lại danh sách chế độ"
+        "back": "Quay lại danh sách chế độ",
+        "clearedNoticeTitle": "Đã gỡ phím của chế độ",
+        "clearedNotice": "Bàn phím của bạn không kích hoạt được những phím này, nên các chế độ bị bỏ trống: {{modes}}. Hãy gán phím mới trong mục «Biến đổi»."
       },
       "modeProvider": {
         "label": "AI của chế độ này",

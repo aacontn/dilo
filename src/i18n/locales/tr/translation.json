@@ -562,7 +562,9 @@
         "modeShortcutClear": "Kısayolu kaldır"
       },
       "modes": {
-        "back": "Modlara dön"
+        "back": "Modlara dön",
+        "clearedNoticeTitle": "Mod tuşları kaldırıldı",
+        "clearedNotice": "Klavyen bu tuşları tetikleyemiyordu, bu yüzden şu modlar tuşsuz kaldı: {{modes}}. «Dönüştürme» bölümünden yenilerini ata."
       },
       "modeProvider": {
         "label": "Bu modun yapay zekâsı",

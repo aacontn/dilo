@@ -62,6 +62,13 @@ pub fn emit_window_shown(app: &AppHandle, label: &str) {
     if let Err(e) = app.emit_to(label, WINDOW_SHOWN_EVENT, ()) {
         log::warn!("No se pudo avisar que la ventana {label} se mostró: {e}");
     }
+
+    // Hay una ventana a la vista: es el momento de entregar el aviso de los
+    // atajos de modo que la migración retiró, si quedó alguno pendiente. Este
+    // es uno de los dos disparos; el otro es `commands::get_app_settings`, que
+    // el frontend pide con el listener ya puesto. Ver
+    // `settings::emit_pending_shortcut_notice`.
+    crate::settings::emit_pending_shortcut_notice(app);
 }
 
 /// Estado de una ventana candidata a recibir un aviso, tal como lo ve el

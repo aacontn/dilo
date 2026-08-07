@@ -670,7 +670,9 @@
         "modeShortcutClear": "Clear shortcut"
       },
       "modes": {
-        "back": "Back to modes"
+        "back": "Back to modes",
+        "clearedNoticeTitle": "Mode keys were cleared",
+        "clearedNotice": "Your keyboard couldn't trigger these keys, so the modes were left without one: {{modes}}. Assign new ones under Transform."
       },
       "modeProvider": {
         "label": "This mode's AI",

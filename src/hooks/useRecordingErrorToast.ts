@@ -45,11 +45,6 @@ export const showRecordingErrorToast = (
     return;
   }
 
-  // Ni permisos ni dispositivo: hay una reunión grabando y Dilo graba una
-  // cosa a la vez. El mensaje anterior era el string crudo del backend
-  // ("El micrófono está en uso…"), que además mentía sobre la causa —
-  // una reunión por audio del sistema jamás abre el micrófono (ver
-  // `MicOwner::busy_error_message` en `managers/audio.rs`).
   // La tecla de un modo se apretó con "Transformar" apagado (Ajustes ›
   // Avanzado). El backend no graba nada — mandar el dictado al proveedor
   // contradiría una preferencia explícita — así que la tecla se sentiría rota
@@ -61,6 +56,11 @@ export const showRecordingErrorToast = (
     return;
   }
 
+  // Ni permisos ni dispositivo: hay una reunión grabando y Dilo graba una
+  // cosa a la vez. El mensaje anterior era el string crudo del backend
+  // ("El micrófono está en uso…"), que además mentía sobre la causa —
+  // una reunión por audio del sistema jamás abre el micrófono (ver
+  // `MicOwner::busy_error_message` en `managers/audio.rs`).
   if (error_type === "meeting_recording_active") {
     toast.error(t("errors.meetingRecordingActiveTitle"), {
       description: t("errors.meetingRecordingActive"),

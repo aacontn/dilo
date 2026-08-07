@@ -562,7 +562,9 @@
         "modeShortcutClear": "清除快捷键"
       },
       "modes": {
-        "back": "返回模式列表"
+        "back": "返回模式列表",
+        "clearedNoticeTitle": "已清除模式快捷键",
+        "clearedNotice": "你的键盘无法触发这些键，所以这些模式现在没有快捷键：{{modes}}。请到“转换”里重新分配。"
       },
       "modeProvider": {
         "label": "此模式的 AI",

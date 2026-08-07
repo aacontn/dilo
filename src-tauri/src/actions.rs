@@ -766,7 +766,12 @@ impl ShortcutAction for TranscribeAction {
         // actuar, en vez de contradecir en silencio una preferencia
         // explícita. Ver `mode_shortcut_is_blocked`.
         if mode_shortcut_is_blocked(binding_id, get_settings(app).post_process_enabled) {
-            debug!(
+            // `warn!` y no `debug!`: éste también es el camino de
+            // `--toggle-post-process` y `SIGUSR1`, y desde el terminal un
+            // disparo que no hace nada tiene que dejar rastro con el nivel de
+            // log por defecto — igual que los dos fallos de resolución de modo
+            // en `signal_handle.rs`.
+            warn!(
                 "Transformar está apagado en ajustes; ignorando el atajo de modo '{}'",
                 binding_id
             );

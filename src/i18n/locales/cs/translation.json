@@ -562,7 +562,9 @@
         "modeShortcutClear": "Odebrat zkratku"
       },
       "modes": {
-        "back": "Zpět na režimy"
+        "back": "Zpět na režimy",
+        "clearedNoticeTitle": "Odebrané klávesy režimů",
+        "clearedNotice": "Tvoje klávesnice tyto klávesy nedokázala spustit, takže režimy zůstaly bez klávesy: {{modes}}. Přiřaď jim nové v sekci Transformace."
       },
       "modeProvider": {
         "label": "AI pro tento režim",

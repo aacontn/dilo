@@ -186,6 +186,9 @@ pub fn change_mode_shortcut(
         };
     }
     settings::write_settings(&app, settings);
+    // La persona está asignando teclas de modo: si quedaba pendiente el aviso
+    // de las que la migración retiró, ya cumplió su función.
+    settings::clear_pending_shortcut_notice(&app);
     Ok(())
 }
 

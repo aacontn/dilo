@@ -562,7 +562,9 @@
         "modeShortcutClear": "Remover atalho"
       },
       "modes": {
-        "back": "Voltar aos modos"
+        "back": "Voltar aos modos",
+        "clearedNoticeTitle": "Teclas de modo removidas",
+        "clearedNotice": "Seu teclado não conseguia acionar essas teclas, então os modos ficaram sem nenhuma: {{modes}}. Atribua novas em \"Transformação\"."
       },
       "modeProvider": {
         "label": "IA deste modo",

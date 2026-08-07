@@ -101,6 +101,11 @@ pub fn get_app_dir_path(app: AppHandle) -> Result<String, String> {
 #[tauri::command]
 #[specta::specta]
 pub fn get_app_settings(app: AppHandle) -> Result<AppSettings, String> {
+    // Este es el pedido que el frontend hace al montar y en cada refresco, y
+    // el hook del aviso lo llama a propósito **después** de poner su listener:
+    // es el único momento en que se puede garantizar que hay alguien
+    // escuchando. Ver `settings::emit_pending_shortcut_notice`.
+    crate::settings::emit_pending_shortcut_notice(&app);
     Ok(get_settings(&app))
 }
 

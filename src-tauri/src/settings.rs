@@ -959,24 +959,23 @@ fn dilo_post_process_presets() -> Vec<LLMPrompt> {
     ]
 }
 
-/// Tecla de fábrica del modo Limpio: la que hasta la 0.2.2 era "transformar".
-/// Una instalación nueva tiene así algo funcionando de inmediato, sin tener
-/// que asignar nada.
-const DEFAULT_CLEAN_MODE_SHORTCUT: &str = "fn+F17";
-
-/// Los modos de fábrica **de una instalación nueva**: los mismos presets, con
-/// la tecla de Limpio ya puesta.
+/// Los modos de fábrica: los cinco presets, **ninguno con tecla**.
 ///
-/// A propósito no es lo que usa `ensure_post_process_defaults` para rellenar
-/// un store existente: ahí los presets entran sin tecla, porque quedarse con
-/// una combinación que la persona ya usa para otra cosa sería robarle un
-/// atajo en una actualización.
+/// Hasta la 0.2.2 el modo Limpio salía con `fn+F17` para que una instalación
+/// nueva tuviera algo funcionando de inmediato. Se retiró en la 0.2.3 (decisión
+/// del dueño) porque esa tecla era un fantasma fuera de macOS: `fn` no lo emite
+/// ningún teclado de Windows/Linux y `tauri_impl::validate_shortcut` lo rechaza
+/// de plano, así que la interfaz mostraba "fn + F17" en Limpio y la tecla nunca
+/// disparaba — exactamente el bug que esta versión vino a matar, servido de
+/// fábrica. Un default por plataforma habría arreglado el síntoma a cambio de
+/// dos comportamientos distintos que mantener; partir sin tecla no le cuesta
+/// nada a nadie y es lo mismo que ve quien actualiza.
+///
+/// Coincide con lo que `ensure_post_process_defaults` mete en un store
+/// existente, que también entra sin tecla: quedarse con una combinación que la
+/// persona ya usa para otra cosa sería robarle un atajo en una actualización.
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
-    let mut prompts = dilo_post_process_presets();
-    if let Some(clean) = prompts.iter_mut().find(|prompt| prompt.id == "dilo-clean") {
-        clean.shortcut = Some(DEFAULT_CLEAN_MODE_SHORTCUT.to_string());
-    }
-    prompts
+    dilo_post_process_presets()
 }
 
 fn default_transcribe_gpu_device() -> i32 {
@@ -1101,7 +1100,8 @@ pub fn get_default_settings() -> AppSettings {
     // activo", y ese concepto ya no existe: sin un modo que aplicar no tendría
     // nada que hacer más que pegar el dictado crudo, o sea sería una tecla
     // muerta. Quien transforma lo hace con la tecla del modo que quiere
-    // (`mode:<id>`); de fábrica, Limpio en `fn+F17`.
+    // (`mode:<id>`), y de fábrica no viene ninguna puesta: ver
+    // `default_post_process_prompts`.
     bindings.insert(
         "transcribe_with_post_process".to_string(),
         ShortcutBinding {
@@ -1328,8 +1328,16 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
                 }
             };
 
-        if apply_settings_migrations(&mut settings, &settings_value) {
+        let mut cleared = Vec::new();
+        if apply_settings_migrations_reporting(&mut settings, &settings_value, &mut cleared) {
             updated = true;
+        }
+        // El aviso se guarda en el store, no se emite acá: esto corre al
+        // arrancar, cuando lo habitual es que no haya ninguna ventana. Ver
+        // `emit_pending_shortcut_notice`.
+        if !cleared.is_empty() {
+            let notice = serde_json::json!({ "modes": cleared });
+            store.set(PENDING_SHORTCUT_NOTICE_KEY, notice);
         }
 
         // Merge in any bindings added since this store was written.
@@ -1397,9 +1405,13 @@ fn salvage_settings(stored: &serde_json::Value) -> AppSettings {
     })
 }
 
-fn apply_settings_migrations(
+/// Corre las migraciones de una sola vez y **reporta** lo que la persona
+/// necesita saber: `cleared` recibe los atajos de modo que la regla 2 retiró
+/// por no poder dispararse (ver `migrate_active_mode_to_mode_shortcuts`).
+fn apply_settings_migrations_reporting(
     settings: &mut AppSettings,
     settings_value: &serde_json::Value,
+    cleared: &mut Vec<ClearedModeShortcut>,
 ) -> bool {
     let mut updated = false;
 
@@ -1456,17 +1468,87 @@ fn apply_settings_migrations(
         updated = true;
     }
 
-    if migrate_active_mode_to_mode_shortcuts(settings, settings_value) {
+    if migrate_active_mode_to_mode_shortcuts(settings, settings_value, cleared) {
         updated = true;
     }
 
     updated
 }
 
+/// Como [`apply_settings_migrations_reporting`], pero descartando los avisos.
+/// La usan los tests y cualquier llamador al que sólo le importe si el store
+/// cambió.
+#[cfg(test)]
+fn apply_settings_migrations(
+    settings: &mut AppSettings,
+    settings_value: &serde_json::Value,
+) -> bool {
+    apply_settings_migrations_reporting(settings, settings_value, &mut Vec::new())
+}
+
 /// La clave del "modo activo" de la 0.2.2. Ya no es un campo: que siga escrita
 /// en el JSON guardado es justamente lo que marca un store anterior a los
 /// atajos por modo.
 const LEGACY_SELECTED_PROMPT_KEY: &str = "post_process_selected_prompt_id";
+
+/// Un atajo de modo que la migración retiró porque este teclado no puede
+/// dispararlo (regla 2 de `migrate_active_mode_to_mode_shortcuts`).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ClearedModeShortcut {
+    pub mode_name: String,
+    pub shortcut: String,
+}
+
+/// Dónde espera el aviso de los atajos retirados hasta que alguien lo vea.
+///
+/// Es una clave **hermana** de `settings` dentro del mismo store, no un campo
+/// de `AppSettings`: así no toca el tipo que `tauri-specta` genera en
+/// `src/bindings.ts` (que es generado y no se edita a mano) y, sobre todo,
+/// **sobrevive a los reinicios**. Ésa es la diferencia que importa: la
+/// migración corre al arrancar, cuando lo normal es que no haya ninguna
+/// ventana abierta —quien dicta tiene Dilo en la bandeja—, así que un aviso
+/// que sólo viviera en memoria se perdería justo en el caso común.
+const PENDING_SHORTCUT_NOTICE_KEY: &str = "pending_mode_shortcut_notice";
+
+/// El evento que lleva ese aviso al frontend. Es un `emit` pelado (no un
+/// evento de `tauri-specta`) por la misma razón: su tipo se escribe a mano en
+/// `src/lib/types/events.ts`, igual que `recording-error`.
+pub const MODE_SHORTCUTS_CLEARED_EVENT: &str = "mode-shortcuts-cleared";
+
+/// Emite el aviso pendiente, si lo hay. Se llama desde los dos momentos en que
+/// puede haber alguien escuchando: cuando una ventana se muestra
+/// (`utils::emit_window_shown`) y cuando el frontend pide los ajustes
+/// (`commands::get_app_settings`, que es lo que hace al montar y en cada
+/// refresco).
+///
+/// **A propósito no consume el aviso.** No hay forma de saber desde acá si el
+/// webview ya tenía puesto su listener —`listen()` es asíncrono—, así que
+/// borrarlo en el primer envío lo perdería en la carrera del arranque. Se
+/// reenvía cuantas veces haga falta y el frontend lo muestra una sola
+/// (`clearedShortcutsNotice.ts`). Lo borra `shortcut::change_mode_shortcut`:
+/// cuando la persona asigna una tecla nueva, el aviso ya cumplió.
+pub fn emit_pending_shortcut_notice(app: &AppHandle) {
+    use tauri::Emitter;
+
+    let Ok(store) = app.store(crate::portable::store_path(SETTINGS_STORE_PATH)) else {
+        return;
+    };
+    let Some(notice) = store.get(PENDING_SHORTCUT_NOTICE_KEY) else {
+        return;
+    };
+    if let Err(e) = app.emit(MODE_SHORTCUTS_CLEARED_EVENT, notice) {
+        warn!("No se pudo avisar de los atajos de modo retirados: {e}");
+    }
+}
+
+/// Borra el aviso pendiente. Lo llama `change_mode_shortcut`: en cuanto la
+/// persona asigna una tecla de modo, decirle que perdió una deja de tener
+/// sentido.
+pub fn clear_pending_shortcut_notice(app: &AppHandle) {
+    if let Ok(store) = app.store(crate::portable::store_path(SETTINGS_STORE_PATH)) {
+        let _ = store.delete(PENDING_SHORTCUT_NOTICE_KEY);
+    }
+}
 
 /// El atajo general de post-proceso, el que aplicaba el modo activo.
 const POST_PROCESS_BINDING_ID: &str = "transcribe_with_post_process";
@@ -1524,7 +1606,10 @@ fn normalized_combo(shortcut: &str) -> String {
 /// - **Regla 2 primero: se borran los atajos de modo que no pueden
 ///   dispararse.** Va antes que la 1 para que el modo activo pueda heredar la
 ///   tecla del atajo general una vez que quedó libre — al revés, el modo
-///   activo del dueño (con `f17` guardado) se habría quedado sin nada.
+///   activo del dueño (con `f17` guardado) se habría quedado sin nada. Lo que
+///   retira se acumula en `cleared` y termina como un aviso dentro de la app
+///   (ver `emit_pending_shortcut_notice`): borrar una tecla en silencio se
+///   siente igual que un bug, aunque la tecla ya no sirviera.
 /// - **Regla 1: el modo activo hereda la tecla del atajo general** —sólo si el
 ///   post-proceso estaba encendido y si ningún otro modo tiene ya esa
 ///   combinación—, para no perder la elección de la persona.
@@ -1537,6 +1622,7 @@ fn normalized_combo(shortcut: &str) -> String {
 fn migrate_active_mode_to_mode_shortcuts(
     settings: &mut AppSettings,
     settings_value: &serde_json::Value,
+    cleared: &mut Vec<ClearedModeShortcut>,
 ) -> bool {
     let Some(selected) = settings_value.get(LEGACY_SELECTED_PROMPT_KEY) else {
         return false;
@@ -1570,6 +1656,13 @@ fn migrate_active_mode_to_mode_shortcuts(
                     "El atajo '{}' del modo '{}' no puede dispararse con este teclado; el modo queda sin tecla",
                     shortcut, prompt.name
                 );
+                // Se guarda para avisarle a la persona dentro de la app: un
+                // `warn!` en el log no lo lee nadie, y perder una tecla sin
+                // enterarse se siente exactamente igual que un bug.
+                cleared.push(ClearedModeShortcut {
+                    mode_name: prompt.name.clone(),
+                    shortcut: shortcut.to_string(),
+                });
                 prompt.shortcut = None;
                 updated = true;
             }
@@ -2461,10 +2554,20 @@ mod tests {
     }
 
     fn migrated(stored: &serde_json::Value) -> (AppSettings, bool) {
+        let (settings, updated, _) = migrated_reporting(stored);
+        (settings, updated)
+    }
+
+    /// Como `migrated`, pero además devuelve los atajos que la regla 2 retiró
+    /// —lo que después se convierte en el aviso dentro de la app.
+    fn migrated_reporting(
+        stored: &serde_json::Value,
+    ) -> (AppSettings, bool, Vec<ClearedModeShortcut>) {
         let mut settings: AppSettings = serde_json::from_value(stored.clone())
             .expect("un settings.json de 0.2.2 tiene que seguir parseando");
-        let updated = apply_settings_migrations(&mut settings, stored);
-        (settings, updated)
+        let mut cleared = Vec::new();
+        let updated = apply_settings_migrations_reporting(&mut settings, stored, &mut cleared);
+        (settings, updated, cleared)
     }
 
     fn mode<'a>(settings: &'a AppSettings, id: &str) -> &'a LLMPrompt {
@@ -2644,6 +2747,41 @@ mod tests {
     }
 
     #[test]
+    fn el_atajo_que_se_borra_queda_anotado_para_avisarle_a_la_persona() {
+        // El borrado de la regla 2 es correcto pero invisible: sin esta lista
+        // la persona sólo se entera de que perdió su tecla apretándola. Lo que
+        // se anota es el nombre del modo y la tecla que tenía, que es
+        // exactamente lo que hay que poder decirle.
+        let mut stored = store_with_active_mode();
+        stored["post_process_prompts"][1]["shortcut"] = serde_json::json!("f17");
+        stored["post_process_prompts"][0]["shortcut"] = serde_json::json!("fn+f15");
+
+        let (_, _, cleared) = migrated_reporting(&stored);
+
+        assert_eq!(
+            cleared,
+            vec![ClearedModeShortcut {
+                mode_name: "Correo".to_string(),
+                shortcut: "f17".to_string(),
+            }],
+            "se anota sólo el que se borró, con la tecla que perdió"
+        );
+    }
+
+    #[test]
+    fn sin_nada_que_borrar_no_hay_aviso_que_dar() {
+        // Que la migración corra no significa que haya algo que contar: un
+        // aviso vacío sería ruido en cada actualización.
+        let mut stored = store_with_active_mode();
+        stored["post_process_selected_prompt_id"] = serde_json::json!("dilo-email");
+
+        let (_, updated, cleared) = migrated_reporting(&stored);
+
+        assert!(updated, "la migración sí movió cosas");
+        assert!(cleared.is_empty(), "pero no le quitó la tecla a nadie");
+    }
+
+    #[test]
     fn un_atajo_sin_modificadores_se_queda_si_los_generales_tampoco_los_tienen() {
         let mut stored = store_with_active_mode();
         // Teclado que emite las teclas de función peladas: acá `f17` sí
@@ -2754,22 +2892,20 @@ mod tests {
     }
 
     #[test]
-    fn instalacion_nueva_trae_limpio_en_fn_f17() {
+    fn instalacion_nueva_no_trae_ninguna_tecla_de_modo() {
+        // Al revés de la 0.2.2, que traía Limpio en `fn+F17`. Esa tecla era un
+        // fantasma fuera de macOS —`fn` no existe en esos teclados y el
+        // validador de `tauri_impl` lo rechaza— así que la interfaz la mostraba
+        // y nunca disparaba. Cada persona asigna la suya (decisión del dueño,
+        // 0.2.3): partir de cero no cuesta nada.
         let settings = AppSettings::default();
 
-        let clean = mode(&settings, "dilo-clean");
-        assert_eq!(
-            clean.shortcut.as_deref(),
-            Some("fn+F17"),
-            "una instalación nueva tiene algo funcionando de inmediato"
-        );
         assert!(
             settings
                 .post_process_prompts
                 .iter()
-                .filter(|prompt| prompt.id != "dilo-clean")
                 .all(|prompt| prompt.shortcut.is_none()),
-            "los demás modos llegan sin tecla; cada persona asigna las que quiera"
+            "ningún modo de fábrica llega con tecla asignada"
         );
         assert_eq!(
             settings.bindings["transcribe_with_post_process"].current_binding, "",

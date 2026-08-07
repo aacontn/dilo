@@ -8,7 +8,11 @@ import {
   checkAccessibilityPermission,
   checkMicrophonePermission,
 } from "tauri-plugin-macos-permissions-api";
-import { AssistantErrorEvent, ModelStateEvent } from "./lib/types/events";
+import {
+  AssistantErrorEvent,
+  ModelStateEvent,
+  ModeShortcutsClearedEvent,
+} from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
@@ -19,6 +23,7 @@ import Onboarding, {
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { HomeDashboard } from "./components/home";
 import { WhatsNewGate } from "./components/whats-new";
+import { useOsType } from "./hooks/useOsType";
 import { useRecordingErrorToast } from "./hooks/useRecordingErrorToast";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -28,6 +33,13 @@ import {
   getNextOnboardingStep,
   type OnboardingStep,
 } from "@/lib/utils/onboardingFlow";
+import {
+  buildClearedNoticeText,
+  CLEARED_NOTICE_DURATION_MS,
+  MODE_SHORTCUTS_CLEARED_EVENT,
+  shouldShowClearedNotice,
+} from "@/lib/clearedShortcutsNotice";
+import { attachOrDiscardListener } from "@/lib/utils/keyboard";
 
 // Un solo toast para los cuatro tipos de `AssistantErrorEvent` — lo usan
 // tanto el listener en vivo (ventana abierta) como el vaciado de la cola de
@@ -73,8 +85,18 @@ const renderSettingsContent = (
   return <ActiveComponent />;
 };
 
+/**
+ * Si el aviso de atajos retirados ya se mostró **en esta sesión**. Rust reemite
+ * el aviso a propósito (no puede saber si había alguien escuchando), así que la
+ * repetición se corta acá. No se persiste: si la persona se pierde el toast,
+ * vuelve en el próximo arranque — hasta que asigne una tecla de modo, que es
+ * cuando `change_mode_shortcut` borra el aviso del store.
+ */
+let clearedNoticeShown = false;
+
 function App() {
   const { t, i18n } = useTranslation();
+  const osType = useOsType();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
     null,
   );
@@ -190,6 +212,46 @@ function App() {
       }
     })();
   }, []);
+
+  // Los atajos de modo que la actualización retiró por no poder dispararse
+  // (regla 2 de la migración). Rust deja el aviso **guardado en el store** —la
+  // migración corre al arrancar, casi siempre sin ninguna ventana abierta— y
+  // lo reemite cada vez que una ventana se muestra y en cada
+  // `get_app_settings`. Acá se pide ese refresco a propósito **después** de
+  // dejar puesto el listener: es la única forma de no perder la carrera del
+  // arranque, porque `listen()` resuelve asincrónicamente.
+  useEffect(() => {
+    let canceled = false;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      const stop = await listen<ModeShortcutsClearedEvent>(
+        MODE_SHORTCUTS_CLEARED_EVENT,
+        (event) => {
+          if (!shouldShowClearedNotice(event.payload, clearedNoticeShown))
+            return;
+          clearedNoticeShown = true;
+          const { title, description } = buildClearedNoticeText(
+            event.payload,
+            osType,
+            t,
+          );
+          toast.warning(title, {
+            description,
+            duration: CLEARED_NOTICE_DURATION_MS,
+          });
+        },
+      );
+      attachOrDiscardListener(stop, canceled, (fn) => {
+        unlisten = fn;
+      });
+      if (canceled) return;
+      await commands.getAppSettings();
+    })();
+    return () => {
+      canceled = true;
+      unlisten?.();
+    };
+  }, [t, osType]);
 
   // Listen for paste failures and show a toast.
   // The technical error detail is logged to handy.log on the Rust side

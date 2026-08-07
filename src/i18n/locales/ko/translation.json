@@ -562,7 +562,9 @@
         "modeShortcutClear": "단축키 제거"
       },
       "modes": {
-        "back": "모드 목록으로 돌아가기"
+        "back": "모드 목록으로 돌아가기",
+        "clearedNoticeTitle": "모드 키가 해제되었습니다",
+        "clearedNotice": "사용 중인 키보드로는 작동하지 않는 키여서 다음 모드는 키 없이 남았습니다: {{modes}}. '변형'에서 새 키를 지정하세요."
       },
       "modeProvider": {
         "label": "이 모드의 AI",

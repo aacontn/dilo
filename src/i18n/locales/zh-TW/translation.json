@@ -562,7 +562,9 @@
         "modeShortcutClear": "清除快速鍵"
       },
       "modes": {
-        "back": "返回模式列表"
+        "back": "返回模式列表",
+        "clearedNoticeTitle": "已清除模式快速鍵",
+        "clearedNotice": "你的鍵盤無法觸發這些鍵，所以這些模式目前沒有快速鍵：{{modes}}。請到「轉換」重新指定。"
       },
       "modeProvider": {
         "label": "此模式的 AI",

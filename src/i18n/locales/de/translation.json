@@ -562,7 +562,9 @@
         "modeShortcutClear": "Kurzbefehl entfernen"
       },
       "modes": {
-        "back": "Zurück zu den Modi"
+        "back": "Zurück zu den Modi",
+        "clearedNoticeTitle": "Modus-Tasten entfernt",
+        "clearedNotice": "Deine Tastatur konnte diese Tasten nicht auslösen, deshalb sind die Modi jetzt ohne Taste: {{modes}}. Weise ihnen unter „Transformation“ neue zu."
       },
       "modeProvider": {
         "label": "KI für diesen Modus",

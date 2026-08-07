@@ -562,7 +562,9 @@
         "modeShortcutClear": "Quitar atajo"
       },
       "modes": {
-        "back": "Volver a los modos"
+        "back": "Volver a los modos",
+        "clearedNoticeTitle": "Se quitaron teclas de modo",
+        "clearedNotice": "Tu teclado no podía disparar estas teclas, así que los modos quedaron sin ninguna: {{modes}}. Asígnales una nueva en Transformar."
       },
       "modeProvider": {
         "label": "IA de este modo",

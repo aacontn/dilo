@@ -562,7 +562,9 @@
         "modeShortcutClear": "Rimuovi scorciatoia"
       },
       "modes": {
-        "back": "Torna alle modalità"
+        "back": "Torna alle modalità",
+        "clearedNoticeTitle": "Tasti delle modalità rimossi",
+        "clearedNotice": "La tua tastiera non riusciva a far scattare questi tasti, quindi le modalità sono rimaste senza: {{modes}}. Assegnane di nuovi in «Trasformazione»."
       },
       "modeProvider": {
         "label": "IA di questa modalità",

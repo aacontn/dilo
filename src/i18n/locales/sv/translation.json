@@ -562,7 +562,9 @@
         "modeShortcutClear": "Ta bort genväg"
       },
       "modes": {
-        "back": "Tillbaka till lägena"
+        "back": "Tillbaka till lägena",
+        "clearedNoticeTitle": "Lägestangenter togs bort",
+        "clearedNotice": "Ditt tangentbord kunde inte utlösa de här tangenterna, så lägena blev utan: {{modes}}. Tilldela nya under Omvandling."
       },
       "modeProvider": {
         "label": "AI för det här läget",

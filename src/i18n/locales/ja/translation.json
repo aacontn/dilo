@@ -562,7 +562,9 @@
         "modeShortcutClear": "ショートカットを削除"
       },
       "modes": {
-        "back": "モード一覧に戻る"
+        "back": "モード一覧に戻る",
+        "clearedNoticeTitle": "モードのキーを解除しました",
+        "clearedNotice": "お使いのキーボードでは動作しないキーだったため、次のモードはキーなしになりました: {{modes}}。「変換」で新しいキーを割り当ててください。"
       },
       "modeProvider": {
         "label": "このモードのAI",

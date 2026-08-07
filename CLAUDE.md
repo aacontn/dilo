@@ -177,6 +177,17 @@ Settings are stored using Tauri's store plugin with reactive updates:
 - Model preferences (Small/Medium/Turbo/Large Whisper variants)
 - Audio feedback and translation options
 
+**One-time notices that must survive a restart (0.2.3):** the 0.2.3 migration
+clears mode shortcuts this keyboard can't trigger, and it runs at startup, when
+there is usually no window open — someone who dictates keeps Dilo in the tray.
+The notice is therefore parked in the settings store under its own top-level key
+(`pending_mode_shortcut_notice`, a sibling of `settings`, **not** a field of
+`AppSettings` — that would change generated `src/bindings.ts`) and re-emitted as
+the plain `mode-shortcuts-cleared` event from `utils::emit_window_shown` and
+`commands::get_app_settings`. Rust never consumes it (it cannot know whether a
+webview had already attached its listener); `App.tsx` shows it once per session
+and `shortcut::change_mode_shortcut` deletes it once the person assigns a key.
+
 ### Single Instance Architecture
 
 The app enforces single instance behavior — launching when already running brings the settings window to front rather than creating a new process. Remote control flags (`--toggle-transcription`, etc.) work by launching a second instance that sends args to the running instance via `tauri_plugin_single_instance`, then exits.

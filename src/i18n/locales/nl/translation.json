@@ -562,7 +562,9 @@
         "modeShortcutClear": "Sneltoets wissen"
       },
       "modes": {
-        "back": "Terug naar de modi"
+        "back": "Terug naar de modi",
+        "clearedNoticeTitle": "Modustoetsen zijn gewist",
+        "clearedNotice": "Je toetsenbord kon deze toetsen niet activeren, dus de modi bleven zonder toets achter: {{modes}}. Wijs er nieuwe toe bij 'Transformatie'."
       },
       "modeProvider": {
         "label": "AI voor deze modus",
