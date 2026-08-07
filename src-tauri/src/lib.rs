@@ -496,6 +496,15 @@ enum DockPolicy {
 /// la única forma de volver a abrir Ajustes, así que "esconderme del Dock" se
 /// ignora antes que dejar al usuario sin ninguna puerta (reporte del dueño,
 /// 2026-08-04: "lo que manda aquí es el top bar").
+///
+/// Una ventana relevante visible manda sobre el ajuste también: `Accessory`
+/// hace que AppKit esconda las ventanas de la app, así que si hay una en
+/// pantalla la política tiene que ser `Regular` aunque `show_dock_icon` esté
+/// apagado — si no, autorizar un permiso de macOS (que reaplica esta función)
+/// cierra la ventana al instante (bug reportado 2026-08-07). Lo que el ajuste
+/// apagado realmente pide es "no dejes el ícono ahí cuando no estoy usando la
+/// ventana": por eso sólo se traduce a `Accessory` cuando no queda ninguna
+/// ventana relevante abierta.
 fn desired_dock_policy(
     show_dock_icon: bool,
     tray_available: bool,
@@ -504,14 +513,13 @@ fn desired_dock_policy(
     if !tray_available {
         return DockPolicy::Regular;
     }
+    if relevant_window_visible {
+        return DockPolicy::Regular;
+    }
     if !show_dock_icon {
         return DockPolicy::Accessory;
     }
-    if relevant_window_visible {
-        DockPolicy::Regular
-    } else {
-        DockPolicy::Accessory
-    }
+    DockPolicy::Accessory
 }
 
 /// Aplica [`desired_dock_policy`] leyendo ajustes y CLI. `relevant_window_visible`
@@ -1278,16 +1286,36 @@ mod tests {
     }
 
     #[test]
-    fn quien_pide_barra_de_menu_no_recupera_el_dock_al_abrir_ajustes() {
+    fn quien_pide_barra_de_menu_no_recupera_el_dock_al_cerrar_todo() {
         // El pedido del dueño: "lo que manda aquí es el top bar". Con el
-        // ajuste apagado, ni siquiera mostrar Ajustes devuelve el ícono.
-        assert_eq!(
-            desired_dock_policy(false, true, true),
-            DockPolicy::Accessory
-        );
+        // ajuste apagado y ninguna ventana relevante abierta, el ícono no
+        // vuelve a aparecer.
+        //
+        // Antes esta prueba afirmaba que el ajuste apagado ganaba incluso con
+        // una ventana visible (Accessory) — esa era exactamente la lectura
+        // que escondía la ventana al instante al autorizar un permiso de
+        // macOS (bug reportado 2026-08-07, ver
+        // `ventana_visible_gana_aunque_el_dock_este_apagado`). Se corrige acá
+        // en vez de borrarse para no perder la cobertura del caso "sin
+        // ventana" con el ajuste apagado.
         assert_eq!(
             desired_dock_policy(false, true, false),
             DockPolicy::Accessory
+        );
+    }
+
+    #[test]
+    fn ventana_visible_gana_aunque_el_dock_este_apagado() {
+        // El bug reportado 2026-08-07: autorizar un permiso de macOS
+        // (micrófono, accesibilidad) reaplica `desired_dock_policy`. Con el
+        // Dock apagado la función cortaba a Accessory sin mirar si había una
+        // ventana visible, y en macOS pasar a Accessory esconde las ventanas
+        // de la app — la ventana desaparecía sola, sin ninguna puerta salvo
+        // la bandeja.
+        assert_eq!(
+            desired_dock_policy(false, true, true),
+            DockPolicy::Regular,
+            "con una ventana relevante visible, el ícono se queda aunque el ajuste esté apagado"
         );
     }
 
