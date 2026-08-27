@@ -3,6 +3,24 @@
 > Entradas nuevas arriba. Hecho, próximo paso, cuidado y estado Git; el
 > detalle fino vive en Git y en `docs/superpowers/specs/`.
 
+## 2026-08-27 (2) · Norte (Claude)
+
+- **Hecho:** diseño aprobado de **reuniones en línea**
+  (`2026-08-27-reuniones-en-linea-design.md`): Nemotron no se restaura, la
+  transcripción de reunión pasa a contrato `MeetingTranscriber` con Gemini
+  primero (vivo por WS sin hablantes + repaso batch con diarización de hasta
+  8) y AWS como implementación futura. Probes versionados en
+  `scripts/probes/` con su README.
+- **Próximo paso:** plan de fase 1 del dictado (orden aprobado: dictado →
+  reuniones). El plan de reuniones tiene compuerta de entrada: verificar el
+  formato de la diarización cuando `:generateContent` deje de dar 503
+  (congestión del lanzamiento).
+- **Cuidado:** `interactions` rechaza `diarization` (`Unknown parameter`);
+  la diarización vive en `:generateContent`, donde smart NO funciona — el
+  transcript final con hablantes sale verbatim y lo limpia el LLM del
+  resumen.
+- **Git:** main, commits locales sin push.
+
 ## 2026-08-27 · Norte (Claude)
 
 - **Hecho:** diseño aprobado del motor de dictado en línea **Gemini 3.5
