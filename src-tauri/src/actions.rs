@@ -164,28 +164,40 @@ pub struct PostProcessFallback {
     pub provider_label: String,
 }
 
-/// Cuántos avisos de cruce a la nube se guardan mientras no haya ventana
-/// que los muestre. Con un modo local en falla permanente (Apple
-/// Intelligence no disponible, por ejemplo) cada dictado genera uno: sin
-/// tope, abrir la ventana después de un día de trabajo escupiría cientos de
-/// toasts. Al llegar al tope se descartan los más viejos — enterarse de los
-/// últimos diez cruces alcanza para saber que esto está pasando.
+/// Cuántos avisos de dictado se guardan mientras no haya ventana que los
+/// muestre. Con una falla permanente (Apple Intelligence no disponible, o
+/// Gemini sin cuota) cada dictado genera uno: sin tope, abrir la ventana
+/// después de un día de trabajo escupiría cientos de toasts. Al llegar al tope
+/// se descartan los más viejos — enterarse de los últimos diez alcanza para
+/// saber que esto está pasando.
 const MAX_PENDING_FALLBACK_NOTICES: usize = 10;
 
-/// Cola de avisos de cruce a la nube pendientes de mostrar.
+/// Cola de avisos de dictado pendientes de mostrar.
 ///
-/// El evento `post-process-fallback` sólo llega si hay una ventana escuchando,
-/// y el estado normal al dictar es con la ventana principal **cerrada** (al
-/// cerrarla se destruye el webview, y con él su listener). Sin esta cola el
-/// aviso más importante que da la app —"tu texto local salió a la nube"— se
-/// perdía justo en el caso normal. El frontend la vacía al montar
-/// (`take_pending_fallback_notices`), así el usuario se entera tarde pero se
-/// entera.
-#[derive(Default)]
-pub struct PendingFallbackNotices(Mutex<Vec<PostProcessFallback>>);
+/// Un evento de Tauri sólo llega si hay una ventana escuchando, y el estado
+/// normal al dictar es con la ventana principal **cerrada** (al cerrarla se
+/// destruye el webview, y con él su listener). Sin esta cola los avisos más
+/// importantes que da la app —"tu texto local salió a la nube", "esto no lo
+/// transcribió el motor que elegiste"— se perdían justo en el caso normal. El
+/// frontend la vacía al montar, así el usuario se entera tarde pero se entera.
+///
+/// Genérica sobre el payload porque hay dos avisos con exactamente el mismo
+/// problema y la misma solución: el cruce a la nube del post-proceso
+/// ([`PendingFallbackNotices`]) y la caída de Gemini al modelo local
+/// ([`PendingGeminiNotices`]). Tauri distingue los estados por tipo, así que
+/// cada alias es una cola independiente con su propio comando de vaciado.
+pub struct PendingNotices<T>(Mutex<Vec<T>>);
 
-impl PendingFallbackNotices {
-    pub fn push(&self, notice: PostProcessFallback) {
+impl<T> Default for PendingNotices<T> {
+    // A mano y no derivado: `#[derive(Default)]` sobre un genérico exigiría
+    // `T: Default`, y ningún payload de aviso tiene por qué tenerlo.
+    fn default() -> Self {
+        Self(Mutex::new(Vec::new()))
+    }
+}
+
+impl<T> PendingNotices<T> {
+    pub fn push(&self, notice: T) {
         let mut queue = match self.0.lock() {
             Ok(q) => q,
             Err(poisoned) => poisoned.into_inner(),
@@ -197,7 +209,7 @@ impl PendingFallbackNotices {
     }
 
     /// Devuelve los avisos pendientes y deja la cola vacía.
-    pub fn take_all(&self) -> Vec<PostProcessFallback> {
+    pub fn take_all(&self) -> Vec<T> {
         let mut queue = match self.0.lock() {
             Ok(q) => q,
             Err(poisoned) => poisoned.into_inner(),
@@ -205,6 +217,17 @@ impl PendingFallbackNotices {
         std::mem::take(&mut *queue)
     }
 }
+
+/// Cruces a la nube del post-proceso ocurridos sin ventana que los mostrara.
+/// Se vacía con `commands::take_pending_fallback_notices`.
+pub type PendingFallbackNotices = PendingNotices<PostProcessFallback>;
+
+/// Caídas de Gemini al modelo local ocurridas sin ventana que las mostrara —
+/// el caso normal, porque dictar con la ventana abierta es la excepción. Se
+/// vacía con `commands::take_pending_gemini_notices`. La encola
+/// `TranscriptionManager::emit_gemini_fallback`, en el mismo lugar donde emite
+/// el evento en vivo.
+pub type PendingGeminiNotices = PendingNotices<crate::managers::transcription::GeminiFallback>;
 
 /// El aviso sale **sólo** cuando se cruzó de local a nube. Caer entre dos
 /// proveedores online no cambia nada para el usuario, y caer hacia uno local
@@ -1366,6 +1389,35 @@ mod tests {
         assert_eq!(
             drained.first().map(|n| n.mode_name.as_str()),
             Some("modo 3"),
+            "al llegar al tope se descartan los más viejos, no los nuevos"
+        );
+        assert!(
+            pending.take_all().is_empty(),
+            "vaciar la cola dos veces no puede repetir los mismos toasts"
+        );
+    }
+
+    #[test]
+    fn gemini_fallback_notices_share_the_same_queue_and_tope() {
+        use super::{PendingGeminiNotices, MAX_PENDING_FALLBACK_NOTICES};
+        use crate::managers::transcription::GeminiFallback;
+
+        // Dictar con la ventana cerrada es lo normal, y Gemini sin cuota falla
+        // en cada dictado: la cola tiene que aguantar la racha con el mismo
+        // tope que el aviso de cruce a la nube, y vaciarse una sola vez.
+        let pending = PendingGeminiNotices::default();
+        for i in 0..(MAX_PENDING_FALLBACK_NOTICES + 2) {
+            pending.push(GeminiFallback {
+                fallback_model: format!("modelo {i}"),
+                reason: "daily_quota".to_string(),
+            });
+        }
+
+        let drained = pending.take_all();
+        assert_eq!(drained.len(), MAX_PENDING_FALLBACK_NOTICES);
+        assert_eq!(
+            drained.first().map(|n| n.fallback_model.as_str()),
+            Some("modelo 2"),
             "al llegar al tope se descartan los más viejos, no los nuevos"
         );
         assert!(

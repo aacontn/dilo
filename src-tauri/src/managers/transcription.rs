@@ -693,17 +693,16 @@ impl TranscriptionManager {
     /// usa `run_stream_worker`: el condvar avisa cuando el hilo de carga
     /// terminó (haya cargado o haya fallado), sin sondear ni dormir a ciegas.
     ///
-    /// Sin llamador desde la Task 5 del plan "reuniones en streaming"
-    /// (`.superpowers/sdd/2026-08-04-reuniones-en-streaming/`): el único uso
-    /// era el chequeo por turno del viejo camino de transcripción batch de
-    /// `MeetingManager` (`managers/meeting.rs`), que esa tarea reemplazó por
-    /// un stream continuo — `start_stream` ya espera la carga en curso por
-    /// su cuenta (mismo condvar), así que nadie más necesita bloquearse acá
-    /// explícitamente. Se conserva pública y sin `#[allow(dead_code)]`
-    /// fantasma porque es parte legítima de la API de este manager (mismo
-    /// criterio que otros métodos públicos del archivo); se anota para que
-    /// quede claro por qué no tiene llamador hoy, no para silenciar el lint.
-    #[allow(dead_code)]
+    /// El llamador es [`Self::rescue_with_local_model`]: cuando Gemini falla y
+    /// hay que cargar un modelo local para rescatar el dictado, primero hay que
+    /// esperar a la carga que ya esté en curso — pedir el turno
+    /// (`try_start_loading`) mientras otro carga devuelve `None`, y abandonar el
+    /// rescate por eso sería perder las palabras por una carrera de segundos.
+    ///
+    /// Estuvo un tiempo sin llamador: el uso original era el chequeo por turno
+    /// del viejo camino batch de `MeetingManager`, que la Task 5 de "reuniones
+    /// en streaming" reemplazó por un stream continuo (`start_stream` espera la
+    /// carga por su cuenta, con este mismo condvar).
     pub fn wait_for_model_load(&self) {
         let mut is_loading = self.is_loading.lock().unwrap();
         while *is_loading {
@@ -1796,12 +1795,27 @@ impl TranscriptionManager {
     /// El aviso de la caída. Se emite **después** de tener el texto (o de saber
     /// que no lo habrá): antes sería una promesa que el rescate todavía puede
     /// incumplir.
+    ///
+    /// Va a la cola **y** al evento, en ese orden y siempre, igual que el aviso
+    /// de cruce a la nube del post-proceso (`actions.rs`, dentro de
+    /// `post_process_transcription`): dictar con la ventana principal cerrada es
+    /// lo normal —al cerrarla se destruye el webview y con él su listener—, así
+    /// que sin la cola este aviso se perdía justo en el caso común. El frontend
+    /// la vacía al montar (`commands::take_pending_gemini_notices`).
     fn emit_gemini_fallback(&self, fallback_model: String, reason: String) {
-        let _ = GeminiFallback {
+        let notice = GeminiFallback {
             fallback_model,
             reason,
+        };
+        if let Some(pending) = self
+            .app_handle
+            .try_state::<crate::actions::PendingGeminiNotices>()
+        {
+            pending.push(notice.clone());
         }
-        .emit(&self.app_handle);
+        if let Err(e) = notice.emit(&self.app_handle) {
+            warn!("No se pudo avisar de la caída de Gemini: {}", e);
+        }
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {

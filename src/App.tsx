@@ -49,6 +49,31 @@ import { attachOrDiscardListener } from "@/lib/utils/keyboard";
 // (`AssistantErrorEvent` de `lib/types/events.ts`, `error_type` como unión
 // literal) como `commands.takePendingAssistantNotices()` (bindings.ts
 // generado por specta, `error_type: string`) — ambos calzan acá sin castear.
+// El aviso de que Gemini no entregó el dictado y lo rescató (o no) un modelo
+// local. Lo usan tanto el listener en vivo como el vaciado de la cola de
+// pendientes al montar (`commands.takePendingGeminiNotices`), así el aviso se
+// ve igual llegue por el camino que llegue.
+//
+// `reason` es un token de máquina (`offline`, `daily_quota`, …) y NUNCA se
+// muestra crudo: se traduce acá, con una frase genérica para un token que este
+// idioma todavía no conozca. Con `fallback_model` vacío no hubo rescate posible
+// y el mensaje cambia: no hubo texto.
+const showGeminiFallbackToast = (
+  t: TFunction,
+  notice: { fallback_model: string; reason: string },
+) => {
+  const description = t(`gemini.fallback_reason.${notice.reason}`, {
+    defaultValue: t("gemini.fallback_reason.generic"),
+  });
+  if (!notice.fallback_model) {
+    toast.error(t("gemini.fallback_none"), { description });
+    return;
+  }
+  toast.info(t("gemini.fallback_notice", { model: notice.fallback_model }), {
+    description,
+  });
+};
+
 const showAssistantErrorToast = (
   t: TFunction,
   event: { error_type: string; detail?: string | null },
@@ -190,28 +215,37 @@ function App() {
   }, [t]);
 
   // Gemini no respondió y el dictado lo rescató un modelo local. El aviso es
-  // después del hecho —el texto ya se pegó— y nunca muestra el token crudo que
-  // manda Rust (`offline`, `daily_quota`, …): se traduce acá, con una frase
-  // genérica para un token que este idioma todavía no conozca. Con
-  // `fallback_model` vacío no hubo rescate posible y el mensaje cambia.
+  // después del hecho: el texto ya se pegó.
   useEffect(() => {
     const unlisten = events.geminiFallback.listen((event) => {
-      const { fallback_model, reason } = event.payload;
-      const description = t(`gemini.fallback_reason.${reason}`, {
-        defaultValue: t("gemini.fallback_reason.generic"),
-      });
-      if (!fallback_model) {
-        toast.error(t("gemini.fallback_none"), { description });
-        return;
-      }
-      toast.info(t("gemini.fallback_notice", { model: fallback_model }), {
-        description,
-      });
+      showGeminiFallbackToast(t, event.payload);
     });
     return () => {
       unlisten.then((fn) => fn());
     };
   }, [t]);
+
+  // Y las caídas que pasaron con esta ventana cerrada, que es el caso NORMAL:
+  // dictar no necesita la ventana abierta, y al cerrarla se destruye el webview
+  // con su listener. Sin esto el aviso se perdía justo cuando más importa —el
+  // dictado salió por un motor que la persona no eligió—. Mismo patrón que
+  // `takePendingFallbackNotices`. Sólo al montar: la cola es justamente lo que
+  // pasó mientras no había ventana.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const pending = await commands.takePendingGeminiNotices();
+        for (const notice of pending) {
+          showGeminiFallbackToast(t, notice);
+        }
+      } catch (error) {
+        console.error(
+          "No se pudieron leer las caídas de Gemini pendientes:",
+          error,
+        );
+      }
+    })();
+  }, []);
 
   // Y los cruces que pasaron con esta ventana cerrada: dictar con la ventana
   // cerrada es lo NORMAL, y al cerrarla se destruye el webview con su

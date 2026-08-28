@@ -582,6 +582,16 @@ async takePendingFallbackNotices() : Promise<PostProcessFallback[]> {
     return await TAURI_INVOKE("take_pending_fallback_notices");
 },
 /**
+ * Caídas de Gemini al modelo local que ocurrieron sin ninguna ventana
+ * escuchando el evento `gemini-fallback` — el caso normal, porque dictar con
+ * la ventana principal cerrada es lo habitual. La ventana los pide al montar
+ * y los muestra como toasts; la llamada los consume, así que no se repiten al
+ * reabrir. Ver `actions::PendingGeminiNotices`.
+ */
+async takePendingGeminiNotices() : Promise<GeminiFallback[]> {
+    return await TAURI_INVOKE("take_pending_gemini_notices");
+},
+/**
  * Avisos del modo asistente (proveedor sin configurar, LLM caído, TTS
  * caído, atajo apretado con el modo apagado) que ocurrieron sin ninguna
  * ventana escuchando el evento `assistant-error` — el caso normal al usar
