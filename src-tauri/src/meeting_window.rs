@@ -145,6 +145,9 @@ pub(crate) fn save_current_bounds(window: &tauri::Window) {
 #[tauri::command]
 #[specta::specta]
 pub fn open_meetings_window(app: AppHandle) -> Result<(), String> {
+    // La app puede estar escondida (ver `apply_dock_policy`): sin deshacerlo,
+    // `show()` no la trae a la pantalla.
+    crate::unhide_before_showing(&app);
     match app.get_webview_window(MEETINGS_WINDOW_LABEL) {
         Some(window) => {
             window.unminimize().map_err(|e| e.to_string())?;

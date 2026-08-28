@@ -559,6 +559,9 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     let pos_calc_elapsed = pos_started.elapsed() - set_pos_elapsed;
 
     let show_started = std::time::Instant::now();
+    // La app puede estar escondida (ver `apply_dock_policy`): con `hide()`
+    // puesto, `show()` no dibuja la burbuja en pantalla.
+    crate::unhide_before_showing(app_handle);
     let _ = overlay_window.show();
     let show_elapsed = show_started.elapsed();
 

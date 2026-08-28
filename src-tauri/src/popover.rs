@@ -211,6 +211,8 @@ fn position_and_show(app: &AppHandle, window: &tauri::WebviewWindow, icon: TrayR
         x: pos.x,
         y: pos.y,
     }));
+    // La app puede estar escondida (ver `apply_dock_policy`).
+    crate::unhide_before_showing(&app);
     let _ = window.show();
     let _ = window.set_focus();
     // El popover también se esconde en vez de destruirse (ver la nota del

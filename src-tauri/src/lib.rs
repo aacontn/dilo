@@ -156,6 +156,9 @@ fn show_main_window(app: &AppHandle) {
         },
     };
 
+    // Si la app quedó escondida al irse al Dock (ver `apply_dock_policy`),
+    // `show()` no la traería de vuelta a la pantalla.
+    unhide_before_showing(app);
     if let Err(e) = main_window.unminimize() {
         log::error!("Failed to unminimize webview window: {}", e);
     }
@@ -570,10 +573,50 @@ pub(crate) fn apply_dock_policy(app: &AppHandle, relevant_window_visible: bool) 
             DockPolicy::Regular => tauri::ActivationPolicy::Regular,
             DockPolicy::Accessory => tauri::ActivationPolicy::Accessory,
         };
+        // macOS deja el tile pegado en el Dock —sin el puntito de "abierta"—
+        // cuando una app pasa a Accessory estando al frente: el Dock lo suelta
+        // recién cuando deja de estar activa. Por eso, antes de esconderse, la
+        // app se saca del frente con `hide()`. Sólo cuando **nada** está a la
+        // vista (ni el overlay ni el popover): esconder la app oculta todas sus
+        // ventanas, y ninguna que el usuario esté mirando puede desaparecer por
+        // una decisión de Dock. Al volver a mostrar cualquier ventana se
+        // deshace con `app.show()` (ver `unhide_before_showing`).
+        if matches!(policy, tauri::ActivationPolicy::Accessory) && no_window_at_all_visible(app) {
+            if let Err(e) = app.hide() {
+                log::warn!(
+                    "No se pudo sacar la app del frente antes de Accessory: {}",
+                    e
+                );
+            }
+        }
         if let Err(e) = app.set_activation_policy(policy) {
             log::error!("Failed to set activation policy: {}", e);
         }
     }
+}
+
+/// Si **ninguna** ventana de la app está a la vista, overlay y popover
+/// incluidos. Más estricto que [`any_relevant_window_visible`] a propósito: es
+/// la guarda de `hide()`, y esconder la app oculta hasta la burbuja de
+/// grabación. Ante la duda (`is_visible()` falla) cuenta como visible y no se
+/// esconde nada.
+#[cfg(target_os = "macos")]
+fn no_window_at_all_visible(app: &AppHandle) -> bool {
+    !app.webview_windows()
+        .values()
+        .any(|w| w.is_visible().unwrap_or(true))
+}
+
+/// Deshace el `hide()` de [`apply_dock_policy`] antes de mostrar una ventana:
+/// con la app escondida, `window.show()` no la trae a la pantalla. Es inocuo
+/// si nunca se escondió, así que va en todos los caminos que muestran algo.
+pub(crate) fn unhide_before_showing(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    if let Err(e) = app.show() {
+        log::warn!("No se pudo deshacer el hide antes de mostrar: {}", e);
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 }
 
 /// Si alguna ventana relevante (`DOCK_RELEVANT_WINDOW_LABELS`) está a la vista
