@@ -25,25 +25,27 @@
 
 ## Estructura de archivos
 
-| Archivo                                          | Responsabilidad                                                            | Tarea |
-| ------------------------------------------------ | -------------------------------------------------------------------------- | ----- |
-| `src-tauri/src/managers/model.rs`                | `ModelSource::Cloud`, `EngineType::GeminiTranscribe`, entrada de catálogo   | 1     |
-| `src-tauri/src/gemini_stt.rs` (nuevo)            | WAV, cuerpo del request, parser, clasificación de errores, llamada async    | 2     |
-| `src-tauri/src/lib.rs`                           | Declarar `gemini_stt`; registrar evento `GeminiFallback` en `collect_events!` | 2, 4  |
-| `src-tauri/src/settings.rs`                      | `gemini_smart_mode`, `last_local_model_id`                                  | 3, 4  |
-| `src-tauri/src/managers/transcription.rs`        | Variante `LoadedEngine`, despacho, salto de muletillas, caída               | 3, 4  |
-| `src/components/model-selector/ModelDropdown.tsx`| Los modelos Cloud cuentan como disponibles                                  | 5     |
-| `src/components/model-selector/ModelStatusButton.tsx` | Badge EN LÍNEA, estado de key, sin botón de descarga                   | 5     |
-| `src/components/settings/GeminiSmartToggle.tsx` (nuevo) | Toggle smart/verbatim                                                | 5     |
-| `src/hooks/useSettings.ts` + stores              | Ajustes nuevos y toast de caída                                             | 4, 5  |
-| `src/i18n/locales/*/translation.json`            | Claves nuevas, 21 idiomas                                                   | 5     |
+| Archivo                                                 | Responsabilidad                                                               | Tarea |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- | ----- |
+| `src-tauri/src/managers/model.rs`                       | `ModelSource::Cloud`, `EngineType::GeminiTranscribe`, entrada de catálogo     | 1     |
+| `src-tauri/src/gemini_stt.rs` (nuevo)                   | WAV, cuerpo del request, parser, clasificación de errores, llamada async      | 2     |
+| `src-tauri/src/lib.rs`                                  | Declarar `gemini_stt`; registrar evento `GeminiFallback` en `collect_events!` | 2, 4  |
+| `src-tauri/src/settings.rs`                             | `gemini_smart_mode`, `last_local_model_id`                                    | 3, 4  |
+| `src-tauri/src/managers/transcription.rs`               | Variante `LoadedEngine`, despacho, salto de muletillas, caída                 | 3, 4  |
+| `src/components/model-selector/ModelDropdown.tsx`       | Los modelos Cloud cuentan como disponibles                                    | 5     |
+| `src/components/model-selector/ModelStatusButton.tsx`   | Badge EN LÍNEA, estado de key, sin botón de descarga                          | 5     |
+| `src/components/settings/GeminiSmartToggle.tsx` (nuevo) | Toggle smart/verbatim                                                         | 5     |
+| `src/hooks/useSettings.ts` + stores                     | Ajustes nuevos y toast de caída                                               | 4, 5  |
+| `src/i18n/locales/*/translation.json`                   | Claves nuevas, 21 idiomas                                                     | 5     |
 
 ### Task 1: Catálogo — el motor cloud existe
 
 **Files:**
+
 - Modify: `src-tauri/src/managers/model.rs` (enums ~línea 26-57; entrada de catálogo junto a Cohere, ~línea 1268)
 
 **Interfaces:**
+
 - Produces: `EngineType::GeminiTranscribe`, `ModelSource::Cloud`, id de modelo `"gemini-3.5-transcribe"` (constante `GEMINI_STT_MODEL_ID` pública). `ModelInfo` para ese id con `is_downloaded: true`, `size_mb: 0`, `supports_language_detection: true`, `supports_language_selection: false`, `supports_token_timestamps: false`, `supports_streaming: false`.
 
 - [ ] **Paso 1: test que falla** — en el `mod tests` de `model.rs`:
@@ -73,10 +75,12 @@ Si no existe un constructor de prueba del catálogo, extraer la tabla a una func
 ### Task 2: Cliente `gemini_stt.rs` — funciones puras + llamada
 
 **Files:**
+
 - Create: `src-tauri/src/gemini_stt.rs`
 - Modify: `src-tauri/src/lib.rs` (declarar `pub mod gemini_stt;`)
 
 **Interfaces:**
+
 - Produces:
   - `pub fn encode_wav_16k_mono(samples: &[f32]) -> Vec<u8>`
   - `pub fn build_interactions_body(smart: bool, custom_vocabulary: &[String], wav_b64: &str) -> serde_json::Value`
@@ -141,10 +145,12 @@ fn classifies_the_failures_the_spec_names() {
 ### Task 3: Despacho en TranscriptionManager + salto de muletillas
 
 **Files:**
+
 - Modify: `src-tauri/src/managers/transcription.rs` (variante en `LoadedEngine` ~línea 274; carga ~787; despacho dentro de `transcribe()` ~1519; post-proceso: la función libre que recibe `custom_words_already_prompted`, ~línea 2030)
 - Modify: `src-tauri/src/settings.rs` (`gemini_smart_mode: bool`, `#[serde(default = "default_true")]`)
 
 **Interfaces:**
+
 - Consumes: `gemini_stt::transcribe`, `GeminiSttError`, `EngineType::GeminiTranscribe`.
 - Produces: `LoadedEngine::GeminiTranscribe` (variante sin datos); la señal interna `smart_cleanup_done: bool` que el post-proceso usa para saltarse `filter_transcription_output`.
 
@@ -169,12 +175,14 @@ fn smart_gemini_skips_local_filler_filter_but_verbatim_does_not() {
 ### Task 4: Caída a local con aviso después del hecho
 
 **Files:**
+
 - Modify: `src-tauri/src/settings.rs` (`last_local_model_id: Option<String>`, `#[serde(default)]`)
 - Modify: `src-tauri/src/managers/transcription.rs` (resolver + camino de error)
 - Modify: `src-tauri/src/lib.rs` (evento en `collect_events!`)
 - Modify: `src/hooks/useSettings.ts` o el hook de eventos equivalente (toast)
 
 **Interfaces:**
+
 - Consumes: `GeminiSttError`, `ModelInfo`.
 - Produces: `pub(crate) fn resolve_local_fallback(last_local: Option<&str>, models: &[ModelInfo]) -> Option<String>`; evento `GeminiFallback { fallback_model: String, reason: String }` (tauri-specta, snake_case como los demás).
 
@@ -196,13 +204,14 @@ fn fallback_prefers_last_local_then_any_downloaded_local_never_cloud() {
 
 (`model_info_stub` es un helper del test que arma un `ModelInfo` mínimo.)
 
-- [ ] **Paso 2: implementación.** (a) `last_local_model_id` se persiste donde se cambia `selected_model` (el comando de settings), sólo cuando el modelo elegido NO es `ModelSource::Cloud`. (b) En la rama Gemini de `transcribe()`, todo `Err` no-`BadRequest` resuelve la caída: cargar el modelo local (el camino de carga existente, esperando el condvar), transcribir con él, y emitir `GeminiFallback { fallback_model: <nombre visible>, reason: <Display del error> }`. `BadRequest` no cae (request malformado: reintentar con otro motor no arregla nada y esconde el bug). (c) Frontend: listener del evento → toast con la clave i18n `gemini.fallback_notice` — *"Se transcribió con {{model}} porque Gemini no respondió"* — y variante `gemini.fallback_none` cuando `resolve_local_fallback` dio `None` y el error sube.
+- [ ] **Paso 2: implementación.** (a) `last_local_model_id` se persiste donde se cambia `selected_model` (el comando de settings), sólo cuando el modelo elegido NO es `ModelSource::Cloud`. (b) En la rama Gemini de `transcribe()`, todo `Err` no-`BadRequest` resuelve la caída: cargar el modelo local (el camino de carga existente, esperando el condvar), transcribir con él, y emitir `GeminiFallback { fallback_model: <nombre visible>, reason: <Display del error> }`. `BadRequest` no cae (request malformado: reintentar con otro motor no arregla nada y esconde el bug). (c) Frontend: listener del evento → toast con la clave i18n `gemini.fallback_notice` — _"Se transcribió con {{model}} porque Gemini no respondió"_ — y variante `gemini.fallback_none` cuando `resolve_local_fallback` dio `None` y el error sube.
 - [ ] **Paso 3: compilar y testear:** `cd src-tauri && cargo build && cargo test --lib && ./target/debug/dilo --list-devices`. Gates de bun: `bun run lint && bun run format:check`.
 - [ ] **Paso 4: commit** — `feat(dictado): si Gemini falla, cae al último modelo local y avisa después del hecho`
 
 ### Task 5: UI — tarjeta EN LÍNEA, key, toggle smart, idioma Auto
 
 **Files:**
+
 - Modify: `src/components/model-selector/ModelDropdown.tsx` (línea 21: `is_downloaded` ya deja pasar a Cloud; verificar orden/agrupación)
 - Modify: `src/components/model-selector/ModelStatusButton.tsx` (sin botón descargar/eliminar para Cloud; badge)
 - Create: `src/components/settings/GeminiSmartToggle.tsx` (patrón de `AudioFeedback.tsx`: un toggle sobre `gemini_smart_mode`)
@@ -210,6 +219,7 @@ fn fallback_prefers_last_local_then_any_downloaded_local_never_cloud() {
 - Modify: `src/i18n/locales/*/translation.json` (21 idiomas)
 
 **Interfaces:**
+
 - Consumes: `ModelInfo.source` (los bindings ya exponen la variante `Cloud` tras la Task 1), `gemini_smart_mode` del store de settings.
 
 - [ ] **Paso 1: recorrido de las claves nuevas** (es primero, redacción propia; el resto traducción real): `models.online_badge` ("EN LÍNEA"), `models.gemini_requires_key` ("Necesita tu API key de Google AI Studio — configúrala en Claves"), `models.gemini_privacy` ("El audio de tu dictado se envía a Google"), `gemini.smart_label`/`gemini.smart_description` (toggle), `gemini.fallback_notice`, `gemini.fallback_none`.

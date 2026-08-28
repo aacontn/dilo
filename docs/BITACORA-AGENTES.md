@@ -8,8 +8,7 @@
 - **Hecho:** diseño aprobado de **reuniones en línea**
   (`2026-08-27-reuniones-en-linea-design.md`): Nemotron no se restaura, la
   transcripción de reunión pasa a contrato `MeetingTranscriber` con Gemini
-  primero (vivo por WS sin hablantes + repaso batch con diarización de hasta
-  8) y AWS como implementación futura. Probes versionados en
+  primero (vivo por WS sin hablantes + repaso batch con diarización de hasta 8) y AWS como implementación futura. Probes versionados en
   `scripts/probes/` con su README.
 - **Próximo paso:** plan de fase 1 del dictado (orden aprobado: dictado →
   reuniones). El plan de reuniones tiene compuerta de entrada: verificar el

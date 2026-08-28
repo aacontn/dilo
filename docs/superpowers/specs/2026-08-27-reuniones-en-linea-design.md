@@ -49,9 +49,9 @@ action items, notas) consume el contrato, no al proveedor.
 
 - El audio completo grabado va por **batch con diarización**: hoy eso vive en
   `:generateContent` con `audioTranscriptionConfig { wordTimestamp: true,
-  diarization: true }` (verificado por Jot que el campo existe en esa
+diarization: true }` (verificado por Jot que el campo existe en esa
   superficie; `interactions` lo rechaza — probado 2026-08-27: `Unknown
-  parameter 'diarization'`).
+parameter 'diarization'`).
 - Trozos de **≤ 30 min** (límite documentado con diarización/timestamps
   activos), hasta 8 hablantes.
 - El transcript final con hablantes **reemplaza** al corrido en la nota, y

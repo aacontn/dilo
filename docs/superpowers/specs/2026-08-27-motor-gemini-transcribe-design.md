@@ -7,7 +7,7 @@
 Todos los motores de dictado de Dilo son locales. Google publicó ayer
 (2026-08-26) **Gemini 3.5 Transcribe**: WER 2,6 % batch / 4,0 % live, 85+
 idiomas con detección automática, free tier en preview público y ~US$0,005 por
-minuto después. Su modo *smart* elimina muletillas y colapsa autocorrecciones
+minuto después. Su modo _smart_ elimina muletillas y colapsa autocorrecciones
 ("a las tres… no, mejor a las cuatro" → "a las cuatro") en el propio motor.
 
 Referencia de implementación: **Jot**
@@ -57,15 +57,16 @@ el protocolo verificado contra la API viva, con las trampas documentadas.
 {
   "model": "gemini-3.5-transcribe",
   "input": [{ "type": "audio", "mime_type": "audio/wav", "data": "<b64>" }],
-  "generation_config": { "transcription_config": { "mode": "smart",
-                          "custom_vocabulary": ["…"] } }
+  "generation_config": {
+    "transcription_config": { "mode": "smart", "custom_vocabulary": ["…"] }
+  }
 }
 ```
 
 - Verbatim = **omitir** `transcription_config` (es el default del servidor);
   con vocabulario, mandar solo `custom_vocabulary`.
 - Respuesta: `{"status":"completed","steps":[{"type":"model_output",
-  "content":[{"type":"text","text":…}]}]}`. Texto vacío se devuelve como `""`
+"content":[{"type":"text","text":…}]}]}`. Texto vacío se devuelve como `""`
   (el silencio no es error).
 - Auth: header `x-goog-api-key`, **nunca** query string.
 - Las **palabras personalizadas** de Dilo (`CustomWords`) viajan como
@@ -79,7 +80,7 @@ el protocolo verificado contra la API viva, con las trampas documentadas.
 - `mode` **no funciona** en `:generateContent` (parsea y devuelve texto
   vacío). El transporte es `interactions` y es el único que la fase 1
   implementa; `:generateContent` con `audioTranscriptionConfig
-  {wordTimestamp:true}` (obligatorio) queda documentado como transporte de
+{wordTimestamp:true}` (obligatorio) queda documentado como transporte de
   emergencia sin smart, por si `interactions` se cae del preview.
 - Key mala = **400** `API_KEY_INVALID` (no 401). 403/404 en `interactions` es
   el endpoint, no el modelo — el mensaje debe apuntar bien.
@@ -93,7 +94,7 @@ el protocolo verificado contra la API viva, con las trampas documentadas.
 - Al seleccionar un modelo local se persiste `last_local_model_id`.
 - Fallo de Gemini (sin red, timeout, 400 de key, cuota diaria) → cargar ese
   modelo al vuelo, transcribir, y evento post-hoc que el frontend muestra:
-  *"Se transcribió con Cohere porque Gemini no respondió"*.
+  _"Se transcribió con Cohere porque Gemini no respondió"_.
 - Sin ningún modelo local descargado → el aviso lo dice y el dictado queda en
   el historial.
 - Resolución pura y testeable sin red, como `resolve_mode_provider`.
@@ -118,7 +119,7 @@ el protocolo verificado contra la API viva, con las trampas documentadas.
 
 - **Batch `interactions` smart con WAV directo:** HTTP 200 en **3,3 s**;
   salida limpia perfecta: eliminó el "eh" y colapsó "a las 3. No, mejor a las
-  4" → *"…la reunión queda para el jueves a las 4 de la tarde…"*.
+  4" → _"…la reunión queda para el jueves a las 4 de la tarde…"_.
 - **Live `gemini-3.5-transcribe-live` (WebSocket):** setup 1,4 s; primer
   parcial 1,5 s después de empezar el audio; parciales siguen el habla en
   tiempo real (verbatim durante el parcial, smart en el final); **final 0,6 s
