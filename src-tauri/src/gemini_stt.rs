@@ -237,12 +237,28 @@ pub fn build_interactions_body(smart: bool, custom_vocabulary: &[String], wav_b6
 /// sin habla devuelve la lista vacía: eso es `Ok("")`, no un error — el
 /// silencio no es una falla, y tratarlo como tal haría saltar la caída al
 /// modelo local por nada.
+///
+/// El `status` es lo que separa una cosa de la otra. El envelope exige
+/// `"completed"` (spec §2) y una interacción fallida llega como **HTTP 200**
+/// con `steps` vacío: idéntica al silencio si no se mira. Sin esta
+/// comprobación, un `"failed"` pegaría texto vacío en la aplicación de turno en
+/// vez de disparar la caída al modelo local. Se devuelve `Transient` —
+/// reintentable— a propósito: en la dirección de no perder palabras, lo seguro
+/// es que dispare la caída y no que quede terminal.
 pub fn parse_interactions_response(body: &str) -> Result<String, GeminiSttError> {
     let parsed: Value = serde_json::from_str(body).map_err(|e| {
         // Un cuerpo que no es JSON después de un 200 es casi siempre una
         // respuesta cortada, no un contrato roto: vale reintentar/caer a local.
         GeminiSttError::Transient(format!("respuesta ilegible de Gemini: {}", e))
     })?;
+
+    let status = parsed.get("status").and_then(|s| s.as_str());
+    if status != Some("completed") {
+        return Err(GeminiSttError::Transient(format!(
+            "interaction_status_{}",
+            status.unwrap_or("missing")
+        )));
+    }
 
     let mut text = String::new();
     if let Some(steps) = parsed.get("steps").and_then(|s| s.as_array()) {
@@ -658,6 +674,39 @@ mod tests {
         assert_eq!(parse_interactions_response(ok).unwrap(), "hola");
         let silencio = r#"{"status":"completed","steps":[]}"#;
         assert_eq!(parse_interactions_response(silencio).unwrap(), ""); // el silencio no es error
+    }
+
+    #[test]
+    fn a_status_that_is_not_completed_never_passes_as_silence() {
+        // Una interacción fallida llega como HTTP 200 con `steps` vacío: sin
+        // mirar el `status` es idéntica al silencio genuino, y la tarea 4
+        // pegaría texto vacío en vez de caer al modelo local.
+        let failed = parse_interactions_response(r#"{"status":"failed","steps":[]}"#)
+            .expect_err("un status no-completed es una falla, no un dictado mudo");
+        assert!(matches!(failed, GeminiSttError::Transient(_)));
+        assert!(failed.to_string().contains("failed"), "{}", failed);
+
+        // Sin `status` no hay interacción completada que valga.
+        let missing = parse_interactions_response(r#"{"steps":[]}"#)
+            .expect_err("sin status no se puede afirmar que terminó");
+        assert!(matches!(missing, GeminiSttError::Transient(_)));
+        assert!(missing.to_string().contains("missing"), "{}", missing);
+
+        // Ni una que todavía está en curso.
+        assert!(matches!(
+            parse_interactions_response(r#"{"status":"in_progress","steps":[]}"#),
+            Err(GeminiSttError::Transient(_))
+        ));
+
+        // Y el silencio legítimo —completed sin pasos— sigue siendo Ok("").
+        assert_eq!(
+            parse_interactions_response(r#"{"status":"completed","steps":[]}"#).unwrap(),
+            ""
+        );
+        assert_eq!(
+            parse_interactions_response(r#"{"status":"completed"}"#).unwrap(),
+            ""
+        );
     }
 
     #[test]
