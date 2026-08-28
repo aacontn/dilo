@@ -3,6 +3,27 @@
 > Entradas nuevas arriba. Hecho, próximo paso, cuidado y estado Git; el
 > detalle fino vive en Git y en `docs/superpowers/specs/`.
 
+## 2026-08-28 (4) · Norte (Claude)
+
+- **Hecho:** **v0.3.2 publicada e instalada**. El tile fantasma del Dock que
+  quedaba tras la 0.3.1 no era de la app: verificado que Dilo estaba en
+  `UIElement` y que **no figuraba en la config del Dock** (ni fijada ni en
+  recientes). Es el comportamiento de AppKit: el Dock suelta el tile recién
+  cuando la app deja de estar al frente. Ahora `apply_dock_policy` llama
+  `app.hide()` antes de pasar a `Accessory`, sólo si no hay **ninguna** ventana
+  visible (`no_window_at_all_visible`, incluye overlay y popover), y cada
+  camino que muestra algo llama `unhide_before_showing` (overlay, main,
+  reuniones, popover) porque con la app escondida `window.show()` no dibuja.
+- **Próximo paso:** que Alfonso confirme dos cosas de una mirada: (1) que al
+  cerrar Ajustes no queda ícono en el Dock, (2) que **la burbuja de grabación
+  sigue apareciendo al dictar** — es el riesgo real de este cambio y no pude
+  verificarlo yo (conducir la ventana necesita permiso de accesibilidad;
+  probar la burbuja de verdad implicaba grabar su micrófono y arriesgar texto
+  pegado en su documento). Si falla, revertir el par hide/unhide.
+- **Cuidado:** el `killall Dock` limpia fantasmas viejos pero **borra la
+  evidencia** de si el arreglo funcionó — no correrlo antes de mirar.
+- **Git:** main == origin/main; v0.3.2 Latest.
+
 ## 2026-08-28 (3) · Norte (Claude)
 
 - **Hecho:** **v0.3.1 publicada e instalada** en el Mac de Alfonso. (1) Bug del
