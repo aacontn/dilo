@@ -918,6 +918,15 @@ impl TranscriptionManager {
                 })?;
                 LoadedEngine::Cohere(engine)
             }
+            EngineType::GeminiTranscribe => {
+                // Un motor en línea no se carga: no hay archivo ni contexto
+                // nativo que abrir. La ruta de dictado contra la API llega en
+                // una tarea posterior de este plan; hasta entonces, elegirlo
+                // avisa en vez de dejar la UI colgada en "cargando".
+                let error_msg = format!("El motor en línea {} todavía no dicta", model_id);
+                emit_loading_failed(&error_msg);
+                return Err(anyhow::anyhow!(error_msg));
+            }
         };
 
         // Update the current engine and model ID

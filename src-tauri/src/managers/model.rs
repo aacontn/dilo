@@ -35,7 +35,15 @@ pub enum EngineType {
     GigaAM,
     Canary,
     Cohere,
+    /// Dictado en línea contra la API de Gemini (`gemini-3.5-transcribe`). No
+    /// carga nada local: el audio viaja al servidor y vuelve el texto.
+    GeminiTranscribe,
 }
+
+/// El id del único modelo de dictado en línea de Gemini. Es el id del catálogo
+/// y también el nombre del modelo que espera la API, así que vive en un solo
+/// lugar para que no se puedan separar.
+pub const GEMINI_STT_MODEL_ID: &str = "gemini-3.5-transcribe";
 
 /// Where a model comes from and how Dilo obtains it — the routing discriminant
 /// for downloading and on-disk resolution.
@@ -54,6 +62,10 @@ pub enum ModelSource {
     /// Already present on disk — a user-provided custom model, or one discovered
     /// in a shared cache. Nothing to download.
     Local,
+    /// Vive en el servidor del proveedor: no se descarga, no se borra y no ocupa
+    /// disco. Siempre está "disponible" (lo que puede faltar es la API key o la
+    /// conexión, y eso se resuelve en el momento de dictar, no acá).
+    Cloud,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -387,7 +399,9 @@ fn hf_blobs_used_by(model: &ModelInfo, models_dir: &Path, cache_root: &Path) -> 
                 candidates.push(path);
             }
         }
-        ModelSource::Local => {}
+        // Ninguno de los dos ocupa lugar en la caché compartida: uno ya está en
+        // disco donde el usuario lo dejó, el otro vive en el servidor.
+        ModelSource::Local | ModelSource::Cloud => {}
     }
 
     let mut blobs: Vec<PathBuf> = Vec::new();
@@ -682,6 +696,51 @@ impl ModelManager {
             fs::create_dir_all(&models_dir)?;
         }
 
+        let mut available_models = Self::builtin_models();
+
+        // Seed the bundled offline catalog before the on-disk scans, so a model
+        // already in the HF cache dedups onto its richer catalog entry (the scans
+        // only insert ids not already present) instead of showing as a bare cache
+        // find. Additive — see `seed_catalog_models`.
+        Self::seed_catalog_models(&mut available_models);
+
+        // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
+        if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
+        {
+            warn!("Failed to discover custom models: {}", e);
+        }
+
+        // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
+        Self::discover_hf_cache_models(&mut available_models);
+
+        let manager = Self {
+            app_handle: app_handle.clone(),
+            models_dir,
+            available_models: Mutex::new(available_models),
+            cancel_flags: Arc::new(Mutex::new(HashMap::new())),
+            extracting_models: Arc::new(Mutex::new(HashSet::new())),
+            is_rescanning: Arc::new(AtomicBool::new(false)),
+        };
+
+        // Migrate any bundled models to user directory
+        manager.migrate_bundled_models()?;
+
+        // Migrate GigaAM from single-file to directory format
+        manager.migrate_gigaam_to_directory()?;
+
+        // Check which models are already downloaded
+        manager.update_download_status()?;
+
+        // Auto-select a model if none is currently selected
+        manager.auto_select_model_if_needed()?;
+
+        Ok(manager)
+    }
+
+    /// La tabla estática de modelos integrados (los que no vienen del catálogo
+    /// empaquetado ni de un escaneo de disco). No necesita `AppHandle`: es pura,
+    /// así que los tests la pueden armar sin levantar Tauri.
+    fn builtin_models() -> HashMap<String, ModelInfo> {
         let mut available_models = HashMap::new();
 
         // Whisper supported languages (99 languages from tokenizer)
@@ -1279,43 +1338,42 @@ impl ModelManager {
             },
         );
 
-        // Seed the bundled offline catalog before the on-disk scans, so a model
-        // already in the HF cache dedups onto its richer catalog entry (the scans
-        // only insert ids not already present) instead of showing as a bare cache
-        // find. Additive — see `seed_catalog_models`.
-        Self::seed_catalog_models(&mut available_models);
+        available_models.insert(
+            GEMINI_STT_MODEL_ID.to_string(),
+            ModelInfo {
+                id: GEMINI_STT_MODEL_ID.to_string(),
+                name: "Gemini 3.5 Transcribe".to_string(),
+                // Copia de respaldo en es: la UI la reemplaza por
+                // `onboarding.models.<id>.description` cuando esa clave exista.
+                description:
+                    "Dictado en línea de Google. Máxima precisión, requiere API key e internet."
+                        .to_string(),
+                // Un motor en línea no tiene archivo: nada que resolver en disco.
+                filename: String::new(),
+                source: ModelSource::Cloud,
+                size_mb: 0,
+                is_downloaded: true,
+                is_downloading: false,
+                partial_size: 0,
+                is_directory: false,
+                engine_type: EngineType::GeminiTranscribe,
+                accuracy_score: 0.97,
+                speed_score: 0.85,
+                supports_translation: false,
+                is_recommended: false,
+                // Sin lista de idiomas a propósito: Gemini los detecta en el
+                // servidor y mandarle `language_codes` apaga el modo smart
+                // (spec §3), así que acá no hay nada que elegir.
+                supported_languages: Vec::new(),
+                supports_language_selection: false,
+                is_custom: false,
+                supports_streaming: false,
+                supports_token_timestamps: false,
+                supports_language_detection: true,
+            },
+        );
 
-        // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
-        if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
-        {
-            warn!("Failed to discover custom models: {}", e);
-        }
-
-        // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
-        Self::discover_hf_cache_models(&mut available_models);
-
-        let manager = Self {
-            app_handle: app_handle.clone(),
-            models_dir,
-            available_models: Mutex::new(available_models),
-            cancel_flags: Arc::new(Mutex::new(HashMap::new())),
-            extracting_models: Arc::new(Mutex::new(HashSet::new())),
-            is_rescanning: Arc::new(AtomicBool::new(false)),
-        };
-
-        // Migrate any bundled models to user directory
-        manager.migrate_bundled_models()?;
-
-        // Migrate GigaAM from single-file to directory format
-        manager.migrate_gigaam_to_directory()?;
-
-        // Check which models are already downloaded
-        manager.update_download_status()?;
-
-        // Auto-select a model if none is currently selected
-        manager.auto_select_model_if_needed()?;
-
-        Ok(manager)
+        available_models
     }
 
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
@@ -1539,6 +1597,14 @@ impl ModelManager {
         let mut models = self.available_models.lock().unwrap();
 
         for model in models.values_mut() {
+            if matches!(model.source, ModelSource::Cloud) {
+                // Vive en el servidor: siempre disponible, nunca descargando y
+                // sin nada a medias en disco.
+                model.is_downloaded = true;
+                model.is_downloading = false;
+                model.partial_size = 0;
+                continue;
+            }
             if let ModelSource::HuggingFace { repo_id, revision } = &model.source {
                 // A models_dir copy counts too: mirror-fallback downloads land
                 // there instead of the HF cache (see `download_from_mirror`).
@@ -2275,6 +2341,13 @@ impl ModelManager {
             ModelSource::Local => {
                 return Err(anyhow::anyhow!("No download source for model"));
             }
+            ModelSource::Cloud => {
+                // No hay nada que bajar: el modelo ya está disponible. Se
+                // contesta Ok para que la UI no muestre un error si alguien
+                // igual aprieta descargar.
+                debug!("Modelo en línea {}: no hay descarga que hacer", model_id);
+                return Ok(());
+            }
         };
         let model_path = self.models_dir.join(&model_info.filename);
         let partial_path = self
@@ -2617,6 +2690,13 @@ impl ModelManager {
 
         debug!("ModelManager: Found model info: {:?}", model_info);
 
+        if matches!(model_info.source, ModelSource::Cloud) {
+            // Un motor en línea no ocupa disco: no hay nada que borrar y sacarlo
+            // de la lista sólo lo escondería. Se contesta Ok en vez de error.
+            debug!("Modelo en línea {}: no hay nada que borrar", model_id);
+            return Ok(());
+        }
+
         // Qué blobs de la caché compartida quedan huérfanos al borrar esto.
         // Se calcula ANTES de tocar nada: el archivo de `models_dir` suele ser
         // un enlace al blob, y una vez borrado ya no hay a quién seguir.
@@ -2741,6 +2821,13 @@ impl ModelManager {
         if model_info.is_downloading {
             return Err(anyhow::anyhow!(
                 "Model is currently downloading: {}",
+                model_id
+            ));
+        }
+
+        if matches!(model_info.source, ModelSource::Cloud) {
+            return Err(anyhow::anyhow!(
+                "El modelo en línea {} no tiene archivo local",
                 model_id
             ));
         }
@@ -3044,6 +3131,21 @@ mod tests {
                 .exists(),
             "el enlace que quedó colgando se limpia"
         );
+    }
+
+    #[test]
+    fn gemini_cloud_model_is_always_available_and_auto_language_only() {
+        let models = ModelManager::builtin_models();
+        let g = models
+            .get(GEMINI_STT_MODEL_ID)
+            .expect("gemini en el catálogo");
+        assert!(matches!(g.source, ModelSource::Cloud));
+        assert!(g.is_downloaded, "un motor cloud nunca 'se descarga'");
+        assert_eq!(g.size_mb, 0);
+        assert!(g.supports_language_detection);
+        assert!(!g.supports_language_selection); // language_codes mata smart — spec §3
+        assert!(!g.supports_token_timestamps); // reuniones quedan fuera
+        assert!(!g.supports_streaming);
     }
 
     #[test]
