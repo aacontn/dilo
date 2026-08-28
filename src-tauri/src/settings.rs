@@ -608,6 +608,22 @@ pub struct AppSettings {
     /// del dictado y puede cambiar bajo los pies mientras la reunión graba).
     #[serde(default)]
     pub meeting_model_id: Option<String>,
+    /// Modo "smart" de Gemini 3.5 Transcribe: el propio motor devuelve el
+    /// dictado ya limpio de muletillas, tartamudeos y autocorrecciones. Viene
+    /// encendido porque es lo que hace que valga la pena un motor en línea, y
+    /// porque limpiar dos veces (Google y después el filtro local) muerde
+    /// texto bueno — con `smart` activo el filtro local se salta, ver
+    /// `managers::transcription::should_skip_filler_filter`. Apagarlo pide el
+    /// dictado literal, y ahí el filtro local vuelve a correr como siempre.
+    /// `#[serde(default = "default_true")]` para que un `settings.json` viejo
+    /// cargue con el modo encendido sin tocar el resto del archivo.
+    #[serde(default = "default_true")]
+    pub gemini_smart_mode: bool,
+}
+
+/// Default compartido de las banderas que vienen encendidas de fábrica.
+fn default_true() -> bool {
+    true
 }
 
 fn default_model() -> String {
@@ -1243,6 +1259,7 @@ pub fn get_default_settings() -> AppSettings {
         voice_assistant_enabled: false,
         meeting_audio_source: MeetingAudioSource::default(),
         meeting_model_id: None,
+        gemini_smart_mode: default_true(),
     }
 }
 

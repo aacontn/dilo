@@ -1,4 +1,5 @@
 use crate::audio_toolkit::{apply_custom_words, filter_transcription_output};
+use crate::gemini_stt;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{
@@ -10,6 +11,7 @@ use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::thread;
@@ -35,6 +37,11 @@ use transcribe_rs::{
 
 const STREAM_PERF_LOG_INTERVAL: Duration = Duration::from_secs(5);
 const STREAM_FINALIZE_REPLY_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Id del proveedor cuya API key usa Gemini 3.5 Transcribe dentro de
+/// `settings.post_process_api_keys`. Es la misma clave de Google que ya usa el
+/// post-proceso: quien la pegó una vez no la pega de nuevo para dictar.
+const GEMINI_API_KEY_ID: &str = "google";
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ModelStateEvent {
@@ -283,6 +290,12 @@ enum LoadedEngine {
     GigaAM(GigaAMModel),
     Canary(CanaryModel),
     Cohere(CohereModel),
+    /// Gemini 3.5 Transcribe. Variante sin datos a propósito: no hay modelo ni
+    /// sesión que sostener —el motor vive en el servidor— y la API key **no**
+    /// se guarda acá. Se relee de los ajustes en cada transcripción, así que
+    /// cambiarla surte efecto sin recargar el motor y nunca queda una copia
+    /// del secreto viva en memoria más allá de la llamada.
+    GeminiTranscribe,
 }
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
@@ -756,7 +769,13 @@ impl TranscriptionManager {
             return Err(anyhow::anyhow!(error_msg));
         }
 
-        let model_path = self.model_manager.get_model_path(model_id)?;
+        // Un motor en línea no tiene archivo local y `get_model_path` falla a
+        // propósito para él (ver `ModelManager::get_model_path`). Su rama de
+        // carga no toca disco, así que ni se pregunta por la ruta.
+        let model_path = match model_info.engine_type {
+            EngineType::GeminiTranscribe => PathBuf::new(),
+            _ => self.model_manager.get_model_path(model_id)?,
+        };
 
         // Drop the current engine BEFORE building the new one so transcribe-cpp
         // frees the previous native context first — avoids holding two models at
@@ -920,12 +939,23 @@ impl TranscriptionManager {
             }
             EngineType::GeminiTranscribe => {
                 // Un motor en línea no se carga: no hay archivo ni contexto
-                // nativo que abrir. La ruta de dictado contra la API llega en
-                // una tarea posterior de este plan; hasta entonces, elegirlo
-                // avisa en vez de dejar la UI colgada en "cargando".
-                let error_msg = format!("El motor en línea {} todavía no dicta", model_id);
-                emit_loading_failed(&error_msg);
-                return Err(anyhow::anyhow!(error_msg));
+                // nativo que abrir. Lo único que puede fallar acá es que no
+                // haya API key, y conviene que falle **acá** —la UI ya sabe
+                // mostrar el error de carga— y no recién al soltar la tecla,
+                // con el audio grabado y nada que hacer con él.
+                let key_configured = get_settings(&self.app_handle)
+                    .post_process_api_keys
+                    .get(GEMINI_API_KEY_ID)
+                    .is_some_and(|key| !key.trim().is_empty());
+                if !key_configured {
+                    let error_msg = "Falta la API key de Google. Pégala en Ajustes → \
+                         Transformar → Claves para dictar con Gemini."
+                        .to_string();
+                    emit_loading_failed(&error_msg);
+                    return Err(anyhow::anyhow!(error_msg));
+                }
+                info!("Motor en línea '{}' listo (sin carga local)", model_id);
+                LoadedEngine::GeminiTranscribe
             }
         };
 
@@ -1084,6 +1114,8 @@ impl TranscriptionManager {
             Some(LoadedEngine::TranscribeCpp(session)) => {
                 Some(session.model().backend().to_string())
             }
+            // No hay backend de cómputo local que reportar: corre en Google.
+            Some(LoadedEngine::GeminiTranscribe) => Some("cloud".to_string()),
             Some(_) => Some("onnx".to_string()),
             None => None,
         }
@@ -1478,7 +1510,9 @@ impl TranscriptionManager {
         let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
-        let filtered = post_process_transcription_text(raw, &settings, false);
+        // El streaming en vivo sólo existe en transcribe-cpp, así que acá nunca
+        // hay texto de Gemini: el filtro local de muletillas corre siempre.
+        let filtered = post_process_transcription_text(raw, &settings, false, false);
 
         self.maybe_unload_immediately("streaming transcription");
         Ok(Some(filtered))
@@ -1525,6 +1559,91 @@ impl TranscriptionManager {
         .emit(&self.app_handle);
     }
 
+    /// Dicta con Gemini 3.5 Transcribe: audio adentro, texto listo para pegar.
+    ///
+    /// Se llama **sin** el mutex del motor tomado (ver el desvío al principio
+    /// de [`Self::transcribe`]). El error tipado de `gemini_stt` viaja entero
+    /// dentro del `anyhow` —no se aplana a texto— para que quien decide la
+    /// caída al modelo local pueda `downcast_ref::<GeminiSttError>()` y
+    /// distinguir "no hay red" de "la clave no sirve".
+    fn transcribe_with_gemini(
+        &self,
+        audio: &[f32],
+        settings: &AppSettings,
+        started: Instant,
+    ) -> Result<String> {
+        // La key se relee acá, en el momento de usarla: nunca se guarda en la
+        // variante del motor ni se loguea (el `SecretMap` ya redacta su Debug).
+        let key = settings
+            .post_process_api_keys
+            .get(GEMINI_API_KEY_ID)
+            .map(|key| key.trim().to_string())
+            .filter(|key| !key.is_empty())
+            .ok_or_else(|| anyhow::Error::new(gemini_stt::GeminiSttError::MissingKey))?;
+
+        // `gemini_stt::transcribe` es async y esto es sincrónico, pero
+        // `tauri::async_runtime::block_on` NO se puede llamar directamente
+        // desde acá: el camino real de dictado corre dentro de un
+        // `async_runtime::spawn` (`actions.rs`), y tokio entra en pánico
+        // ("Cannot start a runtime from within a runtime") si se bloquea uno
+        // de sus hilos. Un hilo propio y de vida corta no está en el contexto
+        // del runtime, así que ahí el `block_on` es legítimo. `thread::scope`
+        // evita clonar el audio y la key sólo para cruzar el `spawn`.
+        let outcome = thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    tauri::async_runtime::block_on(gemini_stt::transcribe(
+                        audio,
+                        &key,
+                        settings.gemini_smart_mode,
+                        &settings.custom_words,
+                    ))
+                })
+                .join()
+        });
+
+        let raw = match outcome {
+            Ok(Ok(text)) => text,
+            Ok(Err(err)) => return Err(anyhow::Error::new(err)),
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "El dictado con Gemini se cayó de forma inesperada"
+                ))
+            }
+        };
+
+        // `apply_custom_words` sigue corriendo aunque las palabras ya hayan
+        // viajado como vocabulario: el biasing en origen no siempre pilla
+        // todo, y la corrección difusa local es inofensiva sobre lo que ya
+        // salió bien. El filtro de muletillas, en cambio, sobra cuando el
+        // modo smart ya limpió — ver `should_skip_filler_filter`.
+        let filtered = post_process_transcription_text(
+            raw,
+            settings,
+            false,
+            should_skip_filler_filter(&EngineType::GeminiTranscribe, settings.gemini_smart_mode),
+        );
+
+        let elapsed_secs = started.elapsed().as_secs_f64();
+        let audio_secs = audio.len() as f64 / 16_000.0;
+        info!(
+            "Dictado con Gemini completado en {:.2}s para {:.2}s de audio (smart={})",
+            elapsed_secs, audio_secs, settings.gemini_smart_mode
+        );
+        if filtered.is_empty() {
+            info!("Transcription result is empty");
+        } else {
+            info!("Transcription result: {}", filtered);
+        }
+
+        // Nada que descargar (no hay modelo en memoria), pero el motor local
+        // que quedó cargado antes de cambiar a Gemini sí puede irse: se
+        // respeta la misma preferencia de siempre.
+        self.maybe_unload_immediately("transcripción en línea");
+
+        Ok(filtered)
+    }
+
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
         #[cfg(debug_assertions)]
         if std::env::var("HANDY_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
@@ -1563,6 +1682,16 @@ impl TranscriptionManager {
 
         // Get current settings for configuration
         let settings = get_settings(&self.app_handle);
+
+        // El motor en línea se atiende ANTES del camino local, y sin el mutex
+        // del motor tomado: la llamada a la API puede tardar hasta 45 s, y
+        // dejar `lock_engine()` agarrado todo ese rato congelaría cualquier
+        // otra cosa que lo pida (el watcher de inactividad, un cambio de
+        // modelo, el próximo dictado). Este `matches!` toma el candado sólo
+        // para mirar la variante y lo suelta en el mismo statement.
+        if matches!(*self.lock_engine(), Some(LoadedEngine::GeminiTranscribe)) {
+            return self.transcribe_with_gemini(&audio, &settings, st);
+        }
 
         // Validate selected language against the model's supported languages.
         // If the language isn't supported, fall back to "auto" to prevent errors.
@@ -1774,6 +1903,12 @@ impl TranscriptionManager {
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
                     }
+                    // Inalcanzable: el desvío del principio de `transcribe`
+                    // devuelve antes de tomar el motor. Está para que agregar
+                    // otro motor en línea sin su rama no compile en silencio.
+                    LoadedEngine::GeminiTranscribe => Err(anyhow::anyhow!(
+                        "El motor en línea no se transcribe por el camino local"
+                    )),
                 }
             }));
 
@@ -1831,7 +1966,10 @@ impl TranscriptionManager {
         // family). We don't pass a prompt to non-whisper models (it requires the
         // whisper-kind run extension), so they still get fuzzy correction here,
         // same as the ONNX engines.
-        let filtered_result = post_process_transcription_text(result, &settings, model_is_whisper);
+        // Camino local: Gemini se desvió antes de llegar acá, así que el piso
+        // local de muletillas se aplica siempre.
+        let filtered_result =
+            post_process_transcription_text(result, &settings, model_is_whisper, false);
 
         let et = std::time::Instant::now();
         let translation_note = if settings.translate_to_english {
@@ -2038,10 +2176,24 @@ fn transcribe_cpp_run_plan(
     }
 }
 
+/// Si el filtro local de muletillas sobra para lo que devolvió este motor.
+///
+/// Gemini en modo `smart` ya sacó las muletillas, los tartamudeos y las
+/// autocorrecciones en el propio motor, con el contexto de la frase entera.
+/// El filtro local trabaja por lista de palabras y no tiene ese contexto: si
+/// corre encima de un texto ya limpio, lo único que puede hacer es morder
+/// texto bueno ("o sea" que sí formaba parte de la frase, un "ya" que era la
+/// respuesta). Cualquier otro caso —Gemini en literal, o un motor local— se
+/// queda con el piso de siempre.
+pub(crate) fn should_skip_filler_filter(engine: &EngineType, smart_mode: bool) -> bool {
+    matches!(engine, EngineType::GeminiTranscribe) && smart_mode
+}
+
 fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
     custom_words_already_prompted: bool,
+    skip_filler_filter: bool,
 ) -> String {
     let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
         apply_custom_words(
@@ -2052,6 +2204,10 @@ fn post_process_transcription_text(
     } else {
         raw
     };
+
+    if skip_filler_filter {
+        return corrected;
+    }
 
     filter_transcription_output(
         &corrected,
@@ -2350,6 +2506,21 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    // ---------- Filtro local de muletillas vs. el smart de Gemini ----------
+
+    #[test]
+    fn smart_gemini_skips_local_filler_filter_but_verbatim_does_not() {
+        assert!(should_skip_filler_filter(
+            &EngineType::GeminiTranscribe,
+            true
+        ));
+        assert!(!should_skip_filler_filter(
+            &EngineType::GeminiTranscribe,
+            false
+        ));
+        assert!(!should_skip_filler_filter(&EngineType::Parakeet, true));
     }
 
     // ---------- Dueño del stream (bug crítico del 2026-08-04) ----------
