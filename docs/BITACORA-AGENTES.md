@@ -3,6 +3,28 @@
 > Entradas nuevas arriba. Hecho, próximo paso, cuidado y estado Git; el
 > detalle fino vive en Git y en `docs/superpowers/specs/`.
 
+## 2026-08-28 (3) · Norte (Claude)
+
+- **Hecho:** **v0.3.1 publicada e instalada** en el Mac de Alfonso. (1) Bug del
+  Dock: la política se recalculaba en el mismo instante que `destroy()`, cuando
+  Tauri todavía lista la ventana (la saca al procesar `Destroyed`), así que
+  cerrar Ajustes reaplicaba `Regular` y el ícono no se iba nunca →
+  `no_relevant_window_visible_excluding` ignora la ventana que se cierra.
+  (2) El plazo de Gemini pasa a depender del audio (piso 12 s, tope 45 s;
+  `MAX_RETRY_DELAY` 8→5 s): medido en producción, la mediana de un dictado es
+  3,4 s, pero un cuelgue costaba 45 s antes del rescate local.
+- **Próximo paso:** confirmar con Alfonso que al cerrar Ajustes el ícono se va
+  (único paso que no pude manejar yo: osascript no tiene permiso de
+  accesibilidad y no quise disparar el prompt). Luego fase 2 (live WS) y
+  reuniones-en-línea.
+- **Cuidado:** `desired_dock_policy` con el ajuste PRENDIDO y sin ventanas
+  devuelve `Accessory` **a propósito** (test `por_omision_el_dock_se_comporta_
+  como_siempre`): no es rama muerta, es decisión de producto. Al instalar desde
+  un DMG, montar y copiar SIEMPRE desde la ruta que devuelve `hdiutil attach`:
+  si ya hay un `/Volumes/Dilo` viejo montado, el nuevo entra como `/Volumes/Dilo 1`
+  y `ls /Volumes/Dilo*` copia el equivocado (me pasó: instalé 0.3.0 sobre 0.3.0).
+- **Git:** main == origin/main; v0.3.1 publicada como Latest.
+
 ## 2026-08-28 (2) · Norte (Claude)
 
 - **Hecho:** **v0.3.0 publicada** — merge ff a main, bump de versión (patrón
