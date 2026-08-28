@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ModelInfo } from "@/bindings";
 import {
+  downloadedLocalModels,
   hasGoogleApiKey,
   isCloudModel,
   isGeminiModel,
@@ -37,6 +38,48 @@ describe("isCloudModel", () => {
     expect(isCloudModel({ source: "Local" } as unknown as ModelInfo)).toBe(
       false,
     );
+  });
+});
+
+describe("downloadedLocalModels", () => {
+  // Gemini llega siempre así: nadie lo bajó, pero el catálogo lo marca
+  // descargado porque no hay archivo que bajar.
+  const geminiDescargado = { ...gemini, is_downloaded: true } as ModelInfo;
+  const parakeetDescargado = {
+    ...localGguf,
+    is_downloaded: true,
+  } as ModelInfo;
+  const parakeetSinBajar = {
+    ...localGguf,
+    id: "parakeet-otro",
+    is_downloaded: false,
+  } as ModelInfo;
+
+  test("una instalación recién hecha no tiene ningún modelo propio", () => {
+    expect(downloadedLocalModels([geminiDescargado, parakeetSinBajar])).toEqual(
+      [],
+    );
+  });
+
+  test("quien sí bajó modelos los ve igual que antes, sin Gemini colado", () => {
+    expect(
+      downloadedLocalModels([
+        geminiDescargado,
+        parakeetDescargado,
+        parakeetSinBajar,
+      ]),
+    ).toEqual([parakeetDescargado]);
+  });
+
+  test("conserva el orden en que vienen del catálogo", () => {
+    const legacyDescargado = { ...legacyUrl, is_downloaded: true } as ModelInfo;
+    expect(
+      downloadedLocalModels([
+        parakeetDescargado,
+        geminiDescargado,
+        legacyDescargado,
+      ]),
+    ).toEqual([parakeetDescargado, legacyDescargado]);
   });
 });
 

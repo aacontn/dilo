@@ -9,6 +9,7 @@ import { Wordmark } from "../shared";
 import { useModelStore } from "../../stores/modelStore";
 import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
 import { prioritizeRecommendedModels } from "../../lib/utils/onboarding";
+import { downloadedLocalModels } from "../../lib/utils/cloudModel";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -64,6 +65,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
       rest,
     };
   }, [models, ramGb]);
+
+  // "Los modelos que ya tienes" es literal: sólo lo que ocupa disco. Un motor
+  // en línea viene con `is_downloaded: true` sin que nadie lo haya bajado, y
+  // saludar a una instalación nueva con esa sección era mentirle.
+  const existingModels = useMemo(() => downloadedLocalModels(models), [models]);
 
   const hasRecommended = topPicks.length > 0 || otherRecommended.length > 0;
   // When nothing recommended remains to download (e.g. all already on disk),
@@ -174,25 +180,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
 
       <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
         <div className="space-y-6 pb-6">
-          {models.some((m: ModelInfo) => m.is_downloaded) && (
+          {existingModels.length > 0 && (
             <div className="space-y-3">
               <div className="text-left">
                 <h2 className="text-sm font-medium text-text/60">
                   {t("onboarding.existingModelsTitle")}
                 </h2>
               </div>
-              {models
-                .filter((m: ModelInfo) => m.is_downloaded)
-                .map((model: ModelInfo) => (
-                  <ModelCard
-                    key={model.id}
-                    model={model}
-                    status={getExistingModelStatus(model.id)}
-                    disabled={isBusy}
-                    onSelect={handleSelectExistingModel}
-                    showRecommended={false}
-                  />
-                ))}
+              {existingModels.map((model: ModelInfo) => (
+                <ModelCard
+                  key={model.id}
+                  model={model}
+                  status={getExistingModelStatus(model.id)}
+                  disabled={isBusy}
+                  onSelect={handleSelectExistingModel}
+                  showRecommended={false}
+                />
+              ))}
             </div>
           )}
 
