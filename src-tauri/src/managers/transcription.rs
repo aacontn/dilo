@@ -1566,6 +1566,38 @@ impl TranscriptionManager {
     /// dentro del `anyhow` —no se aplana a texto— para que quien decide la
     /// caída al modelo local pueda `downcast_ref::<GeminiSttError>()` y
     /// distinguir "no hay red" de "la clave no sirve".
+    ///
+    /// # Cancelar a mitad de camino no interrumpe esto (y está bien)
+    ///
+    /// Esta función es sincrónica y no se interrumpe: si alguien cancela
+    /// mientras el HTTP está en vuelo, la llamada sigue hasta terminar o hasta
+    /// el techo de 45 s. Es **el mismo contrato que el motor local**, no una
+    /// excepción para Gemini:
+    ///
+    /// - Cancelar sólo incrementa un contador (`cancel_recording`,
+    ///   `managers/audio.rs:834`) y abandona el stream en vivo si lo hay
+    ///   (`utils.rs:30`). Nada aborta una transcripción por lotes ya empezada:
+    ///   la inferencia local también es CPU-bound y tampoco se corta a mitad.
+    /// - `tm.transcribe(...)` se llama **sin** envolver en
+    ///   `complete_unless_cancelled` (`actions.rs:1045`). Ese helper
+    ///   (`actions.rs:135`) sí existe, pero se usa sólo para el LLM de
+    ///   post-proceso (`actions.rs:1113`), que es un future de verdad y muere
+    ///   al soltarlo.
+    /// - El resultado de un dictado cancelado **se descarta**:
+    ///   `actions.rs:1073` corta antes del post-proceso, del historial y del
+    ///   pegado, y `actions.rs:1125` vuelve a chequear antes de pegar. Nunca
+    ///   se pega texto de algo que el usuario canceló.
+    /// - Y el coordinador ya cuenta con esta espera: `Command::Cancel`
+    ///   deliberadamente **no** saca de `Stage::Processing`
+    ///   (`transcription_coordinator.rs:281`, "Don't reset during processing —
+    ///   wait for the pipeline to finish"); quien devuelve a Idle es el
+    ///   `FinishGuard` al terminar la tarea (`actions.rs:80`).
+    ///
+    /// Lo único que cambia con Gemini es la **duración** de esa espera ya
+    /// contemplada: segundos de inferencia local pasan a ser hasta 45 s de
+    /// red, y durante ese rato el atajo queda inerte ("pipeline busy",
+    /// `transcription_coordinator.rs:271`). Por eso el techo de `gemini_stt`
+    /// es total —envuelve intento, siesta y reintento— y no por llamada.
     fn transcribe_with_gemini(
         &self,
         audio: &[f32],
