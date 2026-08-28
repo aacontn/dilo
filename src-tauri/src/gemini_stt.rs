@@ -46,16 +46,17 @@ const INTERACTIONS_URL: &str = "https://generativelanguage.googleapis.com/v1beta
 /// Autenticación por header. Ver la nota del módulo: nunca query string.
 const API_KEY_HEADER: &str = "x-goog-api-key";
 
-/// Techo **total** del dictado, reintento incluido.
+/// Piso y techo del plazo **total** del dictado, reintento incluido.
 ///
 /// Es total y no por petición a propósito: quien dicta espera su texto, y un
 /// 429 con reintento no puede convertir la espera en el doble. El reloj se
 /// arranca una vez y cubre las dos idas, la siesta del `retryDelay` incluida.
-const TRANSCRIBE_DEADLINE: Duration = Duration::from_secs(45);
+const MIN_TRANSCRIBE_DEADLINE: Duration = Duration::from_secs(12);
+const MAX_TRANSCRIBE_DEADLINE: Duration = Duration::from_secs(45);
 
 /// Hasta cuánto vale la pena esperar un `retryDelay` de un 429 pasajero. Más
 /// que esto ya no es un reintento, es un plantón: mejor caer al modelo local.
-const MAX_RETRY_DELAY: Duration = Duration::from_secs(8);
+const MAX_RETRY_DELAY: Duration = Duration::from_secs(5);
 
 /// El audio que Dilo graba y el que Gemini espera son el mismo: 16 kHz mono.
 const SAMPLE_RATE: u32 = 16_000;
@@ -429,6 +430,19 @@ fn classify_network_error(error: &reqwest::Error) -> GeminiSttError {
     }
 }
 
+/// Cuánto se espera a Gemini antes de rendirse y rescatar con el modelo local,
+/// en función de lo que se dictó.
+///
+/// Un plazo fijo castiga al caso común: medido el 2026-08-27, 9,6 s de audio
+/// vuelven en 3,3 s, así que un segundo de plazo por segundo de audio deja
+/// ~6x de holgura. El piso protege al dictado corto —el 2026-08-28 uno de diez
+/// segundos esperó los 45 s enteros a un Gemini que nunca contestó, con el
+/// modelo local ahí al lado— y el techo, al largo, que sube muchos más bytes.
+fn transcribe_deadline(sample_count: usize) -> Duration {
+    let audio_secs = sample_count as f64 / SAMPLE_RATE as f64;
+    Duration::from_secs_f64(audio_secs).clamp(MIN_TRANSCRIBE_DEADLINE, MAX_TRANSCRIBE_DEADLINE)
+}
+
 /// Dicta con Gemini 3.5 Transcribe: audio adentro, texto afuera.
 ///
 /// `smart` limpia muletillas y autocorrecciones en el propio motor;
@@ -442,7 +456,7 @@ pub async fn transcribe(
 ) -> Result<String, GeminiSttError> {
     transcribe_at(
         INTERACTIONS_URL,
-        TRANSCRIBE_DEADLINE,
+        transcribe_deadline(samples.len()),
         samples,
         api_key,
         smart,
@@ -897,10 +911,35 @@ mod tests {
     #[test]
     fn the_deadline_is_total_finite_and_human() {
         // Cubre el reintento entero: la siesta más larga que se acepta tiene
-        // que caber holgada adentro del techo.
-        assert!(TRANSCRIBE_DEADLINE >= Duration::from_secs(20));
-        assert!(TRANSCRIBE_DEADLINE <= Duration::from_secs(60));
-        assert!(MAX_RETRY_DELAY * 2 < TRANSCRIBE_DEADLINE);
+        // que caber holgada adentro del techo, incluso en el piso.
+        // Medido en producción el 2026-08-28: la mediana de un dictado es 3,4 s,
+        // así que el piso deja ~3,5x de holgura antes de rescatar con el local.
+        assert!(MIN_TRANSCRIBE_DEADLINE >= Duration::from_secs(10));
+        assert!(MAX_TRANSCRIBE_DEADLINE <= Duration::from_secs(60));
+        assert!(MAX_RETRY_DELAY * 2 < MIN_TRANSCRIBE_DEADLINE);
+    }
+
+    #[test]
+    fn a_short_dictation_does_not_wait_the_long_ceiling() {
+        // El caso real que motivó esto (2026-08-28): Gemini no contestó y el
+        // rescate local tardó 45 s en arrancar. Un dictado corto no puede
+        // pagar el techo del largo.
+        let diez_segundos = 10 * SAMPLE_RATE as usize;
+        assert_eq!(transcribe_deadline(diez_segundos), MIN_TRANSCRIBE_DEADLINE);
+        assert_eq!(transcribe_deadline(0), MIN_TRANSCRIBE_DEADLINE);
+    }
+
+    #[test]
+    fn a_long_dictation_keeps_room_to_upload() {
+        // Un dictado largo sube muchos más bytes: conserva su holgura, con el
+        // techo histórico como tope duro.
+        let treinta_segundos = 30 * SAMPLE_RATE as usize;
+        assert_eq!(
+            transcribe_deadline(treinta_segundos),
+            Duration::from_secs(30)
+        );
+        let diez_minutos = 600 * SAMPLE_RATE as usize;
+        assert_eq!(transcribe_deadline(diez_minutos), MAX_TRANSCRIBE_DEADLINE);
     }
 
     #[test]

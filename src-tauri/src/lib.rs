@@ -479,9 +479,27 @@ const DOCK_RELEVANT_WINDOW_LABELS: [&str; 2] = ["main", "meetings"];
 /// seguía en pantalla — invisible al Dock y al Cmd-Tab pero con una ventana
 /// inalcanzable desde ahí.
 fn no_relevant_window_visible<'a>(windows: impl IntoIterator<Item = (&'a str, bool)>) -> bool {
-    !windows
-        .into_iter()
-        .any(|(label, visible)| visible && DOCK_RELEVANT_WINDOW_LABELS.contains(&label))
+    // "" no es el label de ninguna ventana, así que no excluye nada.
+    no_relevant_window_visible_excluding(windows, "")
+}
+
+/// Igual que [`no_relevant_window_visible`] pero ignorando `closing_label`.
+///
+/// Existe por el momento en que se decide: al cerrar una ventana hay que
+/// recalcular el Dock, y `destroy()`/`hide()` **no** se reflejan al instante —
+/// Tauri saca la ventana de su lista recién cuando el event loop procesa
+/// `Destroyed`, así que preguntando de inmediato la ventana que se acaba de
+/// cerrar todavía se ve visible (y `is_visible()` puede fallar, que
+/// [`any_relevant_window_visible`] traduce a "visible" por prudencia). Sin
+/// excluirla, cerrar Ajustes reaplicaba `Regular` y el ícono del Dock se
+/// quedaba puesto para siempre (bug reportado 2026-08-28).
+fn no_relevant_window_visible_excluding<'a>(
+    windows: impl IntoIterator<Item = (&'a str, bool)>,
+    closing_label: &str,
+) -> bool {
+    !windows.into_iter().any(|(label, visible)| {
+        label != closing_label && visible && DOCK_RELEVANT_WINDOW_LABELS.contains(&label)
+    })
 }
 
 /// Cómo tiene que aparecer Dilo en macOS: con ícono en el Dock y en Cmd-Tab
@@ -509,6 +527,11 @@ enum DockPolicy {
 /// apagado realmente pide es "no dejes el ícono ahí cuando no estoy usando la
 /// ventana": por eso sólo se traduce a `Accessory` cuando no queda ninguna
 /// ventana relevante abierta.
+///
+/// Sin ninguna ventana abierta la app se va a la bandeja **aunque el ajuste
+/// esté prendido** (`por_omision_el_dock_se_comporta_como_siempre`): Dilo es
+/// una app de barra de menú y un ícono de Dock sin ventanas no lleva a ninguna
+/// parte. Es decisión de producto, no un descuido de esta rama.
 fn desired_dock_policy(
     show_dock_icon: bool,
     tray_available: bool,
@@ -556,6 +579,13 @@ pub(crate) fn apply_dock_policy(app: &AppHandle, relevant_window_visible: bool) 
 /// Si alguna ventana relevante (`DOCK_RELEVANT_WINDOW_LABELS`) está a la vista
 /// según el estado real de las ventanas.
 pub(crate) fn any_relevant_window_visible(app: &AppHandle) -> bool {
+    any_relevant_window_visible_excluding(app, "")
+}
+
+/// Igual que [`any_relevant_window_visible`] pero sin contar `closing_label` —
+/// la ventana que se está cerrando justo ahora. Ver
+/// [`no_relevant_window_visible_excluding`] para por qué hace falta.
+pub(crate) fn any_relevant_window_visible_excluding(app: &AppHandle, closing_label: &str) -> bool {
     let visibility: Vec<(String, bool)> = app
         .webview_windows()
         .iter()
@@ -564,7 +594,10 @@ pub(crate) fn any_relevant_window_visible(app: &AppHandle) -> bool {
         // pantalla.
         .map(|(label, w)| (label.clone(), w.is_visible().unwrap_or(true)))
         .collect();
-    !no_relevant_window_visible(visibility.iter().map(|(label, v)| (label.as_str(), *v)))
+    !no_relevant_window_visible_excluding(
+        visibility.iter().map(|(label, v)| (label.as_str(), *v)),
+        closing_label,
+    )
 }
 
 /// Guarda el ajuste del ícono del Dock y lo aplica en el acto — sin reiniciar
@@ -1217,7 +1250,12 @@ pub fn run(cli_args: CliArgs) {
                 #[cfg(target_os = "macos")]
                 if DOCK_RELEVANT_WINDOW_LABELS.contains(&window.label()) {
                     let app = window.app_handle();
-                    apply_dock_policy(app, any_relevant_window_visible(app));
+                    // Sin excluir la que se va, Tauri todavía la lista visible
+                    // acá mismo y el ícono se quedaría puesto para siempre.
+                    apply_dock_policy(
+                        app,
+                        any_relevant_window_visible_excluding(app, window.label()),
+                    );
                 }
             }
             tauri::WindowEvent::ThemeChanged(theme) => {
@@ -1273,7 +1311,10 @@ pub fn run(cli_args: CliArgs) {
 
 #[cfg(test)]
 mod tests {
-    use super::{desired_dock_policy, no_relevant_window_visible, DockPolicy};
+    use super::{
+        desired_dock_policy, no_relevant_window_visible, no_relevant_window_visible_excluding,
+        DockPolicy,
+    };
 
     #[test]
     fn por_omision_el_dock_se_comporta_como_siempre() {
@@ -1362,6 +1403,28 @@ mod tests {
             ("main", false),
             ("meetings", true),
         ]));
+    }
+
+    #[test]
+    fn la_ventana_que_se_esta_cerrando_no_cuenta_como_visible() {
+        // El bug del 2026-08-28: al cerrar Ajustes se recalculaba el Dock en el
+        // mismo instante que `destroy()`, y Tauri todavía listaba la ventana
+        // como visible (la saca recién al procesar `Destroyed`). Resultado:
+        // volvía a quedar `Regular` y el ícono no se iba nunca.
+        assert!(no_relevant_window_visible_excluding(
+            [("main", true)],
+            "main"
+        ));
+    }
+
+    #[test]
+    fn cerrar_una_ventana_con_la_otra_abierta_mantiene_el_dock() {
+        // Excluir la que se va no puede esconder el ícono cuando queda otra
+        // ventana relevante en pantalla.
+        assert!(!no_relevant_window_visible_excluding(
+            [("main", true), ("meetings", true)],
+            "main",
+        ));
     }
 
     #[test]
