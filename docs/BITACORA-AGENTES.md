@@ -3,6 +3,27 @@
 > Entradas nuevas arriba. Hecho, próximo paso, cuidado y estado Git; el
 > detalle fino vive en Git y en `docs/superpowers/specs/`.
 
+## 2026-08-28 · Norte (Claude, orquestando subagentes Opus)
+
+- **Hecho:** fase 1 del motor Gemini implementada completa en la rama
+  `feat/motor-gemini-transcribe` (10 commits, 48 archivos): catálogo cloud,
+  cliente `gemini_stt.rs` (28 tests, base64 y WAV propios, techo 45 s),
+  despacho en el manager (el `block_on` directo del plan paniqueaba dentro del
+  runtime — va en hilo propio con scope/join), caída a local con aviso que
+  sobrevive a la ventana cerrada (cola `PendingNotices<T>` generalizada), UI
+  con tarjeta EN LÍNEA y ~10 claves i18n × 21 locales. Cada tarea con revisión
+  independiente; 521 tests Rust + 166 bun verdes.
+- **Próximo paso:** revisión final de rama completa → push de Alfonso (CI
+  `test.yml`) → probar en vivo con su key → merge a main → release. Después:
+  diseño de fase 2 (live WS) y reuniones-en-línea (compuerta: diarización).
+- **Cuidado:** la key va en `post_process_api_keys["google"]` y su presencia
+  se lee client-side (precedente `DictationModes.tsx`). Tras una caída, el
+  próximo dictado vuelve solo a Gemini (`decide_model_load_action`, fijado por
+  test). El aviso puede verse dos veces (vivo + al reabrir): contrato heredado
+  de las colas existentes.
+- **Git:** rama `feat/motor-gemini-transcribe` sobre main local (que sigue
+  4 commits adelante de origin); nada pusheado.
+
 ## 2026-08-27 (2) · Norte (Claude)
 
 - **Hecho:** diseño aprobado de **reuniones en línea**
