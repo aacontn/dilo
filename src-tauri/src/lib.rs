@@ -948,6 +948,7 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
+            managers::transcription::GeminiFallback,
             actions::PostProcessFallback,
             managers::meeting::MeetingSegment,
             managers::meeting::MeetingPendingSegments,

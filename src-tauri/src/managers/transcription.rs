@@ -1,7 +1,7 @@
 use crate::audio_toolkit::{apply_custom_words, filter_transcription_output};
 use crate::gemini_stt;
 use crate::managers::audio::AudioRecordingManager;
-use crate::managers::model::{EngineType, ModelManager};
+use crate::managers::model::{EngineType, ModelInfo, ModelManager, ModelSource};
 use crate::settings::{
     get_settings, AppSettings, ModelUnloadTimeout, OrtAcceleratorSetting,
     TranscribeAcceleratorSetting,
@@ -147,6 +147,23 @@ pub struct StreamPhaseEvent {
     /// Present only when `phase` is `Working`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<StreamWorkKind>,
+}
+
+/// El dictado salió, pero no por donde la persona creía: Gemini falló y lo
+/// rescató un modelo local. Es un aviso **después del hecho** —el texto ya se
+/// pegó— porque la alternativa era perder las palabras esperando una decisión.
+///
+/// `fallback_model` es el nombre visible del modelo que salvó el dictado, y
+/// queda **vacío** cuando no había ninguno en disco: ahí el error sube igual y
+/// el frontend muestra la variante que explica por qué no hubo texto.
+///
+/// `reason` es un token de máquina (`offline`, `daily_quota`, …), nunca el
+/// texto del error: la copia humana vive en i18n y el token nunca se muestra
+/// crudo. Ver [`fallback_reason_token`].
+#[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
+pub struct GeminiFallback {
+    pub fallback_model: String,
+    pub reason: String,
 }
 
 /// Quién abre un stream de reconocimiento continuo — dicho explícitamente por
@@ -1676,6 +1693,117 @@ impl TranscriptionManager {
         Ok(filtered)
     }
 
+    /// Rescata con un modelo local un dictado que Gemini no pudo entregar, y
+    /// avisa **después** de haberlo hecho.
+    ///
+    /// La regla es "nunca perder las palabras": el audio ya no existe fuera de
+    /// este `Vec`, así que preguntar no es opción — para cuando alguien
+    /// respondiera, la ventana de pegar el texto ya pasó. Se transcribe con lo
+    /// que haya en disco y el aviso cuenta lo que pasó (evento
+    /// [`GeminiFallback`] → toast).
+    ///
+    /// Devuelve `Err` —con el error original de Gemini, no el del rescate— en
+    /// los cuatro casos en que no hay rescate que hacer:
+    /// - el error no es de Gemini (un pánico envuelto, por ejemplo);
+    /// - es `BadRequest`: un request malformado es un bug nuestro, y taparlo
+    ///   con otro motor lo dejaría invisible (ver [`gemini_error_falls_back`]);
+    /// - no hay ningún modelo local descargado (ahí sí sale el aviso, con
+    ///   `fallback_model` vacío: el dictado se perdió y hay que decirlo);
+    /// - no se pudo tomar el turno de carga o el modelo no cargó.
+    ///
+    /// **El próximo dictado vuelve a Gemini solo.** `settings.selected_model`
+    /// no se toca acá: sigue siendo Gemini, y el arranque de cada dictado llama
+    /// a `initiate_model_load` (`actions.rs:800`), que compara ese id contra el
+    /// modelo cargado y recarga cuando difieren (`decide_model_load_action`,
+    /// rama `current_model != requested` → `Start`). Lo fija el test
+    /// `next_dictation_returns_to_gemini_after_a_fallback_loaded_a_local_model`.
+    fn rescue_with_local_model(
+        &self,
+        err: anyhow::Error,
+        audio: Vec<f32>,
+        settings: &AppSettings,
+    ) -> Result<String> {
+        let Some(gemini_err) = err.downcast_ref::<gemini_stt::GeminiSttError>() else {
+            return Err(err);
+        };
+        if !gemini_error_falls_back(gemini_err) {
+            return Err(err);
+        }
+        let reason = fallback_reason_token(gemini_err);
+        warn!(
+            "Gemini no entregó el dictado (motivo '{}'); buscando modelo local para rescatarlo",
+            reason
+        );
+
+        let models = self.model_manager.get_available_models();
+        let Some(model_id) =
+            resolve_local_fallback(settings.last_local_model_id.as_deref(), &models)
+        else {
+            warn!("No hay ningún modelo local descargado: el dictado se pierde");
+            self.emit_gemini_fallback(String::new(), reason);
+            return Err(err);
+        };
+
+        // El turno de carga se pide igual que en `switch_active_model`: cargar
+        // dos modelos a la vez deja el motor y `current_model_id` describiendo
+        // cosas distintas. Si hay otra carga en vuelo se la espera una vez —lo
+        // normal es que sea corta— y si aun así no se consigue el turno, el
+        // rescate se abandona: alguien está cambiando de modelo justo ahora y
+        // pelearle es peor que devolver el error de Gemini.
+        //
+        // El turno se suelta **antes** de transcribir, y no al final de la
+        // función: `transcribe` empieza esperando a que no haya ninguna carga
+        // en curso, así que llamarlo con el turno todavía tomado se abraza a sí
+        // mismo y el dictado no vuelve nunca. De ahí el bloque.
+        let load_result = {
+            let guard = self.try_start_loading().or_else(|| {
+                self.wait_for_model_load();
+                self.try_start_loading()
+            });
+            let Some(_guard) = guard else {
+                warn!("Hay otra carga de modelo en curso: no se rescata este dictado");
+                return Err(err);
+            };
+            self.load_model(&model_id)
+        };
+        if let Err(load_err) = load_result {
+            error!(
+                "El modelo local '{}' tampoco cargó para el rescate: {}",
+                model_id, load_err
+            );
+            return Err(err);
+        }
+        // Cinturón: si por lo que sea el motor cargado sigue siendo el de la
+        // nube, volver a `transcribe` sería recursión infinita.
+        if matches!(*self.lock_engine(), Some(LoadedEngine::GeminiTranscribe)) {
+            return Err(err);
+        }
+
+        // El camino local completo, sin duplicarlo: `transcribe` ya no ve el
+        // motor en línea, así que sigue derecho por la rama de siempre.
+        let text = self.transcribe(audio)?;
+
+        let model_name = models
+            .iter()
+            .find(|model| model.id == model_id)
+            .map(|model| model.name.clone())
+            .unwrap_or(model_id);
+        info!("Dictado rescatado con '{}' tras fallar Gemini", model_name);
+        self.emit_gemini_fallback(model_name, reason);
+        Ok(text)
+    }
+
+    /// El aviso de la caída. Se emite **después** de tener el texto (o de saber
+    /// que no lo habrá): antes sería una promesa que el rescate todavía puede
+    /// incumplir.
+    fn emit_gemini_fallback(&self, fallback_model: String, reason: String) {
+        let _ = GeminiFallback {
+            fallback_model,
+            reason,
+        }
+        .emit(&self.app_handle);
+    }
+
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
         #[cfg(debug_assertions)]
         if std::env::var("HANDY_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
@@ -1722,7 +1850,10 @@ impl TranscriptionManager {
         // modelo, el próximo dictado). Este `matches!` toma el candado sólo
         // para mirar la variante y lo suelta en el mismo statement.
         if matches!(*self.lock_engine(), Some(LoadedEngine::GeminiTranscribe)) {
-            return self.transcribe_with_gemini(&audio, &settings, st);
+            return match self.transcribe_with_gemini(&audio, &settings, st) {
+                Ok(text) => Ok(text),
+                Err(err) => self.rescue_with_local_model(err, audio, &settings),
+            };
         }
 
         // Validate selected language against the model's supported languages.
@@ -2221,6 +2352,74 @@ pub(crate) fn should_skip_filler_filter(engine: &EngineType, smart_mode: bool) -
     matches!(engine, EngineType::GeminiTranscribe) && smart_mode
 }
 
+/// Con qué modelo de disco rescatar un dictado que Gemini no pudo entregar.
+///
+/// El orden es el del arrepentimiento mínimo: primero `last_local` —el último
+/// modelo local que la persona eligió a mano, o sea el que ya sabe cómo suena—
+/// y si ése ya no está en disco, el primero descargado de `models`, que llega
+/// ordenado por [`ModelManager::get_available_models`] (rango editorial del
+/// catálogo primero). Un motor en línea nunca califica aunque figure como
+/// descargado: caer de una nube a otra nube no arregla que no haya red, y caer
+/// a la misma sería un bucle. `None` cuando no hay ningún modelo local en
+/// disco — ahí no hay rescate posible y el error sube con su aviso.
+pub(crate) fn resolve_local_fallback(
+    last_local: Option<&str>,
+    models: &[ModelInfo],
+) -> Option<String> {
+    let usable =
+        |model: &&ModelInfo| model.is_downloaded && !matches!(model.source, ModelSource::Cloud);
+
+    if let Some(last) = last_local.map(str::trim).filter(|last| !last.is_empty()) {
+        if let Some(model) = models.iter().find(|m| m.id == last).filter(usable) {
+            return Some(model.id.clone());
+        }
+    }
+
+    models.iter().find(usable).map(|model| model.id.clone())
+}
+
+/// Si este fallo de Gemini justifica rescatar el dictado con un modelo local.
+///
+/// Todos menos [`gemini_stt::GeminiSttError::BadRequest`]. Un request
+/// malformado es un bug de Dilo, no una falla del servicio: reintentarlo en
+/// otro motor devolvería texto y dejaría el bug invisible hasta que alguien
+/// mire los logs. Ése sube tal cual, como hasta hoy.
+pub(crate) fn gemini_error_falls_back(err: &gemini_stt::GeminiSttError) -> bool {
+    !matches!(err, gemini_stt::GeminiSttError::BadRequest(_))
+}
+
+/// La causa de la caída, como **token de máquina** para el evento.
+///
+/// Nunca el `Display` del error: ese texto trae el eco del servidor (y en
+/// `InvalidKey`, potencialmente, un pedazo de la clave), está siempre en
+/// español y no se puede traducir en el frontend. La copia humana vive en las
+/// claves i18n `gemini.fallback_reason.*`, con una genérica para los tokens
+/// que ese locale todavía no conozca.
+pub(crate) fn fallback_reason_token(err: &gemini_stt::GeminiSttError) -> String {
+    use gemini_stt::GeminiSttError as E;
+    match err {
+        E::MissingKey => "missing_key".to_string(),
+        E::InvalidKey(_) => "invalid_key".to_string(),
+        E::Offline => "offline".to_string(),
+        E::Timeout => "timeout".to_string(),
+        E::DailyQuota => "daily_quota".to_string(),
+        // El detalle de `Transient` a veces YA es un token acuñado por el
+        // parser (`interaction_status_failed`): si tiene esa forma —minúsculas,
+        // dígitos y guiones bajos— pasa entero y el aviso gana precisión. Si es
+        // prosa o eco del servidor, se generaliza.
+        E::Transient(detail)
+            if !detail.is_empty()
+                && detail
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') =>
+        {
+            detail.clone()
+        }
+        E::Transient(_) => "transient".to_string(),
+        E::BadRequest(_) => "bad_request".to_string(),
+    }
+}
+
 fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
@@ -2538,6 +2737,156 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    // ---------- Caída de Gemini al modelo local ----------
+
+    /// `ModelInfo` mínimo para las decisiones de la caída: sólo importan el id,
+    /// si está descargado y si vive en la nube. El resto es relleno válido.
+    fn model_info_stub(id: &str, downloaded: bool, cloud: bool) -> ModelInfo {
+        ModelInfo {
+            id: id.to_string(),
+            name: format!("{} (nombre visible)", id),
+            description: String::new(),
+            filename: String::new(),
+            source: if cloud {
+                ModelSource::Cloud
+            } else {
+                ModelSource::Local
+            },
+            size_mb: 0,
+            is_downloaded: downloaded,
+            is_downloading: false,
+            partial_size: 0,
+            is_directory: false,
+            engine_type: if cloud {
+                EngineType::GeminiTranscribe
+            } else {
+                EngineType::Parakeet
+            },
+            accuracy_score: 0.5,
+            speed_score: 0.5,
+            supports_translation: false,
+            is_recommended: false,
+            supported_languages: Vec::new(),
+            supports_language_selection: false,
+            is_custom: false,
+            supports_streaming: false,
+            supports_token_timestamps: false,
+            supports_language_detection: false,
+        }
+    }
+
+    #[test]
+    fn fallback_prefers_last_local_then_any_downloaded_local_never_cloud() {
+        let cohere = model_info_stub("cohere", /*downloaded*/ true, /*cloud*/ false);
+        let gemini = model_info_stub("gemini-3.5-transcribe", true, true);
+        let parakeet = model_info_stub("parakeet-v3", false, false); // no descargado
+        assert_eq!(
+            resolve_local_fallback(Some("cohere"), &[gemini.clone(), cohere.clone()]),
+            Some("cohere".into())
+        );
+        // el último local ya no está descargado → cualquier local descargado
+        assert_eq!(
+            resolve_local_fallback(
+                Some("parakeet-v3"),
+                &[parakeet, cohere.clone(), gemini.clone()]
+            ),
+            Some("cohere".into())
+        );
+        // sin ningún local descargado → None (el aviso lo dice; el dictado va al historial)
+        assert_eq!(resolve_local_fallback(None, &[gemini]), None);
+    }
+
+    #[test]
+    fn fallback_ignores_a_last_local_that_points_at_the_cloud_engine() {
+        // `last_local_model_id` sólo se escribe con modelos de disco, pero un
+        // settings.json editado a mano (o una migración futura) puede traer el
+        // id del motor en línea. Caer "al local" y volver a Gemini sería un
+        // bucle: se lo trata como si no estuviera anotado.
+        let gemini = model_info_stub("gemini-3.5-transcribe", true, true);
+        let cohere = model_info_stub("cohere", true, false);
+        assert_eq!(
+            resolve_local_fallback(Some("gemini-3.5-transcribe"), &[gemini, cohere]),
+            Some("cohere".into())
+        );
+    }
+
+    #[test]
+    fn every_gemini_error_falls_back_except_a_malformed_request() {
+        use crate::gemini_stt::GeminiSttError;
+        for err in [
+            GeminiSttError::MissingKey,
+            GeminiSttError::InvalidKey("API_KEY_INVALID".into()),
+            GeminiSttError::Offline,
+            GeminiSttError::Timeout,
+            GeminiSttError::DailyQuota,
+            GeminiSttError::Transient("503".into()),
+        ] {
+            assert!(
+                gemini_error_falls_back(&err),
+                "{:?} tiene que rescatar el dictado con el modelo local",
+                err
+            );
+        }
+        // Petición malformada: reintentar en otro motor esconde el bug.
+        assert!(!gemini_error_falls_back(&GeminiSttError::BadRequest(
+            "campo desconocido".into()
+        )));
+    }
+
+    #[test]
+    fn fallback_reason_is_a_machine_token_never_prose_with_the_key_in_it() {
+        use crate::gemini_stt::GeminiSttError;
+        assert_eq!(fallback_reason_token(&GeminiSttError::Offline), "offline");
+        assert_eq!(fallback_reason_token(&GeminiSttError::Timeout), "timeout");
+        assert_eq!(
+            fallback_reason_token(&GeminiSttError::DailyQuota),
+            "daily_quota"
+        );
+        assert_eq!(
+            fallback_reason_token(&GeminiSttError::MissingKey),
+            "missing_key"
+        );
+        // El detalle de `InvalidKey` puede traer eco del servidor: nunca viaja.
+        assert_eq!(
+            fallback_reason_token(&GeminiSttError::InvalidKey("key=AIzaSy...".into())),
+            "invalid_key"
+        );
+        // Un detalle que YA es un token (el status raro de una interacción)
+        // pasa tal cual: le da al aviso una causa concreta sin inventar prosa.
+        assert_eq!(
+            fallback_reason_token(&GeminiSttError::Transient(
+                "interaction_status_failed".into()
+            )),
+            "interaction_status_failed"
+        );
+        // Cualquier otro detalle (prosa, números, comillas) se generaliza.
+        assert_eq!(
+            fallback_reason_token(&GeminiSttError::Transient(
+                "HTTP 503 Service Unavailable".into()
+            )),
+            "transient"
+        );
+    }
+
+    #[test]
+    fn next_dictation_returns_to_gemini_after_a_fallback_loaded_a_local_model() {
+        // El riesgo del plan: tras la caída, el motor cargado es el local y
+        // `settings.selected_model` sigue siendo Gemini. El próximo dictado
+        // llama a `initiate_model_load` (`actions.rs:800`), que pide
+        // `selected_model`; la decisión pura de abajo es la que garantiza que
+        // eso RECARGUE Gemini en vez de quedarse con el local.
+        assert_eq!(
+            decide_model_load_action(
+                false,
+                None,
+                Some("parakeet-tdt-0.6b-v3"), // lo que dejó cargado la caída
+                false,
+                "gemini-3.5-transcribe", // settings.selected_model, intacto
+            ),
+            ModelLoadAction::Start
+        );
     }
 
     // ---------- Filtro local de muletillas vs. el smart de Gemini ----------

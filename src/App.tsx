@@ -189,6 +189,30 @@ function App() {
     };
   }, [t]);
 
+  // Gemini no respondió y el dictado lo rescató un modelo local. El aviso es
+  // después del hecho —el texto ya se pegó— y nunca muestra el token crudo que
+  // manda Rust (`offline`, `daily_quota`, …): se traduce acá, con una frase
+  // genérica para un token que este idioma todavía no conozca. Con
+  // `fallback_model` vacío no hubo rescate posible y el mensaje cambia.
+  useEffect(() => {
+    const unlisten = events.geminiFallback.listen((event) => {
+      const { fallback_model, reason } = event.payload;
+      const description = t(`gemini.fallback_reason.${reason}`, {
+        defaultValue: t("gemini.fallback_reason.generic"),
+      });
+      if (!fallback_model) {
+        toast.error(t("gemini.fallback_none"), { description });
+        return;
+      }
+      toast.info(t("gemini.fallback_notice", { model: fallback_model }), {
+        description,
+      });
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [t]);
+
   // Y los cruces que pasaron con esta ventana cerrada: dictar con la ventana
   // cerrada es lo NORMAL, y al cerrarla se destruye el webview con su
   // listener, así que sin esto el aviso se perdía justo en el caso común.

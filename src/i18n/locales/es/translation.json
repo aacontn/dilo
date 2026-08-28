@@ -1016,5 +1016,19 @@
       "dictation": "Dictado",
       "inherit": "Igual que dictado"
     }
+  },
+  "gemini": {
+    "fallback_notice": "Se transcribió con {{model}} porque Gemini no respondió",
+    "fallback_none": "Gemini no respondió y no tienes ningún modelo local descargado para rescatar este dictado",
+    "fallback_reason": {
+      "generic": "Gemini falló por algo pasajero.",
+      "missing_key": "No hay ninguna API key de Google guardada.",
+      "invalid_key": "Google no aceptó la API key.",
+      "offline": "No hubo conexión con Google.",
+      "timeout": "Gemini tardó demasiado en responder.",
+      "daily_quota": "Se acabó la cuota de Gemini por hoy.",
+      "transient": "Gemini falló por algo pasajero.",
+      "interaction_status_failed": "Gemini dio la transcripción por fallida."
+    }
   }
 }

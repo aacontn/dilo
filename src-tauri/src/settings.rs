@@ -447,6 +447,18 @@ pub struct AppSettings {
     pub whats_new_last_seen_version: String,
     #[serde(default = "default_model")]
     pub selected_model: String,
+    /// El último modelo de **disco** que la persona eligió a mano, recordado
+    /// aunque después se pase a un motor en línea. Es la red de seguridad del
+    /// dictado con Gemini: cuando la nube no responde, se rescata el audio con
+    /// este modelo en vez de perder las palabras (ver
+    /// `managers::transcription::resolve_local_fallback`). Se escribe en
+    /// `switch_active_model` y sólo cuando el elegido no es `ModelSource::Cloud`
+    /// — si guardáramos también el de la nube, la caída caería sobre sí misma.
+    /// `None` hasta el primer cambio de modelo; ahí la caída usa el primer
+    /// modelo descargado del catálogo. `#[serde(default)]` para que un
+    /// `settings.json` viejo cargue igual sin tocar el resto del archivo.
+    #[serde(default)]
+    pub last_local_model_id: Option<String>,
     #[serde(default)]
     pub onboarding_completed: bool,
     #[serde(default = "default_always_on_microphone")]
@@ -1202,6 +1214,7 @@ pub fn get_default_settings() -> AppSettings {
         show_whats_new_on_update: default_show_whats_new_on_update(),
         whats_new_last_seen_version: default_whats_new_last_seen_version(),
         selected_model: "".to_string(),
+        last_local_model_id: None,
         onboarding_completed: false,
         always_on_microphone: false,
         selected_microphone: None,

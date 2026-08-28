@@ -1,4 +1,4 @@
-use crate::managers::model::{ModelInfo, ModelManager};
+use crate::managers::model::{ModelInfo, ModelManager, ModelSource};
 use crate::managers::transcription::{ModelStateEvent, TranscriptionManager};
 use crate::settings::{get_settings, write_settings, ModelUnloadTimeout};
 use std::sync::Arc;
@@ -112,12 +112,21 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
     let unload_timeout = settings.model_unload_timeout;
     let old_model = settings.selected_model.clone();
     let old_onboarding_completed = settings.onboarding_completed;
+    let old_last_local = settings.last_local_model_id.clone();
 
     // Persist the new selection early so the frontend sees the correct model
     // when it reacts to events emitted by load_model.
     let mut settings = settings;
     settings.selected_model = model_id.to_string();
     settings.onboarding_completed = true;
+    // Elegir un modelo de disco deja anotado cuál fue: es el que rescata el
+    // dictado si más tarde se pasa a un motor en línea y ése no responde (ver
+    // `managers::transcription::resolve_local_fallback`). Un motor en línea
+    // NO se anota — sería caer de Gemini a Gemini — y tampoco borra la nota
+    // anterior, que es justamente la que va a hacer falta.
+    if !matches!(model_info.source, ModelSource::Cloud) {
+        settings.last_local_model_id = Some(model_id.to_string());
+    }
 
     write_settings(app, settings);
 
@@ -147,6 +156,7 @@ pub fn switch_active_model(app: &AppHandle, model_id: &str) -> Result<(), String
         let mut settings = get_settings(app);
         settings.selected_model = old_model;
         settings.onboarding_completed = old_onboarding_completed;
+        settings.last_local_model_id = old_last_local;
         write_settings(app, settings);
         return Err(e.to_string());
     }

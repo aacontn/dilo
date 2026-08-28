@@ -1016,5 +1016,19 @@
       "dictation": "Dictation",
       "inherit": "Same as dictation"
     }
+  },
+  "gemini": {
+    "fallback_notice": "Transcribed with {{model}} because Gemini didn't answer",
+    "fallback_none": "Gemini didn't answer and there is no local model downloaded to rescue this dictation",
+    "fallback_reason": {
+      "generic": "Gemini failed on something temporary.",
+      "missing_key": "There is no Google API key saved.",
+      "invalid_key": "Google rejected the API key.",
+      "offline": "There was no connection to Google.",
+      "timeout": "Gemini took too long to answer.",
+      "daily_quota": "Today's Gemini quota ran out.",
+      "transient": "Gemini failed on something temporary.",
+      "interaction_status_failed": "Gemini reported the transcription as failed."
+    }
   }
 }

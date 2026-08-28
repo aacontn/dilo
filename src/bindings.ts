@@ -1371,6 +1371,7 @@ async ttsSpeak(text: string, voice: string | null) : Promise<Result<null, string
 
 
 export const events = __makeEvents__<{
+geminiFallback: GeminiFallback,
 historyUpdatePayload: HistoryUpdatePayload,
 meetingAudioWarning: MeetingAudioWarning,
 meetingCallDetected: MeetingCallDetected,
@@ -1387,6 +1388,7 @@ streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent,
 trayIconStateChanged: TrayIconStateChanged
 }>({
+geminiFallback: "gemini-fallback",
 historyUpdatePayload: "history-update-payload",
 meetingAudioWarning: "meeting-audio-warning",
 meetingCallDetected: "meeting-call-detected",
@@ -1435,7 +1437,20 @@ bindings?: Partial<{ [key in string]: ShortcutBinding }>; push_to_talk?: boolean
  * upgrading from before this key existed are blanked by the migration so they
  * see the current release's notes — see `apply_settings_migrations`.
  */
-whats_new_last_seen_version?: string; selected_model?: string; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; 
+whats_new_last_seen_version?: string; selected_model?: string; 
+/**
+ * El último modelo de **disco** que la persona eligió a mano, recordado
+ * aunque después se pase a un motor en línea. Es la red de seguridad del
+ * dictado con Gemini: cuando la nube no responde, se rescata el audio con
+ * este modelo en vez de perder las palabras (ver
+ * `managers::transcription::resolve_local_fallback`). Se escribe en
+ * `switch_active_model` y sólo cuando el elegido no es `ModelSource::Cloud`
+ * — si guardáramos también el de la nube, la caída caería sobre sí misma.
+ * `None` hasta el primer cambio de modelo; ahí la caída usa el primer
+ * modelo descargado del catálogo. `#[serde(default)]` para que un
+ * `settings.json` viejo cargue igual sin tocar el resto del archivo.
+ */
+last_local_model_id?: string | null; onboarding_completed?: boolean; always_on_microphone?: boolean; selected_microphone?: string | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; 
 /**
  * Los modos de transformación. Cada uno es prompt + tecla + proveedor, y
  * se invoca por su propia tecla (binding `mode:<id>`): no hay "modo
@@ -1567,6 +1582,20 @@ export type EngineType =
  * carga nada local: el audio viaja al servidor y vuelve el texto.
  */
 "GeminiTranscribe"
+/**
+ * El dictado salió, pero no por donde la persona creía: Gemini falló y lo
+ * rescató un modelo local. Es un aviso **después del hecho** —el texto ya se
+ * pegó— porque la alternativa era perder las palabras esperando una decisión.
+ * 
+ * `fallback_model` es el nombre visible del modelo que salvó el dictado, y
+ * queda **vacío** cuando no había ninguno en disco: ahí el error sube igual y
+ * el frontend muestra la variante que explica por qué no hubo texto.
+ * 
+ * `reason` es un token de máquina (`offline`, `daily_quota`, …), nunca el
+ * texto del error: la copia humana vive en i18n y el token nunca se muestra
+ * crudo. Ver [`fallback_reason_token`].
+ */
+export type GeminiFallback = { fallback_model: string; reason: string }
 export type GpuDeviceOption = { id: number; name: string; total_vram_mb: number }
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean }
 export type HistoryUpdatePayload = { action: "added"; entry: HistoryEntry } | { action: "updated"; entry: HistoryEntry } | { action: "deleted"; id: number } | { action: "toggled"; id: number }
