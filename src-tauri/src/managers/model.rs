@@ -1361,10 +1361,13 @@ impl ModelManager {
                 speed_score: 0.85,
                 supports_translation: false,
                 is_recommended: false,
-                // Sin lista de idiomas a propósito: Gemini los detecta en el
-                // servidor y mandarle `language_codes` apaga el modo smart
-                // (spec §3), así que acá no hay nada que elegir.
-                supported_languages: Vec::new(),
+                // La lista real la detecta el servidor (85+ idiomas, de ahí
+                // `supports_language_detection: true`); acá van sólo los dos que
+                // le importan al filtro por idioma de la UI, para que la tarjeta
+                // EN LÍNEA no desaparezca del selector. No es una lista para
+                // elegir: mandarle `language_codes` a Gemini apaga el modo smart
+                // (spec §3), por eso `supports_language_selection: false`.
+                supported_languages: vec!["es".to_string(), "en".to_string()],
                 supports_language_selection: false,
                 is_custom: false,
                 supports_streaming: false,
@@ -1700,11 +1703,8 @@ impl ModelManager {
         // If no model is selected, pick the first downloaded one using the same
         // ranked order the UI receives.
         if settings.selected_model.is_empty() {
-            if let Some(available_model) = self
-                .get_available_models()
-                .into_iter()
-                .find(|model| model.is_downloaded)
-            {
+            let ranked = self.get_available_models();
+            if let Some(available_model) = Self::auto_selectable_model(&ranked) {
                 info!(
                     "Auto-selecting model: {} ({})",
                     available_model.id, available_model.name
@@ -1720,6 +1720,20 @@ impl ModelManager {
         }
 
         Ok(())
+    }
+
+    /// El modelo que la autoselección puede elegir de una lista ya ordenada como
+    /// la entrega [`Self::get_available_models`]: el primero descargado que viva
+    /// en disco.
+    ///
+    /// Un motor en línea (`ModelSource::Cloud`) queda afuera aunque siempre
+    /// figure como descargado: nunca es el motor por defecto. Sin API key no
+    /// dicta, y mandarle el audio a un servidor es una decisión que toma la
+    /// persona, no un arreglo que Dilo hace solo cuando se queda sin modelos.
+    fn auto_selectable_model(ranked: &[ModelInfo]) -> Option<&ModelInfo> {
+        ranked
+            .iter()
+            .find(|model| model.is_downloaded && !matches!(model.source, ModelSource::Cloud))
     }
 
     /// Discover custom Whisper-family models in the models directory: legacy
@@ -3146,6 +3160,33 @@ mod tests {
         assert!(!g.supports_language_selection); // language_codes mata smart — spec §3
         assert!(!g.supports_token_timestamps); // reuniones quedan fuera
         assert!(!g.supports_streaming);
+        // La tarjeta EN LÍNEA tiene que verse en el selector: con la lista
+        // vacía, el filtro por idioma de la UI la escondía (spec §5).
+        assert!(g.supported_languages.contains(&"es".to_string()));
+    }
+
+    #[test]
+    fn auto_selection_never_lands_on_the_cloud_engine() {
+        let gemini = ModelManager::builtin_models()
+            .remove(GEMINI_STT_MODEL_ID)
+            .expect("gemini en el catálogo");
+        let mut local = installed_model("parakeet-local", "parakeet.gguf", ModelSource::Local);
+
+        // Nada local en disco: la autoselección se queda sin candidato en vez de
+        // caer en el motor en línea (que siempre figura como descargado).
+        local.is_downloaded = false;
+        assert!(
+            ModelManager::auto_selectable_model(&[gemini.clone(), local.clone()]).is_none(),
+            "un motor en línea nunca es el modelo por defecto"
+        );
+
+        // Con un modelo local disponible, ese es el elegido aunque el motor en
+        // línea vaya primero en el orden.
+        local.is_downloaded = true;
+        assert_eq!(
+            ModelManager::auto_selectable_model(&[gemini, local]).map(|m| m.id.as_str()),
+            Some("parakeet-local")
+        );
     }
 
     #[test]
