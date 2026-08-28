@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Лёгкий (257 МБ). Для скромных машин, которые тоже хотят диктовать."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Онлайн-диктовка от Google. Очень точная, но нужны API-ключ и интернет."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Устаревшее",
     "unloadModel": "Выгрузить модель",
     "unloadModelTooltip": "Освобождает память прямо сейчас, не закрывая Dilo. Она автоматически загрузится снова, когда вы начнёте диктовать — Dilo делает то же самостоятельно после периода бездействия."
+  },
+  "models": {
+    "online_badge": "ОНЛАЙН",
+    "auto_language": "Автоматический язык",
+    "gemini_privacy": "Аудио диктовки отправляется в Google.",
+    "gemini_requires_key": "Требуется ваш API-ключ Google AI Studio.",
+    "gemini_configure_key": "Настройте его в разделе «{{section}}»"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Надиктовка",
       "inherit": "Как при надиктовке"
+    }
+  },
+  "gemini": {
+    "smart_label": "Умная очистка Gemini",
+    "smart_description": "Gemini возвращает диктовку без слов-паразитов и повторов. Отключите, чтобы получать дословный текст.",
+    "fallback_notice": "Расшифровано с помощью {{model}}, потому что Gemini не ответил",
+    "fallback_none": "Gemini не ответил, а локальная модель для спасения этой диктовки не загружена",
+    "fallback_reason": {
+      "generic": "Gemini дал сбой из-за временной причины.",
+      "missing_key": "Не сохранён ни один API-ключ Google.",
+      "invalid_key": "Google отклонил API-ключ.",
+      "offline": "Не было соединения с Google.",
+      "timeout": "Gemini отвечал слишком долго.",
+      "daily_quota": "Дневная квота Gemini исчерпана.",
+      "transient": "Gemini дал сбой из-за временной причины.",
+      "interaction_status_failed": "Gemini сообщил, что расшифровка не удалась."
     }
   }
 }

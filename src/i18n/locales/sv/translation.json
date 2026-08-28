@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Lättviktare (257 MB). För enklare datorer som också vill diktera."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Onlinediktering från Google. Mycket noggrann, men kräver API-nyckel och internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Äldre",
     "unloadModel": "Avlasta modell",
     "unloadModelTooltip": "Frigör minnet direkt utan att stänga Dilo. Det laddas automatiskt igen nästa gång du dikterar — Dilo gör det även själv efter en stunds inaktivitet."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Automatiskt språk",
+    "gemini_privacy": "Ljudet från dikteringen skickas till Google.",
+    "gemini_requires_key": "Kräver din API-nyckel från Google AI Studio.",
+    "gemini_configure_key": "Ställ in den i {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Diktering",
       "inherit": "Samma som diktering"
+    }
+  },
+  "gemini": {
+    "smart_label": "Smart rensning från Gemini",
+    "smart_description": "Gemini levererar dikteringen utan utfyllnadsord och upprepningar. Stäng av för ordagrann diktering.",
+    "fallback_notice": "Transkriberat med {{model}} eftersom Gemini inte svarade",
+    "fallback_none": "Gemini svarade inte och det finns ingen nedladdad lokal modell som kan rädda den här dikteringen",
+    "fallback_reason": {
+      "generic": "Gemini misslyckades med något tillfälligt.",
+      "missing_key": "Det finns ingen sparad Google-API-nyckel.",
+      "invalid_key": "Google avvisade API-nyckeln.",
+      "offline": "Det fanns ingen anslutning till Google.",
+      "timeout": "Gemini tog för lång tid på sig att svara.",
+      "daily_quota": "Dagens Gemini-kvot är slut.",
+      "transient": "Gemini misslyckades med något tillfälligt.",
+      "interaction_status_failed": "Gemini rapporterade transkriptionen som misslyckad."
     }
   }
 }

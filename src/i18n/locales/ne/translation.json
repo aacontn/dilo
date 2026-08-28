@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "हल्का (२५७ MB)। साधारण कम्प्युटरका लागि पनि श्रुतिलेखन।"
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google को अनलाइन डिक्टेसन। धेरै सटीक, तर API कुञ्जी र इन्टरनेट चाहिन्छ।"
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     },
     "unloadModel": "मोडेल अनलोड गर्नुहोस्",
     "unloadModelTooltip": "Dilo बन्द नगरी अहिले नै मेमोरी खाली गर्छ। तपाईंले फेरि बोल्दा यो स्वतः पुनः लोड हुन्छ; निष्क्रियताको केही समयपछि Dilo ले पनि यो आफैं गर्छ।"
+  },
+  "models": {
+    "online_badge": "अनलाइन",
+    "auto_language": "स्वचालित भाषा",
+    "gemini_privacy": "डिक्टेसनको अडियो Google मा पठाइन्छ।",
+    "gemini_requires_key": "Google AI Studio को API कुञ्जी चाहिन्छ।",
+    "gemini_configure_key": "{{section}} खण्डमा सेट गर्नुहोस्"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "डिक्टेशन",
       "inherit": "डिक्टेशन जस्तै"
+    }
+  },
+  "gemini": {
+    "smart_label": "Gemini को स्मार्ट सफाइ",
+    "smart_description": "Gemini ले भरिया शब्द र दोहोरिने वाक्यांश हटाएर डिक्टेसन फर्काउँछ। अक्षरशः पाठ चाहिन्छ भने यसलाई बन्द गर्नुहोस्।",
+    "fallback_notice": "Gemini ले जवाफ नदिएकाले {{model}} बाट ट्रान्सक्राइब गरियो",
+    "fallback_none": "Gemini ले जवाफ दिएन र यो डिक्टेसन बचाउन कुनै स्थानीय मोडेल डाउनलोड गरिएको छैन",
+    "fallback_reason": {
+      "generic": "Gemini अस्थायी कारणले असफल भयो।",
+      "missing_key": "कुनै Google API कुञ्जी सुरक्षित गरिएको छैन।",
+      "invalid_key": "Google ले API कुञ्जी अस्वीकार गर्यो।",
+      "offline": "Google सँग जडान भएन।",
+      "timeout": "Gemini ले जवाफ दिन धेरै समय लियो।",
+      "daily_quota": "आजको Gemini कोटा सकियो।",
+      "transient": "Gemini अस्थायी कारणले असफल भयो।",
+      "interaction_status_failed": "Gemini ले ट्रान्सक्रिप्शन असफल भएको बतायो।"
     }
   }
 }

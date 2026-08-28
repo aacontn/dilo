@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Лек (257 MB). За скромни машини, които също искат да диктуват."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Онлайн диктовка от Google. Много точна, но изисква API ключ и интернет."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Наследен",
     "unloadModel": "Разтоварване на модела",
     "unloadModelTooltip": "Освобождава паметта веднага, без да затваря Dilo. Зарежда се отново автоматично следващия път, когато диктувате — Dilo прави това и самостоятелно след известно бездействие."
+  },
+  "models": {
+    "online_badge": "ОНЛАЙН",
+    "auto_language": "Автоматичен език",
+    "gemini_privacy": "Звукът от диктовката се изпраща към Google.",
+    "gemini_requires_key": "Изисква вашия API ключ от Google AI Studio.",
+    "gemini_configure_key": "Настройте го в {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Диктовка",
       "inherit": "Както при диктовката"
+    }
+  },
+  "gemini": {
+    "smart_label": "Интелигентно почистване от Gemini",
+    "smart_description": "Gemini връща диктовката без паразитни думи и повторения. Изключете за дословен текст.",
+    "fallback_notice": "Транскрибирано с {{model}}, защото Gemini не отговори",
+    "fallback_none": "Gemini не отговори и няма изтеглен локален модел, който да спаси тази диктовка",
+    "fallback_reason": {
+      "generic": "Gemini се провали заради нещо временно.",
+      "missing_key": "Няма запазен API ключ на Google.",
+      "invalid_key": "Google отхвърли API ключа.",
+      "offline": "Нямаше връзка с Google.",
+      "timeout": "Gemini се забави твърде много с отговора.",
+      "daily_quota": "Дневната квота на Gemini свърши.",
+      "transient": "Gemini се провали заради нещо временно.",
+      "interaction_status_failed": "Gemini отбеляза транскрипцията като неуспешна."
     }
   }
 }

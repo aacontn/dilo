@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "קל משקל (257 MB). למחשבים צנועים שרוצים להכתיב גם כן."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "הכתבה מקוונת של Google. מדויקת מאוד, אבל דורשת מפתח API ואינטרנט."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "מדור קודם",
     "unloadModel": "פרוק מודל",
     "unloadModelTooltip": "משחרר את הזיכרון מיד בלי לסגור את Dilo. הוא נטען מחדש אוטומטית בפעם הבאה שתכתיב; Dilo גם עושה את זה לבד אחרי זמן מה של חוסר פעילות."
+  },
+  "models": {
+    "online_badge": "מקוון",
+    "auto_language": "שפה אוטומטית",
+    "gemini_privacy": "האודיו של ההכתבה נשלח ל-Google.",
+    "gemini_requires_key": "דורש מפתח API של Google AI Studio.",
+    "gemini_configure_key": "להגדרה ב{{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "הכתבה",
       "inherit": "כמו בהכתבה"
+    }
+  },
+  "gemini": {
+    "smart_label": "ניקוי חכם של Gemini",
+    "smart_description": "Gemini מחזיר את ההכתבה בלי מילות מילוי וחזרות. כבה כדי לקבל תמלול מילה במילה.",
+    "fallback_notice": "תומלל עם {{model}} כי Gemini לא הגיב",
+    "fallback_none": "Gemini לא הגיב ואין מודל מקומי מותקן שיציל את ההכתבה הזו",
+    "fallback_reason": {
+      "generic": "Gemini נכשל בגלל תקלה זמנית.",
+      "missing_key": "לא שמור מפתח API של Google.",
+      "invalid_key": "Google דחתה את מפתח ה-API.",
+      "offline": "לא היה חיבור ל-Google.",
+      "timeout": "Gemini לקח יותר מדי זמן להגיב.",
+      "daily_quota": "מכסת Gemini להיום נגמרה.",
+      "transient": "Gemini נכשל בגלל תקלה זמנית.",
+      "interaction_status_failed": "Gemini דיווח שהתמלול נכשל."
     }
   }
 }

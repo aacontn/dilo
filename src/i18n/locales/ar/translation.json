@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "خفيف (257 ميغابايت). للأجهزة المتواضعة التي تريد الإملاء أيضاً."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "إملاء عبر الإنترنت من Google. دقيق جدًا، لكنه يحتاج إلى مفتاح API واتصال بالإنترنت."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "قديم",
     "unloadModel": "تفريغ النموذج",
     "unloadModelTooltip": "يحرر الذاكرة الآن دون إغلاق Dilo. يُعاد تحميله تلقائياً في المرة القادمة التي تملي فيها؛ يفعل Dilo ذلك أيضاً من تلقاء نفسه بعد فترة من عدم الاستخدام."
+  },
+  "models": {
+    "online_badge": "عبر الإنترنت",
+    "auto_language": "اللغة تلقائيًا",
+    "gemini_privacy": "يُرسل صوت الإملاء إلى Google.",
+    "gemini_requires_key": "يحتاج إلى مفتاح API من Google AI Studio.",
+    "gemini_configure_key": "اضبطه في {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "الإملاء",
       "inherit": "نفس نموذج الإملاء"
+    }
+  },
+  "gemini": {
+    "smart_label": "التنظيف الذكي من Gemini",
+    "smart_description": "يعيد Gemini الإملاء بدون كلمات حشو أو تكرار. أوقفه للحصول على النص الحرفي.",
+    "fallback_notice": "تم النسخ باستخدام {{model}} لأن Gemini لم يستجب",
+    "fallback_none": "لم يستجب Gemini ولا يوجد نموذج محلي مُنزَّل لإنقاذ هذا الإملاء",
+    "fallback_reason": {
+      "generic": "أخفق Gemini بسبب مشكلة مؤقتة.",
+      "missing_key": "لا يوجد مفتاح API لـ Google محفوظ.",
+      "invalid_key": "رفضت Google مفتاح API.",
+      "offline": "لم يكن هناك اتصال بـ Google.",
+      "timeout": "استغرق Gemini وقتًا طويلاً للرد.",
+      "daily_quota": "نفدت حصة Gemini لهذا اليوم.",
+      "transient": "أخفق Gemini بسبب مشكلة مؤقتة.",
+      "interaction_status_failed": "أبلغ Gemini عن فشل عملية النسخ."
     }
   }
 }

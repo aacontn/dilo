@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "轻量(257 MB)。配置一般的电脑也能听写。"
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google 的在线听写。非常准确，但需要 API 密钥和网络。"
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "旧版",
     "unloadModel": "卸载模型",
     "unloadModelTooltip": "立即释放内存，且无需关闭 Dilo。下次听写时会自动重新加载——Dilo 在阀置一段时间后也会自动执行此操作。"
+  },
+  "models": {
+    "online_badge": "在线",
+    "auto_language": "自动识别语言",
+    "gemini_privacy": "听写音频会发送给 Google。",
+    "gemini_requires_key": "需要你的 Google AI Studio API 密钥。",
+    "gemini_configure_key": "在“{{section}}”中设置"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "听写",
       "inherit": "与听写相同"
+    }
+  },
+  "gemini": {
+    "smart_label": "Gemini 智能整理",
+    "smart_description": "Gemini 返回去掉语气词和重复的听写结果。想要逐字原文请关闭。",
+    "fallback_notice": "Gemini 未响应，已改用 {{model}} 转录",
+    "fallback_none": "Gemini 未响应，且没有下载任何本地模型来挽救这次听写",
+    "fallback_reason": {
+      "generic": "Gemini 因临时问题失败。",
+      "missing_key": "没有保存任何 Google API 密钥。",
+      "invalid_key": "Google 拒绝了该 API 密钥。",
+      "offline": "无法连接到 Google。",
+      "timeout": "Gemini 响应太慢。",
+      "daily_quota": "今天的 Gemini 配额已用完。",
+      "transient": "Gemini 因临时问题失败。",
+      "interaction_status_failed": "Gemini 报告本次转录失败。"
     }
   }
 }

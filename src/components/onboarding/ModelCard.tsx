@@ -3,15 +3,23 @@ import { useTranslation } from "react-i18next";
 import {
   AudioLines,
   Check,
+  Cloud,
   Download,
   Globe,
   HardDrive,
+  KeyRound,
   Languages,
   Loader2,
   Trash2,
 } from "lucide-react";
 import type { ModelInfo } from "@/bindings";
 import { formatModelSize } from "../../lib/utils/format";
+import {
+  hasGoogleApiKey,
+  isCloudModel,
+  isGeminiModel,
+} from "../../lib/utils/cloudModel";
+import { useSettings } from "../../hooks/useSettings";
 import {
   getTranslatedModelDescription,
   getTranslatedModelName,
@@ -77,6 +85,12 @@ interface ModelCardProps {
   downloadProgress?: number;
   downloadSpeed?: number; // MB/s
   showRecommended?: boolean;
+  /**
+   * Lleva a la pantalla donde se guarda la API key. Sólo lo pasa quien tiene
+   * a dónde navegar (la pestaña Modelos); en el onboarding no hay barra
+   * lateral todavía, y ahí la tarjeta se queda con el aviso sin enlace.
+   */
+  onConfigureKey?: () => void;
 }
 
 const ModelCard: React.FC<ModelCardProps> = ({
@@ -92,8 +106,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
   downloadProgress,
   downloadSpeed,
   showRecommended = true,
+  onConfigureKey,
 }) => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const isFeatured = variant === "featured";
   const isClickable =
     status === "available" || status === "active" || status === "downloadable";
@@ -101,8 +117,23 @@ const ModelCard: React.FC<ModelCardProps> = ({
   // Get translated model name and description
   const displayName = getTranslatedModelName(model, t);
   const displayDescription = getTranslatedModelDescription(model, t);
+  // Un motor en línea no ocupa disco ni se descarga: sin tamaño ("0 MB" no
+  // dice nada), sin botón de eliminar y sin barra de progreso.
+  const isCloud = isCloudModel(model);
+  const isGemini = isCloud && isGeminiModel(model);
+  const needsGoogleKey = isGemini && !hasGoogleApiKey(settings);
+  // Los dos idiomas que declara Gemini son un truco para el filtro por idioma
+  // del catálogo, no una lista para elegir: el servidor detecta el idioma solo
+  // y mandarle uno fijo apagaría el modo smart. La tarjeta lo dice así.
+  const showsAutoLanguageOnly =
+    isCloud &&
+    !model.supports_language_selection &&
+    model.supports_language_detection;
   const showModelSize =
-    status === "downloadable" || status === "available" || status === "active";
+    !isCloud &&
+    (status === "downloadable" ||
+      status === "available" ||
+      status === "active");
   const formattedModelSize = formatModelSize(Number(model.size_mb));
   const quantLabel = getQuantLabel(model.filename);
   const capabilityLanguages = getUniqueCapabilityLanguages(
@@ -177,6 +208,12 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 {t("modelSelector.active")}
               </Badge>
             )}
+            {isCloud && (
+              <Badge variant="secondary">
+                <Cloud className="w-3 h-3 mr-1" />
+                {t("models.online_badge")}
+              </Badge>
+            )}
             {model.is_custom && (
               <Badge variant="secondary">{t("modelSelector.custom")}</Badge>
             )}
@@ -238,7 +275,11 @@ const ModelCard: React.FC<ModelCardProps> = ({
             }
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>{getLanguageDisplayText(model.supported_languages, t)}</span>
+            <span>
+              {showsAutoLanguageOnly
+                ? t("models.auto_language")
+                : getLanguageDisplayText(model.supported_languages, t)}
+            </span>
           </div>
         )}
         {model.supports_translation && (
@@ -272,19 +313,53 @@ const ModelCard: React.FC<ModelCardProps> = ({
             )}
           </span>
         )}
-        {onDelete && (status === "available" || status === "active") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className="flex items-center gap-1.5 text-accent-text hover:text-accent-text hover:bg-logo-primary/10"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{t("common.delete")}</span>
-          </Button>
-        )}
+        {onDelete &&
+          !isCloud &&
+          (status === "available" || status === "active") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              title={t("modelSelector.deleteModel", { modelName: displayName })}
+              className="flex items-center gap-1.5 text-accent-text hover:text-accent-text hover:bg-logo-primary/10"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t("common.delete")}</span>
+            </Button>
+          )}
       </div>
+
+      {/* Motor en línea: adónde va el audio y si falta la API key. Nunca se
+          muestra la key, sólo si hay una guardada. */}
+      {isGemini && (
+        <div className="flex flex-col gap-1 w-full mt-1">
+          <p className="flex items-start gap-1.5 text-xs text-muted-text">
+            <Cloud className="w-3.5 h-3.5 shrink-0 mt-px" />
+            <span>{t("models.gemini_privacy")}</span>
+          </p>
+          {needsGoogleKey && (
+            <p className="flex flex-wrap items-center gap-1.5 text-xs text-accent-text">
+              <KeyRound className="w-3.5 h-3.5 shrink-0" />
+              <span>{t("models.gemini_requires_key")}</span>
+              {onConfigureKey && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onConfigureKey();
+                  }}
+                  className="underline underline-offset-2 font-medium hover:text-text transition-colors"
+                >
+                  {t("models.gemini_configure_key", {
+                    section: t("sidebar.postProcessing"),
+                  })}
+                </button>
+              )}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Download/extract progress */}
       {status === "downloading" && downloadProgress !== undefined && (

@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Leve (257 MB). Para máquinas modestas que também querem ditar."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Ditado on-line do Google. Muito preciso, mas precisa de chave de API e internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Legado",
     "unloadModel": "Descarregar modelo",
     "unloadModelTooltip": "Libera a memória agora mesmo sem fechar o Dilo. Ele recarrega automaticamente na próxima vez que você ditar — o Dilo também faz isso sozinho depois de um tempo de inatividade."
+  },
+  "models": {
+    "online_badge": "ON-LINE",
+    "auto_language": "Idioma automático",
+    "gemini_privacy": "O áudio do seu ditado é enviado ao Google.",
+    "gemini_requires_key": "Precisa da sua chave de API do Google AI Studio.",
+    "gemini_configure_key": "Configure em {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Ditado",
       "inherit": "Igual ao ditado"
+    }
+  },
+  "gemini": {
+    "smart_label": "Limpeza inteligente do Gemini",
+    "smart_description": "O Gemini devolve o ditado sem vícios de linguagem nem repetições. Desative para receber o ditado literal.",
+    "fallback_notice": "Transcrito com {{model}} porque o Gemini não respondeu",
+    "fallback_none": "O Gemini não respondeu e não há nenhum modelo local baixado para salvar este ditado",
+    "fallback_reason": {
+      "generic": "O Gemini falhou por algo passageiro.",
+      "missing_key": "Não há nenhuma chave de API do Google salva.",
+      "invalid_key": "O Google recusou a chave de API.",
+      "offline": "Não houve conexão com o Google.",
+      "timeout": "O Gemini demorou demais para responder.",
+      "daily_quota": "A cota do Gemini de hoje acabou.",
+      "transient": "O Gemini falhou por algo passageiro.",
+      "interaction_status_failed": "O Gemini deu a transcrição como falha."
     }
   }
 }

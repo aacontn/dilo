@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "軽量(257 MB)。控えめなマシンでも口述可能。"
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google のオンライン口述。非常に高精度ですが、API キーとインターネットが必要です。"
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "旧式",
     "unloadModel": "モデルをアンロード",
     "unloadModelTooltip": "Dilo を閉じずに今すぐメモリを解放します。次に口述するときに自動的に再読み込みされます。しばらく操作がないと Dilo が自動的に行うこともあります。"
+  },
+  "models": {
+    "online_badge": "オンライン",
+    "auto_language": "言語を自動判別",
+    "gemini_privacy": "口述の音声は Google に送信されます。",
+    "gemini_requires_key": "Google AI Studio の API キーが必要です。",
+    "gemini_configure_key": "{{section}}で設定する"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "ディクテーション",
       "inherit": "ディクテーションと同じ"
+    }
+  },
+  "gemini": {
+    "smart_label": "Gemini のスマート整形",
+    "smart_description": "Gemini がフィラーや言い直しを取り除いた口述を返します。そのままの文字起こしが必要な場合はオフにしてください。",
+    "fallback_notice": "Gemini が応答しなかったため {{model}} で文字起こししました",
+    "fallback_none": "Gemini が応答せず、この口述を救済できるローカルモデルもダウンロードされていません",
+    "fallback_reason": {
+      "generic": "Gemini が一時的な問題で失敗しました。",
+      "missing_key": "Google の API キーが保存されていません。",
+      "invalid_key": "Google が API キーを拒否しました。",
+      "offline": "Google に接続できませんでした。",
+      "timeout": "Gemini の応答に時間がかかりすぎました。",
+      "daily_quota": "本日の Gemini の割り当てを使い切りました。",
+      "transient": "Gemini が一時的な問題で失敗しました。",
+      "interaction_status_failed": "Gemini が文字起こしを失敗として報告しました。"
     }
   }
 }

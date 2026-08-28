@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Lehký (257 MB). Pro skromné počítače, které chtějí také diktovat."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Online diktování od Google. Velmi přesné, ale vyžaduje API klíč a internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Zastaralé",
     "unloadModel": "Uvolnit model",
     "unloadModelTooltip": "Okamžitě uvolní paměť, aniž by se Dilo zavřelo. Při příštím diktování se model znovu načte automaticky – Dilo to dělá i samo po chvíli nečinnosti."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Automatický jazyk",
+    "gemini_privacy": "Zvuk diktování se odesílá společnosti Google.",
+    "gemini_requires_key": "Vyžaduje váš API klíč z Google AI Studia.",
+    "gemini_configure_key": "Nastavte jej v sekci {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Diktování",
       "inherit": "Stejné jako diktování"
+    }
+  },
+  "gemini": {
+    "smart_label": "Chytré čištění od Gemini",
+    "smart_description": "Gemini vrací diktování bez vycpávkových slov a opakování. Vypněte pro doslovný přepis.",
+    "fallback_notice": "Přepsáno pomocí {{model}}, protože Gemini neodpovědělo",
+    "fallback_none": "Gemini neodpovědělo a není stažen žádný místní model, který by toto diktování zachránil",
+    "fallback_reason": {
+      "generic": "Gemini selhalo kvůli něčemu dočasnému.",
+      "missing_key": "Není uložen žádný API klíč Google.",
+      "invalid_key": "Google odmítl API klíč.",
+      "offline": "Nebylo spojení s Google.",
+      "timeout": "Gemini odpovídalo příliš dlouho.",
+      "daily_quota": "Dnešní kvóta Gemini je vyčerpaná.",
+      "transient": "Gemini selhalo kvůli něčemu dočasnému.",
+      "interaction_status_failed": "Gemini označilo přepis za neúspěšný."
     }
   }
 }

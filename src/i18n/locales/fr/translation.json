@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Léger (257 Mo). Pour les machines modestes qui veulent dicter quand même."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Dictée en ligne de Google. Très précise, mais nécessite une clé API et Internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Hérité",
     "unloadModel": "Décharger le modèle",
     "unloadModelTooltip": "Libère la mémoire immédiatement sans fermer Dilo. Il se recharge automatiquement la prochaine fois que vous dictez — Dilo le fait aussi tout seul après un moment d'inactivité."
+  },
+  "models": {
+    "online_badge": "EN LIGNE",
+    "auto_language": "Langue automatique",
+    "gemini_privacy": "L'audio de la dictée est envoyé à Google.",
+    "gemini_requires_key": "Nécessite votre clé API Google AI Studio.",
+    "gemini_configure_key": "La configurer dans {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Dictée",
       "inherit": "Comme la dictée"
+    }
+  },
+  "gemini": {
+    "smart_label": "Nettoyage intelligent de Gemini",
+    "smart_description": "Gemini renvoie la dictée sans mots de remplissage ni répétitions. Désactivez-le pour obtenir le texte mot pour mot.",
+    "fallback_notice": "Transcrit avec {{model}} parce que Gemini n'a pas répondu",
+    "fallback_none": "Gemini n'a pas répondu et aucun modèle local n'est téléchargé pour sauver cette dictée",
+    "fallback_reason": {
+      "generic": "Gemini a échoué pour une raison passagère.",
+      "missing_key": "Aucune clé API Google n'est enregistrée.",
+      "invalid_key": "Google a refusé la clé API.",
+      "offline": "Il n'y a pas eu de connexion à Google.",
+      "timeout": "Gemini a mis trop de temps à répondre.",
+      "daily_quota": "Le quota Gemini du jour est épuisé.",
+      "transient": "Gemini a échoué pour une raison passagère.",
+      "interaction_status_failed": "Gemini a signalé la transcription comme échouée."
     }
   }
 }

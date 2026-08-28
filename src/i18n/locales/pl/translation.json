@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Lekki (257 MB). Dla skromnych komputerów, które też chcą dyktować."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Dyktowanie online od Google. Bardzo dokładne, ale wymaga klucza API i internetu."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Przestarzałe",
     "unloadModel": "Zwolnij model",
     "unloadModelTooltip": "Natychmiast zwalnia pamięć bez zamykania Dilo. Model wczyta się ponownie automatycznie, gdy następnym razem zaczniesz dyktować — Dilo robi to samo również samo po chwili bezczynności."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Język automatyczny",
+    "gemini_privacy": "Dźwięk dyktowania jest wysyłany do Google.",
+    "gemini_requires_key": "Wymaga Twojego klucza API z Google AI Studio.",
+    "gemini_configure_key": "Skonfiguruj go w sekcji {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Dyktowanie",
       "inherit": "Tak jak dyktowanie"
+    }
+  },
+  "gemini": {
+    "smart_label": "Inteligentne czyszczenie Gemini",
+    "smart_description": "Gemini zwraca dyktowanie bez przerywników i powtórzeń. Wyłącz, aby otrzymać zapis dosłowny.",
+    "fallback_notice": "Przepisano za pomocą {{model}}, ponieważ Gemini nie odpowiedziało",
+    "fallback_none": "Gemini nie odpowiedziało, a nie ma pobranego modelu lokalnego, który uratowałby to dyktowanie",
+    "fallback_reason": {
+      "generic": "Gemini zawiodło z powodu czegoś przejściowego.",
+      "missing_key": "Nie zapisano żadnego klucza API Google.",
+      "invalid_key": "Google odrzuciło klucz API.",
+      "offline": "Nie było połączenia z Google.",
+      "timeout": "Gemini odpowiadało zbyt długo.",
+      "daily_quota": "Dzienny limit Gemini został wyczerpany.",
+      "transient": "Gemini zawiodło z powodu czegoś przejściowego.",
+      "interaction_status_failed": "Gemini zgłosiło transkrypcję jako nieudaną."
     }
   }
 }

@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Nhẹ (257 MB). Cho máy cấu hình khiêm tốn vẫn muốn đọc chính tả."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Đọc chính tả trực tuyến của Google. Rất chính xác, nhưng cần khóa API và internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Cũ",
     "unloadModel": "Dỡ mô hình",
     "unloadModelTooltip": "Giải phóng bộ nhớ ngay mà không cần đóng Dilo. Mô hình sẽ tự động tải lại vào lần bạn đọc chính tả tiếp theo — Dilo cũng tự làm việc này sau một thời gian không hoạt động."
+  },
+  "models": {
+    "online_badge": "TRỰC TUYẾN",
+    "auto_language": "Ngôn ngữ tự động",
+    "gemini_privacy": "Âm thanh đọc chính tả được gửi tới Google.",
+    "gemini_requires_key": "Cần khóa API Google AI Studio của bạn.",
+    "gemini_configure_key": "Thiết lập trong {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Đọc chính tả",
       "inherit": "Giống như đọc chính tả"
+    }
+  },
+  "gemini": {
+    "smart_label": "Dọn dẹp thông minh của Gemini",
+    "smart_description": "Gemini trả về nội dung đọc chính tả không có từ đệm và lặp từ. Tắt để nhận bản nguyên văn.",
+    "fallback_notice": "Đã phiên âm bằng {{model}} vì Gemini không phản hồi",
+    "fallback_none": "Gemini không phản hồi và không có mô hình cục bộ nào đã tải về để cứu bản đọc chính tả này",
+    "fallback_reason": {
+      "generic": "Gemini gặp lỗi tạm thời.",
+      "missing_key": "Chưa lưu khóa API Google nào.",
+      "invalid_key": "Google đã từ chối khóa API.",
+      "offline": "Không có kết nối tới Google.",
+      "timeout": "Gemini phản hồi quá lâu.",
+      "daily_quota": "Hạn mức Gemini hôm nay đã hết.",
+      "transient": "Gemini gặp lỗi tạm thời.",
+      "interaction_status_failed": "Gemini báo bản phiên âm đã thất bại."
     }
   }
 }

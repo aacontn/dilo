@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Lichtgewicht (257 MB). Voor bescheiden machines die toch willen dicteren."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Online dictaat van Google. Zeer nauwkeurig, maar vereist een API-sleutel en internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     },
     "unloadModel": "Model ontladen",
     "unloadModelTooltip": "Maakt meteen geheugen vrij zonder Dilo te sluiten. Het wordt automatisch opnieuw geladen de volgende keer dat je dicteert — Dilo doet dit ook vanzelf na een tijdje inactiviteit."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Automatische taal",
+    "gemini_privacy": "De audio van het dictaat wordt naar Google gestuurd.",
+    "gemini_requires_key": "Vereist je API-sleutel van Google AI Studio.",
+    "gemini_configure_key": "Stel deze in bij {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Dictaat",
       "inherit": "Zelfde als dictaat"
+    }
+  },
+  "gemini": {
+    "smart_label": "Slimme opschoning van Gemini",
+    "smart_description": "Gemini levert het dictaat zonder stopwoorden en herhalingen. Zet dit uit voor een letterlijk dictaat.",
+    "fallback_notice": "Getranscribeerd met {{model}} omdat Gemini niet antwoordde",
+    "fallback_none": "Gemini antwoordde niet en er is geen lokaal model gedownload om dit dictaat te redden",
+    "fallback_reason": {
+      "generic": "Gemini liep vast op iets tijdelijks.",
+      "missing_key": "Er is geen Google API-sleutel opgeslagen.",
+      "invalid_key": "Google heeft de API-sleutel geweigerd.",
+      "offline": "Er was geen verbinding met Google.",
+      "timeout": "Gemini deed er te lang over om te antwoorden.",
+      "daily_quota": "Het Gemini-quotum voor vandaag is op.",
+      "transient": "Gemini liep vast op iets tijdelijks.",
+      "interaction_status_failed": "Gemini heeft de transcriptie als mislukt gemeld."
     }
   }
 }

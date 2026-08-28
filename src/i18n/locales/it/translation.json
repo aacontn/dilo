@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Leggero (257 MB). Per macchine modeste che vogliono comunque dettare."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Dettatura online di Google. Molto precisa, ma richiede chiave API e internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Obsoleto",
     "unloadModel": "Rilascia modello",
     "unloadModelTooltip": "Libera subito la memoria senza chiudere Dilo. Si ricarica automaticamente la prossima volta che detti — Dilo lo fa anche da solo dopo un periodo di inattività."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Lingua automatica",
+    "gemini_privacy": "L'audio della dettatura viene inviato a Google.",
+    "gemini_requires_key": "Richiede la tua chiave API di Google AI Studio.",
+    "gemini_configure_key": "Configurala in {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Dettatura",
       "inherit": "Come la dettatura"
+    }
+  },
+  "gemini": {
+    "smart_label": "Pulizia intelligente di Gemini",
+    "smart_description": "Gemini restituisce la dettatura senza intercalari né ripetizioni. Disattivalo per averla alla lettera.",
+    "fallback_notice": "Trascritto con {{model}} perché Gemini non ha risposto",
+    "fallback_none": "Gemini non ha risposto e non c'è nessun modello locale scaricato per salvare questa dettatura",
+    "fallback_reason": {
+      "generic": "Gemini ha avuto un problema temporaneo.",
+      "missing_key": "Non è salvata nessuna chiave API di Google.",
+      "invalid_key": "Google ha rifiutato la chiave API.",
+      "offline": "Non c'è stata connessione con Google.",
+      "timeout": "Gemini ha impiegato troppo tempo a rispondere.",
+      "daily_quota": "La quota di Gemini per oggi è esaurita.",
+      "transient": "Gemini ha avuto un problema temporaneo.",
+      "interaction_status_failed": "Gemini ha segnalato la trascrizione come non riuscita."
     }
   }
 }

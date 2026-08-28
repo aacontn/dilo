@@ -311,6 +311,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Lightweight (257 MB). For modest machines that still want dictation."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google's online dictation. Very accurate, but needs an API key and internet."
       }
     },
     "errors": {
@@ -386,6 +390,13 @@
     },
     "unloadModel": "Unload Model",
     "unloadModelTooltip": "Frees memory right now without closing Dilo. It reloads automatically next time you dictate — Dilo also does this on its own after a while of inactivity."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Automatic language",
+    "gemini_privacy": "Your dictation audio is sent to Google.",
+    "gemini_requires_key": "Needs your Google AI Studio API key.",
+    "gemini_configure_key": "Set it up in {{section}}"
   },
   "settings": {
     "modelSettings": {
@@ -1029,6 +1040,8 @@
       "daily_quota": "Today's Gemini quota ran out.",
       "transient": "Gemini failed on something temporary.",
       "interaction_status_failed": "Gemini reported the transcription as failed."
-    }
+    },
+    "smart_label": "Gemini smart cleanup",
+    "smart_description": "Gemini returns your dictation without filler words or repetitions. Turn it off to get it verbatim."
   }
 }

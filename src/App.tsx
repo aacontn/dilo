@@ -22,6 +22,7 @@ import Onboarding, {
 } from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { HomeDashboard } from "./components/home";
+import { ModelsSettings } from "./components/settings";
 import { WhatsNewGate } from "./components/whats-new";
 import { useOsType } from "./hooks/useOsType";
 import { useRecordingErrorToast } from "./hooks/useRecordingErrorToast";
@@ -104,6 +105,14 @@ const renderSettingsContent = (
 ) => {
   if (section === "home") {
     return <HomeDashboard onCustomize={() => onNavigate("postprocessing")} />;
+  }
+  // La tarjeta del motor en línea manda a guardar la API key, que vive donde
+  // el post-proceso (mismo proveedor `google`): sin este atajo el aviso
+  // dejaría a la persona buscando la pantalla a mano.
+  if (section === "models") {
+    return (
+      <ModelsSettings onNavigateToKeys={() => onNavigate("postprocessing")} />
+    );
   }
   const ActiveComponent =
     SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;

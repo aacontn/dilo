@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Leichtgewicht (257 MB). Für bescheidene Rechner, die trotzdem diktieren wollen."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Online-Diktat von Google. Sehr genau, benötigt aber API-Schlüssel und Internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Veraltet",
     "unloadModel": "Modell entladen",
     "unloadModelTooltip": "Gibt sofort Speicher frei, ohne Dilo zu schließen. Beim nächsten Diktieren wird das Modell automatisch neu geladen – das macht Dilo nach einer Weile Inaktivität auch von selbst."
+  },
+  "models": {
+    "online_badge": "ONLINE",
+    "auto_language": "Automatische Sprache",
+    "gemini_privacy": "Das Audio des Diktats wird an Google gesendet.",
+    "gemini_requires_key": "Benötigt einen API-Schlüssel aus Google AI Studio.",
+    "gemini_configure_key": "Unter {{section}} einrichten"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Diktat",
       "inherit": "Wie beim Diktat"
+    }
+  },
+  "gemini": {
+    "smart_label": "Intelligente Bereinigung von Gemini",
+    "smart_description": "Gemini liefert das Diktat ohne Füllwörter und Wiederholungen. Zum wortgetreuen Diktat ausschalten.",
+    "fallback_notice": "Mit {{model}} transkribiert, weil Gemini nicht geantwortet hat",
+    "fallback_none": "Gemini hat nicht geantwortet und es ist kein lokales Modell heruntergeladen, das dieses Diktat retten könnte",
+    "fallback_reason": {
+      "generic": "Gemini ist an etwas Vorübergehendem gescheitert.",
+      "missing_key": "Es ist kein Google-API-Schlüssel gespeichert.",
+      "invalid_key": "Google hat den API-Schlüssel abgelehnt.",
+      "offline": "Es gab keine Verbindung zu Google.",
+      "timeout": "Gemini hat zu lange für die Antwort gebraucht.",
+      "daily_quota": "Das heutige Gemini-Kontingent ist aufgebraucht.",
+      "transient": "Gemini ist an etwas Vorübergehendem gescheitert.",
+      "interaction_status_failed": "Gemini hat die Transkription als fehlgeschlagen gemeldet."
     }
   }
 }

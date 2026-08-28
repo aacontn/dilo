@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "경량(257 MB). 소박한 컴퓨터에서도 받아쓰기 가능."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google의 온라인 받아쓰기. 매우 정확하지만 API 키와 인터넷이 필요합니다."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "레거시",
     "unloadModel": "모델 언로드",
     "unloadModelTooltip": "Dilo를 종료하지 않고 지금 바로 메모리를 해제합니다. 다음에 받아쓰기할 때 자동으로 다시 로드됩니다. Dilo는 일정 시간 사용하지 않으면 이 작업을 스스로도 수행합니다."
+  },
+  "models": {
+    "online_badge": "온라인",
+    "auto_language": "자동 언어 감지",
+    "gemini_privacy": "받아쓰기 오디오는 Google로 전송됩니다.",
+    "gemini_requires_key": "Google AI Studio API 키가 필요합니다.",
+    "gemini_configure_key": "{{section}}에서 설정하기"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "받아쓰기",
       "inherit": "받아쓰기와 동일"
+    }
+  },
+  "gemini": {
+    "smart_label": "Gemini 스마트 정리",
+    "smart_description": "Gemini가 군말과 반복을 없앤 받아쓰기를 돌려줍니다. 그대로 받아쓰려면 끄세요.",
+    "fallback_notice": "Gemini가 응답하지 않아 {{model}}(으)로 전사했습니다",
+    "fallback_none": "Gemini가 응답하지 않았고, 이 받아쓰기를 대신할 로컬 모델도 내려받지 않았습니다",
+    "fallback_reason": {
+      "generic": "Gemini가 일시적인 문제로 실패했습니다.",
+      "missing_key": "저장된 Google API 키가 없습니다.",
+      "invalid_key": "Google이 API 키를 거부했습니다.",
+      "offline": "Google에 연결할 수 없었습니다.",
+      "timeout": "Gemini의 응답이 너무 오래 걸렸습니다.",
+      "daily_quota": "오늘의 Gemini 할당량이 모두 소진되었습니다.",
+      "transient": "Gemini가 일시적인 문제로 실패했습니다.",
+      "interaction_status_failed": "Gemini가 전사를 실패로 보고했습니다."
     }
   }
 }

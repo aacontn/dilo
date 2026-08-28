@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { commands } from "@/bindings";
 import { getTranslatedModelName } from "../../lib/utils/modelTranslation";
+import { isCloudModel } from "../../lib/utils/cloudModel";
 import { useModelStore } from "../../stores/modelStore";
 import ModelStatusButton from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
@@ -51,6 +52,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayModelId = pendingModelId || currentModel;
+  const displayModelInfo = models.find((m) => m.id === displayModelId);
+  const isCloudEngine = displayModelInfo
+    ? isCloudModel(displayModelInfo)
+    : false;
 
   // Check model status when currentModel changes
   useEffect(() => {
@@ -289,9 +294,12 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
 
         {/* Manual "free RAM now" shortcut — hidden unless a model is
             actually resident in memory (see TranscriptionManager::is_model_loaded).
-            This is the surface that replaced the removed macOS tray item. */}
+            This is the surface that replaced the removed macOS tray item.
+            Un motor en línea cuenta como "cargado" en Rust (guarda la variante
+            `LoadedEngine::GeminiTranscribe`), pero no ocupa un byte de RAM:
+            ofrecer "liberar memoria" ahí sería prometer algo que no pasa. */}
         <UnloadModelButton
-          visible={isModelLoaded}
+          visible={isModelLoaded && !isCloudEngine}
           disabled={isUnloading}
           onUnload={handleUnloadModel}
         />

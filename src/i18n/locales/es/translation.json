@@ -204,6 +204,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Liviano (257 MB). Para equipos modestos que igual quieren dictar."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Dictado en línea de Google. Muy preciso, pero necesita API key e internet."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Antiguo",
     "unloadModel": "Sacar el modelo de la RAM",
     "unloadModelTooltip": "Libera la RAM ahora sin cerrar Dilo. Se recarga sola la próxima vez que dictes; Dilo también la libera sola después de un rato sin uso."
+  },
+  "models": {
+    "online_badge": "EN LÍNEA",
+    "auto_language": "Idioma automático",
+    "gemini_privacy": "El audio de tu dictado se envía a Google.",
+    "gemini_requires_key": "Necesita tu API key de Google AI Studio.",
+    "gemini_configure_key": "Configúrala en {{section}}"
   },
   "settings": {
     "shortcuts": {
@@ -1029,6 +1040,8 @@
       "daily_quota": "Se acabó la cuota de Gemini por hoy.",
       "transient": "Gemini falló por algo pasajero.",
       "interaction_status_failed": "Gemini dio la transcripción por fallida."
-    }
+    },
+    "smart_label": "Limpieza inteligente de Gemini",
+    "smart_description": "Gemini devuelve el dictado sin muletillas ni repeticiones. Apágalo si lo quieres literal."
   }
 }

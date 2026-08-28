@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Hafif (257 MB). Mütevazı makineler için de dikte imkânı."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Google'ın çevrim içi diktesi. Çok doğru, ama API anahtarı ve internet gerektirir."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Eski",
     "unloadModel": "Modeli boşalt",
     "unloadModelTooltip": "Dilo'yu kapatmadan belleği hemen boşaltir. Bir sonraki dikte edişinizde otomatik olarak yeniden yüklenir — Dilo bunu bir süre işlem yapılmadığında zaten kendiliğinden de yapar."
+  },
+  "models": {
+    "online_badge": "ÇEVRİM İÇİ",
+    "auto_language": "Otomatik dil",
+    "gemini_privacy": "Diktenin sesi Google'a gönderilir.",
+    "gemini_requires_key": "Google AI Studio API anahtarınız gerekir.",
+    "gemini_configure_key": "{{section}} bölümünde ayarlayın"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Dikte",
       "inherit": "Dikteyle aynı"
+    }
+  },
+  "gemini": {
+    "smart_label": "Gemini akıllı temizleme",
+    "smart_description": "Gemini dikteyi dolgu sözcükleri ve tekrarlar olmadan döndürür. Birebir dikte için kapatın.",
+    "fallback_notice": "Gemini yanıt vermediği için {{model}} ile yazıya döküldü",
+    "fallback_none": "Gemini yanıt vermedi ve bu dikteyi kurtaracak indirilmiş bir yerel model yok",
+    "fallback_reason": {
+      "generic": "Gemini geçici bir sorun nedeniyle başarısız oldu.",
+      "missing_key": "Kayıtlı bir Google API anahtarı yok.",
+      "invalid_key": "Google API anahtarını kabul etmedi.",
+      "offline": "Google ile bağlantı kurulamadı.",
+      "timeout": "Gemini yanıt vermekte çok gecikti.",
+      "daily_quota": "Bugünkü Gemini kotası doldu.",
+      "transient": "Gemini geçici bir sorun nedeniyle başarısız oldu.",
+      "interaction_status_failed": "Gemini transkripsiyonu başarısız olarak bildirdi."
     }
   }
 }

@@ -203,6 +203,10 @@
       },
       "handy-computer/whisper-small-gguf/whisper-small-Q8_0.gguf": {
         "description": "Легкий (257 МБ). Для скромних машин, які теж хочуть диктувати."
+      },
+      "gemini-3.5-transcribe": {
+        "name": "Gemini 3.5 Transcribe",
+        "description": "Онлайн-диктування від Google. Дуже точне, але потребує API-ключа та інтернету."
       }
     },
     "errors": {
@@ -278,6 +282,13 @@
     "legacy": "Застаріле",
     "unloadModel": "Вивантажити модель",
     "unloadModelTooltip": "Одразу звільняє пам'ять, не закриваючи Dilo. Вона автоматично завантажиться знову, щойно ви почнете диктувати — Dilo також робить це самостійно після періоду бездіяльності."
+  },
+  "models": {
+    "online_badge": "ОНЛАЙН",
+    "auto_language": "Автоматична мова",
+    "gemini_privacy": "Аудіо диктування надсилається до Google.",
+    "gemini_requires_key": "Потрібен ваш API-ключ Google AI Studio.",
+    "gemini_configure_key": "Налаштуйте його в розділі «{{section}}»"
   },
   "settings": {
     "shortcuts": {
@@ -1015,6 +1026,22 @@
     "models": {
       "dictation": "Диктування",
       "inherit": "Як для диктування"
+    }
+  },
+  "gemini": {
+    "smart_label": "Розумне очищення Gemini",
+    "smart_description": "Gemini повертає диктування без слів-паразитів і повторів. Вимкніть, щоб отримувати дослівний текст.",
+    "fallback_notice": "Транскрибовано за допомогою {{model}}, бо Gemini не відповів",
+    "fallback_none": "Gemini не відповів, а локальної моделі, яка врятувала б це диктування, не завантажено",
+    "fallback_reason": {
+      "generic": "Gemini не спрацював через щось тимчасове.",
+      "missing_key": "Не збережено жодного API-ключа Google.",
+      "invalid_key": "Google відхилив API-ключ.",
+      "offline": "Не було з'єднання з Google.",
+      "timeout": "Gemini відповідав занадто довго.",
+      "daily_quota": "Денну квоту Gemini вичерпано.",
+      "transient": "Gemini не спрацював через щось тимчасове.",
+      "interaction_status_failed": "Gemini повідомив, що транскрипція не вдалася."
     }
   }
 }

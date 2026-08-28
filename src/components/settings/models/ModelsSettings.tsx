@@ -28,7 +28,18 @@ const isLegacyModel = (model: ModelInfo): boolean =>
   "Url" in model.source &&
   !model.filename.endsWith(".gguf");
 
-export const ModelsSettings: React.FC = () => {
+interface ModelsSettingsProps {
+  /**
+   * Lleva a la pantalla donde se guarda la API key (Transformar, el mismo
+   * proveedor `google` que usa el post-proceso). La pasa `App.tsx`; sin ella
+   * la tarjeta del motor en línea avisa igual, pero sin atajo.
+   */
+  onNavigateToKeys?: () => void;
+}
+
+export const ModelsSettings: React.FC<ModelsSettingsProps> = ({
+  onNavigateToKeys,
+}) => {
   const { t } = useTranslation();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -381,6 +392,7 @@ export const ModelsSettings: React.FC = () => {
                 downloadProgress={getDownloadProgress(model.id)}
                 downloadSpeed={getDownloadSpeed(model.id)}
                 showRecommended={false}
+                onConfigureKey={onNavigateToKeys}
               />
             ))}
           </div>
@@ -403,6 +415,7 @@ export const ModelsSettings: React.FC = () => {
                   downloadProgress={getDownloadProgress(model.id)}
                   downloadSpeed={getDownloadSpeed(model.id)}
                   showRecommended={true}
+                  onConfigureKey={onNavigateToKeys}
                 />
               ))}
             </div>

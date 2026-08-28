@@ -5,6 +5,7 @@ import {
   getTranslatedModelName,
   getTranslatedModelDescription,
 } from "../../lib/utils/modelTranslation";
+import { isCloudModel } from "../../lib/utils/cloudModel";
 
 interface ModelDropdownProps {
   models: ModelInfo[];
@@ -50,6 +51,11 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                 <div>
                   <div className="text-sm text-text/80">
                     {getTranslatedModelName(model, t)}
+                    {isCloudModel(model) && (
+                      <span className="ms-1.5 text-[10px] font-medium text-muted-text uppercase">
+                        {t("models.online_badge")}
+                      </span>
+                    )}
                     {model.is_custom && (
                       <span className="ms-1.5 text-[10px] font-medium text-muted-text uppercase">
                         {t("modelSelector.custom")}

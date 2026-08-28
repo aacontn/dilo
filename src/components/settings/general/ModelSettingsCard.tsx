@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { LanguageSelector } from "../LanguageSelector";
 import { TranslateToEnglish } from "../TranslateToEnglish";
+import { GeminiSmartToggle } from "../GeminiSmartToggle";
+import { isGeminiModel } from "@/lib/utils/cloudModel";
 import { useModelStore } from "../../../stores/modelStore";
 import type { ModelInfo } from "@/bindings";
 import {
@@ -27,7 +29,12 @@ export const ModelSettingsCard: React.FC = () => {
   const showLanguageSelector =
     supportsLanguageSelection || supportsChineseOnlyScriptSelection;
   const supportsTranslation = currentModelInfo?.supports_translation ?? false;
-  const hasAnySettings = showLanguageSelector || supportsTranslation;
+  // Gemini no ofrece selector de idioma (detecta solo; mandarle uno fijo apaga
+  // el modo smart), así que sin esto su tarjeta de ajustes no existiría y el
+  // interruptor de smart no tendría dónde vivir.
+  const isGemini = currentModelInfo ? isGeminiModel(currentModelInfo) : false;
+  const hasAnySettings =
+    showLanguageSelector || supportsTranslation || isGemini;
 
   // Don't render anything if no model is selected or no settings available
   if (!currentModel || !currentModelInfo || !hasAnySettings) {
@@ -52,6 +59,9 @@ export const ModelSettingsCard: React.FC = () => {
       )}
       {supportsTranslation && (
         <TranslateToEnglish descriptionMode="tooltip" grouped={true} />
+      )}
+      {isGemini && (
+        <GeminiSmartToggle descriptionMode="tooltip" grouped={true} />
       )}
     </SettingsGroup>
   );
