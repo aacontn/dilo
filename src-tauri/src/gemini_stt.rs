@@ -345,6 +345,13 @@ pub fn classify_failure(status: u16, body: &str) -> GeminiSttError {
             GeminiSttError::InvalidKey(error_message(body))
         }
         401 => GeminiSttError::InvalidKey(error_message(body)),
+        // Facturación caída (402). No es culpa del dictado ni de la clave, y
+        // puede volver sola en cuanto se regularice el pago: se trata como
+        // pasajera para que el audio caiga al modelo local en vez de perderse.
+        402 => GeminiSttError::Transient(format!(
+            "payment_required: la cuenta de Google no está al día: {}",
+            error_message(body)
+        )),
         // 403/404 en `interactions` habla del endpoint, no del modelo ni de la
         // clave: decirlo mal manda a la persona a revisar lo que está bien.
         403 | 404 => GeminiSttError::BadRequest(format!(
@@ -781,6 +788,27 @@ mod tests {
         assert!(matches!(
             classify_failure(429, per_minute),
             GeminiSttError::Transient(_)
+        ));
+    }
+
+    #[test]
+    fn a_bare_402_falls_back_to_local_instead_of_losing_the_dictation() {
+        // Un 402 pelado (facturación caída) no puede caer en BadRequest: es el
+        // único balde que no rescata el audio en local.
+        let error = classify_failure(402, r#"{"error":{"message":"Billing disabled"}}"#);
+        let GeminiSttError::Transient(detail) = &error else {
+            panic!("un 402 tiene que ser pasajero: {:?}", error);
+        };
+        assert!(detail.contains("payment_required"), "{}", detail);
+
+        // Pero si el cuerpo dice que la clave no sirve, manda la clave: la
+        // misma precedencia que ya tiene el 400.
+        assert!(matches!(
+            classify_failure(
+                402,
+                r#"{"error":{"message":"API key not valid. API_KEY_INVALID"}}"#
+            ),
+            GeminiSttError::InvalidKey(_)
         ));
     }
 
