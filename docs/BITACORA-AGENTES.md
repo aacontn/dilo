@@ -3,6 +3,20 @@
 > Entradas nuevas arriba. Hecho, próximo paso, cuidado y estado Git; el
 > detalle fino vive en Git y en `docs/superpowers/specs/`.
 
+## 2026-08-28 (2) · Norte (Claude)
+
+- **Hecho:** **v0.3.0 publicada** — merge ff a main, bump de versión (patrón
+  4 archivos), push (test.yml verde en 11m30s), release.yml workflow_dispatch,
+  draft verificado con ambos DMG de Mac y publicado como Latest con notas.
+  https://github.com/aacontn/dilo/releases/tag/v0.3.0
+- **Próximo paso:** Alfonso instala 0.3.0 y prueba el motor Gemini en vivo con
+  su key real. Después: diseño fase 2 (live WS) y plan de reuniones-en-línea
+  (compuerta: re-correr `scripts/probes/gc-probe.ts` cuando afloje el 503).
+- **Cuidado:** `gh` sin `-R` resuelve al remote upstream (cjpais/handy) —
+  SIEMPRE `-R aacontn/dilo`. Sin firma Apple: copiar a /Applications y
+  `xattr -dr com.apple.quarantine`.
+- **Git:** main == origin/main (af2d58f5 + este commit); rama feature borrada.
+
 ## 2026-08-28 · Norte (Claude, orquestando subagentes Opus)
 
 - **Hecho:** fase 1 del motor Gemini implementada completa en la rama
