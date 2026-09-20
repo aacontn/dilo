@@ -1,197 +1,131 @@
 <p align="center">
-  <img src="docs/assets/app-icon.png" width="96" alt="Talkify icon" />
-  <h1 align="center">Talkify</h1>
+  <img src="brand/dilo-icon.svg" width="96" alt="Ícono de Dilo" />
 </p>
 
-<h3 align="center">Fast, private voice dictation for macOS, right from the notch</h3>
+<h1 align="center">Dilo</h1>
+
+<h3 align="center">Dictado en español para Mac, rápido y sin que nada salga de tu compu</h3>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Swift-6-orange.svg" />
   <img src="https://img.shields.io/badge/macOS-26+-blue.svg" />
   <img src="https://img.shields.io/badge/Apple%20Silicon-arm64-lightgrey.svg" />
-  <img src="https://github.com/tornikegomareli/Talkify/actions/workflows/ci.yml/badge.svg" />
+  <img src="https://img.shields.io/badge/licencia-MIT-green.svg" />
 </p>
 
-## Showcase
+Aprieta, habla, suelta. Aparece escrito donde tengas el cursor.
 
+> **Dilo es un fork con cariño de [Talkify](https://github.com/tornikegomareli/Talkify)
+> (Tornike Gomareli, MIT).** El HUD del notch, la máquina de sesión y el tap de
+> teclado vienen de ahí, y son buenos. Dilo agrega lo que a un dictado en
+> español le faltaba: la voz, las muletillas, tus palabras, los modos con su
+> propio atajo y proveedor, y una píldora que no tapa la barra de menús.
 
-<p align="center">
-  <img src="docs/assets/showreel.gif" width="90%" alt="Talkify's six voice visuals playing together: Edge Glow in Sunset, Aurora, Spectrum and Ocean, Compact captions, and the Siri-style waveform" />
-</p>
+Dilo también existe como app multiplataforma en Tauri
+(`/Volumes/SSD 1/Dilo/app`), **congelada en 0.3.2**. Esta es la versión nativa
+de Mac, que continúa la numeración desde 0.4.0.
 
-<p align="center">
-  <img src="docs/assets/settings-appearance.jpg" width="45%" alt="Settings: Appearance, with a live HUD preview" />
-  <img src="docs/assets/settings-insights.jpg" width="45%" alt="Settings: Insights, computed and stored locally" />
-</p>
+## Privacidad
 
-## Privacy
+Todo pasa en tu compu: `SpeechAnalyzer`/`SpeechTranscriber` de Apple para
+reconocer, `AVSpeechSynthesizer` para leer en voz alta, `Translation` para
+traducir y `FoundationModels` para transformar. Ese último es un modelo de
+lenguaje, es de Apple, y corre acá: no hay key, no hay cuenta, no hay request.
+Dilo no guarda audio y no manda nada a ningún lado.
 
-Everything is on-device: Apple's `SpeechAnalyzer`/`SpeechTranscriber` for recognition, `AVSpeechSynthesizer` for Read Aloud, `Translation` for translation, and `FoundationModels` for prompt shaping. That last one is a language model, and it is Apple's, running here: there is no key, no account, and no request. Talkify makes no network requests, stores no audio, and keeps no history beyond the local usage metrics you can see in Insights.
+Dos advertencias honestas:
 
-Two caveats. Read Aloud reads a selection through Accessibility where it can,
-and by copying it where it cannot, which is any web page: the selection passes
-through the clipboard and the previous clipboard is put back afterwards.
+- El texto dictado se **pega**, así que pasa por el portapapeles del sistema
+  por medio segundo antes de que Dilo devuelva lo que tenías copiado. Un
+  gestor de portapapeles o el Portapapeles Universal pueden verlo en esa
+  ventana.
+- Los **modos con proveedor en línea** (OpenAI, Gemini, Anthropic) mandan el
+  texto ya transcrito a ese tercero. La tarjeta lo dice: **LOCAL** o **EN
+  LÍNEA**, siempre. El dictado normal nunca sale de acá.
 
-And dictated text is inserted by pasting it, so it passes through the system clipboard for up to about half a second before your previous clipboard is put back. A clipboard manager or Universal Clipboard can see it during that window.
+## Qué necesitas
 
-## Requirements
+- macOS 26 (Tahoe) o superior, en Apple Silicon. No hay binario Intel: para
+  eso está el Tauri 0.3.2, congelado.
 
-- macOS 26 (Tahoe) on Apple Silicon
+## Compilar
 
-## Install
-
-With Homebrew:
-
-```bash
-brew install --cask tornikegomareli/talkify/talkify
-```
-
-The full name is what makes it one line. Homebrew 6 will not load anything from
-a third-party tap until you trust it, but installing by full name adds the tap
-and trusts this one cask on its own — nothing else in the tap, and no separate
-`brew trust`. [Read the cask](Casks/talkify.rb) first if you would rather see
-what it does.
-
-Or grab [**Talkify.dmg**](https://github.com/tornikegomareli/Talkify/releases/latest/download/Talkify.dmg) from the latest release.
-
-Build from source:
+DerivedData va al disco de taller, nunca al interno:
 
 ```bash
-git clone https://github.com/tornikegomareli/Talkify.git
-cd Talkify
-open Talkify.xcodeproj   # ⌘R
+git clone <este repo> && cd mac
+open Talkify.xcodeproj                        # ⌘R
+
+# o sin abrir Xcode
+xcodebuild -project Talkify.xcodeproj -scheme Dilo -configuration Debug \
+  -derivedDataPath /Volumes/SSD2/derived-data build
+
+# el paquete propio
+cd DiloCore && swift test
 ```
 
-Or headless:
+Hay **dos targets** desde el primer día:
 
-```bash
-xcodebuild -project Talkify.xcodeproj -scheme Talkify -configuration Debug build
-```
+| Target | Bundle | Para qué |
+| --- | --- | --- |
+| `Dilo` | `cl.espaciodigital.dilo` | venta directa, con updater (Sparkle) |
+| `Dilo-MAS` | `cl.espaciodigital.dilo.mas` | App Sandbox, sin Sparkle, para App Store |
 
-Run the tests the same way CI does:
+El sandbox no rompe la compilación: lo que se cae, se cae en ejecución. Por eso
+el target MAS se prueba con `open -a Dilo-MAS.app` y **nunca** lanzando el
+binario desde el terminal — TCC le atribuye los permisos al proceso padre y el
+audio llega en silencio.
 
-```bash
-xcodebuild test -project Talkify.xcodeproj -scheme Talkify -destination 'platform=macOS'
-```
+## Cómo se usa
 
-## Using it
+| Qué quieres | Cómo |
+| --- | --- |
+| Dictar | Mantén **fn**, habla, suelta |
+| Dictar sin sostener | Toque corto a **fn**, habla, otro toque para terminar |
+| Cancelar a media frase | **Esc** |
+| Transcribir un archivo | Arrastra el audio o el video al notch y suéltalo |
+| Leer en voz alta lo seleccionado | **⌥ ⎋** |
+| Todo lo demás | El fantasma de la barra de menús → Ajustes |
 
-| Action | Gesture |
-|---|---|
-| Dictate | Hold **fn**, speak, release |
-| Hands-free session | Quick-tap **fn**, speak, tap again to finish |
-| Dictate in your second language | Hold **right ⌥** instead |
-| Dictate and translate | Hold **right ⌘** instead |
-| Transcribe a file | Drag audio or video at the notch and drop it |
-| Cancel mid-session | **Esc** |
-| Shape what you dictate | Turn it on in **Settings → Prompt Shaping** |
-| Pick the shaping prompt mid-session | **←** / **→** while dictating, with shaping on |
-| Read selected text aloud | **⌥ ⎋** (toggles; also in the menu) |
-| Read it aloud translated | Same key, with **Translate before speaking** on |
-| Everything else | Menu bar ghost → Settings |
+Los gatillos se reconfiguran en **Ajustes → Atajos**. Regla de la casa:
+**ningún gatillo por defecto escribe símbolos** en teclado latino. Nada de ⌥
+derecha sola — en ISO-LatAm es AltGr y escribe `@ # \ | { } [ ]`. El segundo
+idioma viene apagado.
 
-The trigger and the Read Aloud shortcut are rebindable in **Settings → Shortcuts**.
-Direct Dictation can use a keyboard key, Middle Click by pressing the scroll
-wheel, or another auxiliary mouse button. A bound button keeps its usual action
-unless the exact combination you bound is pressed, so binding ⌥ + Middle Click
-leaves plain middle click alone.
+Dilo **nunca toca el volumen maestro**. Si algún día se silencia la música al
+dictar, se pausa la reproducción.
 
-## Drop a file on the notch
+## Arquitectura
 
-<p align="center">
-  <img src="docs/assets/drop-transcription.gif" width="90%" alt="A transcript card in the notch being dragged out and dropped into another app" />
-</p>
+El árbol que viene de Talkify conserva su nombre de carpeta a propósito, para
+que `git merge upstream/main` siga siendo barato:
 
-Drag an audio or video file to the top of the screen and the island opens to
-take it. It transcribes in the background, so **fn** keeps working, and the menu
-bar ghost shows progress.
+- `Talkify/App/` — raíz de composición, ajustes persistidos, status item
+- `Talkify/Input/` — el tap global de teclado y los atajos grabados
+- `Talkify/Dictation/` — la máquina de sesión (un reducer puro con tests), los
+  servicios de voz e inserción, y el HUD que sólo el dictado dibuja
+- `Talkify/CoreHUD/` — lo que comparten todas las features: el panel único, la
+  geometría y los shaders de Metal
+- `Talkify/DropTranscription/`, `Translation/`, `ReadAloud/`, `Settings/`,
+  `Insights/`, `Updates/`
 
-When it finishes the island comes back holding the transcript. Drag it to a
-folder for the `.txt`, or to a text field for the words. Click to copy. Leave it
-and after five seconds it saves next to the source file, or into a folder you set
-in **Settings → Drop Transcription**. Hovering pauses that timer.
+Y todo lo de Dilo vive aparte, en un Swift Package local:
 
-With a second dictation language configured, the target splits in two and the
-half you drop on picks the language. **Transcribe File…** in the menu does the
-same with a picker.
+- `DiloCore/Sources/DiloText/` — español: muletillas, tus palabras
+- `DiloCore/Sources/DiloEngines/` — el contrato `SpeechEngine` y sus motores
+- `DiloCore/Sources/DiloModes/` — modos, proveedores y el `Decider`
+- `DiloCore/Sources/DiloCapabilities/` — `HostCapabilities` completa y sandbox
+- `DiloCore/Sources/DiloMetrics/` — los números del spec, medidos
 
-## Speak one language, insert another
+`CONTEXT.md` es el modelo de dominio, `AGENTS.md` es el contrato de trabajo, la
+dirección está en `docs/superpowers/specs/` y las decisiones heredadas en
+`docs/adr/`.
 
-Pick a language in **Settings → Language** and the Translate key writes in it.
-Hold **right ⌘**, say it in English, and Spanish lands in the document. The key
-does not change when the language does, so there is one shortcut to remember.
+## Licencia
 
-Translation runs on your Mac through Apple's Translation framework, and the notch
-shows the pair before you speak. If it fails, nothing is pasted and your words go
-to the clipboard.
+[MIT](LICENSE). El copyright de Tornike Gomareli se conserva intacto y el de
+Dilo se agrega al lado, igual que se hizo con Handy en el repo Tauri.
 
-It works the other way too. Turn on **Translate before speaking** in
-**Settings → Read Aloud**, select text in a language you do not read, and the
-Read Aloud key speaks it in your voice's language. The voice is the target, so
-there is nothing else to set.
-
-## Shape what you dictate (beta)
-
-Turn on **Shape dictation with a prompt** in **Settings → Prompt Shaping** and
-the prompt you pick rewrites finished dictation through Apple's on-device model
-before it is inserted. Three prompts are built in, tighten grammar, bullet
-lists and remove filler words, and the library shows each one's instruction
-under its name so you pick by reading rather than by remembering.
-
-Edit any of them, or write your own. The instruction is the whole prompt for
-most of them; a closing instruction and a worked example are there under
-**Advanced** when you want them. You can also try a prompt before you use it:
-type a sample sentence, press **Try**, and see what the model does with it. It
-runs the same on-device model a real session runs, so what you see is what you
-will get. The framing that keeps the model rewriting your words instead of
-answering them is fixed and not editable.
-
-While you dictate, a caption under the notch names the prompt the session will
-shape with, colored from your Edge Glow palette and moving with your voice, and
-the bare arrow keys cycle through your prompts — or **None**, to insert the
-words exactly as spoken. After you release, the island stays up and the same
-caption names the prompt while the rewrite runs. Shaping is a beta and fails
-safe: any error, or an answer slower than ten seconds, inserts your raw words
-unchanged, history keeps what you actually said, and nothing leaves your Mac.
-
-## Two languages, two triggers
-
-Pick a second language in **Settings → Language** and it gets its own trigger. Hold
-**fn** for English, hold **right ⌥** for German, with no setting to change in
-between. Both triggers are rebindable, and either can use a keyboard key or a
-supported mouse button.
-
-## Architecture
-
-Code is organized into folders, callbacks only flow one way from the main wiring point, and a pure reducer handles the state.
-
-- `App/`: composition root, settings store, status item
-- `Input/`: the global key event tap and recorded bindings
-- `Dictation/`: the session machine (`DictationSessionMachine`, a pure tested reducer), the speech/insertion services, and the HUD surface and voice visuals only dictation draws
-- `Translation/`: the coordinator both callers talk to, the rules, and the two files that import Apple's Translation framework
-- Prompt shaping lives in `Dictation/`: the prompt model, the service that races the on-device model against a timeout, and the caption the HUD draws
-- `DropTranscription/`: the drag gesture, the file transcription service, where a transcript is staged and lands, and its own HUD surfaces
-- `CoreHUD/`: what both features share: `HUDStage` owns the single panel and decides who holds the shape, plus the geometry seams and Metal shaders
-- `ReadAloud/`, `Settings/`, `Insights/`
-
-`CONTEXT.md` is the domain doc, decisions live in `docs/adr/`, and
-[`CONTRIBUTING.md`](CONTRIBUTING.md) is the contract for changing any of it
-
-## Roadmap
-
-- **Live Captions & Meeting Transcripts**. Ephemeral captions from a selected app's audio (Chrome, YouTube, meeting apps), and the saved, timestamped transcript as a separate action. The domain design already lives in `CONTEXT.md`; the recognition pipeline is ready for non-microphone audio.
-- **Text cleanup**. Shipping as the prompt shaping beta above — on-device rewriting of finished dictation, off by default. Per-application profiles and a benchmarked default remain future work; with shaping off, Talkify still inserts exactly what you said.
-- **Snippets**. Saved text blocks inserted by a spoken trigger word: say your trigger mid-dictation and the whole block lands instead.
-
-## Contributing
-
-Read [**CONTRIBUTING.md**](CONTRIBUTING.md) first. It covers the issue-first
-flow, branch and pull request naming, code style, the AI policy, and what a bug
-report needs to contain to be actionable.
-
-Start from an issue. A pull request that arrives without one behind it may be
-closed, however good the code is, because design belongs in the issue where it is
-still cheap to change.
-
-## License
-[MIT](LICENSE)
+Dos activos heredados **no son publicables** y hay que reemplazarlos antes de
+cualquier release: el set de sonidos Pop (CC-BY-NC, `LICENSE-SOUNDS.txt`) y la
+obra del orbe Siri (`LICENSE-ARTWORK.txt`).

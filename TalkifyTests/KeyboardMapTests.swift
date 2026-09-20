@@ -1,7 +1,7 @@
 import SwiftUI
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 /// The rows drawn for each keyboard shape. What separates ANSI from ISO is
 /// which keycodes appear where, so that is what is asserted here rather than

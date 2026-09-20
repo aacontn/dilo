@@ -1,6 +1,6 @@
 import ApplicationServices
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// What Read Aloud is allowed to speak. Direct Dictation already refuses a
 /// secure field and says so; speech goes into the room, so this path has to

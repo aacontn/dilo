@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import os
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 @MainActor
 struct TextInsertionServiceTests {

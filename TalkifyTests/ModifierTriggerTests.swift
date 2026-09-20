@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// Down/up detection for a modifier-key trigger.
 ///

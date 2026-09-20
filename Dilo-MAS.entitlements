@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- El target de App Store. El spike del 2026-09-20 confirmó que con
+	     app-sandbox + device.audio-input el tap de audio del sistema entrega
+	     audio real y sin prompt de TCC; lo que se cae en sandbox se cae en
+	     ejecución, no al compilar, por eso las capacidades se prueban
+	     lanzando con `open -a` y nunca desde el terminal. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<!-- Para los proveedores EN LÍNEA de los modos (Tarea 4). Sin esto la app
+	     sandboxed no abre una sola conexión. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- Arrastrar una grabación al HUD: el usuario elige el archivo, así que
+	     alcanza con lectura de lo que él seleccionó. -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+</dict>
+</plist>

@@ -1,6 +1,6 @@
 import AVFAudio
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 struct MicrophoneInputTests {
   @Test func rejectsMissingHardwareInput() throws {

@@ -1,5 +1,5 @@
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// Pins the Swift-side particle structs to the layout the Metal kernels
 /// expect (ParticleCloud.metal). SIMD2/SIMD4 alignment makes member order

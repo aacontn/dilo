@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 @Suite("Recent draft window")
 struct HUDRecentDraftWindowTests {

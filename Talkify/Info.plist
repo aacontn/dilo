@@ -2,24 +2,32 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Sparkle only. Every other key is still generated from build settings
-	     (GENERATE_INFOPLIST_FILE stays on and merges into this file), because
-	     Sparkle reads SUPublicEDKey straight from the bundle and Xcode's
-	     INFOPLIST_KEY_ passthrough silently drops keys it does not know. -->
+	<!-- Sólo Sparkle. Todas las demás claves se siguen generando desde los
+	     build settings (GENERATE_INFOPLIST_FILE sigue encendido y se fusiona
+	     con este archivo), porque Sparkle lee SUPublicEDKey directo del bundle
+	     y el passthrough INFOPLIST_KEY_ de Xcode descarta en silencio las
+	     claves que no conoce. (Heredado de Talkify, sigue siendo cierto.)
+
+	     El feed apunta al repo de Dilo y todavía no existe: el appcast propio
+	     y la llave propia son la Tarea 8 del plan. Apuntarlo al appcast de
+	     Talkify ofrecería Talkify 0.8.3 como actualización de Dilo, y la
+	     llave de abajo la verificaría. Por eso la búsqueda automática queda
+	     apagada hasta que la Tarea 8 ponga feed y llave de Dilo. -->
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/tornikegomareli/Talkify/main/appcast.xml</string>
-	<!-- Public half of the EdDSA signing key. The private half lives in the
-	     login Keychain and is never in the repository. -->
+	<string>https://raw.githubusercontent.com/aacontn/dilo-mac/main/appcast.xml</string>
+	<!-- Mitad pública de la llave EdDSA. TODO Tarea 8: generar la llave de
+	     Dilo con scripts/setup-sparkle-keys.sh y reemplazar ésta, que es la
+	     de Talkify. La mitad privada vive en el Llavero, nunca en el repo. -->
 	<key>SUPublicEDKey</key>
 	<string>CS7EqGMvprKkjontSt/uLAG3gkw4CSwaMKVLd+W1UV4=</string>
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<!-- Once a day. Talkify is a menu-bar app people leave running for weeks,
-	     so anything shorter is noise. -->
+	<false/>
+	<!-- Una vez al día. Dilo es una app de barra de menús que la gente deja
+	     corriendo semanas; menos que eso es ruido. -->
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
-	<!-- Downloading happens only when the user opts in; the default stays off
-	     so an update never replaces the binary unasked. -->
+	<!-- Bajar la actualización sólo si la persona lo pide; el default queda
+	     apagado para que nada reemplace el binario sin permiso. -->
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
 </dict>

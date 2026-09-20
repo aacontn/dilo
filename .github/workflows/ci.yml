@@ -7,21 +7,41 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and test
+    name: Compilar y probar
     runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
 
-      - name: Show toolchain
+      - name: Herramientas
         run: xcodebuild -version && swift --version
 
-      - name: Build and test
+      # El paquete propio corre solo, sin Xcode. Es el test más barato y el
+      # que atrapa que AGENTS.md y CLAUDE.md se hayan separado.
+      - name: swift test (DiloCore)
+        run: cd DiloCore && swift test
+
+      - name: Compilar y probar Dilo
         run: |
           set -o pipefail
           xcodebuild test \
             -project Talkify.xcodeproj \
-            -scheme Talkify \
+            -scheme Dilo \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" | tail -100
+
+      # El App Sandbox no rompe la compilación de una sola línea: se cae en
+      # ejecución. Igual se compila en cada PR, porque un target que nadie
+      # compila se pudre en una semana.
+      - name: Compilar Dilo-MAS
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Talkify.xcodeproj \
+            -scheme Dilo-MAS \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \

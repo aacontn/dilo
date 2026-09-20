@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// What the coordinator reports, which is what both Settings and the translate
 /// key act on. The framework is faked at `TranslationService.Client`, so these

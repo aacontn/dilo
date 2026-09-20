@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// What Read Aloud is allowed to guess. Dictation guesses nothing, because
 /// Apple Speech offers no identification for audio. Text identification does

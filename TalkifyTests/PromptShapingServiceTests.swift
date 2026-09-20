@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import os
-@testable import Talkify
+@testable import Dilo
 
 /// Pins the shaping rules: passthrough on any failure, trimming on success,
 /// and the timeout that keeps a hung rewrite from holding the user's words.

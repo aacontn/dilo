@@ -1,5 +1,5 @@
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 struct SpeechResultAccumulatorTests {
   @Test func keepsLastVolatileResultWhenFinalizationEndsTheStream() {

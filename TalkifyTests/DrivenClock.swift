@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-@testable import Talkify
+@testable import Dilo
 
 /// A clock the tests advance by hand, following the precedent #82 named: a
 /// deadline driven from a test asserts the deadline was honoured, where a

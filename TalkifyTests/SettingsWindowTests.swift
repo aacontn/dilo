@@ -1,6 +1,6 @@
 import AppKit
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 @MainActor
 struct SettingsWindowTests {

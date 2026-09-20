@@ -1,7 +1,7 @@
 import SwiftUI
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 /// The warm-up names shader functions and their argument lists by hand. If a
 /// name or an argument count drifts from the Metal source, `compile` throws —

@@ -2,7 +2,7 @@ import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 
-@testable import Talkify
+@testable import Dilo
 
 /// Renders HUD surfaces to PNGs so a change to the shape, the bands or the
 /// drop states can be looked at rather than inferred from a diff. Writes to

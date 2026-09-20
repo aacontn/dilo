@@ -1,7 +1,7 @@
 import CoreGraphics
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 /// Compact and Edge Glow + Draft are built around the live draft, so they
 /// open with nothing. Three separate paths write the placeholder — opening,

@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 struct HUDMetricsTests {
   @Test func standardIsTheUnscaledShape() {

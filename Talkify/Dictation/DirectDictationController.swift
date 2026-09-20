@@ -1,4 +1,5 @@
 import AppKit
+import DiloText
 import os
 
 /// The impure half of Direct Dictation: owns the services, translates
@@ -741,7 +742,11 @@ final class DirectDictationController {
       guard let self else { return }
       defer { finishTask = nil }
       do {
-        let spoken = try await dependencies.finishRecognition()
+        // La costura de español de Dilo: todo lo reconocido pasa por DiloText
+        // antes de que nadie más lo toque. Hoy sólo colapsa los espacios que
+        // deja una duda a mitad de frase; las muletillas y el diccionario
+        // personal entran por acá en la Tarea 5.
+        let spoken = DiloText.limpiarEspacios(try await dependencies.finishRecognition())
         // A session about to shape keeps the HUD up saying so; every other
         // session dismisses here exactly as before.
         let willShape = chosenPrompt != nil && !spoken.isEmpty

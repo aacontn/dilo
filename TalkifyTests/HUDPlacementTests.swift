@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 struct HUDPlacementTests {
   private let main = HUDScreenSnapshot(

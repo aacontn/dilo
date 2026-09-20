@@ -1,6 +1,6 @@
 import CoreAudio
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// When Talkify is allowed to move an output's volume and when it must leave it
 /// alone. The device access is separate from these decisions, so none of this

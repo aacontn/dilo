@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// What termination does with a dictation that is still being inserted. The
 /// wait has to end when the insertion lands, end anyway if it wedges, and

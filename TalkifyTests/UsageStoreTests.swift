@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 struct UsageStoreTests {
   @Test func mergesSameDaySessionsAndPersistsOnlyAggregates() async throws {

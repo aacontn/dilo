@@ -1,7 +1,7 @@
 import Foundation
 import os
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// Pins the controller's impure half through its Dependencies seam: the
 /// begin guards, the finish outcome routing, and the cancellation races

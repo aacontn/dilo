@@ -1,3 +1,8 @@
+// El target Dilo-MAS no enlaza Sparkle: en App Store el sistema actualiza la
+// app. Todo este archivo se compila sólo para el target directo; el reemplazo
+// inerte con la misma superficie vive en UpdaterServiceUnavailable.swift.
+#if !DILO_MAS
+
 import AppKit
 import Observation
 import Sparkle
@@ -178,3 +183,5 @@ private final class UserDriverDelegate: NSObject, SPUStandardUserDriverDelegate 
     }
   }
 }
+
+#endif

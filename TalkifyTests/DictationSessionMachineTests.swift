@@ -1,5 +1,5 @@
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// Pins the session machine's gesture and race rules — the logic that used
 /// to be testable only by holding Fn against a live microphone.

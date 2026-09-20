@@ -2,7 +2,7 @@ import CoreGraphics
 import SwiftUI
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 /// The concert rest lift is 0.75pt in a 64-point band. Applied unchanged
 /// to the 12-point ribbon (and the 40% HUD-size floor) it is larger than

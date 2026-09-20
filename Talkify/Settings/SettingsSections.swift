@@ -8,7 +8,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
   var title: String { rawValue.uppercased() }
 
   var sections: [SettingsSection] {
-    SettingsSection.allCases.filter { $0.group == self }
+    SettingsSection.allCases.filter { $0.group == self && $0.isAvailable }
   }
 }
 
@@ -27,6 +27,17 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var id: Self { self }
   var group: SettingsSectionGroup { .settings }
+
+  /// El target de App Store no trae Sparkle: ahí las actualizaciones las
+  /// entrega la tienda y un panel que no puede hacer nada sería una promesa
+  /// falsa. Lo que no se puede hacer se esconde, no falla.
+  var isAvailable: Bool {
+    #if DILO_MAS
+      self != .updates
+    #else
+      true
+    #endif
+  }
 
   var title: String {
     switch self {

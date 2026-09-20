@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// The rules Dictate and Translate follows before and around a translation.
 /// None of these touch Apple's translator: the point of the Client seam is

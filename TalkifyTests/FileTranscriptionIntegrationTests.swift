@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Talkify
+@testable import Dilo
 
 /// Exercises the real Apple Speech path against a real file. Disabled by
 /// default: it needs an installed language model and takes seconds rather

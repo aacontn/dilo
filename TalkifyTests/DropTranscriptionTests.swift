@@ -4,7 +4,7 @@ import Foundation
 import Testing
 import UniformTypeIdentifiers
 
-@testable import Talkify
+@testable import Dilo
 
 @Suite("Media file types")
 struct MediaFileTypesTests {

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Talkify
+@testable import Dilo
 
 /// What keeps macOS from napping Talkify mid-session, and what makes sure it
 /// stops keeping it awake afterwards. A stranded assertion is worse than the
