@@ -103,7 +103,7 @@ struct HUDShellPreviewHarness: View {
 extension AppSettings {
   /// A store backed by a cleared volatile suite, for previews only.
   static func previewStore() -> AppSettings {
-    let suiteName = "com.tgomareli.Talkify.preview"
+    let suiteName = "cl.espaciodigital.dilo.preview"
     let defaults = UserDefaults(suiteName: suiteName) ?? .standard
     defaults.removePersistentDomain(forName: suiteName)
     return AppSettings(defaults: defaults)

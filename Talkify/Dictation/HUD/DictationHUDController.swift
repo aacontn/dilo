@@ -7,8 +7,8 @@ import AppKit
 /// holds it; this decides what dictation puts in it.
 @MainActor
 final class DictationHUDController {
-  private static let latchedText = "Listening (latched)"
-  private static let listeningText = "Listening…"
+  private static let latchedText = "Te escucho (trabado)"
+  private static let listeningText = "Te escucho…"
   /// Levels stopping for this long while listening means the microphone is
   /// dead, which must look different from silence (CONTEXT.md).
   private static let deadMicrophoneAfter = Duration.milliseconds(600)

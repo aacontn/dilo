@@ -17,7 +17,7 @@ actor UsageStore {
       for: .applicationSupportDirectory,
       in: .userDomainMask
     )[0]
-    .appending(path: "Talkify", directoryHint: .isDirectory)
+    .appending(path: "Dilo", directoryHint: .isDirectory)
     .appending(path: "usage.json")
   }
 

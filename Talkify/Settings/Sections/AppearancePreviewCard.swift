@@ -15,8 +15,8 @@ struct SettingsPreviewCard: View {
 
   var body: some View {
     SettingsPreviewStage(
-      title: "Live preview",
-      subtitle: "Changes appear here immediately"
+      title: "Así se ve",
+      subtitle: "Lo que cambias se ve acá al instante"
     ) {
       DictationHUDShellView(
         screen: HUDPreviewScreen.notched,

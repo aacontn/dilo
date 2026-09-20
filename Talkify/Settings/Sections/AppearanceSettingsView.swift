@@ -39,50 +39,50 @@ struct AppearanceSettingsView: View {
     VStack(alignment: .leading, spacing: 18) {
       SettingsPreviewCard(settings: settings)
 
-      SettingsCard(title: "Voice visual") {
+      SettingsCard(title: "Mientras hablas") {
         SettingsPickerRow(
-          title: "While listening",
-          description: "The visual shown during Direct Dictation",
+          title: "Qué se ve",
+          description: "Lo que dibuja la píldora mientras te escucha",
           options: HUDVoiceVisualStyle.allCases,
-          optionLabel: { $0.rawValue },
+          optionLabel: { $0.title },
           selection: $settings.voiceVisual
         )
 
         if Self.showsWaveformOptions(for: settings.voiceVisual) {
           SettingsPickerRow(
-            title: "Waveform style",
-            description: "The shape and motion of the waveform",
+            title: "Estilo de la onda",
+            description: "La forma y el movimiento de la onda",
             options: HUDWaveformStyle.allCases,
-            optionLabel: { $0.rawValue },
+            optionLabel: { $0.title },
             selection: $settings.waveformStyle
           )
         }
 
         if Self.showsGlowPalette(for: settings.voiceVisual) {
           SettingsPickerRow(
-            title: "Glow palette",
-            description: "The colors used by the edge beam",
+            title: "Paleta del halo",
+            description: "Los colores del borde que respira",
             options: HUDGlowPalette.allCases,
-            optionLabel: { $0.rawValue },
+            optionLabel: { $0.title },
             selection: $settings.glowPalette
           )
         }
 
         if Self.showsGlowCenter(for: settings.voiceVisual) {
           SettingsPickerRow(
-            title: "Glow center",
-            description: "The visual inside the edge beam",
+            title: "Centro del halo",
+            description: "Lo que va dentro del halo",
             options: HUDGlowCenterStyle.settingsCases,
-            optionLabel: { $0.rawValue },
+            optionLabel: { $0.title },
             selection: $settings.glowCenter
           )
         }
       }
 
-      SettingsCard(title: "Motion and layout") {
+      SettingsCard(title: "Movimiento y tamaño") {
         SettingsSliderRow(
-          title: "HUD size",
-          description: "How much room the HUD takes on screen",
+          title: "Tamaño de la píldora",
+          description: "Cuánta pantalla se toma la píldora",
           value: $settings.hudScale,
           range: Double(
             HUDMetrics.minimumScale(for: settings.voiceVisual, reduceMotion: reduceMotion)
@@ -91,21 +91,19 @@ struct AppearanceSettingsView: View {
         )
 
         SettingsRow(
-          title: "Clear the menu bar on other displays",
-          description: "A display with no notch has nothing to hug, so the "
-            + "shape sits where a notch would be. Turn this on if it covers "
-            + "your menu bar icons."
+          title: "Dejar libre la barra de menús",
+          description: "En una pantalla sin notch, la píldora se cuelga debajo de la barra de menús para no tapar tus íconos. Apágalo sólo si prefieres que se ponga donde iría el notch."
         ) {
-          Toggle("Clear the menu bar on other displays", isOn: $settings.hudClearsMenuBar)
+          Toggle("Dejar libre la barra de menús", isOn: $settings.hudClearsMenuBar)
             .labelsHidden()
             .toggleStyle(.switch)
         }
 
         SettingsPickerRow(
-          title: "Reveal style",
-          description: "How the HUD appears when Direct Dictation starts",
+          title: "Cómo aparece",
+          description: "La entrada de la píldora cuando arrancas a dictar",
           options: HUDRevealStyle.allCases,
-          optionLabel: { $0.rawValue },
+          optionLabel: { $0.title },
           selection: $settings.revealStyle
         )
 
@@ -114,10 +112,10 @@ struct AppearanceSettingsView: View {
           reduceMotion: reduceMotion
         ) {
           SettingsPickerRow(
-            title: "Long draft behavior",
-            description: "How the HUD handles longer dictated text",
+            title: "Si el texto se pasa de largo",
+            description: "Qué hace la píldora con un dictado largo",
             options: HUDLongDraftStyle.allCases,
-            optionLabel: { $0.rawValue },
+            optionLabel: { $0.title },
             selection: $settings.longDraftStyle
           )
         }

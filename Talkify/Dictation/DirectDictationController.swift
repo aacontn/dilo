@@ -349,14 +349,14 @@ final class DirectDictationController {
       let microphoneGranted = await dependencies.requestMicrophoneAccess()
       guard !Task.isCancelled else { return }
       guard microphoneGranted else {
-        preparationFailed(message: "Microphone permission required")
+        preparationFailed(message: "Falta el permiso del micrófono")
         return
       }
 
       let speechGranted = await dependencies.requestSpeechAccess()
       guard !Task.isCancelled else { return }
       guard speechGranted else {
-        preparationFailed(message: "Speech permission required")
+        preparationFailed(message: "Falta el permiso de reconocimiento de voz")
         return
       }
 
@@ -397,7 +397,7 @@ final class DirectDictationController {
 
         permissionWatchTask = nil
         if keyEventMonitor?.start() == true {
-          dependencies.showMessage("Talkify is ready", nil)
+          dependencies.showMessage("Dilo está listo", nil)
         } else {
           dependencies.showRelaunchAlert()
         }
@@ -605,7 +605,7 @@ final class DirectDictationController {
 
     let target = dependencies.captureFocusedTarget()
     if target?.isSecure == true {
-      dependencies.showMessage("Secure field", target?.displayID)
+      dependencies.showMessage("Campo protegido", target?.displayID)
       activity.release()
       send(.beginRejected)
       return
@@ -631,7 +631,7 @@ final class DirectDictationController {
   private func beginRecognition() {
     guard let locale = locale(for: activeSlot) else {
       AppLog.session.error("no locale resolved for the trigger; refusing to begin")
-      fail(message: "Preparing speech…", wasCancelled: false)
+      fail(message: "Preparando el reconocimiento…", wasCancelled: false)
       return
     }
     AppLog.session.info(
@@ -791,7 +791,7 @@ final class DirectDictationController {
             // lease. Reporting only the translation would promise words that
             // are not anywhere the user can reach (CONTEXT.md).
             dependencies.showMessage(
-              rescue == .unavailable ? "Couldn't translate or copy" : "Couldn't translate",
+              rescue == .unavailable ? "No se pudo traducir ni copiar" : "No se pudo traducir",
               nil
             )
             return
@@ -822,7 +822,7 @@ final class DirectDictationController {
           await dependencies.recordSession(wordCount, speakingDuration)
         case .unavailable:
           send(.sessionEnded)
-          dependencies.showMessage("Couldn't insert text", nil)
+          dependencies.showMessage("No se pudo pegar el texto", nil)
         }
       } catch {
         AppLog.delivery.error(

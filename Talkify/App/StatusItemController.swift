@@ -35,12 +35,12 @@ final class StatusItemController: NSObject {
     self.openSettings = openSettings
     self.checkForUpdates = checkForUpdates
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    dictationItem = NSMenuItem(title: "Start Dictation", action: nil, keyEquivalent: "")
-    readAloudItem = NSMenuItem(title: "Read Selected Text", action: nil, keyEquivalent: "")
+    dictationItem = NSMenuItem(title: "Empezar a dictar", action: nil, keyEquivalent: "")
+    readAloudItem = NSMenuItem(title: "Leer lo seleccionado", action: nil, keyEquivalent: "")
     super.init()
 
     statusItem.button?.image = templateIcon
-    statusItem.button?.image?.accessibilityDescription = "Talkify"
+    statusItem.button?.image?.accessibilityDescription = "Dilo"
 
     let menu = NSMenu()
 
@@ -53,7 +53,7 @@ final class StatusItemController: NSObject {
     menu.addItem(readAloudItem)
 
     let transcribeItem = NSMenuItem(
-      title: "Transcribe File…",
+      title: "Transcribir un archivo…",
       action: #selector(transcribeFileItem),
       keyEquivalent: ""
     )
@@ -62,7 +62,7 @@ final class StatusItemController: NSObject {
     menu.addItem(.separator())
 
     let settingsItem = NSMenuItem(
-      title: "Settings…",
+      title: "Ajustes…",
       action: #selector(openSettingsItem),
       keyEquivalent: ","
     )
@@ -70,7 +70,7 @@ final class StatusItemController: NSObject {
     menu.addItem(settingsItem)
 
     let updatesItem = NSMenuItem(
-      title: "Check for Updates…",
+      title: "Buscar actualizaciones…",
       action: #selector(checkForUpdatesItem),
       keyEquivalent: ""
     )
@@ -78,7 +78,7 @@ final class StatusItemController: NSObject {
     menu.addItem(updatesItem)
 
     menu.addItem(NSMenuItem(
-      title: "Quit Talkify",
+      title: "Salir de Dilo",
       action: #selector(NSApplication.terminate(_:)),
       keyEquivalent: "q"
     ))
@@ -90,7 +90,7 @@ final class StatusItemController: NSObject {
   /// An Edge Glow session passes its palette accent so the pulse speaks
   /// the session's color; nil keeps the theme tint.
   func setRecording(_ isRecording: Bool, accent: NSColor? = nil) {
-    dictationItem.title = isRecording ? "Stop Dictation" : "Start Dictation"
+    dictationItem.title = isRecording ? "Parar el dictado" : "Empezar a dictar"
     sessionIcons = isRecording ? accent.flatMap(makeSessionIcons) : nil
     if isRecording {
       startBlinking()
@@ -233,7 +233,7 @@ final class StatusItemController: NSObject {
 
   /// Mirrors Read Aloud playback on the menu item.
   func setSpeaking(_ isSpeaking: Bool) {
-    readAloudItem.title = isSpeaking ? "Stop Reading" : "Read Selected Text"
+    readAloudItem.title = isSpeaking ? "Dejar de leer" : "Leer lo seleccionado"
   }
 
   @objc private func toggleDictationItem() {

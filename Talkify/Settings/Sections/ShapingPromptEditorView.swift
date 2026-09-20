@@ -26,7 +26,7 @@ struct ShapingPromptEditorView: View {
 
   /// Question-shaped on purpose. It is the input the fixed framing exists to
   /// protect, so trying it shows that rule holding rather than an easy case.
-  private static let defaultSample = "um what time does does the meeting start you know tomorrow"
+  private static let defaultSample = "eh a que hora empieza empieza la reunion o sea mañana"
 
   /// What came back, held apart from the sample so the two can be compared.
   private enum TryResult: Equatable {
@@ -58,34 +58,33 @@ struct ShapingPromptEditorView: View {
     .frame(width: 560, height: 540)
     .background(SettingsTheme.background)
     .confirmationDialog(
-      "Delete “\(displayName)”?",
+      "¿Borrar “\(displayName)”?",
       isPresented: $isConfirmingDelete
     ) {
-      Button("Delete", role: .destructive) {
+      Button("Borrar", role: .destructive) {
         onDelete()
         dismiss()
       }
     } message: {
-      Text("This removes the prompt from the library. It cannot be undone.")
+      Text("Saca el prompt de tu biblioteca. No se puede deshacer.")
     }
   }
 
   private var displayName: String {
-    prompt.name.isEmpty ? "Untitled" : prompt.name
+    prompt.name.isEmpty ? "Sin nombre" : prompt.name
   }
 
   private var promptCard: some View {
     SettingsCard(title: "Prompt") {
-      SettingsRow(title: "Name") {
-        TextField("Name", text: $prompt.name)
+      SettingsRow(title: "Nombre") {
+        TextField("Nombre", text: $prompt.name)
           .textFieldStyle(.roundedBorder)
           .frame(width: 220)
       }
 
       FieldBlock(
-        title: "What it does",
-        description: "Sent to the model as an instruction. One or two plain "
-          + "sentences work better than a list of rules.",
+        title: "Qué hace",
+        description: "Va al modelo como instrucción. Una o dos frases claras funcionan mejor que una lista de reglas.",
         text: $prompt.preInstruction,
         height: 68
       )
@@ -95,14 +94,14 @@ struct ShapingPromptEditorView: View {
   /// The point of the sheet: change a sentence, press Try, read what the model
   /// did with it.
   private var tryCard: some View {
-    SettingsCard(title: "Try it") {
+    SettingsCard(title: "Pruébalo") {
       FieldBlock(
-        title: "Sample",
-        description: "Pretend you dictated this, then run the prompt over it.",
+        title: "Ejemplo",
+        description: "Imagina que dictaste esto y pásale el prompt por encima.",
         text: $sample,
         height: 48
       ) {
-        Button(isTrying ? "Trying…" : "Try") { runTry() }
+        Button(isTrying ? "Probando…" : "Probar") { runTry() }
           .buttonStyle(SettingsButtonStyle())
           .disabled(isTrying || !hasInstruction)
       }
@@ -118,15 +117,13 @@ struct ShapingPromptEditorView: View {
     switch result {
     case let .shaped(text):
       VStack(alignment: .leading, spacing: 6) {
-        Text("Result")
+        Text("Resultado")
           .font(.system(size: 13, weight: .medium))
         block(Text(text).font(.system(size: 13)))
       }
       .padding(.vertical, 13)
     case .unchanged:
-      note("The model returned the words unchanged. That is what a session "
-        + "would insert too, so this instruction may not ask for anything "
-        + "this sentence needs.")
+      note("El modelo devolvió las palabras tal cual. Eso es lo que pegaría una sesión real, así que puede que esta instrucción no pida nada que esta frase necesite.")
     case let .unavailable(reason):
       note(reason)
     }
@@ -135,37 +132,32 @@ struct ShapingPromptEditorView: View {
   /// Everything most prompts never touch. Folded away because all three
   /// built-in prompts leave it empty, and a field nobody fills is in the way.
   private var advancedCard: some View {
-    SettingsCard(title: "Advanced") {
+    SettingsCard(title: "Avanzado") {
       SettingsRow(
-        title: "Show the rest",
-        description: "A closing instruction, a worked example, and the exact "
-          + "text the model receives."
+        title: "Mostrar lo demás",
+        description: "Una instrucción de cierre, un ejemplo resuelto y el texto exacto que recibe el modelo."
       ) {
-        Toggle("Show the rest", isOn: $showsAdvanced)
+        Toggle("Mostrar lo demás", isOn: $showsAdvanced)
           .labelsHidden()
           .toggleStyle(.switch)
       }
 
       if showsAdvanced {
         FieldBlock(
-          title: "Closing instruction",
-          description: "Placed after the transcript, for a rule that reads "
-            + "better last.",
+          title: "Instrucción de cierre",
+          description: "Va después de la transcripción, para una regla que se entiende mejor al final.",
           text: $prompt.postInstruction,
           height: 56
         )
 
         VStack(alignment: .leading, spacing: 8) {
           label(
-            "Example",
-            "One worked pair, sent with every request. A question-shaped input "
-              + "whose output stays a question is what teaches the model to "
-              + "rewrite a question instead of answering it. Used only when "
-              + "both halves are filled in."
+            "Ejemplo resuelto",
+            "Un par resuelto, que va en cada petición. Una entrada con forma de pregunta cuya salida sigue siendo pregunta es lo que le enseña al modelo a reescribir una pregunta en vez de responderla. Se usa sólo si llenas las dos mitades."
           )
-          TextField("Dictated", text: $prompt.exampleInput)
+          TextField("Dictado", text: $prompt.exampleInput)
             .textFieldStyle(.roundedBorder)
-          TextField("Rewritten", text: $prompt.exampleOutput)
+          TextField("Reescrito", text: $prompt.exampleOutput)
             .textFieldStyle(.roundedBorder)
         }
         .padding(.vertical, 13)
@@ -173,9 +165,8 @@ struct ShapingPromptEditorView: View {
 
         VStack(alignment: .leading, spacing: 8) {
           label(
-            "What the model receives",
-            "The framing around your wording is fixed. It is what keeps a "
-              + "question-shaped dictation from being answered."
+            "Lo que recibe el modelo",
+            "El marco alrededor de tus palabras es fijo. Es lo que evita que un dictado con forma de pregunta termine respondido."
           )
           block(
             Text(prompt.request(wrapping: Self.defaultSample))
@@ -229,10 +220,10 @@ struct ShapingPromptEditorView: View {
 
   private var footer: some View {
     HStack {
-      Button("Delete…") { isConfirmingDelete = true }
+      Button("Borrar…") { isConfirmingDelete = true }
         .buttonStyle(SettingsButtonStyle())
       Spacer()
-      Button("Done") { dismiss() }
+      Button("Listo") { dismiss() }
         .buttonStyle(SettingsButtonStyle())
         .keyboardShortcut(.defaultAction)
     }

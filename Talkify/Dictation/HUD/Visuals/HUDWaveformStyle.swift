@@ -22,4 +22,19 @@ enum HUDWaveformStyle: String, CaseIterable {
   case curve = "Curve"
   case filled = "Filled"
   case siriWave = "Siri Wave"
+
+  /// El nombre visible; el rawValue es la elección guardada y no se toca.
+  var title: String {
+    switch self {
+    case .article: "Barras"
+    case .silver: "Plata"
+    case .capsules: "Cápsulas"
+    case .chartLine: "Línea"
+    case .chartArea: "Área"
+    case .dots: "Puntos"
+    case .curve: "Curva"
+    case .filled: "Relleno"
+    case .siriWave: "Ola"
+    }
+  }
 }

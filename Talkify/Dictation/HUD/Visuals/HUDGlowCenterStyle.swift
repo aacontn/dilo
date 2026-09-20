@@ -7,6 +7,14 @@ enum HUDGlowCenterStyle: String, CaseIterable {
   /// unlicensed — see LICENSE-ARTWORK.txt) breathing with the voice.
   case siriOrb = "Siri Orb"
 
+  /// El nombre visible; el rawValue es la elección guardada y no se toca.
+  var title: String {
+    switch self {
+    case .particles: "Partículas"
+    case .siriOrb: "Orbe"
+    }
+  }
+
   var isShippable: Bool {
     self != .siriOrb
   }

@@ -75,12 +75,12 @@ struct ShortcutsSettingsView: View {
   private var isArmed: Bool { armed != nil }
 
   private var keysCard: some View {
-    SettingsCard(title: "Bindings") {
+    SettingsCard(title: "Teclas") {
       row(
         .dictation,
         allowsBareModifier: true,
         allowsMouseButton: true,
-        sentence: "Hold %@ to talk, or tap it to start and tap again to finish."
+        sentence: "Mantén %@ y habla; suéltala y listo. Un toque corto la deja trabada y otro toque termina."
       )
 
       if settings.isSecondLanguageEnabled {
@@ -88,7 +88,7 @@ struct ShortcutsSettingsView: View {
           .secondLanguage,
           allowsBareModifier: true,
           allowsMouseButton: true,
-          sentence: "Hold %@ to dictate in your other language, or tap it the same way."
+          sentence: "Mantén %@ para dictar en tu otro idioma, o tócala igual que la principal."
         )
       }
 
@@ -103,7 +103,7 @@ struct ShortcutsSettingsView: View {
         .readAloud,
         allowsBareModifier: false,
         allowsMouseButton: false,
-        sentence: "Press %@ to read the selection, again to stop."
+        sentence: "Aprieta %@ para leer lo seleccionado; otra vez para parar."
       )
     }
   }
@@ -113,14 +113,12 @@ struct ShortcutsSettingsView: View {
   /// so the sentence says where to fix that.
   private var translateSentence: String {
     guard settings.isTranslationEnabled else {
-      return "Hold %@ to speak and insert a translation. Choose the language "
-        + "in Language first."
+      return "Mantén %@ para hablar y pegar la traducción. Elige antes el idioma en Idioma."
     }
     let name = SpeechLanguageCatalog.shortName(
       for: Locale(identifier: settings.translationTargetIdentifier)
     )
-    return "Hold %@ to speak and insert it in \(name), or tap it to start and "
-      + "tap again to finish."
+    return "Mantén %@ para hablar y que salga en \(name), o tócala para empezar y tócala de nuevo para terminar."
   }
 
   private func row(
@@ -171,10 +169,10 @@ struct ShortcutsSettingsView: View {
     let named = binding.isMouseButton ? binding.label : caps.joined(separator: " ")
     var description = String(format: sentence, named)
     if binding.isMouseButton {
-      description += " This button keeps its usual action unless that exact combination is pressed."
+      description += " Este botón conserva su función de siempre salvo que aprietes esa combinación exacta."
     }
     if let other = settings.roleUsing(binding, excluding: role) {
-      description += " Also used by \(other.title)."
+      description += " También la usa \(other.title)."
     }
     return description
   }

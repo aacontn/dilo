@@ -20,7 +20,7 @@ final class TextInsertionService {
   /// use is accepted only to keep promised-data resolution from blocking the
   /// main actor. The serial queue and read lease prevent same-instance overlap.
   let clipboardReaderQueue = DispatchQueue(
-    label: "com.tgomareli.Talkify.clipboard-snapshot",
+    label: "cl.espaciodigital.dilo.clipboard-snapshot",
     qos: .userInitiated
   )
 

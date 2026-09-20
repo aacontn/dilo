@@ -27,7 +27,7 @@ struct InsightsSettingsView: View {
         Label(errorMessage, systemImage: "exclamationmark.triangle")
           .font(.callout)
           .foregroundStyle(.red)
-          .accessibilityLabel("Insights data error: \(errorMessage)")
+          .accessibilityLabel("Error en los datos de Actividad: \(errorMessage)")
       }
 
       LazyVGrid(
@@ -42,10 +42,10 @@ struct InsightsSettingsView: View {
 
       if summary.completedSessions == 0 {
         ContentUnavailableView(
-          "No dictation data yet",
+          "Todavía no hay nada que mostrar",
           systemImage: "chart.xyaxis.line",
           description: Text(
-            "Insights appear after your first completed Direct Dictation session."
+            "Esto se llena con tu primer dictado terminado."
           )
         )
         .insightsCard()
@@ -112,46 +112,46 @@ private struct InsightSummaryCard: View {
   static func wordsThisWeek(_ momentum: UsageMomentum) -> Self {
     let comparison: String
     if momentum.previousWordCount == 0 {
-      comparison = "Previous week unavailable"
+      comparison = "Sin datos de la semana pasada"
     } else if let change = momentum.wordChange {
       let percentage = Int((abs(change) * 100).rounded())
       comparison = percentage < 5
-        ? "About the same as the previous week"
-        : "\(percentage)% \(change > 0 ? "higher" : "lower") than the previous week"
+        ? "Más o menos como la semana pasada"
+        : "\(percentage)% \(change > 0 ? "más" : "menos") que la semana pasada"
     } else {
-      comparison = "Previous week unavailable"
+      comparison = "Sin datos de la semana pasada"
     }
     return Self(
-      title: "Words this week",
+      title: "Palabras esta semana",
       symbol: "text.word.spacing",
       value: momentum.currentWordCount.formatted(),
       unit: "",
       comparison: comparison,
-      caption: "Based on \(InsightsFormat.count(momentum.sessionCount, singular: "session"))",
+      caption: "En \(InsightsFormat.count(momentum.sessionCount, singular: "dictado"))",
       tint: InsightsPalette.words
     )
   }
 
   static func averagePace(_ summary: UsageSummary) -> Self {
     Self(
-      title: "Average pace",
+      title: "Velocidad promedio",
       symbol: "speedometer",
       value: Int(summary.averageWordsPerMinute.rounded()).formatted(),
-      unit: "wpm",
-      comparison: "Weighted by active speaking time",
-      caption: "Across \(InsightsFormat.count(summary.completedSessions, singular: "scored session"))",
+      unit: "ppm",
+      comparison: "Ponderado por el tiempo que hablaste",
+      caption: "Sobre \(InsightsFormat.count(summary.completedSessions, singular: "dictado medido"))",
       tint: InsightsPalette.sessions
     )
   }
 
   static func voiceTime(_ summary: UsageSummary) -> Self {
     Self(
-      title: "Voice time",
+      title: "Tiempo hablando",
       symbol: "waveform",
       value: InsightsFormat.durationValue(summary.totalSpeakingDuration),
       unit: InsightsFormat.durationUnit(summary.totalSpeakingDuration),
-      comparison: "\(summary.totalWords.formatted()) words dictated in total",
-      caption: "Longest streak · \(InsightsFormat.count(summary.longestStreak, singular: "day"))",
+      comparison: "\(summary.totalWords.formatted()) palabras dictadas en total",
+      caption: "Racha más larga · \(InsightsFormat.count(summary.longestStreak, singular: "día"))",
       tint: InsightsPalette.time
     )
   }
@@ -198,15 +198,15 @@ private struct WordsTrendChart: View {
   private var subtitle: String {
     guard let selectedDay else {
       let total = days.reduce(0) { $0 + $1.wordCount }
-      return "\(total.formatted()) words dictated over the last 14 days"
+      return "\(total.formatted()) palabras en los últimos 14 días"
     }
     let date = selectedDay.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
-    return "\(date) · \(selectedDay.wordCount.formatted()) words"
+    return "\(date) · \(selectedDay.wordCount.formatted()) palabras"
   }
 
   var body: some View {
     InsightChartSurface(
-      title: "Words per day",
+      title: "Palabras por día",
       symbol: "text.word.spacing",
       tint: InsightsPalette.words,
       subtitle: subtitle
@@ -237,7 +237,7 @@ private struct WordsTrendChart: View {
       .insightsDateAxis(days)
       .chartXSelection(value: $selectedDate)
       .frame(minHeight: 200)
-      .accessibilityLabel("Words dictated per day over the last fourteen days")
+      .accessibilityLabel("Palabras dictadas por día en los últimos catorce días")
     }
   }
 }
@@ -254,15 +254,15 @@ private struct SessionsTrendChart: View {
   private var subtitle: String {
     guard let selectedDay else {
       let total = days.reduce(0) { $0 + $1.sessionCount }
-      return "\(InsightsFormat.count(total, singular: "session")) in the last 14 days"
+      return "\(InsightsFormat.count(total, singular: "dictado")) en los últimos 14 días"
     }
     let date = selectedDay.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
-    return "\(date) · \(InsightsFormat.count(selectedDay.sessionCount, singular: "session"))"
+    return "\(date) · \(InsightsFormat.count(selectedDay.sessionCount, singular: "dictado"))"
   }
 
   var body: some View {
     InsightChartSurface(
-      title: "Sessions",
+      title: "Dictados",
       symbol: "mic.fill",
       tint: InsightsPalette.sessions,
       subtitle: subtitle
@@ -299,7 +299,7 @@ private struct SessionsTrendChart: View {
       .insightsDateAxis(days)
       .chartXSelection(value: $selectedDate)
       .frame(minHeight: 170)
-      .accessibilityLabel("Direct Dictation sessions per day over the last fourteen days")
+      .accessibilityLabel("Dictados por día en los últimos catorce días")
     }
   }
 }
@@ -340,13 +340,12 @@ private struct ActivityHeatmapCard: View {
   let days: [UsageHeatmapDay]
 
   private var subtitle: String {
-    "\(InsightsFormat.count(summary.currentStreak, singular: "day")) streak · "
-      + "longest \(InsightsFormat.count(summary.longestStreak, singular: "day"))"
+    "Racha de \(InsightsFormat.count(summary.currentStreak, singular: "día")) · la más larga, \(InsightsFormat.count(summary.longestStreak, singular: "día"))"
   }
 
   var body: some View {
     InsightChartSurface(
-      title: "Activity",
+      title: "Actividad",
       symbol: "calendar",
       tint: InsightsPalette.words,
       subtitle: subtitle
@@ -388,7 +387,7 @@ private struct ActivityHeatmapChart: View {
         state: day.isFuture ? "Future" : day.wordCount > 0 ? "Active" : "Inactive",
         intensity: intensity,
         accessibilityLabel: date.formatted(date: .complete, time: .omitted),
-        accessibilityValue: "\(day.wordCount.formatted()) words dictated",
+        accessibilityValue: "\(day.wordCount.formatted()) palabras dictadas",
         isFuture: day.isFuture
       )
     }
@@ -462,7 +461,7 @@ private struct ActivityHeatmapChart: View {
     }
     .chartLegend(.hidden)
     .frame(height: 224)
-    .accessibilityLabel("Sixteen-week Direct Dictation activity")
+    .accessibilityLabel("Actividad de dictado de las últimas dieciséis semanas")
   }
 }
 
@@ -479,18 +478,18 @@ private struct HeatmapChartDay {
 private struct ActivityLegend: View {
   var body: some View {
     HStack(spacing: 6) {
-      Text("Less")
+      Text("Menos")
       ForEach(1...4, id: \.self) { level in
         RoundedRectangle(cornerRadius: 2)
           .fill(InsightsPalette.words.opacity(0.15 + 0.2 * Double(level)))
           .frame(width: 13, height: 13)
       }
-      Text("More")
+      Text("Más")
     }
     .font(.caption2)
     .foregroundStyle(.secondary)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Activity ranges from less to more words dictated")
+    .accessibilityLabel("La actividad va de menos a más palabras dictadas")
   }
 }
 
@@ -529,11 +528,15 @@ private enum InsightsFormat {
   }
 
   static func durationUnit(_ duration: TimeInterval) -> String {
-    if duration < 60 { return "sec" }
+    if duration < 60 { return "seg" }
     if duration < 3_600 { return "min" }
-    return "hr"
+    return "h"
   }
 
+  /// Pluraliza pegando una "s". Alcanza para las palabras que esta sección
+  /// usa —dictado, día, dictado medido—, todas terminadas en vocal átona.
+  /// Si alguna vez entra una palabra que no pluralice así, esto se cambia
+  /// por una regla de verdad y no por un caso especial.
   static func count(_ value: Int, singular: String) -> String {
     "\(value.formatted()) \(value == 1 ? singular : singular + "s")"
   }

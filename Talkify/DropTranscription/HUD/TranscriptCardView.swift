@@ -37,7 +37,7 @@ struct TranscriptCardView: View {
         // replaces the numbers only while the pointer is here, which is the
         // moment it can still be acted on.
         Text(isHovered
-          ? "Click to copy · Drag to save"
+          ? "Clic para copiar · Arrastra para guardar"
           : "\(transcript.wordCountText) · \(transcript.durationText)")
           .font(.system(size: 11 * style.scale, weight: .medium))
           .monospacedDigit()

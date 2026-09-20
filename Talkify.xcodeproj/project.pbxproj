@@ -424,16 +424,16 @@
 				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Talkify/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talkify uses the microphone to transcribe your speech on this Mac.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Talkify converts your speech into text on this Mac.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -441,7 +441,7 @@
 				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cl.espaciodigital.dilo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -464,16 +464,16 @@
 				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Talkify/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talkify uses the microphone to transcribe your speech on this Mac.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Talkify converts your speech into text on this Mac.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -482,7 +482,7 @@
 				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cl.espaciodigital.dilo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				STRIP_INSTALLED_PRODUCT = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
@@ -551,13 +551,13 @@
 				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -568,7 +568,7 @@
 				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cl.espaciodigital.dilo.mas;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DILO_MAS $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
@@ -592,13 +592,13 @@
 				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -610,7 +610,7 @@
 				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cl.espaciodigital.dilo.mas;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				STRIP_INSTALLED_PRODUCT = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DILO_MAS $(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;

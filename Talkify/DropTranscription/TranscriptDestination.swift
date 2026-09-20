@@ -12,6 +12,14 @@ enum TranscriptDestination {
   enum Preference: String, CaseIterable {
     case besideSource = "Beside the file"
     case chosenFolder = "Chosen folder"
+
+    /// El nombre visible; el rawValue es la elección guardada y no se toca.
+    var title: String {
+      switch self {
+      case .besideSource: "Junto al archivo"
+      case .chosenFolder: "En una carpeta que elijas"
+      }
+    }
   }
 
   /// The filesystem questions this needs answered, injected so the resolution

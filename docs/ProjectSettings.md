@@ -60,7 +60,7 @@ ninguna clave de Sparkle.
 ## Entitlements
 
 `Dilo.entitlements` — App Sandbox apagado; hace falta para el tap de CGEvent
-y la inserción por Accesibilidad. Hardened Runtime encendido.
+y la inserción por Accesibilidad. (Hardened Runtime: ver Firma, más abajo.)
 
 ```xml
 <key>com.apple.security.device.audio-input</key><true/>
@@ -81,6 +81,15 @@ y la inserción por Accesibilidad. Hardened Runtime encendido.
 `CODE_SIGN_STYLE = Manual`, `DEVELOPMENT_TEAM` vacío, en Debug y en Release.
 La Tarea 8 pone Developer ID + notarización para `Dilo` y firma de App Store
 para `Dilo-MAS`.
+
+**`ENABLE_HARDENED_RUNTIME` está en `NO` mientras la firma sea local, y vuelve
+a `YES` en la Tarea 8.** Con Hardened Runtime encendido y firma ad-hoc, dyld se
+niega a cargar `Sparkle.framework`: *"mapping process and mapped file
+(non-platform) have different Team IDs"*, y la app no arranca. Las dos salidas
+son apagar el Hardened Runtime o agregar
+`com.apple.security.cs.disable-library-validation` a los entitlements. Se
+eligió la primera porque es un build setting que se revierte junto con la
+firma; la segunda es un entitlement que se podría publicar por accidente.
 
 ## Build settings
 

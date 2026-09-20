@@ -29,11 +29,11 @@ actor FileTranscriptionService {
 
     var errorDescription: String? {
       switch self {
-      case .unavailable: "Speech recognition is unavailable"
-      case .unsupportedLocale: "That language is not supported"
-      case .noAudioTrack: "No audio in that file"
-      case .unreadable: "Could not read that file"
-      case .emptyTranscript: "No speech found"
+      case .unavailable: "El reconocimiento de voz no está disponible"
+      case .unsupportedLocale: "Ese idioma no está soportado"
+      case .noAudioTrack: "Ese archivo no trae audio"
+      case .unreadable: "No pude leer ese archivo"
+      case .emptyTranscript: "No encontré voz ahí"
       }
     }
   }

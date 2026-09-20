@@ -224,7 +224,10 @@ struct AppSettingsTests {
     #expect(settings.recognitionLocaleIdentifier == "")
     #expect(settings.secondaryRecognitionLocaleIdentifier == "")
     #expect(!settings.isSecondLanguageEnabled)
-    #expect(settings.secondaryTriggerBinding == .rightOptionTrigger)
+    // Nunca ⌥ derecha: en teclado ISO-LatAm es AltGr y escribe símbolos
+    // (spec §8.1). Este test es la guardia de esa regla.
+    #expect(settings.secondaryTriggerBinding == .controlOptionSpace)
+    #expect(settings.secondaryTriggerBinding != .rightOptionTrigger)
   }
 
   @Test func secondLanguageTurnsOnWithItsPickAndOffAgain() {

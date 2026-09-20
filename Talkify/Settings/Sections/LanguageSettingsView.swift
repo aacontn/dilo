@@ -8,8 +8,7 @@ struct LanguageSettingsView: View {
   /// Said before the sheet appears, because the sheet is Apple's and it lists
   /// the dictation language too, which reads as a mistake until explained.
   private static let downloadExplanation =
-    "macOS may also ask for your dictation language. Translation models are "
-    + "separate from dictation ones."
+    "macOS puede pedirte también el idioma de dictado. Los modelos de traducción son distintos de los de dictado."
 
   @State private var isRecordingSecondKey = false
   @Bindable var settings: AppSettings
@@ -24,10 +23,10 @@ struct LanguageSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Languages") {
+      SettingsCard(title: "Idiomas") {
         SettingsPickerRow(
-          title: "Dictation language",
-          description: "What the main trigger transcribes",
+          title: "Idioma de dictado",
+          description: "En qué idioma transcribe tu tecla principal",
           options: [""] + languages.map(\.id),
           optionLabel: label(for:),
           selection: $settings.recognitionLocaleIdentifier,
@@ -35,10 +34,10 @@ struct LanguageSettingsView: View {
         )
 
         SettingsPickerRow(
-          title: "Second language",
+          title: "Segundo idioma",
           description: settings.isSecondLanguageEnabled
-            ? "Its own trigger, so you never switch a setting to switch language"
-            : "Off. Choose one to dictate in two languages",
+            ? "Tiene su propia tecla: cambiar de idioma no es cambiar un ajuste"
+            : "Apagado. Elige uno si dictas en dos idiomas",
           options: [""] + secondaryOptions,
           optionLabel: secondaryLabel(for:),
           selection: $settings.secondaryRecognitionLocaleIdentifier,
@@ -47,7 +46,7 @@ struct LanguageSettingsView: View {
 
         if settings.isSecondLanguageEnabled {
           SettingsRow(
-            title: "Second language trigger",
+            title: "Tecla del segundo idioma",
             description: secondaryTriggerDescription
           ) {
             KeyRecorderView(
@@ -61,7 +60,7 @@ struct LanguageSettingsView: View {
         }
 
         SettingsPickerRow(
-          title: "Translate into",
+          title: "Traducir a",
           description: translationDescription,
           options: translationOptions,
           optionLabel: translationLabel(for:),
@@ -75,8 +74,8 @@ struct LanguageSettingsView: View {
         // progress is what separates "working" from "stuck".
         ForEach(downloads, id: \.name) { download in
           SettingsRow(
-            title: "Downloading \(download.name)",
-            description: "You can keep using your other language."
+            title: "Bajando \(download.name)",
+            description: "Puedes seguir usando el otro idioma mientras tanto."
           ) {
             HStack(spacing: 8) {
               ProgressView(value: download.fraction)
@@ -93,8 +92,7 @@ struct LanguageSettingsView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(
-          "Both languages stay loaded, so either key answers as fast. "
-            + "Everything runs on device."
+          "Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. Todo corre en esta compu."
         )
         .font(.caption)
         .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
@@ -106,12 +104,12 @@ struct LanguageSettingsView: View {
       languages = await SpeechLanguageCatalog.available()
     }
     .confirmationDialog(
-      "Download \(confirmingTarget?.name ?? "") to translate into it?",
+      "¿Bajar \(confirmingTarget?.name ?? "") para traducir a ese idioma?",
       isPresented: isConfirmingDownload,
       presenting: confirmingTarget
     ) { target in
-      Button("Download") { install(target) }
-      Button("Cancel", role: .cancel) {}
+      Button("Bajar") { install(target) }
+      Button("Cancelar", role: .cancel) {}
     } message: { _ in
       Text(Self.downloadExplanation)
     }
@@ -138,17 +136,17 @@ struct LanguageSettingsView: View {
   }
 
   private func label(for identifier: String) -> String {
-    guard !identifier.isEmpty else { return "Automatic (\(automaticName))" }
+    guard !identifier.isEmpty else { return "Automático (\(automaticName))" }
     guard let language = languages.first(where: { $0.id == identifier }) else {
       return identifier
     }
     return language.isInstalled
       ? language.name
-      : "\(language.name) — downloads on first use"
+      : "\(language.name) — se baja la primera vez que lo uses"
   }
 
   private func secondaryLabel(for identifier: String) -> String {
-    identifier.isEmpty ? "Off" : label(for: identifier)
+    identifier.isEmpty ? "Apagado" : label(for: identifier)
   }
 
   /// What "Automatic" resolves to, named rather than left abstract: the Mac's
@@ -158,30 +156,30 @@ struct LanguageSettingsView: View {
     let match = languages.first {
       $0.locale.language.languageCode?.identifier == current
     }
-    return match?.name ?? "English"
+    return match?.name ?? "Español"
   }
 
   private var secondaryName: String {
     languages
       .first { $0.id == settings.secondaryRecognitionLocaleIdentifier }?
-      .name ?? "the second language"
+      .name ?? "el segundo idioma"
   }
 
   private var translationDescription: String {
     guard settings.isTranslationEnabled else {
-      return "Off. Choose one and the Translate key inserts it"
+      return "Apagado. Elige uno y la tecla de traducir lo pega en ese idioma"
     }
-    return "Speak your language, insert this one"
+    return "Habla en el tuyo, pega en este"
   }
 
   private func translationLabel(for identifier: String) -> String {
-    guard !identifier.isEmpty else { return "Off" }
+    guard !identifier.isEmpty else { return "Apagado" }
     guard let target = runtimeState.translationTargets.first(where: { $0.id == identifier })
     else {
       // A stored pick this source cannot reach. Kept visible rather than
       // silently dropped: it is still the user's choice.
       return SpeechLanguageCatalog.shortName(for: Locale(identifier: identifier))
-        + " — not available from your dictation language"
+        + " — no se puede desde tu idioma de dictado"
     }
     return target.label
   }
@@ -220,17 +218,17 @@ struct LanguageSettingsView: View {
   private var installRow: some View {
     if let pair = runtimeState.installingTranslation?.pair {
       SettingsRow(
-        title: "Getting the \(name(of: pair.target)) model",
-        description: "Downloading in the background. Dictation keeps working."
+        title: "Bajando el modelo de \(name(of: pair.target))",
+        description: "Baja en segundo plano. El dictado sigue funcionando."
       ) {
         installingControl
       }
     } else if let name = runtimeState.translationInstallFailure {
       SettingsRow(
-        title: "\(name) did not finish downloading",
-        description: "Pick it again to retry."
+        title: "\(name) no terminó de bajar",
+        description: "Elígelo otra vez para reintentar."
       ) {
-        Button("Dismiss") { runtimeState.translationInstallFailure = nil }
+        Button("Entendido") { runtimeState.translationInstallFailure = nil }
           .buttonStyle(SettingsButtonStyle())
       }
     } else if let target = chosenTarget, let problem = modelProblem {
@@ -269,9 +267,9 @@ struct LanguageSettingsView: View {
   private var modelProblem: (title: String, detail: String, button: String)? {
     switch runtimeState.translationModelState {
     case .needsDownload:
-      ("still needs its model", "Translate cannot run until it downloads.", "Download")
+      ("todavía necesita su modelo", "Traducir no funciona hasta que baje.", "Bajar")
     case .failed:
-      ("could not be prepared", "Translate cannot run until it loads.", "Try Again")
+      ("no se pudo preparar", "Traducir no funciona hasta que cargue.", "Reintentar")
     case .none, .ready, .downloading:
       nil
     }
@@ -283,7 +281,7 @@ struct LanguageSettingsView: View {
   private var installingControl: some View {
     HStack(spacing: 10) {
       ProgressView().progressViewStyle(.linear).frame(width: 120)
-      Button("Stop") { runtimeState.stopInstallingTranslationModel() }
+      Button("Parar") { runtimeState.stopInstallingTranslationModel() }
         .buttonStyle(SettingsButtonStyle())
     }
   }
@@ -335,13 +333,12 @@ struct LanguageSettingsView: View {
 
   private var secondaryTriggerDescription: String {
     let binding = settings.secondaryTriggerBinding
-    var description = "Hold it to dictate in \(secondaryName), or tap it to start and tap again to finish"
+    var description = "Mantenla para dictar en \(secondaryName), o tócala para empezar y tócala de nuevo para terminar"
     if binding.isMouseButton {
-      description += ". Keeps its usual action unless that exact combination "
-        + "is pressed"
+      description += ". Conserva su función de siempre salvo que aprietes esa combinación exacta"
     }
     if let other = settings.roleUsing(binding, excluding: .secondLanguage) {
-      description += ". Also used by \(other.title)"
+      description += ". También la usa \(other.title)"
     }
     return description
   }

@@ -19,17 +19,17 @@ enum PermissionAlert {
 
     let alert = NSAlert()
     alert.alertStyle = .informational
-    alert.messageText = "Talkify needs Accessibility"
+    alert.messageText = "Dilo necesita Accesibilidad"
     alert.informativeText = """
-      Turn Talkify on in System Settings → Privacy & Security → \
-      Accessibility, so Talkify can put your words into the app you were typing in.
+      Activa Dilo en Ajustes del Sistema → Privacidad y seguridad → \
+      Accesibilidad. Es lo que le deja poner tus palabras en la app donde estabas escribiendo.
 
-      macOS only applies this when Talkify starts, so reopen it once you have \
-      granted the permission.
+      macOS sólo aplica este permiso cuando Dilo arranca, así que ábrelo de \
+      nuevo una vez que lo hayas dado.
       """
-    alert.addButton(withTitle: "Open Settings")
-    alert.addButton(withTitle: "Quit and Reopen")
-    alert.addButton(withTitle: "Later")
+    alert.addButton(withTitle: "Abrir Ajustes")
+    alert.addButton(withTitle: "Cerrar y abrir de nuevo")
+    alert.addButton(withTitle: "Después")
 
     switch run(alert) {
     case .alertFirstButtonReturn:
@@ -48,13 +48,13 @@ enum PermissionAlert {
 
     let alert = NSAlert()
     alert.alertStyle = .informational
-    alert.messageText = "Reopen Talkify to finish"
+    alert.messageText = "Abre Dilo de nuevo para terminar"
     alert.informativeText = """
-      The permission is granted. macOS applies it to Talkify only when the app \
-      starts, so the dictation key stays inactive until you reopen it.
+      El permiso ya está dado. macOS se lo aplica a Dilo sólo cuando la app \
+      arranca, así que tu tecla de dictado no responde hasta que lo abras de nuevo.
       """
-    alert.addButton(withTitle: "Quit and Reopen")
-    alert.addButton(withTitle: "Later")
+    alert.addButton(withTitle: "Cerrar y abrir de nuevo")
+    alert.addButton(withTitle: "Después")
 
     if run(alert) == .alertFirstButtonReturn {
       relaunch()

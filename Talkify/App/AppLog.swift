@@ -19,7 +19,7 @@ import os
 /// public, and anything derived from what was said is left redacted or simply
 /// not logged. A length is fine; the text of that length is not.
 enum AppLog {
-  private static let subsystem = "com.tgomareli.Talkify"
+  private static let subsystem = "cl.espaciodigital.dilo"
 
   /// Sessions beginning and ending, and how they ended.
   static let session = Logger(subsystem: subsystem, category: "session")

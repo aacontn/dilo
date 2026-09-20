@@ -10,13 +10,13 @@ struct UpdatesSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Version") {
+      SettingsCard(title: "Versión") {
         SettingsRow(
-          title: "Talkify \(Self.version)",
-          description: updater.availableVersion.map { "Version \($0) is available." }
+          title: "Dilo \(Self.version)",
+          description: updater.availableVersion.map { "Hay una versión \($0) disponible." }
             ?? lastCheckedDescription
         ) {
-          Button("Check Now") {
+          Button("Buscar ahora") {
             updater.checkForUpdates()
           }
           .buttonStyle(SettingsButtonStyle())
@@ -24,10 +24,10 @@ struct UpdatesSettingsView: View {
         }
       }
 
-      SettingsCard(title: "Automatic") {
+      SettingsCard(title: "Automático") {
         SettingsRow(
-          title: "Check for updates automatically",
-          description: "Once a day, in the background"
+          title: "Buscar actualizaciones solo",
+          description: "Una vez al día, en segundo plano"
         ) {
           Toggle("", isOn: automaticChecks)
             .labelsHidden()
@@ -35,9 +35,8 @@ struct UpdatesSettingsView: View {
         }
 
         SettingsRow(
-          title: "Download updates automatically",
-          description: "Fetch the update in advance. Installing still waits "
-            + "for you, and never interrupts a dictation session."
+          title: "Bajarlas solo",
+          description: "Baja la actualización de antemano. Instalarla sigue esperándote, y nunca interrumpe un dictado."
         ) {
           Toggle("", isOn: automaticDownloads)
             .labelsHidden()
@@ -47,9 +46,7 @@ struct UpdatesSettingsView: View {
       }
 
       Text(
-        "Updates are downloaded from GitHub and verified with an EdDSA "
-          + "signature before they are installed. An update that fails "
-          + "verification is discarded."
+        "Las actualizaciones bajan desde GitHub y se verifican con una firma EdDSA antes de instalarse. La que no pasa la verificación se descarta."
       )
       .font(.caption)
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
@@ -60,9 +57,9 @@ struct UpdatesSettingsView: View {
 
   private var lastCheckedDescription: String {
     guard let date = updater.lastCheckedAt else {
-      return "Talkify has not checked for updates yet."
+      return "Dilo todavía no ha buscado actualizaciones."
     }
-    return "Last checked \(date.formatted(.relative(presentation: .named)))."
+    return "Última búsqueda \(date.formatted(.relative(presentation: .named)))."
   }
 
   private var automaticChecks: Binding<Bool> {

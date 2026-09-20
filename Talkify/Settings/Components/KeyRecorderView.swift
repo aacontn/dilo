@@ -156,7 +156,7 @@ struct KeyRecorderCapsule: View {
   var body: some View {
     Text(
       isRecording
-        ? (acceptsMouseButton ? "Press shortcut or mouse…" : "Press shortcut…")
+        ? (acceptsMouseButton ? "Aprieta teclas o un botón…" : "Aprieta las teclas…")
         : title
     )
       .font(.system(size: 12, weight: .semibold))

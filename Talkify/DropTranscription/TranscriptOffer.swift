@@ -169,7 +169,7 @@ final class TranscriptOffer {
       hud.showSaved(in: destination)
     } catch {
       staged.discard()
-      hud.showMessage("Could not save the transcript")
+      hud.showMessage("No pude guardar la transcripción")
     }
   }
 }

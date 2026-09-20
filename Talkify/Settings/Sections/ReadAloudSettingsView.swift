@@ -15,15 +15,15 @@ struct ReadAloudSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Voice") {
+      SettingsCard(title: "Voz") {
         SettingsPickerRow(
-          title: "Read Aloud voice",
+          title: "Voz que lee",
           description: catalog.voices.isEmpty
-            ? "Only default-quality voices are installed on this Mac"
-            : "High-quality voices installed on this Mac",
+            ? "En esta compu sólo hay voces de calidad normal"
+            : "Las voces de buena calidad instaladas en esta compu",
           options: [""] + catalog.voices.map(\.identifier),
           optionLabel: { identifier in
-            guard !identifier.isEmpty else { return "System Default" }
+            guard !identifier.isEmpty else { return "La del sistema" }
             return catalog.voices
               .first { $0.identifier == identifier }
               .map(VoiceCatalog.label(for:)) ?? identifier
@@ -33,36 +33,31 @@ struct ReadAloudSettingsView: View {
         )
 
         SettingsRow(
-          title: "Translate before speaking",
-          description: "Selected text in another language is read in the "
-            + "voice's own language. Needs the pair's model already installed."
+          title: "Traducir antes de leer",
+          description: "Si seleccionas texto en otro idioma, se lee en el idioma de la voz. Necesita el modelo del par ya instalado."
         ) {
-          Toggle("Translate before speaking", isOn: $settings.readAloudTranslates)
+          Toggle("Traducir antes de leer", isOn: $settings.readAloudTranslates)
             .labelsHidden()
             .toggleStyle(.switch)
         }
 
         SettingsRow(
-          title: "Preview",
-          description: "Hear a sample with the selected voice"
+          title: "Escuchar",
+          description: "Prueba la voz que elegiste"
         ) {
-          Button("Play sample") {
+          Button("Probar") {
             playPreview()
           }
           .buttonStyle(SettingsButtonStyle())
         }
       }
 
-      SettingsCard(title: "More voices") {
+      SettingsCard(title: "Más voces") {
         SettingsRow(
-          title: "Download premium voices",
-          description: "In System Settings, open Spoken Content → "
-            + "System Voice → Manage Voices and download a Premium "
-            + "voice (the files are large and download quietly; a "
-            + "stuck download usually clears after a restart). New "
-            + "voices appear here automatically."
+          title: "Bajar voces premium",
+          description: "En Ajustes del Sistema, entra a Contenido hablado → Voz del sistema → Gestionar voces y baja una voz Premium. Son archivos grandes y bajan en silencio; si una se traba, reiniciar suele arreglarlo. Las voces nuevas aparecen acá solas."
         ) {
-          Button("Open System Settings") {
+          Button("Abrir Ajustes del Sistema") {
             VoiceCatalog.openVoiceDownloadSettings()
           }
           .buttonStyle(SettingsButtonStyle())
@@ -70,10 +65,10 @@ struct ReadAloudSettingsView: View {
 
         if personalVoiceStatus == .notDetermined {
           SettingsRow(
-            title: "Personal Voice",
-            description: "Let Talkify read text in your own trained voice"
+            title: "Voz personal",
+            description: "Deja que Dilo lea con tu propia voz entrenada"
           ) {
-            Button("Allow Personal Voice") {
+            Button("Permitir voz personal") {
               Task {
                 personalVoiceStatus = await VoiceCatalog.requestPersonalVoiceAccess()
                 catalog.refresh()
@@ -88,15 +83,13 @@ struct ReadAloudSettingsView: View {
       // has no API, so this stays a footnote rather than a feature row.
       VStack(alignment: .leading, spacing: 2) {
         Text(
-          "Talkify can also speak in a voice trained on your own "
-            + "speech: create a Personal Voice in System Settings → "
-            + "Accessibility, then allow Talkify to use it."
+          "Dilo también puede hablar con una voz entrenada con la tuya: crea una Voz personal en Ajustes del Sistema → Accesibilidad y después dale permiso a Dilo para usarla."
         )
         .font(.caption)
         .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
         .fixedSize(horizontal: false, vertical: true)
 
-        Button("Open Personal Voice settings…") {
+        Button("Abrir los ajustes de Voz personal…") {
           VoiceCatalog.openPersonalVoiceSettings()
         }
         .buttonStyle(.link)
@@ -110,7 +103,7 @@ struct ReadAloudSettingsView: View {
   private func playPreview() {
     previewSynthesizer.stopSpeaking(at: .immediate)
     let utterance = AVSpeechUtterance(
-      string: "Hi! This is how Talkify will read your text out loud."
+      string: "Hola. Así suena Dilo cuando te lee en voz alta."
     )
     if !settings.readAloudVoiceID.isEmpty,
      let voice = AVSpeechSynthesisVoice(identifier: settings.readAloudVoiceID) {

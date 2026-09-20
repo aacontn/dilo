@@ -19,6 +19,16 @@ enum HUDVoiceVisualStyle: String, CaseIterable {
   /// grows with the draft.
   case compact = "Compact"
 
+  /// El nombre visible. El rawValue queda en inglés porque es lo que hay guardado en UserDefaults: renombrarlo borraría la elección de la persona en silencio.
+  var title: String {
+    switch self {
+    case .waveform: "Forma de onda"
+    case .glow: "Halo"
+    case .glowDraft: "Halo con texto"
+    case .compact: "Compacto"
+    }
+  }
+
   /// Compact and Edge Glow + Draft are built around the live draft, so a
   /// placeholder would be words nobody spoke.
   var showsDraftWhileListening: Bool {

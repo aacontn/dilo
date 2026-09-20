@@ -155,7 +155,7 @@ final class DropTranscriptionController {
   /// drag or cannot perform one.
   func pickFile() {
     guard !isRunning else {
-      hud.showMessage("Already transcribing")
+      hud.showMessage("Ya estoy transcribiendo")
       return
     }
 
@@ -163,8 +163,8 @@ final class DropTranscriptionController {
     panel.allowedContentTypes = MediaFileTypes.openPanelTypes
     panel.allowsMultipleSelection = false
     panel.canChooseDirectories = false
-    panel.prompt = "Transcribe"
-    panel.message = "Choose an audio or video file to transcribe."
+    panel.prompt = "Transcribir"
+    panel.message = "Elige un archivo de audio o video para transcribir."
 
     // Under LSUIElement the panel opens behind everything unless the app is
     // activated first, the same problem Sparkle's windows have.
@@ -175,11 +175,11 @@ final class DropTranscriptionController {
 
   func transcribe(_ url: URL, languageIndex: Int = 0) {
     guard !isRunning else {
-      hud.showMessage("Already transcribing")
+      hud.showMessage("Ya estoy transcribiendo")
       return
     }
     guard MediaFileTypes.isTranscribable(url: url) else {
-      hud.showMessage("Not an audio or video file")
+      hud.showMessage("Eso no es audio ni video")
       return
     }
 
@@ -242,6 +242,6 @@ final class DropTranscriptionController {
   /// collapses to one phrase.
   private static func message(for error: any Error) -> String {
     (error as? FileTranscriptionService.Failure)?.errorDescription
-      ?? "Could not transcribe that file"
+      ?? "No pude transcribir ese archivo"
   }
 }

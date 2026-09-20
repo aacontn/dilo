@@ -108,6 +108,12 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox | 2 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 |
 
+**Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
+`DiloBrand` (`Talkify/Settings/Components/SettingsTheme.swift`), una sola vez
+para SwiftUI y para los `NSImage`. El acento de la app es **mango**. Los
+activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
+`iconutil` desde `brand/dilo-icon.svg` y queda en `brand/generado/`.
+
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.
 
@@ -152,6 +158,36 @@ Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su
   la posición: un exceso de posición abre una rendija contra el borde.
 - **El silencio y un micrófono muerto tienen que verse distinto.**
 
+## Idioma, copy y el catálogo
+
+El **español es el idioma en que se escribe** (`developmentRegion = es`); el
+inglés se traduce desde ahí y vive en `Talkify/Localizable.xcstrings`. Nunca al
+revés: una frase pensada en inglés y traducida suena a manual, y eso es
+exactamente lo que Dilo no es.
+
+Voz: tuteo, directo, cero relleno corporativo. "Aprieta, habla, suelta." Los
+términos técnicos van sin traducir (commit, prompt, sandbox). La referencia es
+el locale `es` del repo Tauri (`app/src/i18n/locales/es/translation.json`),
+escrito a mano.
+
+**Agujero conocido, hoy:** los componentes de Ajustes reciben `String`
+(`SettingsRow.title`, `SettingsCard.title`, `description`…), y `Text(String)`
+**no** pasa por el catálogo — sólo `Text("literal")` lo hace. Así que hoy el
+catálogo es contenido correcto y revisable, pero cambiar el Mac a inglés no
+traduce la mayoría de Ajustes. Arreglarlo es convertir esos parámetros a
+`LocalizedStringKey` y resolver los call sites que pasan un `String` calculado
+(los de `LanguageSettingsView` sobre todo). No se hizo en la Tarea 1 porque es
+un refactor de los componentes, no del copy.
+
+`STRING_CATALOG_GENERATE_SYMBOLS` está en `NO` a propósito: el generador de
+símbolos colapsa "Borrar" y "Borrar…" en el mismo identificador y falla la
+compilación. Nada usa esos símbolos.
+
+**Enums persistidos:** un `rawValue` guardado en `UserDefaults` no se traduce
+nunca — renombrarlo borra la elección de la persona en silencio. El nombre
+visible va en un `var title: String` aparte, y el picker muestra `title`, no
+`rawValue`.
+
 ## Cómo se compila y se prueba
 
 DerivedData vive en `/Volumes/SSD2/derived-data` (disco de taller, se puede
@@ -178,6 +214,17 @@ xcodebuild -project Talkify.xcodeproj -scheme Dilo \
 Los dos `xcodebuild` y `swift test` tienen que pasar antes de devolver el
 trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
 el terminal.
+
+**`xcodebuild test` se cuelga en este Mac** antes de "Testing started": el host
+de los tests es la app real, y al arrancar levanta su tap de CGEvent, que
+dispara TCC y espera a un humano. En CI pasa igual pero ahí TCC deniega solo y
+la suite corre. Mientras tanto, la red de seguridad local es `swift test` en
+`DiloCore/` más los dos `xcodebuild build`.
+
+**Hardened Runtime apagado mientras la firma sea local.** Con firma ad-hoc y
+Hardened Runtime encendido, dyld se niega a cargar `Sparkle.framework` y la app
+no arranca. Vuelve a encenderse en la Tarea 8, junto con Developer ID. Detalle
+en `docs/ProjectSettings.md`.
 
 ## Estilo
 

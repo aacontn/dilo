@@ -21,8 +21,8 @@ struct DropPreviewCard: View {
 
   var body: some View {
     SettingsPreviewStage(
-      title: "Live preview",
-      subtitle: "The notch taking a file and handing back a transcript"
+      title: "Así se ve",
+      subtitle: "La píldora recibiendo un archivo y devolviendo la transcripción"
     ) {
       DropHUDView(
         screen: HUDPreviewScreen.notched,

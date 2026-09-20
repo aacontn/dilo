@@ -10,4 +10,13 @@ enum HUDLongDraftStyle: String, CaseIterable {
   /// One line whose font shrinks as the draft grows, truncating only after
   /// the scale floor is hit.
   case shrinkToFit = "Shrink to Fit"
+
+  /// El nombre visible; el rawValue es la elección guardada y no se toca.
+  var title: String {
+    switch self {
+    case .tailOnly: "Solo el final"
+    case .growDown: "Crece hacia abajo"
+    case .shrinkToFit: "Achica la letra"
+    }
+  }
 }

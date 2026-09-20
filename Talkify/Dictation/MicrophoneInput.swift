@@ -80,7 +80,7 @@ final class MicrophoneInput: @unchecked Sendable {
   /// switch, which fails with -10868.
   private var audioEngine = AVAudioEngine()
   /// Serialises route recovery off the notification thread.
-  private let recoveryQueue = DispatchQueue(label: "com.tgomareli.Talkify.mic-recovery")
+  private let recoveryQueue = DispatchQueue(label: "cl.espaciodigital.dilo.mic-recovery")
   private var configurationObserver: (any NSObjectProtocol)?
   private var analyzerFormat: AVAudioFormat?
   private var recovering = false

@@ -15,9 +15,9 @@ enum InsertionDestination: String, CaseIterable {
 
   var title: String {
     switch self {
-    case .insert: "Insert into the app"
-    case .clipboardOnly: "Copy to the clipboard"
-    case .both: "Insert and copy"
+    case .insert: "Pegar en la app"
+    case .clipboardOnly: "Copiar al portapapeles"
+    case .both: "Pegar y copiar"
     }
   }
 }

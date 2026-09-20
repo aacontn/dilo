@@ -12,59 +12,52 @@ struct DictationSettingsView: View {
 
   var body: some View {
     VStack(spacing: 16) {
-      SettingsCard(title: "Insertion") {
+      SettingsCard(title: "Dónde aterriza") {
         SettingsPickerRow(
-          title: "Deliver text by",
-          description: "Insert into the app pastes into the control you were "
-            + "typing in and restores your clipboard, as Direct Dictation has "
-            + "always worked. Copy to the clipboard never pastes. Insert and "
-            + "copy pastes and leaves the text on the clipboard.",
+          title: "Entregar el texto",
+          description: "Pegar en la app lo escribe donde tenías el cursor y te devuelve lo que tenías copiado. Copiar al portapapeles no pega nada. Pegar y copiar hace las dos y deja el texto copiado.",
           options: InsertionDestination.allCases,
           optionLabel: { $0.title },
           selection: $settings.insertionDestination
         )
       }
 
-      SettingsCard(title: "History") {
+      SettingsCard(title: "Historial") {
         SettingsRow(
-          title: "Save transcription history",
-          description: "Keep finished dictation text as daily text files you "
-            + "can read in Finder. Off by default, and nothing is sent "
-            + "anywhere: the files stay on this Mac."
+          title: "Guardar lo que dictas",
+          description: "Un archivo de texto por día, que puedes abrir en el Finder. Viene apagado, y nada sale de acá: los archivos se quedan en esta compu."
         ) {
-          Toggle("Save transcription history", isOn: $settings.dictationHistoryEnabled)
+          Toggle("Guardar lo que dictas", isOn: $settings.dictationHistoryEnabled)
             .labelsHidden()
             .toggleStyle(.switch)
         }
 
         SettingsRow(
-          title: "Folder",
+          title: "Carpeta",
           description: settings.resolvedHistoryFolder.path(percentEncoded: false)
         ) {
-          Button("Choose…") { chooseFolder() }
+          Button("Elegir…") { chooseFolder() }
             .buttonStyle(SettingsButtonStyle())
         }
         .disabled(!settings.dictationHistoryEnabled)
 
         SettingsRow(
-          title: "Clear history",
-          description: "Delete the daily history files Talkify wrote to the "
-            + "folder above. Nothing else in the folder is touched."
+          title: "Borrar el historial",
+          description: "Borra los archivos diarios que Dilo escribió en esa carpeta. Nada más de la carpeta se toca."
         ) {
-          Button("Clear History…") { isConfirmingClear = true }
+          Button("Borrar historial…") { isConfirmingClear = true }
             .buttonStyle(SettingsButtonStyle())
         }
       }
 
     }
     .confirmationDialog(
-      "Clear transcription history?",
+      "¿Borrar el historial?",
       isPresented: $isConfirmingClear
     ) {
-      Button("Clear History", role: .destructive) { clearHistory() }
+      Button("Borrar historial", role: .destructive) { clearHistory() }
     } message: {
-      Text("This deletes every daily history file Talkify wrote to the "
-        + "history folder. It cannot be undone.")
+      Text("Borra todos los archivos diarios que Dilo escribió en la carpeta del historial. No se puede deshacer.")
     }
   }
 
@@ -73,8 +66,8 @@ struct DictationSettingsView: View {
     panel.canChooseFiles = false
     panel.canChooseDirectories = true
     panel.allowsMultipleSelection = false
-    panel.prompt = "Choose"
-    panel.message = "Choose where transcription history is saved."
+    panel.prompt = "Elegir"
+    panel.message = "Elige dónde se guarda el historial de dictados."
     NSApp.activate()
     guard panel.runModal() == .OK, let url = panel.url else { return }
     settings.dictationHistoryFolder = url

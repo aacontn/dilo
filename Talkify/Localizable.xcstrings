@@ -1,0 +1,3394 @@
+{
+  "sourceLanguage": "es",
+  "strings": {
+    "%@ en los últimos 14 días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ in the last 14 days"
+          }
+        }
+      }
+    },
+    "%@ no terminó de bajar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ did not finish downloading"
+          }
+        }
+      }
+    },
+    "%@ palabras dictadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ words dictated"
+          }
+        }
+      }
+    },
+    "%@ palabras dictadas en total": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ words dictated in total"
+          }
+        }
+      }
+    },
+    "%@ palabras en los últimos 14 días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ words over the last 14 days"
+          }
+        }
+      }
+    },
+    "%@ · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %@"
+          }
+        }
+      }
+    },
+    "%@ · %@ palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %@ words"
+          }
+        }
+      }
+    },
+    "%@ — se baja la primera vez que lo uses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — downloads the first time you use it"
+          }
+        }
+      }
+    },
+    "%@% %@ que la semana pasada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@% %@ than the previous week"
+          }
+        }
+      }
+    },
+    "Abre Dilo de nuevo para terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reopen Dilo to finish"
+          }
+        }
+      }
+    },
+    "Abrir Ajustes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        }
+      }
+    },
+    "Abrir Ajustes del Sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        }
+      }
+    },
+    "Abrir Dilo al iniciar sesión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch at login"
+          }
+        }
+      }
+    },
+    "Abrir los ajustes de Voz personal…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Personal Voice settings…"
+          }
+        }
+      }
+    },
+    "Achica la letra": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shrink to Fit"
+          }
+        }
+      }
+    },
+    "Actividad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activity"
+          }
+        }
+      }
+    },
+    "Actividad de dictado de las últimas dieciséis semanas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sixteen weeks of dictation activity"
+          }
+        }
+      }
+    },
+    "Actualizaciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        }
+      }
+    },
+    "Acá no se puede": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available here"
+          }
+        }
+      }
+    },
+    "Agregar prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Prompt"
+          }
+        }
+      }
+    },
+    "Ajustes de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo Settings"
+          }
+        }
+      }
+    },
+    "Ajustes…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings…"
+          }
+        }
+      }
+    },
+    "Al iniciar sesión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Startup"
+          }
+        }
+      }
+    },
+    "Apagado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        }
+      }
+    },
+    "Apagado. Elige uno si dictas en dos idiomas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off. Pick one if you dictate in two languages"
+          }
+        }
+      }
+    },
+    "Apagado. Elige uno y la tecla de traducir lo pega en ese idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off. Pick one and the Translate key pastes in it"
+          }
+        }
+      }
+    },
+    "Apariencia": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
+    "Aprieta %@ para leer lo seleccionado; otra vez para parar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press %@ to read the selection, again to stop."
+          }
+        }
+      }
+    },
+    "Aprieta las teclas…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press shortcut…"
+          }
+        }
+      }
+    },
+    "Aprieta teclas o un botón…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press shortcut or mouse…"
+          }
+        }
+      }
+    },
+    "Aprieta una combinación o un botón del mouse, o haz clic en el teclado de arriba.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press a shortcut or a mouse button, or click keys on the keyboard above."
+          }
+        }
+      }
+    },
+    "Aprieta una combinación, o haz clic en el teclado de arriba.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press a shortcut, or click keys on the keyboard above."
+          }
+        }
+      }
+    },
+    "Arrastrar archivos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop Transcription"
+          }
+        }
+      }
+    },
+    "Arrástralo arriba": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag it to the top"
+          }
+        }
+      }
+    },
+    "Así se ve": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live preview"
+          }
+        }
+      }
+    },
+    "Atajos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts"
+          }
+        }
+      }
+    },
+    "Atardecer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunset"
+          }
+        }
+      }
+    },
+    "Aurora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aurora"
+          }
+        }
+      }
+    },
+    "Automático": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic"
+          }
+        }
+      }
+    },
+    "Automático (%@)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic (%@)"
+          }
+        }
+      }
+    },
+    "Avanzado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced"
+          }
+        }
+      }
+    },
+    "Baja": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slide"
+          }
+        }
+      }
+    },
+    "Baja en segundo plano. El dictado sigue funcionando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads in the background. Dictation keeps working."
+          }
+        }
+      }
+    },
+    "Baja la actualización de antemano. Instalarla sigue esperándote, y nunca interrumpe un dictado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fetches the update ahead of time. Installing still waits for you, and never interrupts a dictation."
+          }
+        }
+      }
+    },
+    "Bajando %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading %@"
+          }
+        }
+      }
+    },
+    "Bajando el modelo de %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting the %@ model"
+          }
+        }
+      }
+    },
+    "Bajar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        }
+      }
+    },
+    "Bajar voces premium": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download premium voices"
+          }
+        }
+      }
+    },
+    "Bajarlas solo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download updates automatically"
+          }
+        }
+      }
+    },
+    "Barras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Article"
+          }
+        }
+      }
+    },
+    "Borra los archivos diarios que Dilo escribió en esa carpeta. Nada más de la carpeta se toca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes the daily files Dilo wrote in that folder. Nothing else in it is touched."
+          }
+        }
+      }
+    },
+    "Borra todos los archivos diarios que Dilo escribió en la carpeta del historial. No se puede deshacer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This deletes every daily file Dilo wrote to the history folder. It cannot be undone."
+          }
+        }
+      }
+    },
+    "Borrar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "Borrar el historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear history"
+          }
+        }
+      }
+    },
+    "Borrar historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear History"
+          }
+        }
+      }
+    },
+    "Borrar historial…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear History…"
+          }
+        }
+      }
+    },
+    "Borrar…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete…"
+          }
+        }
+      }
+    },
+    "Buscar actualizaciones solo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for updates automatically"
+          }
+        }
+      }
+    },
+    "Buscar actualizaciones…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates…"
+          }
+        }
+      }
+    },
+    "Buscar ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Now"
+          }
+        }
+      }
+    },
+    "Campo protegido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secure field"
+          }
+        }
+      }
+    },
+    "Cancelar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Carpeta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder"
+          }
+        }
+      }
+    },
+    "Centro del halo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glow center"
+          }
+        }
+      }
+    },
+    "Cerrar y abrir de nuevo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit and Reopen"
+          }
+        }
+      }
+    },
+    "Clic para copiar · Arrastra para guardar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to copy · Drag to save"
+          }
+        }
+      }
+    },
+    "Compacto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compact"
+          }
+        }
+      }
+    },
+    "Conserva su función de siempre salvo que aprietes esa combinación exacta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps its usual action unless you press that exact combination"
+          }
+        }
+      }
+    },
+    "Copiar al portapapeles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy to the clipboard"
+          }
+        }
+      }
+    },
+    "Crece hacia abajo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grow Down"
+          }
+        }
+      }
+    },
+    "Curva": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Curve"
+          }
+        }
+      }
+    },
+    "Cuáles suenan al empezar y al terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which ones play at the start and at the end"
+          }
+        }
+      }
+    },
+    "Cuánta pantalla se toma la píldora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much room the HUD takes on screen"
+          }
+        }
+      }
+    },
+    "Cuánto dictaste, guardado sólo acá": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much you dictated, kept only on this Mac"
+          }
+        }
+      }
+    },
+    "Cápsulas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capsules"
+          }
+        }
+      }
+    },
+    "Cómo aparece": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reveal style"
+          }
+        }
+      }
+    },
+    "Cómo arranca Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How Dilo starts"
+          }
+        }
+      }
+    },
+    "Cómo funciona": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it works"
+          }
+        }
+      }
+    },
+    "Cómo se ve la píldora mientras dictas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the dictation HUD looks"
+          }
+        }
+      }
+    },
+    "Deja que Dilo lea con tu propia voz entrenada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let Dilo read in your own trained voice"
+          }
+        }
+      }
+    },
+    "Dejar de leer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Reading"
+          }
+        }
+      }
+    },
+    "Dejar libre la barra de menús": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the menu bar"
+          }
+        }
+      }
+    },
+    "Después": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        }
+      }
+    },
+    "Dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation"
+          }
+        }
+      }
+    },
+    "Dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions"
+          }
+        }
+      }
+    },
+    "Dictados por día en los últimos catorce días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictations per day over the last fourteen days"
+          }
+        }
+      }
+    },
+    "Dilo arranca solo cuando entras a tu cuenta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo opens on its own when you sign in"
+          }
+        }
+      }
+    },
+    "Dilo está listo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo is ready"
+          }
+        }
+      }
+    },
+    "Dilo necesita Accesibilidad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo needs Accessibility"
+          }
+        }
+      }
+    },
+    "Dilo también puede hablar con una voz entrenada con la tuya: crea una Voz personal en Ajustes del Sistema → Accesibilidad y después dale permiso a Dilo para usarla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo can also speak in a voice trained on yours: create a Personal Voice in System Settings → Accessibility, then let Dilo use it."
+          }
+        }
+      }
+    },
+    "Dilo todavía no ha buscado actualizaciones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo has not checked for updates yet."
+          }
+        }
+      }
+    },
+    "Dónde aterriza": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insertion"
+          }
+        }
+      }
+    },
+    "Dónde aterriza lo que dictaste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where finished dictation lands"
+          }
+        }
+      }
+    },
+    "Dónde queda la transcripción si no la arrastras fuera de la píldora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where a transcript goes if you don't drag it out of the HUD"
+          }
+        }
+      }
+    },
+    "Editar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        }
+      }
+    },
+    "Ejemplo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample"
+          }
+        }
+      }
+    },
+    "Ejemplo resuelto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Example"
+          }
+        }
+      }
+    },
+    "El marco alrededor de tus palabras es fijo. Es lo que evita que un dictado con forma de pregunta termine respondido.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The framing around your wording is fixed. It is what keeps a question-shaped dictation from being answered."
+          }
+        }
+      }
+    },
+    "El modelo devolvió las palabras tal cual. Eso es lo que pegaría una sesión real, así que puede que esta instrucción no pida nada que esta frase necesite.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model gave the words back unchanged. That is what a real session would paste, so this instruction may not ask for anything this sentence needs."
+          }
+        }
+      }
+    },
+    "El reconocimiento de voz no está disponible": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech recognition is unavailable"
+          }
+        }
+      }
+    },
+    "Elegido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected"
+          }
+        }
+      }
+    },
+    "Elegir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose"
+          }
+        }
+      }
+    },
+    "Elegir…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose…"
+          }
+        }
+      }
+    },
+    "Elige dónde se guarda el historial de dictados.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where dictation history is saved."
+          }
+        }
+      }
+    },
+    "Elige dónde se guardan las transcripciones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where transcripts are saved."
+          }
+        }
+      }
+    },
+    "Elige un archivo de audio o video para transcribir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an audio or video file to transcribe."
+          }
+        }
+      }
+    },
+    "Elígelo otra vez para reintentar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick it again to retry."
+          }
+        }
+      }
+    },
+    "Empezar a dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Dictation"
+          }
+        }
+      }
+    },
+    "En %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Based on %@"
+          }
+        }
+      }
+    },
+    "En Ajustes del Sistema, entra a Contenido hablado → Voz del sistema → Gestionar voces y baja una voz Premium. Son archivos grandes y bajan en silencio; si una se traba, reiniciar suele arreglarlo. Las voces nuevas aparecen acá solas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In System Settings, open Spoken Content → System Voice → Manage Voices and download a Premium voice. The files are large and download quietly; a stuck download usually clears after a restart. New voices show up here on their own."
+          }
+        }
+      }
+    },
+    "En esta compu sólo hay voces de calidad normal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only default-quality voices are installed on this Mac"
+          }
+        }
+      }
+    },
+    "En qué idioma transcribe tu tecla principal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What your main key transcribes"
+          }
+        }
+      }
+    },
+    "En qué idiomas dictas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The languages you dictate in"
+          }
+        }
+      }
+    },
+    "En una carpeta que elijas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chosen folder"
+          }
+        }
+      }
+    },
+    "En una pantalla sin notch, la píldora se cuelga debajo de la barra de menús para no tapar tus íconos. Apágalo sólo si prefieres que se ponga donde iría el notch.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On a display with no notch the pill hangs below the menu bar so it never covers your status icons. Turn it off only if you want it where a notch would be."
+          }
+        }
+      }
+    },
+    "Entendido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        }
+      }
+    },
+    "Entregar el texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deliver text by"
+          }
+        }
+      }
+    },
+    "Error en los datos de Actividad: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insights data error: %@"
+          }
+        }
+      }
+    },
+    "Escuchar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "Ese archivo no trae audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No audio in that file"
+          }
+        }
+      }
+    },
+    "Ese idioma no está soportado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That language is not supported"
+          }
+        }
+      }
+    },
+    "Eso no es audio ni video": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not an audio or video file"
+          }
+        }
+      }
+    },
+    "Español": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spanish"
+          }
+        }
+      }
+    },
+    "Espectro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spectrum"
+          }
+        }
+      }
+    },
+    "Este botón conserva su función de siempre salvo que aprietes esa combinación exacta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This button keeps its usual action unless you press that exact combination."
+          }
+        }
+      }
+    },
+    "Estilo de la onda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waveform style"
+          }
+        }
+      }
+    },
+    "Esto es beta. Si algo falla, el modelo se niega o tarda demasiado, se pega tu dictado tal cual, y el historial siempre guarda lo que dijiste. Mientras dictas, ← y → cambian el prompt de esa sesión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a beta. If anything fails, the model refuses, or it takes too long, your raw words are pasted and history always keeps what you said. While dictating, ← and → switch the session's prompt."
+          }
+        }
+      }
+    },
+    "Esto se llena con tu primer dictado terminado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This fills up with your first finished dictation."
+          }
+        }
+      }
+    },
+    "Falta el permiso de reconocimiento de voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech permission required"
+          }
+        }
+      }
+    },
+    "Falta el permiso del micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone permission required"
+          }
+        }
+      }
+    },
+    "Forma de onda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waveform"
+          }
+        }
+      }
+    },
+    "General": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        }
+      }
+    },
+    "Guardar en": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save to"
+          }
+        }
+      }
+    },
+    "Guardar lo que dictas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save transcription history"
+          }
+        }
+      }
+    },
+    "Habla en el tuyo, pega en este": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speak in yours, paste in this one"
+          }
+        }
+      }
+    },
+    "Halo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edge Glow"
+          }
+        }
+      }
+    },
+    "Halo con texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edge Glow + Draft"
+          }
+        }
+      }
+    },
+    "Hay una versión %@ disponible.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available."
+          }
+        }
+      }
+    },
+    "Haz clic en una tecla más para terminar, o usa lo que ya elegiste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click one more key to finish, or use what you already picked."
+          }
+        }
+      }
+    },
+    "Historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History"
+          }
+        }
+      }
+    },
+    "Hola. Así suena Dilo cuando te lee en voz alta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hi! This is how Dilo reads your text out loud."
+          }
+        }
+      }
+    },
+    "Idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        }
+      }
+    },
+    "Idioma de dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation language"
+          }
+        }
+      }
+    },
+    "Idiomas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Languages"
+          }
+        }
+      }
+    },
+    "Imagina que dictaste esto y pásale el prompt por encima.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pretend you dictated this, then run the prompt over it."
+          }
+        }
+      }
+    },
+    "Instrucción de cierre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Closing instruction"
+          }
+        }
+      }
+    },
+    "Juego de sonidos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound set"
+          }
+        }
+      }
+    },
+    "Junto al archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "La actividad va de menos a más palabras dictadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activity ranges from fewer to more words dictated"
+          }
+        }
+      }
+    },
+    "La del sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Default"
+          }
+        }
+      }
+    },
+    "La entrada de la píldora cuando arrancas a dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the HUD enters when a session starts"
+          }
+        }
+      }
+    },
+    "La forma y el movimiento de la onda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The shape and motion of the waveform"
+          }
+        }
+      }
+    },
+    "La píldora recibiendo un archivo y devolviendo la transcripción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pill taking a file and handing back a transcript"
+          }
+        }
+      }
+    },
+    "La voz que lee lo que seleccionas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The voice that reads your selection"
+          }
+        }
+      }
+    },
+    "Las actualizaciones bajan desde GitHub y se verifican con una firma EdDSA antes de instalarse. La que no pasa la verificación se descarta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates download from GitHub and are verified with an EdDSA signature before they install. One that fails verification is thrown away."
+          }
+        }
+      }
+    },
+    "Las voces de buena calidad instaladas en esta compu": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The high-quality voices installed on this Mac"
+          }
+        }
+      }
+    },
+    "Leer en voz alta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read Aloud"
+          }
+        }
+      }
+    },
+    "Leer lo seleccionado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read Selected Text"
+          }
+        }
+      }
+    },
+    "Listo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "Lleva un audio o un video al borde de arriba y la píldora se abre para recibirlo. Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag an audio or video file to the top edge and the pill opens to take it. When it finishes, drag the transcript wherever you want it, or click to copy. Leave it and it saves itself."
+          }
+        }
+      }
+    },
+    "Lo que cambias se ve acá al instante": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you change shows up here right away"
+          }
+        }
+      }
+    },
+    "Lo que cambies aplica al próximo dictado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to the next dictation."
+          }
+        }
+      }
+    },
+    "Lo que dibuja la píldora mientras te escucha": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the HUD draws while it listens"
+          }
+        }
+      }
+    },
+    "Lo que recibe el modelo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the model receives"
+          }
+        }
+      }
+    },
+    "Lo que terminas de dictar lo reescribe el modelo de Apple que corre acá mismo, antes de pegarlo. Nada sale de esta compu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you finish dictating is rewritten by Apple's model running right here, before it is pasted. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Lo que va dentro del halo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What lives inside the glow"
+          }
+        }
+      }
+    },
+    "Los colores del borde que respira": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The colors of the breathing edge"
+          }
+        }
+      }
+    },
+    "Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. Todo corre en esta compu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both languages stay loaded, so either key answers just as fast. Everything runs on this Mac."
+          }
+        }
+      }
+    },
+    "Los sonidos de empezar y terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sounds a session begins and ends with"
+          }
+        }
+      }
+    },
+    "Línea": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chart Line"
+          }
+        }
+      }
+    },
+    "Mantenla para dictar en %@, o tócala para empezar y tócala de nuevo para terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold it to dictate in %@, or tap to start and tap again to finish"
+          }
+        }
+      }
+    },
+    "Mantén %@ para dictar en tu otro idioma, o tócala igual que la principal.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %@ to dictate in your other language, or tap it like the main one."
+          }
+        }
+      }
+    },
+    "Mantén %@ para hablar y pegar la traducción. Elige antes el idioma en Idioma.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %@ to speak and paste a translation. Pick the language in Language first."
+          }
+        }
+      }
+    },
+    "Mantén %@ para hablar y que salga en %@, o tócala para empezar y tócala de nuevo para terminar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %@ to speak and have it land in %@, or tap to start and tap again to finish."
+          }
+        }
+      }
+    },
+    "Mantén %@ y habla; suéltala y listo. Un toque corto la deja trabada y otro toque termina.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %@ and speak; let go and it lands. A quick tap latches it, another tap finishes."
+          }
+        }
+      }
+    },
+    "Mantén Dilo al día": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep Dilo current"
+          }
+        }
+      }
+    },
+    "Menos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Less"
+          }
+        }
+      }
+    },
+    "Mientras hablas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice visual"
+          }
+        }
+      }
+    },
+    "Mono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mono"
+          }
+        }
+      }
+    },
+    "Mostrar lo demás": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the rest"
+          }
+        }
+      }
+    },
+    "Movimiento y tamaño": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motion and layout"
+          }
+        }
+      }
+    },
+    "Más": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        }
+      }
+    },
+    "Más o menos como la semana pasada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About the same as the previous week"
+          }
+        }
+      }
+    },
+    "Más voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More voices"
+          }
+        }
+      }
+    },
+    "No encontré voz ahí": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech found"
+          }
+        }
+      }
+    },
+    "No pude guardar la transcripción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not save the transcript"
+          }
+        }
+      }
+    },
+    "No pude leer ese archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read that file"
+          }
+        }
+      }
+    },
+    "No pude transcribir ese archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not transcribe that file"
+          }
+        }
+      }
+    },
+    "No se pudo pegar el texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't insert text"
+          }
+        }
+      }
+    },
+    "No se pudo traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't translate"
+          }
+        }
+      }
+    },
+    "No se pudo traducir ni copiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't translate or copy"
+          }
+        }
+      }
+    },
+    "Nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "Océano": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocean"
+          }
+        }
+      }
+    },
+    "Ola": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siri Wave"
+          }
+        }
+      }
+    },
+    "Orbe": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siri Orb"
+          }
+        }
+      }
+    },
+    "Palabras dictadas por día en los últimos catorce días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words dictated per day over the last fourteen days"
+          }
+        }
+      }
+    },
+    "Palabras esta semana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words this week"
+          }
+        }
+      }
+    },
+    "Palabras por día": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Words per day"
+          }
+        }
+      }
+    },
+    "Paleta del halo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glow palette"
+          }
+        }
+      }
+    },
+    "Parar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "Parar el dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Dictation"
+          }
+        }
+      }
+    },
+    "Partículas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Particles"
+          }
+        }
+      }
+    },
+    "Pegar en la app": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert into the app"
+          }
+        }
+      }
+    },
+    "Pegar en la app lo escribe donde tenías el cursor y te devuelve lo que tenías copiado. Copiar al portapapeles no pega nada. Pegar y copiar hace las dos y deja el texto copiado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert into the app types it where your cursor was and gives your clipboard back. Copy to the clipboard never pastes. Insert and copy does both and leaves the text copied."
+          }
+        }
+      }
+    },
+    "Pegar y copiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert and copy"
+          }
+        }
+      }
+    },
+    "Permitir voz personal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Personal Voice"
+          }
+        }
+      }
+    },
+    "Plata": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silver"
+          }
+        }
+      }
+    },
+    "Ponderado por el tiempo que hablaste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weighted by the time you actually spoke"
+          }
+        }
+      }
+    },
+    "Preparando el reconocimiento…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing speech…"
+          }
+        }
+      }
+    },
+    "Probando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trying…"
+          }
+        }
+      }
+    },
+    "Probar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try"
+          }
+        }
+      }
+    },
+    "Prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompt"
+          }
+        }
+      }
+    },
+    "Prompt nuevo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Prompt"
+          }
+        }
+      }
+    },
+    "Prompts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prompts"
+          }
+        }
+      }
+    },
+    "Prueba la voz que elegiste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try the voice you picked"
+          }
+        }
+      }
+    },
+    "Pruébalo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try it"
+          }
+        }
+      }
+    },
+    "Puedes seguir usando el otro idioma mientras tanto.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can keep using your other language meanwhile."
+          }
+        }
+      }
+    },
+    "Puntos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dots"
+          }
+        }
+      }
+    },
+    "Qué hace": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What it does"
+          }
+        }
+      }
+    },
+    "Qué hace la píldora con un dictado largo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What the HUD does with a long dictation"
+          }
+        }
+      }
+    },
+    "Qué se ve": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While listening"
+          }
+        }
+      }
+    },
+    "Qué tan fuerte suena Dilo. No toca el volumen del sistema.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How loud Dilo is. It never touches the system volume."
+          }
+        }
+      }
+    },
+    "Qué teclas hacen qué": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which keys do what"
+          }
+        }
+      }
+    },
+    "Racha de %@ · la más larga, %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ streak · longest %@"
+          }
+        }
+      }
+    },
+    "Racha más larga · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Longest streak · %@"
+          }
+        }
+      }
+    },
+    "Reemplaza todos los prompts de tu biblioteca por los tres de fábrica. No se puede deshacer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaces every prompt in your library with the three built-in ones. It cannot be undone."
+          }
+        }
+      }
+    },
+    "Reescribe lo que dictas, acá mismo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite what you dictate, on this Mac"
+          }
+        }
+      }
+    },
+    "Reescrito": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewritten"
+          }
+        }
+      }
+    },
+    "Reintentar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try Again"
+          }
+        }
+      }
+    },
+    "Relleno": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filled"
+          }
+        }
+      }
+    },
+    "Restaurar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Defaults"
+          }
+        }
+      }
+    },
+    "Restaurar los de fábrica…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Defaults…"
+          }
+        }
+      }
+    },
+    "Resultado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Result"
+          }
+        }
+      }
+    },
+    "Saca el prompt de tu biblioteca. No se puede deshacer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removes the prompt from your library. It cannot be undone."
+          }
+        }
+      }
+    },
+    "Salir de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Dilo"
+          }
+        }
+      }
+    },
+    "Se asoma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drift"
+          }
+        }
+      }
+    },
+    "Se despliega": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unfurl"
+          }
+        }
+      }
+    },
+    "Se infla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloom"
+          }
+        }
+      }
+    },
+    "Segundo idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Second language"
+          }
+        }
+      }
+    },
+    "Si el texto se pasa de largo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long draft behavior"
+          }
+        }
+      }
+    },
+    "Si seleccionas texto en otro idioma, se lee en el idioma de la voz. Necesita el modelo del par ya instalado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text selected in another language is read in the voice's own language. Needs that pair's model already installed."
+          }
+        }
+      }
+    },
+    "Sin carpeta elegida: van al Escritorio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No folder chosen yet, so transcripts go to the Desktop"
+          }
+        }
+      }
+    },
+    "Sin datos de la semana pasada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous week unavailable"
+          }
+        }
+      }
+    },
+    "Sin nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled"
+          }
+        }
+      }
+    },
+    "Sin prompt elegido: lo que dictes se pega tal cual.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No prompt picked, so dictation is pasted unchanged."
+          }
+        }
+      }
+    },
+    "Sobre %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Across %@"
+          }
+        }
+      }
+    },
+    "Solo el final": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tail Only"
+          }
+        }
+      }
+    },
+    "Sonando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playing…"
+          }
+        }
+      }
+    },
+    "Sonar al dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play sounds"
+          }
+        }
+      }
+    },
+    "Sonidos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sounds"
+          }
+        }
+      }
+    },
+    "Suena el par que elegiste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plays the pair you picked"
+          }
+        }
+      }
+    },
+    "Suéltalo acá": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop here"
+          }
+        }
+      }
+    },
+    "Suéltalo y lo transcribo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop to transcribe"
+          }
+        }
+      }
+    },
+    "Tamaño de la píldora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HUD size"
+          }
+        }
+      }
+    },
+    "También la usa %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also used by %@"
+          }
+        }
+      }
+    },
+    "También la usa %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also used by %@."
+          }
+        }
+      }
+    },
+    "Te escucho (trabado)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening (latched)"
+          }
+        }
+      }
+    },
+    "Te escucho…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening…"
+          }
+        }
+      }
+    },
+    "Tecla del segundo idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Second language key"
+          }
+        }
+      }
+    },
+    "Teclas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bindings"
+          }
+        }
+      }
+    },
+    "Tiempo hablando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice time"
+          }
+        }
+      }
+    },
+    "Tiene su propia tecla: cambiar de idioma no es cambiar un ajuste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gets its own key: switching language is not switching a setting"
+          }
+        }
+      }
+    },
+    "Todavía no hay nada que mostrar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No dictation data yet"
+          }
+        }
+      }
+    },
+    "Todavía sin instrucción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No instruction yet"
+          }
+        }
+      }
+    },
+    "Traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate"
+          }
+        }
+      }
+    },
+    "Traducir a": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate into"
+          }
+        }
+      }
+    },
+    "Traducir antes de leer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate before speaking"
+          }
+        }
+      }
+    },
+    "Traducir no funciona hasta que baje.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate cannot run until it downloads."
+          }
+        }
+      }
+    },
+    "Traducir no funciona hasta que cargue.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate cannot run until it loads."
+          }
+        }
+      }
+    },
+    "Transcribe audio y video que le sueltes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe audio and video files"
+          }
+        }
+      }
+    },
+    "Transcribir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe"
+          }
+        }
+      }
+    },
+    "Transcribir un archivo…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe File…"
+          }
+        }
+      }
+    },
+    "Transcripciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripts"
+          }
+        }
+      }
+    },
+    "Transformando con %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shaping with %@"
+          }
+        }
+      }
+    },
+    "Transformar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shaping"
+          }
+        }
+      }
+    },
+    "Transformar lo dictado con un prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shape dictation with a prompt"
+          }
+        }
+      }
+    },
+    "Transformar: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shaping: %@"
+          }
+        }
+      }
+    },
+    "Tu biblioteca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
+        }
+      }
+    },
+    "Un archivo de texto por día, que puedes abrir en el Finder. Viene apagado, y nada sale de acá: los archivos se quedan en esta compu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One text file per day, readable in Finder. Off by default, and nothing is sent anywhere: the files stay on this Mac."
+          }
+        }
+      }
+    },
+    "Un par resuelto, que va en cada petición. Una entrada con forma de pregunta cuya salida sigue siendo pregunta es lo que le enseña al modelo a reescribir una pregunta en vez de responderla. Se usa sólo si llenas las dos mitades.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One worked pair, sent with every request. An input shaped like a question whose output stays a question is what teaches the model to rewrite a question instead of answering it. Used only when both halves are filled in."
+          }
+        }
+      }
+    },
+    "Un sonido al empezar, otro al terminar y otro cuando el texto aterriza.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One cue when a session begins, one when it ends, one when the text lands."
+          }
+        }
+      }
+    },
+    "Una instrucción de cierre, un ejemplo resuelto y el texto exacto que recibe el modelo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A closing instruction, a worked example, and the exact text the model receives."
+          }
+        }
+      }
+    },
+    "Una vez al día, en segundo plano": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once a day, in the background"
+          }
+        }
+      }
+    },
+    "Usar estas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use these"
+          }
+        }
+      }
+    },
+    "Va al modelo como instrucción. Una o dos frases claras funcionan mejor que una lista de reglas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goes to the model as an instruction. One or two plain sentences beat a list of rules."
+          }
+        }
+      }
+    },
+    "Va después de la transcripción, para una regla que se entiende mejor al final.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goes after the transcript, for a rule that reads better last."
+          }
+        }
+      }
+    },
+    "Velocidad promedio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Average pace"
+          }
+        }
+      }
+    },
+    "Versión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Volumen": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume"
+          }
+        }
+      }
+    },
+    "Voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice"
+          }
+        }
+      }
+    },
+    "Voz personal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal Voice"
+          }
+        }
+      }
+    },
+    "Voz que lee": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read Aloud voice"
+          }
+        }
+      }
+    },
+    "Ya estoy transcribiendo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already transcribing"
+          }
+        }
+      }
+    },
+    "el segundo idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the second language"
+          }
+        }
+      }
+    },
+    "h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hr"
+          }
+        }
+      }
+    },
+    "macOS puede pedirte también el idioma de dictado. Los modelos de traducción son distintos de los de dictado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS may also ask for your dictation language. Translation models are separate from dictation ones."
+          }
+        }
+      }
+    },
+    "min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "min"
+          }
+        }
+      }
+    },
+    "no se pudo preparar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "could not be prepared"
+          }
+        }
+      }
+    },
+    "ppm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wpm"
+          }
+        }
+      }
+    },
+    "seg": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sec"
+          }
+        }
+      }
+    },
+    "todavía necesita su modelo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "still needs its model"
+          }
+        }
+      }
+    },
+    "¿Bajar %@ para traducir a ese idioma?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download %@ to translate into it?"
+          }
+        }
+      }
+    },
+    "¿Borrar el historial?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear transcription history?"
+          }
+        }
+      }
+    },
+    "¿Borrar “%@”?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete “%@”?"
+          }
+        }
+      }
+    },
+    "¿Volver a los prompts de fábrica?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore the built-in prompts?"
+          }
+        }
+      }
+    },
+    "Área": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chart Area"
+          }
+        }
+      }
+    },
+    "Última búsqueda \\(date.formatted(.relative(presentation: .named))).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last checked \\(date.formatted(.relative(presentation: .named)))."
+          }
+        }
+      }
+    },
+    "— no se puede desde tu idioma de dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— not available from your dictation language"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

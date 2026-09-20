@@ -6,10 +6,10 @@ struct GeneralSettingsView: View {
   let launchAtLogin: LaunchAtLoginService
 
   var body: some View {
-    SettingsCard(title: "Startup") {
+    SettingsCard(title: "Al iniciar sesión") {
       SettingsRow(
-        title: "Launch at login",
-        description: "Open Talkify automatically when you sign in"
+        title: "Abrir Dilo al iniciar sesión",
+        description: "Dilo arranca solo cuando entras a tu cuenta"
       ) {
         Toggle("", isOn: launchAtLoginBinding)
           .labelsHidden()

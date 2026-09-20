@@ -71,10 +71,10 @@ struct DictationHUDShellView: View {
   /// shape neither grows nor loses it at the handover.
   private var shapingLabel: (text: String, activity: HUDShapingLabel.Activity)? {
     if let name = content.shapingName {
-      return ("Shaping with \(name)", .working)
+      return ("Transformando con \(name)", .working)
     }
     if let pick = content.shapingChoiceLabel {
-      return ("Shaping: \(pick)", .voice(content.audioLevel))
+      return ("Transformar: \(pick)", .voice(content.audioLevel))
     }
     return nil
   }

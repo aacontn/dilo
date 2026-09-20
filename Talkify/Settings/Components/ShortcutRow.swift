@@ -52,7 +52,7 @@ struct ShortcutRow: View {
       Spacer(minLength: 0)
 
       if let onConfirm {
-        Button("Use these", action: onConfirm)
+        Button("Usar estas", action: onConfirm)
           .buttonStyle(SettingsButtonStyle())
       }
     }
@@ -67,11 +67,11 @@ struct ShortcutRow: View {
 
   private var armedPrompt: String {
     if !pickedCaps.isEmpty {
-      return "Click one more key to finish, or use what you picked."
+      return "Haz clic en una tecla más para terminar, o usa lo que ya elegiste."
     }
     return acceptsMouseButton
-      ? "Press a shortcut or mouse button, or click keys on the keyboard above."
-      : "Press a shortcut, or click keys on the keyboard above."
+      ? "Aprieta una combinación o un botón del mouse, o haz clic en el teclado de arriba."
+      : "Aprieta una combinación, o haz clic en el teclado de arriba."
   }
 
   private func cap(_ symbol: String, isArmed: Bool, isWide: Bool) -> some View {

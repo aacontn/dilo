@@ -24,6 +24,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   case shortcuts
   case updates
   case insights
+  case about
 
   var id: Self { self }
   var group: SettingsSectionGroup { .settings }
@@ -42,32 +43,34 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .general: "General"
-    case .appearance: "Appearance"
-    case .sounds: "Sounds"
-    case .dictation: "Dictation"
-    case .promptShaping: "Prompt Shaping"
-    case .dropTranscription: "Drop Transcription"
-    case .readAloud: "Read Aloud"
-    case .language: "Language"
-    case .shortcuts: "Shortcuts"
-    case .updates: "Updates"
-    case .insights: "Insights"
+    case .appearance: "Apariencia"
+    case .sounds: "Sonidos"
+    case .dictation: "Dictado"
+    case .promptShaping: "Transformar"
+    case .dropTranscription: "Arrastrar archivos"
+    case .readAloud: "Leer en voz alta"
+    case .language: "Idioma"
+    case .shortcuts: "Atajos"
+    case .updates: "Actualizaciones"
+    case .insights: "Actividad"
+    case .about: "Acerca de"
     }
   }
 
   var subtitle: String {
     switch self {
-    case .general: "Choose how Talkify starts"
-    case .appearance: "Customize the Direct Dictation HUD"
-    case .sounds: "Choose and preview the session sounds"
-    case .dictation: "Choose where finished dictation text goes"
-    case .promptShaping: "Rewrite what you dictate, on device"
-    case .dropTranscription: "Transcribe audio and video files"
-    case .readAloud: "Choose the voice that reads selected text"
-    case .language: "Choose your languages"
-    case .shortcuts: "Rebind Direct Dictation triggers and Read Aloud"
-    case .updates: "Keep Talkify current"
-    case .insights: "Review your local Direct Dictation activity"
+    case .general: "Cómo arranca Dilo"
+    case .appearance: "Cómo se ve la píldora mientras dictas"
+    case .sounds: "Los sonidos de empezar y terminar"
+    case .dictation: "Dónde aterriza lo que dictaste"
+    case .promptShaping: "Reescribe lo que dictas, acá mismo"
+    case .dropTranscription: "Transcribe audio y video que le sueltes"
+    case .readAloud: "La voz que lee lo que seleccionas"
+    case .language: "En qué idiomas dictas"
+    case .shortcuts: "Qué teclas hacen qué"
+    case .updates: "Mantén Dilo al día"
+    case .insights: "Cuánto dictaste, guardado sólo acá"
+    case .about: "Qué es Dilo y de quién es lo prestado"
     }
   }
 
@@ -84,6 +87,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .shortcuts: "keyboard"
     case .updates: "arrow.down.circle"
     case .insights: "chart.bar.xaxis"
+    case .about: "info.circle"
     }
   }
 }

@@ -10,33 +10,30 @@ struct DropTranscriptionSettingsView: View {
     VStack(spacing: 16) {
       DropPreviewCard(settings: settings)
 
-      SettingsCard(title: "Transcripts") {
+      SettingsCard(title: "Transcripciones") {
         SettingsPickerRow(
-          title: "Save to",
-          description: "Where a transcript goes when you don't drag it out of the HUD",
+          title: "Guardar en",
+          description: "Dónde queda la transcripción si no la arrastras fuera de la píldora",
           options: TranscriptDestination.Preference.allCases,
-          optionLabel: { $0.rawValue },
+          optionLabel: { $0.title },
           selection: $settings.transcriptDestination
         )
 
         if settings.transcriptDestination == .chosenFolder {
           SettingsRow(
-            title: "Folder",
+            title: "Carpeta",
             description: folderDescription
           ) {
-            Button("Choose…") { chooseFolder() }
+            Button("Elegir…") { chooseFolder() }
               .buttonStyle(SettingsButtonStyle())
           }
         }
       }
 
-      SettingsCard(title: "How it works") {
+      SettingsCard(title: "Cómo funciona") {
         SettingsRow(
-          title: "Drag to the notch",
-          description: "Drag an audio or video file to the top of the screen "
-            + "and the HUD opens to take it. When it finishes, drag the "
-            + "transcript out of the HUD to wherever you want it, or click it "
-            + "to copy the text. Leave it and it saves itself."
+          title: "Arrástralo arriba",
+          description: "Lleva un audio o un video al borde de arriba y la píldora se abre para recibirlo. Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
         ) {
           EmptyView()
         }
@@ -48,7 +45,7 @@ struct DropTranscriptionSettingsView: View {
   /// pick: an unset folder silently falls back, and that should not surprise.
   private var folderDescription: String {
     guard let folder = settings.transcriptFolder else {
-      return "No folder chosen yet, so transcripts go to the Desktop"
+      return "Sin carpeta elegida: van al Escritorio"
     }
     return folder.path(percentEncoded: false)
   }
@@ -58,8 +55,8 @@ struct DropTranscriptionSettingsView: View {
     panel.canChooseFiles = false
     panel.canChooseDirectories = true
     panel.allowsMultipleSelection = false
-    panel.prompt = "Choose"
-    panel.message = "Choose where transcripts are saved."
+    panel.prompt = "Elegir"
+    panel.message = "Elige dónde se guardan las transcripciones."
     NSApp.activate()
     guard panel.runModal() == .OK, let url = panel.url else { return }
     settings.transcriptFolder = url

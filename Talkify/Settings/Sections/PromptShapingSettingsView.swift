@@ -21,19 +21,18 @@ struct PromptShapingSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Shaping") {
+      SettingsCard(title: "Transformar") {
         SettingsRow(
-          title: "Shape dictation with a prompt",
-          description: "Finished dictation is rewritten by Apple's on-device "
-            + "model before it is inserted. Nothing leaves this Mac."
+          title: "Transformar lo dictado con un prompt",
+          description: "Lo que terminas de dictar lo reescribe el modelo de Apple que corre acá mismo, antes de pegarlo. Nada sale de esta compu."
         ) {
-          Toggle("Shape dictation with a prompt", isOn: $settings.promptShapingEnabled)
+          Toggle("Transformar lo dictado con un prompt", isOn: $settings.promptShapingEnabled)
             .labelsHidden()
             .toggleStyle(.switch)
         }
 
         if let unavailability {
-          SettingsRow(title: "Not available here", description: unavailability) {
+          SettingsRow(title: "Acá no se puede", description: unavailability) {
             EmptyView()
           }
         }
@@ -45,25 +44,23 @@ struct PromptShapingSettingsView: View {
         }
 
         SettingsRow(
-          title: "Library",
+          title: "Tu biblioteca",
           description: hasSelection
             ? "\(settings.shapingPrompts.count) prompt"
               + (settings.shapingPrompts.count == 1 ? "" : "s")
-            : "No prompt is picked, so dictation is inserted unchanged."
+            : "Sin prompt elegido: lo que dictes se pega tal cual."
         ) {
           HStack(spacing: 8) {
-            Button("Restore Defaults…") { isConfirmingRestore = true }
+            Button("Restaurar los de fábrica…") { isConfirmingRestore = true }
               .buttonStyle(SettingsButtonStyle())
-            Button("Add Prompt") { addPrompt() }
+            Button("Agregar prompt") { addPrompt() }
               .buttonStyle(SettingsButtonStyle())
           }
         }
       }
 
       Text(
-        "This is a beta. Any failure, refusal, or slow answer inserts the raw "
-          + "words unchanged, and transcription history always keeps what you "
-          + "said. While dictating, ← and → switch prompt for that session."
+        "Esto es beta. Si algo falla, el modelo se niega o tarda demasiado, se pega tu dictado tal cual, y el historial siempre guarda lo que dijiste. Mientras dictas, ← y → cambian el prompt de esa sesión."
       )
       .font(.caption)
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
@@ -79,16 +76,15 @@ struct PromptShapingSettingsView: View {
       }
     }
     .confirmationDialog(
-      "Restore the built-in prompts?",
+      "¿Volver a los prompts de fábrica?",
       isPresented: $isConfirmingRestore
     ) {
-      Button("Restore Defaults", role: .destructive) {
+      Button("Restaurar", role: .destructive) {
         settings.restoreDefaultShapingPrompts()
         selectFirstPromptIfNothingIsPicked()
       }
     } message: {
-      Text("This replaces every prompt in the library with the three built-in "
-        + "defaults. It cannot be undone.")
+      Text("Reemplaza todos los prompts de tu biblioteca por los tres de fábrica. No se puede deshacer.")
     }
   }
 
@@ -97,16 +93,16 @@ struct PromptShapingSettingsView: View {
   private func promptRow(_ prompt: ShapingPrompt) -> some View {
     let isSelected = prompt.id == settings.promptShapingPromptID
     return SettingsRow(
-      title: prompt.name.isEmpty ? "Untitled" : prompt.name,
+      title: prompt.name.isEmpty ? "Sin nombre" : prompt.name,
       description: summary(of: prompt)
     ) {
       HStack(spacing: 10) {
-        Button("Edit") { editingPromptID = prompt.id }
+        Button("Editar") { editingPromptID = prompt.id }
           .buttonStyle(SettingsButtonStyle())
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
           .font(.system(size: 15))
           .foregroundStyle(isSelected ? SettingsTheme.accent : .white.opacity(0.25))
-          .accessibilityLabel(isSelected ? "Selected" : "Select")
+          .accessibilityLabel(isSelected ? "Elegido" : "Elegir")
       }
     }
     .contentShape(Rectangle())
@@ -118,7 +114,7 @@ struct PromptShapingSettingsView: View {
   /// better and nothing has to be kept in step with it.
   private func summary(of prompt: ShapingPrompt) -> String {
     let instruction = prompt.preInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
-    return instruction.isEmpty ? "No instruction yet" : instruction
+    return instruction.isEmpty ? "Todavía sin instrucción" : instruction
   }
 
   private var editingPrompt: Binding<ShapingPrompt?> {
@@ -138,7 +134,7 @@ struct PromptShapingSettingsView: View {
   private func addPrompt() {
     let prompt = ShapingPrompt(
       id: UUID().uuidString,
-      name: "New Prompt",
+      name: "Prompt nuevo",
       preInstruction: "",
       postInstruction: "",
       exampleInput: "",

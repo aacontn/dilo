@@ -37,13 +37,13 @@ struct UpdatesTests {
 
   @Test func theUpdatesSectionIsRegistered() {
     #expect(SettingsSection.allCases.contains(.updates))
-    #expect(SettingsSection.updates.title == "Updates")
+    #expect(SettingsSection.updates.title == "Actualizaciones")
     #expect(!SettingsSection.updates.icon.isEmpty)
   }
 
-  /// Sparkle is the one third-party dependency and it stays behind
-  /// `Talkify/Updates/` (CLAUDE.md). This fails the moment another file imports
-  /// it, which is the point: the rule is only real if something checks.
+  /// Sparkle es la única dependencia de terceros y vive encerrada en
+  /// `Talkify/Updates/` (AGENTS.md). Esto falla en el momento en que otro
+  /// archivo la importe, que es el punto: la regla sólo es real si algo mira.
   @Test func onlyTheUpdatesModuleImportsSparkle() throws {
     let root = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()
@@ -77,7 +77,15 @@ struct UpdatesTests {
       .appending(path: "appcast.xml")
 
     let xml = try String(contentsOf: appcast, encoding: .utf8)
-    #expect(xml.contains("<title>Talkify</title>"))
+    #expect(xml.contains("<title>Dilo</title>"))
     #expect(try XMLDocument(contentsOf: appcast, options: []).rootElement()?.name == "rss")
+  }
+
+  /// Acerca de existe y nombra el fork. La atribución a Talkify es condición
+  /// de la licencia MIT: si alguien saca la sección, esto falla.
+  @Test func laSeccionAcercaDeEstaRegistrada() {
+    #expect(SettingsSection.allCases.contains(.about))
+    #expect(SettingsSection.about.title == "Acerca de")
+    #expect(!SettingsSection.about.icon.isEmpty)
   }
 }

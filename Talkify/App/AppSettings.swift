@@ -298,7 +298,12 @@ final class AppSettings {
     self.defaults = defaults
     soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .synth8
     dictationSoundsEnabled = defaults.object(forKey: Keys.soundsEnabled) as? Bool ?? true
-    duckOtherAudioWhileDictating = defaults.object(forKey: Keys.duckOtherAudio) as? Bool ?? false
+    // Apagado y sin interruptor. "Duck other audio" baja el volumen de
+    // salida del sistema por Core Audio, y macOS muestra su propio HUD de
+    // volumen cada vez. Dilo nunca toca el volumen maestro: si algún día
+    // se silencia la música al dictar, se pausa la reproducción (spec §8.3).
+    // El mecanismo (AudioDucker) queda con sus tests por si ese día llega.
+    duckOtherAudioWhileDictating = false
     let storedSoundVolume = defaults.object(forKey: Keys.soundVolume) as? Double ?? 0.5
     storedDictationSoundVolume = DictationSoundSettings.normalizedVolume(storedSoundVolume)
     transcriptDestination = Self.stored(in: defaults, key: Keys.transcriptDestination) ?? .besideSource
@@ -320,7 +325,12 @@ final class AppSettings {
     // existing user at the smallest HUD, so absence is checked directly.
     hudScale = defaults.object(forKey: Keys.hudScale) as? Double
       ?? Double(HUDMetrics.maximumScale)
-    hudClearsMenuBar = defaults.bool(forKey: Keys.hudClearsMenuBar)
+    // Encendido por defecto, al revés que en Talkify: en una pantalla sin
+    // notch la forma se dibujaba encima de los status items, en la misma
+    // franja donde macOS 27 pone su HUD de volumen (spec §8.2). La
+    // geometría fina de la píldora es la Tarea 6; el default se corrige hoy
+    // porque el 80 % del uso de Alfonso es sin notch.
+    hudClearsMenuBar = defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool ?? true
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(
@@ -340,7 +350,7 @@ final class AppSettings {
       in: defaults,
       key: Keys.secondaryTriggerBinding,
       allowsMouseButton: true
-    ) ?? .rightOptionTrigger
+    ) ?? .controlOptionSpace
     translateTriggerBinding = Self.storedBinding(
       in: defaults,
       key: Keys.translateTriggerBinding,
@@ -432,10 +442,10 @@ enum BindingRole: Hashable, CaseIterable {
 
   var title: String {
     switch self {
-    case .dictation: "Direct Dictation"
-    case .secondLanguage: "Second Language"
-    case .translate: "Translate"
-    case .readAloud: "Read Aloud"
+    case .dictation: "Dictado"
+    case .secondLanguage: "Segundo idioma"
+    case .translate: "Traducir"
+    case .readAloud: "Leer en voz alta"
     }
   }
 }

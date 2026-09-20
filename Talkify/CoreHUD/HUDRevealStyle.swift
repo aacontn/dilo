@@ -13,4 +13,14 @@ enum HUDRevealStyle: String, CaseIterable {
   /// Barely moves: fades in while drifting down the last few points.
   /// The most understated.
   case drift = "Drift"
+
+  /// El nombre visible; el rawValue es la elección guardada y no se toca.
+  var title: String {
+    switch self {
+    case .slide: "Baja"
+    case .unfurl: "Se despliega"
+    case .bloom: "Se infla"
+    case .drift: "Se asoma"
+    }
+  }
 }

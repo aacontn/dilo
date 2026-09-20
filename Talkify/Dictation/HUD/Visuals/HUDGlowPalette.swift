@@ -12,6 +12,18 @@ enum HUDGlowPalette: String, CaseIterable {
   case ocean = "Ocean"
   case mono = "Mono"
 
+  /// El nombre visible; el rawValue es la elección guardada y no se toca.
+  var title: String {
+    switch self {
+    case .spectrum: "Espectro"
+    case .silver: "Plata"
+    case .aurora: "Aurora"
+    case .sunset: "Atardecer"
+    case .ocean: "Océano"
+    case .mono: "Mono"
+    }
+  }
+
   /// The beam's stroke fill.
   var stroke: AnyShapeStyle {
     AnyShapeStyle(

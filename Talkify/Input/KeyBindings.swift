@@ -88,12 +88,28 @@ struct KeyBinding: Equatable, Codable {
     label: "fn", keyEquivalent: ""
   )
 
-  /// Default second-language trigger: right ⌥ held, mirroring the fn hold
-  /// on the other side of the keyboard. Only ever installed once a second
-  /// language is chosen, so it costs nothing until then.
+  /// Gatillo por defecto del segundo idioma: ⌃⌥Espacio.
+  ///
+  /// **No es ⌥ derecha**, que es lo que traía Talkify. En un teclado ISO
+  /// latinoamericano esa tecla es AltGr y escribe `@ # \ | { } [ ]`: dictando
+  /// prompts arrancaba una sesión en otro idioma a cada rato y el resultado
+  /// salía mezclado (spec §8.1, medido por Alfonso el 2026-09-20). Ningún
+  /// gatillo por defecto de Dilo puede escribir un símbolo en teclado latino.
+  ///
+  /// Sólo se instala una vez que hay un segundo idioma elegido, así que no
+  /// cuesta nada hasta entonces — y el segundo idioma viene apagado.
+  static let controlOptionSpace = KeyBinding(
+    keyCode: 49,
+    modifierFlags: CGEventFlags.maskControl.rawValue | CGEventFlags.maskAlternate.rawValue,
+    isModifierKey: false, label: "⌃ ⌥ espacio", keyEquivalent: " "
+  )
+
+  /// El gatillo que traía Talkify para el segundo idioma. Se conserva para
+  /// que una configuración guardada de antes siga leyéndose, pero ya no es
+  /// el default de nadie.
   static let rightOptionTrigger = KeyBinding(
     keyCode: 61, modifierFlags: 0, isModifierKey: true,
-    label: "right ⌥", keyEquivalent: ""
+    label: "⌥ derecha", keyEquivalent: ""
   )
 
   /// Default Dictate and Translate trigger: right command held, sharing no key

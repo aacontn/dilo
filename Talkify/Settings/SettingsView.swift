@@ -99,7 +99,7 @@ private struct SettingsHeader: View {
         Spacer()
       }
 
-      // Talkify identity, dead-center regardless of the close button.
+      // La identidad de Dilo, centrada pase lo que pase con el botón de cerrar.
       HStack(spacing: 9) {
         Image("MenuBarIcon")
           .renderingMode(.template)
@@ -110,7 +110,7 @@ private struct SettingsHeader: View {
           .frame(width: 26, height: 26)
           .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
 
-        Text("Talkify")
+        Text(verbatim: "Dilo")
           .font(.system(size: 15, weight: .semibold, design: .rounded))
       }
     }
@@ -132,7 +132,7 @@ private struct ActiveSessionNotice: View {
     HStack(spacing: 8) {
       Image(systemName: "info.circle.fill")
         .foregroundStyle(SettingsTheme.accent)
-      Text("Changes apply to the next Direct Dictation session.")
+      Text("Lo que cambies aplica al próximo dictado.")
         .font(.system(size: 12, weight: .medium))
         .foregroundStyle(.white.opacity(contrast == .increased ? 0.92 : 0.72))
       Spacer()
@@ -269,6 +269,8 @@ private struct SettingsContent: View {
           UpdatesSettingsView(updater: updater)
         case .insights:
           InsightsSettingsView(tracker: usageTracker)
+        case .about:
+          AboutSettingsView()
         }
       }
       .frame(maxWidth: 620, alignment: .leading)
@@ -287,7 +289,7 @@ private struct SettingsContent: View {
     runtimeState: SettingsRuntimeState(),
     usageTracker: UsageTracker(store: UsageStore(
       fileURL: FileManager.default.temporaryDirectory
-        .appending(path: "TalkifySettingsPreview-usage.json")
+        .appending(path: "DiloSettingsPreview-usage.json")
     )),
     // Never started, so the preview shows the pane's disabled state rather
     // than reaching for the network.

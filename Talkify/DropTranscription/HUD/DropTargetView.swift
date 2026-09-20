@@ -29,7 +29,7 @@ struct DropTargetView: View {
     HStack(spacing: 12 * style.scale) {
       DropMediaGlyph(style: style)
       VStack(alignment: .leading, spacing: 2 * style.scale) {
-        Text("Drop to transcribe")
+        Text("Suéltalo y lo transcribo")
           .font(.system(size: 13 * style.scale, weight: .semibold))
           .foregroundStyle(.white)
         Text(fileName)
@@ -56,7 +56,7 @@ struct DropTargetView: View {
           Text(tag)
             .font(.system(size: 15 * style.scale, weight: .bold, design: .rounded))
             .foregroundStyle(.white)
-          Text("Drop here")
+          Text("Suéltalo acá")
             .font(.system(size: 10 * style.scale))
             .foregroundStyle(.white.opacity(0.5))
         }

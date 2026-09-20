@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private final class TalkifySettingsWindow: NSWindow {
+private final class DiloSettingsWindow: NSWindow {
   override var canBecomeKey: Bool { true }
   override var canBecomeMain: Bool { true }
 
@@ -24,7 +24,7 @@ final class SettingsWindowController: NSWindowController {
     updater: SparkleUpdaterService,
     launchAtLogin: LaunchAtLoginService
   ) {
-    let window = TalkifySettingsWindow(
+    let window = DiloSettingsWindow(
       contentRect: NSRect(origin: .zero, size: Self.windowSize),
       styleMask: [.borderless],
       backing: .buffered,
@@ -43,7 +43,7 @@ final class SettingsWindowController: NSWindowController {
     )
 
     window.contentViewController = hosting
-    window.title = "Talkify Settings"
+    window.title = "Ajustes de Dilo"
     window.level = .normal
     window.isOpaque = false
     window.backgroundColor = .clear

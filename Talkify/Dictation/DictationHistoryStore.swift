@@ -13,7 +13,7 @@ actor DictationHistoryStore {
   /// Application Support folder Insights uses for data only Talkify reads.
   static var defaultFolderURL: URL {
     FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-      .appending(path: "Talkify", directoryHint: .isDirectory)
+      .appending(path: "Dilo", directoryHint: .isDirectory)
   }
 
   /// One file per local calendar day, so a day of dictation reads as one
