@@ -82,8 +82,8 @@ struct UpdatesTests {
     #expect(try XMLDocument(contentsOf: appcast, options: []).rootElement()?.name == "rss")
   }
 
-  /// Acerca de existe y nombra el fork. La atribución a Talkify es condición
-  /// de la licencia MIT: si alguien saca la sección, esto falla.
+  /// Acerca de existe y es donde se nombran las licencias de terceros, que
+  /// son condición de esas licencias: si alguien saca la sección, esto falla.
   @Test func laSeccionAcercaDeEstaRegistrada() {
     #expect(SettingsSection.allCases.contains(.about))
     #expect(SettingsSection.about.title == String(localized: "Acerca de"))

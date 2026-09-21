@@ -47,7 +47,7 @@ struct DropTargetView: View {
   }
 
   /// With two languages configured the drop itself picks one, so the choice
-  /// costs no decision before the gesture. Talkify never guesses a spoken
+  /// costs no decision before the gesture. Dilo never guesses a spoken
   /// language, and on a long file a wrong guess wastes minutes.
   private var splitTarget: some View {
     HStack(spacing: 10 * style.scale) {
@@ -117,7 +117,7 @@ struct DropMediaGlyph: View {
 /// keeps the dragged item on the pointer until the destination answers, so
 /// every instruction executed before returning is time the item spends stuck
 /// to the cursor. It does not read the item, it does not touch the file, and
-/// it does not start the job — Talkify already knows what is being dragged,
+/// it does not start the job — Dilo already knows what is being dragged,
 /// because `DragWatcher` read the drag pasteboard when it opened this target.
 /// Everything real happens on the next turn of the run loop, by which point
 /// the item has left the pointer.

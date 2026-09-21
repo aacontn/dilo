@@ -211,7 +211,7 @@ struct TranslationCoordinatorTests {
 
     var reported: [TranslationModelState] = []
     coordinator.onStateChange = { reported.append($0) }
-    // Installed outside Talkify, which is what makes a refused press worth
+    // Installed outside Dilo, which is what makes a refused press worth
     // retrying at all.
     fake.availability = .installed
     coordinator.retry()

@@ -39,7 +39,7 @@ struct TextInsertionServiceTests {
     let pasteboard = makePasteboard()
     pasteboard.clearContents()
     let customType = NSPasteboard.PasteboardType(
-      "com.tgomareli.TalkifyTests.custom-data"
+      "cl.espaciodigital.dilo.tests.custom-data"
     )
     let previousString = "previous clipboard"
     let previousStringData = Data(previousString.utf8)
@@ -151,7 +151,7 @@ struct TextInsertionServiceTests {
   @Test func missingClipboardRepresentationUsesCopyFallback() async {
     let pasteboard = makePasteboard()
     let missingType = NSPasteboard.PasteboardType(
-      "com.tgomareli.TalkifyTests.missing-data"
+      "cl.espaciodigital.dilo.tests.missing-data"
     )
     let provider = MissingPasteboardDataProvider()
     let item = NSPasteboardItem()
@@ -1132,7 +1132,7 @@ struct TextInsertionServiceTests {
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
       postPasteShortcut: {
-        // Read while Talkify's text is on the pasteboard, which is the only
+        // Read while Dilo's text is on the pasteboard, which is the only
         // moment a clipboard manager would see it.
         typesWhileStaged = pasteboard.types?.map(\.rawValue) ?? []
         return true

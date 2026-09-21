@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The Read Aloud section: the voice pick (enhanced/premium/Personal only),
 /// a spoken preview, and the System Settings handoffs for voice downloads
-/// and Personal Voice — Talkify cannot download synthesis voices itself
+/// and Personal Voice — Dilo cannot download synthesis voices itself
 /// (CONTEXT.md).
 struct ReadAloudSettingsView: View {
   @Bindable var settings: AppSettings

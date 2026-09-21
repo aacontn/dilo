@@ -7,13 +7,13 @@ import UniformTypeIdentifiers
 
 /// Renders HUD surfaces to PNGs so a change to the shape, the bands or the
 /// drop states can be looked at rather than inferred from a diff. Writes to
-/// `TALKIFY_RENDER_DIR` when it is set; otherwise it only asserts that each
+/// `DILO_RENDER_DIR` when it is set; otherwise it only asserts that each
 /// surface renders at the size the geometry promises.
 @MainActor
 @Suite("HUD rendering")
 struct HUDRenderTests {
   private var outputDirectory: URL? {
-    ProcessInfo.processInfo.environment["TALKIFY_RENDER_DIR"].map { URL(filePath: $0) }
+    ProcessInfo.processInfo.environment["DILO_RENDER_DIR"].map { URL(filePath: $0) }
   }
 
   /// A 14" MacBook Pro's numbers, which are also the simulated notch's.
@@ -106,7 +106,7 @@ struct HUDRenderTests {
       let drop = DropHUDContent()
       drop.mode = .armed
       drop.isOpen = isOpen
-      drop.fileName = "Talkify-test-human.mp3"
+      drop.fileName = "Dilo-test-human.mp3"
       drop.isRevealed = true
 
       _ = try render(
@@ -145,7 +145,7 @@ struct HUDRenderTests {
     let drop = DropHUDContent()
     drop.mode = .held
     drop.isRevealed = true
-    drop.fileName = "Talkify-test-human.mp3"
+    drop.fileName = "Dilo-test-human.mp3"
     drop.heldIcon = NSWorkspace.shared.icon(for: .mp3)
 
     _ = try render(
@@ -160,7 +160,7 @@ struct HUDRenderTests {
   }
 
   /// The drop target takes its colour from the voice visual: Edge Glow lends
-  /// its palette, everything else keeps the Talkify blue.
+  /// its palette, everything else keeps the HUD's own blue.
   @Test(arguments: [HUDGlowPalette.sunset, .aurora, .mono])
   func theDropTargetFollowsTheGlowPalette(palette: HUDGlowPalette) throws {
     let store = AppSettings.previewStore()
@@ -171,7 +171,7 @@ struct HUDRenderTests {
     drop.mode = .armed
     drop.isOpen = true
     drop.isRevealed = true
-    drop.fileName = "Talkify-test-human.mp3"
+    drop.fileName = "Dilo-test-human.mp3"
 
     _ = try render(
       DropHUDView(
@@ -305,7 +305,7 @@ struct HUDRenderTests {
     drop.mode = .transcript
     drop.isRevealed = true
     drop.transcript = DropHUDContent.Transcript(
-      url: URL(filePath: "/Users/x/Desktop/Talkify-test-human.txt"),
+      url: URL(filePath: "/Users/x/Desktop/Dilo-test-human.txt"),
       text: "A transcript the card never renders.",
       wordCount: 1240,
       duration: 723
@@ -330,7 +330,7 @@ struct HUDRenderTests {
     drop.isRevealed = true
     drop.isCardHovered = true
     drop.transcript = DropHUDContent.Transcript(
-      url: URL(filePath: "/Users/x/Desktop/Talkify-test-human.txt"),
+      url: URL(filePath: "/Users/x/Desktop/Dilo-test-human.txt"),
       text: "A transcript the card never renders.",
       wordCount: 1240,
       duration: 723

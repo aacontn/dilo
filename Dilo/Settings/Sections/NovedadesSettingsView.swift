@@ -3,7 +3,7 @@ import SwiftUI
 
 /// La sección Novedades: qué trae la versión que estás corriendo.
 ///
-/// Talkify traía su changelog de GitHub. Eso significaba que la app sabía
+/// El árbol de origen traía su changelog de GitHub. Eso significaba que la app sabía
 /// menos de sí misma que un servidor, que sin internet no tenía nada que
 /// contar, y que las notas estaban en inglés porque venían del release. Las de
 /// Dilo viajan dentro del `.app`, en español, y son el mismo archivo que

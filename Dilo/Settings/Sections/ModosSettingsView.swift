@@ -307,7 +307,7 @@ struct ModoEditorView: View {
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.12)))
 
       // El ejemplo y el recordatorio de cierre vienen de los prompts que
-      // heredamos de Talkify, y son lo que alguien más trabajo se tomó en
+      // heredamos del árbol de origen, y son lo que alguien más trabajo se tomó en
       // escribir. Van escondidos porque casi nadie los usa, pero tienen que
       // estar: la migración los trajo y sin esto no habría dónde verlos.
       DisclosureGroup("Afinarlo más") {

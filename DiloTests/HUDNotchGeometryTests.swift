@@ -201,7 +201,7 @@ struct HUDNotchGeometryTests {
 
   /// Issue #83: with no real notch to hug, a shape pinned flush to the
   /// screen's top edge draws directly over the menu bar — hiding whatever
-  /// status item sits under it, including Talkify's own. Clearing the menu
+  /// status item sits under it, including Dilo's own. Clearing the menu
   /// bar's own height keeps the shape below it instead.
   @Test func topInsetMatchesTheMenuBarOnADisplayWithNoNotch() {
     // Dilo agrega su aire: la píldora se separa de la franja del sistema en

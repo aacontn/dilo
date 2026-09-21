@@ -5,7 +5,7 @@ import os
 /// Arma el motor doble con lo que la app ya tiene.
 ///
 /// `AppleEngine` no reimplementa nada: le pasa los cuatro verbos del contrato
-/// al actor de Talkify que ya maneja SpeechAnalyzer. `ParakeetEngine` usa la
+/// al actor de la app que ya maneja SpeechAnalyzer. `ParakeetEngine` usa la
 /// misma captura de micrófono. Quien pide un dictado habla con el router y no
 /// se entera de cuál de los dos contestó.
 enum DiloSpeechStack {

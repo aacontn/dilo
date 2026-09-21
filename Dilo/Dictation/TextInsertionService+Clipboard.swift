@@ -190,7 +190,7 @@ extension TextInsertionService {
   /// Types that tell a clipboard manager this write is not worth keeping.
   ///
   /// The convention is nspasteboard.com's, which Paste, Raycast and Alfred
-  /// read. Talkify's paste-and-restore write is gone again within about half a
+  /// read. Dilo's paste-and-restore write is gone again within about half a
   /// second and was never something the user copied, so recording it in a
   /// clipboard history is only a leak of every dictated phrase.
   private static let transientTypes: [NSPasteboard.PasteboardType] = [
@@ -206,7 +206,7 @@ extension TextInsertionService {
   ///   - isTransient: Whether the write exists only to be pasted and undone.
   ///     False for the destinations that mean to leave the text behind: what
   ///     the user asked to keep is an ordinary copy.
-  /// - Returns: Talkify's staged change count, or `nil` when staging is unsafe.
+  /// - Returns: Dilo's staged change count, or `nil` when staging is unsafe.
   func stageClipboardText(
     _ text: String,
     ifUnchangedSince acceptedChangeCount: Int,
@@ -229,11 +229,11 @@ extension TextInsertionService {
     return pasteboard.changeCount
   }
 
-  /// Restores a saved snapshot only while Talkify still owns the staged value.
+  /// Restores a saved snapshot only while Dilo still owns the staged value.
   ///
   /// - Parameters:
   ///   - savedItems: The complete item snapshots accepted before insertion.
-  ///   - insertedChangeCount: The count produced by Talkify's staged text.
+  ///   - insertedChangeCount: The count produced by Dilo's staged text.
   func restoreClipboard(
     _ savedItems: [ClipboardItemSnapshot],
     ifUnchangedSince insertedChangeCount: Int
@@ -241,7 +241,7 @@ extension TextInsertionService {
     guard !isClipboardReadActive() else { return }
 
     let pasteboard = dependencies.pasteboard
-    // This guard preserves clipboard contents written after Talkify staged the
+    // This guard preserves clipboard contents written after Dilo staged the
     // dictated text.
     guard pasteboard.changeCount == insertedChangeCount else { return }
 

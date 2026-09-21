@@ -1,12 +1,12 @@
 import AppKit
 
-/// The setup conversation Talkify has to have with the user.
+/// The setup conversation Dilo has to have with the user.
 ///
 /// Accessibility is granted in System Settings, and macOS can hand the running
 /// process a stale answer afterwards: the event tap keeps being refused until
 /// the app is launched again. A transient HUD message is the wrong place to say
 /// that, because it disappears while the user is still in System Settings. This
-/// is a real dialog that waits, names the pane to open, and can relaunch Talkify.
+/// is a real dialog that waits, names the pane to open, and can relaunch Dilo.
 @MainActor
 enum PermissionAlert {
   /// True while a dialog is on screen, so a second trigger press cannot stack
@@ -86,7 +86,7 @@ enum PermissionAlert {
     }
   }
 
-  /// Talkify has no Dock icon, and an accessory app's alert opens behind
+  /// Dilo has no Dock icon, and an accessory app's alert opens behind
   /// whatever the user is looking at. The policy switches for as long as the
   /// dialog is up, the same trade the updater makes for its window.
   private static func run(_ alert: NSAlert) -> NSApplication.ModalResponse {

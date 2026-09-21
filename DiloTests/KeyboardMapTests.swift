@@ -164,7 +164,7 @@ struct KeyboardLayoutTests {
 
 /// Building a binding by clicking keys on the drawn keyboard. This is the path
 /// that can assign a combination the recorder cannot capture, because the
-/// system or another app swallows it before Talkify sees it.
+/// system or another app swallows it before Dilo sees it.
 @Suite("Binding by clicking")
 struct ClickToBindTests {
   private let layout = KeyboardLayout(shape: .ansi, legends: [35: "p", 12: "q"])

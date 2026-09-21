@@ -91,7 +91,7 @@ struct KeyBinding: Equatable, Codable {
 
   /// Gatillo por defecto del segundo idioma: ⌃⌥Espacio.
   ///
-  /// **No es ⌥ derecha**, que es lo que traía Talkify. En un teclado ISO
+  /// **No es ⌥ derecha**, que es lo que venía de origen. En un teclado ISO
   /// latinoamericano esa tecla es AltGr y escribe `@ # \ | { } [ ]`: dictando
   /// prompts arrancaba una sesión en otro idioma a cada rato y el resultado
   /// salía mezclado (spec §8.1, medido por Alfonso el 2026-09-20). Ningún
@@ -118,7 +118,7 @@ struct KeyBinding: Equatable, Codable {
     isModifierKey: false, label: "⌃ ⌘ L", keyEquivalent: "l"
   )
 
-  /// El gatillo que traía Talkify para el segundo idioma. Se conserva para
+  /// El gatillo que venía de origen para el segundo idioma. Se conserva para
   /// que una configuración guardada de antes siga leyéndose, pero ya no es
   /// el default de nadie.
   static let rightOptionTrigger = KeyBinding(

@@ -118,12 +118,12 @@ enum HUDNotchGeometry {
   /// A real notch already sits in its own housing, clear of wherever the
   /// system draws status items. The simulated stand-in has no such housing:
   /// pinned flush to the screen's top edge it draws directly over the menu
-  /// bar, hiding whatever status item sits under it — including Talkify's
+  /// bar, hiding whatever status item sits under it — including Dilo's
   /// own (issue #83). So there the shape hangs just below the menu bar
   /// instead of over it.
   ///
   /// En Dilo el default no se discute: la píldora va debajo (spec §8,
-  /// `AGENTS.md`). Alfonso dictó diez minutos con la de Talkify encima y le
+  /// `AGENTS.md`). Alfonso dictó diez minutos con la forma heredada encima y le
   /// tapó sus propios status items en dos monitores sin notch, que es el 80 %
   /// de su uso. La imitación sigue disponible —Ajustes → Apariencia, «En
   /// pantallas sin notch»— para quien la prefiera, porque la franja del

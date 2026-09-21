@@ -1,7 +1,7 @@
 import AppKit
 import DiloModes
 
-/// El puente entre el `KeyBinding` de Talkify —que necesita AppKit y sólo se
+/// El puente entre el `KeyBinding` de la app —que necesita AppKit y sólo se
 /// puede probar con una ventana abierta— y el `Gatillo` de `DiloModes`, que es
 /// un valor puro.
 ///

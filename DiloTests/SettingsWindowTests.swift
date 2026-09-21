@@ -12,7 +12,7 @@ struct SettingsWindowTests {
       runtimeState: SettingsRuntimeState(),
       usageTracker: UsageTracker(store: UsageStore(
         fileURL: FileManager.default.temporaryDirectory
-          .appending(path: "TalkifySettingsWindowTests-" + UUID().uuidString + ".json")
+          .appending(path: "DiloSettingsWindowTests-" + UUID().uuidString + ".json")
       )),
       updater: SparkleUpdaterService(),
       launchAtLogin: LaunchAtLoginService()

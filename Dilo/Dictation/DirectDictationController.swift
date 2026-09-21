@@ -29,7 +29,7 @@ final class DirectDictationController {
   private var keyEventMonitor: GlobalKeyEventMonitor?
   private var machine = DictationSessionMachine()
   private let ducking = AudioDuckingSession()
-  /// Held for the length of a session. Without it, a Talkify that has sat
+  /// Held for the length of a session. Without it, a Dilo that has sat
   /// idle for hours is napped, and the HUD's animation clock with it (#77).
   private let activity = ActivityAssertion(reason: "Direct Dictation session")
   private var focusedTarget: TextInsertionService.Target?
@@ -428,7 +428,7 @@ final class DirectDictationController {
 
   /// Watches for a permission the user is granting right now.
   ///
-  /// Accessibility is granted in System Settings while Talkify is already
+  /// Accessibility is granted in System Settings while Dilo is already
   /// running, and macOS tells the app nothing when it changes. Checking once at
   /// launch meant the trigger key stayed dead after the user had done everything
   /// right, with no hint that a relaunch was needed. This polls instead, and
@@ -975,7 +975,7 @@ final class DirectDictationController {
           dependencies.playPasteSound()
           send(.sessionEnded)
           // Lo que la píldora todavía tiene que decir. El pegado que se cayó
-          // al portapapeles ya lo hacía el camino de Talkify, pero callado:
+          // al portapapeles ya lo hacía el camino heredado, pero callado:
           // las palabras estaban en otra parte y nadie lo decía. El modo que
           // no corrió es la otra mitad de lo mismo.
           let avisos = [

@@ -8,7 +8,7 @@ import Testing
 /// La píldora sin notch: dónde va, qué tapa y qué no, y los tres estados que
 /// la máquina del HUD prevé.
 ///
-/// Las tres reglas de esta suite salen de la primera prueba de Talkify en
+/// Las tres reglas de esta suite salen de la primera prueba de la app heredada en
 /// español (spec §8): la píldora no tapa la barra de menús, no se puede
 /// confundir con el HUD del sistema, y sobrevive a una app en pantalla
 /// completa.
@@ -185,7 +185,7 @@ struct HUDPildoraTests {
 
   /// Dibuja la píldora a PNG para poder mirarla en vez de deducirla del
   /// diff, como hace `HUDRenderTests` con las superficies del notch. Escribe
-  /// sólo cuando `TALKIFY_RENDER_DIR` está puesto; si no, se conforma con
+  /// sólo cuando `DILO_RENDER_DIR` está puesto; si no, se conforma con
   /// comprobar que rinde.
   @MainActor
   @Test func laPildoraSeDibuja() throws {
@@ -218,7 +218,7 @@ struct HUDPildoraTests {
       let imagen = try #require(renderer.cgImage)
       #expect(imagen.width == 1280)
 
-      if let dir = ProcessInfo.processInfo.environment["TALKIFY_RENDER_DIR"] {
+      if let dir = ProcessInfo.processInfo.environment["DILO_RENDER_DIR"] {
         let carpeta = URL(filePath: dir)
         try? FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
         let bitmap = NSBitmapImageRep(cgImage: imagen)

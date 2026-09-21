@@ -2,7 +2,7 @@ import Foundation
 
 /// Las notas de una versión, leídas del Markdown que se versiona en el repo.
 ///
-/// Talkify mostraba su changelog trayéndolo de GitHub: la app sabía menos de
+/// El árbol de origen mostraba su changelog trayéndolo de GitHub: la app sabía menos de
 /// sí misma que un servidor, y sin internet no tenía nada que contar. Dilo
 /// trae las suyas adentro, en español, y esta es la regla que las convierte en
 /// algo que una vista pueda dibujar.

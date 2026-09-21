@@ -45,7 +45,7 @@ final class AppSettings {
     static let hudEstiloSinNotch = "hudEstiloSinNotch"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
-    // Las tres claves de "Transformar", el sistema heredado de Talkify. Ya no
+    // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
     // se escriben: se leen una vez para migrar a modos y se dejan en disco una
     // versión más, por si hay que reconstruir a mano la biblioteca de alguien.
     static let promptShapingEnabled = "dictationPromptShapingEnabled"
@@ -116,7 +116,7 @@ final class AppSettings {
   }
 
   /// The history folder, kept even while history is off so turning it back
-  /// on returns to the same place. Nil means the default `~/Documents/Talkify/`.
+  /// on returns to the same place. Nil means the default `~/Documents/Dilo/`.
   var dictationHistoryFolder: URL? {
     didSet { defaults.set(dictationHistoryFolder?.path(percentEncoded: false), forKey: Keys.historyFolder) }
   }
@@ -443,7 +443,7 @@ final class AppSettings {
     // existing user at the smallest HUD, so absence is checked directly.
     hudScale = defaults.object(forKey: Keys.hudScale) as? Double
       ?? Double(HUDMetrics.maximumScale)
-    // Encendido por defecto, al revés que en Talkify: en una pantalla sin
+    // Encendido por defecto, al revés que en el árbol de origen: en una pantalla sin
     // notch la forma se dibujaba encima de los status items, en la misma
     // franja donde macOS 27 pone su HUD de volumen (spec §8.2). La
     // geometría fina de la píldora es la Tarea 6; el default se corrige hoy
@@ -451,7 +451,7 @@ final class AppSettings {
     // El interruptor viejo apagado quería decir «ponla donde iría el notch»,
     // que es exactamente el estilo simulado; así nadie pierde su elección al
     // actualizar. Sin nada guardado manda la píldora: en una pantalla sin
-    // notch la forma de Talkify se dibujaba encima de los status items, en la
+    // notch la forma heredada se dibujaba encima de los status items, en la
     // misma franja donde macOS 27 pone su HUD de volumen (spec §8.2).
     hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
       ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == false ? .notchSimulado : .pildora)
@@ -664,7 +664,7 @@ struct DictationSessionSettings: Equatable {
 
   /// The colour a Drop Transcription wears — on the HUD's target and card, and
   /// on the status ghost while a file job fills it. Edge Glow and Edge Glow +
-  /// Draft lend the palette's own hue; every other visual keeps Talkify blue.
+  /// Draft lend the palette's own hue; every other visual keeps the HUD's own blue.
   /// One definition, so the shape and the menu bar can never drift apart
   /// (CONTEXT.md).
   var dropAccent: NSColor {

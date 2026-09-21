@@ -20,7 +20,7 @@ public struct FocoLegible: Equatable, Sendable {
 /// Hay dos implementaciones y se eligen solas: `FullHost` en el target de
 /// venta directa y `SandboxedHost` en el de App Store, donde la API de
 /// Accesibilidad hacia otra app está cortada de raíz. Todo el árbol de
-/// Talkify que tocaba Accesibilidad pasa por acá, para que el sandbox no
+/// la app que toca Accesibilidad pasa por acá, para que el sandbox no
 /// se caiga en ejecución sino que **esconda** lo que no puede hacer.
 ///
 /// El contrato no representa permisos de TCC: Accesibilidad e Input
@@ -68,7 +68,7 @@ public protocol HostCapabilities: Sendable {
   ///
   /// Con Accesibilidad se compara el elemento exacto. Sin ella lo más fino
   /// que se puede saber es que la misma app siga al frente, que es la misma
-  /// respuesta que Talkify ya daba para las apps sin elemento enfocado.
+  /// respuesta que la app ya daba para las apps sin elemento enfocado.
   func sigueSiendoElFoco(elemento: AXUIElement?, pid: pid_t) -> Bool
 
   /// Lo que la app al frente tiene seleccionado, o nil si no se puede leer.

@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
-// Todo lo que es de Dilo vive acá, fuera del árbol que viene de Talkify, para
+// Todo lo que es de Dilo vive acá, fuera del árbol que viene de origen, para
 // que `git merge upstream/main` siga siendo barato y para poder correr
 // `swift test` sin abrir Xcode. Un módulo por tema; la app los enlaza.
 //

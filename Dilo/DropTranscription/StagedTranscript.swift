@@ -26,7 +26,7 @@ struct StagedTranscript {
   /// name without colliding with another job's.
   ///
   /// The folder is 0700 and the file 0600: a transcript is the user's speech
-  /// in cleartext, and Talkify is unsandboxed, so anything else running as the
+  /// in cleartext, and Dilo is unsandboxed, so anything else running as the
   /// same user could otherwise read it.
   static func stage(
     text: String,

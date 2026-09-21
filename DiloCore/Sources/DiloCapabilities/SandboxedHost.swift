@@ -70,7 +70,7 @@ public struct SandboxedHost: HostCapabilities {
   public func esCampoSeguro(_ elemento: AXUIElement) -> Bool { false }
 
   /// El HUD cae a la pantalla del puntero, que es cosmético y ya era el
-  /// respaldo de Talkify.
+  /// respaldo heredado.
   public func marco(de elemento: AXUIElement) -> CGRect? { nil }
 
   /// Lo más fino que se puede saber sin Accesibilidad: que la misma app siga

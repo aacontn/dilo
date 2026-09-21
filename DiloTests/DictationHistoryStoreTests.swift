@@ -242,7 +242,7 @@ struct DictationHistoryStoreTests {
     #expect(DictationHistoryStore.heading(for: noon, source: "   ", calendar: calendar) == bare)
   }
 
-  /// An application name is not something Talkify chose, so a name carrying a
+  /// An application name is not something Dilo chose, so a name carrying a
   /// newline must not be able to forge a second entry inside this one.
   @Test func aSourceCannotForgeASecondEntry() {
     let noon = Date(timeIntervalSince1970: 1_755_000_000)

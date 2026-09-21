@@ -201,7 +201,7 @@ struct DropZoneTests {
 @Suite("Reading the drag pasteboard")
 struct DragWatcherTests {
   private func pasteboard(_ urls: [URL], name: String) -> NSPasteboard {
-    let board = NSPasteboard(name: NSPasteboard.Name("com.tgomareli.Talkify.test.\(name)"))
+    let board = NSPasteboard(name: NSPasteboard.Name("cl.espaciodigital.dilo.test.\(name)"))
     board.clearContents()
     board.writeObjects(urls as [NSURL])
     return board
@@ -225,7 +225,7 @@ struct DragWatcherTests {
   }
 
   @Test func anEmptyDragIsIgnored() {
-    let board = NSPasteboard(name: NSPasteboard.Name("com.tgomareli.Talkify.test.empty"))
+    let board = NSPasteboard(name: NSPasteboard.Name("cl.espaciodigital.dilo.test.empty"))
     board.clearContents()
     #expect(DragWatcher.transcribableURL(on: board) == nil)
   }
@@ -235,7 +235,7 @@ struct DragWatcherTests {
 @Suite("Drop Transcription preferences")
 struct DropTranscriptionSettingsTests {
   private func freshDefaults() -> UserDefaults {
-    let name = "com.tgomareli.Talkify.tests.drop"
+    let name = "cl.espaciodigital.dilo.tests.drop"
     let defaults = UserDefaults(suiteName: name) ?? .standard
     defaults.removePersistentDomain(forName: name)
     return defaults
@@ -315,12 +315,12 @@ struct StagedTranscriptTests {
   /// test, so faking the filesystem would test nothing.
   private func scratch(_ name: String) throws -> URL {
     let directory = URL.temporaryDirectory
-      .appending(path: "TalkifyTests-\(name)-\(UUID().uuidString)")
+      .appending(path: "DiloTests-\(name)-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     return directory
   }
 
-  /// A transcript is the user's speech in cleartext and Talkify is
+  /// A transcript is the user's speech in cleartext and Dilo is
   /// unsandboxed, so nothing else running as the same user should be able to
   /// open it while it waits on the card.
   @Test func stagedFilesAreReadableOnlyByTheirOwner() throws {
@@ -445,7 +445,7 @@ struct StagedTranscriptTests {
   }
 
   /// Discarding is what happens when a drag lands: the transcript is the
-  /// user's now, wherever they put it, and Talkify keeps no copy (CONTEXT.md).
+  /// user's now, wherever they put it, and Dilo keeps no copy (CONTEXT.md).
   @Test func discardingRemovesEverythingStaged() throws {
     let root = try scratch("discard")
     defer { try? FileManager.default.removeItem(at: root) }

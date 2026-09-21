@@ -5,7 +5,7 @@ import SwiftUI
 /// colored waves; every power change animates each wave toward a fresh random
 /// four-curve composition over 0.3s, which is what makes the motion roll.
 ///
-/// Talkify adaptations: the microphone level drives the power, value-based
+/// Dilo's adaptations: the microphone level drives the power, value-based
 /// animation replaces the source's deprecated implicit `.animation`, and a
 /// dead microphone flattens it to a static amber line (CONTEXT.md).
 struct HUDSiriWaveView: View {

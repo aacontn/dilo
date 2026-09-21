@@ -11,7 +11,7 @@ struct SoundsSettingsView: View {
   @State private var previewTask: Task<Void, Never>?
 
   var body: some View {
-    // Acá iba el interruptor "Lower other audio" de Talkify. No vuelve:
+    // Acá iba el interruptor "Lower other audio" que venía de origen. No vuelve:
     // baja el volumen de salida del sistema y macOS muestra su HUD de volumen
     // encima cada vez. Dilo nunca toca el volumen maestro (spec §8.3). Si
     // algún día se silencia la música al dictar, se pausa la reproducción.

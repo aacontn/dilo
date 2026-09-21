@@ -199,8 +199,8 @@ private struct EtiquetaDeOrigen: View {
 ///
 /// Es compartido y no de la vista porque cambiar de sección en Ajustes
 /// reemplaza la vista entera, y una descarga de 469 MB no se puede morir
-/// porque alguien fue a mirar los sonidos. Es el mismo problema que Talkify
-/// resolvió sacando la instalación de los modelos de traducción fuera de su
+/// porque alguien fue a mirar los sonidos. Es el mismo problema que el árbol de
+/// origen resolvió sacando la instalación de los modelos de traducción fuera de su
 /// vista.
 @MainActor
 @Observable

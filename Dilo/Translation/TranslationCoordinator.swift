@@ -218,7 +218,7 @@ final class TranslationCoordinator {
       guard request == self.request, self.pair == pair, isPrepared else { return }
       isReady = true
       onStateChange?(.ready)
-      // A model installed outside Talkify makes its whole row stale, not just
+      // A model installed outside Dilo makes its whole row stale, not just
       // this pair's state.
       if let source { discoverTargets(from: source, for: request) }
     }

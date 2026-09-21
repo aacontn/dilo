@@ -6,7 +6,7 @@ import AppKit
 /// and full-screen apps without private-API window code (ADR-0001).
 ///
 /// Sobrevivir a una app en pantalla completa nativa cuesta cuatro cosas a la
-/// vez, y con tres no alcanza (issue #84 de Talkify): el nivel sobre la barra
+/// vez, y con tres no alcanza (issue #84 del árbol de origen): el nivel sobre la barra
 /// de menús, `canJoinAllSpaces` para ir a todos los espacios,
 /// `fullScreenAuxiliary` para que el espacio de pantalla completa la acepte, y
 /// `nonactivatingPanel` + `isFloatingPanel` para que flote sin robarle el foco
@@ -95,7 +95,7 @@ final class HUDPanel: NSPanel {
   ///
   /// NotchDrop's window can become key and its drops land instantly; a window
   /// that can never become key is a slower path for the dragging source. The
-  /// panel is still `.nonactivatingPanel`, so this never activates Talkify or
+  /// panel is still `.nonactivatingPanel`, so this never activates Dilo or
   /// takes the frontmost app's focus — and during dictation, when the focused
   /// control is the whole point, `acceptsMouse` is false and this is false
   /// with it.

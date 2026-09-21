@@ -6,7 +6,7 @@ import Foundation
 /// El anfitrión del target de venta directa: puede todo lo que macOS permite
 /// con Accesibilidad concedida.
 ///
-/// Es el comportamiento que Talkify siempre tuvo; acá sólo está puesto detrás
+/// Es el comportamiento que la app siempre tuvo; acá sólo está puesto detrás
 /// del contrato para que exista el otro lado.
 public struct FullHost: HostCapabilities {
   private let lector: any LectorDeAccesibilidad

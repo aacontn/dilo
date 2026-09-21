@@ -2,7 +2,7 @@ import Foundation
 
 /// Un gatillo: la tecla (o combinación) que dispara algo en Dilo.
 ///
-/// Es un valor puro a propósito. El `KeyBinding` de Talkify vive en la app,
+/// Es un valor puro a propósito. El `KeyBinding` de AppKit vive en la app,
 /// depende de AppKit y de `CGEventFlags`, y no se puede testear sin abrir
 /// Xcode; las reglas de qué gatillo sirve y qué modo dispara sí se pueden, y
 /// son justamente donde estuvo el bug que Alfonso encontró dictando. Por eso

@@ -17,7 +17,7 @@ enum PermissionService {
   /// `AXIsProcessTrustedWithOptions` puts a system dialog on screen every time
   /// it is called with the prompt option, and this used to run on every trigger
   /// press while untrusted — so holding the key three times produced three
-  /// dialogs. Talkify explains the situation in its own dialog instead.
+  /// dialogs. Dilo explains the situation in its own dialog instead.
   @discardableResult
   static func requestAccessibilityAccess() -> Bool {
     if hasPromptedForAccessibility {

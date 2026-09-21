@@ -1,9 +1,8 @@
-import AppKit
 import SwiftUI
 
-/// Acerca de: qué versión corre, de dónde viene Dilo y a quién hay que
-/// agradecerle. La atribución a Talkify no es una cortesía opcional — es la
-/// condición de la licencia MIT y la costumbre de la casa: cuando se toma
+/// Acerca de: qué versión corre, bajo qué licencia y qué trabajo ajeno lleva
+/// adentro. Las licencias de terceros no son una cortesía opcional — son la
+/// condición de esas licencias y la costumbre de la casa: cuando se toma
 /// trabajo de otro, se dice de quién es, en la app y en el README.
 struct AboutSettingsView: View {
   @Environment(\.colorSchemeContrast) private var contrast
@@ -32,23 +31,32 @@ struct AboutSettingsView: View {
         }
       }
 
-      SettingsCard(title: "De dónde viene") {
-        SettingsRow(
-          title: "Un fork con cariño",
-          description: "Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT). De ahí vienen la píldora del notch, la máquina de sesión y el tap de teclado, y están bien hechos."
-        ) {
-          Button("Ver Talkify") {
-            open("https://github.com/tornikegomareli/Talkify")
-          }
-          .buttonStyle(SettingsButtonStyle())
-        }
-
+      SettingsCard(title: "Licencias") {
         SettingsRow(
           title: "Licencia",
-          description: "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)."
+          description: "MIT. © 2026 Alfonso Contreras / Espacio Digital."
         ) {
           EmptyView()
         }
+
+        // La lista se parte en dos literales en vez de armarse con `+` porque
+        // una clave del catálogo es una frase entera: el build de App Store no
+        // lleva Sparkle y no puede decir que sí.
+        #if DILO_MAS
+          SettingsRow(
+            title: "Licencias de terceros",
+            description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0)."
+          ) {
+            EmptyView()
+          }
+        #else
+          SettingsRow(
+            title: "Licencias de terceros",
+            description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · Sparkle, de Andy Matuschak y otros (MIT)."
+          ) {
+            EmptyView()
+          }
+        #endif
       }
 
       Text(
@@ -59,10 +67,5 @@ struct AboutSettingsView: View {
       .fixedSize(horizontal: false, vertical: true)
       .padding(.horizontal, 6)
     }
-  }
-
-  private func open(_ string: String) {
-    guard let url = URL(string: string) else { return }
-    NSWorkspace.shared.open(url)
   }
 }

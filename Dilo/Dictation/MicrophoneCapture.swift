@@ -2,7 +2,7 @@ import AVFAudio
 import DiloEngines
 import Foundation
 
-/// La captura de micrófono de Talkify puesta detrás del contrato que pide
+/// La captura de micrófono de la app puesta detrás del contrato que pide
 /// `DiloEngines`.
 ///
 /// Existe para que el motor Parakeet reciba el mismo audio que Apple, con la

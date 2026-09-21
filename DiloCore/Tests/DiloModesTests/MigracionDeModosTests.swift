@@ -11,7 +11,7 @@ struct MigracionDeModosTests {
   /// Lo que tendría guardado alguien que usó "Transformar" de verdad: los
   /// tres sembrados, uno de ellos editado, y dos propios.
   private let heredados: [PromptHeredado] = [
-    MigracionDeModos.semillasDeTalkify[0],
+    MigracionDeModos.semillasDeOrigen[0],
     PromptHeredado(
       id: "remove-fillers",
       name: "Sin muletillas",
@@ -91,7 +91,7 @@ struct MigracionDeModosTests {
     #expect(resultado.modos.modo("limpio")?.gatillo == nil)
   }
 
-  /// Los tres que Talkify sembraba y nadie tocó ya los cubren los de fábrica
+  /// Los tres que se sembraban y nadie tocó ya los cubren los de fábrica
   /// de Dilo: traerlos sería llenar la lista de duplicados el primer día.
   @Test func unSembradoQueNadieTocoNoSeTrae() {
     let resultado = migrar()

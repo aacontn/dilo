@@ -50,7 +50,7 @@ final class TranscriptDragSourceView: NSView, NSDraggingSource {
   /// every app until the next relaunch.
   private var hasPushedCursor = false
 
-  /// The HUD's panel never activates Talkify, so the first press has to work
+  /// The HUD's panel never activates Dilo, so the first press has to work
   /// while the app is in the background — which is every time.
   override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
@@ -125,7 +125,7 @@ final class TranscriptDragSourceView: NSView, NSDraggingSource {
   }
 
   /// Copy only. The dragged file sits in a temporary folder the user never
-  /// sees, so moving it out of there would mean nothing to them; Talkify
+  /// sees, so moving it out of there would mean nothing to them; Dilo
   /// removes the folder itself once a destination has taken the transcript.
   func draggingSession(
     _ session: NSDraggingSession,

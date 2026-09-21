@@ -16,7 +16,7 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
   public var prompt: String
   /// Lo que va **después** de la transcripción, para las reglas que se leen
   /// mejor como recordatorio de cierre. Puede ir vacío. Viene de los prompts
-  /// de "Transformar" que heredamos de Talkify, que lo tenían, y se conserva
+  /// de "Transformar" heredados del árbol de origen, que lo tenían, y se conserva
   /// para que la migración no pierda lo que alguien escribió ahí.
   public var instruccionFinal: String
   /// El ejemplo de un solo tiro: un dictado con forma de pregunta y su

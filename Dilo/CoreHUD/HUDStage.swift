@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The one shape, and who is holding it.
 ///
-/// Talkify has a single HUD: one panel, one hosting view, one place on screen.
+/// Dilo has a single HUD: one panel, one hosting view, one place on screen.
 /// Two features want it — Direct Dictation and Drop Transcription — and they
 /// must never both have it. This owns the window, the display choice, the
 /// mounting, and the arbitration; the feature controllers own what their
@@ -95,7 +95,7 @@ final class HUDStage {
   /// orden: si el espacio nuevo es una app en pantalla completa nativa, su
   /// ventana se ordena al frente al entrar y la forma queda detrás —
   /// visible en el Escritorio, invisible en Keynote o en Safari en pantalla
-  /// completa (issue #84 de Talkify). Reordenar al frente en cada cambio de
+  /// completa (issue #84 del árbol de origen). Reordenar al frente en cada cambio de
   /// espacio es lo que el overlay de Dilo-Tauri conseguía siendo un NSPanel
   /// `nonactivating` + `floating` que se muestra de nuevo en cada estado.
   ///
@@ -212,7 +212,7 @@ final class HUDStage {
     }
   }
 
-  /// A status or error line, in the one place Talkify says anything.
+  /// A status or error line, in the one place Dilo says anything.
   func showMessage(_ text: String, on displayID: CGDirectDisplayID? = nil) {
     guard let screen = screen(preferring: displayID) else { return }
     claim(.message, on: screen)

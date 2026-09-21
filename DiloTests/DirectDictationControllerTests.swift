@@ -614,7 +614,7 @@ struct DirectDictationControllerTests {
     let historyEntries = OSAllocatedUnfairLock<[HistoryEntry]>(
       initialState: []
     )
-    let folder = URL(filePath: "/tmp/TalkifyTests-history-\(UUID().uuidString)")
+    let folder = URL(filePath: "/tmp/DiloTests-history-\(UUID().uuidString)")
     let settings = AppSettings(defaults: freshDefaults())
     settings.dictationHistoryEnabled = true
     settings.dictationHistoryFolder = folder
@@ -1011,7 +1011,7 @@ struct DirectDictationControllerTests {
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
-        finishRecognition: { "Talkify" },
+        finishRecognition: { "Dilo" },
         historyEntries: historyEntries,
         translateBody: { $0 }
       )
@@ -1028,7 +1028,7 @@ struct DirectDictationControllerTests {
 
     let entries = historyEntries.withLock { $0 }
     #expect(entries.first?.translation?.spokenTag == "EN")
-    #expect(entries.first?.translation?.text == "Talkify")
+    #expect(entries.first?.translation?.text == "Dilo")
     controller.stop()
   }
 
@@ -1585,7 +1585,7 @@ struct DirectDictationControllerTests {
     controller.stop()
   }
 
-  /// El pegado que se cae al portapapeles ya lo hacía el camino de Talkify,
+  /// El pegado que se cae al portapapeles ya lo hacía el camino heredado,
   /// pero callado: las palabras quedaban en otra parte y nadie lo decía.
   @Test func unPegadoQueSeCaeAlPortapapelesLoDiceEnLaPildora() async {
     let recorder = Recorder()

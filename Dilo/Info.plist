@@ -6,7 +6,7 @@
 	     build settings (GENERATE_INFOPLIST_FILE sigue encendido y se fusiona
 	     con este archivo), porque Sparkle lee SUPublicEDKey directo del bundle
 	     y el passthrough INFOPLIST_KEY_ de Xcode descarta en silencio las
-	     claves que no conoce. (Heredado de Talkify, sigue siendo cierto.)
+	     claves que no conoce. (Heredado del árbol de origen, sigue siendo cierto.)
 
 	     Ojo con editar este archivo con PlistBuddy: reescribe el plist entero
 	     y se lleva estos comentarios. Cámbialo a mano o con sed.
@@ -29,8 +29,8 @@
 	<string>IXp7uKrAaa11T4A/3krMjgPgQxwzFBAFAKSP1SbKsVI=</string>
 	<!-- Encendida desde la Tarea 8: ya hay feed propio y llave propia, así
 	     que una copia de Dilo sólo puede ofrecerse a sí misma. Antes estaba
-	     apagada porque el feed apuntaba al de Talkify y Dilo se habría
-	     ofrecido Talkify 0.8.3 como actualización de sí mismo. -->
+	     apagada porque el feed era el heredado y Dilo se habría ofrecido
+	     la app de origen 0.8.3 como actualización de sí mismo. -->
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<!-- Una vez al día. Dilo es una app de barra de menús que la gente deja

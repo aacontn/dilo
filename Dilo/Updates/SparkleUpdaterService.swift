@@ -9,7 +9,7 @@ import Sparkle
 
 /// Sparkle, wrapped so the rest of the app never imports it: Settings reads
 /// this observable and calls two methods. Updates are signed with EdDSA and
-/// checked against the appcast in the repository; Talkify ships no server, so
+/// checked against the appcast in the repository; Dilo ships no server, so
 /// the feed is a static file (CONTEXT.md).
 @MainActor
 @Observable
@@ -136,7 +136,7 @@ private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
   }
 }
 
-/// Talkify is `LSUIElement`: no dock icon, accessory activation policy. Sparkle
+/// Dilo is `LSUIElement`: no dock icon, accessory activation policy. Sparkle
 /// positions and focuses its windows like a regular app, so under `.accessory`
 /// the update window can open unfocused or off-screen. Becoming `.regular`
 /// while the update UI is up fixes both, and the policy reverts when the
@@ -160,7 +160,7 @@ private final class UserDriverDelegate: NSObject, SPUStandardUserDriverDelegate 
   /// Only a check the user asked for gets the regular activation policy. Under
   /// `LSUIElement` Sparkle's window opens unfocused or off-screen, so it needs
   /// the switch to place and focus itself; the policy reverts when the session
-  /// ends, keeping Talkify out of the Dock.
+  /// ends, keeping Dilo out of the Dock.
   /// Sparkle drives its user driver on the main thread but its protocol is not
   /// annotated for it, so the isolation is asserted rather than assumed
   /// silently — the alternative is hopping to the main actor and changing the

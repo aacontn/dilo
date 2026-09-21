@@ -1,9 +1,9 @@
 import Foundation
 
-/// El **Motor de voz** de Apple (`SpeechTranscriber`), que es el que Talkify
-/// ya tiene andando en `Talkify/Dictation/SpeechRecognitionService.swift`.
+/// El **Motor de voz** de Apple (`SpeechTranscriber`), que es el que la app
+/// ya tiene andando en `Dilo/Dictation/SpeechRecognitionService.swift`.
 ///
-/// Acá no se reimplementa nada: el actor de Talkify sigue siendo el dueño de
+/// Acá no se reimplementa nada: el actor de la app sigue siendo el dueño de
 /// SpeechAnalyzer, de las reservas de `AssetInventory` y de las sesiones
 /// tibias por idioma. `AppleEngine` sólo le pone encima el contrato, con una
 /// estructura de closures —el mismo patrón de

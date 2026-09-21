@@ -2,7 +2,7 @@ import CoreAudio
 import Testing
 @testable import Dilo
 
-/// When Talkify is allowed to move an output's volume and when it must leave it
+/// When Dilo is allowed to move an output's volume and when it must leave it
 /// alone. The device access is separate from these decisions, so none of this
 /// needs a sound card.
 @MainActor
@@ -65,7 +65,7 @@ struct AudioDuckingTests {
   }
 
   /// The regression: AirPods connecting mid-sentence makes them the default
-  /// output, and restoring against the new default read a volume Talkify never
+  /// output, and restoring against the new default read a volume Dilo never
   /// set, declined to touch it, and left the speakers quiet.
   @Test func theDeviceThatWasLoweredIsTheOneRestored() {
     let audio = FakeAudio()

@@ -4,7 +4,7 @@ import Testing
 
 struct UsageMetricsTests {
   @Test func countsWordsWithoutCountingPunctuationOrWhitespace() {
-    #expect(UsageMetrics.wordCount(in: "  Hello, world. Talkify works!  ") == 4)
+    #expect(UsageMetrics.wordCount(in: "  Hello, world. Dilo works!  ") == 4)
     #expect(UsageMetrics.wordCount(in: " \n\t ") == 0)
   }
 

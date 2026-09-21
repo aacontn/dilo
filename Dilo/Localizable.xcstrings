@@ -1068,17 +1068,6 @@
         }
       }
     },
-    "De dónde viene": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Where it comes from"
-          }
-        }
-      }
-    },
     "Deja que Dilo lea con tu propia voz entrenada": {
       "extractionState": "manual",
       "localizations": {
@@ -1185,17 +1174,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo opens on its own when you sign in"
-          }
-        }
-      }
-    },
-    "Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT). De ahí vienen la píldora del notch, la máquina de sesión y el tap de teclado, y están bien hechos.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dilo is a fond fork of Talkify (Tornike Gomareli, MIT). The notch pill, the session machine and the keyboard tap come from there, and they are well made."
           }
         }
       }
@@ -2190,6 +2168,28 @@
         }
       }
     },
+    "Licencias": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Licenses"
+          }
+        }
+      }
+    },
+    "Licencias de terceros": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Third-party licenses"
+          }
+        }
+      }
+    },
     "Listo": {
       "extractionState": "manual",
       "localizations": {
@@ -2366,17 +2366,6 @@
         }
       }
     },
-    "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo).": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)."
-          }
-        }
-      }
-    },
     "Mantenla para dictar en %@, o tócala para empezar y tócala de nuevo para terminar": {
       "extractionState": "manual",
       "localizations": {
@@ -2461,6 +2450,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Voice visual"
+          }
+        }
+      }
+    },
+    "MIT. © 2026 Alfonso Contreras / Espacio Digital.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MIT. © 2026 Alfonso Contreras / Espacio Digital."
           }
         }
       }
@@ -3499,6 +3499,28 @@
         }
       }
     },
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0)."
+          }
+        }
+      }
+    },
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · Sparkle, de Andy Matuschak y otros (MIT).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · Sparkle, by Andy Matuschak and others (MIT)."
+          }
+        }
+      }
+    },
     "Tamaño de la píldora": {
       "extractionState": "manual",
       "localizations": {
@@ -3912,17 +3934,6 @@
         }
       }
     },
-    "Un fork con cariño": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A fond fork"
-          }
-        }
-      }
-    },
     "Un par resuelto, que va en cada petición. Una entrada con forma de pregunta cuya salida sigue siendo pregunta es lo que le enseña al modelo a reescribir una pregunta en vez de responderla. Se usa sólo si llenas las dos mitades.": {
       "extractionState": "manual",
       "localizations": {
@@ -4018,17 +4029,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Average pace"
-          }
-        }
-      }
-    },
-    "Ver Talkify": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Talkify"
           }
         }
       }

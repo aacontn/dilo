@@ -6,7 +6,7 @@ import Foundation
 ///
 /// Medirlo de verdad exige que alguien hable, y un número que depende de una
 /// persona no entra en CI. Por eso existe el gancho **`DILO_METRICS_WAV`**
-/// (`Talkify/Dictation/MicrophoneInput+MetricasWAV.swift`, sólo en builds
+/// (`Dilo/Dictation/MicrophoneInput+MetricasWAV.swift`, sólo en builds
 /// Debug): con esa variable apuntando a un WAV, la sesión de dictado escucha el
 /// archivo en vez del micrófono, al ritmo real, y cuando el controlador manda a
 /// parar —que es exactamente lo que hace soltar la tecla— anota el instante en

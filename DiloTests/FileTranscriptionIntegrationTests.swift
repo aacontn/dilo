@@ -8,15 +8,15 @@ import Testing
 /// than milliseconds, which is not what the rest of the suite is for.
 ///
 /// Run it deliberately after touching the transcription path:
-///   TALKIFY_MEDIA=/path/to/file.m4a xcodebuild test \
-///     -only-testing:TalkifyTests/FileTranscriptionIntegrationTests
+///   DILO_MEDIA=/path/to/file.m4a xcodebuild test \
+///     -only-testing:DiloTests/FileTranscriptionIntegrationTests
 @Suite(
   "File transcription against real audio",
-  .enabled(if: ProcessInfo.processInfo.environment["TALKIFY_MEDIA"] != nil)
+  .enabled(if: ProcessInfo.processInfo.environment["DILO_MEDIA"] != nil)
 )
 struct FileTranscriptionIntegrationTests {
   @Test func aSpokenFileComesBackAsText() async throws {
-    let path = try #require(ProcessInfo.processInfo.environment["TALKIFY_MEDIA"])
+    let path = try #require(ProcessInfo.processInfo.environment["DILO_MEDIA"])
     let service = FileTranscriptionService()
 
     let progress = ProgressRecorder()
@@ -51,11 +51,11 @@ struct FileTranscriptionIntegrationTests {
 /// message rather than an empty transcript.
 @Suite(
   "Video with no audio",
-  .enabled(if: ProcessInfo.processInfo.environment["TALKIFY_SILENT_MEDIA"] != nil)
+  .enabled(if: ProcessInfo.processInfo.environment["DILO_SILENT_MEDIA"] != nil)
 )
 struct SilentMediaTests {
   @Test func aVideoWithNoAudioTrackIsRefused() async throws {
-    let path = try #require(ProcessInfo.processInfo.environment["TALKIFY_SILENT_MEDIA"])
+    let path = try #require(ProcessInfo.processInfo.environment["DILO_SILENT_MEDIA"])
     let service = FileTranscriptionService()
 
     await #expect(throws: FileTranscriptionService.Failure.noAudioTrack) {
@@ -74,15 +74,15 @@ struct SilentMediaTests {
 @MainActor
 @Suite(
   "Drop Transcription end to end",
-  .enabled(if: ProcessInfo.processInfo.environment["TALKIFY_MEDIA"] != nil)
+  .enabled(if: ProcessInfo.processInfo.environment["DILO_MEDIA"] != nil)
 )
 struct DropPipelineTests {
   @Test func aDroppedFileEndsUpAsATranscriptBesideIt() async throws {
-    let source = URL(filePath: try #require(ProcessInfo.processInfo.environment["TALKIFY_MEDIA"]))
+    let source = URL(filePath: try #require(ProcessInfo.processInfo.environment["DILO_MEDIA"]))
 
     // A copy in its own folder, so "beside the source" is unambiguous and the
     // real Desktop is never written to.
-    let workspace = URL.temporaryDirectory.appending(path: "talkify-drop-\(UUID().uuidString)")
+    let workspace = URL.temporaryDirectory.appending(path: "dilo-drop-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: workspace) }
     let media = workspace.appending(path: source.lastPathComponent)
@@ -122,11 +122,11 @@ struct DropPipelineTests {
 /// Fn mid-job must still answer instantly (CONTEXT.md).
 @Suite(
   "Dictation stays available during a file job",
-  .enabled(if: ProcessInfo.processInfo.environment["TALKIFY_MEDIA"] != nil)
+  .enabled(if: ProcessInfo.processInfo.environment["DILO_MEDIA"] != nil)
 )
 struct ConcurrencyTests {
   @Test func theDictationServiceStaysUsableWhileAFileTranscribes() async throws {
-    let path = try #require(ProcessInfo.processInfo.environment["TALKIFY_MEDIA"])
+    let path = try #require(ProcessInfo.processInfo.environment["DILO_MEDIA"])
     let fileService = FileTranscriptionService()
     let speechService = SpeechRecognitionService()
 

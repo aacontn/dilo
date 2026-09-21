@@ -75,9 +75,12 @@ struct NotasDeVersionTests {
     }
     #expect(titulos.contains("Lo que todavía no está"))
     #expect(titulos.contains("Gracias"))
-    // La atribución no se quita (AGENTS.md, licencia y atribución).
-    #expect(markdown.contains("Talkify"))
-    #expect(markdown.contains("Handy"))
+    // Las notas agradecen, pero no son el lugar donde se cumple la licencia:
+    // eso vive en Acerca de y en el LICENSE, en un solo lugar cada uno. Si
+    // alguien vuelve a escribir la atribución acá, se va a desincronizar con
+    // los otros dos (AGENTS.md, licencia y atribución).
+    #expect(markdown.contains("Licencias de terceros"))
+    #expect(!markdown.contains("Talkify"))
   }
 
   /// `DiloCore/Tests/DiloTextTests/<archivo>` → la raíz del repo.

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Dilo
 
-/// What keeps macOS from napping Talkify mid-session, and what makes sure it
+/// What keeps macOS from napping Dilo mid-session, and what makes sure it
 /// stops keeping it awake afterwards. A stranded assertion is worse than the
 /// bug it fixes: it disables App Nap for the rest of the run.
 @MainActor

@@ -1,10 +1,3 @@
-//
-//  TalkifyTests.swift
-//  TalkifyTests
-//
-//  Created by Tornike Gomareli on 05/08/2026.
-//
-
 import Foundation
 import Testing
 

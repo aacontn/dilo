@@ -3,7 +3,7 @@ import Foundation
 /// De dónde saca el audio un motor que no trae el suyo.
 ///
 /// Existe para que `ParakeetEngine` no vuelva a escribir la captura de
-/// micrófono que Talkify ya tiene resuelta —con la recuperación de cambio de
+/// micrófono que la app ya tiene resuelta —con la recuperación de cambio de
 /// ruta de los audífonos Bluetooth, que costó cara— y para que los tests
 /// puedan alimentarlo con un WAV en vez de una sala.
 public protocol AudioCapture: Sendable {

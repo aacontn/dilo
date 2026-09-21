@@ -7,7 +7,7 @@ import Observation
 /// voices are excluded — they undersell the feature. Siri voices never appear:
 /// Apple does not expose them to third-party apps.
 ///
-/// Talkify cannot download voices (no public API); Settings deep-links the
+/// Dilo cannot download voices (no public API); Settings deep-links the
 /// user to System Settings instead, and this catalog refreshes itself the
 /// moment a download finishes via `availableVoicesDidChangeNotification`.
 @MainActor
@@ -87,7 +87,7 @@ final class VoiceCatalog {
   /// Opens the Personal Voice pane, where the user creates a voice trained
   /// on their own speech. Creation has no API at all — the recording and
   /// training flow is exclusively Apple's UI — so this link is the entire
-  /// integration; Talkify can only request to use the result.
+  /// integration; Dilo can only request to use the result.
   static func openPersonalVoiceSettings() {
     let candidates = [
       "x-apple.systempreferences:com.apple.Accessibility-Settings.extension?PersonalVoice",

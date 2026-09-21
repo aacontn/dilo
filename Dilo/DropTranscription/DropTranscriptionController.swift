@@ -238,7 +238,7 @@ final class DropTranscriptionController {
   }
 
   /// Writes a still-offered transcript out rather than losing it, for the one
-  /// moment the card cannot survive: Talkify quitting.
+  /// moment the card cannot survive: Dilo quitting.
   func commitOfferedTranscript() {
     offer.commit()
   }

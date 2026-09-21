@@ -1,8 +1,8 @@
 import Foundation
 
-/// Keeps macOS from napping Talkify while something is actually happening.
+/// Keeps macOS from napping Dilo while something is actually happening.
 ///
-/// Talkify is `LSUIElement` with no window on screen, which is exactly the
+/// Dilo is `LSUIElement` with no window on screen, which is exactly the
 /// shape App Nap targets. After a few hours idle the process is throttled, and
 /// the first thing to suffer is the HUD: every voice visual draws through
 /// `TimelineView(.animation)`, whose clock App Nap slows right down. A session

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Un prompt de "Transformar", tal como Talkify lo dejó guardado.
+/// Un prompt de "Transformar", tal como el árbol de origen lo dejó guardado.
 ///
 /// Existe sólo para leer lo viejo. Los nombres de campo son los de la clase
 /// que ya no existe (`ShapingPrompt`), porque el JSON que hay en
@@ -30,10 +30,10 @@ public struct PromptHeredado: Codable, Equatable, Sendable {
     self.exampleOutput = exampleOutput
   }
 
-  /// Los tres que Talkify sembraba en una instalación limpia. Se conservan
+  /// Los tres que se sembraban en una instalación limpia. Se conservan
   /// para reconocerlos: un prompt que nadie tocó no merece volverse un modo
   /// duplicado al lado de los de fábrica de Dilo.
-  public static let sembradosPorTalkify: Set<String> = [
+  public static let sembradosDeOrigen: Set<String> = [
     "tighten-grammar", "bullet-lists", "remove-fillers",
   ]
 }
@@ -41,7 +41,7 @@ public struct PromptHeredado: Codable, Equatable, Sendable {
 /// De dos bibliotecas a una sola.
 ///
 /// Dilo venía arrastrando dos listas que hacían lo mismo: los `Modo` de Dilo
-/// y los prompts de "Transformar" heredados de Talkify. El dictado usaba los
+/// y los prompts de "Transformar" heredados del árbol de origen. El dictado usaba los
 /// segundos y los primeros no llegaban al controlador, así que las teclas de
 /// los modos no disparaban nada y el historial guardaba como modo el nombre
 /// de un prompt. Esta migración deja una sola biblioteca.
@@ -80,7 +80,7 @@ public enum MigracionDeModos {
   /// El proveedor con que llegan los modos migrados.
   ///
   /// El del chip, siempre, aunque el proveedor general sea una nube. Los
-  /// prompts de Talkify corrían en FoundationModels: el texto nunca salía de
+  /// prompts heredados corrían en FoundationModels: el texto nunca salía de
   /// la compu, y heredar el general los mandaría a un servidor sin que nadie
   /// lo pida. Cambiar local por remoto en silencio es exactamente lo que
   /// esta pasada existe para impedir.
@@ -88,7 +88,7 @@ public enum MigracionDeModos {
 
   /// - Parameters:
   ///   - heredados: la biblioteca de "Transformar" tal como está guardada.
-  ///   - transformarEstabaPrendido: el interruptor beta de Talkify.
+  ///   - transformarEstabaPrendido: el interruptor beta heredado.
   ///   - modosGuardados: los `Modo` que ya existen, o nil si nunca se
   ///     guardaron (instalación nueva, o una anterior a que existieran).
   ///   - marca: la versión de migración que quedó anotada; 0 si ninguna.
@@ -120,9 +120,9 @@ public enum MigracionDeModos {
       let id = idDeModo(heredado.id)
       // Ya migrado: la migración corrió antes, o alguien lo trajo a mano.
       guard !modos.contains(where: { $0.id == id }) else { continue }
-      // Los tres que Talkify sembraba y nadie tocó ya los cubren los de
+      // Los tres que se sembraban y nadie tocó ya los cubren los de
       // fábrica de Dilo; traerlos sería llenar la lista de duplicados.
-      if PromptHeredado.sembradosPorTalkify.contains(heredado.id), esComoVino(heredado) {
+      if PromptHeredado.sembradosDeOrigen.contains(heredado.id), esComoVino(heredado) {
         continue
       }
       modos.append(modo(de: heredado))
@@ -154,7 +154,7 @@ public enum MigracionDeModos {
       ejemploEntrada: heredado.exampleInput,
       ejemploSalida: heredado.exampleOutput,
       proveedorID: proveedorDeLosMigrados,
-      // Sin tecla: los prompts de Talkify no tenían ninguna, y repartir
+      // Sin tecla: los prompts heredados no tenían ninguna, y repartir
       // teclas por cuenta propia es la forma más rápida de chocar con las
       // que la persona ya usa. Cada quien le asigna la suya en Ajustes.
       gatillo: nil,
@@ -162,18 +162,18 @@ public enum MigracionDeModos {
     )
   }
 
-  /// Si este prompt es idéntico al que Talkify sembraba. Se compara sólo lo
+  /// Si este prompt es idéntico al que se sembraba. Se compara sólo lo
   /// que se puede editar; el id ya se sabe que coincide.
   static func esComoVino(_ heredado: PromptHeredado) -> Bool {
-    guard let original = semillasDeTalkify.first(where: { $0.id == heredado.id }) else {
+    guard let original = semillasDeOrigen.first(where: { $0.id == heredado.id }) else {
       return false
     }
     return original == heredado
   }
 
-  /// Las semillas exactas de Talkify 0.8.3, ya en español porque Dilo las
+  /// Las semillas exactas de la 0.8.3 heredada, ya en español porque Dilo las
   /// tradujo antes de este cambio. Están acá sólo para reconocerlas.
-  static let semillasDeTalkify: [PromptHeredado] = [
+  static let semillasDeOrigen: [PromptHeredado] = [
     PromptHeredado(
       id: "tighten-grammar",
       name: "Ortografía y puntuación",

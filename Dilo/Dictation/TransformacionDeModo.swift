@@ -4,7 +4,7 @@ import os
 
 /// Corre un modo sobre lo dictado, con el proveedor que la sesión congeló.
 ///
-/// Reemplaza al `PromptShapingService` heredado de Talkify, que hacía lo
+/// Reemplaza al `PromptShapingService` heredado del árbol de origen, que hacía lo
 /// mismo pero contra la otra biblioteca y siempre en el chip. Lo que se
 /// conserva de él es lo que costó aprender: el marco que impide que el modelo
 /// conteste la transcripción (ahora en `Modo.instrucciones`) y el timeout, que

@@ -6,7 +6,7 @@ struct UsageStoreTests {
   @Test func mergesSameDaySessionsAndPersistsOnlyAggregates() async throws {
     let directory = FileManager.default.temporaryDirectory
       .appending(
-        path: "TalkifyUsageStoreTests-" + UUID().uuidString,
+        path: "DiloUsageStoreTests-" + UUID().uuidString,
         directoryHint: .isDirectory
       )
     defer { try? FileManager.default.removeItem(at: directory) }
@@ -59,7 +59,7 @@ struct UsageStoreTests {
   @Test func storesSessionsOnTheirLocalCalendarDay() async throws {
     let directory = FileManager.default.temporaryDirectory
       .appending(
-        path: "TalkifyUsageStoreTests-" + UUID().uuidString,
+        path: "DiloUsageStoreTests-" + UUID().uuidString,
         directoryHint: .isDirectory
       )
     defer { try? FileManager.default.removeItem(at: directory) }

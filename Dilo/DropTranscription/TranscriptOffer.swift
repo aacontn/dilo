@@ -22,7 +22,7 @@ final class TranscriptOffer {
   /// The transcript the card is offering, still in its staging folder.
   private var staged: StagedTranscript?
   /// A transcript a drag has already taken, kept until the next job or until
-  /// Talkify quits.
+  /// Dilo quits.
   ///
   /// It cannot be removed when the drag ends. That callback fires the moment
   /// the destination accepts the drop, and the receiver copies the file
@@ -56,7 +56,7 @@ final class TranscriptOffer {
   }
 
   /// Writes a still-offered transcript out without waiting for the card, for
-  /// the two moments the card cannot survive: Talkify quitting, and a second
+  /// the two moments the card cannot survive: Dilo quitting, and a second
   /// file arriving.
   func commit() {
     // Far enough past the last drag for any receiver to have finished reading.

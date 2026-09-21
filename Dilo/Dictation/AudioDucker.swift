@@ -8,7 +8,7 @@ import Foundation
 /// `MixableAudioShouldDuck`, which is how this is done on iOS, is
 /// `API_UNAVAILABLE(macos)`, and nothing has replaced it. What is available is
 /// an output device's own volume, so that is what moves. The cost is that it
-/// moves for everything, Talkify's own session sounds included, which is why
+/// moves for everything, Dilo's own session sounds included, which is why
 /// the ducking starts after the Begin sound and ends before the End one.
 ///
 /// Restoring is guarded the way the clipboard restore is: if the volume is no

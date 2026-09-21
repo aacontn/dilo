@@ -2,7 +2,7 @@ import Foundation
 
 /// Qué gatillos Dilo acepta y cuáles rechaza antes de que alguien los guarde.
 ///
-/// Sale de los diez minutos que Alfonso dictó con Talkify en un teclado ISO
+/// Sale de los diez minutos que Alfonso dictó con la app heredada en un teclado ISO
 /// latinoamericano (spec §8.1): el segundo idioma se disparaba con ⌥ derecha,
 /// que en ese teclado es AltGr y escribe `@ # \ | { } [ ]`. Dictando prompts
 /// arrancaba una sesión en inglés a cada rato y el texto salía mezclado. La

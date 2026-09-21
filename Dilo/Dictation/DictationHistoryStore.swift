@@ -9,8 +9,8 @@ import Foundation
 /// a record. The folder is user-visible on purpose — history the user asked
 /// for belongs where the user can read, search, and delete it in Finder.
 actor DictationHistoryStore {
-  /// `~/Documents/Talkify/`: user-visible and user-related, unlike the
-  /// Application Support folder Insights uses for data only Talkify reads.
+  /// `~/Documents/Dilo/`: user-visible and user-related, unlike the
+  /// Application Support folder Insights uses for data only Dilo reads.
   static var defaultFolderURL: URL {
     FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
       .appending(path: "Dilo", directoryHint: .isDirectory)
@@ -138,7 +138,7 @@ actor DictationHistoryStore {
 
   /// Deletes only the day files this store wrote. The folder is the user's —
   /// they may have picked one holding their own files, and Clear History
-  /// must never take anything Talkify did not put there.
+  /// must never take anything Dilo did not put there.
   func clear(folder: URL) throws {
     let contents = try FileManager.default.contentsOfDirectory(
       at: folder,

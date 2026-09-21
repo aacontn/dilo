@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import ServiceManagement
 
-/// Registers Talkify as a login item through `SMAppService`, wrapped so the
+/// Registers Dilo as a login item through `SMAppService`, wrapped so the
 /// rest of the app never imports `ServiceManagement`. Disabled by default
 /// (CONTEXT.md): `SMAppService` is the source of truth for whether the login
 /// item is registered, so this holds no preference of its own.
