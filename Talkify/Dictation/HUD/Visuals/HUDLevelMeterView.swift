@@ -12,7 +12,13 @@ struct HUDLevelMeterView: View {
       ZStack(alignment: .leading) {
         Capsule().fill(.white.opacity(0.15))
         Capsule()
-          .fill(content.isAudioAlive ? Color.white.opacity(0.85) : .orange.opacity(0.6))
+          // Menta viva, ámbar muerto: hasta el visual quieto de Reduce Motion
+          // se lee como Dilo y no como una barra del sistema.
+          .fill(
+            content.isAudioAlive
+              ? DiloBrand.menta.opacity(0.9)
+              : HUDVisualTokens.deadMicAmber.opacity(0.6)
+          )
           .frame(width: max(6, proxy.size.width * CGFloat(content.audioLevel)))
       }
       .frame(height: 4)

@@ -8,16 +8,33 @@ enum HUDVisualTokens {
   /// during feel tests.
   static let deadMicAmber = Color(red: 1.0, green: 0.6, blue: 0.16)
 
-  /// The Chart Line treatment's metallic silver: white body cooling into a
-  /// faint blue-gray at the ends — the edge glow's palette, no saturated
-  /// hues. Shared so every Chart Line is recognisably one treatment.
+  /// La onda del micrófono, en los colores de Dilo: menta en el cuerpo y
+  /// mango en los extremos.
+  ///
+  /// Era plata metálica —blanco enfriándose a gris azulado—, que es
+  /// exactamente la paleta de los HUD del sistema. Con notch o sin él, una
+  /// onda menta y mango no se confunde con ninguno (spec §8, lección 2).
+  /// Vertical: el cuerpo de cada barra en menta, las puntas en mango.
+  static let wave = LinearGradient(
+    colors: [
+      DiloBrand.mango.opacity(0.85),
+      DiloBrand.menta,
+      DiloBrand.mango.opacity(0.85),
+    ],
+    startPoint: .top,
+    endPoint: .bottom
+  )
+
+  /// La misma onda para los trazos que corren a lo largo (Chart Line, Siri
+  /// Wave): el degradado va de punta a punta en vez de de arriba abajo.
+  /// Compartido para que todos los estilos se lean como un solo tratamiento.
   static let chartLineSilver = LinearGradient(
     colors: [
-      Color(red: 0.68, green: 0.74, blue: 0.88).opacity(0.85),
-      .white,
-      Color(red: 0.82, green: 0.86, blue: 0.95),
-      .white,
-      Color(red: 0.68, green: 0.74, blue: 0.88).opacity(0.85),
+      DiloBrand.mango.opacity(0.85),
+      DiloBrand.menta,
+      DiloBrand.menta.opacity(0.92),
+      DiloBrand.menta,
+      DiloBrand.mango.opacity(0.85),
     ],
     startPoint: .leading,
     endPoint: .trailing

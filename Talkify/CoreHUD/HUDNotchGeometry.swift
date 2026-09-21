@@ -56,16 +56,21 @@ enum HUDNotchGeometry {
   /// selected visual uses, the text band unless the visual replaces it, and
   /// the shaping band while a session carries one, clamped so a narrow
   /// display never gets a shape wider than its window.
+  /// - Parameter housingBandHeight: El alto de la banda de arriba cuando no
+  ///   es la carcasa. La píldora de Dilo no tiene cámara que esquivar, así que
+  ///   cambia esos 32 puntos vacíos por una corona mango más baja; con notch
+  ///   se deja en nil y manda el hardware.
   static func contentSize(
     for screen: HUDScreenSnapshot,
     metrics: HUDMetrics,
     visualBandHeight: CGFloat,
     includesTextBand: Bool,
-    shapingBandHeight: CGFloat
+    shapingBandHeight: CGFloat,
+    housingBandHeight: CGFloat? = nil
   ) -> CGSize {
     CGSize(
       width: min(metrics.contentWidth, windowSize(for: screen).width),
-      height: closedSize(for: screen).height
+      height: (housingBandHeight ?? closedSize(for: screen).height)
         + visualBandHeight
         + (includesTextBand ? metrics.textBandHeight : 0)
         + shapingBandHeight
@@ -116,13 +121,54 @@ enum HUDNotchGeometry {
   /// bar, hiding whatever status item sits under it — including Talkify's
   /// own (issue #83). So there the shape hangs just below the menu bar
   /// instead of over it.
+  ///
+  /// En Dilo eso no es una preferencia con dos lados buenos: la píldora
+  /// **siempre** va debajo (spec §8, `AGENTS.md`). Alfonso dictó diez minutos
+  /// con la de Talkify encima y le tapó sus propios status items en dos
+  /// monitores sin notch, que es el 80 % de su uso. El ajuste sigue existiendo
+  /// para quien quiera la imitación exacta del notch, pero viene encendido.
   /// - Parameter clearsMenuBar: Whether a display with no housing hangs the
   ///   shape below the menu bar instead of over it. Over it looks like the
   ///   notch it imitates; below it keeps the status items reachable, which is
   ///   what someone with a crowded menu bar needs (issue #83).
   static func topInset(for screen: HUDScreenSnapshot, clearsMenuBar: Bool) -> CGFloat {
     guard !hasMeasuredNotch(for: screen) else { return 0 }
-    return clearsMenuBar ? screen.menuBarHeight : 0
+    guard clearsMenuBar else { return 0 }
+    return max(screen.menuBarHeight, menuBarClearanceFloor) + pillDetachment
+  }
+
+  /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
+  /// que mide cero.
+  ///
+  /// Dentro de un espacio en pantalla completa la barra se autooculta y
+  /// `visibleFrame` crece hasta el borde: sin este piso la píldora saltaría
+  /// al tope de la pantalla al cambiar de espacio a media sesión, y volvería
+  /// a bajar al salir. Queda donde está, que es lo que se le pide a algo que
+  /// vive en el mismo lugar siempre.
+  static let menuBarClearanceFloor: CGFloat = 24
+
+  /// El aire entre la barra de menús y la píldora.
+  ///
+  /// Es lo que la vuelve un objeto aparte y no la continuación de la franja
+  /// del sistema: macOS 27 pone ahí su propio HUD de volumen, y una píldora
+  /// pegada al borde de esa franja se lee como parte de él (spec §8). Cuatro
+  /// puntos bastan para separarla; con notch no aplica, porque ahí la forma
+  /// nace de la carcasa.
+  static let pillDetachment: CGFloat = 4
+
+  /// Si esta pantalla dibuja la píldora de Dilo en vez de la forma que cuelga
+  /// del notch. Es una propiedad de la pantalla, no una preferencia: sin
+  /// carcasa no hay de qué colgar.
+  static func drawsPill(for screen: HUDScreenSnapshot) -> Bool {
+    !hasMeasuredNotch(for: screen)
+  }
+
+  /// El radio de las esquinas de arriba. Cero contra una carcasa real —la
+  /// forma nace del recorte y no tiene borde propio ahí— y el mismo radio de
+  /// abajo en la píldora, que flota separada y se cierra por los cuatro
+  /// lados.
+  static func topCornerRadius(for screen: HUDScreenSnapshot, metrics: HUDMetrics) -> CGFloat {
+    drawsPill(for: screen) ? metrics.bottomCornerRadius : 0
   }
 
   /// The host window's frame: content size plus shadow slack, centered and

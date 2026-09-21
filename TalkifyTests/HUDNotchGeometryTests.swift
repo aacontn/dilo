@@ -186,12 +186,20 @@ struct HUDNotchGeometryTests {
   /// status item sits under it, including Talkify's own. Clearing the menu
   /// bar's own height keeps the shape below it instead.
   @Test func topInsetMatchesTheMenuBarOnADisplayWithNoNotch() {
-    #expect(HUDNotchGeometry.topInset(for: external, clearsMenuBar: true) == external.menuBarHeight)
+    // Dilo agrega su aire: la píldora se separa de la franja del sistema en
+    // vez de quedar pegada a ella (`HUDNotchGeometry.pillDetachment`).
+    #expect(
+      HUDNotchGeometry.topInset(for: external, clearsMenuBar: true)
+        == external.menuBarHeight + HUDNotchGeometry.pillDetachment
+    )
   }
 
   @Test func windowFrameHangsBelowTheMenuBarWithNoNotch() {
     let frame = HUDNotchGeometry.windowFrame(for: external, clearsMenuBar: true)
-    #expect(frame.maxY == external.frame.maxY - external.menuBarHeight)
+    #expect(
+      frame.maxY
+        == external.frame.maxY - external.menuBarHeight - HUDNotchGeometry.pillDetachment
+    )
   }
 
   /// Issue #24: the shape shrinks so it stops covering usable screen, but

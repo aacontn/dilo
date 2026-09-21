@@ -82,21 +82,13 @@ struct HUDWaveformView: View {
     }
   }
 
-  /// One color language for every style: the edge glow's white/silver —
-  /// a hot white body cooling at the extremes, faint blue-violet fringe.
-  /// Amber when the microphone dies (CONTEXT.md).
+  /// Un solo lenguaje de color para todos los estilos: la onda de Dilo,
+  /// menta con las puntas mango (`HUDVisualTokens.wave`). Ámbar quieto cuando
+  /// el micrófono se muere (CONTEXT.md).
   private var silver: AnyShapeStyle {
     content.isAudioAlive
-      ? AnyShapeStyle(LinearGradient(
-        colors: [
-          Color(red: 0.62, green: 0.72, blue: 1.0).opacity(0.75),
-          .white,
-          Color(red: 0.62, green: 0.72, blue: 1.0).opacity(0.75),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      ))
-      : AnyShapeStyle(Color.orange.opacity(0.55))
+      ? AnyShapeStyle(HUDVisualTokens.wave)
+      : AnyShapeStyle(HUDVisualTokens.deadMicAmber.opacity(0.55))
   }
 
   /// AudioWaveform's capsule mode: dampened heights, width-derived bars.
