@@ -104,3 +104,24 @@ private final class AvisoRecibido: @unchecked Sendable {
 
   var ultimo: EngineSelection? { candado.withLock { valor } }
 }
+
+/// Lo que el router le pasa al motor que sí tiene RAM que devolver.
+struct ReposoDelRouterTests {
+  @Test func elRouterLePasaElReposoAlMotorConModelo() async throws {
+    let parakeet = MotorFalso()
+    let apple = MotorFalso()
+    let router = SpeechEngineRouter(
+      apple: apple,
+      parakeet: parakeet,
+      elegido: .parakeet,
+      parakeetDescargado: { true }
+    )
+
+    await router.configurarReposo(.seconds(60))
+
+    #expect(await parakeet.reposo == .seconds(60))
+    #expect(await parakeet.configuraciones == 1)
+    // Apple no carga modelos propios: no tiene nada que soltar.
+    #expect(await apple.configuraciones == 0)
+  }
+}

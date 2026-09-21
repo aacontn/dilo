@@ -28,15 +28,21 @@ public struct EngineHandlers: Sendable {
   public let parcial: @Sendable (EngineUpdate) -> Void
   public let falla: @Sendable (String) -> Void
   public let nivel: @Sendable (Float) -> Void
+  /// El motor está cargando su modelo en la RAM mientras la persona ya está
+  /// hablando, y después que terminó. Es un aviso y no una falla: el dictado
+  /// no se pierde, sólo espera. Un motor que no carga nada nunca lo llama.
+  public let cargando: @Sendable (Bool) -> Void
 
   public init(
     parcial: @escaping @Sendable (EngineUpdate) -> Void,
     falla: @escaping @Sendable (String) -> Void = { _ in },
-    nivel: @escaping @Sendable (Float) -> Void = { _ in }
+    nivel: @escaping @Sendable (Float) -> Void = { _ in },
+    cargando: @escaping @Sendable (Bool) -> Void = { _ in }
   ) {
     self.parcial = parcial
     self.falla = falla
     self.nivel = nivel
+    self.cargando = cargando
   }
 }
 
@@ -48,8 +54,15 @@ public struct EngineHandlers: Sendable {
 /// contrato y no la disciplina de quien lo implemente.
 public protocol SpeechEngine: Actor {
   /// Deja el motor listo para este idioma sin arrancar una sesión. Es
-  /// idempotente y puede tardar: es acá donde se descarga o se carga un
-  /// modelo, nunca en `start`.
+  /// idempotente y puede tardar: es acá donde un motor reserva lo que el
+  /// sistema le presta —los analizadores de Apple, el idioma— antes de que
+  /// alguien apriete el gatillo.
+  ///
+  /// **Lo que no va acá es un modelo propio en la RAM.** Precalentar corre al
+  /// arrancar la app y cada vez que cambian los idiomas: cargar ahí los 469 MB
+  /// de Parakeet subió el reposo de 18,8 MB a 46,4 MB para una app que quizá
+  /// nadie use esa tarde (plan, Tarea 9). Ese modelo se carga al `start`, en
+  /// paralelo a la grabación, y se suelta solo (`MotorConModeloEnMemoria`).
   func prewarm(locale: Locale) async throws
 
   /// Arranca la sesión. Vuelve cuando el motor ya está escuchando.
@@ -67,6 +80,23 @@ public protocol SpeechEngine: Actor {
 extension SpeechEngine {
   /// Un motor que no tiene nada que precargar no tiene que decirlo.
   public func prewarm(locale: Locale) async throws {}
+}
+
+/// Un motor que carga un modelo propio en la RAM y lo puede soltar.
+///
+/// Está aparte de `SpeechEngine` porque es cierto de uno solo: el motor de
+/// Apple usa los modelos del sistema y no tiene RAM que devolver. Quien arma
+/// el motor doble pregunta por este protocolo y no por el tipo concreto, así
+/// que los tests siguen pudiendo poner un motor falso donde va Parakeet.
+public protocol MotorConModeloEnMemoria: SpeechEngine {
+  /// Cada cuánto se suelta el modelo si nadie dicta. `nil` es "nunca".
+  func configurarReposo(_ intervalo: Duration?) async
+
+  /// Suelta el modelo ahora. El dictado siguiente lo vuelve a cargar.
+  func descargarDeMemoria() async
+
+  /// Si el modelo está cargado en este momento.
+  func tieneModeloEnMemoria() async -> Bool
 }
 
 public enum EngineError: LocalizedError, Sendable {
