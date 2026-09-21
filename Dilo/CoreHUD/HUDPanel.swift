@@ -90,6 +90,25 @@ final class HUDPanel: NSPanel {
     set { ignoresMouseEvents = !newValue }
   }
 
+  /// La franja de la ventana que recibe el mouse, en coordenadas de la vista
+  /// de contenido, o nil para toda la ventana.
+  ///
+  /// Desde que el escenario vive siempre en pantalla, la ventana anfitriona
+  /// —540 puntos más holgura de sombra— está encima de media barra de menús
+  /// todo el tiempo. Si tomara el mouse entera se comería clics en los menús
+  /// de la app de al lado; con esto sólo la silueta lo toma
+  /// (`HUDNotchGeometry.zonaInteractiva`).
+  var zonaInteractiva: CGRect? {
+    get { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva }
+    set { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva = newValue }
+  }
+
+  /// Si la ventana puede volverse key. Sólo las superficies de arrastre lo
+  /// quieren: en reposo y en resultado la forma recibe clics sin necesitar el
+  /// teclado, y una ventana que se vuelve key por pasar el mouse por encima
+  /// se lleva el cursor de texto de la app en la que estabas escribiendo.
+  var tomaElTeclado = false
+
   /// Key only while the shape is a drop target or holding a transcript, which
   /// is the only time it wants the mouse at all.
   ///
@@ -99,11 +118,20 @@ final class HUDPanel: NSPanel {
   /// takes the frontmost app's focus — and during dictation, when the focused
   /// control is the whole point, `acceptsMouse` is false and this is false
   /// with it.
-  override var canBecomeKey: Bool { acceptsMouse }
+  override var canBecomeKey: Bool { tomaElTeclado && acceptsMouse }
 
   /// The frame is computed from the screen, not proposed by AppKit; without
   /// this the window gets pushed below the menu bar strip it exists to cover.
   override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
     frameRect
   }
+}
+
+
+/// Lo que el panel necesita de su vista de contenido para acotar el mouse.
+/// Un protocolo y no el tipo concreto, para que el panel siga sin saber qué
+/// vista de SwiftUI lo llena.
+@MainActor
+protocol HUDHostingViewProtocol: AnyObject {
+  var zonaInteractiva: CGRect? { get set }
 }

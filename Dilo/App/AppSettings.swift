@@ -239,9 +239,9 @@ final class AppSettings {
     didSet { defaults.set(readAloudTranslates, forKey: Keys.readAloudTranslates) }
   }
 
-  /// Qué forma se dibuja en una pantalla sin notch: la píldora que cuelga
-  /// debajo de la barra de menús (el default) o la imitación del notch pegada
-  /// al borde de arriba. Con notch real no se mira.
+  /// Qué forma se dibuja en una pantalla sin notch: la imitación del notch
+  /// pegada al borde de arriba (el default desde el 2026-09-21) o la píldora
+  /// que cuelga debajo de la barra de menús. Con notch real no se mira.
   var hudEstiloSinNotch: HUDEstiloSinNotch {
     didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
   }
@@ -445,18 +445,17 @@ final class AppSettings {
     // existing user at the smallest HUD, so absence is checked directly.
     hudScale = defaults.object(forKey: Keys.hudScale) as? Double
       ?? Double(HUDMetrics.maximumScale)
-    // Encendido por defecto, al revés que en el árbol de origen: en una pantalla sin
-    // notch la forma se dibujaba encima de los status items, en la misma
-    // franja donde macOS 27 pone su HUD de volumen (spec §8.2). La
-    // geometría fina de la píldora es la Tarea 6; el default se corrige hoy
-    // porque el 80 % del uso de Alfonso es sin notch.
-    // El interruptor viejo apagado quería decir «ponla donde iría el notch»,
-    // que es exactamente el estilo simulado; así nadie pierde su elección al
-    // actualizar. Sin nada guardado manda la píldora: en una pantalla sin
-    // notch la forma heredada se dibujaba encima de los status items, en la
-    // misma franja donde macOS 27 pone su HUD de volumen (spec §8.2).
+    // Sin nada guardado manda el notch simulado (2026-09-21): el escenario de
+    // Dilo es el notch, y en una pantalla sin carcasa la imitación es lo que
+    // más se le parece. Ocupa sólo la franja del centro de la barra de menús,
+    // que macOS deja vacía, así que sigue sin tapar un status item.
+    //
+    // Quien eligió a mano conserva su elección, y quien había **encendido**
+    // el interruptor viejo pedía justamente que la forma despejara la barra:
+    // esa elección vale como haber elegido la píldora. El interruptor apagado
+    // quería la forma donde iría el notch, que es el default de hoy.
     hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
-      ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == false ? .notchSimulado : .pildora)
+      ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == true ? .pildora : .notchSimulado)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(

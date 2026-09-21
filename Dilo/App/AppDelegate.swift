@@ -1,6 +1,7 @@
 import AppKit
 import DiloCapabilities
 import DiloEngines
+import DiloModes
 import os
 
 @main
@@ -113,6 +114,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.statusItemController = statusItemController
 
+    // El notch como escenario permanente: la forma se pone en pantalla acá y
+    // no se va más; lo que cambia después es su tamaño y su estado
+    // (`EstadoDelNotch`).
+    stage.despertar()
+    stage.alPedirAcciones = { [weak statusItemController, weak stage] in
+      guard let punto = stage?.puntoDeAcciones else { return }
+      statusItemController?.mostrarAcciones(en: punto)
+    }
+    stage.alPedirCopiar = { [weak statusItemController] in
+      statusItemController?.copiarLoUltimo()
+    }
+
     dictationController.onRecordingStateChange = {
       [weak statusItemController, weak settingsRuntimeState] isRecording, session in
       let accent = session.flatMap {
@@ -140,8 +153,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     // Lo último que se dictó llega al menú de la barra, que es donde alguien
     // lo va a buscar cuando el pegado no aterrizó donde esperaba.
-    dictationController.onUltimoDictadoChange = { [weak statusItemController] dictado in
+    dictationController.onUltimoDictadoChange = {
+      [weak statusItemController, weak stage] dictado in
       statusItemController?.setUltimoDictado(dictado)
+      // Lo que el hover sobre el notch en reposo revela: lo último que
+      // dictaste, que es lo que alguien va a buscar ahí.
+      stage?.dictationContent.contexto = dictado?.vistazo(.entregado)
     }
     dictationController.onLanguageDownloadChange = {
       [weak settingsRuntimeState] identifier, fraction in

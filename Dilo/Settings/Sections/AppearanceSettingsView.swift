@@ -81,8 +81,8 @@ struct AppearanceSettingsView: View {
 
       SettingsCard(title: "Movimiento y tamaño") {
         SettingsSliderRow(
-          title: "Tamaño de la píldora",
-          description: "Cuánta pantalla se toma la píldora",
+          title: "Tamaño del notch",
+          description: "Cuánta pantalla se toma la forma abierta",
           value: $settings.hudScale,
           range: Double(
             HUDMetrics.minimumScale(for: settings.voiceVisual, reduceMotion: reduceMotion)
@@ -92,7 +92,7 @@ struct AppearanceSettingsView: View {
 
         SettingsPickerRow(
           title: "En pantallas sin notch",
-          description: "La píldora cuelga debajo de la barra de menús y no tapa tus íconos. El notch simulado se pega al borde de arriba, sobre el centro vacío de la barra, y se ve como el de un MacBook.",
+          description: "El notch simulado se pega al borde de arriba, sobre el centro vacío de la barra, y se ve como el de un MacBook: es lo que trae Dilo. La píldora cuelga debajo de la barra de menús, separada de ella.",
           options: HUDEstiloSinNotch.allCases,
           optionLabel: { $0.title },
           selection: $settings.hudEstiloSinNotch,
@@ -101,7 +101,7 @@ struct AppearanceSettingsView: View {
 
         SettingsPickerRow(
           title: "Cómo aparece",
-          description: "La entrada de la píldora cuando arrancas a dictar",
+          description: "Cómo entra el contenido cuando el notch se abre a dictar",
           options: HUDRevealStyle.allCases,
           optionLabel: { $0.title },
           selection: $settings.revealStyle
@@ -113,7 +113,7 @@ struct AppearanceSettingsView: View {
         ) {
           SettingsPickerRow(
             title: "Si el texto se pasa de largo",
-            description: "Qué hace la píldora con un dictado largo",
+            description: "Qué hace el notch con un dictado largo",
             options: HUDLongDraftStyle.allCases,
             optionLabel: { $0.title },
             selection: $settings.longDraftStyle

@@ -146,6 +146,27 @@ final class StatusItemController: NSObject {
       keyEquivalent: "q"
     ))
     statusItem.menu = menu
+    self.menuDeAcciones = menu
+  }
+
+  /// El mismo menú que abre el ícono de la barra.
+  ///
+  /// Lo expone para que un clic en el notch en reposo abra exactamente esto
+  /// y no una copia: dos menús con las mismas entradas se desincronizan al
+  /// primer ítem que alguien agrega a uno solo.
+  private(set) var menuDeAcciones = NSMenu()
+
+  /// Abre el menú de acciones en un punto de la pantalla —debajo de la
+  /// forma del HUD, que es donde la persona acaba de hacer clic—.
+  func mostrarAcciones(en punto: NSPoint) {
+    menuDeAcciones.popUp(positioning: nil, at: punto, in: nil)
+  }
+
+  /// Copia lo último dictado sin pasar por el menú, para el clic sobre el
+  /// resultado en el notch.
+  func copiarLoUltimo() {
+    guard let ultimoDictado else { return }
+    copiarAlPortapapeles(ultimoDictado.texto(.entregado))
   }
 
   /// Mirrors the session state on the shell: the ghost pulses between

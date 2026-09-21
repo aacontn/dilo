@@ -20,7 +20,6 @@ final class HUDStage {
   /// WWDC23 "Animate with springs": don't wait for settling.
   /// Internal so a test can wait out the retract rather than guess at it.
   static let dismissDuration = Duration.milliseconds(350)
-  private static let messageDuration = Duration.seconds(2)
 
   /// Who holds the shape. `message` is its own occupant rather than a mode of
   /// dictation: a message can interrupt either feature and outranks both.
@@ -48,19 +47,60 @@ final class HUDStage {
   var onDropReceived: ((Int) -> Void)?
   var onCardEvent: ((HUDCardEvent) -> Void)?
 
+  /// Cuánto tiene que quedarse quieto el puntero encima antes de que la
+  /// forma revele contexto, y cuánto tarda en cerrarse al salir.
+  ///
+  /// La tolerancia es lo que separa «me acerqué a mirar» de «pasé el mouse
+  /// camino al menú»: sin ella, cruzar la pantalla abre y cierra el notch
+  /// tres veces.
+  static let toleranciaDelHover = Duration.milliseconds(320)
+
+  /// Cuánto se queda abierto el contexto como mucho.
+  ///
+  /// Red de seguridad y no diseño: la ventana deja de recibir el mouse en
+  /// cuanto el puntero sale de la silueta (`HUDHostingView.hitTest`), así que
+  /// la salida puede no llegar nunca. Sin esto, un contexto abierto se queda
+  /// abierto para siempre.
+  static let contextoMaximo = Duration.seconds(4)
+
+  /// El estado del contrato que el escenario está sosteniendo.
+  var estado: EstadoDelNotch { dictationContent.estado }
+
+  /// La máquina del contrato del notch y sus tiempos. Vive acá y no en el
+  /// controlador de dictado porque el escenario es uno solo: un mensaje de
+  /// Drop Transcription y un resultado de dictado se turnan la misma forma, y
+  /// con una máquina por feature se pisan los temporizadores.
+  let control: ControlDelNotch
+
+  /// Un clic en la silueta en reposo: abre el menú de acciones, el mismo del
+  /// status item. Lo cablea `AppDelegate`, que es quien tiene el menú.
+  var alPedirAcciones: (() -> Void)?
+  /// Un clic en la silueta mostrando un resultado: copia lo último dictado.
+  var alPedirCopiar: (() -> Void)?
+
   private let settings: AppSettings
   private let panel: HUDPanel
-  private let hostingView: NSHostingView<HUDRootView>
+  private let hostingView: HUDHostingView<HUDRootView>
+  /// La pantalla donde está puesta la forma. El reposo se queda donde quedó
+  /// la última sesión —seguir al puntero pediría sondearlo, y una forma que
+  /// salta de monitor sola es peor que una que espera—.
+  private var pantallaActual: HUDScreenSnapshot?
+  private var hoverTask: Task<Void, Never>?
+  /// El reloj de los plazos del escenario. Inyectable por el mismo motivo
+  /// que el del pegado (#82): contra el reloj de pared, un test de tiempos
+  /// afirma que el runner fue rápido, no que el plazo se respetó.
+  private let reloj: DeadlineClock
   private var renderedSettings: DictationSessionSettings
   private var orderOutTask: Task<Void, Never>?
-  private var messageDismissTask: Task<Void, Never>?
   /// El observador de cambio de espacio. Se guarda y no se da de baja: el
   /// escenario vive lo que vive la app, y un `deinit` en un tipo aislado al
   /// actor principal no puede tocar sus propiedades.
   private var spaceObserver: (any NSObjectProtocol)?
 
-  init(settings: AppSettings) {
+  init(settings: AppSettings, reloj: DeadlineClock = .continuous) {
     self.settings = settings
+    self.reloj = reloj
+    control = ControlDelNotch(reloj: reloj)
     renderedSettings = settings.sessionSettings
     let placeholder = HUDScreenSnapshot(
       id: 0,
@@ -70,7 +110,7 @@ final class HUDStage {
       auxiliaryTopRightArea: nil,
       menuBarHeight: 0
     )
-    hostingView = NSHostingView(
+    hostingView = HUDHostingView(
       rootView: HUDRootView(
         screen: placeholder,
         settings: renderedSettings,
@@ -87,6 +127,146 @@ final class HUDStage {
       contentView: hostingView
     )
     observeSpaceChanges()
+    observarCambiosDePantallas()
+    control.alCambiar = { [weak self] estado in
+      guard let self else { return }
+      aplicar(estado)
+      // La vuelta a reposo puede venir del temporizador del resultado, y
+      // entonces nadie más soltó la forma.
+      if estado == .reposo { retract() }
+    }
+    dictationContent.alEntrarElPuntero = { [weak self] dentro in
+      self?.punteroEncima(dentro)
+    }
+    dictationContent.alHacerClic = { [weak self] in
+      self?.clicEnLaSilueta()
+    }
+  }
+
+  /// Pone la forma en pantalla en reposo y la deja ahí.
+  ///
+  /// El notch de Dilo no aparece al dictar: está. Esto se llama una vez al
+  /// arrancar, y después la forma sólo cambia de tamaño. Que la ventana viva
+  /// montada no cuesta: en reposo nada anima (`EstadoDelNotch.anima`), que es
+  /// el número que el spec §3 pide cuidar.
+  func despertar() {
+    guard let screen = screen() else { return }
+    dictationContent.isRevealed = false
+    mount(on: screen)
+    aplicar(.reposo)
+  }
+
+  /// Mueve la máquina del contrato. Es la única puerta: el estado no se
+  /// escribe a mano desde ninguna parte.
+  func recibir(_ evento: MaquinaDelNotch.Evento) {
+    control.recibir(evento)
+  }
+
+  /// Anota en qué estado está el escenario y ajusta lo que depende de él: si
+  /// la forma toma el mouse y qué franja de la ventana lo recibe.
+  private func aplicar(_ estado: EstadoDelNotch) {
+    dictationContent.estado = estado
+    if !estado.tomaElMouse {
+      cancelarHover()
+      dictationContent.punteroEncima = false
+    }
+    // Un arrastre en curso manda: la superficie de Drop Transcription pide el
+    // mouse por su cuenta y no se lo quita un cambio de estado del dictado.
+    if occupant != .drop {
+      acceptsMouse = estado.tomaElMouse
+      panel.tomaElTeclado = false
+    }
+    actualizarZonaInteractiva()
+  }
+
+  /// Vuelve a colocar la forma cuando cambia la configuración de pantallas:
+  /// enchufar un monitor, cambiar la resolución o el modo escalado mueve
+  /// dónde está el centro de la barra de menús.
+  private func observarCambiosDePantallas() {
+    NotificationCenter.default.addObserver(
+      forName: NSApplication.didChangeScreenParametersNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self, let screen = self.screen() else { return }
+        self.mount(on: screen)
+      }
+    }
+  }
+
+  /// La franja de la ventana que recibe el mouse: la silueta, no la ventana.
+  ///
+  /// En reposo es la silueta compacta; abierta, lo más ancho que la forma
+  /// puede llegar a ser con los ajustes de esta sesión. Generoso a propósito
+  /// en los estados abiertos: sólo duran lo que dura una sesión, y errar por
+  /// unos puntos ahí vale menos que perder un clic en Copiar.
+  private func actualizarZonaInteractiva() {
+    guard let pantallaActual, estado.tomaElMouse else {
+      panel.zonaInteractiva = nil
+      return
+    }
+    let tamaño: CGSize
+    if estado.esCompacto {
+      let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
+      // Con el contexto abierto la silueta crece; la zona crece con ella.
+      tamaño = CGSize(
+        width: reposo.width * (dictationContent.contextoVisible == nil ? 1 : 3.5),
+        height: reposo.height + (dictationContent.contextoVisible == nil ? 0 : 22)
+      )
+    } else {
+      let ventana = HUDNotchGeometry.windowSize(for: pantallaActual)
+      tamaño = CGSize(
+        width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
+        height: ventana.height - HUDNotchGeometry.shadowPadding
+      )
+    }
+    panel.zonaInteractiva = HUDNotchGeometry.zonaInteractiva(
+      for: pantallaActual,
+      tamaño: tamaño
+    )
+  }
+
+  /// El puntero entró o salió de la silueta. La tolerancia va acá y no en la
+  /// vista porque es tiempo, y el tiempo del escenario lo lleva el escenario.
+  private func punteroEncima(_ dentro: Bool) {
+    hoverTask?.cancel()
+    hoverTask = Task { [weak self, reloj] in
+      try? await reloj.sleep(Self.toleranciaDelHover)
+      guard !Task.isCancelled, let self else { return }
+      // Un hover jamás arranca una captura: lo único que toca es qué se
+      // dibuja (contrato del notch).
+      dictationContent.punteroEncima = dentro && estado.tomaElMouse
+      actualizarZonaInteractiva()
+      guard dictationContent.punteroEncima else { return }
+
+      try? await reloj.sleep(Self.contextoMaximo)
+      guard !Task.isCancelled else { return }
+      dictationContent.punteroEncima = false
+      actualizarZonaInteractiva()
+    }
+  }
+
+  private func cancelarHover() {
+    hoverTask?.cancel()
+    hoverTask = nil
+  }
+
+  /// Dónde abrir el menú de acciones: justo debajo de la silueta, en
+  /// coordenadas de pantalla.
+  var puntoDeAcciones: NSPoint? {
+    guard let pantallaActual else { return nil }
+    let ventana = HUDNotchGeometry.windowFrame(for: pantallaActual)
+    let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
+    return NSPoint(x: ventana.midX, y: ventana.maxY - reposo.height)
+  }
+
+  private func clicEnLaSilueta() {
+    switch estado {
+    case .reposo: alPedirAcciones?()
+    case .resultado: alPedirCopiar?()
+    case .preparando, .dictando, .procesando: break
+    }
   }
 
   /// Vuelve a poner la forma al frente cuando cambia el espacio activo.
@@ -108,8 +288,10 @@ final class HUDStage {
       queue: .main
     ) { [weak self] _ in
       MainActor.assumeIsolated {
-        guard let self, self.occupant != .none else { return }
-        self.panel.assertOverlayOrder()
+        // Siempre, no sólo con sesión: desde que el escenario es permanente,
+        // la forma en reposo también tiene que sobrevivir al cambio de
+        // espacio.
+        self?.panel.assertOverlayOrder()
       }
     }
   }
@@ -172,22 +354,27 @@ final class HUDStage {
     mount(on: screen)
   }
 
-  /// Gives the shape up. The panel stays front while the retract plays, then
-  /// orders out and the drop surface clears itself down.
+  /// Suelta la forma: se encoge hasta el reposo y se queda ahí.
+  ///
+  /// **La ventana no se va de la pantalla.** Antes se ordenaba fuera y el
+  /// notch desaparecía al terminar de dictar, que es lo que lo volvía una
+  /// notificación en vez de un lugar. Ahora el escenario es permanente y lo
+  /// que cambia es el tamaño de la silueta.
   func retract() {
     guard occupant != .none else { return }
-    acceptsMouse = false
+    // Idempotente: si la máquina ya está en reposo —porque venció el
+    // resultado— esto no mueve nada y no vuelve a llamar acá.
+    control.recibir(.cancelar)
     occupant = .none
     dictationContent.isRevealed = false
     dropContent.isRevealed = false
 
     orderOutTask?.cancel()
-    orderOutTask = Task { [weak self] in
-      try? await Task.sleep(for: Self.dismissDuration)
+    orderOutTask = Task { [weak self, reloj] in
+      try? await reloj.sleep(Self.dismissDuration)
       guard !Task.isCancelled, let self, occupant == .none else { return }
-      panel.orderOut(nil)
-      // Only once it is off screen: clearing any of these earlier would show
-      // through the retract.
+      // Sólo cuando la forma ya se encogió: limpiar antes se vería durante
+      // el encogimiento.
       dictationContent.isDismissing = false
       dictationContent.text = ""
       dictationContent.volatileText = ""
@@ -198,6 +385,7 @@ final class HUDStage {
       dropContent.mode = .none
       dropContent.heldIcon = nil
       dropContent.transcript = nil
+      aplicar(.reposo)
     }
   }
 
@@ -213,9 +401,14 @@ final class HUDStage {
   }
 
   /// A status or error line, in the one place Dilo says anything.
+  ///
+  /// Un mensaje es un resultado del contrato: dice qué pasó y se va solo. El
+  /// plazo lo lleva la máquina y no un temporizador aparte — dos relojes
+  /// sobre la misma forma terminan uno tapando al otro.
   func showMessage(_ text: String, on displayID: CGDirectDisplayID? = nil) {
     guard let screen = screen(preferring: displayID) else { return }
     claim(.message, on: screen)
+    recibir(.entregar(.aviso(text)))
     // hide() pins these for the retract, and claim() cancels that order-out.
     // A message is a new occupant and must not inherit them.
     dictationContent.isDismissing = false
@@ -225,19 +418,12 @@ final class HUDStage {
     dictationContent.text = text
     dictationContent.volatileText = ""
     revealDictation()
-
-    messageDismissTask?.cancel()
-    messageDismissTask = Task { [weak self] in
-      try? await Task.sleep(for: Self.messageDuration)
-      guard !Task.isCancelled, let self, occupant == .message else { return }
-      retract()
-    }
   }
 
-  func cancelMessageDismiss() {
-    messageDismissTask?.cancel()
-    messageDismissTask = nil
-  }
+  /// Ya no hay un temporizador de mensajes aparte: el plazo es el del
+  /// resultado del contrato, y lo cancela el evento que abra la sesión
+  /// siguiente.
+  func cancelMessageDismiss() {}
 
   /// Reveals the dictation surface. It is always mounted — the root shows it
   /// whenever no drop state is up — so its reveal animates against a frame
@@ -289,8 +475,10 @@ final class HUDStage {
         self?.onCardEvent?(event)
       }
     )
+    pantallaActual = screen
     panel.setFrame(HUDNotchGeometry.windowFrame(for: screen), display: true)
     panel.assertOverlayOrder()
+    actualizarZonaInteractiva()
   }
 
   private func evictDrop() {

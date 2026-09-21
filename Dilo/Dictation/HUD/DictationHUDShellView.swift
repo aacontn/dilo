@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// What a Direct Dictation session puts inside the HUD: the housing-level
-/// strip, the voice visual's band, and the draft text band. The shape itself,
-/// its fillets and its reveal belong to `HUDSurface`, which every HUD surface
-/// shares.
+/// Lo que el dictado pone adentro del notch, estado por estado
+/// (`EstadoDelNotch`): la marca quieta en reposo, y la cabecera + la banda
+/// del visual + el texto + el chip de modo cuando está abierto. La forma
+/// misma, sus fillets y su crecimiento son de `HUDSurface`, que comparten
+/// todas las superficies del HUD.
+///
+/// El escenario es permanente: esta vista **siempre** está montada, y lo que
+/// cambia es qué dibuja y de qué tamaño.
 struct DictationHUDShellView: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -15,11 +19,10 @@ struct DictationHUDShellView: View {
   /// (`HUDSessionKind`).
   var kind: HUDSessionKind = .dictando
 
-  /// Si esta pantalla dibuja la píldora de Dilo en vez de la forma que cuelga
-  /// del notch. Lo decide la pantalla, no el picker de Ajustes: sin carcasa no
-  /// hay de qué colgar, y la píldora es una forma distinta, no la misma más
-  /// abajo.
-  private var isPill: Bool { HUDNotchGeometry.drawsPill(for: screen) }
+  /// Si esta pantalla no tiene carcasa que medir —píldora o notch simulado—.
+  /// Lo decide la pantalla, no el picker de Ajustes: sin carcasa no hay
+  /// cámara que esquivar, así que la cabecera de la forma se puede usar.
+  private var sinCarcasa: Bool { HUDNotchGeometry.drawsPill(for: screen) }
 
   /// The shape's dimensions at the session's HUD size. Everything the user
   /// can resize is read from here; the housing band and fillets are not.
@@ -54,7 +57,7 @@ struct DictationHUDShellView: View {
     // La píldora siempre lleva texto parcial, así que hereda el piso de los
     // visuales que se construyen alrededor del texto: más chica que eso, el
     // parcial deja de ser texto que alguien lee.
-    guard isPill else { return base }
+    guard sinCarcasa else { return base }
     return HUDMetrics(scale: max(base.scale, HUDMetrics.minimumReadableScale))
   }
 
@@ -69,8 +72,7 @@ struct DictationHUDShellView: View {
         + (showsRecentDraft
           ? metrics.glowDraftStageHeight - metrics.textBandHeight : 0),
       includesTextBand: showsTextBand,
-      shapingBandHeight: showsShapingLabel ? metrics.shapingBandHeight : 0,
-      housingBandHeight: isPill ? metrics.pillCrownHeight : nil
+      shapingBandHeight: showsShapingLabel ? metrics.shapingBandHeight : 0
     )
   }
 
@@ -79,20 +81,36 @@ struct DictationHUDShellView: View {
   /// cleared until the shaping phase or the next session, so the strip never
   /// appears mid-flight and never leaves under a retracting shape.
   private var showsShapingLabel: Bool {
-    shapingLabel != nil
+    chipDeModo != nil
   }
 
-  /// The caption and what its color follows: the pick while speaking, then the
-  /// prompt the finished words are going through. One strip for both, so the
-  /// shape neither grows nor loses it at the handover.
-  private var shapingLabel: (text: String, activity: HUDShapingLabel.Activity)? {
-    if let name = content.shapingName {
-      return ("Transformando con \(name)", .working)
+  /// El chip de modo: el nombre del modo, y nada más.
+  ///
+  /// Antes decía «Transformar: Correo» en gris, que es la etiqueta de un
+  /// ajuste, no la de una sesión: nombra el mecanismo en vez de lo que está
+  /// pasando. Ahora se lee el nombre del modo en mango —el acento de Dilo— y
+  /// si no hay modo no hay chip. Mientras se transforma el mismo chip pasa a
+  /// `trabajando`, para que la línea no salte ni cambie de texto justo cuando
+  /// el dictado termina.
+  private var chipDeModo: HUDChipDeModo.Contenido? {
+    Self.chipDeModo(
+      estado: content.estado,
+      modo: content.shapingName ?? content.shapingChoiceLabel
+    )
+  }
+
+  /// Qué chip le toca a este estado con este modo. Puro para poder afirmarlo
+  /// sin dibujar: el chip nombra el modo, nunca el mecanismo.
+  static func chipDeModo(estado: EstadoDelNotch, modo: String?) -> HUDChipDeModo.Contenido? {
+    guard let modo, !modo.isEmpty else { return nil }
+    switch estado {
+    case .dictando: return HUDChipDeModo.Contenido(nombre: modo, trabajando: false)
+    case .procesando: return HUDChipDeModo.Contenido(nombre: modo, trabajando: true)
+    // En reposo no hay sesión que nombrar, y en preparando el modo todavía no
+    // se aplicó a nada. El resultado dice qué pasó con las palabras, no con
+    // qué se escribieron.
+    case .reposo, .preparando, .resultado: return nil
     }
-    if let pick = content.shapingChoiceLabel {
-      return ("Transformar: \(pick)", .voice(content.audioLevel))
-    }
-    return nil
   }
 
   /// Reduce Motion always shows the quiet level meter in its slim band.
@@ -106,7 +124,7 @@ struct DictationHUDShellView: View {
     if reduceMotion { return metrics.visualBandHeight }
     // La píldora tiene una sola forma: corona, onda del micrófono y texto
     // parcial. El picker elige el *estilo* de la onda, no si la hay.
-    if isPill { return metrics.waveBandHeight }
+    if sinCarcasa { return metrics.waveBandHeight }
     switch settings.voiceVisual {
     case .compact, .glowDraft: return 0
     case .waveform, .glow: return metrics.waveBandHeight
@@ -121,7 +139,7 @@ struct DictationHUDShellView: View {
     // El texto parcial mientras hablas es parte de la identidad de la
     // píldora, no una opción: es lo que la separa de cualquier HUD del
     // sistema, que nunca muestra lo que estás diciendo.
-    if isPill { return true }
+    if sinCarcasa { return true }
     return settings.voiceVisual.showsDraftWhileListening
   }
 
@@ -136,7 +154,7 @@ struct DictationHUDShellView: View {
   /// as a glitch mid retract, so the layout stays and the indicator settles
   /// instead. Edge Glow + Draft has its own centered stage.
   private var showsLeadingDraft: Bool {
-    !isPill && settings.voiceVisual == .compact && !reduceMotion
+    !sinCarcasa && settings.voiceVisual == .compact && !reduceMotion
   }
 
   private var filletSize: CGFloat {
@@ -166,6 +184,20 @@ struct DictationHUDShellView: View {
     }
   }
 
+  /// La silueta en reposo, ensanchada mientras el hover muestra contexto.
+  ///
+  /// El hover **nunca** arranca una captura (contrato del notch): lo único
+  /// que hace es abrir un poco la forma para nombrar el modo activo o lo
+  /// último que se dictó.
+  private var tamañoEnReposo: CGSize {
+    let base = HUDNotchGeometry.reposoSize(for: screen)
+    guard let contexto = content.contextoVisible else { return base }
+    return CGSize(
+      width: min(max(base.width, tagTextWidth(contexto) + 56), size.width),
+      height: base.height + 22
+    )
+  }
+
   private var dictationSurface: some View {
     HUDSurface(
       screen: screen,
@@ -175,44 +207,75 @@ struct DictationHUDShellView: View {
       size: size,
       rippleTrigger: content.sessionEpoch,
       rippleEnabled: settings.voiceVisual.usesEdgeGlow,
-      content: {
-        bands
-          // The tag hangs off the shell, not the text band: Waveform and Edge
-          // Glow hide the band for the whole listening phase, which is exactly
-          // when the live language needs naming. Padded below the housing so it
-          // clears the camera, and an overlay so it never changes the fixed
-          // window's size. Edge Glow + Draft places its own tag on the island.
-          .overlay(alignment: .topLeading) {
-            // La píldora lleva su etiqueta dentro de la corona, no colgando
-            // bajo una carcasa que ahí no existe.
-            if !showsRecentDraft, !isPill { languageTag }
-          }
-          // Grow Down springs the island's height. Glyphs opt out so new
-          // words land immediately; the token is coarse so a wrap is one spring.
-          .animation(
-            settings.longDraftStyle == .growDown && !showsRecentDraft
-              ? .spring(duration: 0.18, bounce: 0) : nil,
-            value: draftHeightToken
-          )
-          .animation(.spring(duration: 0.25, bounce: 0), value: visualBandHeight)
-      },
+      tamañoEnReposo: tamañoEnReposo,
+      content: { cuerpo },
       overlays: {
         particleCloud
         edgeGlow
       }
     )
+    // Sólo la silueta toma el mouse, y sólo en los estados que hacen algo con
+    // él (`EstadoDelNotch.tomaElMouse`); la ventana anfitriona es mucho más
+    // ancha que la forma y el resto tiene que dejar pasar el clic.
+    .contentShape(Rectangle())
+    .onHover { dentro in
+      guard content.estado.tomaElMouse else { return }
+      content.alEntrarElPuntero?(dentro)
+    }
+    .onTapGesture {
+      guard content.estado.tomaElMouse else { return }
+      content.alHacerClic?()
+    }
+    .allowsHitTesting(content.estado.tomaElMouse)
+  }
+
+  /// Lo que la forma lleva adentro, según el estado del contrato.
+  ///
+  /// En reposo es una marca quieta: **nada de lo que anima está montado**, y
+  /// esa es la diferencia entre un escenario permanente que cuesta lo que
+  /// cuesta una ventana y uno que redibuja un shader sesenta veces por
+  /// segundo para siempre (spec §3).
+  @ViewBuilder
+  private var cuerpo: some View {
+    if content.estado.esCompacto {
+      HUDMarcaDeReposo(
+        dibujaMarca: sinCarcasa,
+        contexto: content.contextoVisible,
+        scale: metrics.scale
+      )
+    } else {
+      islaConEtiquetas
+    }
+  }
+
+  private var islaConEtiquetas: some View {
+    bands
+      // The tag hangs off the shell, not the text band: Waveform and Edge
+      // Glow hide the band for the whole listening phase, which is exactly
+      // when the live language needs naming. Padded below the header so it
+      // clears the camera, and an overlay so it never changes the fixed
+      // window's size. Edge Glow + Draft places its own tag on the island.
+      .overlay(alignment: .topLeading) {
+        if !showsRecentDraft { languageTag }
+      }
+      // Grow Down springs the island's height. Glyphs opt out so new
+      // words land immediately; the token is coarse so a wrap is one spring.
+      .animation(
+        settings.longDraftStyle == .growDown && !showsRecentDraft
+          ? .spring(duration: 0.18, bounce: 0) : nil,
+        value: draftHeightToken
+      )
+      .animation(.spring(duration: 0.25, bounce: 0), value: visualBandHeight)
   }
 
   private var bands: some View {
     VStack(spacing: 0) {
       island
-      if let label = shapingLabel {
-        HUDShapingLabel(
-          text: label.text,
-          palette: settings.glowPalette,
+      if let chip = chipDeModo {
+        HUDChipDeModo(
+          contenido: chip,
           scale: metrics.scale,
-          activity: label.activity,
-          isRevealed: content.isRevealed,
+          nivel: content.audioLevel,
           reduceMotion: reduceMotion
         )
         .frame(height: metrics.shapingBandHeight)
@@ -248,19 +311,12 @@ struct DictationHUDShellView: View {
       // Strip level with the housing: kept empty so text never collides
       // with the camera. Edge Glow + Draft still counts it in the box the
       // words are centered in, because the flanks of that strip are visible.
-      // Sin carcasa no hay cámara ni puntos que respetar: ahí va la corona.
-      if isPill {
-        HUDPillCrownView(
-          content: content,
-          scale: metrics.scale,
-          languageTag: content.languageTag,
-          languageTagWidth: content.languageTag.map(tagTextWidth) ?? 0
-        )
-        .frame(height: metrics.pillCrownHeight)
-      } else {
-        Color.clear
-          .frame(height: HUDNotchGeometry.closedSize(for: screen).height)
-      }
+      // Sin carcasa la cabecera es la silueta en reposo, de la que la forma
+      // abierta crece hacia abajo. Va vacía en los dos casos: la corona mango
+      // que la píldora llevaba encima se leía como un segundo objeto pegado
+      // arriba, no como el notch creciendo.
+      Color.clear
+        .frame(height: HUDNotchGeometry.alturaDeCabecera(for: screen))
       if visualBandHeight > 0 {
         Group {
           if reduceMotion {
@@ -316,7 +372,7 @@ struct DictationHUDShellView: View {
   }
 
   private var showsRecentDraft: Bool {
-    guard !isPill else { return false }
+    guard !sinCarcasa else { return false }
     return Self.showsRecentDraft(
       visual: settings.voiceVisual,
       listening: content.showsVoiceVisual,
@@ -400,7 +456,7 @@ struct DictationHUDShellView: View {
   }
 
   private var tagTopInset: CGFloat {
-    let housing = HUDNotchGeometry.closedSize(for: screen).height
+    let housing = HUDNotchGeometry.alturaDeCabecera(for: screen)
     let belowHousing: CGFloat
     if showsTextBand, visualBandHeight > 0 {
       belowHousing = visualBandHeight + 5 * metrics.scale
@@ -475,9 +531,37 @@ struct DictationHUDShellView: View {
   /// The Edge Glow particle cloud, clipped to the housing so no mote leaks
   /// past the silhouette. Mounted with the glow (not only while listening)
   /// so its drain-out ramp can render too.
+  /// Si en este estado hay alguna vista con un `TimelineView` adentro
+  /// montada: la nube de partículas, el resplandor del borde, la onda o el
+  /// indicador compacto.
+  ///
+  /// **Es el número del reposo.** Un `TimelineView` montado redibuja aunque
+  /// esté pausado en cuanto algo lo despierta, y el spec §3 pide ~0 % de CPU
+  /// mientras nadie dicta. Función pura para poder afirmarlo por estado sin
+  /// abrir una ventana ni mirar un medidor.
+  static func montaVisualesDeVoz(
+    estado: EstadoDelNotch,
+    visual: HUDVoiceVisualStyle,
+    reduceMotion: Bool
+  ) -> Bool {
+    guard estado.anima else { return false }
+    guard !reduceMotion else { return false }
+    switch visual {
+    case .glow, .glowDraft, .waveform, .compact: return true
+    }
+  }
+
+  private var montaVisualesDeVoz: Bool {
+    Self.montaVisualesDeVoz(
+      estado: content.estado,
+      visual: settings.voiceVisual,
+      reduceMotion: reduceMotion
+    )
+  }
+
   @ViewBuilder
   private var particleCloud: some View {
-    if !reduceMotion, settings.voiceVisual == .glow, settings.glowCenter == .particles {
+    if montaVisualesDeVoz, settings.voiceVisual == .glow, settings.glowCenter == .particles {
       HUDParticleCloudView(
         content: content,
         settings: settings,
@@ -497,7 +581,7 @@ struct DictationHUDShellView: View {
   /// ends; the view disables its shader once the ramp reaches zero.
   @ViewBuilder
   private var edgeGlow: some View {
-    if !reduceMotion, settings.voiceVisual.usesEdgeGlow {
+    if montaVisualesDeVoz, settings.voiceVisual.usesEdgeGlow {
       HUDEdgeGlowView(
         content: content,
         settings: settings,

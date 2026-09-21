@@ -96,10 +96,18 @@ Distingue propuesta, implementación y deuda pendiente.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
-- **La píldora sin notch va debajo de la barra de menús**, con identidad Dilo.
-  Nunca tapa los status items ni imita el HUD de volumen del sistema. Es el
-  **default** y no se cambia. Quien quiera la imitación la elige a mano en
-  Ajustes → Apariencia, «En pantallas sin notch» → *Notch simulado*.
+- **El notch es el escenario permanente, y en una pantalla sin carcasa el
+  default es el notch simulado** (cambió el 2026-09-21; antes era la píldora).
+  La forma no aparece al dictar: está siempre, en reposo, y lo que cambia es
+  su tamaño y su estado. Sigue sin tapar un status item, porque sólo ocupa la
+  franja del centro de la barra, que macOS deja vacía. La píldora bajo la
+  barra se queda como elección a mano en Ajustes → Apariencia, «En pantallas
+  sin notch».
+- **Los cinco estados del contrato son `EstadoDelNotch`**, y las transiciones
+  viven en `MaquinaDelNotch` (pura) con sus tiempos en `ControlDelNotch`
+  (reloj inyectable). Reposo no captura y reposo no anima: las dos reglas
+  están afirmadas por estado, no por costumbre. Nadie escribe el estado a
+  mano — se manda un evento a `HUDStage.recibir(_:)`.
 - **Los números del spec §3 se miden, no se prometen**: 60 MB en reposo, ~0 %
   de CPU, arranque en frío < 1 s, soltar→texto < 300 ms, `.app` < 25 MB sin
   modelos. Si un cambio empeora uno, no entra.
@@ -210,9 +218,9 @@ siendo cierto:
 - Fillets sólo contra una carcasa real; carcasa simulada (185×32) en el
   resto. `NSWindow.Level.mainMenu + 3`, sin APIs privadas.
 - **En una pantalla sin notch hay dos formas, y las elige la persona**
-  (`HUDEstiloSinNotch`, guardado en `hudEstiloSinNotch`): *Píldora bajo la
-  barra* —el default— y *Notch simulado*, que se pega a `y = 0` centrado, con
-  las esquinas de arriba rectas. El estilo viaja dentro de
+  (`HUDEstiloSinNotch`, guardado en `hudEstiloSinNotch`): *Notch simulado*
+  —el default—, que se pega a `y = 0` centrado con las esquinas de arriba
+  rectas, y *Píldora bajo la barra*. El estilo viaja dentro de
   `HUDScreenSnapshot` y no como parámetro suelto: la ventana anfitriona, el
   contorno y el relleno de arriba tienen que estar de acuerdo. Con notch real
   el ajuste no se mira.
@@ -222,6 +230,14 @@ siendo cierto:
   tiene tantos menús que llegan al centro, esa parte queda tapada mientras
   dura el dictado: el arreglo es elegir la píldora, no ensanchar ni angostar
   la forma.
+- **La forma no se va de la pantalla: se encoge.** `HUDSurface.tamañoEnReposo`
+  es lo que la vuelve un escenario permanente en vez de una notificación. La
+  cabecera de la forma abierta **es** la silueta en reposo
+  (`HUDNotchGeometry.alturaDeCabecera`), así que crece desde donde descansaba.
+- **Sólo la silueta toma el mouse.** La ventana anfitriona es mucho más ancha
+  que la forma; `HUDHostingView.hitTest` la acota a
+  `HUDNotchGeometry.zonaInteractiva`, y sin eso el HUD se come clics en media
+  barra de menús. Un hover revela contexto y **nunca** arranca una captura.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **El silencio y un micrófono muerto tienen que verse distinto.**

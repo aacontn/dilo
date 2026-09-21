@@ -11,13 +11,17 @@ struct HUDNotchGeometryTests {
     auxiliaryTopRightArea: CGRect(x: 848.5, y: 950, width: 663.5, height: 32),
     menuBarHeight: 32
   )
+  /// Una pantalla externa con la píldora elegida a mano. El ajuste va
+  /// explícito desde que el default es el notch simulado (2026-09-21): estos
+  /// tests miden la forma que cuelga debajo de la barra.
   private let external = HUDScreenSnapshot(
     id: 2,
     frame: CGRect(x: 1512, y: 200, width: 2560, height: 1440),
     safeAreaTop: 0,
     auxiliaryTopLeftArea: nil,
     auxiliaryTopRightArea: nil,
-    menuBarHeight: 24
+    menuBarHeight: 24,
+    estiloSinNotch: .pildora
   )
   /// La misma pantalla externa con el ajuste en «Notch simulado».
   private let externalSimulado = HUDScreenSnapshot(
@@ -242,7 +246,11 @@ struct HUDNotchGeometryTests {
 
     #expect(size.width < standard.width)
     #expect(size.height < standard.height)
-    #expect(size.height == 32 + small.waveBandHeight)
+    // La cabecera no escala: es la silueta en reposo, y esa es hardware con
+    // carcasa y franja del sistema sin ella.
+    let cabecera = HUDNotchGeometry.alturaDeCabecera(for: external)
+    #expect(size.height == cabecera + small.waveBandHeight)
+    #expect(standard.height - size.height == HUDMetrics.standard.waveBandHeight - small.waveBandHeight)
   }
 
   /// The shape has to stay wider than the housing it descends from, or it

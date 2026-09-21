@@ -32,6 +32,8 @@ struct DirectDictationControllerTests {
     var accessibilityAlerts = 0
     var shapingNames: [String] = []
     var shapingChoiceLabels: [String?] = []
+    /// Lo que la forma dijo al final de cada sesión (`EstadoDelNotch`).
+    var resultados: [ResultadoDelNotch] = []
     var cycleCaptureStates: [Bool] = []
 
     func count(of event: String) -> Int {
@@ -154,6 +156,11 @@ struct DirectDictationControllerTests {
       showShapingChoice: { label in
         recorder.events.append("showShapingChoice")
         recorder.shapingChoiceLabels.append(label)
+      },
+      showProcesando: { recorder.events.append("showProcesando") },
+      showResultado: { resultado in
+        recorder.events.append("showResultado")
+        recorder.resultados.append(resultado)
       },
       showMessage: { message, _ in
         recorder.events.append("showMessage")
@@ -339,12 +346,16 @@ struct DirectDictationControllerTests {
     #expect(recorder.insertedTexts == ["hello world"])
     #expect(recorder.recordedSessions.first?.wordCount == 2)
     #expect((recorder.recordedSessions.first?.speakingDuration ?? -1) >= 0)
-    let hideIndex = recorder.events.firstIndex(of: "hideHUD")
+    // La forma ya no se va al terminar de escuchar: pasa a procesando antes
+    // de la entrega y dice el resultado después (contrato del notch).
+    let procesandoIndex = recorder.events.firstIndex(of: "showProcesando")
     let soundIndex = recorder.events.firstIndex(of: "playPasteSound")
-    #expect(hideIndex != nil && soundIndex != nil)
-    if let hideIndex, let soundIndex {
-      #expect(hideIndex < soundIndex)
+    #expect(procesandoIndex != nil && soundIndex != nil)
+    if let procesandoIndex, let soundIndex {
+      #expect(procesandoIndex < soundIndex)
     }
+    #expect(recorder.count(of: "hideHUD") == 0, "una sesión que entregó no se cancela")
+    #expect(recorder.resultados == [.listo])
     controller.stop()
   }
 
@@ -1789,12 +1800,12 @@ struct DirectDictationControllerTests {
 
     #expect(recorder.shapingNames == ["Limpio"])
     let shapingIndex = recorder.events.firstIndex(of: "showShaping")
-    let hideIndex = recorder.events.firstIndex(of: "hideHUD")
+    let procesandoIndex = recorder.events.firstIndex(of: "showProcesando")
     let insertIndex = recorder.events.firstIndex(of: "insertText")
-    #expect(shapingIndex != nil && hideIndex != nil && insertIndex != nil)
-    if let shapingIndex, let hideIndex, let insertIndex {
-      #expect(shapingIndex < hideIndex)
-      #expect(hideIndex < insertIndex)
+    #expect(shapingIndex != nil && procesandoIndex != nil && insertIndex != nil)
+    if let shapingIndex, let procesandoIndex, let insertIndex {
+      #expect(shapingIndex < procesandoIndex)
+      #expect(procesandoIndex < insertIndex)
     }
     controller.stop()
   }

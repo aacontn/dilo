@@ -22,15 +22,19 @@ struct HUDPildoraTests {
     auxiliaryTopRightArea: CGRect(x: 848.5, y: 950, width: 663.5, height: 32),
     menuBarHeight: 32
   )
-  /// Uno de los dos 1080p de esta máquina: sin notch, con barra de menús
-  /// propia. Es el caso normal, no el borde.
+  /// Uno de los dos 1080p de esta máquina, con la píldora elegida a mano.
+  ///
+  /// El ajuste va explícito desde que el default es el notch simulado
+  /// (2026-09-21): esta suite cuida la forma que cuelga debajo de la barra, y
+  /// heredar el default la dejaría probando la otra.
   private let sinNotch = HUDScreenSnapshot(
     id: 2,
     frame: CGRect(x: 0, y: 0, width: 1920, height: 1080),
     safeAreaTop: 0,
     auxiliaryTopLeftArea: nil,
     auxiliaryTopRightArea: nil,
-    menuBarHeight: 24
+    menuBarHeight: 24,
+    estiloSinNotch: .pildora
   )
 
   @Test func unaPantallaSinCarcasaDibujaLaPildora() {
@@ -66,7 +70,8 @@ struct HUDPildoraTests {
       safeAreaTop: 0,
       auxiliaryTopLeftArea: nil,
       auxiliaryTopRightArea: nil,
-      menuBarHeight: 0
+      menuBarHeight: 0,
+      estiloSinNotch: .pildora
     )
     let inset = HUDNotchGeometry.topInset(for: enPantallaCompleta)
     #expect(inset == HUDNotchGeometry.menuBarClearanceFloor + HUDNotchGeometry.pillDetachment)
@@ -92,32 +97,25 @@ struct HUDPildoraTests {
     #expect(HUDNotchGeometry.topCornerRadius(for: conNotch, metrics: .standard) == 0)
   }
 
-  /// El ajuste tiene dos valores, pero el default es la píldora: es la regla
-  /// de `AGENTS.md`, no una opción con dos lados buenos. Si alguien le cambia
-  /// el default, esto se cae.
+  /// **El default cambió el 2026-09-21:** sin carcasa se dibuja el notch
+  /// simulado. La píldora se queda como elección a mano, no como lo que trae
+  /// la app. Si alguien vuelve a invertirlo, esto se cae.
   @MainActor
-  @Test func laPildoraEsElDefaultDeFabrica() {
-    #expect(AppSettings.previewStore().hudEstiloSinNotch == .pildora)
+  @Test func laPildoraYaNoEsElDefaultDeFabrica() {
+    #expect(AppSettings.previewStore().hudEstiloSinNotch == .notchSimulado)
+    #expect(HUDEstiloSinNotch.allCases.contains(.pildora))
   }
 
-  /// Y una pantalla sin notch recién sacada de la caja dibuja la píldora, no
-  /// la imitación.
-  @Test func sinAjusteGuardadoLaPantallaDibujaLaPildora() {
+  /// Elegida a mano, la píldora sigue siendo la píldora: no simula un notch.
+  @Test func elegidaAManoLaPantallaDibujaLaPildora() {
     #expect(sinNotch.estiloSinNotch == .pildora)
     #expect(!HUDNotchGeometry.simulatesNotch(for: sinNotch))
+    #expect(HUDNotchGeometry.dibujaPildora(for: sinNotch))
   }
 
-  /// La corona mango reemplaza los 32 puntos de carcasa simulada, que sin
-  /// cámara que esquivar quedaban negros y vacíos — igualitos al HUD del
-  /// sistema.
-  @Test func laCoronaEsMasBajaQueLaCarcasaSimulada() {
-    #expect(HUDMetrics.standard.pillCrownHeight < HUDNotchGeometry.closedSize(for: sinNotch).height)
-    #expect(HUDMetrics.standard.pillCrownHeight > 0)
-  }
-
-  /// La píldora entera —corona, onda y texto parcial, más la etiqueta de
-  /// transformación— tiene que caber en la ventana fija, que nunca se
-  /// redimensiona (ADR-0001).
+  /// La píldora entera —cabecera, onda y texto parcial, más el chip de
+  /// modo— tiene que caber en la ventana fija, que nunca se redimensiona
+  /// (ADR-0001).
   @Test func laPildoraCompletaCabeEnLaVentanaFija() {
     let metrics = HUDMetrics.standard
     let alto = HUDNotchGeometry.contentSize(
@@ -125,24 +123,18 @@ struct HUDPildoraTests {
       metrics: metrics,
       visualBandHeight: metrics.waveBandHeight,
       includesTextBand: true,
-      shapingBandHeight: metrics.shapingBandHeight,
-      housingBandHeight: metrics.pillCrownHeight
+      shapingBandHeight: metrics.shapingBandHeight
     ).height
     let ventana = HUDNotchGeometry.windowFrame(for: sinNotch)
     #expect(alto <= ventana.height - HUDNotchGeometry.shadowPadding)
   }
 
-  /// El alto de banda explícito sólo lo usa la píldora: sin él manda la
-  /// carcasa, que es hardware.
-  @Test func sinAltoExplicitoMandaLaCarcasa() {
-    let conDefault = HUDNotchGeometry.contentSize(
-      for: conNotch,
-      metrics: .standard,
-      visualBandHeight: 0,
-      includesTextBand: false,
-      shapingBandHeight: 0
+  /// Con carcasa real la cabecera es la carcasa, que es hardware.
+  @Test func conCarcasaLaCabeceraEsLaCarcasa() {
+    #expect(
+      HUDNotchGeometry.alturaDeCabecera(for: conNotch)
+        == HUDNotchGeometry.closedSize(for: conNotch).height
     )
-    #expect(conDefault.height == HUDNotchGeometry.closedSize(for: conNotch).height)
   }
 
   /// Spec §5: la máquina prevé tres estados y v1 dibuja uno.
@@ -190,6 +182,7 @@ struct HUDPildoraTests {
   @MainActor
   @Test func laPildoraSeDibuja() throws {
     let content = DictationHUDContent()
+    content.estado = .dictando
     content.text = "Esto es la píldora de Dilo, "
     content.volatileText = "con el texto parcial mientras hablas"
     content.languageTag = "ES"

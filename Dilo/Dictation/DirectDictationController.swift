@@ -890,7 +890,10 @@ final class DirectDictationController {
         if let modo, willShape {
           dependencies.showShaping(modo.nombre)
         } else {
-          dependencies.hideHUD()
+          // Antes acá se escondía el HUD y el resultado aterrizaba con la
+          // forma ya fuera de pantalla. Ahora se queda: procesando primero,
+          // resultado después, reposo al final.
+          dependencies.showProcesando()
         }
 
         // The one place between recognition and insertion where the words may
@@ -918,8 +921,9 @@ final class DirectDictationController {
             break
           }
         }
-        // Shaped or passed through, the phase is over.
-        if willShape { dependencies.hideHUD() }
+        // Shaped or passed through, the phase is over — pero la entrega
+        // todavía no, así que la forma pasa a procesando y no a reposo.
+        if willShape { dependencies.showProcesando() }
 
         recordar(
           UltimoDictado(
@@ -977,6 +981,7 @@ final class DirectDictationController {
         case .inserted, .copiedToClipboard:
           dependencies.playPasteSound()
           send(.sessionEnded)
+          dependencies.showResultado(outcome == .inserted ? .listo : .copiado)
           // Lo que la píldora todavía tiene que decir. El pegado que se cayó
           // al portapapeles ya lo hacía el camino heredado, pero callado:
           // las palabras estaban en otra parte y nadie lo decía. El modo que
