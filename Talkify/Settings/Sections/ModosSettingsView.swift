@@ -51,12 +51,17 @@ struct ModosSettingsView: View {
       SettingsCard(title: "Un atajo, Dilo decide") {
         SettingsRow(
           title: "Que Dilo elija el modo",
-          description: "Con esto prendido, un dictado sin tecla de modo elige solo según la app que tengas al frente y lo que dijiste. Si no lo tiene claro, no toca nada y tu dictado sale como salió."
+          description: "Con esto prendido, el atajo de dictar de siempre elige modo solo: mira qué app tienes al frente y qué dijiste. Si no lo tiene claro, no toca nada y tu dictado sale como salió. El historial anota cuál eligió y por qué."
         ) {
           Toggle("Que Dilo elija el modo", isOn: $settings.unAtajoDiloDecide)
             .labelsHidden()
             .toggleStyle(.switch)
         }
+
+        SettingsRow(
+          title: "Cuándo corresponde cada modo",
+          description: "Las apps y las palabras que delatan a cada modo son lo que Dilo mira para decidir. Se editan dentro del modo, en «Afinarlo más»."
+        ) { EmptyView() }
       }
 
       SettingsCard(title: "Proveedor general") {
@@ -301,6 +306,38 @@ struct ModoEditorView: View {
         .frame(height: 110)
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(.white.opacity(0.12)))
 
+      // El ejemplo y el recordatorio de cierre vienen de los prompts que
+      // heredamos de Talkify, y son lo que alguien más trabajo se tomó en
+      // escribir. Van escondidos porque casi nadie los usa, pero tienen que
+      // estar: la migración los trajo y sin esto no habría dónde verlos.
+      DisclosureGroup("Afinarlo más") {
+        VStack(alignment: .leading, spacing: 10) {
+          Text("Lo que va al final, después de lo que dictaste")
+            .font(.caption)
+          TextField("Por ejemplo: no inventes datos", text: $modo.instruccionFinal)
+            .textFieldStyle(.roundedBorder)
+
+          Text("Un ejemplo enseña más que una regla. Escribe un dictado con forma de pregunta y su reescritura: así el modelo aprende que una pregunta sigue siendo una pregunta, en vez de contestarla.")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.45))
+            .fixedSize(horizontal: false, vertical: true)
+          TextField("Lo que se dictó", text: $modo.ejemploEntrada)
+            .textFieldStyle(.roundedBorder)
+          TextField("Cómo debería quedar", text: $modo.ejemploSalida)
+            .textFieldStyle(.roundedBorder)
+
+          Text("Cuándo corresponde este modo, si dejas que Dilo elija: las apps donde aplica y las palabras que lo delatan, separadas por coma.")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.45))
+            .fixedSize(horizontal: false, vertical: true)
+          TextField("Apps", text: lista($modo.apps))
+            .textFieldStyle(.roundedBorder)
+          TextField("Palabras clave", text: lista($modo.palabrasClave))
+            .textFieldStyle(.roundedBorder)
+        }
+        .padding(.top, 8)
+      }
+
       Picker("IA de este modo", selection: proveedorElegido) {
         Text(textoDelGeneral).tag("")
         ForEach(proveedores) { proveedor in
@@ -328,6 +365,20 @@ struct ModoEditorView: View {
     }
     .padding(20)
     .frame(width: 420)
+  }
+
+  /// Una lista escrita en una línea, separada por comas. Lo vacío no cuenta,
+  /// así que "correo, , mail," son dos entradas y no cuatro.
+  private func lista(_ valores: Binding<[String]>) -> Binding<String> {
+    Binding(
+      get: { valores.wrappedValue.joined(separator: ", ") },
+      set: { texto in
+        valores.wrappedValue = texto
+          .split(separator: ",")
+          .map { $0.trimmingCharacters(in: .whitespaces) }
+          .filter { !$0.isEmpty }
+      }
+    )
   }
 
   /// "" es heredar el general. Es el default y no exige migrar nada: una

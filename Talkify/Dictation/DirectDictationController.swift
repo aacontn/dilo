@@ -511,7 +511,7 @@ final class DirectDictationController {
   }
 
   /// Arms the bare-arrow capture exactly while the machine is recording a
-  /// session whose snapshot carries a shaping library. Derived from the state
+  /// session whose snapshot carries a library of modes. Derived from the state
   /// after every action rather than toggled on named paths, so no exit —
   /// finish, Escape, failure, timeout — can leave the arrows swallowed.
   private func updateShapingCycleCapture() {
@@ -931,8 +931,9 @@ final class DirectDictationController {
           do {
             text = try await translation.translate(text, with: pair)
           } catch {
-            // The rescue is the words as spoken, not as shaped: shaping is a
-            // convenience and the raw words are what must survive.
+            // El rescate son las palabras como se dijeron, no como las dejó
+            // el modo: el modo es una comodidad y lo crudo es lo que tiene
+            // que sobrevivir.
             await recordHistory(
               spoken: spoken, delivered: nil,
               modo: Self.paraElHistorial(eleccion), session: session
@@ -956,7 +957,7 @@ final class DirectDictationController {
 
         // Last before insertion, so the delivered line is what actually
         // lands: written earlier it recorded a translation nobody received,
-        // because shaping had not run yet. Still before insertion, so a
+        // because the mode had not run yet. Still before insertion, so a
         // failed paste cannot lose the words (ADR-0007).
         await recordHistory(
           spoken: spoken, delivered: text,

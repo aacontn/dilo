@@ -59,11 +59,11 @@ extension DirectDictationController {
     let showLatched: @MainActor () -> Void
     let showLiveText: @MainActor (_ committed: String, _ volatile: String) -> Void
     let showFinalizing: @MainActor () -> Void
-    /// The visible shaping phase: the HUD stays up saying which prompt is
-    /// rewriting the finished words instead of dismissing into silence.
+    /// La fase visible: el HUD se queda diciendo con qué modo está
+    /// reescribiendo, en vez de irse en silencio.
     let showShaping: @MainActor (_ promptName: String) -> Void
-    /// The recording-time caption naming the session's current shaping pick;
-    /// nil clears it.
+    /// El cartel que, mientras grabas, nombra el modo de esta sesión; nil lo
+    /// borra.
     let showShapingChoice: @MainActor (_ label: String?) -> Void
     let showMessage: @MainActor (String, CGDirectDisplayID?) -> Void
     let showModelDownload: @MainActor (String?) -> Void
@@ -71,9 +71,10 @@ extension DirectDictationController {
     let hideHUD: @MainActor () -> Void
     let playPasteSound: @MainActor () -> Void
 
-    /// Arms and disarms the tap's bare-arrow capture. The live tap lives
-    /// inside the controller, which drives it directly beside this call;
-    /// the closure is the seam that lets tests see the toggling.
+    /// Arms and disarms the tap's bare-arrow capture — las flechas peladas
+    /// recorren los modos de la sesión. The live tap lives inside the
+    /// controller, which drives it directly beside this call; the closure is
+    /// the seam that lets tests see the toggling.
     let setShapingCycleCaptureEnabled: @MainActor (Bool) -> Void
 
     // Usage aggregation.
