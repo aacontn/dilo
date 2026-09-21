@@ -193,16 +193,28 @@ struct DirectDictationControllerTests {
     )
   }
 
-  /// Polls the condition until it holds, or records a failure after ~1 s.
-  /// The sleeps yield the main actor so the controller's tasks can run.
+  /// Espera a que la condición se cumpla, y recién se rinde a los 10 s de
+  /// reloj. Los `sleep` le sueltan el main actor a las tareas del controlador.
+  ///
+  /// El presupuesto es tiempo y no vueltas. Contando vueltas —200 por 5 ms—
+  /// esto decía "un segundo" sólo en una máquina ociosa: con la suite entera
+  /// compartiendo el main actor, cada `sleep` de 5 ms vuelve en 11 y, peor,
+  /// la tarea que se está esperando hace tres saltos de ejecutor y entra a una
+  /// cola larguísima. El presupuesto se gastaba antes de que le tocara correr,
+  /// y el test fallaba por la carga del runner y no por el código. Es lo mismo
+  /// que ya dice `prepare` más abajo: se espera el estado, no una duración.
   private func waitUntil(
     _ comment: Comment,
     _ condition: @MainActor () -> Bool
   ) async {
-    for _ in 0..<200 {
+    let limite = ContinuousClock.now + .seconds(10)
+    while ContinuousClock.now < limite {
       if condition() { return }
       try? await Task.sleep(for: .milliseconds(5))
     }
+    // Una última mirada: el sueño que gastó el plazo pudo ser justo el que
+    // dejó correr la tarea que faltaba.
+    if condition() { return }
     Issue.record(comment)
   }
 
