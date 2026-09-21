@@ -1,6 +1,15 @@
 Session sound sets. Pop (CC-BY-NC, freesound #321807) was removed in Dilo 0.4.0:
 nothing NonCommercial ships in the bundle.
 
+MarimbaBegin.wav / MarimbaEnd.wav / MarimbaPaste.wav
+  Synthesized in-repo by scripts/generar-sonidos-marimba.py
+  (additive marimba bar: 1x/3.9x/9.2x partials, 3 ms attack, 300 ms tail,
+  48 kHz mono, peak -14 dBFS). Original Dilo assets — no external license,
+  and no bytes from anyone else's recording.
+  The Tauri build's marimba WAVs were NOT ported: they reached that tree
+  through cjpais/handy#214 with no declared provenance, so they are not
+  shippable. These were written from scratch to fill the same role.
+
 ClickBegin.wav / ClickEnd.wav
   Source: "Click 01 (Minimal UI Sounds)" by cabled_mess
   https://freesound.org/people/cabled_mess/sounds/370962/
