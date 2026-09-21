@@ -113,12 +113,29 @@ struct KeyboardMapTests {
   }
 
   /// A key the input source has no legend for still gets a cap rather than a
-  /// blank one, so a row never renders an empty square.
+  /// blank one, so a row never renders an empty square. El código en hexa es
+  /// el último recurso: se puede comparar con el visor de teclado de macOS,
+  /// que un "?" no.
   @Test func anUnknownKeyStillGetsACap() {
     let odd = KeyBinding(
       keyCode: 999, modifierFlags: 0, isModifierKey: false, label: "", keyEquivalent: ""
     )
-    #expect(KeyboardMap.caps(for: odd, layout: KeyboardLayout(shape: .ansi, legends: [:])) == ["?"])
+    let sinLeyendas = KeyboardLayout(shape: .ansi, legends: [:])
+    #expect(KeyboardMap.caps(for: odd, layout: sinLeyendas) == ["Tecla 0x3E7"])
+  }
+
+  /// La fila extendida de un teclado Apple completo. F18 se dibujaba "?" —el
+  /// mismo signo que cualquier tecla desconocida— y no había forma de saber si
+  /// el atajo había quedado guardado. Ese fue el reporte de Alfonso.
+  @Test func laFilaExtendidaSeDibujaConSuNombre() {
+    let sinLeyendas = KeyboardLayout(shape: .ansi, legends: [:])
+    for (keyCode, nombre) in [(105, "F13"), (106, "F16"), (79, "F18"), (80, "F19"), (90, "F20")] {
+      let binding = KeyBinding(
+        keyCode: Int64(keyCode), modifierFlags: 0, isModifierKey: false,
+        label: "", keyEquivalent: ""
+      )
+      #expect(KeyboardMap.caps(for: binding, layout: sinLeyendas) == [nombre])
+    }
   }
 
 }

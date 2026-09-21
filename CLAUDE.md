@@ -66,6 +66,19 @@ Distingue propuesta, implementación y deuda pendiente.
 - **Ningún gatillo por defecto escribe símbolos** en teclado latino. Nada de
   ⌥ derecha sola: en ISO-LatAm es AltGr y escribe `@ # \ | { } [ ]`. Default
   `fn`/🌐 sostenido; alternativa ⌃⌥Espacio.
+- **Cualquier tecla física que no escriba sirve de gatillo sola**: `fn`/🌐,
+  F13–F20, esc, flechas, § de un teclado ISO, Clear e Intro del numérico. Lo
+  único que se rechaza es ⌥ pelada, el volumen y el brillo, y una tecla que
+  escribe usada sin ningún modificador —sostener la L para hablar llena el
+  documento de eles—. La misma tecla con ⌃ o ⌘ encima vuelve a servir, y eso
+  es lo que dice el mensaje de rechazo. La regla vive **sólo** en
+  `ValidadorDeGatillos`, y las dos pantallas que asignan teclas (Atajos y
+  Modos) la consultan; ninguna decide por su cuenta.
+- **Toda tecla tiene nombre.** `NombresDeTecla` (en `DiloModes`) nombra de F1
+  a F20, el numérico y la navegación; si no la conoce escribe `Tecla 0x4F`,
+  nunca vacío. AppKit manda las teclas de función como caracteres del área de
+  uso privado (`U+F700`–`U+F8FF`) que no dibujan nada: una fila de ajustes en
+  blanco es lo que hace creer que el atajo no se guardó.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" de Talkify está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.

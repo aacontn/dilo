@@ -22,6 +22,9 @@ public enum ValidadorDeGatillos {
     case opcionMasTeclaQueEscribe
     /// Volumen, silencio, brillo. Son del sistema; no se toman prestadas.
     case teclaDelSistema
+    /// Una tecla que escribe un carácter, sola y sin ningún modificador que
+    /// lo evite: sostenerla para hablar llena el documento de letras.
+    case teclaQueEscribeSola
     /// Sin tecla ni botón: no hay nada que apretar.
     case vacio
 
@@ -37,6 +40,10 @@ public enum ValidadorDeGatillos {
       case .teclaDelSistema:
         "Esa tecla es del volumen o del brillo. Son del sistema y Dilo no se "
           + "las quita a nadie."
+      case .teclaQueEscribeSola:
+        "Esa tecla escribe un carácter. Sostenerla para hablar te llenaría el "
+          + "texto de letras. Agrégale ⌃ o ⌘, o usa una tecla que no escriba: "
+          + "fn, F13 a F20, esc, Clear del teclado numérico."
       case .vacio:
         "Todavía no elegiste ninguna tecla."
       }
@@ -60,7 +67,11 @@ public enum ValidadorDeGatillos {
   ///
   /// Se listan por código de tecla porque la distribución cambia qué letra
   /// sale, pero no cambia si la tecla escribe o no.
-  static let teclasQueEscriben: Set<Int64> = Set(
+  ///
+  /// La tecla § de un teclado ISO no aparece: es la que Dilo deja disponible
+  /// a propósito para quien la tiene, porque en la práctica nadie la usa para
+  /// escribir y sí es cómoda de sostener con el meñique izquierdo.
+  public static let teclasQueEscriben: Set<Int64> = Set(
     // Fila de números, las tres filas de letras, y los signos.
     [
       0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -98,6 +109,17 @@ public enum ValidadorDeGatillos {
       == Gatillo.Modificador.opcion
     if soloOpcion, teclasQueEscriben.contains(keyCode) {
       return .noSirve(.opcionMasTeclaQueEscribe)
+    }
+
+    // Una tecla que escribe, pelada. Es lo único que queda fuera: cualquier
+    // tecla física que no produzca un carácter —fn, F13 a F20, esc, las
+    // flechas, Clear del numérico, § en ISO— sirve de gatillo tal cual,
+    // porque sostenerla no ensucia nada. Con un modificador encima la tecla
+    // deja de escribir y vuelve a servir.
+    let sinNingunModificador = gatillo.modifierFlags
+      & ~Gatillo.Modificador.fn == 0
+    if sinNingunModificador, teclasQueEscriben.contains(keyCode) {
+      return .noSirve(.teclaQueEscribeSola)
     }
 
     return .sirve

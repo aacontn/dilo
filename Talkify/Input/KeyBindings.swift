@@ -1,4 +1,5 @@
 import AppKit
+import DiloModes
 
 /// One recorded input binding: a keyboard key or supported mouse button plus
 /// required modifiers, with the display strings captured at record time
@@ -294,36 +295,40 @@ struct KeyBinding: Equatable, Codable {
     }
   }
 
-  /// Display name for a non-modifier key, from the recording event.
+  /// El nombre que se muestra de una tecla que no es modificador.
+  ///
+  /// El mapa vive en `NombresDeTecla`, del lado puro, y llega hasta F20. Antes
+  /// terminaba en F15 y F16–F19 caían en `charactersIgnoringModifiers`, que
+  /// para una tecla de función devuelve un carácter del área de uso privado
+  /// (`NSF18FunctionKey`): no dibuja nada, así que la fila quedaba en blanco y
+  /// parecía que la tecla no se había grabado. Por eso esos caracteres se
+  /// descartan antes de usarlos de leyenda.
   static func keyName(keyCode: UInt16, event: NSEvent?) -> String {
-    let special: [UInt16: String] = [
-      53: "⎋", 49: "Space", 36: "↩", 48: "⇥", 51: "⌫", 117: "⌦",
-      123: "←", 124: "→", 125: "↓", 126: "↑",
-      122: "F1", 120: "F2", 99: "F3", 118: "F4", 96: "F5", 97: "F6",
-      98: "F7", 100: "F8", 101: "F9", 109: "F10", 103: "F11",
-      111: "F12", 105: "F13", 107: "F14", 113: "F15",
-    ]
-    if let name = special[keyCode] { return name }
-    if let chars = event?.charactersIgnoringModifiers, !chars.isEmpty {
+    let code = Int64(keyCode)
+    if let fixed = NombresDeTecla.nombreFijo(code) { return fixed }
+    if let chars = event?.charactersIgnoringModifiers, !chars.isEmpty,
+     !NombresDeTecla.esCaracterPrivado(chars) {
       return chars.uppercased()
     }
-    return "Key \(keyCode)"
+    return NombresDeTecla.nombre(code)
   }
 
   /// Menu key-equivalent for a non-modifier key; empty when the key has no
   /// sensible menu glyph.
+  ///
+  /// F13–F20 sí tienen equivalente de menú (`NSF13FunctionKey` en adelante),
+  /// y el carácter privado que AppKit manda por teclado sólo se acepta por
+  /// esta vía, nunca copiado desde el evento: el menú sabe leerlo, la fila de
+  /// ajustes no.
   static func menuKeyEquivalent(keyCode: UInt16, event: NSEvent?) -> String {
-    let functionKeys: [UInt16: Int] = [
-      122: 1, 120: 2, 99: 3, 118: 4, 96: 5, 97: 6, 98: 7, 100: 8,
-      101: 9, 109: 10, 103: 11, 111: 12, 105: 13, 107: 14, 113: 15,
-    ]
     if keyCode == 53 { return "\u{1B}" }
-    if let n = functionKeys[keyCode],
+    if let n = NombresDeTecla.funcion[Int64(keyCode)],
      let scalar = UnicodeScalar(NSF1FunctionKey + n - 1) {
       return String(scalar)
     }
     if let chars = event?.charactersIgnoringModifiers, chars.count == 1,
-     let first = chars.unicodeScalars.first, first.value >= 0x20 {
+     let first = chars.unicodeScalars.first, first.value >= 0x20,
+     !NombresDeTecla.esCaracterPrivado(chars) {
       return chars.lowercased()
     }
     return ""

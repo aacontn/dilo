@@ -1,4 +1,5 @@
 import CoreGraphics
+import DiloModes
 
 /// The rows of keys to draw, for a given keyboard shape.
 ///
@@ -115,10 +116,15 @@ enum KeyboardMap {
 
   /// A modifier reads as its own glyph rather than "right ⌥" — a cap has no
   /// room for a side, and the drawn keyboard already shows which one is lit.
+  ///
+  /// El último recurso ya no es "?". Una F18 ligada se dibujaba así, con el
+  /// mismo signo que cualquier otra tecla rara, y no había forma de saber si
+  /// el atajo había quedado guardado o no. `NombresDeTecla` la nombra, y si
+  /// ni él la conoce escribe su código —`Tecla 0x4F`—, que al menos se puede
+  /// comparar con el visor de teclado de macOS.
   private static func cap(for keyCode: Int64, layout: KeyboardLayout) -> String {
     if let glyph = glyphs[keyCode] { return glyph }
-    if let legend = layout.legend(for: keyCode) { return legend }
-    return "?"
+    return NombresDeTecla.nombre(keyCode, leyenda: layout.legend(for: keyCode))
   }
 
   /// The keys a binding lights up: its own key plus whichever modifier keys it
