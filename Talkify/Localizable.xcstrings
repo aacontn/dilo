@@ -3870,6 +3870,12 @@
             "state": "translated",
             "value": "Your words"
           }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus palabras"
+          }
         }
       }
     },
@@ -4298,6 +4304,193 @@
           "stringUnit": {
             "state": "translated",
             "value": "— not available from your dictation language"
+          }
+        }
+      }
+    },
+    "TU VOZ": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TU VOZ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR VOICE"
+          }
+        }
+      }
+    },
+    "DILO": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DILO"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DILO"
+          }
+        }
+      }
+    },
+    "Motor de voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motor de voz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speech engine"
+          }
+        }
+      }
+    },
+    "Idiomas y traducción": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idiomas y traducción"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Languages and translation"
+          }
+        }
+      }
+    },
+    "Reescritura del dictado normal": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reescritura del dictado normal"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite regular dictation"
+          }
+        }
+      }
+    },
+    "Actividad de dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actividad de dictado"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation activity"
+          }
+        }
+      }
+    },
+    "Dictar desde cualquier app": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictar desde cualquier app"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate from any app"
+          }
+        }
+      }
+    },
+    "Mantén el gatillo mientras hablas y suéltalo para entregar el texto. Un toque corto deja el dictado encendido; otro toque lo termina. Esc cancela.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén el gatillo mientras hablas y suéltalo para entregar el texto. Un toque corto deja el dictado encendido; otro toque lo termina. Esc cancela."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold the trigger while speaking and release it to deliver the text. A short tap keeps dictation on; tap again to finish. Esc cancels."
+          }
+        }
+      }
+    },
+    "No pude cargar las novedades de esta versión. Puedes seguir usando Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pude cargar las novedades de esta versión. Puedes seguir usando Dilo."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not load what’s new in this version. You can keep using Dilo."
+          }
+        }
+      }
+    },
+    "Sin reescritura": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin reescritura"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rewrite"
+          }
+        }
+      }
+    },
+    "Descargando %@… %lld%%": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargando %@… %lld%%"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading %@… %lld%%"
           }
         }
       }

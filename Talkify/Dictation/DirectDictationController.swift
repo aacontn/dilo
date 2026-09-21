@@ -122,7 +122,7 @@ final class DirectDictationController {
     }
     let name = SpeechLanguageCatalog.shortName(for: download.locale)
     dependencies.showModelDownload(
-      "Downloading \(name)… \(Int(fraction * 100))%"
+      String(localized: "Descargando \(name)… \(Int(fraction * 100))%")
     )
   }
 
@@ -511,7 +511,7 @@ final class DirectDictationController {
   /// wording, because its width is a layout decision.
   private var shapingChoiceLabel: String? {
     guard currentSessionSettings?.shapingLibrary.isEmpty == false else { return nil }
-    return sessionShapingChoice?.name ?? "None"
+    return sessionShapingChoice?.name ?? String(localized: "Sin reescritura")
   }
 
   private func perform(_ effects: [DictationSessionMachine.Effect]) {

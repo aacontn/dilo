@@ -5,19 +5,29 @@ import Foundation
 /// typed IDs (CONTEXT.md: sections are registered in code; no empty or
 /// disabled sections render).
 enum SettingsSectionGroup: String, CaseIterable, Identifiable {
+  case voz
   case settings
+  case dilo
 
   var id: Self { self }
   /// El encabezado de la barra lateral. Salía del `rawValue` en mayúsculas, o
   /// sea "SETTINGS" en una app que habla español.
   var title: String {
     switch self {
+    case .voz: String(localized: "TU VOZ")
     case .settings: String(localized: "AJUSTES")
+    case .dilo: String(localized: "DILO")
     }
   }
 
   var sections: [SettingsSection] {
-    SettingsSection.allCases.filter { $0.group == self && $0.isAvailable }
+    let orden: [SettingsSection]
+    switch self {
+    case .voz: orden = [.dictation, .modos, .palabras, .historial, .dropTranscription]
+    case .settings: orden = [.motor, .shortcuts, .appearance, .general]
+    case .dilo: orden = [.novedades, .about]
+    }
+    return orden.filter(\.isAvailable)
   }
 }
 
@@ -41,7 +51,13 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   case about
 
   var id: Self { self }
-  var group: SettingsSectionGroup { .settings }
+  var group: SettingsSectionGroup {
+    switch self {
+    case .dictation, .modos, .palabras, .historial, .dropTranscription, .promptShaping, .insights: .voz
+    case .general, .appearance, .sounds, .motor, .readAloud, .language, .shortcuts: .settings
+    case .updates, .novedades, .about: .dilo
+    }
+  }
 
   /// El target de App Store no trae Sparkle: ahí las actualizaciones las
   /// entrega la tienda y un panel que no puede hacer nada sería una promesa
@@ -68,13 +84,13 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .general: String(localized: "General")
     case .appearance: String(localized: "Apariencia")
     case .sounds: String(localized: "Sonidos")
-    case .motor: String(localized: "Motor")
+    case .motor: String(localized: "Motor de voz")
     case .dictation: String(localized: "Dictado")
     case .modos: String(localized: "Modos")
-    case .palabras: String(localized: "Tu español")
+    case .palabras: String(localized: "Tus palabras")
     case .historial: String(localized: "Historial")
     case .promptShaping: String(localized: "Transformar")
-    case .dropTranscription: String(localized: "Arrastrar archivos")
+    case .dropTranscription: String(localized: "Transcripciones")
     case .readAloud: String(localized: "Leer en voz alta")
     case .language: String(localized: "Idioma")
     case .shortcuts: String(localized: "Atajos")
