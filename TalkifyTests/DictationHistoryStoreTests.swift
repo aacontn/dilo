@@ -202,10 +202,10 @@ struct DictationHistoryStoreTests {
     #expect(!DictationHistoryStore.isHistoryFileName("aaaa-bb-cc.txt"))
   }
 
-  @Test func defaultFolderIsTalkifyInDocuments() {
+  @Test func defaultFolderIsDiloInDocuments() {
     #expect(
       DictationHistoryStore.defaultFolderURL.path
-        .hasSuffix("Documents/Talkify")
+        .hasSuffix("Documents/Dilo")
     )
   }
 

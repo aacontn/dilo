@@ -1167,6 +1167,17 @@
         }
       }
     },
+    "Elige un idioma para traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No translation language"
+          }
+        }
+      }
+    },
     "Elígelo otra vez para reintentar.": {
       "extractionState": "manual",
       "localizations": {
@@ -1680,6 +1691,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The pill taking a file and handing back a transcript"
+          }
+        }
+      }
+    },
+    "La traducción no está lista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation not ready"
           }
         }
       }
