@@ -82,6 +82,8 @@ mac/
   AGENTS.md, CLAUDE.md       instrucciones (copias byte-idénticas)
   CONTEXT.md                 modelo de dominio y vocabulario
   Talkify/                   el árbol que viene de upstream (ver abajo)
+  Talkify/Onboarding/        los Primeros pasos (propio de Dilo)
+  Talkify/Resources/NotasDeVersion/  las notas de cada versión, en español
   TalkifyTests/              tests de la app
   DiloCore/                  el paquete propio: un módulo por tema
   docs/superpowers/          spec, plan y spikes de Dilo
@@ -106,10 +108,10 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | muletillas del español, diccionario personal | 5 |
+| `DiloText` | muletillas del español, diccionario personal, notas de versión | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
-| `DiloCapabilities` | `HostCapabilities` completa y sandbox | 2 |
+| `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso` | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 
 **Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
@@ -263,6 +265,28 @@ con `DILO_SUFIJO_ID=.ci` la app pasa a `cl.espaciodigital.dilo.ci` y el bundle
 de tests a `…dilo.tests.ci`, los dos a la vez. Es lo que usa CI para que un
 build automático nunca herede ni ensucie los permisos de TCC de la app de
 verdad, y sirve igual para probar algo local sin pisar los propios.
+
+## Primeros pasos y notas de versión
+
+- **El onboarding vive en `Talkify/Onboarding/`** y se abre solo la primera
+  vez; después, desde el menú de la barra (**Primeros pasos…**). Son cuatro
+  pantallas: bienvenida con el gatillo real, permisos uno por uno con su
+  porqué, elegir motor y un dictado de prueba en un campo de la propia ventana.
+- **Qué permiso se pide lo decide `Permiso.pasos(anfitrion:motorEsApple:)`**,
+  en `DiloCapabilities` y con tests: lo que el anfitrión esconde no se pide, y
+  el Reconocimiento de voz sólo aparece con el motor de Apple elegido. Si algún
+  día el sandbox pierde el pegado o el tap, esa pantalla se ajusta sola.
+- **El estado de cada permiso se lee en vivo**, una vez por segundo mientras la
+  pantalla está abierta: TCC cambia por fuera del proceso y una foto tomada al
+  abrir envejece mientras la persona está en Ajustes del Sistema.
+- **Las notas de versión son un `.md` por versión en
+  `Talkify/Resources/NotasDeVersion/`**, y son un solo archivo para dos usos:
+  la app las muestra en Ajustes → Novedades (leídas del bundle, parseadas por
+  `NotasDeVersion` de `DiloText`) y `scripts/release.sh` publica ese mismo
+  archivo en el release. Talkify traía su changelog de GitHub; Dilo no depende
+  de internet para contar qué cambió, ni deja que el release y la app digan
+  cosas distintas. Las notas viejas de Talkify quedan archivadas en
+  `docs/release-notes/`.
 
 ## Firma, actualizaciones y cómo se publica
 

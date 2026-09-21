@@ -78,8 +78,12 @@ DMG_ESTABLE="$BUILD_DIR/Dilo.dmg"
 SPARKLE_DIR="$BUILD_DIR/sparkle"
 SPARKLE_ZIP="$SPARKLE_DIR/Dilo-$TAG.zip"
 APPCAST="$RAIZ/appcast.xml"
-# Notas escritas a mano para esta versión; ganan sobre el log de commits.
-NOTAS_CURADAS="$RAIZ/docs/release-notes/$VERSION.md"
+# Notas escritas a mano para esta versión; ganan sobre el log de commits. Son
+# el **mismo archivo** que la app muestra en Ajustes → Novedades: viaja dentro
+# del bundle, así que lo que se publica y lo que la persona lee ahí adentro no
+# se pueden desincronizar. (Las de docs/release-notes/ son las de Talkify, que
+# se archivan.)
+NOTAS_CURADAS="$RAIZ/Talkify/Resources/NotasDeVersion/$VERSION.md"
 ENTITLEMENTS="$RAIZ/Dilo.entitlements"
 NOTARY_PROFILE="${NOTARY_PROFILE:-dilo-notary}"
 # La cuenta del Llavero donde vive la llave EdDSA de Dilo, separada de la de

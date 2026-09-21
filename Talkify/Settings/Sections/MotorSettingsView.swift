@@ -12,6 +12,20 @@ import SwiftUI
 struct MotorSettingsView: View {
   @Bindable var settings: AppSettings
 
+  var body: some View {
+    SelectorDeMotor(settings: settings)
+  }
+}
+
+/// Las tarjetas de motor, la descarga del modelo de Parakeet y el aviso de a
+/// qué se cae mientras ese modelo no está.
+///
+/// Vive aparte de la sección porque el onboarding elige motor con esta misma
+/// pantalla: la primera vez y la número cien tienen que verse igual, o los
+/// primeros pasos enseñan una app que después no existe.
+struct SelectorDeMotor: View {
+  @Bindable var settings: AppSettings
+
   @State private var descargas = DescargaDeParakeet.compartida
 
   var body: some View {
@@ -57,7 +71,9 @@ struct MotorSettingsView: View {
       }
 
       if settings.motorDeVoz == .parakeet, !descargas.listo, descargas.progreso == nil {
-        AvisoDeCaida()
+        AvisoDeDilo(
+          texto: "Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar."
+        )
       }
     }
     .task { descargas.refrescar() }
@@ -79,7 +95,7 @@ struct MotorSettingsView: View {
 }
 
 /// Una tarjeta de motor: nombre, etiqueta LOCAL, qué es y qué cuesta.
-private struct MotorCard: View {
+struct MotorCard: View {
   let motor: SpeechEngineKind
   let elegido: Bool
   let esUltima: Bool
@@ -165,21 +181,6 @@ private struct EtiquetaDeOrigen: View {
   }
 }
 
-private struct AvisoDeCaida: View {
-  var body: some View {
-    HStack(alignment: .top, spacing: 8) {
-      Image(systemName: "info.circle.fill")
-        .foregroundStyle(SettingsTheme.accent)
-      Text("Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar.")
-        .font(.caption)
-        .foregroundStyle(.white.opacity(0.62))
-        .fixedSize(horizontal: false, vertical: true)
-      Spacer(minLength: 0)
-    }
-    .padding(14)
-    .background(SettingsTheme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-  }
-}
 
 /// El estado de la descarga del modelo.
 ///
