@@ -8,8 +8,11 @@ import AppKit
 /// controlador de Ajustes; el onboarding la necesitaba igual, y dos copias de
 /// una ventana derivan en dos ventanas distintas.
 @MainActor
-final class VentanaSinBarra: NSWindow {
+final class VentanaSinBarra: NSWindow, NSWindowDelegate {
   private var yaSePosiciono = false
+  /// La política a la que hay que volver cuando esta ventana se cierre, si es
+  /// que hubo que cambiarla para traerla al frente.
+  private var politicaADevolver: NSApplication.ActivationPolicy?
 
   init(tamano: NSSize, titulo: String, contenido: NSViewController) {
     super.init(
@@ -33,6 +36,7 @@ final class VentanaSinBarra: NSWindow {
     minSize = tamano
     maxSize = tamano
     setContentSize(tamano)
+    delegate = self
   }
 
   override var canBecomeKey: Bool { true }
@@ -44,13 +48,31 @@ final class VentanaSinBarra: NSWindow {
 
   /// La trae al frente, y la primera vez la centra donde está el puntero. Las
   /// siguientes respeta dónde la dejó la persona.
-  func mostrar() {
+  ///
+  /// - Parameter reclamandoElFoco: para las ventanas que aparecen **sin que
+  ///   nadie las pida** —los Primeros pasos al instalar, las Novedades al
+  ///   actualizar—. Dilo vive en la barra de menús, y una app accesoria que
+  ///   ordena al frente sin que nadie la haya activado deja su ventana detrás
+  ///   de lo que la persona esté mirando. Se pasa a app normal mientras la
+  ///   ventana esté abierta y se vuelve a accesoria al cerrarla, que es el
+  ///   mismo trato que ya hacen el updater y los diálogos de permisos.
+  func mostrar(reclamandoElFoco: Bool = false) {
     if !yaSePosiciono {
       centrarEnLaPantallaDelPuntero()
       yaSePosiciono = true
     }
+    if reclamandoElFoco, NSApp.activationPolicy() != .regular {
+      politicaADevolver = NSApp.activationPolicy()
+      NSApp.setActivationPolicy(.regular)
+    }
     NSApp.activate(ignoringOtherApps: true)
     makeKeyAndOrderFront(nil)
+  }
+
+  func windowWillClose(_ notification: Notification) {
+    guard let politica = politicaADevolver else { return }
+    politicaADevolver = nil
+    NSApp.setActivationPolicy(politica)
   }
 
   private func centrarEnLaPantallaDelPuntero() {

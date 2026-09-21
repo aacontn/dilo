@@ -37,7 +37,7 @@ final class SettingsWindowController: NSWindowController {
     self.init(window: window)
   }
 
-  func show() {
-    (window as? VentanaSinBarra)?.mostrar()
+  func show(reclamandoElFoco: Bool = false) {
+    (window as? VentanaSinBarra)?.mostrar(reclamandoElFoco: reclamandoElFoco)
   }
 }

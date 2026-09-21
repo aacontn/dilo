@@ -27,7 +27,9 @@ final class OnboardingWindowController: NSWindowController {
     self.init(window: ventana)
   }
 
-  func mostrar() {
-    (window as? VentanaSinBarra)?.mostrar()
+  /// - Parameter reclamandoElFoco: verdadero cuando la abre el arranque y no
+  ///   la persona desde el menú.
+  func mostrar(reclamandoElFoco: Bool = false) {
+    (window as? VentanaSinBarra)?.mostrar(reclamandoElFoco: reclamandoElFoco)
   }
 }

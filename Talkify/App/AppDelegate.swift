@@ -266,7 +266,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     if !settings.onboardingVisto {
       settings.versionVista = version
-      mostrarPrimerosPasos()
+      mostrarPrimerosPasos(reclamandoElFoco: true)
       return
     }
 
@@ -274,13 +274,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // anota y no se le abre nada, porque no actualizó a nada todavía.
     if !settings.versionVista.isEmpty, settings.versionVista != version {
       settings.versionVista = version
-      showSettings(seccion: .novedades)
+      showSettings(seccion: .novedades, reclamandoElFoco: true)
       return
     }
     settings.versionVista = version
   }
 
-  private func mostrarPrimerosPasos() {
+  private func mostrarPrimerosPasos(reclamandoElFoco: Bool = false) {
     guard let settings else { return }
     settings.onboardingVisto = true
 
@@ -293,10 +293,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       )
     }
     estadoDePermisos?.refrescar()
-    onboardingWindowController?.mostrar()
+    onboardingWindowController?.mostrar(reclamandoElFoco: reclamandoElFoco)
   }
 
-  private func showSettings(seccion: SettingsSection? = nil) {
+  private func showSettings(seccion: SettingsSection? = nil, reclamandoElFoco: Bool = false) {
     guard let settings, let usageTracker else { return }
     if let seccion { settingsRuntimeState.seccionPedida = seccion }
     if settingsWindowController == nil {
@@ -309,6 +309,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         launchAtLogin: launchAtLoginService
       )
     }
-    settingsWindowController?.show()
+    settingsWindowController?.show(reclamandoElFoco: reclamandoElFoco)
   }
 }
