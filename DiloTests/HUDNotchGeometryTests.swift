@@ -83,7 +83,7 @@ struct HUDNotchGeometryTests {
       includesTextBand: true,
       shapingBandHeight: 0
     )
-    #expect(size == CGSize(width: 540, height: 32 + HUDMetrics.standard.textBandHeight))
+    #expect(size == CGSize(width: 400, height: 32 + HUDMetrics.standard.textBandHeight))
   }
 
   @Test func contentSizeStacksVisualBandAboveText() {
@@ -127,7 +127,7 @@ struct HUDNotchGeometryTests {
 
   @Test func windowFrameIsTopCenterWithShadowSlack() {
     let frame = HUDNotchGeometry.windowFrame(for: notched)
-    let expectedWidth: CGFloat = 540 + 44 * 2
+    let expectedWidth: CGFloat = 400 + 44 * 2
     // The shaping band rides outside the max: it can hang under either band
     // stack, so the tallest layout is whichever stack wins plus it.
     let tallestBands = max(
@@ -282,7 +282,7 @@ struct HUDNotchGeometryTests {
       shapingBandHeight: 0
     )
 
-    let standardWidth: CGFloat = 540 + 44 * 2
+    let standardWidth: CGFloat = 400 + 44 * 2
     #expect(frame.width == standardWidth)
     #expect(content.width < frame.width)
     #expect(content.height < frame.height)

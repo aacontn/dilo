@@ -149,12 +149,14 @@ enum RenderDeLaMuesca {
         // descansaba.
         Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
         onda.frame(height: metricas.waveBandHeight)
-        Text("esto es lo que estás dictando")
-          .font(.system(size: 15, weight: .medium))
+        // Una línea que se recorta por la izquierda: lo último dicho es lo
+        // que se está revisando.
+        Text("…el martes a las diez en la oficina")
+          .font(.system(size: 13, weight: .medium))
           .foregroundStyle(.white)
           .frame(height: metricas.textBandHeight)
         Text("Correo")
-          .font(.system(size: 11, weight: .semibold, design: .rounded))
+          .font(.system(size: 10, weight: .semibold, design: .rounded))
           .foregroundStyle(mango)
           .frame(height: metricas.shapingBandHeight)
       }
@@ -167,7 +169,13 @@ enum RenderDeLaMuesca {
   static var hoverExpandido: some View {
     let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
     let contexto = "Listo · «quedamos el martes a las diez»"
-    let tamaño = CGSize(width: 320, height: reposo.height + 22)
+    let tamaño = CGSize(
+      width: metricas.contentWidth,
+      height: min(
+        reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
+        HUDNotchGeometry.altoMaximoDelHover
+      )
+    )
     return silueta(tamaño: tamaño, radio: HUDNotchGeometry.radioEnReposo(for: pantalla)) {
       VStack {
         Spacer(minLength: 0)
@@ -193,7 +201,7 @@ enum RenderDeLaMuesca {
       VStack(spacing: 0) {
         Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
         Text("Listo")
-          .font(.system(size: 15, weight: .medium))
+          .font(.system(size: 13, weight: .medium))
           .foregroundStyle(.white)
           .frame(height: metricas.textBandHeight)
       }
@@ -204,9 +212,9 @@ enum RenderDeLaMuesca {
   /// sólo tiene que ocupar su banda para que la silueta se vea completa.
   static var onda: some View {
     HStack(alignment: .center, spacing: 3) {
-      ForEach(0..<48, id: \.self) { i in
-        let t = Double(i) / 47
-        let alto = 6 + 34 * abs(sin(t * 9)) * (0.35 + 0.65 * sin(t * .pi))
+      ForEach(0..<36, id: \.self) { i in
+        let t = Double(i) / 35
+        let alto = 4 + 16 * abs(sin(t * 9)) * (0.35 + 0.65 * sin(t * .pi))
         Capsule().fill(.white.opacity(0.85)).frame(width: 3, height: alto)
       }
     }

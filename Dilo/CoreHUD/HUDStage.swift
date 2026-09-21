@@ -236,11 +236,21 @@ final class HUDStage {
     let tamaño: CGSize
     if estado.esCompacto {
       let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
-      // Con el contexto abierto la silueta crece; la zona crece con ella.
-      tamaño = CGSize(
-        width: reposo.width * (dictationContent.contextoVisible == nil ? 1 : 3.5),
-        height: reposo.height + (dictationContent.contextoVisible == nil ? 0 : 22)
-      )
+      // Con el contexto abierto la silueta crece hasta el ancho de la forma
+      // abierta; la zona crece con ella y no más, que es lo que evita que la
+      // muesca se coma clics de media barra de menús.
+      if dictationContent.contextoVisible == nil {
+        tamaño = reposo
+      } else {
+        let ventana = HUDNotchGeometry.windowSize(for: pantallaActual)
+        tamaño = CGSize(
+          width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
+          height: min(
+            reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
+            HUDNotchGeometry.altoMaximoDelHover
+          )
+        )
+      }
     } else {
       let ventana = HUDNotchGeometry.windowSize(for: pantallaActual)
       tamaño = CGSize(

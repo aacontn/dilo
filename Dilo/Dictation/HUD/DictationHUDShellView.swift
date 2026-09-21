@@ -191,10 +191,17 @@ struct DictationHUDShellView: View {
   /// último que se dictó.
   private var tamañoEnReposo: CGSize {
     let base = HUDNotchGeometry.reposoSize(for: screen)
-    guard let contexto = content.contextoVisible else { return base }
+    guard content.contextoVisible != nil else { return base }
+    // El mismo ancho que la forma abierta, y no uno medido del texto: el
+    // panel del hover y el del dictado son el mismo objeto creciendo, y dos
+    // anchos distintos lo delatan. El alto es lo que pide su contenido, con
+    // un techo para que nunca se vuelva una ventana.
     return CGSize(
-      width: min(max(base.width, tagTextWidth(contexto) + 56), size.width),
-      height: base.height + 22
+      width: size.width,
+      height: min(
+        base.height + HUDNotchGeometry.altoDelContextoEnReposo,
+        HUDNotchGeometry.altoMaximoDelHover
+      )
     )
   }
 
@@ -269,7 +276,7 @@ struct DictationHUDShellView: View {
       // Grow Down springs the island's height. Glyphs opt out so new
       // words land immediately; the token is coarse so a wrap is one spring.
       .animation(
-        settings.longDraftStyle == .growDown && !showsRecentDraft
+        longDraftStyle == .growDown && !showsRecentDraft
           ? .spring(duration: 0.18, bounce: 0) : nil,
         value: draftHeightToken
       )
@@ -368,15 +375,26 @@ struct DictationHUDShellView: View {
           draftText
         }
       }
-      .font(.system(size: 15 * metrics.scale, weight: .medium))
+      .font(.system(size: 13 * metrics.scale, weight: .medium))
       .foregroundStyle(.white)
       // The tag sits in the inset rather than in the flow, and the inset grows
       // on both sides, so centered drafts stay centered and nothing overlaps.
       .padding(.horizontal, tagInset * metrics.scale)
-      .padding(.top, 9 * metrics.scale)
-      .padding(.bottom, 9 * metrics.scale)
+      .padding(.top, 4 * metrics.scale)
+      .padding(.bottom, 4 * metrics.scale)
       .frame(minHeight: metrics.textBandHeight)
     }
+  }
+
+  /// Qué hace la forma con un dictado largo en **esta** pantalla.
+  ///
+  /// En la muesca, siempre una línea recortada por la izquierda: lo último
+  /// que dijiste es lo que estás revisando, y una forma que crece con el
+  /// texto vuelve a ser el panel que la muesca dejó de ser. El ajuste
+  /// «Si el texto se pasa de largo» sigue mandando contra una carcasa real,
+  /// donde la banda tiene de dónde crecer sin taparle la pantalla a nadie.
+  private var longDraftStyle: HUDLongDraftStyle {
+    sinCarcasa ? .tailOnly : settings.longDraftStyle
   }
 
   private var showsRecentDraft: Bool {
@@ -486,7 +504,7 @@ struct DictationHUDShellView: View {
   private var liveDraft: some View {
     let committed = AttributedString(content.text)
     var guess = AttributedString(content.volatileText)
-    guess.font = .system(size: 15 * metrics.scale, weight: .regular)
+    guess.font = .system(size: 13 * metrics.scale, weight: .regular)
     guess.foregroundColor = Color.white.opacity(0.55)
     return Text(committed + guess)
       .transaction { $0.animation = nil }
@@ -496,7 +514,7 @@ struct DictationHUDShellView: View {
   /// the text hangs off the indicator instead of floating centered.
   @ViewBuilder
   private var compactDraftText: some View {
-    switch settings.longDraftStyle {
+    switch longDraftStyle {
     case .tailOnly:
       liveDraft
         .lineLimit(1)
@@ -519,7 +537,7 @@ struct DictationHUDShellView: View {
   /// the line cap is hit.
   @ViewBuilder
   private var draftText: some View {
-    switch settings.longDraftStyle {
+    switch longDraftStyle {
     case .tailOnly:
       liveDraft
         .lineLimit(1)

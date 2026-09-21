@@ -116,6 +116,43 @@ struct MuescaTests {
     }
   }
 
+  /// Y crece **poco**: onda, una línea de texto parcial y el nombre del modo.
+  ///
+  /// Alfonso aprobó la muesca y rechazó lo abierto: 540×146 era un panel de
+  /// media barra de menús colgando de una silueta de 160. Las medidas que
+  /// pidió son ~400×88.
+  @Test func laFormaAbiertaEsChica() {
+    let simulada = pantalla(barra: 24)
+    let abierta = HUDNotchGeometry.contentSize(
+      for: simulada,
+      metrics: .standard,
+      visualBandHeight: HUDMetrics.standard.waveBandHeight,
+      includesTextBand: true,
+      shapingBandHeight: HUDMetrics.standard.shapingBandHeight
+    )
+    #expect(abierta.width == 400)
+    #expect(abierta.height == 88)
+    // Y sigue siendo bastante más que la silueta, o crecer no se notaría.
+    #expect(abierta.width >= HUDNotchGeometry.reposoSize(for: simulada).width * 2)
+  }
+
+  /// El panel que abre el hover comparte el ancho con la forma abierta —son
+  /// el mismo objeto creciendo— y tiene techo: revelar contexto no es abrir
+  /// una ventana.
+  @Test func elPanelDelHoverComparteAnchoYTieneTecho() {
+    let simulada = pantalla(barra: 24)
+    let reposo = HUDNotchGeometry.reposoSize(for: simulada)
+    let alto = min(
+      reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
+      HUDNotchGeometry.altoMaximoDelHover
+    )
+    #expect(alto > reposo.height)
+    #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
+    #expect(HUDNotchGeometry.altoMaximoDelHover <= 110)
+    // El ancho es el de la forma abierta, no uno medido del texto.
+    #expect(HUDMetrics.standard.contentWidth == 400)
+  }
+
   /// Y la cabecera de la forma abierta sigue siendo la silueta en reposo: la
   /// muesca crece desde donde descansaba, no aparece encima de ella.
   @Test func laFormaAbiertaCreceDesdeLaMuesca() {

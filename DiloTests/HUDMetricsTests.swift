@@ -5,9 +5,9 @@ import Testing
 struct HUDMetricsTests {
   @Test func standardIsTheUnscaledShape() {
     #expect(HUDMetrics.standard.scale == 1)
-    #expect(HUDMetrics.standard.contentWidth == 540)
-    #expect(HUDMetrics.standard.waveBandHeight == 64)
-    #expect(HUDMetrics.standard.glowDraftStageHeight == 40)
+    #expect(HUDMetrics.standard.contentWidth == 400)
+    #expect(HUDMetrics.standard.waveBandHeight == 24)
+    #expect(HUDMetrics.standard.glowDraftStageHeight == 34)
   }
 
   @Test func everyDimensionScalesTogether() {

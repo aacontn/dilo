@@ -257,6 +257,13 @@ siendo cierto:
   anclaje es `.top` y la cabecera de la forma abierta **es** la silueta en
   reposo, así que el rebote sólo empuja hacia el escritorio y nunca abre una
   rendija contra el borde. Con Reducir movimiento es un corte de 120 ms.
+- **Y crece poco: 400×88 al 100 %** (`HUDMetrics`), no los 540×146 heredados.
+  Onda, una línea de texto parcial y el nombre del modo. En la muesca el
+  borrador es **siempre una línea recortada por la izquierda**: el ajuste «Si
+  el texto se pasa de largo» sólo manda contra una carcasa real, donde la
+  banda tiene de dónde crecer sin taparle la pantalla a nadie. El panel del
+  hover comparte ese ancho y su alto es el que pide su contenido, con techo en
+  `altoMaximoDelHover`.
 - **Tres cosas del escenario son ajustes, no constantes** (Apariencia): el
   retardo del hover (`hudRetardoDeHover`, medio segundo de fábrica), en qué
   pantalla vive la muesca (`hudPantalla`, vacío = automática) y si dice el

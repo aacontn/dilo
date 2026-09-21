@@ -23,7 +23,7 @@ struct HUDMetrics: Equatable {
   static let maximumScale: CGFloat = 1
 
   /// The smallest size that still leaves the draft readable. Below this the
-  /// 15-point draft falls under 6 points, which is not text anyone reads — the
+  /// draft falls under 6 points, which is not text anyone reads — the
   /// sizes beneath it are for the visuals that replace the draft entirely.
   static let minimumReadableScale: CGFloat = 0.4
 
@@ -50,34 +50,48 @@ struct HUDMetrics: Equatable {
 
 
   /// Width of the HUD shape; the housing sits centered inside it.
-  var contentWidth: CGFloat { 540 * scale }
+  ///
+  /// **Bajó de 540 a 400 el 2026-09-21**: con la muesca ya arreglada, la
+  /// forma abierta seguía siendo un panel de media barra de menús. Es el
+  /// ancho de las apps de notch que sirven de referencia, y sigue siendo más
+  /// del doble de la silueta en reposo, que es lo que hace que crecer se
+  /// note.
+  var contentWidth: CGFloat { 400 * scale }
 
   /// Height of the strip below the housing where the draft text lives, kept
   /// out of the housing band so text never collides with the camera.
-  var textBandHeight: CGFloat { 36 * scale }
+  ///
+  /// Una línea de 13 puntos con cuatro de aire arriba y abajo. Era una de 15
+  /// con nueve de aire: treinta y seis puntos de banda para una sola línea,
+  /// que es de dónde salía la mitad del alto de sobra.
+  var textBandHeight: CGFloat { 26 * scale }
 
   /// The tallest the text band ever gets: the downward-growing long-draft
-  /// variant caps at a few wrapped lines.
-  var maxTextBandHeight: CGFloat { 120 * scale }
+  /// variant caps at a few wrapped lines. Sólo con carcasa real: en la muesca
+  /// el borrador es siempre una línea (`DictationHUDShellView`).
+  var maxTextBandHeight: CGFloat { 88 * scale }
 
   /// Height of the quiet level-meter strip (the Reduce Motion visual),
   /// shown between the housing and the text band.
-  var visualBandHeight: CGFloat { 24 * scale }
+  var visualBandHeight: CGFloat { 20 * scale }
 
-  /// Edge Glow + Draft hanging band: 24-point type plus 8 points above
-  /// and below. Tighter than the 36+24 stage that left empty air in the
-  /// pill; still tall enough that the line does not kiss the stroke.
-  var glowDraftStageHeight: CGFloat { 40 * scale }
+  /// Edge Glow + Draft hanging band: 24-point type plus 5 points above
+  /// y abajo. Still tall enough that the line does not kiss the stroke.
+  var glowDraftStageHeight: CGFloat { 34 * scale }
 
-  /// Height of the waveform band. The waveform variant replaces the draft
-  /// text entirely, so it gets room to breathe.
-  var waveBandHeight: CGFloat { 64 * scale }
+  /// Height of the waveform band.
+  ///
+  /// Sesenta y cuatro puntos eran el escenario de concierto que la forma
+  /// abierta no necesita: la onda dice «te estoy oyendo», no dibuja un
+  /// espectro para mirar. Veinticuatro alcanzan para leer el nivel y para que
+  /// un micrófono muerto se vea distinto del silencio.
+  var waveBandHeight: CGFloat { 24 * scale }
 
   /// Height of the shaping label's band, the shape's bottom strip while a
   /// session can cycle its shaping pick. Sized for an 11-point caption, not
   /// for reading: the pick is context, and a band big enough to read first
   /// took the glance the visual and the draft are there for.
-  var shapingBandHeight: CGFloat { 22 * scale }
+  var shapingBandHeight: CGFloat { 14 * scale }
 
-  var bottomCornerRadius: CGFloat { 20 * scale }
+  var bottomCornerRadius: CGFloat { 18 * scale }
 }

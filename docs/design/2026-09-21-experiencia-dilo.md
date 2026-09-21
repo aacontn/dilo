@@ -125,8 +125,15 @@ MacBook de 14", prestado— con los fillets en cero.
   geometría real y rasteriza fuera de pantalla: es lo que deja revisar la
   silueta sin tocar la GUI del Mac.
 
-Queda pendiente decidir el ancho de la forma **abierta**: hoy son los 540
-puntos heredados, ajustables en Ajustes → Apariencia.
+**La forma abierta también se achicó.** Alfonso aprobó la muesca («harto
+mejor») y rechazó lo que crecía: 540×146 era un panel de media barra de menús
+colgando de una silueta de 160. Dictando, procesando y el resultado pasan a
+**400×88** —onda, una línea de texto parcial recortada por la izquierda y el
+nombre del modo en chico—, y el panel del hover comparte ese ancho con el alto
+que pide su contenido, con techo en 110. El borrador en la muesca es siempre
+una línea: el ajuste «Si el texto se pasa de largo» sigue mandando contra una
+carcasa real, donde la banda tiene de dónde crecer. El tamaño sigue siendo
+ajustable en Ajustes → Apariencia; lo que cambió es el 100 %.
 
 ### Las referencias, y qué se puede mirar de cada una
 

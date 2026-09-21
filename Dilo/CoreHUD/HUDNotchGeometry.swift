@@ -277,6 +277,15 @@ enum HUDNotchGeometry {
     !hasMeasuredNotch(for: screen) && screen.menuBarHeight <= 0
   }
 
+  /// Cuánto crece la muesca hacia abajo cuando el hover abre el contexto: lo
+  /// que pide una línea chica y su aire, y nada más.
+  static let altoDelContextoEnReposo: CGFloat = 22
+
+  /// El techo del panel que abre el hover. No es un tamaño, es un límite:
+  /// pasar el mouse revela contexto, y algo que ocupa media pantalla sin que
+  /// nadie lo haya pedido dejó de ser contexto.
+  static let altoMaximoDelHover: CGFloat = 110
+
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
   /// que mide cero.
   ///
