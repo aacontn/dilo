@@ -1,5 +1,6 @@
 import AppKit
 import DiloCapabilities
+import DiloModes
 
 @MainActor
 final class StatusItemController: NSObject {
@@ -13,6 +14,17 @@ final class StatusItemController: NSObject {
   private let checkForUpdates: () -> Void
   private let dictationItem: NSMenuItem
   private let readAloudItem: NSMenuItem
+  /// "Copiar el último dictado". Escondido mientras no hay nada que copiar:
+  /// un ítem apagado que nunca se prendió no explica nada.
+  private let copiarItem: NSMenuItem
+  private let copiarOriginalItem: NSMenuItem
+  private var ultimoDictado: UltimoDictado?
+  /// Deja un texto en el portapapeles. Es una costura para poder afirmar en
+  /// un test qué se copió sin tocar el portapapeles de verdad.
+  var copiarAlPortapapeles: (String) -> Void = { texto in
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(texto, forType: .string)
+  }
   private var blinkTimer: Timer?
   private var blinkDimmed = false
   private let templateIcon = NSImage(named: "MenuBarIcon")
@@ -44,6 +56,12 @@ final class StatusItemController: NSObject {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     dictationItem = NSMenuItem(title: "Empezar a dictar", action: nil, keyEquivalent: "")
     readAloudItem = NSMenuItem(title: "Leer lo seleccionado", action: nil, keyEquivalent: "")
+    copiarItem = NSMenuItem(
+      title: "Copiar el último dictado", action: nil, keyEquivalent: ""
+    )
+    copiarOriginalItem = NSMenuItem(
+      title: "Copiar lo que dijiste, sin el modo", action: nil, keyEquivalent: ""
+    )
     super.init()
 
     statusItem.button?.image = templateIcon
@@ -70,6 +88,21 @@ final class StatusItemController: NSObject {
     )
     transcribeItem.target = self
     menu.addItem(transcribeItem)
+
+    // Lo último que dictaste, siempre a mano. Es la red bajo el pegado: si
+    // no aterrizó donde querías, o si el modo lo dejó peor, las palabras
+    // siguen acá sin haber encendido el historial (que viene apagado a
+    // propósito y escribe a disco).
+    copiarItem.action = #selector(copiarUltimoDictado)
+    copiarItem.target = self
+    copiarItem.isHidden = true
+    menu.addItem(copiarItem)
+
+    copiarOriginalItem.action = #selector(copiarOriginalDelUltimoDictado)
+    copiarOriginalItem.target = self
+    copiarOriginalItem.isHidden = true
+    menu.addItem(copiarOriginalItem)
+
     menu.addItem(.separator())
 
     let settingsItem = NSMenuItem(
@@ -264,6 +297,37 @@ final class StatusItemController: NSObject {
   /// Mirrors Read Aloud playback on the menu item.
   func setSpeaking(_ isSpeaking: Bool) {
     readAloudItem.title = isSpeaking ? "Dejar de leer" : "Leer lo seleccionado"
+  }
+
+  /// Lo último que se dictó, o nil para esconder las dos entradas.
+  ///
+  /// La segunda sólo aparece cuando hay dos cosas distintas que copiar: con
+  /// el dictado normal, "lo entregado" y "lo que dijiste" son lo mismo, y dos
+  /// entradas que copian el mismo texto es ruido en un menú de ocho líneas.
+  func setUltimoDictado(_ dictado: UltimoDictado?) {
+    ultimoDictado = dictado
+    guard let dictado, !dictado.texto(.entregado).isEmpty else {
+      copiarItem.isHidden = true
+      copiarOriginalItem.isHidden = true
+      return
+    }
+    copiarItem.isHidden = false
+    copiarItem.title = String(localized: "Copiar el último dictado")
+    copiarItem.badge = NSMenuItemBadge(string: dictado.vistazo(.entregado))
+    copiarOriginalItem.isHidden = !dictado.tieneDosMitades
+    copiarOriginalItem.badge = dictado.tieneDosMitades
+      ? NSMenuItemBadge(string: dictado.vistazo(.original))
+      : nil
+  }
+
+  @objc private func copiarUltimoDictado() {
+    guard let ultimoDictado else { return }
+    copiarAlPortapapeles(ultimoDictado.texto(.entregado))
+  }
+
+  @objc private func copiarOriginalDelUltimoDictado() {
+    guard let ultimoDictado else { return }
+    copiarAlPortapapeles(ultimoDictado.texto(.original))
   }
 
   @objc private func toggleDictationItem() {

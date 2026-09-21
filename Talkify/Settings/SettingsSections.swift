@@ -40,7 +40,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   case modos
   case palabras
   case historial
-  case promptShaping
   case dropTranscription
   case readAloud
   case language
@@ -53,7 +52,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var id: Self { self }
   var group: SettingsSectionGroup {
     switch self {
-    case .dictation, .modos, .palabras, .historial, .dropTranscription, .promptShaping, .insights: .voz
+    case .dictation, .modos, .palabras, .historial, .dropTranscription, .insights: .voz
     case .general, .appearance, .sounds, .motor, .readAloud, .language, .shortcuts: .settings
     case .updates, .novedades, .about: .dilo
     }
@@ -89,7 +88,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .modos: String(localized: "Modos")
     case .palabras: String(localized: "Tus palabras")
     case .historial: String(localized: "Historial")
-    case .promptShaping: String(localized: "Transformar")
     case .dropTranscription: String(localized: "Transcripciones")
     case .readAloud: String(localized: "Leer en voz alta")
     case .language: String(localized: "Idioma")
@@ -111,7 +109,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .modos: String(localized: "Cada modo con su tecla y su IA")
     case .palabras: String(localized: "Tus palabras y las muletillas")
     case .historial: String(localized: "Lo que dictaste, buscable")
-    case .promptShaping: String(localized: "Reescribe lo que dictas, acá mismo")
     case .dropTranscription: String(localized: "Transcribe audio y video que le sueltes")
     case .readAloud: String(localized: "La voz que lee lo que seleccionas")
     case .language: String(localized: "En qué idiomas dictas")
@@ -133,7 +130,6 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .modos: "switch.2"
     case .palabras: "character.book.closed"
     case .historial: "clock.arrow.circlepath"
-    case .promptShaping: "wand.and.sparkles"
     case .dropTranscription: "square.and.arrow.down"
     case .readAloud: "speaker.wave.2"
     case .language: "globe"

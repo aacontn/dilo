@@ -45,9 +45,13 @@ final class AppSettings {
     static let hudEstiloSinNotch = "hudEstiloSinNotch"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
+    // Las tres claves de "Transformar", el sistema heredado de Talkify. Ya no
+    // se escriben: se leen una vez para migrar a modos y se dejan en disco una
+    // versión más, por si hay que reconstruir a mano la biblioteca de alguien.
     static let promptShapingEnabled = "dictationPromptShapingEnabled"
     static let promptShapingPrompt = "dictationPromptShapingPrompt"
     static let shapingPrompts = "dictationShapingPrompts"
+    static let migracionDeModos = "diloMigracionDeModos"
     static let modos = "diloModos"
     static let proveedores = "diloProveedores"
     static let proveedorGeneral = "diloProveedorGeneral"
@@ -122,35 +126,10 @@ final class AppSettings {
     dictationHistoryFolder ?? DictationHistoryStore.defaultFolderURL
   }
 
-  /// Whether the beta prompt shaping pass runs on finished dictation text.
-  /// Off by default: the default session inserts raw finalized text exactly
-  /// as it always has.
-  var promptShapingEnabled: Bool {
-    didSet { defaults.set(promptShapingEnabled, forKey: Keys.promptShapingEnabled) }
-  }
-
-  /// The selected shaping prompt's id, kept even while shaping is off.
-  var promptShapingPromptID: String {
-    didSet { defaults.set(promptShapingPromptID, forKey: Keys.promptShapingPrompt) }
-  }
-
-  /// The user-editable shaping prompt library, stored whole as JSON. A
-  /// missing or unreadable value reseeds from the built-in defaults rather
-  /// than presenting an empty library.
-  var shapingPrompts: [ShapingPrompt] {
-    didSet {
-      if let data = try? JSONEncoder().encode(shapingPrompts) {
-        defaults.set(data, forKey: Keys.shapingPrompts)
-      }
-    }
-  }
-
-  /// Puts the seed prompts back. The selection is left alone on purpose: a
-  /// selected id the seeds do not carry resolves to nil, which already
-  /// inserts the raw words unchanged.
-  func restoreDefaultShapingPrompts() {
-    shapingPrompts = ShapingPrompt.defaults
-  }
+  /// La versión de migración que ya corrió sobre estos ajustes. Cero en una
+  /// instalación que nunca la vio.
+  @ObservationIgnored
+  private(set) var versionDeMigracionDeModos: Int
 
   /// Los modos de Dilo: nombre, prompt, proveedor y —si quieres— una tecla.
   /// Se guardan enteros como JSON; un valor ilegible vuelve a los de fábrica
@@ -417,16 +396,39 @@ final class AppSettings {
     insertionDestination = Self.stored(in: defaults, key: Keys.insertionDestination) ?? .insert
     dictationHistoryEnabled = defaults.object(forKey: Keys.historyEnabled) as? Bool ?? false
     dictationHistoryFolder = (defaults.string(forKey: Keys.historyFolder)).map { URL(filePath: $0) }
-    promptShapingEnabled = defaults.object(forKey: Keys.promptShapingEnabled) as? Bool ?? false
-    promptShapingPromptID = defaults.string(forKey: Keys.promptShapingPrompt)
-      ?? ShapingPrompt.defaults[0].id
-    shapingPrompts = Self.storedShapingPrompts(in: defaults) ?? ShapingPrompt.defaults
-    modos = Self.guardado([Modo].self, Keys.modos, in: defaults) ?? Modo.deFabrica
     proveedores = Self.guardado([Proveedor].self, Keys.proveedores, in: defaults)
       ?? Proveedor.deFabrica
     proveedorGeneralID = defaults.string(forKey: Keys.proveedorGeneral)
       ?? Proveedor.deFabrica[0].id
-    unAtajoDiloDecide = defaults.object(forKey: Keys.unAtajoDiloDecide) as? Bool ?? false
+
+    // Las dos bibliotecas se juntan acá, una sola vez. La migración es pura y
+    // vive en `DiloModes` con sus tests; este bloque sólo le pasa lo que hay
+    // guardado y anota lo que devuelve.
+    let migracion = MigracionDeModos.migrar(
+      heredados: Self.guardado(
+        [PromptHeredado].self, Keys.shapingPrompts, in: defaults
+      ) ?? [],
+      transformarEstabaPrendido: defaults.object(
+        forKey: Keys.promptShapingEnabled
+      ) as? Bool ?? false,
+      modosGuardados: Self.guardado([Modo].self, Keys.modos, in: defaults),
+      unAtajoDiloDecide: defaults.object(forKey: Keys.unAtajoDiloDecide) as? Bool ?? false,
+      marca: defaults.integer(forKey: Keys.migracionDeModos)
+    )
+    modos = migracion.modos
+    unAtajoDiloDecide = migracion.unAtajoDiloDecide
+    versionDeMigracionDeModos = migracion.version
+    if migracion.seMigro {
+      // Los `didSet` no corren durante `init`, así que lo que la migración
+      // decidió se escribe a mano. La marca va **última**: si el proceso
+      // muere en el medio, la próxima vez vuelve a migrar sobre lo mismo y
+      // el resultado es idéntico, que es lo que idempotente quiere decir.
+      if let datos = try? JSONEncoder().encode(migracion.modos) {
+        defaults.set(datos, forKey: Keys.modos)
+      }
+      defaults.set(migracion.unAtajoDiloDecide, forKey: Keys.unAtajoDiloDecide)
+      defaults.set(migracion.version, forKey: Keys.migracionDeModos)
+    }
     palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
     limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true
     muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
@@ -517,13 +519,6 @@ final class AppSettings {
     return try? JSONDecoder().decode(T.self, from: data)
   }
 
-  private static func storedShapingPrompts(in defaults: UserDefaults) -> [ShapingPrompt]? {
-    guard let data = defaults.data(forKey: Keys.shapingPrompts),
-       let prompts = try? JSONDecoder().decode([ShapingPrompt].self, from: data)
-    else { return nil }
-    return prompts
-  }
-
   private static func store(_ binding: KeyBinding, in defaults: UserDefaults, key: String) {
     if let data = try? JSONEncoder().encode(binding) {
       defaults.set(data, forKey: key)
@@ -565,6 +560,45 @@ final class AppSettings {
       return binding(for: other).hasSameInputAndModifiers(as: candidate)
     }
   }
+
+  /// El id con que un rol aparece entre los atajos ocupados. Con prefijo para
+  /// que nunca choque con el id de un modo.
+  static func idDeRol(_ role: BindingRole) -> String { "rol.\(role)" }
+
+  /// **Todos** los atajos que hoy tienen tecla en Dilo: los cuatro roles y
+  /// cada modo, con el nombre que se le muestra a la persona.
+  ///
+  /// Es la lista que `ValidadorDeGatillos` necesita para que una tecla no se
+  /// pueda asignar dos veces. Antes cada pantalla revisaba lo suyo —Modos
+  /// contra los otros modos, Atajos contra los cuatro roles— y así la tecla
+  /// del dictado y la de un modo podían quedar iguales: el modo no disparaba
+  /// nunca y nada lo decía.
+  var gatillosEnUso: [ValidadorDeGatillos.GatilloEnUso] {
+    var ocupados = BindingRole.allCases.compactMap { rol -> ValidadorDeGatillos.GatilloEnUso? in
+      // Un segundo idioma apagado o un traducir sin destino no tienen tecla
+      // instalada, así que no le quitan nada a nadie.
+      if rol == .secondLanguage, !isSecondLanguageEnabled { return nil }
+      if rol == .translate, !isTranslationEnabled { return nil }
+      return ValidadorDeGatillos.GatilloEnUso(
+        id: Self.idDeRol(rol), nombre: rol.title, gatillo: binding(for: rol).gatillo
+      )
+    }
+    ocupados += modos.compactMap { modo in
+      modo.gatillo.map {
+        ValidadorDeGatillos.GatilloEnUso(id: modo.id, nombre: modo.nombre, gatillo: $0)
+      }
+    }
+    return ocupados
+  }
+
+  /// Quién más usa esta tecla, por nombre. Cubre roles y modos, que es lo que
+  /// `roleUsing` no alcanza a ver.
+  func quienUsa(_ candidato: KeyBinding, salvo id: String) -> String? {
+    let gatillo = candidato.gatillo
+    return gatillosEnUso
+      .first { $0.id != id && $0.gatillo.disparaLoMismoQue(gatillo) }?
+      .nombre
+  }
 }
 
 /// Which recorded binding is being talked about. Shared so the Shortcuts
@@ -600,13 +634,22 @@ struct DictationSessionSettings: Equatable {
   /// Captured with everything else: a session that started while ducking was
   /// on has to restore the volume even if the toggle flips mid-session.
   let ducksOtherAudio: Bool
-  /// The shaping prompt this session applies, or nil while shaping is off
-  /// or the stored id names nothing in the user's prompt list.
-  let shapingPrompt: ShapingPrompt?
-  /// The whole prompt library while shaping is on, empty while it is off, so
-  /// the arrow keys can cycle the session's pick without reading a library
-  /// that may change mid-session.
-  let shapingLibrary: [ShapingPrompt]
+  /// La biblioteca de modos entera, congelada al empezar: es lo que las
+  /// flechas recorren mientras hablas, y leerla de Ajustes a mitad de camino
+  /// dejaría la lista cambiando debajo de la persona.
+  let modos: [Modo]
+  /// Si el atajo principal puede elegir modo por reglas en esta sesión.
+  let unAtajoDiloDecide: Bool
+  /// El catálogo de proveedores y el general, también congelados. Con esto y
+  /// `proveedoresConClave` la sesión resuelve **su** proveedor al terminar sin
+  /// volver a mirar Ajustes: cambiarlos a mitad de dictado aplica al
+  /// siguiente (ADR-0004), y eso es lo que impide que un modo que empezó
+  /// local termine saliendo a una nube.
+  let proveedores: [Proveedor]
+  let proveedorGeneralID: String
+  /// Qué proveedores tenían clave cuando esto empezó. Se pregunta al Llavero
+  /// una vez por sesión y sólo por los que la necesitan.
+  let proveedoresConClave: Set<String>
   /// Las reglas de español que aplican a esta sesión: muletillas y tus
   /// palabras. Se capturan como todo lo demás, para que editar el
   /// diccionario a mitad de dictado no cambie el dictado en vuelo (ADR-0004).
@@ -628,8 +671,55 @@ struct DictationSessionSettings: Equatable {
     voiceVisual.usesEdgeGlow ? glowPalette.statusAccent : SettingsTheme.accentColor
   }
 
+  /// Sólo los proveedores que esta sesión podría llegar a usar **y** que
+  /// piden clave: el general y los que algún modo eligió.
+  ///
+  /// Preguntarle al Llavero por el modelo del chip sería una consulta al
+  /// sistema para nada, y esto corre al empezar cada dictado, donde los
+  /// milisegundos se cuentan (spec §3). Y hay una razón más fuerte: leer un
+  /// ítem del Llavero desde un binario firmado distinto abre un diálogo que
+  /// espera a un humano, y eso colgaría la suite igual que lo hacía TCC. Con
+  /// los ajustes de fábrica —todo en el chip— no se consulta nada.
+  private static func conClave(
+    _ proveedores: [Proveedor],
+    general: String,
+    modos: [Modo],
+    en claves: some AlmacenDeClaves
+  ) -> Set<String> {
+    let alcanzables = Set([general] + modos.compactMap(\.proveedorID))
+    return Set(
+      proveedores
+        .filter { alcanzables.contains($0.id) && $0.necesitaClave }
+        .filter { claves.tieneClave(para: $0.cuentaEnElLlavero) }
+        .map(\.id)
+    )
+  }
+
+  /// El proveedor con que este modo corre en **esta** sesión, resuelto contra
+  /// la foto que se tomó al empezar. No hay respaldo: si falla, se dice.
+  func proveedorDeSesion(para modo: Modo) -> ResolucionDeProveedor.DeSesion {
+    ResolucionDeProveedor.deSesion(
+      para: modo,
+      general: proveedorGeneralID,
+      catalogo: proveedores,
+      tieneClave: { proveedoresConClave.contains($0.id) }
+    )
+  }
+
+  /// El modo cuya tecla es ésta, dentro de la biblioteca congelada.
+  func modo(delGatillo gatillo: Gatillo?) -> Modo? {
+    guard let gatillo else { return nil }
+    return ResolucionDeModo.porAtajo(gatillo, entre: modos)
+  }
+
+  /// - Parameter claves: el Llavero, o uno de mentira en los tests. Se
+  ///   consulta una vez por sesión y sólo por los proveedores que piden clave.
   @MainActor
-  init(settings: AppSettings, translation: TranslationPair? = nil) {
+  init(
+    settings: AppSettings,
+    translation: TranslationPair? = nil,
+    claves: some AlmacenDeClaves = Llavero()
+  ) {
     self.translation = translation
     sounds = DictationSoundSettings(
       set: settings.soundSet,
@@ -640,10 +730,16 @@ struct DictationSessionSettings: Equatable {
     historyEnabled = settings.dictationHistoryEnabled
     historyFolder = settings.resolvedHistoryFolder
     ducksOtherAudio = settings.duckOtherAudioWhileDictating
-    shapingPrompt = settings.promptShapingEnabled
-      ? settings.shapingPrompts.prompt(for: settings.promptShapingPromptID)
-      : nil
-    shapingLibrary = settings.promptShapingEnabled ? settings.shapingPrompts : []
+    modos = settings.modos
+    unAtajoDiloDecide = settings.unAtajoDiloDecide
+    proveedores = settings.proveedores
+    proveedorGeneralID = settings.proveedorGeneralID
+    proveedoresConClave = Self.conClave(
+      settings.proveedores,
+      general: settings.proveedorGeneralID,
+      modos: settings.modos,
+      en: claves
+    )
     textoPreferencias = settings.preferenciasDeTexto
     voiceVisual = settings.voiceVisual
     waveformStyle = settings.waveformStyle

@@ -14,15 +14,29 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
     /// exclusive, a held combination end when it breaks, and a swallowed
     /// mouse button stay swallowed.
     case translate
+    /// La tecla de un modo: dicta y transforma con ese modo, en el idioma
+    /// principal. Lleva el id adentro porque los modos son tantos como
+    /// alguien quiera, así que no pueden ser casos fijos como los tres de
+    /// arriba; el resto del arbitraje —uno a la vez, el sostenido que
+    /// termina, el botón que se traga— es exactamente el mismo.
+    case modo(String)
 
     /// The preference this slot's key comes from, so a session can capture the
-    /// key it started with.
-    var bindingRole: BindingRole {
+    /// key it started with. Nil para los modos, que no son un rol: su tecla
+    /// vive dentro del modo y no en una preferencia aparte.
+    var bindingRole: BindingRole? {
       switch self {
       case .primary: .dictation
       case .secondary: .secondLanguage
       case .translate: .translate
+      case .modo: nil
       }
+    }
+
+    /// El id del modo, cuando este slot es uno.
+    var modoID: String? {
+      guard case let .modo(id) = self else { return nil }
+      return id
     }
   }
 
@@ -165,11 +179,16 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
   /// Applies the recorded Settings bindings. Safe while the tap runs; an
   /// input held through a rebind simply never delivers its release.
   /// `secondaryTrigger` is nil when no second language is chosen.
+  /// - Parameter modos: la tecla de cada modo que tiene una, en el orden de
+  ///   la lista. Van al final a propósito: si un modo comparte tecla con el
+  ///   dictado, el que pierde es el modo. Ajustes ya no deja guardar esa
+  ///   colisión, pero una configuración vieja puede traerla.
   func setBindings(
     trigger: KeyBinding,
     secondaryTrigger: KeyBinding?,
     readAloud: KeyBinding,
-    translateTrigger: KeyBinding? = nil
+    translateTrigger: KeyBinding? = nil,
+    modos: [(id: String, binding: KeyBinding)] = []
   ) {
     stateLock.withLock {
       // Two triggers on the same input would make the slot ambiguous, so an
@@ -181,7 +200,7 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
         (.primary, trigger),
         (.secondary, secondaryTrigger),
         (.translate, translateTrigger),
-      ]
+      ] + modos.map { (TriggerSlot.modo($0.id), Optional($0.binding)) }
       // The slot holding a session goes first, whatever the usual order. A
       // language enabled mid-session can carry the same stored key, and losing
       // that clash would clear heldSlot and leave the release nowhere to land.

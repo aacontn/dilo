@@ -353,8 +353,10 @@ struct LanguageSettingsView: View {
         localized: "Conserva su función de siempre salvo que aprietes esa combinación exacta"
       )
     }
-    if let other = settings.roleUsing(binding, excluding: .secondLanguage) {
-      description += ". " + String(localized: "También la usa \(other.title)")
+    if let otro = settings.quienUsa(
+      binding, salvo: AppSettings.idDeRol(.secondLanguage)
+    ) {
+      description += ". " + String(localized: "También la usa \(otro)")
     }
     return description
   }

@@ -1,3 +1,4 @@
+import DiloModes
 import SwiftUI
 import Testing
 import UniformTypeIdentifiers
@@ -72,7 +73,7 @@ struct HUDRenderTests {
     cycling.text = "the draft the label sits under"
     cycling.languageTag = "EN → ES"
     cycling.audioLevel = 0.7
-    cycling.shapingChoiceLabel = ShapingPrompt.defaults[0].name
+    cycling.shapingChoiceLabel = Modo.deFabrica[0].nombre
 
     _ = try render(
       DictationHUDShellView(
@@ -88,7 +89,7 @@ struct HUDRenderTests {
     // The words being rewritten stay above the caption; only the listening
     // placeholder is cleared, and the controller does that.
     shaping.text = "the words it is rewriting"
-    shaping.shapingName = ShapingPrompt.defaults[0].name
+    shaping.shapingName = Modo.deFabrica[0].nombre
 
     _ = try render(
       DictationHUDShellView(
