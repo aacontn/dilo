@@ -40,8 +40,14 @@ struct MuescaTests {
   /// constante: la misma app en un 1080p y en un Retina escalado se encuentra
   /// barras distintas, y una muesca más alta que la barra sobresale al
   /// escritorio.
-  @Test(arguments: [24.0, 25.0, 37.0])
-  func elAltoEsElDeLaBarraDeMenus(barra: Double) {
+  ///
+  /// Los argumentos son `CGFloat` y no `Double` a propósito. Dentro de
+  /// `#expect`, la conversión implícita entre los dos se resuelve mal y el
+  /// macro da falso comparando dos valores idénticos: el rojo decía
+  /// «Expectation failed: (… → 25.0) == (barra → 25.0)». La misma
+  /// comparación, fuera del macro, da verdadero.
+  @Test(arguments: [24.0, 25.0, 37.0] as [CGFloat])
+  func elAltoEsElDeLaBarraDeMenus(barra: CGFloat) {
     let pantalla = pantalla(barra: barra)
     #expect(HUDNotchGeometry.reposoSize(for: pantalla).height == barra)
     #expect(HUDNotchGeometry.alturaDeCabecera(for: pantalla) == barra)
