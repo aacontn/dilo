@@ -110,7 +110,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox | 2 |
-| `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 |
+| `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 
 **Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
 `DiloBrand` (`Talkify/Settings/Components/SettingsTheme.swift`), una sola vez
@@ -120,6 +120,9 @@ activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
 
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.
+`DiloMetrics` es la excepción: mide la app desde afuera, así que vive en el
+paquete pero no se enlaza a ningún target, y por eso no toca `project.pbxproj`.
+Se construye y se corre desde `scripts/metrics.sh`.
 
 **Excepción vigente:** `DiloModes` viaja dentro del producto `DiloText` en vez
 de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
@@ -220,8 +223,23 @@ xcodebuild -project Talkify.xcodeproj -scheme Dilo \
   -derivedDataPath /Volumes/SSD2/derived-data test
 
 # Los números del spec §3 contra el .app ya compilado
-./scripts/metrics.sh        # llega en la Tarea 7
+./scripts/metrics.sh /ruta/a/Dilo.app
+./scripts/metrics.sh /ruta/a/Dilo.app --sin-latencia   # sin el gancho Debug
 ```
+
+`scripts/metrics.sh` deja el reporte en `docs/metricas/ultima-medicion.json`
+—que **se versiona**, porque `swift test` lo lee y falla si un número se
+rompe— y termina con código ≠ 0 si un umbral no se cumple o si una métrica no
+se pudo medir. Tarda unos tres minutos: la ventana de reposo sola son 60 s.
+
+Para medir "soltar → texto" el `.app` tiene que ser un build **Debug** y el
+terminal necesita Accesibilidad: la medición inyecta un WAV y dispara la sesión
+apretando el menú de la barra. El gancho es la variable de entorno
+**`DILO_METRICS_WAV`**, que `MicrophoneInput` respeta sólo bajo `#if DEBUG`
+(`Talkify/Dictation/MicrophoneInput+MetricasWAV.swift`): con ella apuntando a un
+WAV, la sesión escucha ese archivo en vez del micrófono, al ritmo real, y anota
+en `<wav>.soltado` el instante en que el controlador manda a parar. En release
+no existe: el archivo entero está dentro de un `#if DEBUG`.
 
 Los dos `xcodebuild` y `swift test` tienen que pasar antes de devolver el
 trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
