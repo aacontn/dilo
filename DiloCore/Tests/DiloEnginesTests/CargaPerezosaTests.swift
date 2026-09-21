@@ -50,7 +50,9 @@ struct CargaPerezosaTests {
     // La captura arranca sin esperar al modelo: grabar desde el primer
     // milisegundo importa más que tenerlo todo listo antes de escuchar.
     #expect(captura.andando)
-    try await esperarA("el modelo terminó de cargar") { await motor.tieneModeloEnMemoria() }
+    let carga = try #require(await motor.cargaDelGatillo)
+    await carga.value
+    #expect(await motor.tieneModeloEnMemoria())
     #expect(await cargador.cargas == 1)
   }
 
@@ -68,7 +70,9 @@ struct CargaPerezosaTests {
 
     #expect(avisos.todos == [true])
     await cargador.abrir()
-    try await esperarA("el aviso de carga se apagó") { avisos.todos == [true, false] }
+    let carga = try #require(await motor.cargaDelGatillo)
+    await carga.value
+    #expect(avisos.todos == [true, false])
   }
 
   /// El caso que no puede perder palabras: la persona suelta el gatillo
@@ -103,19 +107,54 @@ struct CargaPerezosaTests {
     try await esperarA("el audio llegó al motor") { await motor.muestrasEnElBuffer > 0 }
     _ = try await motor.finish()
 
-    try await esperarA("la cuenta del reposo arrancó") { await reloj.durmiendo }
+    await reloj.hastaQueAlguienEspere()
     #expect(await reloj.esperas == [.seconds(300)])
     #expect(await motor.tieneModeloEnMemoria())
 
+    let cuenta = try #require(await motor.cuentaDeReposo)
     await reloj.avanzar()
-    try await esperarA("el modelo se fue de la RAM") { await motor.tieneModeloEnMemoria() == false }
+    await cuenta.value
+    #expect(await motor.tieneModeloEnMemoria() == false)
     let modelo = try #require(await cargador.ultimoModelo)
     #expect(await modelo.liberaciones == 1)
 
     // Y el dictado siguiente lo vuelve a cargar, en paralelo a la grabación.
     try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
-    try await esperarA("el modelo volvió") { await motor.tieneModeloEnMemoria() }
+    let recarga = try #require(await motor.cargaDelGatillo)
+    await recarga.value
+    #expect(await motor.tieneModeloEnMemoria())
     #expect(await cargador.cargas == 2)
+  }
+
+  /// Soltar el gatillo **mientras el modelo todavía carga** —los 28 s de la
+  /// primera compilación del encoder, o una máquina cargada— tiene que dejar
+  /// el reposo armado igual. Acá se rompió en CI: `finish()` y la carga del
+  /// gatillo esperan a la misma tarea y resumen en cualquier orden, y el que
+  /// ganaba armaba la cuenta con el modelo todavía en nil, así que no armaba
+  /// nada y el modelo se quedaba en la RAM hasta cerrar la app.
+  ///
+  /// Quien garantiza el orden es el motor —el estado lo escribe la tarea de
+  /// carga antes de terminar—; esta prueba recorre el camino y deja escrito
+  /// qué se espera de él, pero no puede forzar la carrera: qué continuación
+  /// resume primero lo decide el scheduler.
+  @Test func soltarConLaCargaEnVueloIgualArmaElReposo() async throws {
+    let captura = CapturaFalsa()
+    let cargador = CargadorFalso(abierto: false)
+    let reloj = RelojFalso()
+    let motor = motor(captura: captura, cargador: cargador, reloj: reloj)
+
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    captura.hablar(segundos: 0.5)
+    try await esperarA("el audio llegó al motor") { await motor.muestrasEnElBuffer > 0 }
+    try await esperarA("la carga está esperando") { await cargador.esperandoLaPuerta == 1 }
+
+    let dictado = Task { try await motor.finish() }
+    await cargador.abrir()
+    _ = try await dictado.value
+
+    await reloj.hastaQueAlguienEspere()
+    #expect(await reloj.esperas == [.seconds(300)])
+    #expect(await motor.tieneModeloEnMemoria())
   }
 
   @Test func conReposoEnNuncaElModeloSeQueda() async throws {
@@ -129,7 +168,9 @@ struct CargaPerezosaTests {
     try await esperarA("el audio llegó al motor") { await motor.muestrasEnElBuffer > 0 }
     _ = try await motor.finish()
 
-    try await Task.sleep(for: .milliseconds(50))
+    // El `finish` arma el reposo antes de volver: si no hay cuenta acá, no la
+    // va a haber después, y no hay nada que esperar.
+    #expect(await motor.cuentaDeReposo == nil)
     #expect(await reloj.esperas.isEmpty)
     #expect(await motor.tieneModeloEnMemoria())
   }
@@ -146,12 +187,13 @@ struct CargaPerezosaTests {
     captura.hablar(segundos: 0.5)
     try await esperarA("el audio llegó al motor") { await motor.muestrasEnElBuffer > 0 }
     _ = try await motor.finish()
-    try await esperarA("la cuenta del reposo arrancó") { await reloj.durmiendo }
+    await reloj.hastaQueAlguienEspere()
+    let cuenta = try #require(await motor.cuentaDeReposo)
 
     await motor.configurarReposo(nil)
     await reloj.avanzar()
+    await cuenta.value
 
-    try await Task.sleep(for: .milliseconds(50))
     #expect(await motor.tieneModeloEnMemoria())
   }
 

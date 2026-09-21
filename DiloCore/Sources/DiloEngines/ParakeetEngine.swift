@@ -78,6 +78,10 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   /// segundos antes de empezar a grabar: la captura arranca al tiro y el
   /// modelo termina de cargar mientras la persona habla.
   private var carga: Task<any ModeloDeVoz, any Error>?
+  /// La carga que arrancó el gatillo, con su aviso a la píldora colgando
+  /// atrás. Se guarda para poder esperarla desde `swift test` en vez de
+  /// dormir una cifra al ojo; en la app nadie la mira.
+  private var cargaConAviso: Task<Void, Never>?
   /// Cada cuánto se suelta el modelo sin dictar. `nil` es "nunca".
   private var reposo: Duration?
   /// La cuenta regresiva en curso hacia la descarga.
@@ -120,6 +124,13 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   /// dormir una cifra al ojo.
   var muestrasEnElBuffer: Int { muestras.count }
 
+  /// La cuenta regresiva hacia soltar el modelo, o nada si no hay ninguna.
+  /// Sólo la mira `swift test`, para esperar a que termine.
+  var cuentaDeReposo: Task<Void, Never>? { descarga }
+
+  /// La carga que arrancó el último `start`. Misma razón que la de arriba.
+  var cargaDelGatillo: Task<Void, Never>? { cargaConAviso }
+
   public func tieneModeloEnMemoria() async -> Bool { modelo != nil }
 
   /// **No carga nada.** Precalentar corre al arrancar la app y cada vez que
@@ -131,23 +142,45 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   /// Carga el modelo una sola vez, aunque se lo pidan tres veces seguidas.
   private func cargarModelo() async throws -> any ModeloDeVoz {
     if let modelo { return modelo }
-    if let carga { return try await carga.value }
+    return try await tareaDeCarga().value
+  }
+
+  /// La carga en vuelo, o una nueva. Vuelve sincrónica a propósito: el
+  /// `start` se queda con la tarea sin esperar a nadie.
+  ///
+  /// **El estado lo escribe la tarea antes de terminar, nunca quien la
+  /// espera.** El gatillo pide la carga y `finish()` espera a esa misma
+  /// tarea; los dos resumen cuando termina y el orden entre ellos no está
+  /// definido. Cuando el estado se escribía afuera, el `finish()` que ganaba
+  /// la carrera armaba el reposo con `modelo` todavía en nil: la cuenta no
+  /// arrancaba nunca y el modelo se quedaba en la RAM hasta cerrar la app.
+  private func tareaDeCarga() -> Task<any ModeloDeVoz, any Error> {
+    if let carga { return carga }
 
     let cargador = self.cargador
-    let tarea = Task { try await cargador.cargar() }
-    carga = tarea
-
-    do {
-      let listo = try await tarea.value
-      modelo = listo
-      carga = nil
-      parcialesReiniciados = true
-      Self.logger.info("Parakeet cargado y listo")
-      return listo
-    } catch {
-      carga = nil
-      throw error
+    let tarea = Task { [weak self] () async throws -> any ModeloDeVoz in
+      do {
+        let listo = try await cargador.cargar()
+        await self?.anotarCargado(listo)
+        return listo
+      } catch {
+        await self?.olvidarLaCarga()
+        throw error
+      }
     }
+    carga = tarea
+    return tarea
+  }
+
+  private func anotarCargado(_ listo: any ModeloDeVoz) {
+    modelo = listo
+    carga = nil
+    parcialesReiniciados = true
+    Self.logger.info("Parakeet cargado y listo")
+  }
+
+  private func olvidarLaCarga() {
+    carga = nil
   }
 
   /// Cada cuánto se suelta el modelo si nadie dicta. Se lee de Ajustes al
@@ -184,8 +217,9 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     if modelo == nil {
       avisarCarga = handlers.cargando
       handlers.cargando(true)
-      Task { [weak self] in
-        _ = try? await self?.cargarModelo()
+      let tarea = tareaDeCarga()
+      cargaConAviso = Task { [weak self] in
+        _ = try? await tarea.value
         await self?.avisarQueLaCargaTermino()
       }
     }

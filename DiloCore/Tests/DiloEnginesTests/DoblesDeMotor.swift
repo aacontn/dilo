@@ -108,13 +108,28 @@ actor CargadorFalso: CargadorDeModelo {
 /// Un reloj que no avanza hasta que la prueba se lo dice.
 actor RelojFalso: RelojDeReposo {
   private var esperando: [CheckedContinuation<Void, any Error>] = []
+  /// Quienes esperan a que alguien empiece a dormir acá.
+  private var mirando: [CheckedContinuation<Void, Never>] = []
   private(set) var esperas: [Duration] = []
-
-  var durmiendo: Bool { !esperando.isEmpty }
 
   func dormir(_ intervalo: Duration) async throws {
     esperas.append(intervalo)
-    try await withCheckedThrowingContinuation { esperando.append($0) }
+    try await withCheckedThrowingContinuation { continuacion in
+      esperando.append(continuacion)
+      // Recién ahora hay algo que avanzar: quien mira despierta con la espera
+      // ya anotada, nunca antes.
+      for quien in mirando { quien.resume() }
+      mirando = []
+    }
+  }
+
+  /// Vuelve cuando alguien está durmiendo en este reloj —al tiro si ya lo
+  /// está—. Es la costura que deja avanzar el reloj sin carrera: sin esto, la
+  /// prueba avanzaba un reloj en el que la tarea de reposo todavía no había
+  /// alcanzado a registrar su espera, y no avanzaba nada.
+  func hastaQueAlguienEspere() async {
+    guard esperando.isEmpty else { return }
+    await withCheckedContinuation { mirando.append($0) }
   }
 
   /// Da por cumplido el intervalo que estaba corriendo.
