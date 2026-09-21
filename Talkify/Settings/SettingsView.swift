@@ -56,28 +56,20 @@ struct SettingsView: View {
     // selection, so changing section replaces the whole content and would take
     // this with it — cancelling the one call that drives Apple's download.
     .background(TranslationDownloadTask(pair: runtimeState.installingTranslation?.pair))
-    .background {
-      ZStack {
-        SettingsTheme.background
-        LinearGradient(
-          colors: [.white.opacity(0.035), .clear, .black.opacity(0.12)],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        )
-      }
-    }
-    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    .overlay {
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .stroke(.white.opacity(contrast == .increased ? 0.24 : 0.1), lineWidth: 1)
-    }
-    .tint(SettingsTheme.accent)
-    .preferredColorScheme(.dark)
+    .superficieDeDilo()
     .onExitCommand(perform: onClose)
+    // Abrir Ajustes en una sección concreta: el menú de la barra y el
+    // arranque después de actualizar piden Novedades. Se consume al aplicarla
+    // para que volver a abrir la ventana no vuelva a saltar ahí.
+    .onChange(of: runtimeState.seccionPedida, initial: true) { _, pedida in
+      guard let pedida else { return }
+      selectedSection = pedida
+      runtimeState.seccionPedida = nil
+    }
   }
 }
 
-private struct SettingsHeader: View {
+struct SettingsHeader: View {
   let onClose: () -> Void
 
   @Environment(\.colorSchemeContrast) private var contrast
@@ -275,6 +267,8 @@ private struct SettingsContent: View {
           ShortcutsSettingsView(settings: settings)
         case .updates:
           UpdatesSettingsView(updater: updater)
+        case .novedades:
+          NovedadesSettingsView()
         case .insights:
           InsightsSettingsView(tracker: usageTracker)
         case .about:

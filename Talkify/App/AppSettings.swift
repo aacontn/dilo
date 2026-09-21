@@ -52,6 +52,8 @@ final class AppSettings {
     static let palabrasPropias = "diloPalabrasPropias"
     static let limpiarMuletillas = "diloLimpiarMuletillas"
     static let muletillasPropias = "diloMuletillasPropias"
+    static let onboardingVisto = "diloOnboardingVisto"
+    static let versionVista = "diloVersionVista"
   }
 
   @ObservationIgnored
@@ -280,6 +282,20 @@ final class AppSettings {
   /// The dictation language, as a locale identifier; empty means follow the
   /// Mac's own language, which is what every session did before the Language
   /// section existed.
+  /// Si los Primeros pasos ya se mostraron alguna vez. Sólo lo escribe la
+  /// app al abrirlos; volver a abrirlos desde el menú no lo cambia, porque
+  /// para eso está el menú.
+  var onboardingVisto: Bool {
+    didSet { defaults.set(onboardingVisto, forKey: Keys.onboardingVisto) }
+  }
+
+  /// La última versión cuyas novedades se mostraron. Vacía en una instalación
+  /// nueva: ahí lo que corresponde es el onboarding, no un changelog de algo
+  /// que la persona nunca usó.
+  var versionVista: String {
+    didSet { defaults.set(versionVista, forKey: Keys.versionVista) }
+  }
+
   /// Cuál **Motor de voz** dicta. La clave y el default viven en
   /// `EnginePreference` para poder probar la regla con `swift test`; acá
   /// sigue estando el único lugar de la app que la lee y la escribe.
@@ -436,6 +452,8 @@ final class AppSettings {
       key: Keys.readAloudBinding,
       allowsMouseButton: false
     ) ?? .optionEscape
+    onboardingVisto = defaults.bool(forKey: Keys.onboardingVisto)
+    versionVista = defaults.string(forKey: Keys.versionVista) ?? ""
     motorDeVoz = EnginePreference.leer(defaults)
     recognitionLocaleIdentifier = defaults.string(forKey: Keys.recognitionLocale) ?? ""
     secondaryRecognitionLocaleIdentifier =

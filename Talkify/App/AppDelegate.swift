@@ -1,5 +1,6 @@
 import AppKit
 import DiloCapabilities
+import DiloEngines
 import os
 
 @main
@@ -13,6 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var dictationController: DirectDictationController?
   private var readAloudController: ReadAloudController?
   private var settingsWindowController: SettingsWindowController?
+  private var onboardingWindowController: OnboardingWindowController?
+  private var estadoDePermisos: EstadoDePermisos?
   private var usageTracker: UsageTracker?
   private let settingsRuntimeState = SettingsRuntimeState()
   private let updaterService = SparkleUpdaterService()
@@ -104,6 +107,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       toggleReadAloud: { readAloudController.toggle() },
       transcribeFile: { dropTranscriptionController.pickFile() },
       openSettings: { [weak self] in self?.showSettings() },
+      openOnboarding: { [weak self] in self?.mostrarPrimerosPasos() },
+      openNovedades: { [weak self] in self?.showSettings(seccion: .novedades) },
       checkForUpdates: { [weak self] in self?.updaterService.checkForUpdates() }
     )
     self.statusItemController = statusItemController
@@ -168,6 +173,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Last: a scheduled check can show a window, and it must never land
     // before the status item and dictation are wired.
     updaterService.start()
+
+    saludar(settings)
   }
 
   /// Rebinding in Settings updates the event tap and the status menu
@@ -247,8 +254,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     dropTranscriptionController?.commitOfferedTranscript()
   }
 
-  private func showSettings() {
+  /// Qué ve la persona al arrancar, según qué copia de Dilo es ésta.
+  ///
+  /// Instalación nueva: los Primeros pasos, que es donde se explican los
+  /// permisos antes de pedirlos. Copia que acaba de actualizarse: las
+  /// Novedades de la versión, que es lo que Dilo ya hacía en su versión Tauri.
+  /// Copia que ya venía al día: nada, que es lo que corresponde en una app que
+  /// vive en la barra de menús.
+  private func saludar(_ settings: AppSettings) {
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+
+    if !settings.onboardingVisto {
+      settings.versionVista = version
+      mostrarPrimerosPasos(reclamandoElFoco: true)
+      return
+    }
+
+    // La versión vista vacía es una copia anterior a que esto existiera: se
+    // anota y no se le abre nada, porque no actualizó a nada todavía.
+    if !settings.versionVista.isEmpty, settings.versionVista != version {
+      settings.versionVista = version
+      showSettings(seccion: .novedades, reclamandoElFoco: true)
+      return
+    }
+    settings.versionVista = version
+  }
+
+  private func mostrarPrimerosPasos(reclamandoElFoco: Bool = false) {
+    guard let settings else { return }
+    settings.onboardingVisto = true
+
+    if onboardingWindowController == nil {
+      let permisos = EstadoDePermisos(motorEsApple: settings.motorDeVoz == .apple)
+      estadoDePermisos = permisos
+      onboardingWindowController = OnboardingWindowController(
+        settings: settings,
+        permisos: permisos
+      )
+    }
+    estadoDePermisos?.refrescar()
+    onboardingWindowController?.mostrar(reclamandoElFoco: reclamandoElFoco)
+  }
+
+  private func showSettings(seccion: SettingsSection? = nil, reclamandoElFoco: Bool = false) {
     guard let settings, let usageTracker else { return }
+    if let seccion { settingsRuntimeState.seccionPedida = seccion }
     if settingsWindowController == nil {
       settingsWindowController = SettingsWindowController(
         settings: settings,
@@ -259,6 +309,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         launchAtLogin: launchAtLoginService
       )
     }
-    settingsWindowController?.show()
+    settingsWindowController?.show(reclamandoElFoco: reclamandoElFoco)
   }
 }

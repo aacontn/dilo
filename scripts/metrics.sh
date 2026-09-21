@@ -6,6 +6,9 @@
 #
 # Opciones que se pasan tal cual a dilo-metrics:
 #   --sin-latencia      no mide "soltar → texto" (no necesita el gancho Debug)
+#   --tamano-de <.app>  mide el tamaño sobre otro bundle: el Release, que es el
+#                       que se descarga, mientras la latencia se mide sobre el
+#                       Debug, que es el único que trae el gancho
 #   --reposo <s>        ventana de reposo, por defecto 60
 #   --arranques <n>     lanzamientos para la mediana de arranque, por defecto 5
 #

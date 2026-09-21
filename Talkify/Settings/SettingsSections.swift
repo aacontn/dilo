@@ -36,6 +36,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   case language
   case shortcuts
   case updates
+  case novedades
   case insights
   case about
 
@@ -79,6 +80,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .shortcuts: String(localized: "Atajos")
     case .updates: String(localized: "Actualizaciones")
     case .insights: String(localized: "Actividad")
+    case .novedades: String(localized: "Novedades")
     case .about: String(localized: "Acerca de")
     }
   }
@@ -100,6 +102,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .shortcuts: String(localized: "Qué teclas hacen qué")
     case .updates: String(localized: "Mantén Dilo al día")
     case .insights: String(localized: "Cuánto dictaste, guardado sólo acá")
+    case .novedades: String(localized: "Qué trae la versión que tienes")
     case .about: String(localized: "Qué es Dilo y de quién es lo prestado")
     }
   }
@@ -120,6 +123,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .language: "globe"
     case .shortcuts: "keyboard"
     case .updates: "arrow.down.circle"
+    case .novedades: "megaphone"
     case .insights: "chart.bar.xaxis"
     case .about: "info.circle"
     }

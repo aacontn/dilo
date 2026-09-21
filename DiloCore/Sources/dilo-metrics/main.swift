@@ -23,6 +23,12 @@ guard let rutaDelApp = valor(de: "--app", en: argumentos) else {
 let ventanaDeReposo = Double(valor(de: "--reposo", en: argumentos) ?? "") ?? 60
 let arranques = Int(valor(de: "--arranques", en: argumentos) ?? "") ?? 5
 let mideLatencia = !argumentos.contains("--sin-latencia")
+// El tamaño es el del `.app` que la gente descarga, y ése es el de Release.
+// La latencia, en cambio, sólo se puede medir en Debug, porque el gancho
+// DILO_METRICS_WAV no existe fuera de `#if DEBUG`. Sin esta bandera había que
+// elegir cuál de los dos números decir la verdad: se mide el resto sobre el
+// Debug y el tamaño sobre su gemelo Release del mismo commit.
+let rutaDelTamano = valor(de: "--tamano-de", en: argumentos)
 let rutaDeSalida = valor(de: "--salida", en: argumentos)
 
 func avisar(_ texto: String) {
@@ -42,7 +48,13 @@ do {
   var notas: [String] = []
 
   avisar("→ tamaño del bundle")
-  valores[.tamanoDelApp] = Double(try app.tamanoEnBytes()) / Umbrales.bytesPorMB
+  if let rutaDelTamano {
+    let gemelo = try Aplicacion(ruta: URL(fileURLWithPath: rutaDelTamano).standardizedFileURL)
+    valores[.tamanoDelApp] = Double(try gemelo.tamanoEnBytes()) / Umbrales.bytesPorMB
+    notas.append("Tamaño: medido sobre \(gemelo.ruta.path), el gemelo Release del mismo commit.")
+  } else {
+    valores[.tamanoDelApp] = Double(try app.tamanoEnBytes()) / Umbrales.bytesPorMB
+  }
 
   avisar("→ arranque en frío (\(arranques) lanzamientos)")
   var tiempos: [TimeInterval] = []

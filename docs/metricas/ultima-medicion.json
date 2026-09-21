@@ -1,13 +1,13 @@
 {
-  "app" : "\/Volumes\/SSD2\/derived-data\/metricas\/Build\/Products\/Debug\/Dilo.app",
-  "generado" : "2026-09-21T00:25:35Z",
+  "app" : "\/Volumes\/SSD2\/derived-data\/onboarding\/Build\/Products\/Debug\/Dilo.app",
+  "generado" : "2026-09-21T01:41:10Z",
   "maquina" : "Macmini9,1 · Version 27.0 (Build 26A428)",
-  "nota" : "Arranque: mediana de 5 lanzamientos (112\/116\/119\/145\/186 ms). El caché de archivos está caliente: vaciarlo exige sudo purge o un reinicio. Latencia: segunda pasada, con el modelo ya cargado. Transcrito: “Oye, anota esto, hay que revisar el deploy de la landin antes del viernes y avisarle al equipo.”.",
+  "nota" : "Tamaño: medido sobre \/Volumes\/SSD2\/scratch\/dilo-mac\/Dilo-0.4.0.app, el gemelo Release del mismo commit. Arranque: mediana de 5 lanzamientos (153\/154\/157\/165\/219 ms). El caché de archivos está caliente: vaciarlo exige sudo purge o un reinicio. Latencia: segunda pasada, con el modelo ya cargado. Transcrito: “Oye, anota esto, hay que revisar el deploy de la landing antes del viernes y avisarle al equipo.”.",
   "valores" : {
-    "arranqueEnFrio" : 0.11897897720336914,
-    "cpuEnReposo" : 0.04859346507183356,
-    "latenciaSoltarTexto" : 0.0899200439453125,
-    "ramEnReposo" : 18.78216552734375,
-    "tamanoDelApp" : 17.29545021057129
+    "arranqueEnFrio" : 0.15711402893066406,
+    "cpuEnReposo" : 0.04847592459609606,
+    "latenciaSoltarTexto" : 0.2577028274536133,
+    "ramEnReposo" : 46.39165496826172,
+    "tamanoDelApp" : 23.44566535949707
   }
 }

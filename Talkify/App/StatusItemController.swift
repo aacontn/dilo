@@ -8,6 +8,8 @@ final class StatusItemController: NSObject {
   private let toggleReadAloud: () -> Void
   private let transcribeFile: () -> Void
   private let openSettings: () -> Void
+  private let openOnboarding: () -> Void
+  private let openNovedades: () -> Void
   private let checkForUpdates: () -> Void
   private let dictationItem: NSMenuItem
   private let readAloudItem: NSMenuItem
@@ -28,12 +30,16 @@ final class StatusItemController: NSObject {
     toggleReadAloud: @escaping () -> Void,
     transcribeFile: @escaping () -> Void,
     openSettings: @escaping () -> Void,
+    openOnboarding: @escaping () -> Void,
+    openNovedades: @escaping () -> Void,
     checkForUpdates: @escaping () -> Void
   ) {
     self.toggleDictation = toggleDictation
     self.toggleReadAloud = toggleReadAloud
     self.transcribeFile = transcribeFile
     self.openSettings = openSettings
+    self.openOnboarding = openOnboarding
+    self.openNovedades = openNovedades
     self.checkForUpdates = checkForUpdates
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     dictationItem = NSMenuItem(title: "Empezar a dictar", action: nil, keyEquivalent: "")
@@ -73,6 +79,25 @@ final class StatusItemController: NSObject {
     )
     settingsItem.target = self
     menu.addItem(settingsItem)
+
+    // Primeros pasos no se ve una sola vez y se pierde: es donde están los
+    // permisos y el dictado de prueba, que es lo que alguien vuelve a buscar
+    // cuando algo dejó de funcionar.
+    let onboardingItem = NSMenuItem(
+      title: "Primeros pasos…",
+      action: #selector(openOnboardingItem),
+      keyEquivalent: ""
+    )
+    onboardingItem.target = self
+    menu.addItem(onboardingItem)
+
+    let novedadesItem = NSMenuItem(
+      title: "Novedades de esta versión…",
+      action: #selector(openNovedadesItem),
+      keyEquivalent: ""
+    )
+    novedadesItem.target = self
+    menu.addItem(novedadesItem)
 
     let updatesItem = NSMenuItem(
       title: "Buscar actualizaciones…",
@@ -255,6 +280,14 @@ final class StatusItemController: NSObject {
 
   @objc private func checkForUpdatesItem() {
     checkForUpdates()
+  }
+
+  @objc private func openOnboardingItem() {
+    openOnboarding()
+  }
+
+  @objc private func openNovedadesItem() {
+    openNovedades()
   }
 
   @objc private func openSettingsItem() {

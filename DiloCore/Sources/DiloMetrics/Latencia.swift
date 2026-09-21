@@ -82,7 +82,12 @@ public enum Latencia {
     let portapapeles = NSPasteboard.general
     let cuentaInicial = portapapeles.changeCount
 
-    try alternarDictado(pid: pid, esperando: "Parar")
+    // Cuarenta intentos —un minuto largo— y no tres: con Parakeet elegido y su
+    // modelo en disco, la primera sesión espera a que Core ML compile y cargue
+    // el modelo. En un M1 ocioso son unos veinte segundos; con la máquina
+    // ocupada, bastante más. Con el motor de Apple estaba lista en tres. El que
+    // se rinde antes no mide nada: sólo miente sobre por qué no midió.
+    try alternarDictado(pid: pid, esperando: "Parar", intentos: 40)
     // El gancho reproduce el WAV en tiempo real; medio segundo de sobra para
     // que el reconocedor reciba la última palabra antes de que se suelte.
     dormir(duracionDelWav + 0.5)
@@ -201,13 +206,13 @@ public enum Latencia {
   /// significa que la app no está lista —falta un permiso, o el modelo del
   /// idioma— y da un error que dice eso en vez de un timeout de veinte
   /// segundos sin explicación.
-  static func alternarDictado(pid: pid_t, esperando esperado: String) throws {
-    for intento in 1...3 {
+  static func alternarDictado(pid: pid_t, esperando esperado: String, intentos: Int = 3) throws {
+    for intento in 1...intentos {
       if try estadoDelItem(pid: pid).contains(esperado) { return }
       try apretarElItemDeDictado(pid: pid)
       dormir(0.3)
       if try estadoDelItem(pid: pid).contains(esperado) { return }
-      if intento < 3 { dormir(1) }
+      if intento < intentos { dormir(1.5) }
     }
     throw ErrorDeMedicion(
       "el menú de Dilo no llegó a “\(esperado)”: la app no está lista para dictar "
