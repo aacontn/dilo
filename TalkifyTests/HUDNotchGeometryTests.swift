@@ -19,6 +19,23 @@ struct HUDNotchGeometryTests {
     auxiliaryTopRightArea: nil,
     menuBarHeight: 24
   )
+  /// La misma pantalla externa con el ajuste en «Notch simulado».
+  private let externalSimulado = HUDScreenSnapshot(
+    id: 2,
+    frame: CGRect(x: 1512, y: 200, width: 2560, height: 1440),
+    safeAreaTop: 0,
+    auxiliaryTopLeftArea: nil,
+    auxiliaryTopRightArea: nil,
+    menuBarHeight: 24,
+    estiloSinNotch: .notchSimulado
+  )
+  /// Un MacBook con el ajuste en «Notch simulado»: el ajuste no se mira
+  /// cuando hay carcasa de verdad.
+  private var notchedSimulado: HUDScreenSnapshot {
+    var copia = notched
+    copia.estiloSinNotch = .notchSimulado
+    return copia
+  }
 
   @Test func measuresNotchBySubtractingAuxiliaryAreas() {
     let size = HUDNotchGeometry.measuredClosedSize(for: notched)
@@ -85,7 +102,7 @@ struct HUDNotchGeometryTests {
       includesTextBand: false,
       shapingBandHeight: 0
     )
-    let window = HUDNotchGeometry.windowFrame(for: notched, clearsMenuBar: false)
+    let window = HUDNotchGeometry.windowFrame(for: notched)
     #expect(content.height <= window.height - HUDNotchGeometry.shadowPadding)
   }
 
@@ -101,7 +118,7 @@ struct HUDNotchGeometryTests {
   }
 
   @Test func windowFrameIsTopCenterWithShadowSlack() {
-    let frame = HUDNotchGeometry.windowFrame(for: notched, clearsMenuBar: false)
+    let frame = HUDNotchGeometry.windowFrame(for: notched)
     let expectedWidth: CGFloat = 540 + 44 * 2
     // The shaping band rides outside the max: it can hang under either band
     // stack, so the tallest layout is whichever stack wins plus it.
@@ -134,7 +151,7 @@ struct HUDNotchGeometryTests {
   /// four-line draft, and the shaping label under both — must fit the fixed
   /// window, which never resizes (ADR-0001).
   @Test func tallestShapingLayoutFitsTheFixedWindow() {
-    let window = HUDNotchGeometry.windowFrame(for: notched, clearsMenuBar: false)
+    let window = HUDNotchGeometry.windowFrame(for: notched)
     let tallest = 32
       + HUDMetrics.standard.visualBandHeight
       + HUDMetrics.standard.maxTextBandHeight
@@ -146,7 +163,7 @@ struct HUDNotchGeometryTests {
   /// replaces the ordinary text band. Housing plus that stage plus shaping
   /// still fits; a concert waveform on top of the draft would not.
   @Test func glowDraftMaximumStackFitsTheFixedWindow() {
-    let window = HUDNotchGeometry.windowFrame(for: notched, clearsMenuBar: false)
+    let window = HUDNotchGeometry.windowFrame(for: notched)
     let glowDraft = 32
       + HUDMetrics.standard.glowDraftStageHeight
       + HUDMetrics.standard.shapingBandHeight
@@ -164,21 +181,22 @@ struct HUDNotchGeometryTests {
   /// The preference only governs a display with no housing. A notched one
   /// hugs its own notch either way.
   @Test func aNotchedDisplayIgnoresTheMenuBarPreference() {
-    #expect(HUDNotchGeometry.topInset(for: notched, clearsMenuBar: true) == 0)
-    #expect(HUDNotchGeometry.topInset(for: notched, clearsMenuBar: false) == 0)
+    #expect(HUDNotchGeometry.topInset(for: notched) == 0)
+    #expect(HUDNotchGeometry.topInset(for: notchedSimulado) == 0)
+    #expect(!HUDNotchGeometry.simulatesNotch(for: notchedSimulado))
+    #expect(HUDNotchGeometry.windowFrame(for: notchedSimulado) == HUDNotchGeometry.windowFrame(for: notched))
   }
 
-  /// Off, the shape sits where the notch would be, which is what it imitates.
-  @Test func aDisplayWithNoNotchSitsOverTheMenuBarByDefault() {
-    #expect(HUDNotchGeometry.topInset(for: external, clearsMenuBar: false) == 0)
-    #expect(
-      HUDNotchGeometry.windowFrame(for: external, clearsMenuBar: false).maxY
-        == external.frame.maxY
-    )
+  /// Con el ajuste en «Notch simulado» la forma se pone donde iría el notch:
+  /// pegada al borde de arriba, sin relleno.
+  @Test func elNotchSimuladoSePegaAlBordeDeArriba() {
+    #expect(HUDNotchGeometry.simulatesNotch(for: externalSimulado))
+    #expect(HUDNotchGeometry.topInset(for: externalSimulado) == 0)
+    #expect(HUDNotchGeometry.windowFrame(for: externalSimulado).maxY == external.frame.maxY)
   }
 
   @Test func topInsetIsZeroOnANotchedDisplay() {
-    #expect(HUDNotchGeometry.topInset(for: notched, clearsMenuBar: true) == 0)
+    #expect(HUDNotchGeometry.topInset(for: notched) == 0)
   }
 
   /// Issue #83: with no real notch to hug, a shape pinned flush to the
@@ -189,13 +207,13 @@ struct HUDNotchGeometryTests {
     // Dilo agrega su aire: la píldora se separa de la franja del sistema en
     // vez de quedar pegada a ella (`HUDNotchGeometry.pillDetachment`).
     #expect(
-      HUDNotchGeometry.topInset(for: external, clearsMenuBar: true)
+      HUDNotchGeometry.topInset(for: external)
         == external.menuBarHeight + HUDNotchGeometry.pillDetachment
     )
   }
 
   @Test func windowFrameHangsBelowTheMenuBarWithNoNotch() {
-    let frame = HUDNotchGeometry.windowFrame(for: external, clearsMenuBar: true)
+    let frame = HUDNotchGeometry.windowFrame(for: external)
     #expect(
       frame.maxY
         == external.frame.maxY - external.menuBarHeight - HUDNotchGeometry.pillDetachment
@@ -242,7 +260,7 @@ struct HUDNotchGeometryTests {
   /// whatever the user's HUD size, so a smaller shape centers inside it
   /// instead of resizing the window mid-session.
   @Test func windowFrameIgnoresHUDSize() {
-    let frame = HUDNotchGeometry.windowFrame(for: external, clearsMenuBar: true)
+    let frame = HUDNotchGeometry.windowFrame(for: external)
     let smallest = HUDMetrics(scale: HUDMetrics.minimumScale)
     let content = HUDNotchGeometry.contentSize(
       for: external,
@@ -267,7 +285,7 @@ struct HUDNotchGeometryTests {
       auxiliaryTopRightArea: nil,
       menuBarHeight: 24
     )
-    let frame = HUDNotchGeometry.windowFrame(for: narrow, clearsMenuBar: false)
+    let frame = HUDNotchGeometry.windowFrame(for: narrow)
     #expect(frame.width == 600)
     #expect(frame.midX == 300)
   }

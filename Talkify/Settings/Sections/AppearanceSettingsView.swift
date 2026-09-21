@@ -90,14 +90,14 @@ struct AppearanceSettingsView: View {
           valueLabel: { "\(Int(($0 * 100).rounded()))%" }
         )
 
-        SettingsRow(
-          title: "Dejar libre la barra de menús",
-          description: "En una pantalla sin notch, la píldora se cuelga debajo de la barra de menús para no tapar tus íconos. Apágalo sólo si prefieres que se ponga donde iría el notch."
-        ) {
-          Toggle("Dejar libre la barra de menús", isOn: $settings.hudClearsMenuBar)
-            .labelsHidden()
-            .toggleStyle(.switch)
-        }
+        SettingsPickerRow(
+          title: "En pantallas sin notch",
+          description: "La píldora cuelga debajo de la barra de menús y no tapa tus íconos. El notch simulado se pega al borde de arriba, sobre el centro vacío de la barra, y se ve como el de un MacBook.",
+          options: HUDEstiloSinNotch.allCases,
+          optionLabel: { $0.title },
+          selection: $settings.hudEstiloSinNotch,
+          controlWidth: 190
+        )
 
         SettingsPickerRow(
           title: "Cómo aparece",

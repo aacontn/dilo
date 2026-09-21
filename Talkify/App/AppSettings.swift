@@ -39,7 +39,10 @@ final class AppSettings {
     static let transcriptDestination = "transcriptDestination"
     static let transcriptFolder = "transcriptFolder"
     static let insertionDestination = "dictationInsertionDestination"
+    /// La clave vieja, de cuando esto era un interruptor. Se lee una sola
+    /// vez para no borrarle la elección a quien ya la había cambiado.
     static let hudClearsMenuBar = "hudClearsMenuBar"
+    static let hudEstiloSinNotch = "hudEstiloSinNotch"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     static let promptShapingEnabled = "dictationPromptShapingEnabled"
@@ -257,14 +260,11 @@ final class AppSettings {
     didSet { defaults.set(readAloudTranslates, forKey: Keys.readAloudTranslates) }
   }
 
-  /// Whether the shape hangs below the menu bar on a display with no notch.
-  ///
-  /// Off, so it sits where the notch would be and looks like the housing it
-  /// imitates. On for a crowded menu bar, where a centred 540-point shape can
-  /// reach far enough right to cover a status item — including Talkify's own,
-  /// which is how a session is stopped without the key (issue #83).
-  var hudClearsMenuBar: Bool {
-    didSet { defaults.set(hudClearsMenuBar, forKey: Keys.hudClearsMenuBar) }
+  /// Qué forma se dibuja en una pantalla sin notch: la píldora que cuelga
+  /// debajo de la barra de menús (el default) o la imitación del notch pegada
+  /// al borde de arriba. Con notch real no se mira.
+  var hudEstiloSinNotch: HUDEstiloSinNotch {
+    didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
   }
 
   var readAloudVoiceID: String {
@@ -446,7 +446,13 @@ final class AppSettings {
     // franja donde macOS 27 pone su HUD de volumen (spec §8.2). La
     // geometría fina de la píldora es la Tarea 6; el default se corrige hoy
     // porque el 80 % del uso de Alfonso es sin notch.
-    hudClearsMenuBar = defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool ?? true
+    // El interruptor viejo apagado quería decir «ponla donde iría el notch»,
+    // que es exactamente el estilo simulado; así nadie pierde su elección al
+    // actualizar. Sin nada guardado manda la píldora: en una pantalla sin
+    // notch la forma de Talkify se dibujaba encima de los status items, en la
+    // misma franja donde macOS 27 pone su HUD de volumen (spec §8.2).
+    hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
+      ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == false ? .notchSimulado : .pildora)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(

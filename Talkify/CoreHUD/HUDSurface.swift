@@ -50,11 +50,12 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     HUDNotchGeometry.filletSize(for: screen)
   }
 
-  /// La forma negra. Contra una carcasa real las esquinas de arriba son
-  /// rectas: la forma nace del recorte y comparte su borde. La píldora de
-  /// Dilo flota separada de la barra de menús, así que se cierra por los
-  /// cuatro lados — una píldora con el tope recto se lee como algo que se
-  /// asoma desde arriba, que es justo lo que no es.
+  /// La forma negra. Contra una carcasa real —y contra el notch simulado, que
+  /// también nace del borde de la pantalla— las esquinas de arriba son
+  /// rectas: la forma comparte ese borde. La píldora de Dilo flota separada
+  /// de la barra de menús, así que se cierra por los cuatro lados — una
+  /// píldora con el tope recto se lee como algo que se asoma desde arriba,
+  /// que es justo lo que no es.
   private var housingShape: UnevenRoundedRectangle {
     UnevenRoundedRectangle(
       topLeadingRadius: topCornerRadius,
@@ -66,8 +67,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   }
 
   private var topCornerRadius: CGFloat {
-    guard HUDNotchGeometry.drawsPill(for: screen) else { return 0 }
-    return cornerRadius
+    // `cornerRadius` y no el de la geometría: el de acá se achica al colapsar
+    // contra la carcasa, y esa transición es de la superficie.
+    HUDNotchGeometry.closesAtTop(for: screen) ? cornerRadius : 0
   }
 
   /// Collapsed into the housing, the corners are nearly square (NotchDrop:

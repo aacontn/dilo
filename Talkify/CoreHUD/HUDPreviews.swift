@@ -25,6 +25,18 @@ enum HUDPreviewScreen {
     menuBarHeight: 24
   )
 
+  /// La misma pantalla externa con el ajuste en «Notch simulado»: la forma
+  /// se pega al borde de arriba y las esquinas de arriba quedan rectas.
+  static let externalNotchSimulado = HUDScreenSnapshot(
+    id: 3,
+    frame: CGRect(x: 0, y: 0, width: 2560, height: 1440),
+    safeAreaTop: 0,
+    auxiliaryTopLeftArea: nil,
+    auxiliaryTopRightArea: nil,
+    menuBarHeight: 24,
+    estiloSinNotch: .notchSimulado
+  )
+
   static var wallpaper: some View {
     LinearGradient(
       colors: [Color(red: 0.25, green: 0.4, blue: 0.8), Color(red: 0.1, green: 0.15, blue: 0.35)],
@@ -131,4 +143,8 @@ extension AppSettings {
 
 #Preview("Smallest · external · compact") {
   HUDShellPreviewHarness(screen: HUDPreviewScreen.external, visual: .compact, hudScale: 0.6)
+}
+
+#Preview("Notch simulado · external") {
+  HUDShellPreviewHarness(screen: HUDPreviewScreen.externalNotchSimulado, visual: .waveform)
 }
