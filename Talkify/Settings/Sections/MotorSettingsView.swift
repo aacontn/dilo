@@ -30,8 +30,8 @@ struct MotorSettingsView: View {
 
       SettingsCard(title: "El modelo de Parakeet") {
         SettingsRow(
-          title: descargas.titulo,
-          description: descargas.detalle
+          title: "\(descargas.titulo)",
+          description: "\(descargas.detalle)"
         ) {
           control
         }
@@ -49,7 +49,7 @@ struct MotorSettingsView: View {
         }
 
         if let error = descargas.error {
-          SettingsRow(title: "No se pudo descargar", description: error) {
+          SettingsRow(title: "No se pudo descargar", description: "\(error)") {
             Button("Reintentar") { descargas.descargar() }
               .buttonStyle(SettingsButtonStyle())
           }
