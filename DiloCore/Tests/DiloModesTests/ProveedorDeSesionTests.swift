@@ -48,6 +48,39 @@ struct ProveedorDeSesionTests {
     #expect(!resuelto.esLocal)
   }
 
+  /// Las cuatro combinaciones de naturaleza (general local o nube × modo
+  /// local o nube). El proveedor del modo manda en las cuatro: la regla de no
+  /// cruzar mira lo que **esta** sesión va a usar, no lo que el general sería
+  /// si el modo fallara.
+  @Test func elModoLocalCorreEnLocalAunqueElGeneralSeaUnaNube() {
+    // El bug: con el general en la nube, un modo en el chip quedaba bloqueado
+    // de entrada aunque estaba disponible y nada salía de la compu.
+    guard case let .corre(resuelto) = deSesion(modo("chip"), general: "openai") else {
+      Issue.record("Bloqueó un proveedor local disponible")
+      return
+    }
+    #expect(resuelto.proveedor.id == "chip")
+    #expect(resuelto.esLocal)
+  }
+
+  @Test func elModoLocalCorreEnLocalConElGeneralTambienLocal() {
+    guard case let .corre(resuelto) = deSesion(modo("propio"), general: "chip") else {
+      Issue.record("Bloqueó un proveedor local disponible")
+      return
+    }
+    #expect(resuelto.proveedor.id == "propio")
+    #expect(resuelto.esLocal)
+  }
+
+  @Test func elModoDeNubeCorreEnSuNubeConElGeneralEnLaNube() {
+    guard case let .corre(resuelto) = deSesion(modo("openai"), general: "openai") else {
+      Issue.record("No corrió con el proveedor del modo")
+      return
+    }
+    #expect(resuelto.proveedor.id == "openai")
+    #expect(!resuelto.esLocal)
+  }
+
   @Test func sinProveedorPropioHeredaElGeneral() {
     guard case let .corre(resuelto) = deSesion(modo(nil), general: "openai") else {
       Issue.record("No heredó el general")

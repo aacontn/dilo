@@ -112,11 +112,18 @@ public enum ResolucionDeProveedor {
   /// que no salía de su Mac, y enterarse después no lo deshace. Acá la sesión
   /// se congela en un proveedor al empezar; si ése falla, se dice qué pasó y
   /// el texto crudo queda recuperable. No hay segundo intento.
+  ///
+  /// El que se congela es el del modo, o el general cuando el modo no eligió
+  /// ninguno. Que el general sea de otra naturaleza no le quita nada al que
+  /// sí va a correr: la regla prohíbe el **reintento** que cruza, no el
+  /// primer intento.
   public enum DeSesion: Equatable, Sendable {
     /// Corre con éste, y sale o no de la compu según él diga.
     case corre(Resuelto)
     /// Hay un proveedor usable, pero usarlo sería sacar de la compu un texto
     /// que el modo pidió local. No se hace: se dice y el dictado sale limpio.
+    /// Pasa **sólo** cuando el proveedor local del modo no resolvió y el que
+    /// quedó es de otra naturaleza; un local disponible nunca se bloquea.
     case seNiegaACruzar(aviso: String)
     /// Nada configurado que pueda correr. El dictado sale como salía antes de
     /// que existieran los proveedores: limpio, sin pasar por ninguna IA.
@@ -134,12 +141,22 @@ public enum ResolucionDeProveedor {
       tieneClave: tieneClave
     )
     guard let primario = plan.primario else { return .sinProveedor }
-    // El modo pidió local y lo que quedó disponible es una nube: ése es el
-    // cruce silencioso, y acá es donde se corta.
-    if plan.avisaCruceALaNube {
-      return .seNiegaACruzar(aviso: avisoDeNegativa(modo: modo, enVezDe: primario))
+
+    // La regla se mira sobre el proveedor que **esta** sesión va a usar, no
+    // sobre el respaldo que el `Plan` dejó anotado por si el primario falla.
+    // Confundir los dos bloqueaba de entrada un local disponible: con el
+    // general en una nube, un modo en el chip se negaba a correr aunque nada
+    // iba a salir de la compu.
+    if primario.esLocal { return .corre(primario) }
+
+    // Acá el que corre es una nube. Sólo se corta si el modo había pedido
+    // local: su proveedor no resolvió —borrado, sin modelo o sin clave— y lo
+    // que quedó fue el general, afuera de la compu. Ése, y nada más, es el
+    // cruce silencioso que el spec 2026-07-29 manda evitar.
+    guard catalogo.proveedor(modo.proveedorID)?.esLocal == true else {
+      return .corre(primario)
     }
-    return .corre(primario)
+    return .seNiegaACruzar(aviso: avisoDeNegativa(modo: modo, enVezDe: primario))
   }
 
   /// Lo que dice la píldora cuando Dilo se niega a cruzar.
