@@ -65,6 +65,12 @@ extension DirectDictationController {
     /// El cartel que, mientras grabas, nombra el modo de esta sesión; nil lo
     /// borra.
     let showShapingChoice: @MainActor (_ label: String?) -> Void
+    /// Terminó de escuchar y lo grabado se está entregando o transformando.
+    /// La forma se queda diciéndolo: irse acá es lo que hacía que el notch
+    /// pareciera un aviso que pasó (contrato del notch, estado Procesando).
+    let showProcesando: @MainActor () -> Void
+    /// Lo entregado, por unos segundos, antes de volver a reposo.
+    let showResultado: @MainActor (ResultadoDelNotch) -> Void
     let showMessage: @MainActor (String, CGDirectDisplayID?) -> Void
     let showModelDownload: @MainActor (String?) -> Void
     let showAudioLevel: @MainActor (Float) -> Void
@@ -193,6 +199,8 @@ extension DirectDictationController {
         showFinalizing: { hudController.showFinalizing() },
         showShaping: { hudController.showShaping(with: $0) },
         showShapingChoice: { hudController.showShapingChoice($0) },
+        showProcesando: { hudController.showProcesando() },
+        showResultado: { hudController.showResultado($0) },
         showMessage: { hudController.showMessage($0, on: $1) },
         showModelDownload: { hudController.showModelDownload($0) },
         showAudioLevel: { hudController.showAudioLevel($0) },

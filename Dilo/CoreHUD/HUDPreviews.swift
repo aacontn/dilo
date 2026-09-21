@@ -63,6 +63,10 @@ struct HUDShellPreviewHarness: View {
   var micAlive = true
   /// Non-nil renders the shaping pick's shoulder tag.
   var shapingChoice: String?
+  /// true deja la forma en reposo: la silueta compacta, sin sesión.
+  var enReposo = false
+  /// Lo que el hover revela en reposo: el modo activo o lo último dictado.
+  var contexto: String?
   /// true toggles the session on and off every ~3 seconds so the canvas
   /// exercises the bloom-in/drain-out ramps and the text band's return.
   var simulatesSessionCycle = false
@@ -79,6 +83,13 @@ struct HUDShellPreviewHarness: View {
       .frame(width: 700, height: 280, alignment: .top)
       .background { HUDPreviewScreen.wallpaper }
       .task {
+        if enReposo {
+          content.estado = .reposo
+          content.contexto = contexto
+          content.punteroEncima = contexto != nil
+          return
+        }
+        content.estado = .dictando
         content.text = text
         content.shapingChoiceLabel = shapingChoice
         settings.longDraftStyle = longDraft

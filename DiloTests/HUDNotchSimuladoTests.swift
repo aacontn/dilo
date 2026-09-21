@@ -30,7 +30,8 @@ struct HUDNotchSimuladoTests {
     safeAreaTop: 0,
     auxiliaryTopLeftArea: nil,
     auxiliaryTopRightArea: nil,
-    menuBarHeight: 24
+    menuBarHeight: 24,
+    estiloSinNotch: .pildora
   )
   private let simulado = HUDScreenSnapshot(
     id: 2,
@@ -59,7 +60,8 @@ struct HUDNotchSimuladoTests {
     #expect(ventana.midX == pildora.frame.midX)
   }
 
-  /// El tamaño en reposo es el del notch de un MacBook, no el de la ventana:
+  /// La carcasa simulada mide lo que el notch de un MacBook, no lo que la
+  /// ventana:
   /// la franja que se tapa de la barra de menús son 185 puntos en el centro.
   /// Lo demás de la ventana es holgura invisible para la sombra.
   @Test func enReposoMideLoMismoQueUnNotchDeVerdad() {
@@ -80,11 +82,10 @@ struct HUDNotchSimuladoTests {
         metrics: metrics,
         visualBandHeight: metrics.waveBandHeight,
         includesTextBand: true,
-        shapingBandHeight: metrics.shapingBandHeight,
-        housingBandHeight: metrics.pillCrownHeight
+        shapingBandHeight: metrics.shapingBandHeight
       )
     }
-    #expect(tamano(simulado) == tamano(pildora))
+    #expect(tamano(simulado).width == tamano(pildora).width)
     #expect(tamano(simulado).width <= HUDNotchGeometry.windowSize(for: simulado).width)
   }
 
@@ -108,8 +109,8 @@ struct HUDNotchSimuladoTests {
     #expect(HUDNotchGeometry.filletSize(for: pildora) == 0)
   }
 
-  /// El contenido sigue siendo el de Dilo —corona mango, onda, texto
-  /// parcial—: lo que cambia es dónde cuelga la forma, no qué lleva adentro.
+  /// El contenido sigue siendo el de Dilo —onda, texto parcial y chip de
+  /// modo—: lo que cambia es dónde cuelga la forma, no qué lleva adentro.
   @Test func adentroVaLoMismoQueEnLaPildora() {
     #expect(HUDNotchGeometry.drawsPill(for: simulado))
     #expect(HUDNotchGeometry.drawsPill(for: pildora))
@@ -156,17 +157,18 @@ struct HUDNotchSimuladoTests {
     defer { defaults.removePersistentDomain(forName: suite) }
 
     let ajustes = AppSettings(defaults: defaults)
-    #expect(ajustes.hudEstiloSinNotch == .pildora)
-    ajustes.hudEstiloSinNotch = .notchSimulado
+    #expect(ajustes.hudEstiloSinNotch == .notchSimulado)
+    ajustes.hudEstiloSinNotch = .pildora
 
-    #expect(AppSettings(defaults: defaults).hudEstiloSinNotch == .notchSimulado)
+    #expect(AppSettings(defaults: defaults).hudEstiloSinNotch == .pildora)
   }
 
-  /// Quien había apagado el interruptor viejo quería la forma donde iría el
-  /// notch: esa elección se respeta al actualizar en vez de volver al
-  /// default.
+  /// Quien había **encendido** el interruptor viejo pedía que la forma
+  /// despejara la barra de menús: esa elección vale como haber elegido la
+  /// píldora y se respeta al actualizar. Apagado quería la forma donde iría
+  /// el notch, que es el default de hoy.
   @MainActor
-  @Test func elInterruptorViejoApagadoSeVuelveNotchSimulado() {
+  @Test func elInterruptorViejoSeTraduceALaFormaQuePedia() {
     let suite = "cl.espaciodigital.dilo.tests.notch-simulado-migracion"
     let defaults = UserDefaults(suiteName: suite)!
     defaults.removePersistentDomain(forName: suite)

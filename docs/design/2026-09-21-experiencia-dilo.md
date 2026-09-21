@@ -54,6 +54,43 @@ reunión usan estados interactivos explícitos. Esto amplía el contrato actual
 sólo al implementar esos estados, no cambiando la captura de foco global.
 No hay paneles compitiendo: una superficie arbitra la sesión y los trabajos.
 
+## El notch como escenario permanente (2026-09-21, tarde)
+
+Alfonso probó la píldora en su Mac mini con dos 1080p sin notch y el
+diagnóstico fue de forma, no de velocidad —rápido sí le pareció—:
+
+> «no se ve como un notch; tiene una línea con un micrófono más arriba, que se
+> ve raro; me sale el Transformar sin modo de colores; no está arriba como en
+> notch, está como una ventana que se abrió; cuando se deja de dictar,
+> desaparece y no es funcional.»
+
+Lo que cambia, y por qué:
+
+- **Sin carcasa, el default pasa a ser el notch simulado.** Revierte el
+  default de la lección 2 del spec §8 —no el *motivo* de esa lección—: la
+  forma sigue sin tapar un status item, porque sólo ocupa la franja del centro
+  de la barra, que macOS deja vacía. La píldora se queda elegible a mano. Quien
+  nunca eligió pasa al notch simulado; quien eligió conserva su elección.
+- **Fuera la corona.** La franja mango con el micrófono iba *encima* de la
+  píldora y se leía como un segundo objeto pegado arriba. El contenido va
+  dentro de la silueta, como con notch real, y la cabecera de la forma abierta
+  **es** la silueta en reposo: la forma crece desde donde estaba descansando.
+- **El escenario es permanente.** El HUD ya no aparece y desaparece: cambia de
+  tamaño. En reposo queda la silueta compacta con una marca mínima, quieta;
+  no escucha, y un clic abre el menú de acciones —el mismo del status item—.
+- **Los cinco estados del contrato son un tipo.** `EstadoDelNotch` con
+  `MaquinaDelNotch` (pura) y `ControlDelNotch` (los tiempos, con reloj
+  inyectable). Procesando dejó de ser un hueco: antes la forma se iba al
+  terminar de escuchar y el resultado aterrizaba con el notch fuera de
+  pantalla, que es la mitad de «no es funcional».
+- **El chip de modo dice el nombre del modo, en mango.** «Transformar: Correo»
+  en gris nombraba el mecanismo en vez de la sesión. Sin modo, no hay chip.
+- **Reposo no puede costar.** `EstadoDelNotch.anima` es falso en reposo y un
+  test lo afirma; ningún `TimelineView` ni shader queda montado. Los números
+  del spec §3 se re-miden en CI.
+
+Reunión y asistente siguen siendo casos explícitos sin UI (`HUDSessionKind`).
+
 ## Ventana y navegación
 
 Destino de producto: Recientes, Reuniones y Ajustes.

@@ -34,6 +34,15 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// drop surfaces alone — dictation is a status surface, not a target, and
   /// keeps the reveal styles the user picks between.
   var growsFromHousing: Bool = false
+  /// La silueta a la que la forma vuelve cuando nadie la ocupa, o nil para
+  /// las superficies que sí se van de la pantalla.
+  ///
+  /// Con esto el HUD deja de ser una ventana que aparece y desaparece: el
+  /// notch está siempre, y lo que cambia es su tamaño. No hay parqueo fuera
+  /// de pantalla ni desvanecimiento — una forma que se va y vuelve se lee
+  /// como una notificación, y el contrato del notch pide lo contrario
+  /// (`EstadoDelNotch`).
+  var tamañoEnReposo: CGSize? = nil
   /// Clips the content to the shape.
   ///
   /// Off by default: the dictation visuals bloom past the silhouette on
@@ -79,11 +88,12 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   }
 
   private var isCollapsedIntoHousing: Bool {
-    growsFromHousing && !isRevealed
+    (growsFromHousing || tamañoEnReposo != nil) && !isRevealed
   }
 
   private var renderedSize: CGSize {
-    isCollapsedIntoHousing ? HUDNotchGeometry.closedSize(for: screen) : size
+    guard isCollapsedIntoHousing else { return size }
+    return tamañoEnReposo ?? HUDNotchGeometry.closedSize(for: screen)
   }
 
   /// Growing from the housing, the content exists only while the shape is open
@@ -117,13 +127,16 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       .scaleEffect(x: revealScale.x, y: revealScale.y, anchor: .top)
       .offset(y: revealOffset)
       .animation(revealAnimation, value: isRevealed)
+      // La silueta en reposo también cambia de tamaño sin que `isRevealed`
+      // se mueva: el hover la abre para mostrar contexto.
+      .animation(tamañoEnReposo == nil ? nil : revealAnimation, value: renderedSize)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 
   /// Growing from the housing never parks: there is no transform to hide the
   /// shape with, because the shape itself is the animation.
   private var isParked: Bool {
-    !isRevealed && !reduceMotion && !growsFromHousing
+    !isRevealed && !reduceMotion && !growsFromHousing && tamañoEnReposo == nil
   }
 
   /// Where position moves at all, hidden means at or above the window's top
@@ -147,6 +160,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   }
 
   private var revealOpacity: Double {
+    // Una forma que descansa en pantalla nunca se desvanece: está, y lo que
+    // cambia es su tamaño.
+    if tamañoEnReposo != nil { return 1 }
     if reduceMotion {
       return isRevealed ? 1 : 0
     }
@@ -165,6 +181,13 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// drift) stay bounce-free, because a position overshoot would detach the
   /// shape from the screen edge.
   private var revealAnimation: Animation {
+    // El escenario permanente crece y se encoge; con Reducir movimiento la
+    // transición es un corte corto, no un resorte.
+    if tamañoEnReposo != nil {
+      return reduceMotion
+        ? .easeOut(duration: 0.12)
+        : .spring(duration: 0.34, bounce: 0.16)
+    }
     if reduceMotion {
       return Self.reducedMotionFade
     }

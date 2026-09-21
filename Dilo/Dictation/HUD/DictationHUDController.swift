@@ -80,6 +80,46 @@ final class DictationHUDController {
     stage.showMessage(text, on: displayID)
   }
 
+  /// La sesión está esperando algo antes de poder escuchar: el modelo, un
+  /// permiso. Dice qué falta, sin onda ficticia (contrato del notch).
+  func showPreparando(_ falta: FaltaDelNotch, on displayID: CGDirectDisplayID? = nil) {
+    guard let screen = stage.screen(preferring: displayID) else { return }
+    stage.claim(.dictation, on: screen, rendering: sessionSettings)
+    stage.recibir(.preparar(falta))
+    setDraft(falta.texto)
+    stage.revealDictation()
+  }
+
+  /// Terminó el reconocimiento y lo grabado se está entregando o
+  /// transformando. La forma **no se va**: irse acá es lo que hacía que el
+  /// notch pareciera un aviso que pasó en vez del lugar donde el trabajo
+  /// ocurre.
+  func showProcesando() {
+    guard isListening else { return }
+    hasStoppedListening = true
+    stopVoiceVisual()
+    reproducirFinal()
+    stage.recibir(.procesar)
+    // Las palabras dichas se quedan mientras se entregan: son lo que la
+    // persona está esperando ver. Sólo se reemplaza el placeholder de
+    // escuchar, que a esta altura es mentira.
+    if content.text.isEmpty || content.text == Self.listeningText
+      || content.text == Self.latchedText {
+      setDraft(EstadoDelNotch.procesando.texto ?? "")
+    }
+  }
+
+  /// Lo entregado, por unos segundos, con Copiar a mano. Después vuelve solo
+  /// a reposo.
+  func showResultado(_ resultado: ResultadoDelNotch) {
+    guard isListening else { return }
+    stopVoiceVisual()
+    reproducirFinal()
+    content.shapingName = nil
+    stage.recibir(.entregar(resultado))
+    setDraft(resultado.texto)
+  }
+
   func showListening(
     on displayID: CGDirectDisplayID?,
     isLatched: Bool,
@@ -98,6 +138,7 @@ final class DictationHUDController {
     // Dictation outranks a file job for the shape: the user is speaking now,
     // and the transcription keeps running with the status item carrying it.
     stage.claim(.dictation, on: screen, rendering: settings)
+    stage.recibir(.escuchar)
     startVoiceVisual()
     setDraft(placeholder)
     stage.revealDictation()
@@ -134,6 +175,13 @@ final class DictationHUDController {
   /// restores whatever the session was saying before.
   func showModelDownload(_ text: String?) {
     guard isListening else { return }
+    // Esperar un modelo es «preparando», no «dictando»: el contrato pide que
+    // el HUD diga qué falta y que no dibuje una onda que no viene de nadie.
+    if let text {
+      stage.recibir(.preparar(.aviso(text)))
+    } else if case .preparando = stage.estado {
+      stage.recibir(.escuchar)
+    }
     setDraft(text ?? placeholder)
   }
 
@@ -163,10 +211,8 @@ final class DictationHUDController {
     guard isListening else { return }
     hasStoppedListening = true
     stopVoiceVisual()
-    if !hasPlayedEndSound {
-      hasPlayedEndSound = true
-      stage.sounds.playEnd(using: sessionSettings.sounds)
-    }
+    reproducirFinal()
+    stage.recibir(.procesar)
     // The arrows are dead once the session finishes, so the pick leaves with
     // them and the caption names the prompt instead.
     content.shapingChoiceLabel = nil
@@ -193,11 +239,7 @@ final class DictationHUDController {
   }
 
   func hide() {
-    stage.cancelMessageDismiss()
-    if isListening, !hasPlayedEndSound {
-      hasPlayedEndSound = true
-      stage.sounds.playEnd(using: sessionSettings.sounds)
-    }
+    if isListening { reproducirFinal() }
     // The shape retracts exactly as it stands. The visual stops reacting so a
     // glow can play its drain, but the bands are pinned and the text is left
     // alone: resizing or relabelling a shape that is already sliding away is
@@ -247,5 +289,13 @@ final class DictationHUDController {
   private func stopWatchdog() {
     micWatchdogTask?.cancel()
     micWatchdogTask = nil
+  }
+
+  /// El sonido de cierre, una sola vez por sesión: la transformación, la
+  /// entrega y el cierre pasan los tres por acá y el habla terminó una vez.
+  private func reproducirFinal() {
+    guard !hasPlayedEndSound else { return }
+    hasPlayedEndSound = true
+    stage.sounds.playEnd(using: sessionSettings.sounds)
   }
 }

@@ -49,6 +49,9 @@ struct HUDRenderTests {
 
   @Test func theDictationShellRendersAMessage() throws {
     let content = DictationHUDContent()
+    // Un mensaje es un resultado del contrato: la forma está abierta
+    // diciéndolo, no en reposo (`EstadoDelNotch`).
+    content.estado = .resultado(.aviso("Secure field"))
     content.text = "Secure field"
     content.isRevealed = true
 
@@ -63,12 +66,13 @@ struct HUDRenderTests {
     #expect(size == CGSize(width: 1280, height: 520))
   }
 
-  /// Both shaping states, which share one strip: the pick while speaking and
-  /// the prompt once the rewrite starts. Each has to sit centered under the
-  /// draft without crowding it and carry the palette's colors, neither of
-  /// which is provable from a diff.
+  /// Los dos estados del chip de modo, que comparten una sola línea: el modo
+  /// de la sesión mientras se habla y el mismo modo trabajando una vez que
+  /// empieza la reescritura. Tiene que quedar centrado bajo el texto sin
+  /// apretarlo, y en mango, que de un diff no se deduce.
   @Test func theShapingStatesRender() throws {
     let cycling = DictationHUDContent()
+    cycling.estado = .dictando
     cycling.isRevealed = true
     cycling.text = "the draft the label sits under"
     cycling.languageTag = "EN → ES"
@@ -85,6 +89,7 @@ struct HUDRenderTests {
     )
 
     let shaping = DictationHUDContent()
+    shaping.estado = .procesando
     shaping.isRevealed = true
     // The words being rewritten stay above the caption; only the listening
     // placeholder is cleared, and the controller does that.

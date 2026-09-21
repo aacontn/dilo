@@ -52,28 +52,71 @@ enum HUDNotchGeometry {
     measuredClosedSize(for: screen) != nil
   }
 
-  /// The HUD shape's size: the housing band, whatever voice-visual band the
+  /// La silueta en reposo: lo que se ve cuando nadie está dictando.
+  ///
+  /// El notch —real o simulado— descansa en su propio tamaño, que es lo que
+  /// lo hace leerse como un notch y no como una ventanita que se abrió. La
+  /// píldora descansa más chica: cuelga sobre el escritorio de la persona y
+  /// no sobre una franja que el sistema ya tenía reservada.
+  static func reposoSize(for screen: HUDScreenSnapshot) -> CGSize {
+    dibujaPildora(for: screen) ? reposoDeLaPildora : closedSize(for: screen)
+  }
+
+  /// La píldora en reposo: lo justo para una marca centrada.
+  static let reposoDeLaPildora = CGSize(width: 96, height: 20)
+
+  /// El alto de la cabecera de la forma abierta: la franja de arriba de la
+  /// que cuelga todo lo demás.
+  ///
+  /// **Es la silueta en reposo.** La forma abierta crece hacia abajo desde
+  /// donde estaba descansando, que es lo que hace el notch de un MacBook y lo
+  /// que Dilo imita en una pantalla sin carcasa. Contra hardware real la
+  /// cabecera queda vacía porque ahí está la cámara; en el notch simulado y
+  /// en la píldora no hay nada que esquivar y la marca de reposo vive adentro.
+  ///
+  /// Reemplaza la corona mango que la píldora llevaba **encima**: una franja
+  /// con un micrófono arriba de la forma se lee como un segundo objeto
+  /// pegado, no como el notch creciendo.
+  static func alturaDeCabecera(for screen: HUDScreenSnapshot) -> CGFloat {
+    reposoSize(for: screen).height
+  }
+
+  /// The HUD shape's size: the header band, whatever voice-visual band the
   /// selected visual uses, the text band unless the visual replaces it, and
   /// the shaping band while a session carries one, clamped so a narrow
   /// display never gets a shape wider than its window.
-  /// - Parameter housingBandHeight: El alto de la banda de arriba cuando no
-  ///   es la carcasa. La píldora de Dilo no tiene cámara que esquivar, así que
-  ///   cambia esos 32 puntos vacíos por una corona mango más baja; con notch
-  ///   se deja en nil y manda el hardware.
   static func contentSize(
     for screen: HUDScreenSnapshot,
     metrics: HUDMetrics,
     visualBandHeight: CGFloat,
     includesTextBand: Bool,
-    shapingBandHeight: CGFloat,
-    housingBandHeight: CGFloat? = nil
+    shapingBandHeight: CGFloat
   ) -> CGSize {
     CGSize(
       width: min(metrics.contentWidth, windowSize(for: screen).width),
-      height: (housingBandHeight ?? closedSize(for: screen).height)
+      height: alturaDeCabecera(for: screen)
         + visualBandHeight
         + (includesTextBand ? metrics.textBandHeight : 0)
         + shapingBandHeight
+    )
+  }
+
+  /// El rectángulo de la ventana anfitriona que recibe el mouse, en
+  /// coordenadas de la vista (origen abajo a la izquierda).
+  ///
+  /// La ventana es mucho más ancha que la forma —lleva holgura invisible para
+  /// la sombra—, y desde que el escenario vive siempre en pantalla, dejarla
+  /// entera sensible al mouse se tragaría clics en media barra de menús. Sólo
+  /// la silueta toma el mouse; el resto pasa de largo (`HUDHostingView`).
+  static func zonaInteractiva(for screen: HUDScreenSnapshot, tamaño: CGSize) -> CGRect {
+    let ventana = windowSize(for: screen)
+    let ancho = min(tamaño.width, ventana.width)
+    let alto = min(tamaño.height, ventana.height)
+    return CGRect(
+      x: (ventana.width - ancho) / 2,
+      y: ventana.height - alto,
+      width: ancho,
+      height: alto
     )
   }
 
@@ -122,12 +165,16 @@ enum HUDNotchGeometry {
   /// own (issue #83). So there the shape hangs just below the menu bar
   /// instead of over it.
   ///
-  /// En Dilo el default no se discute: la píldora va debajo (spec §8,
-  /// `AGENTS.md`). Alfonso dictó diez minutos con la forma heredada encima y le
-  /// tapó sus propios status items en dos monitores sin notch, que es el 80 %
-  /// de su uso. La imitación sigue disponible —Ajustes → Apariencia, «En
-  /// pantallas sin notch»— para quien la prefiera, porque la franja del
-  /// centro de la barra de menús suele estar vacía; pero se elige a mano.
+  /// **El default cambió el 2026-09-21 (tarde): sin carcasa se dibuja el
+  /// notch simulado.** La píldora debajo de la barra cumplía la lección 2 del
+  /// spec §8 —no tapar los status items— pero no cumplía el producto: con dos
+  /// monitores sin notch se leía como «una ventana que se abrió», no como el
+  /// notch, que es el escenario del que cuelga toda la experiencia. La forma
+  /// simulada sólo ocupa la franja del centro de la barra, que macOS deja
+  /// vacía, así que ningún status item queda tapado. La píldora sigue
+  /// disponible —Ajustes → Apariencia, «En pantallas sin notch»— para quien
+  /// la prefiera.
+  ///
   /// Quién elige entre las dos es `screen.estiloSinNotch`: con
   /// `.notchSimulado` la forma nace del borde (relleno cero) y con `.pildora`
   /// cuelga por debajo de la barra.
@@ -192,6 +239,16 @@ enum HUDNotchGeometry {
   /// leerse como notch. Una imitación con el tope redondeado se ve como una
   /// pastilla mal pegada al canto de la pantalla.
   static func closesAtTop(for screen: HUDScreenSnapshot) -> Bool {
+    dibujaPildora(for: screen)
+  }
+
+  /// Si acá se dibuja la píldora que cuelga debajo de la barra —la forma
+  /// cerrada por los cuatro lados—, y no un notch (real o imitado).
+  ///
+  /// Distinto de `drawsPill`, que sólo dice que esta pantalla no tiene
+  /// carcasa que medir: con el estilo simulado, una pantalla sin carcasa
+  /// dibuja un notch, no una píldora.
+  static func dibujaPildora(for screen: HUDScreenSnapshot) -> Bool {
     drawsPill(for: screen) && !simulatesNotch(for: screen)
   }
 

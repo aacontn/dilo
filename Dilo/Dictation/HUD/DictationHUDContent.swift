@@ -43,4 +43,32 @@ final class DictationHUDContent {
   /// The session's shaping pick by name, drawn as a shoulder tag, or nil when
   /// this session cannot cycle.
   var shapingChoiceLabel: String?
+
+  /// En cuál de los cinco estados del contrato está el escenario
+  /// (`EstadoDelNotch`). Arranca en reposo, que es donde pasa la mayor parte
+  /// del día: el HUD ya no aparece y desaparece, cambia de tamaño.
+  var estado = EstadoDelNotch.reposo
+
+  /// Lo que el hover revela: el modo activo, o lo último que se dictó. Lo
+  /// escribe quien sabe (el controlador de dictado); la forma sólo lo dibuja.
+  var contexto: String?
+
+  /// True mientras el puntero lleva parado encima lo suficiente
+  /// (`HUDStage.toleranciaDelHover`). Es sólo presentación: un hover no
+  /// arranca nunca una captura.
+  var punteroEncima = false
+
+  /// El contexto que corresponde dibujar ahora mismo, o nil.
+  var contextoVisible: String? {
+    guard punteroEncima, let contexto, !contexto.isEmpty else { return nil }
+    return contexto
+  }
+
+  /// Avisa que el puntero entró o salió de la silueta. Lo cablea `HUDStage`,
+  /// que es quien aplica la tolerancia.
+  @ObservationIgnored var alEntrarElPuntero: ((Bool) -> Void)?
+
+  /// Un clic en la silueta: abre el menú de acciones en reposo, copia en
+  /// resultado. Lo cablea `HUDStage`.
+  @ObservationIgnored var alHacerClic: (() -> Void)?
 }
