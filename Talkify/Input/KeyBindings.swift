@@ -104,6 +104,19 @@ struct KeyBinding: Equatable, Codable {
     isModifierKey: false, label: "⌃ ⌥ espacio", keyEquivalent: " "
   )
 
+  /// El gatillo de fábrica del modo Limpio: ⌃⌘L.
+  ///
+  /// Lleva ⌘, que es lo que el spec §8.1 bendice para un gatillo que no es
+  /// fn, y ⌃ además lo saca del camino de los atajos de menú de cualquier
+  /// app. Una instalación nueva tiene así un modo funcionando de inmediato,
+  /// que es la conclusión del día que Alfonso usó Dilo entero: los otros
+  /// modos llegan sin tecla y cada quien les asigna la que quiera.
+  static let controlCommandL = KeyBinding(
+    keyCode: 37,
+    modifierFlags: CGEventFlags.maskControl.rawValue | CGEventFlags.maskCommand.rawValue,
+    isModifierKey: false, label: "⌃ ⌘ L", keyEquivalent: "l"
+  )
+
   /// El gatillo que traía Talkify para el segundo idioma. Se conserva para
   /// que una configuración guardada de antes siga leyéndose, pero ya no es
   /// el default de nadie.

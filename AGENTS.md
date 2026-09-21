@@ -117,6 +117,14 @@ activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.
 
+**Excepción vigente:** `DiloModes` viaja dentro del producto `DiloText` en vez
+de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
+archivo estuvo congelado mientras corrían cinco ramas en paralelo. El módulo,
+su carpeta y sus tests sí son propios; lo único compartido es la línea del
+producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8— se separa en
+`.library(name: "DiloModes", targets: ["DiloModes"])` y se agrega a los dos
+targets.
+
 ### `Talkify/` — el mapa que viene de upstream
 
 Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su

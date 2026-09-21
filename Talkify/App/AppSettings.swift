@@ -1,4 +1,5 @@
 import AppKit
+import DiloModes
 import Foundation
 import Observation
 
@@ -42,6 +43,10 @@ final class AppSettings {
     static let promptShapingEnabled = "dictationPromptShapingEnabled"
     static let promptShapingPrompt = "dictationPromptShapingPrompt"
     static let shapingPrompts = "dictationShapingPrompts"
+    static let modos = "diloModos"
+    static let proveedores = "diloProveedores"
+    static let proveedorGeneral = "diloProveedorGeneral"
+    static let unAtajoDiloDecide = "diloUnAtajoDiloDecide"
   }
 
   @ObservationIgnored
@@ -135,6 +140,45 @@ final class AppSettings {
   /// inserts the raw words unchanged.
   func restoreDefaultShapingPrompts() {
     shapingPrompts = ShapingPrompt.defaults
+  }
+
+  /// Los modos de Dilo: nombre, prompt, proveedor y —si quieres— una tecla.
+  /// Se guardan enteros como JSON; un valor ilegible vuelve a los de fábrica
+  /// en vez de dejar la lista vacía.
+  var modos: [Modo] {
+    didSet {
+      if let data = try? JSONEncoder().encode(modos) {
+        defaults.set(data, forKey: Keys.modos)
+      }
+    }
+  }
+
+  /// El catálogo de proveedores, con la URL base y el modelo que cada quien
+  /// configuró. **Las claves de API no están acá**: viven en el Llavero, y
+  /// este valor se serializa a `UserDefaults`, que es texto plano.
+  var proveedores: [Proveedor] {
+    didSet {
+      if let data = try? JSONEncoder().encode(proveedores) {
+        defaults.set(data, forKey: Keys.proveedores)
+      }
+    }
+  }
+
+  /// El proveedor que usan los modos que no eligieron uno propio.
+  var proveedorGeneralID: String {
+    didSet { defaults.set(proveedorGeneralID, forKey: Keys.proveedorGeneral) }
+  }
+
+  /// "Un atajo, Dilo decide": el modo se elige por la app al frente y el
+  /// contenido, sin tecla propia. Apagada de fábrica (spec §7): quien no la
+  /// prende tiene exactamente el comportamiento de siempre.
+  var unAtajoDiloDecide: Bool {
+    didSet { defaults.set(unAtajoDiloDecide, forKey: Keys.unAtajoDiloDecide) }
+  }
+
+  /// Los modos de fábrica vuelven, y vuelven sin tecla los que no la traían.
+  func restaurarModosDeFabrica() {
+    modos = Modo.deFabrica
   }
 
   var voiceVisual: HUDVoiceVisualStyle {
@@ -315,6 +359,12 @@ final class AppSettings {
     promptShapingPromptID = defaults.string(forKey: Keys.promptShapingPrompt)
       ?? ShapingPrompt.defaults[0].id
     shapingPrompts = Self.storedShapingPrompts(in: defaults) ?? ShapingPrompt.defaults
+    modos = Self.guardado([Modo].self, Keys.modos, in: defaults) ?? Modo.deFabrica
+    proveedores = Self.guardado([Proveedor].self, Keys.proveedores, in: defaults)
+      ?? Proveedor.deFabrica
+    proveedorGeneralID = defaults.string(forKey: Keys.proveedorGeneral)
+      ?? Proveedor.deFabrica[0].id
+    unAtajoDiloDecide = defaults.object(forKey: Keys.unAtajoDiloDecide) as? Bool ?? false
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .chartLine
     revealStyle = Self.stored(in: defaults, key: Keys.revealStyle) ?? .slide
@@ -379,6 +429,16 @@ final class AppSettings {
        allowsMouseButton || !binding.isMouseButton
     else { return nil }
     return binding
+  }
+
+  /// Un valor de Dilo guardado como JSON, o nil si no está o no se puede
+  /// leer. Un JSON roto vale lo mismo que uno ausente: se reseminan los de
+  /// fábrica, que es mejor que una pantalla vacía sin explicación.
+  private static func guardado<T: Decodable>(
+    _: T.Type, _ clave: String, in defaults: UserDefaults
+  ) -> T? {
+    guard let data = defaults.data(forKey: clave) else { return nil }
+    return try? JSONDecoder().decode(T.self, from: data)
   }
 
   private static func storedShapingPrompts(in defaults: UserDefaults) -> [ShapingPrompt]? {
