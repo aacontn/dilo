@@ -8,8 +8,21 @@ import Foundation
 public enum ResolucionDeModo {
   public enum Razon: Equatable, Sendable {
     case atajo
-    case reglas(probabilidad: Double)
+    /// `porQue` es la regla que ganó, en las palabras que ve la persona y que
+    /// el historial guarda. Un modo que se aplicó sin que nadie apretara su
+    /// tecla tiene que poder explicarse.
+    case reglas(probabilidad: Double, porQue: String)
     case ninguna
+
+    /// Cómo se cuenta esta elección en el historial. Nil cuando no hay nada
+    /// que contar: la tecla que se apretó ya lo dice todo.
+    public var explicacion: String? {
+      switch self {
+      case .atajo, .ninguna: nil
+      case let .reglas(_, porQue):
+        porQue.isEmpty ? "Dilo lo eligió" : "Dilo lo eligió: \(porQue)"
+      }
+    }
   }
 
   public struct Eleccion: Equatable, Sendable {
@@ -47,7 +60,10 @@ public enum ResolucionDeModo {
     guard respuesta.probabilidad >= umbral, let modo = modos.modo(respuesta.valor) else {
       return Eleccion(modo: nil, razon: .ninguna)
     }
-    return Eleccion(modo: modo, razon: .reglas(probabilidad: respuesta.probabilidad))
+    return Eleccion(
+      modo: modo,
+      razon: .reglas(probabilidad: respuesta.probabilidad, porQue: respuesta.porQue)
+    )
   }
 
   /// El camino completo, tal como lo usa la app al terminar un dictado.

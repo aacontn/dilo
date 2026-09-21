@@ -72,7 +72,11 @@ public struct DeciderPorReglas: Decider {
 
     // La app al frente decide. Es la señal que mide 100 % y no cuesta nada.
     if porApp.count == 1 {
-      return RespuestaTipada(valor: porApp[0].opcion, probabilidad: 0.95)
+      return RespuestaTipada(
+        valor: porApp[0].opcion,
+        probabilidad: 0.95,
+        porQue: "la app al frente era \(contexto.appAlFrente ?? "")"
+      )
     }
 
     // Empate entre apps, o ninguna: las palabras clave desempatan.
@@ -92,7 +96,13 @@ public struct DeciderPorReglas: Decider {
       let base = porApp.isEmpty ? 0.6 : 0.85
       let probabilidad = empatados > 1 ? base / Double(empatados) : base
       let ganador = puntajes.first { $0.1 == mejor.1 }?.0 ?? mejor.0
-      return RespuestaTipada(valor: ganador.opcion, probabilidad: probabilidad)
+      let acertadas = ganador.palabrasClave
+        .filter { palabras.contains(Self.normalizar($0)) }
+      return RespuestaTipada(
+        valor: ganador.opcion,
+        probabilidad: probabilidad,
+        porQue: "dijiste \(acertadas.joined(separator: ", "))"
+      )
     }
 
     // Ni app ni palabras: la primera opción, con la probabilidad de haberla

@@ -24,9 +24,15 @@ public enum ValidadorDeGatillos {
     case teclaDelSistema
     /// Sin tecla ni botón: no hay nada que apretar.
     case vacio
+    /// Otro atajo de Dilo ya la usa. Lleva el nombre de quién: "esa tecla
+    /// está ocupada" sin decir por quién obliga a ir a buscarla a mano.
+    case yaLaUsa(String)
 
     public var explicacion: String {
       switch self {
+      case let .yaLaUsa(quien):
+        "Esa tecla ya la usa \(quien). Elige otra, o quítasela primero: dos "
+          + "cosas con la misma tecla es un atajo muerto."
       case .opcionSola:
         "⌥ sola no sirve de gatillo: en un teclado latino es la tecla que "
           + "escribe @ # \\ | { } [ ], y sostenerla mientras hablas te deja "
@@ -101,6 +107,49 @@ public enum ValidadorDeGatillos {
     }
 
     return .sirve
+  }
+
+  /// Un atajo que ya está tomado, con el nombre que se le muestra a la
+  /// persona. El `id` es para excluirse a sí mismo al revisar: reasignar a un
+  /// modo la tecla que ya tenía no es una colisión.
+  public struct GatilloEnUso: Equatable, Sendable {
+    public var id: String
+    public var nombre: String
+    public var gatillo: Gatillo
+
+    public init(id: String, nombre: String, gatillo: Gatillo) {
+      self.id = id
+      self.nombre = nombre
+      self.gatillo = gatillo
+    }
+  }
+
+  /// La revisión completa: la tecla sirve **y** no se la está quitando a
+  /// nadie.
+  ///
+  /// Antes cada pantalla revisaba lo suyo: Modos comparaba contra los otros
+  /// modos y Atajos contra los cuatro roles, así que la tecla del dictado y
+  /// la de un modo podían quedar iguales y el modo no disparaba nunca. Una
+  /// sola función, con todos los ocupados adentro, es la única forma de que
+  /// no vuelva a pasar.
+  ///
+  /// - Parameter ocupados: todo lo que hoy tiene tecla en Dilo — dictado,
+  ///   segundo idioma, traducir, leer en voz alta y cada modo.
+  /// - Parameter salvo: el id de quien está eligiendo, para no chocar
+  ///   consigo mismo.
+  public static func revisar(
+    _ gatillo: Gatillo,
+    entre ocupados: [GatilloEnUso],
+    salvo id: String? = nil
+  ) -> Veredicto {
+    let veredicto = revisar(gatillo)
+    guard veredicto.sirve else { return veredicto }
+    guard let choque = ocupados.first(where: {
+      $0.id != id && $0.gatillo.disparaLoMismoQue(gatillo)
+    }) else {
+      return .sirve
+    }
+    return .noSirve(.yaLaUsa(choque.nombre))
   }
 
   /// Los gatillos que Dilo propone cuando nadie eligió nada. Ninguno escribe

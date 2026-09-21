@@ -45,7 +45,16 @@ struct ResolucionDeModoTests {
       decider: DeciderPorReglas(modos: modos)
     )
     #expect(eleccion.modo?.id == "codigo")
-    #expect(eleccion.razon == .reglas(probabilidad: 0.95))
+    #expect(
+      eleccion.razon == .reglas(
+        probabilidad: 0.95, porQue: "la app al frente era Ghostty"
+      )
+    )
+    // El porqué llega entero hasta el historial: un modo aplicado sin que
+    // nadie apretara su tecla tiene que poder explicarse.
+    #expect(
+      eleccion.razon.explicacion == "Dilo lo eligió: la app al frente era Ghostty"
+    )
   }
 
   @Test func elAtajoLeGanaAlDecididor() async {

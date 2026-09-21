@@ -103,4 +103,54 @@ public enum ResolucionDeProveedor {
     "\(modo.nombre) se procesó con \(respaldo.proveedor.nombre) porque el "
       + "proveedor que elegiste no respondió. El texto salió de esta compu."
   }
+
+  /// Con qué corre este modo en esta sesión, y con **ninguno más**.
+  ///
+  /// El `Plan` de arriba describe una cadena con respaldo, que es lo que el
+  /// spec 2026-07-29 pedía. Dictando se vio que no sirve: un modo local que
+  /// falla y cae a una nube manda a un tercero lo que alguien dictó creyendo
+  /// que no salía de su Mac, y enterarse después no lo deshace. Acá la sesión
+  /// se congela en un proveedor al empezar; si ése falla, se dice qué pasó y
+  /// el texto crudo queda recuperable. No hay segundo intento.
+  public enum DeSesion: Equatable, Sendable {
+    /// Corre con éste, y sale o no de la compu según él diga.
+    case corre(Resuelto)
+    /// Hay un proveedor usable, pero usarlo sería sacar de la compu un texto
+    /// que el modo pidió local. No se hace: se dice y el dictado sale limpio.
+    case seNiegaACruzar(aviso: String)
+    /// Nada configurado que pueda correr. El dictado sale como salía antes de
+    /// que existieran los proveedores: limpio, sin pasar por ninguna IA.
+    case sinProveedor
+  }
+
+  public static func deSesion(
+    para modo: Modo,
+    general proveedorGeneralID: String?,
+    catalogo: [Proveedor],
+    tieneClave: (Proveedor) -> Bool
+  ) -> DeSesion {
+    let plan = plan(
+      para: modo, general: proveedorGeneralID, catalogo: catalogo,
+      tieneClave: tieneClave
+    )
+    guard let primario = plan.primario else { return .sinProveedor }
+    // El modo pidió local y lo que quedó disponible es una nube: ése es el
+    // cruce silencioso, y acá es donde se corta.
+    if plan.avisaCruceALaNube {
+      return .seNiegaACruzar(aviso: avisoDeNegativa(modo: modo, enVezDe: primario))
+    }
+    return .corre(primario)
+  }
+
+  /// Lo que dice la píldora cuando Dilo se niega a cruzar.
+  public static func avisoDeNegativa(modo: Modo, enVezDe: Resuelto) -> String {
+    "\(modo.nombre) pedía un proveedor de esta compu y no está disponible. No "
+      + "lo mandé a \(enVezDe.proveedor.nombre): tu dictado salió tal cual."
+  }
+
+  /// Lo que dice la píldora cuando el proveedor congelado falló.
+  public static func avisoDeFalla(modo: Modo, proveedor: Proveedor) -> String {
+    "\(modo.nombre) no pudo reescribir: \(proveedor.nombre) no respondió. Tu "
+      + "dictado salió tal cual, y lo tienes en «Copiar el último dictado»."
+  }
 }

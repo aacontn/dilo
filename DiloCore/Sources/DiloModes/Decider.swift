@@ -66,9 +66,15 @@ public struct RespuestaTipada: Equatable, Sendable {
   /// la fuerza vale menos que una app que coincide exacto: quien la lee puede
   /// decidir no hacerle caso.
   public var probabilidad: Double
+  /// Qué señal ganó, en una frase corta. Va al historial cuando "un atajo,
+  /// Dilo decide" eligió el modo: un modo que aparece sin que nadie apretara
+  /// su tecla tiene que poder explicarse, o la próxima vez no se sabe si
+  /// corregir el dictado o corregir la regla. Vacío es "no lo dice".
+  public var porQue: String
 
-  public init(valor: String, probabilidad: Double) {
+  public init(valor: String, probabilidad: Double, porQue: String = "") {
     self.valor = valor
     self.probabilidad = probabilidad
+    self.porQue = porQue
   }
 }
