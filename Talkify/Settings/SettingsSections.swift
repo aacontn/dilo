@@ -18,6 +18,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   case general
   case appearance
   case sounds
+  case motor
   case dictation
   case modos
   case palabras
@@ -59,6 +60,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .general: "General"
     case .appearance: "Apariencia"
     case .sounds: "Sonidos"
+    case .motor: "Motor"
     case .dictation: "Dictado"
     case .modos: "Modos"
     case .palabras: "Tu español"
@@ -79,6 +81,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .general: "Cómo arranca Dilo"
     case .appearance: "Cómo se ve la píldora mientras dictas"
     case .sounds: "Los sonidos de empezar y terminar"
+    case .motor: "Quién convierte tu voz en texto"
     case .dictation: "Dónde aterriza lo que dictaste"
     case .modos: "Cada modo con su tecla y su IA"
     case .palabras: "Tus palabras y las muletillas"
@@ -99,6 +102,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     case .general: "gearshape"
     case .appearance: "sparkles"
     case .sounds: "waveform"
+    case .motor: "cpu"
     case .dictation: "text.cursor"
     case .modos: "switch.2"
     case .palabras: "character.book.closed"

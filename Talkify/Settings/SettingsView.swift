@@ -253,6 +253,8 @@ private struct SettingsContent: View {
           AppearanceSettingsView(settings: settings)
         case .sounds:
           SoundsSettingsView(settings: settings, sounds: sounds)
+        case .motor:
+          MotorSettingsView(settings: settings)
         case .dictation:
           DictationSettingsView(settings: settings)
         case .modos:

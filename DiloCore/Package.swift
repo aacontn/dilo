@@ -18,21 +18,41 @@ let package = Package(
   products: [
     .library(name: "DiloText", targets: ["DiloText", "DiloModes"]),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
+    .library(name: "DiloEngines", targets: ["DiloEngines"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
     // La herramienta que mide los números del spec §3 contra un `.app` ya
     // compilado. Es de taller, no de producto: `scripts/metrics.sh` la
     // construye y la corre, y la app no la enlaza.
     .executable(name: "dilo-metrics", targets: ["dilo-metrics"]),
   ],
+  dependencies: [
+    // Parakeet TDT v3 (int8) en Core ML. Apache 2.0. Se fija por versión
+    // exacta: el paquete trae modelos que se bajan en runtime y una API que
+    // todavía se mueve semana a semana.
+    //
+    // `traits: []` apaga `NemoTextProcessing`, un staticlib de Rust
+    // (~8 MB por slice) que sólo sirve a los frontends de TTS. Dilo no hace
+    // TTS con FluidAudio y el `.app` tiene que pesar menos de 20 MB (spec §3).
+    .package(
+      url: "https://github.com/FluidInference/FluidAudio.git",
+      exact: "0.15.8",
+      traits: []
+    )
+  ],
   targets: [
     .target(name: "DiloText"),
     .target(name: "DiloModes"),
     .target(name: "DiloCapabilities"),
+    .target(
+      name: "DiloEngines",
+      dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
+    ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
+    .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),
   ]
 )

@@ -88,7 +88,18 @@ final class MicrophoneInput: @unchecked Sendable {
   /// dead engine behind, and a headset settling its profile can post more
   /// than one.
   private var recoveryPending = false
-  private let analyzerContinuation: AsyncStream<AnalyzerInput>.Continuation
+  /// Dónde aterriza cada buffer ya convertido. Devuelve `false` cuando el
+  /// consumidor no da abasto, que es la contrapresión que antes venía del
+  /// `YieldResult` del stream.
+  ///
+  /// Es un closure y no la continuación del analizador porque el motor
+  /// Parakeet necesita exactamente esta captura —con la recuperación de
+  /// cambio de ruta de los audífonos Bluetooth, que costó cara— pero no pasa
+  /// por SpeechAnalyzer. La inicialización de siempre sigue existiendo, más
+  /// abajo, y hace justo lo que hacía.
+  private let sink: @Sendable (AVAudioPCMBuffer) -> Bool
+  /// Se llama cuando la captura se muere y no viene nada más.
+  private let onEnd: @Sendable () -> Void
   private let failureHandler: @Sendable (InputError) -> Void
   /// Normalized microphone level (0–1) per tap buffer, for the HUD's
   /// voice-reactive visual. Called on the audio thread.
@@ -105,13 +116,33 @@ final class MicrophoneInput: @unchecked Sendable {
 #endif
 
   init(
+    sink: @escaping @Sendable (AVAudioPCMBuffer) -> Bool,
+    onEnd: @escaping @Sendable () -> Void,
+    failureHandler: @escaping @Sendable (InputError) -> Void,
+    levelHandler: (@Sendable (Float) -> Void)? = nil
+  ) {
+    self.sink = sink
+    self.onEnd = onEnd
+    self.failureHandler = failureHandler
+    self.levelHandler = levelHandler
+  }
+
+  convenience init(
     analyzerContinuation: AsyncStream<AnalyzerInput>.Continuation,
     failureHandler: @escaping @Sendable (InputError) -> Void,
     levelHandler: (@Sendable (Float) -> Void)? = nil
   ) {
-    self.analyzerContinuation = analyzerContinuation
-    self.failureHandler = failureHandler
-    self.levelHandler = levelHandler
+    self.init(
+      sink: { buffer in
+        if case .dropped = analyzerContinuation.yield(AnalyzerInput(buffer: buffer)) {
+          return false
+        }
+        return true
+      },
+      onEnd: { analyzerContinuation.finish() },
+      failureHandler: failureHandler,
+      levelHandler: levelHandler
+    )
   }
 
   func start(outputFormat: AVAudioFormat) throws {
@@ -121,7 +152,7 @@ final class MicrophoneInput: @unchecked Sendable {
       let entrada = try EntradaWAVDeMetricas(
         ruta: ruta,
         formatoDelAnalizador: outputFormat,
-        continuacion: analyzerContinuation,
+        sink: sink,
         nivel: levelHandler
       )
       stateLock.withLock {
@@ -298,9 +329,7 @@ final class MicrophoneInput: @unchecked Sendable {
     publishLevel(of: buffer)
     do {
       let convertedBuffer = try convert(buffer, using: converterBox)
-      let result = analyzerContinuation.yield(AnalyzerInput(buffer: convertedBuffer))
-
-      if case .dropped = result {
+      if !sink(convertedBuffer) {
         reportFailure(.analyzerBackpressure)
       }
     } catch let error as InputError {
@@ -372,7 +401,7 @@ final class MicrophoneInput: @unchecked Sendable {
     AppLog.audio.error(
       "microphone failed: \(error.errorDescription ?? "unknown", privacy: .public)"
     )
-    analyzerContinuation.finish()
+    onEnd()
     failureHandler(error)
   }
 }

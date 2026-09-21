@@ -2,7 +2,6 @@
 import AVFAudio
 import Accelerate
 import Foundation
-import Speech
 import os
 
 /// El gancho de medición de la Tarea 7: hace que una sesión de dictado escuche
@@ -33,7 +32,10 @@ final class EntradaWAVDeMetricas: @unchecked Sendable {
   private let conversor: AVAudioConverter
   private let formatoDeSalida: AVAudioFormat
   private let cuadrosPorTrozo: AVAudioFrameCount
-  private let continuacion: AsyncStream<AnalyzerInput>.Continuation
+  /// El mismo sumidero que usa el tap real: desde el motor doble, quién
+  /// escucha lo decide `MicrophoneInput`, no este gancho. Así la medición mide
+  /// el motor que esté puesto y no sólo el de Apple.
+  private let sink: @Sendable (AVAudioPCMBuffer) -> Bool
   private let nivel: (@Sendable (Float) -> Void)?
   private let marcaDeSoltado: URL
   private let cola = DispatchQueue(label: "cl.espaciodigital.dilo.metricas-wav", qos: .userInitiated)
@@ -43,7 +45,7 @@ final class EntradaWAVDeMetricas: @unchecked Sendable {
   init(
     ruta: String,
     formatoDelAnalizador: AVAudioFormat,
-    continuacion: AsyncStream<AnalyzerInput>.Continuation,
+    sink: @escaping @Sendable (AVAudioPCMBuffer) -> Bool,
     nivel: (@Sendable (Float) -> Void)?
   ) throws {
     let url = URL(fileURLWithPath: ruta)
@@ -57,7 +59,7 @@ final class EntradaWAVDeMetricas: @unchecked Sendable {
     cuadrosPorTrozo = AVAudioFrameCount(
       max(1, archivo.processingFormat.sampleRate * Self.segundosPorTrozo)
     )
-    self.continuacion = continuacion
+    self.sink = sink
     self.nivel = nivel
     marcaDeSoltado = URL(fileURLWithPath: ruta + ".soltado")
     try? FileManager.default.removeItem(at: marcaDeSoltado)
@@ -105,7 +107,7 @@ final class EntradaWAVDeMetricas: @unchecked Sendable {
 
       publicarNivel(de: entrada)
       if let salida = convertir(entrada) {
-        _ = continuacion.yield(AnalyzerInput(buffer: salida))
+        _ = sink(salida)
       }
 
       // Al ritmo real: si se entregara de golpe, el reconocedor vería cinco
