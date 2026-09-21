@@ -228,25 +228,41 @@ struct NotchEscenarioTests {
   /// la pantalla**. Que la forma desaparezca al terminar es exactamente lo
   /// que la volvía un aviso en vez de un lugar.
   @MainActor
-  @Test func alSoltarVuelveAReposoYNoDesaparece() async throws {
-    let stage = HUDStage(settings: AppSettings.previewStore())
+  @Test func alSoltarVuelveAReposoYNoDesaparece() async {
+    let reloj = DrivenClock()
+    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
     stage.claim(.dictation, on: simulado)
     stage.recibir(.escuchar)
+    stage.dictationContent.text = "lo que se estaba dictando"
     #expect(stage.estado == .dictando)
 
     stage.retract()
-    try await Task.sleep(for: HUDStage.dismissDuration + .milliseconds(200))
+    // El estado vuelve a reposo en el acto; lo que espera el plazo es la
+    // limpieza de lo que la forma estaba diciendo.
     #expect(stage.estado == .reposo)
     #expect(stage.occupant == .none)
+
+    await reloj.waitForSleeper()
+    reloj.advance(by: HUDStage.dismissDuration)
+    while !stage.dictationContent.text.isEmpty {
+      await Task.yield()
+    }
+    #expect(stage.estado == .reposo)
   }
 
   /// El hover revela contexto y **nunca** arranca una captura.
   @MainActor
-  @Test func elHoverNoCaptura() async throws {
-    let stage = HUDStage(settings: AppSettings.previewStore())
+  @Test func elHoverNoCaptura() async {
+    let reloj = DrivenClock()
+    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
     stage.dictationContent.contexto = "Correo"
     stage.dictationContent.alEntrarElPuntero?(true)
-    try await Task.sleep(for: HUDStage.toleranciaDelHover + .milliseconds(200))
+
+    await reloj.waitForSleeper()
+    reloj.advance(by: HUDStage.toleranciaDelHover)
+    while !stage.dictationContent.punteroEncima {
+      await Task.yield()
+    }
 
     #expect(stage.dictationContent.punteroEncima)
     #expect(stage.dictationContent.contextoVisible == "Correo")

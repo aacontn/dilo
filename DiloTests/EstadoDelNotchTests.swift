@@ -47,11 +47,21 @@ struct EstadoDelNotchTests {
 
   /// Preparando dice qué falta, con palabras; procesando y resultado también.
   /// Dictando no: ahí lo que se lee es el texto parcial.
+  ///
+  /// Sin comparar contra el copy en español: la suite corre con el idioma de
+  /// la máquina, y afirmar la traducción sería probar el catálogo, no el
+  /// contrato. Lo que importa es que cada estado tenga su línea, que sean
+  /// distintas entre sí, y que un aviso pase su texto tal cual.
   @Test func cadaEstadoDiceLoSuyo() {
-    #expect(EstadoDelNotch.preparando(.cargandoModelo).texto == "Cargando el modelo…")
+    #expect(EstadoDelNotch.preparando(.cargandoModelo).texto == FaltaDelNotch.cargandoModelo.texto)
     #expect(EstadoDelNotch.preparando(.aviso("Bajando es-CL, 40 %")).texto == "Bajando es-CL, 40 %")
-    #expect(EstadoDelNotch.resultado(.listo).texto == "Listo")
-    #expect(EstadoDelNotch.resultado(.copiado).texto == "Copiado al portapapeles")
+    #expect(EstadoDelNotch.resultado(.listo).texto == ResultadoDelNotch.listo.texto)
+    #expect(EstadoDelNotch.resultado(.copiado).texto == ResultadoDelNotch.copiado.texto)
+    #expect(ResultadoDelNotch.listo.texto != ResultadoDelNotch.copiado.texto)
+    #expect(!ResultadoDelNotch.listo.texto.isEmpty)
+    #expect(!FaltaDelNotch.cargandoModelo.texto.isEmpty)
+    #expect(EstadoDelNotch.procesando.texto?.isEmpty == false)
+    // Dictando no dice nada: ahí lo que se lee es el texto parcial.
     #expect(EstadoDelNotch.dictando.texto == nil)
     #expect(EstadoDelNotch.reposo.texto == nil)
   }

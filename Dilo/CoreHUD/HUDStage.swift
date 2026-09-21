@@ -86,6 +86,10 @@ final class HUDStage {
   /// salta de monitor sola es peor que una que espera—.
   private var pantallaActual: HUDScreenSnapshot?
   private var hoverTask: Task<Void, Never>?
+  /// El reloj de los plazos del escenario. Inyectable por el mismo motivo
+  /// que el del pegado (#82): contra el reloj de pared, un test de tiempos
+  /// afirma que el runner fue rápido, no que el plazo se respetó.
+  private let reloj: DeadlineClock
   private var renderedSettings: DictationSessionSettings
   private var orderOutTask: Task<Void, Never>?
   /// El observador de cambio de espacio. Se guarda y no se da de baja: el
@@ -95,6 +99,7 @@ final class HUDStage {
 
   init(settings: AppSettings, reloj: DeadlineClock = .continuous) {
     self.settings = settings
+    self.reloj = reloj
     control = ControlDelNotch(reloj: reloj)
     renderedSettings = settings.sessionSettings
     let placeholder = HUDScreenSnapshot(
@@ -226,8 +231,8 @@ final class HUDStage {
   /// vista porque es tiempo, y el tiempo del escenario lo lleva el escenario.
   private func punteroEncima(_ dentro: Bool) {
     hoverTask?.cancel()
-    hoverTask = Task { [weak self] in
-      try? await Task.sleep(for: Self.toleranciaDelHover)
+    hoverTask = Task { [weak self, reloj] in
+      try? await reloj.sleep(Self.toleranciaDelHover)
       guard !Task.isCancelled, let self else { return }
       // Un hover jamás arranca una captura: lo único que toca es qué se
       // dibuja (contrato del notch).
@@ -235,7 +240,7 @@ final class HUDStage {
       actualizarZonaInteractiva()
       guard dictationContent.punteroEncima else { return }
 
-      try? await Task.sleep(for: Self.contextoMaximo)
+      try? await reloj.sleep(Self.contextoMaximo)
       guard !Task.isCancelled else { return }
       dictationContent.punteroEncima = false
       actualizarZonaInteractiva()
@@ -365,8 +370,8 @@ final class HUDStage {
     dropContent.isRevealed = false
 
     orderOutTask?.cancel()
-    orderOutTask = Task { [weak self] in
-      try? await Task.sleep(for: Self.dismissDuration)
+    orderOutTask = Task { [weak self, reloj] in
+      try? await reloj.sleep(Self.dismissDuration)
       guard !Task.isCancelled, let self, occupant == .none else { return }
       // Sólo cuando la forma ya se encogió: limpiar antes se vería durante
       // el encogimiento.
