@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import SwiftUI
 
 /// The Drop Transcription section: where a transcript nobody caught is written,
@@ -31,11 +32,21 @@ struct DropTranscriptionSettingsView: View {
       }
 
       SettingsCard(title: "Cómo funciona") {
-        SettingsRow(
-          title: "Arrástralo arriba",
-          description: "Lleva un audio o un video al borde de arriba y la píldora se abre para recibirlo. Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
-        ) {
-          EmptyView()
+        if Anfitrion.actual.admite(.arrastreDeArchivosAlNotch) {
+          SettingsRow(
+            title: "Arrástralo arriba",
+            description: "Lleva un audio o un video al borde de arriba y la píldora se abre para recibirlo. Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
+          ) {
+            EmptyView()
+          }
+        } else {
+          // Donde el arrastre no llega, la instrucción no puede prometerlo.
+          SettingsRow(
+            title: "Elígelo desde el menú",
+            description: "Abre el menú de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
+          ) {
+            EmptyView()
+          }
         }
       }
     }

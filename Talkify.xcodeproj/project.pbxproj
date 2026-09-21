@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		9EDILOCORE00000000000004 /* DiloText in Frameworks */ = {isa = PBXBuildFile; productRef = 9EDILOCORE00000000000002 /* DiloText */; };
 		9EDILOCORE00000000000005 /* DiloText in Frameworks */ = {isa = PBXBuildFile; productRef = 9EDILOCORE00000000000003 /* DiloText */; };
+		9EDILOCORE00000000000008 /* DiloCapabilities in Frameworks */ = {isa = PBXBuildFile; productRef = 9EDILOCORE00000000000006 /* DiloCapabilities */; };
+		9EDILOCORE00000000000009 /* DiloCapabilities in Frameworks */ = {isa = PBXBuildFile; productRef = 9EDILOCORE00000000000007 /* DiloCapabilities */; };
 		9ESPARK03000000000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9ESPARK02000000000000002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -68,6 +70,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9EDILOCORE00000000000004 /* DiloText in Frameworks */,
+				9EDILOCORE00000000000008 /* DiloCapabilities in Frameworks */,
 				9ESPARK03000000000000003 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -77,6 +80,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9EDILOCORE00000000000005 /* DiloText in Frameworks */,
+				9EDILOCORE00000000000009 /* DiloCapabilities in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +134,7 @@
 			name = Dilo;
 			packageProductDependencies = (
 				9EDILOCORE00000000000002 /* DiloText */,
+				9EDILOCORE00000000000006 /* DiloCapabilities */,
 				9ESPARK02000000000000002 /* Sparkle */,
 			);
 			productName = Dilo;
@@ -154,6 +159,7 @@
 			name = "Dilo-MAS";
 			packageProductDependencies = (
 				9EDILOCORE00000000000003 /* DiloText */,
+				9EDILOCORE00000000000007 /* DiloCapabilities */,
 			);
 			productName = "Dilo-MAS";
 			productReference = 9EDILOMAS0000000000000P1 /* Dilo-MAS.app */;
@@ -689,6 +695,14 @@
 		9EDILOCORE00000000000003 /* DiloText */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DiloText;
+		};
+		9EDILOCORE00000000000006 /* DiloCapabilities */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DiloCapabilities;
+		};
+		9EDILOCORE00000000000007 /* DiloCapabilities */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DiloCapabilities;
 		};
 		9ESPARK02000000000000002 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import DiloCapabilities
 import os
 
 @MainActor
@@ -133,8 +134,7 @@ final class TextInsertionService {
 
   func captureFocusedTarget() -> Target? {
     if let element = dependencies.focusedElement() {
-      var processIdentifier: pid_t = 0
-      AXUIElementGetPid(element, &processIdentifier)
+      let processIdentifier = Anfitrion.actual.pid(de: element)
 
       return Target(
         element: element,
@@ -192,44 +192,25 @@ final class TextInsertionService {
     return await pasteAndRestoreClipboard(text, into: target)
   }
 
-  /// An AX attribute read as an element.
-  ///
-  /// `.success` says the attribute was read, not that it holds the type its
-  /// name implies, so the type is checked before the cast. CFTypeRef has no
-  /// meaningful `as?`, which is why this is a type-ID check rather than a
-  /// conditional cast.
+  /// Un atributo de Accesibilidad leído como elemento. Lo contesta el
+  /// anfitrión: en sandbox mirar dentro de otra app no se puede, así que la
+  /// respuesta es nil y el pegado cae solo a la app al frente.
   private static func element(
     _ owner: AXUIElement,
     _ attribute: String
   ) -> AXUIElement? {
-    var value: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(
-      owner,
-      attribute as CFString,
-      &value
-    ) == .success,
-    let value,
-    CFGetTypeID(value) == AXUIElementGetTypeID() else {
-      return nil
-    }
-    return (value as! AXUIElement)
+    Anfitrion.actual.elemento(owner, atributo: attribute)
   }
 
   private static func focusedElement() -> AXUIElement? {
-    element(AXUIElementCreateSystemWide(), kAXFocusedUIElementAttribute)
+    Anfitrion.actual.elementoEnfocado()
   }
 
+  /// Ojo: `false` puede significar "no es un campo de contraseña" o "no se
+  /// pudo saber". Quien apoye una decisión en esto mira antes
+  /// `Anfitrion.actual.admite(.focoAntesDePegar)`.
   private func isSecureTextField(_ element: AXUIElement) -> Bool {
-    var value: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(
-      element,
-      kAXSubroleAttribute as CFString,
-      &value
-    ) == .success else {
-      return false
-    }
-
-    return value as? String == kAXSecureTextFieldSubrole as String
+    Anfitrion.actual.esCampoSeguro(element)
   }
 
   private func displayID(for element: AXUIElement) -> CGDirectDisplayID? {
@@ -256,55 +237,14 @@ final class TextInsertionService {
   }
 
   private func frame(of element: AXUIElement) -> CGRect? {
-    var positionValue: CFTypeRef?
-    var sizeValue: CFTypeRef?
-
-    guard AXUIElementCopyAttributeValue(
-      element,
-      kAXPositionAttribute as CFString,
-      &positionValue
-    ) == .success,
-    AXUIElementCopyAttributeValue(
-      element,
-      kAXSizeAttribute as CFString,
-      &sizeValue
-    ) == .success,
-    let positionValue,
-    let sizeValue,
-    CFGetTypeID(positionValue) == AXValueGetTypeID(),
-    CFGetTypeID(sizeValue) == AXValueGetTypeID() else {
-      return nil
-    }
-
-    var position = CGPoint.zero
-    var size = CGSize.zero
-    guard AXValueGetValue(positionValue as! AXValue, .cgPoint, &position),
-       AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else {
-      return nil
-    }
-
-    return CGRect(origin: position, size: size)
+    Anfitrion.actual.marco(de: element)
   }
 
   private static func isStillFocused(_ target: Target) -> Bool {
-    guard let targetElement = target.element else {
-      return NSWorkspace.shared.frontmostApplication?.processIdentifier
-        == target.processIdentifier
-    }
-
-    let systemWideElement = AXUIElementCreateSystemWide()
-    var value: CFTypeRef?
-
-    guard AXUIElementCopyAttributeValue(
-      systemWideElement,
-      kAXFocusedUIElementAttribute as CFString,
-      &value
-    ) == .success,
-    let value else {
-      return false
-    }
-
-    return CFEqual(value, targetElement)
+    Anfitrion.actual.sigueSiendoElFoco(
+      elemento: target.element,
+      pid: target.processIdentifier
+    )
   }
 
   /// Stages, pastes, and conditionally restores one finalized result.

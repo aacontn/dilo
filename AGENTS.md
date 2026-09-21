@@ -54,6 +54,10 @@ español. Los comentarios y los mensajes de commit también van en español.
   `HostCapabilities` (Tarea 2). Lo que no se puede hacer **se esconde**, no
   falla. Se prueba lanzando con `open -a`, **nunca desde el terminal**: TCC
   atribuye el permiso al proceso padre y el tap de audio devuelve silencio.
+  Qué anfitrión resolvió una copia lo dice ella misma al arrancar:
+  `log show --predicate 'subsystem == "cl.espaciodigital.dilo"' --last 5m`,
+  categoría `capacidades`. Antes de buscar por qué "no aparece" algo en el
+  build de App Store, mira esa línea: lista lo que está escondido.
 - **Ningún gatillo por defecto escribe símbolos** en teclado latino. Nada de
   ⌥ derecha sola: en ISO-LatAm es AltGr y escribe `@ # \ | { } [ ]`. Default
   `fn`/🌐 sostenido; alternativa ⌃⌥Espacio.

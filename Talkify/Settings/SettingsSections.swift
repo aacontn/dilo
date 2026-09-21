@@ -1,3 +1,5 @@
+import DiloCapabilities
+
 /// The Settings navigation model: labeled groups of sections with stable
 /// typed IDs (CONTEXT.md: sections are registered in code; no empty or
 /// disabled sections render).
@@ -31,13 +33,22 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   /// El target de App Store no trae Sparkle: ahí las actualizaciones las
   /// entrega la tienda y un panel que no puede hacer nada sería una promesa
-  /// falsa. Lo que no se puede hacer se esconde, no falla.
+  /// falsa. Lo mismo con Leer en voz alta, que es releer la selección de otra
+  /// app y el sandbox no lo permite. Lo que no se puede hacer se esconde, no
+  /// falla.
   var isAvailable: Bool {
-    #if DILO_MAS
-      self != .updates
-    #else
+    switch self {
+    case .updates:
+      #if DILO_MAS
+        false
+      #else
+        true
+      #endif
+    case .readAloud:
+      Anfitrion.actual.admite(.relecturaDelFoco)
+    default:
       true
-    #endif
+    }
   }
 
   var title: String {

@@ -1,4 +1,5 @@
 import ApplicationServices
+import DiloCapabilities
 import Foundation
 
 final class GlobalKeyEventMonitor: @unchecked Sendable {
@@ -77,6 +78,11 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
 
   @discardableResult
   func start() -> Bool {
+    // El tap del gatillo es legal en los dos anfitriones —lo que le falta es
+    // Input Monitoring, que concede una persona y no esta capa—, pero el
+    // contrato se consulta igual: si algún día un anfitrión no lo tiene, no
+    // se intenta y no se falla.
+    guard Anfitrion.actual.admite(.atajoGlobal) else { return false }
     guard eventTap == nil else { return true }
 
     let mask = eventMask(for: [

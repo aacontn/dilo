@@ -1,10 +1,15 @@
 import ApplicationServices
 import AVFAudio
+import DiloCapabilities
 import Speech
 
 enum PermissionService {
+  /// Pasa por el anfitrión como todo lo demás, aunque los dos contesten
+  /// igual: preguntar si *este* proceso tiene Accesibilidad no es leer otra
+  /// app, y en sandbox sigue siendo la compuerta del Cmd+V sintético y del
+  /// tap del gatillo. Lo que el sandbox corta es lo que hay al otro lado.
   static var hasAccessibilityAccess: Bool {
-    AXIsProcessTrusted()
+    Anfitrion.actual.tieneAccesibilidad
   }
 
   /// Asks macOS to show its Accessibility prompt, at most once per launch.
@@ -16,15 +21,11 @@ enum PermissionService {
   @discardableResult
   static func requestAccessibilityAccess() -> Bool {
     if hasPromptedForAccessibility {
-      return AXIsProcessTrusted()
+      return Anfitrion.actual.tieneAccesibilidad
     }
     hasPromptedForAccessibility = true
 
-    let options = [
-      "AXTrustedCheckOptionPrompt": true,
-    ] as CFDictionary
-
-    return AXIsProcessTrustedWithOptions(options)
+    return Anfitrion.actual.pedirAccesibilidad()
   }
 
   nonisolated(unsafe) private static var hasPromptedForAccessibility = false

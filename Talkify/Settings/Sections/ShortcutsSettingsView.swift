@@ -1,3 +1,4 @@
+import DiloCapabilities
 import SwiftUI
 
 /// The Shortcuts section: the user's own keyboard with the bound keys lit,
@@ -99,12 +100,16 @@ struct ShortcutsSettingsView: View {
         sentence: translateSentence
       )
 
-      row(
-        .readAloud,
-        allowsBareModifier: false,
-        allowsMouseButton: false,
-        sentence: "Aprieta %@ para leer lo seleccionado; otra vez para parar."
-      )
+      // Sin relectura del foco no hay Leer en voz alta, y un atajo para una
+      // función escondida es una tecla que no hace nada.
+      if Anfitrion.actual.admite(.relecturaDelFoco) {
+        row(
+          .readAloud,
+          allowsBareModifier: false,
+          allowsMouseButton: false,
+          sentence: "Aprieta %@ para leer lo seleccionado; otra vez para parar."
+        )
+      }
     }
   }
 
@@ -214,8 +219,10 @@ struct ShortcutsSettingsView: View {
       // spell a modifier's side, so the lit key is the only thing that says
       // the trigger is the right command and not the left.
       highlight(.translate, settings.translateTriggerBinding),
-      highlight(.readAloud, settings.readAloudBinding),
     ]
+    if Anfitrion.actual.admite(.relecturaDelFoco) {
+      result.append(highlight(.readAloud, settings.readAloudBinding))
+    }
     if settings.isSecondLanguageEnabled {
       result.append(highlight(.secondLanguage, settings.secondaryTriggerBinding))
     }

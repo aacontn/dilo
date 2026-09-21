@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import Foundation
 
 /// Turns a dragged file into a running job: watches for the drag, opens the
@@ -54,6 +55,11 @@ final class DropTranscriptionController {
 
   /// Starts watching for a media file dragged toward the notch.
   func start() {
+    // El arrastre necesita un monitor global de mouse (Accesibilidad) y, peor,
+    // una extensión de sandbox para el archivo que ese monitor no otorga:
+    // adentro se ve el URL y no se puede abrir. Donde no se puede, no se
+    // escucha el arrastre y el archivo entra por "Transcribir un archivo…".
+    guard Anfitrion.actual.admite(.arrastreDeArchivosAlNotch) else { return }
     dragWatcher.onZoneChange = { [weak self] zone, url in
       self?.showTarget(for: zone, url: url)
     }

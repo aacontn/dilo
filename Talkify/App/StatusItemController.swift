@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 
 @MainActor
 final class StatusItemController: NSObject {
@@ -50,7 +51,11 @@ final class StatusItemController: NSObject {
 
     readAloudItem.action = #selector(toggleReadAloudItem)
     readAloudItem.target = self
-    menu.addItem(readAloudItem)
+    // Leer en voz alta es releer la selección de otra app, y eso el sandbox
+    // no lo da. Lo que no se puede hacer se esconde: el ítem no se agrega.
+    if Anfitrion.actual.admite(.relecturaDelFoco) {
+      menu.addItem(readAloudItem)
+    }
 
     let transcribeItem = NSMenuItem(
       title: "Transcribir un archivo…",

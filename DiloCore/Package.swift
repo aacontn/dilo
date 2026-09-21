@@ -8,10 +8,13 @@ let package = Package(
   name: "DiloCore",
   platforms: [.macOS(.v26)],
   products: [
-    .library(name: "DiloText", targets: ["DiloText"])
+    .library(name: "DiloText", targets: ["DiloText"]),
+    .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
   ],
   targets: [
     .target(name: "DiloText"),
+    .target(name: "DiloCapabilities"),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
+    .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
   ]
 )

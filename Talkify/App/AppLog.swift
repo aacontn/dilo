@@ -29,4 +29,7 @@ enum AppLog {
   static let speech = Logger(subsystem: subsystem, category: "speech")
   /// What becomes of finished text: shaping, translation, insertion.
   static let delivery = Logger(subsystem: subsystem, category: "delivery")
+  /// Qué anfitrión resolvió esta ejecución y qué esconde. Es lo primero que
+  /// hay que saber cuando algo "no aparece" en el build de App Store.
+  static let capacidades = Logger(subsystem: subsystem, category: "capacidades")
 }

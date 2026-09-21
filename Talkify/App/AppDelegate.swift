@@ -1,4 +1,6 @@
 import AppKit
+import DiloCapabilities
+import os
 
 @main
 @MainActor
@@ -41,6 +43,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     guard !Self.isHostingTests else { return }
+
+    // Una línea, al arrancar: de qué lado de la capa de capacidades corre
+    // esta copia. Sin esto, "en App Store no me aparece Leer en voz alta" es
+    // una hora de mirar código en vez de un `log show`.
+    AppLog.capacidades.notice(
+      "Anfitrión \(Anfitrion.actual.nombre, privacy: .public); escondidas: \(Capacidad.allCases.filter { !Anfitrion.actual.admite($0) }.map(\.rawValue).joined(separator: ", "), privacy: .public)"
+    )
 
     // Before anything can be staged: a crash or a force-quit while a
     // transcript card was on screen leaves the user's speech in cleartext

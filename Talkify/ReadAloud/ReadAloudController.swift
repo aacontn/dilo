@@ -1,5 +1,6 @@
 import AppKit
 import AVFAudio
+import DiloCapabilities
 
 /// Read Aloud: speaks the focused application's selected text with the
 /// Settings-picked voice. Apple speech synthesis only (CONTEXT.md: Apple
@@ -41,6 +42,10 @@ final class ReadAloudController: NSObject {
   }
 
   func toggle() {
+    // La función está escondida donde no se puede releer el foco. El atajo
+    // igual podría venir guardado de otra instalación: acá no hace nada, en
+    // vez de avisar de algo que no se puede arreglar.
+    guard Anfitrion.actual.admite(.relecturaDelFoco) else { return }
     if synthesizer.isSpeaking {
       stop()
     } else {

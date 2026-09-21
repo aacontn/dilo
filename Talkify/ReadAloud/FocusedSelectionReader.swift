@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import DiloCapabilities
 
 /// Read-only Accessibility access to the focused element's selected text —
 /// Read Aloud's entire AX surface. It never inserts, so it stays clear of
@@ -28,57 +29,12 @@ struct FocusedSelectionReader {
 
     static let live = Dependencies(focus: Self.readFocus)
 
+    /// Leer en voz alta es Accesibilidad hacia otra app de punta a punta, así
+    /// que la lectura entera se la pide al anfitrión. En sandbox contesta nil
+    /// y la función no se ofrece: el menú y su panel de Ajustes no aparecen.
     private static func readFocus() -> Focus? {
-      guard let element = focusedElement() else { return nil }
-      return Focus(
-        subrole: copyAttribute(element, kAXSubroleAttribute) as? String,
-        selectedText: copyAttribute(element, kAXSelectedTextAttribute) as? String
-      )
-    }
-
-    /// The focused element, asked of the frontmost application first.
-    ///
-    /// The systemwide element is the obvious way to ask and it answers nothing
-    /// here: measured on macOS 26 it returns no focused element at all, for
-    /// every application, including one with text plainly selected. Read Aloud
-    /// used only that, so it said "No text selected" everywhere. Asking the
-    /// application returns the text area and its selection. The systemwide
-    /// element stays as a fallback rather than being deleted, because it costs
-    /// one call and this is the kind of behaviour that comes back.
-    private static func focusedElement() -> AXUIElement? {
-      if let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-        let focused = element(AXUIElementCreateApplication(pid), kAXFocusedUIElementAttribute) {
-        return focused
-      }
-      return element(AXUIElementCreateSystemWide(), kAXFocusedUIElementAttribute)
-    }
-
-    /// Reads an attribute that should hold another element. The success code
-    /// says the attribute was read, not that it holds the type its name
-    /// implies, so the type is checked before the cast.
-    private static func element(
-      _ of: AXUIElement,
-      _ attribute: String
-    ) -> AXUIElement? {
-      guard let value = copyAttribute(of, attribute),
-        CFGetTypeID(value) == AXUIElementGetTypeID()
-      else { return nil }
-      return (value as! AXUIElement)
-    }
-
-    private static func copyAttribute(
-      _ element: AXUIElement,
-      _ attribute: String
-    ) -> CFTypeRef? {
-      var value: CFTypeRef?
-      guard AXUIElementCopyAttributeValue(
-        element,
-        attribute as CFString,
-        &value
-      ) == .success else {
-        return nil
-      }
-      return value
+      guard let foco = Anfitrion.actual.focoParaLeer() else { return nil }
+      return Focus(subrole: foco.subrol, selectedText: foco.textoSeleccionado)
     }
   }
 
