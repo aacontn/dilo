@@ -126,6 +126,17 @@ final class DirectDictationController {
     )
   }
 
+  /// El motor está cargando su modelo en la RAM mientras la sesión ya graba.
+  ///
+  /// Se dice en la píldora con el mismo estado que una descarga de idioma: la
+  /// banda nombra lo que está esperando en vez de quedarse en "Te escucho…"
+  /// mientras no llega nada. Las palabras no se pierden — al soltar, el buffer
+  /// espera al modelo—, sólo tardan.
+  private func showModelLoading(_ isLoading: Bool) {
+    guard machine.isSessionActive else { return }
+    dependencies.showModelDownload(isLoading ? "Cargando el modelo…" : nil)
+  }
+
   /// Pushes the recorded Settings bindings into the event tap; called at
   /// start and whenever the Shortcuts section changes them.
   func applyKeyBindings() {
@@ -661,6 +672,11 @@ final class DirectDictationController {
           { [weak self] level in
             Task { @MainActor [weak self] in
               self?.dependencies.showAudioLevel(level)
+            }
+          },
+          { [weak self] isLoading in
+            Task { @MainActor [weak self] in
+              self?.showModelLoading(isLoading)
             }
           }
         )

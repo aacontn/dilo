@@ -13,7 +13,20 @@ struct MotorSettingsView: View {
   @Bindable var settings: AppSettings
 
   var body: some View {
-    SelectorDeMotor(settings: settings)
+    VStack(spacing: 16) {
+      SelectorDeMotor(settings: settings)
+
+      SettingsCard(title: "La memoria") {
+        SettingsPickerRow(
+          title: "Soltar el modelo de la RAM",
+          description: "Sin dictar por un rato, Dilo devuelve la memoria. El dictado siguiente lo vuelve a cargar mientras hablas.",
+          options: DescargaPorReposo.allCases,
+          optionLabel: \.title,
+          selection: $settings.descargarModeloTras,
+          controlWidth: 170
+        )
+      }
+    }
   }
 }
 

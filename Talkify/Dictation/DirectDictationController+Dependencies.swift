@@ -20,7 +20,10 @@ extension DirectDictationController {
       Locale,
       _ updateHandler: @escaping @Sendable (SpeechRecognitionService.Update) -> Void,
       _ failureHandler: @escaping @Sendable (String) -> Void,
-      _ levelHandler: @escaping @Sendable (Float) -> Void
+      _ levelHandler: @escaping @Sendable (Float) -> Void,
+      /// El motor está cargando su modelo en la RAM mientras la persona ya
+      /// habla, y después que terminó. No es una falla: el dictado espera.
+      _ loadingHandler: @escaping @Sendable (Bool) -> Void
     ) async throws -> Void
     let finishRecognition: @Sendable () async throws -> String
     let cancelRecognition: @Sendable () async -> Void
@@ -117,6 +120,11 @@ extension DirectDictationController {
       let motorElegido: @Sendable () async -> SpeechEngineKind = {
         await MainActor.run { settings.motorDeVoz }
       }
+      // Lo mismo con el reposo: cuánto aguanta el modelo en la RAM se lee al
+      // empezar cada dictado, no una vez al arrancar.
+      let reposoElegido: @Sendable () async -> Duration? = {
+        await MainActor.run { settings.descargarModeloTras.intervalo }
+      }
 
       return Self(
         setDownloadHandler: { await speechService.setDownloadHandler($0) },
@@ -127,8 +135,9 @@ extension DirectDictationController {
           await motores.elegir(await motorElegido())
           try await motores.prewarm(locale: locale)
         },
-        startRecognition: { locale, updateHandler, failureHandler, levelHandler in
+        startRecognition: { locale, updateHandler, failureHandler, levelHandler, loadingHandler in
           await motores.elegir(await motorElegido())
+          await motores.configurarReposo(await reposoElegido())
           try await motores.start(
             locale: locale,
             handlers: EngineHandlers(
@@ -141,7 +150,8 @@ extension DirectDictationController {
                 )
               },
               falla: failureHandler,
-              nivel: levelHandler
+              nivel: levelHandler,
+              cargando: loadingHandler
             )
           )
         },
