@@ -2,6 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- El target de venta directa: sin App Sandbox, porque el tap de CGEvent
+	     del gatillo y la inserción por Accesibilidad viven fuera de él.
+
+	     Lo único que pide es el micrófono. Bajo Hardened Runtime —que se
+	     enciende junto con el Developer ID, ver docs/ProjectSettings.md— una
+	     app sin este entitlement no puede recibir el permiso de micrófono
+	     nunca: el prompt aparece y el switch no hace nada.
+
+	     **Nada más.** En particular:
+	     - `com.apple.security.automation.apple-events` NO va: el único
+	       osascript del repo está en DiloCore/Sources/DiloMetrics/, que es
+	       taller y no se enlaza a ningún target. El día que la app misma
+	       hable con otra app por Apple Events, este entitlement entra junto
+	       con su NSAppleEventsUsageDescription, y no antes.
+	     - `com.apple.security.cs.disable-library-validation` tampoco: los
+	       helpers de Sparkle se refirman con el mismo Team en
+	       scripts/release.sh, así que la validación de librerías pasa sola.
+	       Apagarla sería publicar un permiso amplio para tapar un refirmado
+	       que ya está hecho. -->
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
 </dict>

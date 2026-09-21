@@ -15,9 +15,22 @@
 	     sandboxed no abre una sola conexión. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<!-- Arrastrar una grabación al HUD: el usuario elige el archivo, así que
-	     alcanza con lectura de lo que él seleccionó. -->
-	<key>com.apple.security.files.user-selected.read-only</key>
-	<true/>
+	<!-- Lo que ya NO está, y por qué (revisado en la Tarea 8 contra lo que la
+	     Tarea 2 midió en ejecución):
+
+	     `com.apple.security.files.user-selected.read-only` se fue. Estaba por
+	     el arrastre de una grabación al notch, y esa capacidad es justamente
+	     una de las que `SandboxedHost` no ofrece —sin poder leer el destino,
+	     `DropTranscriptionController` se devuelve antes de instalar el
+	     destino de arrastre y Ajustes no muestra el panel—. Un entitlement
+	     que no habilita ninguna función es una pregunta más en la revisión de
+	     App Store y un permiso más en el bundle. Si el arrastre vuelve al
+	     build de App Store, vuelve con él.
+
+	     Tampoco va nada para Accesibilidad, Input Monitoring ni captura de
+	     audio: no son entitlements, son servicios de TCC. La Tarea 2 los vio
+	     pedirse los siete como `cl.espaciodigital.dilo.mas` y quedar
+	     esperando un clic; el de "Herramienta de desarrollo" aparecía sólo
+	     por la firma ad-hoc y se va con la firma de App Store. -->
 </dict>
 </plist>
