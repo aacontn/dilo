@@ -641,6 +641,10 @@ final class DirectDictationController {
     sessionStartTask = Task { [weak self] in
       guard let self else { return }
       do {
+        // Tus palabras entran como contexto del motor antes de reconocer.
+        // Es barato: sólo hace algo la primera vez después de que alguien
+        // edite su diccionario, y esa vez paga rearmar la sesión preparada.
+        await dependencies.setPalabrasPropias(settings.palabrasPropias)
         try await dependencies.startRecognition(
           locale,
           { [weak self] update in
@@ -695,6 +699,7 @@ final class DirectDictationController {
   private func recordHistory(
     spoken: String,
     delivered: String?,
+    modo: String? = nil,
     session: DictationSessionSettings
   ) async {
     guard session.historyEnabled, !spoken.isEmpty else { return }
@@ -716,6 +721,7 @@ final class DirectDictationController {
       spoken,
       translation,
       historySource(for: session.insertionDestination),
+      modo,
       session.historyFolder
     )
   }
@@ -743,10 +749,14 @@ final class DirectDictationController {
       defer { finishTask = nil }
       do {
         // La costura de español de Dilo: todo lo reconocido pasa por DiloText
-        // antes de que nadie más lo toque. Hoy sólo colapsa los espacios que
-        // deja una duda a mitad de frase; las muletillas y el diccionario
-        // personal entran por acá en la Tarea 5.
-        let spoken = DiloText.limpiarEspacios(try await dependencies.finishRecognition())
+        // antes de que nadie más lo toque — espacios, muletillas y tus
+        // palabras, en ese orden. Las preferencias son las que la sesión
+        // capturó al empezar: cambiar una palabra a mitad de dictado aplica
+        // al siguiente (ADR-0004).
+        let spoken = DiloText.limpiar(
+          try await dependencies.finishRecognition(),
+          con: (currentSessionSettings ?? settings.sessionSettings).textoPreferencias
+        )
         // A session about to shape keeps the HUD up saying so; every other
         // session dismisses here exactly as before.
         let willShape = chosenPrompt != nil && !spoken.isEmpty
@@ -780,7 +790,9 @@ final class DirectDictationController {
           } catch {
             // The rescue is the words as spoken, not as shaped: shaping is a
             // convenience and the raw words are what must survive.
-            await recordHistory(spoken: spoken, delivered: nil, session: session)
+            await recordHistory(
+              spoken: spoken, delivered: nil, modo: chosenPrompt?.name, session: session
+            )
             // Clipboard-only whatever the session's destination: nothing is
             // pasted, and the words survive where the user can reach them.
             let rescue = await dependencies.insertText(spoken, nil, .clipboardOnly)
@@ -802,7 +814,9 @@ final class DirectDictationController {
         // lands: written earlier it recorded a translation nobody received,
         // because shaping had not run yet. Still before insertion, so a
         // failed paste cannot lose the words (ADR-0007).
-        await recordHistory(spoken: spoken, delivered: text, session: session)
+        await recordHistory(
+          spoken: spoken, delivered: text, modo: chosenPrompt?.name, session: session
+        )
 
         let outcome = await dependencies.insertText(
           text, focusedTarget, session.insertionDestination

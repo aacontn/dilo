@@ -106,7 +106,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | muletillas del español, diccionario personal | 5 (hoy: un esqueleto) |
+| `DiloText` | muletillas del español, diccionario personal | 5 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox | 2 |
@@ -120,6 +120,14 @@ activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
 
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.
+
+**Excepción vigente:** `DiloModes` viaja dentro del producto `DiloText` en vez
+de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
+archivo estuvo congelado mientras corrían cinco ramas en paralelo. El módulo,
+su carpeta y sus tests sí son propios; lo único compartido es la línea del
+producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8— se separa en
+`.library(name: "DiloModes", targets: ["DiloModes"])` y se agrega a los dos
+targets.
 
 ### `Talkify/` — el mapa que viene de upstream
 

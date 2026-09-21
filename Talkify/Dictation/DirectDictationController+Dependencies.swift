@@ -81,8 +81,15 @@ extension DirectDictationController {
       _ text: String,
       _ translation: DictationHistoryStore.Translation?,
       _ source: String?,
+      _ modo: String?,
       _ folder: URL
     ) async -> Void
+
+    /// Las palabras propias que se le pasan al motor como contexto antes de
+    /// reconocer. Trae un valor por defecto que no hace nada para que los
+    /// tests que arman estas dependencias a mano sigan compilando sin
+    /// enterarse: una costura nueva no tiene por qué costarle a nadie.
+    var setPalabrasPropias: @Sendable ([String]) async -> Void = { _ in }
 
     // The beta prompt shaping pass; passthrough on any failure.
     let shapeText: @Sendable (
@@ -152,16 +159,18 @@ extension DirectDictationController {
         recordSession: {
           await usageTracker.recordSession(wordCount: $0, speakingDuration: $1)
         },
-        recordHistory: { text, translation, source, folder in
+        recordHistory: { text, translation, source, modo, folder in
           // A history write must never cost the session its insertion; a
           // full disk or revoked folder loses the entry, not the words.
           try? await historyStore.record(
             text,
             translation: translation,
             from: source,
+            modo: modo,
             in: folder
           )
         },
+        setPalabrasPropias: { await speechService.setPalabrasPropias($0) },
         shapeText: { text, prompt in
           await PromptShapingService(client: .live).shape(text, with: prompt)
         }

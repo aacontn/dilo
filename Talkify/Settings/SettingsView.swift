@@ -255,6 +255,12 @@ private struct SettingsContent: View {
           SoundsSettingsView(settings: settings, sounds: sounds)
         case .dictation:
           DictationSettingsView(settings: settings)
+        case .modos:
+          ModosSettingsView(settings: settings)
+        case .palabras:
+          PalabrasSettingsView(settings: settings)
+        case .historial:
+          HistorialSettingsView(settings: settings)
         case .promptShaping:
           PromptShapingSettingsView(settings: settings)
         case .dropTranscription:

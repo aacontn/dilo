@@ -1,4 +1,6 @@
 import AppKit
+import DiloModes
+import DiloText
 import Foundation
 import Observation
 
@@ -42,6 +44,13 @@ final class AppSettings {
     static let promptShapingEnabled = "dictationPromptShapingEnabled"
     static let promptShapingPrompt = "dictationPromptShapingPrompt"
     static let shapingPrompts = "dictationShapingPrompts"
+    static let modos = "diloModos"
+    static let proveedores = "diloProveedores"
+    static let proveedorGeneral = "diloProveedorGeneral"
+    static let unAtajoDiloDecide = "diloUnAtajoDiloDecide"
+    static let palabrasPropias = "diloPalabrasPropias"
+    static let limpiarMuletillas = "diloLimpiarMuletillas"
+    static let muletillasPropias = "diloMuletillasPropias"
   }
 
   @ObservationIgnored
@@ -135,6 +144,73 @@ final class AppSettings {
   /// inserts the raw words unchanged.
   func restoreDefaultShapingPrompts() {
     shapingPrompts = ShapingPrompt.defaults
+  }
+
+  /// Los modos de Dilo: nombre, prompt, proveedor y —si quieres— una tecla.
+  /// Se guardan enteros como JSON; un valor ilegible vuelve a los de fábrica
+  /// en vez de dejar la lista vacía.
+  var modos: [Modo] {
+    didSet {
+      if let data = try? JSONEncoder().encode(modos) {
+        defaults.set(data, forKey: Keys.modos)
+      }
+    }
+  }
+
+  /// El catálogo de proveedores, con la URL base y el modelo que cada quien
+  /// configuró. **Las claves de API no están acá**: viven en el Llavero, y
+  /// este valor se serializa a `UserDefaults`, que es texto plano.
+  var proveedores: [Proveedor] {
+    didSet {
+      if let data = try? JSONEncoder().encode(proveedores) {
+        defaults.set(data, forKey: Keys.proveedores)
+      }
+    }
+  }
+
+  /// El proveedor que usan los modos que no eligieron uno propio.
+  var proveedorGeneralID: String {
+    didSet { defaults.set(proveedorGeneralID, forKey: Keys.proveedorGeneral) }
+  }
+
+  /// "Un atajo, Dilo decide": el modo se elige por la app al frente y el
+  /// contenido, sin tecla propia. Apagada de fábrica (spec §7): quien no la
+  /// prende tiene exactamente el comportamiento de siempre.
+  var unAtajoDiloDecide: Bool {
+    didSet { defaults.set(unAtajoDiloDecide, forKey: Keys.unAtajoDiloDecide) }
+  }
+
+  /// Los modos de fábrica vuelven, y vuelven sin tecla los que no la traían.
+  func restaurarModosDeFabrica() {
+    modos = Modo.deFabrica
+  }
+
+  /// Tus palabras: nombres, proyectos, siglas y términos técnicos que el
+  /// motor no conoce. Se le pasan al motor como contexto **y** se corrigen
+  /// después, porque el contexto ayuda pero no garantiza.
+  var palabrasPropias: [String] {
+    didSet { defaults.set(palabrasPropias, forKey: Keys.palabrasPropias) }
+  }
+
+  /// Si se limpian las muletillas del español. Prendido de fábrica: es lo que
+  /// hace que el dictado salga listo para pegar sin pasar por ninguna IA.
+  var limpiarMuletillas: Bool {
+    didSet { defaults.set(limpiarMuletillas, forKey: Keys.limpiarMuletillas) }
+  }
+
+  /// Tu lista de muletillas. Vacía usa las de fábrica; con algo adentro
+  /// reemplaza a las de fábrica enteras, que es lo que alguien quiere cuando
+  /// se toma el trabajo de escribir una.
+  var muletillasPropias: [String] {
+    didSet { defaults.set(muletillasPropias, forKey: Keys.muletillasPropias) }
+  }
+
+  /// Lo que `DiloText` necesita saber, armado en un solo lugar.
+  var preferenciasDeTexto: DiloText.Preferencias {
+    DiloText.Preferencias(
+      muletillasPropias: limpiarMuletillas ? (muletillasPropias.isEmpty ? nil : muletillasPropias) : [],
+      palabrasPropias: palabrasPropias
+    )
   }
 
   var voiceVisual: HUDVoiceVisualStyle {
@@ -315,6 +391,15 @@ final class AppSettings {
     promptShapingPromptID = defaults.string(forKey: Keys.promptShapingPrompt)
       ?? ShapingPrompt.defaults[0].id
     shapingPrompts = Self.storedShapingPrompts(in: defaults) ?? ShapingPrompt.defaults
+    modos = Self.guardado([Modo].self, Keys.modos, in: defaults) ?? Modo.deFabrica
+    proveedores = Self.guardado([Proveedor].self, Keys.proveedores, in: defaults)
+      ?? Proveedor.deFabrica
+    proveedorGeneralID = defaults.string(forKey: Keys.proveedorGeneral)
+      ?? Proveedor.deFabrica[0].id
+    unAtajoDiloDecide = defaults.object(forKey: Keys.unAtajoDiloDecide) as? Bool ?? false
+    palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
+    limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true
+    muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .chartLine
     revealStyle = Self.stored(in: defaults, key: Keys.revealStyle) ?? .slide
@@ -379,6 +464,16 @@ final class AppSettings {
        allowsMouseButton || !binding.isMouseButton
     else { return nil }
     return binding
+  }
+
+  /// Un valor de Dilo guardado como JSON, o nil si no está o no se puede
+  /// leer. Un JSON roto vale lo mismo que uno ausente: se reseminan los de
+  /// fábrica, que es mejor que una pantalla vacía sin explicación.
+  private static func guardado<T: Decodable>(
+    _: T.Type, _ clave: String, in defaults: UserDefaults
+  ) -> T? {
+    guard let data = defaults.data(forKey: clave) else { return nil }
+    return try? JSONDecoder().decode(T.self, from: data)
   }
 
   private static func storedShapingPrompts(in defaults: UserDefaults) -> [ShapingPrompt]? {
@@ -471,6 +566,10 @@ struct DictationSessionSettings: Equatable {
   /// the arrow keys can cycle the session's pick without reading a library
   /// that may change mid-session.
   let shapingLibrary: [ShapingPrompt]
+  /// Las reglas de español que aplican a esta sesión: muletillas y tus
+  /// palabras. Se capturan como todo lo demás, para que editar el
+  /// diccionario a mitad de dictado no cambie el dictado en vuelo (ADR-0004).
+  let textoPreferencias: DiloText.Preferencias
   let voiceVisual: HUDVoiceVisualStyle
   let waveformStyle: HUDWaveformStyle
   let revealStyle: HUDRevealStyle
@@ -504,6 +603,7 @@ struct DictationSessionSettings: Equatable {
       ? settings.shapingPrompts.prompt(for: settings.promptShapingPromptID)
       : nil
     shapingLibrary = settings.promptShapingEnabled ? settings.shapingPrompts : []
+    textoPreferencias = settings.preferenciasDeTexto
     voiceVisual = settings.voiceVisual
     waveformStyle = settings.waveformStyle
     revealStyle = settings.revealStyle
