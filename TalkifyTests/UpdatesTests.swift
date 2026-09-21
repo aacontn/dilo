@@ -37,7 +37,8 @@ struct UpdatesTests {
 
   @Test func theUpdatesSectionIsRegistered() {
     #expect(SettingsSection.allCases.contains(.updates))
-    #expect(SettingsSection.updates.title == "Actualizaciones")
+    #expect(SettingsSection.updates.title == String(localized: "Actualizaciones"))
+    #expect(Self.copiaEnEspanol("Actualizaciones") == "Actualizaciones")
     #expect(!SettingsSection.updates.icon.isEmpty)
   }
 
@@ -85,7 +86,25 @@ struct UpdatesTests {
   /// de la licencia MIT: si alguien saca la sección, esto falla.
   @Test func laSeccionAcercaDeEstaRegistrada() {
     #expect(SettingsSection.allCases.contains(.about))
-    #expect(SettingsSection.about.title == "Acerca de")
+    #expect(SettingsSection.about.title == String(localized: "Acerca de"))
+    #expect(Self.copiaEnEspanol("Acerca de") == "Acerca de")
     #expect(!SettingsSection.about.icon.isEmpty)
+  }
+
+  /// El copy en español sacado del catálogo del bundle, corra el Mac en el
+  /// idioma que corra.
+  ///
+  /// `title` pasa por el catálogo, así que en un Mac en inglés —el runner de
+  /// CI lo es— vale "Updates" y compararlo contra el literal español fallaba
+  /// sin que nada estuviera roto. Lo que se quiere afirmar es que la sección
+  /// trae ese copy y que el español, que es el idioma en que se escribe la
+  /// app, sigue en el catálogo: eso se pregunta acá, a `es.lproj` directo.
+  /// El centinela importa: `localizedString` devuelve la clave cuando no
+  /// encuentra la entrada, y entonces una traducción borrada pasaría igual.
+  static func copiaEnEspanol(_ clave: String) -> String {
+    guard let carpeta = Bundle.main.url(forResource: "es", withExtension: "lproj"),
+      let catalogo = Bundle(url: carpeta)
+    else { return "sin es.lproj" }
+    return catalogo.localizedString(forKey: clave, value: "sin traducción al español", table: nil)
   }
 }

@@ -30,9 +30,9 @@ struct SettingsWindowTests {
 
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
-      .general, .appearance, .sounds, .dictation, .modos, .palabras, .historial,
-      .promptShaping, .dropTranscription, .readAloud, .language, .shortcuts,
-      .updates, .insights, .about,
+      .general, .appearance, .sounds, .motor, .dictation, .modos, .palabras,
+      .historial, .promptShaping, .dropTranscription, .readAloud, .language,
+      .shortcuts, .updates, .novedades, .insights, .about,
     ]
     #expect(SettingsSection.allCases == expected)
     // La navegación muestra lo mismo menos lo que el anfitrión esconde: el
