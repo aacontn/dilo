@@ -1,5 +1,6 @@
 import AppKit
 import DiloModes
+import DiloText
 import Foundation
 import Observation
 
@@ -47,6 +48,9 @@ final class AppSettings {
     static let proveedores = "diloProveedores"
     static let proveedorGeneral = "diloProveedorGeneral"
     static let unAtajoDiloDecide = "diloUnAtajoDiloDecide"
+    static let palabrasPropias = "diloPalabrasPropias"
+    static let limpiarMuletillas = "diloLimpiarMuletillas"
+    static let muletillasPropias = "diloMuletillasPropias"
   }
 
   @ObservationIgnored
@@ -179,6 +183,34 @@ final class AppSettings {
   /// Los modos de fábrica vuelven, y vuelven sin tecla los que no la traían.
   func restaurarModosDeFabrica() {
     modos = Modo.deFabrica
+  }
+
+  /// Tus palabras: nombres, proyectos, siglas y términos técnicos que el
+  /// motor no conoce. Se le pasan al motor como contexto **y** se corrigen
+  /// después, porque el contexto ayuda pero no garantiza.
+  var palabrasPropias: [String] {
+    didSet { defaults.set(palabrasPropias, forKey: Keys.palabrasPropias) }
+  }
+
+  /// Si se limpian las muletillas del español. Prendido de fábrica: es lo que
+  /// hace que el dictado salga listo para pegar sin pasar por ninguna IA.
+  var limpiarMuletillas: Bool {
+    didSet { defaults.set(limpiarMuletillas, forKey: Keys.limpiarMuletillas) }
+  }
+
+  /// Tu lista de muletillas. Vacía usa las de fábrica; con algo adentro
+  /// reemplaza a las de fábrica enteras, que es lo que alguien quiere cuando
+  /// se toma el trabajo de escribir una.
+  var muletillasPropias: [String] {
+    didSet { defaults.set(muletillasPropias, forKey: Keys.muletillasPropias) }
+  }
+
+  /// Lo que `DiloText` necesita saber, armado en un solo lugar.
+  var preferenciasDeTexto: DiloText.Preferencias {
+    DiloText.Preferencias(
+      muletillasPropias: limpiarMuletillas ? (muletillasPropias.isEmpty ? nil : muletillasPropias) : [],
+      palabrasPropias: palabrasPropias
+    )
   }
 
   var voiceVisual: HUDVoiceVisualStyle {
@@ -365,6 +397,9 @@ final class AppSettings {
     proveedorGeneralID = defaults.string(forKey: Keys.proveedorGeneral)
       ?? Proveedor.deFabrica[0].id
     unAtajoDiloDecide = defaults.object(forKey: Keys.unAtajoDiloDecide) as? Bool ?? false
+    palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
+    limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true
+    muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .chartLine
     revealStyle = Self.stored(in: defaults, key: Keys.revealStyle) ?? .slide
@@ -531,6 +566,10 @@ struct DictationSessionSettings: Equatable {
   /// the arrow keys can cycle the session's pick without reading a library
   /// that may change mid-session.
   let shapingLibrary: [ShapingPrompt]
+  /// Las reglas de español que aplican a esta sesión: muletillas y tus
+  /// palabras. Se capturan como todo lo demás, para que editar el
+  /// diccionario a mitad de dictado no cambie el dictado en vuelo (ADR-0004).
+  let textoPreferencias: DiloText.Preferencias
   let voiceVisual: HUDVoiceVisualStyle
   let waveformStyle: HUDWaveformStyle
   let revealStyle: HUDRevealStyle
@@ -564,6 +603,7 @@ struct DictationSessionSettings: Equatable {
       ? settings.shapingPrompts.prompt(for: settings.promptShapingPromptID)
       : nil
     shapingLibrary = settings.promptShapingEnabled ? settings.shapingPrompts : []
+    textoPreferencias = settings.preferenciasDeTexto
     voiceVisual = settings.voiceVisual
     waveformStyle = settings.waveformStyle
     revealStyle = settings.revealStyle

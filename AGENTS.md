@@ -102,7 +102,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | muletillas del español, diccionario personal | 5 (hoy: un esqueleto) |
+| `DiloText` | muletillas del español, diccionario personal | 5 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox | 2 |

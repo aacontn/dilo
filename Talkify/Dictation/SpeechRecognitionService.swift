@@ -1,4 +1,5 @@
 import AVFAudio
+import DiloText
 import Foundation
 import Speech
 import os
@@ -98,6 +99,13 @@ actor SpeechRecognitionService {
   /// only worth having if it answers as fast as the first, and that means
   /// keeping its analyzer prepared rather than building it on the keypress.
   private var preparedSessions: [Locale: PreparedSession] = [:]
+
+  /// Tus palabras, para dárselas al motor **antes** de reconocer.
+  /// SpeechAnalyzer acepta contexto (`AnalysisContext.contextualStrings`), y
+  /// así "Decameron" sale bien de entrada en vez de salir "de camerún" y
+  /// corregirse después. La post-corrección sigue existiendo igual: el
+  /// contexto ayuda, no garantiza.
+  private var palabrasPropias: [String] = []
   private var activeSession: ActiveSession?
   /// Locales reserved with AssetInventory, oldest first. The system caps how
   /// many an app may hold (`maximumReservedLocales`), so the oldest is
@@ -318,6 +326,16 @@ actor SpeechRecognitionService {
     return prepared
   }
 
+  /// Cambiar el diccionario tira las sesiones preparadas: una sesión ya
+  /// armada lleva el contexto viejo adentro, y una palabra nueva que no se
+  /// aplica hasta reiniciar la app se lee como que no funciona.
+  func setPalabrasPropias(_ palabras: [String]) {
+    let nuevas = DiccionarioPersonal.terminosParaElMotor(palabras)
+    guard nuevas != palabrasPropias else { return }
+    palabrasPropias = nuevas
+    preparedSessions.removeAll()
+  }
+
   private func makePreparedSession(locale requestedLocale: Locale) async throws -> PreparedSession {
     guard SpeechTranscriber.isAvailable else {
       throw RecognitionError.unavailable
@@ -368,6 +386,13 @@ actor SpeechRecognitionService {
       modelRetention: .lingering
     )
     let analyzer = SpeechAnalyzer(modules: modules, options: options)
+    if !palabrasPropias.isEmpty {
+      let contexto = AnalysisContext()
+      contexto.contextualStrings[.general] = palabrasPropias
+      // Si el motor no acepta el contexto, se dicta igual: la
+      // post-corrección de DiloText alcanza lo mismo, más tarde.
+      try? await analyzer.setContext(contexto)
+    }
     try await analyzer.prepareToAnalyze(in: audioFormat)
 
     return PreparedSession(

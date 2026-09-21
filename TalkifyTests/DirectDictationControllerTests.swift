@@ -168,7 +168,7 @@ struct DirectDictationControllerTests {
         recorder.events.append("recordSession")
         recorder.recordedSessions.append((wordCount, speakingDuration))
       },
-      recordHistory: { text, translation, source, folder in
+      recordHistory: { text, translation, source, _, folder in
         historyEntries.withLock {
           $0.append(HistoryEntry(text: text, translation: translation, source: source, folder: folder))
         }

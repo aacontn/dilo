@@ -42,21 +42,37 @@ actor DictationHistoryStore {
   /// so a failed paste cannot lose the text, so where it landed is not known
   /// yet. An unnamed source leaves the heading as the bare timestamp rather
   /// than writing "Unknown".
+  /// - Parameter modo: el modo con que se dictó, cuando hubo uno. Va al final
+  ///   y separado por "·" para que una lectura vieja del archivo siga viendo
+  ///   la fuente donde siempre estuvo.
   static func heading(
     for date: Date,
     source: String?,
+    modo: String? = nil,
     calendar: Calendar = .current
   ) -> String {
     let time = timestamp(for: date, calendar: calendar)
-    guard let source, !source.trimmingCharacters(in: .whitespaces).isEmpty else {
-      return time
+    var partes: [String] = []
+    if let source, !source.trimmingCharacters(in: .whitespaces).isEmpty {
+      partes.append(enUnaLinea(source))
     }
-    // Newlines would forge a second entry inside this one.
-    let clean = source
+    if let modo, !modo.trimmingCharacters(in: .whitespaces).isEmpty {
+      partes.append("\(separadorDeModo)\(enUnaLinea(modo))")
+    }
+    guard !partes.isEmpty else { return time }
+    return "\(time) \(partes.joined(separator: " "))"
+  }
+
+  /// El modo va detrás de este separador. Es un carácter que ninguna app se
+  /// llama y que ningún modo va a tener en el nombre.
+  static let separadorDeModo = "· "
+
+  /// Newlines would forge a second entry inside this one.
+  private static func enUnaLinea(_ texto: String) -> String {
+    texto
       .replacingOccurrences(of: "\n", with: " ")
       .replacingOccurrences(of: "\r", with: " ")
       .trimmingCharacters(in: .whitespaces)
-    return "\(time) \(clean)"
   }
 
   private let calendar: Calendar
@@ -83,6 +99,7 @@ actor DictationHistoryStore {
     _ text: String,
     translation: Translation? = nil,
     from source: String? = nil,
+    modo: String? = nil,
     at date: Date = .now,
     in folder: URL
   ) throws {
@@ -95,7 +112,9 @@ actor DictationHistoryStore {
     )
 
     let fileURL = folder.appending(path: Self.fileName(for: date, calendar: calendar))
-    let heading = Self.heading(for: date, source: source, calendar: calendar)
+    let heading = Self.heading(
+      for: date, source: source, modo: modo, calendar: calendar
+    )
     let entry = "\(heading)\n\(Self.body(trimmed, translation))\n\n"
     let entryData = Data(entry.utf8)
 
