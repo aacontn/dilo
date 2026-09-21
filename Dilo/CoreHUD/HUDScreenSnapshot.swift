@@ -21,6 +21,8 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// la ventana anfitriona, el contorno de la forma y el relleno de arriba
   /// tienen que estar de acuerdo: un parámetro suelto se olvida en uno de los
   /// tres y la forma queda pegada arriba con las esquinas redondeadas.
-  /// Con notch real no se mira.
-  var estiloSinNotch: HUDEstiloSinNotch = .pildora
+  /// Con notch real no se mira. El default es el notch simulado desde el
+  /// 2026-09-21: el escenario de Dilo es el notch, y en una pantalla sin
+  /// carcasa la imitación es lo que más se le parece.
+  var estiloSinNotch: HUDEstiloSinNotch = .notchSimulado
 }
