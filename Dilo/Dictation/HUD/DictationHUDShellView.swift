@@ -241,11 +241,19 @@ struct DictationHUDShellView: View {
       HUDMarcaDeReposo(
         dibujaMarca: sinCarcasa,
         contexto: content.contextoVisible,
+        modo: modoEnReposo,
         scale: metrics.scale
       )
     } else {
       islaConEtiquetas
     }
+  }
+
+  /// El nombre del modo que la muesca dice en reposo, o nil —lo de fábrica—.
+  /// El ancho de la silueta no crece por él: un nombre largo se recorta antes
+  /// que ensanchar la muesca.
+  private var modoEnReposo: String? {
+    settings.muestraElModoEnReposo ? content.modoActivo : nil
   }
 
   private var islaConEtiquetas: some View {

@@ -234,6 +234,10 @@ final class DictationHUDController {
   /// mid-session, so this only speaks while the dictation session holds the
   /// shape.
   func showShapingChoice(_ label: String?) {
+    // El modo activo sobrevive a la sesión: es lo que la muesca en reposo
+    // puede decir si la persona lo pidió, y es el modo con el que el próximo
+    // dictado arrancaría.
+    if let label, !label.isEmpty { content.modoActivo = label }
     guard isListening else { return }
     content.shapingChoiceLabel = label
   }

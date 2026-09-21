@@ -60,16 +60,22 @@ struct HUDNotchSimuladoTests {
     #expect(ventana.midX == pildora.frame.midX)
   }
 
-  /// La carcasa simulada mide lo que el notch de un MacBook, no lo que la
-  /// ventana:
-  /// la franja que se tapa de la barra de menús son 185 puntos en el centro.
-  /// Lo demás de la ventana es holgura invisible para la sombra.
-  @Test func enReposoMideLoMismoQueUnNotchDeVerdad() {
+  /// La muesca mide su propia franja: el alto de la barra de menús de esa
+  /// pantalla y un ancho de muesca. Lo demás de la ventana es holgura
+  /// invisible para la sombra.
+  ///
+  /// **Dejó de medir 185×32 el 2026-09-21.** Pedirle prestado el tamaño al
+  /// notch de un MacBook en un 1080p sin carcasa daba un bloque apoyado
+  /// encima de la barra, no un recorte del borde. El detalle, en
+  /// `MuescaTests`.
+  @Test func enReposoMideSuPropiaFranja() {
     let reposo = HUDNotchGeometry.closedSize(for: simulado)
-    #expect(reposo == CGSize(width: 185, height: 32))
-    #expect(reposo == HUDNotchGeometry.closedSize(for: pildora))
-    #expect(reposo == HUDNotchGeometry.closedSize(for: conNotch))
-    #expect(reposo.width >= 180 && reposo.width <= 200)
+    #expect(reposo == CGSize(width: HUDNotchGeometry.anchoDeLaMuescaSimulada, height: 24))
+    #expect(reposo.height == simulado.menuBarHeight)
+    #expect(reposo.width < HUDNotchGeometry.closedSize(for: conNotch).width)
+    // La píldora no dibuja carcasa: conserva el tamaño prestado, que ahí sólo
+    // sirve para dimensionar la ventana anfitriona.
+    #expect(HUDNotchGeometry.closedSize(for: pildora) == HUDNotchGeometry.fallbackClosedSize)
   }
 
   /// Abierto crece igual que la píldora: el ajuste mueve la forma, no la
@@ -102,10 +108,11 @@ struct HUDNotchSimuladoTests {
     #expect(HUDMetrics.standard.bottomCornerRadius > 0)
   }
 
-  /// Sin fillets nuevos: la curva que se abre hacia el bisel necesita un
-  /// bisel de verdad, y una pantalla externa no lo tiene (ADR-0001).
-  @Test func elNotchSimuladoNoInventaFillets() {
-    #expect(HUDNotchGeometry.filletSize(for: simulado) == 0)
+  /// La muesca sí lleva las curvas cóncavas —son lo que la funde con el borde
+  /// de la pantalla, y enmiendan ADR-0001—; la píldora no, porque flota
+  /// separada y no toca ningún borde.
+  @Test func laMuescaLlevaCurvasYLaPildoraNo() {
+    #expect(HUDNotchGeometry.filletSize(for: simulado) > 0)
     #expect(HUDNotchGeometry.filletSize(for: pildora) == 0)
   }
 

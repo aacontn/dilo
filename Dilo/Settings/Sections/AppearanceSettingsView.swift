@@ -35,6 +35,35 @@ struct AppearanceSettingsView: View {
     !(visual == .glowDraft && !reduceMotion)
   }
 
+  /// Las opciones del picker de pantalla: la automática —el string vacío, que
+  /// es lo que se guarda— y el nombre de cada pantalla conectada.
+  ///
+  /// La elección guardada se agrega aunque su pantalla no esté: un picker que
+  /// no contiene su selección la pisa con la primera opción, y desenchufar un
+  /// monitor para trabajar en el sofá borraría la preferencia en silencio.
+  static func pantallas(conectadas: [String], elegida: String) -> [String] {
+    var opciones = [""]
+    for nombre in conectadas where !nombre.isEmpty && !opciones.contains(nombre) {
+      opciones.append(nombre)
+    }
+    if !elegida.isEmpty && !opciones.contains(elegida) { opciones.append(elegida) }
+    return opciones
+  }
+
+  private var pantallas: [String] {
+    Self.pantallas(
+      conectadas: NSScreen.screens.map(\.localizedName),
+      elegida: settings.hudPantalla
+    )
+  }
+
+  /// Cero no es «medio segundo redondeado a cero»: es otra cosa, y se dice
+  /// con palabras.
+  static func etiquetaDelRetardo(_ segundos: Double) -> String {
+    guard segundos >= 0.05 else { return String(localized: "Al instante") }
+    return "\(segundos.formatted(.number.precision(.fractionLength(1)))) s"
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       SettingsPreviewCard(settings: settings)
@@ -98,6 +127,33 @@ struct AppearanceSettingsView: View {
           selection: $settings.hudEstiloSinNotch,
           controlWidth: 190
         )
+
+        SettingsPickerRow(
+          title: "En qué pantalla",
+          description: "Automática la pone donde está el cursor, o en la principal. Elegir una la deja siempre ahí; si desconectas esa pantalla, vuelve a la automática.",
+          options: pantallas,
+          optionLabel: { $0.isEmpty ? String(localized: "Automática") : $0 },
+          selection: $settings.hudPantalla,
+          controlWidth: 190
+        )
+
+        SettingsSliderRow(
+          title: "Cuánto esperar con el mouse encima",
+          description: "Antes de que la muesca se abra a mostrar contexto. Pasar el mouse nunca empieza a dictar.",
+          value: $settings.hudRetardoDeHover,
+          range: 0...1.5,
+          step: 0.1,
+          valueLabel: Self.etiquetaDelRetardo
+        )
+
+        SettingsRow(
+          title: "Decir el modo en reposo",
+          description: "En reposo la muesca no dice nada. Con esto muestra el nombre del modo activo, en chico y en gris."
+        ) {
+          Toggle("", isOn: $settings.hudModoEnReposo)
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
 
         SettingsPickerRow(
           title: "Cómo aparece",

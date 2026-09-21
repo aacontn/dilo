@@ -215,21 +215,58 @@ siendo cierto:
 
 - Ventana anfitriona de tamaño fijo: el origen se mueve, nunca se
   redimensiona.
-- Fillets sólo contra una carcasa real; carcasa simulada (185×32) en el
-  resto. `NSWindow.Level.mainMenu + 3`, sin APIs privadas.
+- `NSWindow.Level.mainMenu + 3`, sin APIs privadas.
+- **La muesca simulada se mide desde la pantalla, no se le copia a un
+  MacBook** (cambió el 2026-09-21; enmienda ADR-0001). Su alto es el de la
+  barra de menús de esa pantalla —`frame.maxY - visibleFrame.maxY`, con el
+  piso de `menuBarClearanceFloor` para cuando se autooculta— y su ancho son
+  los `anchoDeLaMuescaSimulada` puntos de una muesca. Los 185×32 prestados
+  daban «un cuadrado terrible feo» en un 1080p sin carcasa: un bloque apoyado
+  encima de la barra en vez de un recorte del borde.
+- **Las dos curvas cóncavas de arriba también van en la muesca simulada**
+  (`HUDNotchGeometry.filletSize`, `NotchFilletShape`). Son lo que funde la
+  silueta con el borde de la pantalla; sin ellas queda un rectángulo. La
+  píldora sigue sin llevarlas: flota separada y no toca ningún borde.
 - **En una pantalla sin notch hay dos formas, y las elige la persona**
   (`HUDEstiloSinNotch`, guardado en `hudEstiloSinNotch`): *Notch simulado*
-  —el default—, que se pega a `y = 0` centrado con las esquinas de arriba
-  rectas, y *Píldora bajo la barra*. El estilo viaja dentro de
+  —el default—, que se pega a `y = 0` centrado, con el tope recto entre sus
+  dos curvas, y *Píldora bajo la barra*. El estilo viaja dentro de
   `HUDScreenSnapshot` y no como parámetro suelto: la ventana anfitriona, el
   contorno y el relleno de arriba tienen que estar de acuerdo. Con notch real
   el ajuste no se mira.
 - **El notch simulado tapa la franja central de la barra de menús.** Es la
   zona que macOS deja vacía —menús a la izquierda, status items a la
-  derecha—, y son 185 puntos en reposo o el ancho del HUD abierto. Si alguien
-  tiene tantos menús que llegan al centro, esa parte queda tapada mientras
-  dura el dictado: el arreglo es elegir la píldora, no ensanchar ni angostar
-  la forma.
+  derecha—, y es el ancho de la muesca en reposo o el del HUD abierto. Si
+  alguien tiene tantos menús que llegan al centro, esa parte queda tapada
+  mientras dura el dictado: el arreglo es elegir la píldora, no ensanchar ni
+  angostar la forma.
+- **En reposo la muesca no dice nada**: la silueta y, a lo sumo, un punto
+  mango de tres puntos abajo al centro (`HUDMarcaDeReposo`). Ni texto, ni
+  onda, ni etiqueta; eso aparece cuando la forma crece. El único dato que
+  puede llegar a decir es el nombre del modo activo, en 9 pt gris y **apagado
+  de fábrica** (`hudModoEnReposo`); nunca los dos a la vez.
+- **El reposo se esconde en pantalla completa; los estados activos no**
+  (`HUDNotchGeometry.reposoSeEsconde`). Sin barra de menús no hay franja de la
+  que la muesca cuelgue, y una forma negra flotando sobre el borde de un
+  Keynote es lo contrario de «la barra que ya estaba ahí». Se mide por la
+  barra y no por una API de pantalla completa: quien tiene la barra en
+  «ocultar automáticamente» pidió lo mismo. Se esconde con `alphaValue`, no
+  con `orderOut`: la ventana se queda montada y no hay que pelear otra vez por
+  el orden al volver.
+- **La forma crece hacia abajo desde la muesca, con un resorte corto.** El
+  anclaje es `.top` y la cabecera de la forma abierta **es** la silueta en
+  reposo, así que el rebote sólo empuja hacia el escritorio y nunca abre una
+  rendija contra el borde. Con Reducir movimiento es un corte de 120 ms.
+- **Tres cosas del escenario son ajustes, no constantes** (Apariencia): el
+  retardo del hover (`hudRetardoDeHover`, medio segundo de fábrica), en qué
+  pantalla vive la muesca (`hudPantalla`, vacío = automática) y si dice el
+  modo en reposo. La pantalla se guarda **por nombre** y no por
+  `CGDirectDisplayID`: el id se reparte de nuevo en cada arranque y la
+  elección aterrizaría sola en otro monitor.
+- **La forma se revisa en PNG, no en pantalla.** `scripts/render-muesca.sh`
+  compila la geometría de verdad y rasteriza fuera de pantalla con
+  `ImageRenderer`: sin ventanas, sin foco y sin captura de pantalla, que es
+  lo que hace que un agente pueda cambiar la silueta y mostrarla.
 - **La forma no se va de la pantalla: se encoge.** `HUDSurface.tamañoEnReposo`
   es lo que la vuelve un escenario permanente en vez de una notificación. La
   cabecera de la forma abierta **es** la silueta en reposo

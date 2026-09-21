@@ -43,6 +43,9 @@ final class AppSettings {
     /// vez para no borrarle la elección a quien ya la había cambiado.
     static let hudClearsMenuBar = "hudClearsMenuBar"
     static let hudEstiloSinNotch = "hudEstiloSinNotch"
+    static let hudRetardoDeHover = "hudRetardoDeHover"
+    static let hudPantalla = "hudPantalla"
+    static let hudModoEnReposo = "hudModoEnReposo"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -244,6 +247,39 @@ final class AppSettings {
   /// que cuelga debajo de la barra de menús. Con notch real no se mira.
   var hudEstiloSinNotch: HUDEstiloSinNotch {
     didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
+  }
+
+  /// Cuánto tiene que quedarse el puntero encima de la muesca antes de que se
+  /// abra, en segundos.
+  ///
+  /// Configurable y no constante porque es la diferencia entre «me acerqué a
+  /// mirar» y «pasé camino al menú», y dónde está esa línea depende de cómo
+  /// mueve el mouse cada persona. Cero lo deja instantáneo, que es lo que
+  /// alguien va a querer después de acostumbrarse.
+  var hudRetardoDeHover: Double {
+    didSet { defaults.set(hudRetardoDeHover, forKey: Keys.hudRetardoDeHover) }
+  }
+
+  /// En qué pantalla vive la muesca, por el nombre que macOS le da. Vacío es
+  /// automática: la del cursor, o la principal.
+  ///
+  /// Se guarda el nombre y no el `CGDirectDisplayID` porque el id se reparte
+  /// de nuevo en cada arranque y al reconectar un monitor: la elección
+  /// aterrizaría en otra pantalla sola. Dos monitores del mismo modelo
+  /// comparten nombre y ahí gana el primero, que es mejor que perder la
+  /// elección entera.
+  var hudPantalla: String {
+    didSet { defaults.set(hudPantalla, forKey: Keys.hudPantalla) }
+  }
+
+  /// Si la muesca en reposo dice el nombre del modo activo.
+  ///
+  /// **Apagada de fábrica.** En reposo la muesca no dice nada: es la barra
+  /// negra que ya estaba ahí. Quien quiera saber en qué modo quedó sin pasar
+  /// el mouse la enciende, y entonces aparece un único dato, minúsculo y en
+  /// gris.
+  var hudModoEnReposo: Bool {
+    didSet { defaults.set(hudModoEnReposo, forKey: Keys.hudModoEnReposo) }
   }
 
   var readAloudVoiceID: String {
@@ -456,6 +492,12 @@ final class AppSettings {
     // quería la forma donde iría el notch, que es el default de hoy.
     hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
       ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == true ? .pildora : .notchSimulado)
+    // `double(forKey:)` lee una clave ausente como cero, que dejaría el hover
+    // instantáneo para todo el mundo; la ausencia se pregunta directo.
+    hudRetardoDeHover = defaults.object(forKey: Keys.hudRetardoDeHover) as? Double
+      ?? HUDStage.retardoDeHoverDeFabrica
+    hudPantalla = defaults.string(forKey: Keys.hudPantalla) ?? ""
+    hudModoEnReposo = defaults.bool(forKey: Keys.hudModoEnReposo)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(
@@ -662,6 +704,10 @@ struct DictationSessionSettings: Equatable {
   let glowPalette: HUDGlowPalette
   let glowCenter: HUDGlowCenterStyle
   let hudMetrics: HUDMetrics
+  /// Si la muesca en reposo dice el nombre del modo activo. Viaja con la
+  /// sesión como todo lo demás que la forma dibuja, aunque el reposo no sea
+  /// una sesión: es el escenario el que lo lee, y lee un solo objeto.
+  let muestraElModoEnReposo: Bool
 
   /// The colour a Drop Transcription wears — on the HUD's target and card, and
   /// on the status ghost while a file job fills it. Edge Glow and Edge Glow +
@@ -749,6 +795,7 @@ struct DictationSessionSettings: Equatable {
     glowPalette = settings.glowPalette
     glowCenter = settings.glowCenter
     hudMetrics = HUDMetrics(scale: CGFloat(settings.hudScale))
+    muestraElModoEnReposo = settings.hudModoEnReposo
   }
 }
 

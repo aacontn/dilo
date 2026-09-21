@@ -47,13 +47,21 @@ final class HUDStage {
   var onDropReceived: ((Int) -> Void)?
   var onCardEvent: ((HUDCardEvent) -> Void)?
 
-  /// Cuánto tiene que quedarse quieto el puntero encima antes de que la
-  /// forma revele contexto, y cuánto tarda en cerrarse al salir.
+  /// El retardo del hover de fábrica, en segundos.
   ///
-  /// La tolerancia es lo que separa «me acerqué a mirar» de «pasé el mouse
-  /// camino al menú»: sin ella, cruzar la pantalla abre y cierra el notch
-  /// tres veces.
-  static let toleranciaDelHover = Duration.milliseconds(320)
+  /// Medio segundo, el punto medio de lo que hacen las apps de notch que
+  /// Alfonso pasó de referencia (0,4–0,6 s). La tolerancia es lo que separa
+  /// «me acerqué a mirar» de «pasé el mouse camino al menú»: sin ella,
+  /// cruzar la pantalla abre y cierra la muesca tres veces. Cuánto es lo
+  /// justo depende de cómo mueve el mouse cada persona, así que es un ajuste
+  /// (`AppSettings.hudRetardoDeHover`) y esto es sólo su valor inicial.
+  static let retardoDeHoverDeFabrica = 0.5
+
+  /// El de fábrica como `Duration`, que es lo que un test quiere adelantar
+  /// cuando no cambió el ajuste.
+  static var toleranciaDelHover: Duration {
+    .milliseconds(Int(retardoDeHoverDeFabrica * 1000))
+  }
 
   /// Cuánto se queda abierto el contexto como mucho.
   ///
@@ -176,7 +184,26 @@ final class HUDStage {
       acceptsMouse = estado.tomaElMouse
       panel.tomaElTeclado = false
     }
+    actualizarPresencia()
     actualizarZonaInteractiva()
+  }
+
+  /// Si la forma está escondida ahora mismo: sólo el reposo, y sólo donde no
+  /// hay barra de menús de la que colgar (`HUDNotchGeometry.reposoSeEsconde`).
+  var escondido: Bool {
+    guard let pantallaActual else { return false }
+    return estado.esCompacto && HUDNotchGeometry.reposoSeEsconde(for: pantallaActual)
+  }
+
+  /// Esconde o muestra la forma sin sacarla de pantalla.
+  ///
+  /// `alphaValue` y no `orderOut`: la ventana se queda montada en todos los
+  /// espacios, así que volver de una app en pantalla completa no pide
+  /// recolocarla ni pelear otra vez por el orden. Lo que sí hay que soltar es
+  /// el mouse, porque una ventana invisible que se traga clics es peor que
+  /// una visible que los toma.
+  private func actualizarPresencia() {
+    panel.alphaValue = escondido ? 0 : 1
   }
 
   /// Vuelve a colocar la forma cuando cambia la configuración de pantallas:
@@ -202,7 +229,7 @@ final class HUDStage {
   /// en los estados abiertos: sólo duran lo que dura una sesión, y errar por
   /// unos puntos ahí vale menos que perder un clic en Copiar.
   private func actualizarZonaInteractiva() {
-    guard let pantallaActual, estado.tomaElMouse else {
+    guard let pantallaActual, estado.tomaElMouse, !escondido else {
       panel.zonaInteractiva = nil
       return
     }
@@ -231,8 +258,11 @@ final class HUDStage {
   /// vista porque es tiempo, y el tiempo del escenario lo lleva el escenario.
   private func punteroEncima(_ dentro: Bool) {
     hoverTask?.cancel()
+    let retardo = Duration.milliseconds(
+      Int((max(0, settings.hudRetardoDeHover) * 1000).rounded())
+    )
     hoverTask = Task { [weak self, reloj] in
-      try? await reloj.sleep(Self.toleranciaDelHover)
+      try? await reloj.sleep(retardo)
       guard !Task.isCancelled, let self else { return }
       // Un hover jamás arranca una captura: lo único que toca es qué se
       // dibuja (contrato del notch).
@@ -288,10 +318,15 @@ final class HUDStage {
       queue: .main
     ) { [weak self] _ in
       MainActor.assumeIsolated {
+        guard let self else { return }
         // Siempre, no sólo con sesión: desde que el escenario es permanente,
         // la forma en reposo también tiene que sobrevivir al cambio de
         // espacio.
-        self?.panel.assertOverlayOrder()
+        self.panel.assertOverlayOrder()
+        // Y volver a medir: entrar a una app en pantalla completa autooculta
+        // la barra de menús, que es de donde sale el alto de la muesca y
+        // también la señal de que el reposo tiene que esconderse.
+        if let screen = self.screen() { self.mount(on: screen) }
       }
     }
   }
@@ -321,13 +356,15 @@ final class HUDStage {
         auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea,
         auxiliaryTopRightArea: screen.auxiliaryTopRightArea,
         menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY,
-        estiloSinNotch: settings.hudEstiloSinNotch
+        estiloSinNotch: settings.hudEstiloSinNotch,
+        nombre: screen.localizedName
       )
     }
     return HUDPlacement.selectDisplay(
       from: screens,
       targetDisplayID: displayID,
-      pointerLocation: NSEvent.mouseLocation
+      pointerLocation: NSEvent.mouseLocation,
+      pantallaElegida: settings.hudPantalla
     )
   }
 
@@ -478,6 +515,7 @@ final class HUDStage {
     pantallaActual = screen
     panel.setFrame(HUDNotchGeometry.windowFrame(for: screen), display: true)
     panel.assertOverlayOrder()
+    actualizarPresencia()
     actualizarZonaInteractiva()
   }
 

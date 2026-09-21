@@ -81,10 +81,14 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     HUDNotchGeometry.closesAtTop(for: screen) ? cornerRadius : 0
   }
 
-  /// Collapsed into the housing, the corners are nearly square (NotchDrop:
-  /// 8 closed, 32 open).
+  /// Descansando manda la silueta en reposo, que depende de la forma que esta
+  /// pantalla dibuja (`HUDNotchGeometry.radioEnReposo`); abierta, las
+  /// métricas. Con 8 puntos sobre los 25 de alto de la muesca la silueta
+  /// seguía leyéndose cuadrada.
   private var cornerRadius: CGFloat {
-    isCollapsedIntoHousing ? 8 : metrics.bottomCornerRadius
+    isCollapsedIntoHousing
+      ? HUDNotchGeometry.radioEnReposo(for: screen)
+      : metrics.bottomCornerRadius
   }
 
   private var isCollapsedIntoHousing: Bool {
@@ -181,12 +185,16 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// drift) stay bounce-free, because a position overshoot would detach the
   /// shape from the screen edge.
   private var revealAnimation: Animation {
-    // El escenario permanente crece y se encoge; con Reducir movimiento la
-    // transición es un corte corto, no un resorte.
+    // El escenario permanente crece y se encoge, hacia abajo y desde la
+    // muesca: la cabecera de la forma abierta **es** la silueta en reposo y
+    // el anclaje es `.top`, así que el rebote sólo puede empujar hacia el
+    // escritorio y nunca despega la forma del borde de la pantalla. Resorte
+    // corto y con algo de rebote —lo que las apps de notch de referencia
+    // llaman «líquido»—; con Reducir movimiento, un corte de 120 ms.
     if tamañoEnReposo != nil {
       return reduceMotion
         ? .easeOut(duration: 0.12)
-        : .spring(duration: 0.34, bounce: 0.16)
+        : .spring(duration: 0.32, bounce: 0.22)
     }
     if reduceMotion {
       return Self.reducedMotionFade
@@ -242,8 +250,11 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       .shadow(color: .black.opacity(0.35), radius: 11 * metrics.scale, y: 4 * metrics.scale)
   }
 
-  /// Sits alongside the body rather than inside it. Absent on a display with no
-  /// notch: the flare exists to meet a housing (ADR-0001).
+  /// Sits alongside the body rather than inside it. Las dos curvas cóncavas
+  /// de arriba son lo que funde la silueta con el borde de la pantalla: con
+  /// carcasa imitan el bisel físico, y en la muesca simulada hacen el mismo
+  /// trabajo contra la barra de menús (`HUDNotchGeometry.filletSize`). La
+  /// píldora no las lleva: flota separada y no toca ningún borde.
   @ViewBuilder
   private func fillet(_ side: HorizontalEdge) -> some View {
     if filletSize > 0 {

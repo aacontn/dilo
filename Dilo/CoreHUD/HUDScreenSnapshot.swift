@@ -25,4 +25,12 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// 2026-09-21: el escenario de Dilo es el notch, y en una pantalla sin
   /// carcasa la imitación es lo que más se le parece.
   var estiloSinNotch: HUDEstiloSinNotch = .notchSimulado
+  /// El nombre con que macOS llama a esta pantalla («DELL U2412M»), que es lo
+  /// que la persona reconoce en el picker de Ajustes y lo que se guarda como
+  /// su elección. Vacío cuando no hay ninguno que leer.
+  ///
+  /// Viaja en la foto y no se pregunta aparte porque la elección se resuelve
+  /// donde se eligen las pantallas (`HUDPlacement`), que es puro y no conoce
+  /// `NSScreen`.
+  var nombre: String = ""
 }

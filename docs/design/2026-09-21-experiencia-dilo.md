@@ -91,6 +91,79 @@ Lo que cambia, y por qué:
 
 Reunión y asistente siguen siendo casos explícitos sin UI (`HUDSessionKind`).
 
+## La muesca (2026-09-21, noche)
+
+El escenario permanente quedó, pero la forma no. Alfonso vio el notch simulado
+en sus dos 1080p:
+
+> «deja tu cuadrado terrible feo; la idea es que sea una pequeña muesca, algo
+> chiquitito, igual que las apps que te pasé.»
+
+Las referencias son Boring Notch y Sapphire: una muesca negra pegada al borde
+de arriba, del alto de la barra de menús, angosta, con las dos esquinas de
+arriba cóncavas. Lo que había era un rectángulo de 185×32 —el notch de un
+MacBook de 14", prestado— con los fillets en cero.
+
+- **El alto sale de la pantalla.** `frame.maxY - visibleFrame.maxY`, con el
+  piso de `menuBarClearanceFloor` para cuando la barra se autooculta. Una
+  constante no sirve: la barra mide distinto en un 1080p y en un Retina
+  escalado, y una muesca más alta que la barra sobresale al escritorio.
+- **El ancho es de muesca**, no de carcasa prestada
+  (`anchoDeLaMuescaSimulada`). Más angosta se lee como una pestaña; más ancha
+  vuelve a ser el bloque.
+- **Las dos curvas cóncavas de arriba entran** y las de abajo se redondean
+  más. Enmienda ADR-0001: son las curvas las que funden la silueta con el
+  borde, y sin ellas cualquier tamaño se lee como un rectángulo apoyado.
+- **En reposo, nada de contenido.** La silueta y a lo sumo un punto mango de
+  tres puntos abajo al centro. La raya de 18×3 ocupaba media muesca y se leía
+  como una etiqueta.
+- **Crecer es la misma muesca más grande.** El hover —con tolerancia, sin
+  capturar— y el dictado la abren con el mismo resorte corto, anclada a `y = 0`
+  y centrada, conservando las curvas. Con Reducir movimiento es un corte de
+  120 ms.
+- **La forma se aprueba en PNG.** `scripts/render-muesca.sh` compila la
+  geometría real y rasteriza fuera de pantalla: es lo que deja revisar la
+  silueta sin tocar la GUI del Mac.
+
+Queda pendiente decidir el ancho de la forma **abierta**: hoy son los 540
+puntos heredados, ajustables en Ajustes → Apariencia.
+
+### Las referencias, y qué se puede mirar de cada una
+
+El patrón que Alfonso quiere es el de **Notch Buddy**: cerrada, la forma es
+sólo el notch —la barra negra que ya está ahí—; se abre al pasar el mouse con
+un retardo configurable para no dispararse por accidente; se esconde cuando
+hay una app en pantalla completa; en monitores sin carcasa dibuja uno simulado
+y deja elegir en qué pantalla vive. **OmniNotch** aporta el resorte «líquido»
+al expandir. También están a la vista NotchOwl, Notchy, Boring Notch, Atoll,
+Sapphire y NotchDrop.
+
+**Qué se puede leer y qué no.** NotchDrop (MIT) se puede leer y adaptar,
+citándolo en el `LICENSE` y en Acerca de. Boring Notch, Atoll (GPL-3) y
+Sapphire son **sólo para mirar**: ni una línea. De esta pasada no salió código
+adaptado de ninguna, así que el `LICENSE` no cambia; el día que se adapte algo
+de NotchDrop, la atribución entra antes que el código.
+
+### Lo que se sumó con las referencias
+
+- **Esconderse en pantalla completa, pero sólo el reposo.** Sin barra de menús
+  no hay franja de la que colgar. Dictando, procesando y el resultado siguen
+  apareciendo: están diciendo algo que no puede esperar a que alguien salga del
+  espacio. La señal es la barra misma —`menuBarHeight == 0`—, así que a quien
+  la tenga en «ocultar automáticamente» también se le esconde, que es lo que
+  pidió.
+- **El retardo del hover es un ajuste** (`hudRetardoDeHover`, medio segundo de
+  fábrica, «Al instante» en cero). Dónde está la línea entre acercarse a mirar
+  y pasar camino al menú depende de cómo mueve el mouse cada persona.
+- **En qué pantalla vive la muesca es un ajuste** (`hudPantalla`). Automática
+  es la del cursor o la principal; elegir una la deja siempre ahí. Se guarda
+  por nombre y no por `CGDirectDisplayID`, que se reparte de nuevo en cada
+  arranque; si esa pantalla se desconecta, vuelve a la automática sin perder
+  la elección.
+- **Un único dato minúsculo en reposo, opcional.** El nombre del modo activo
+  en 9 pt gris, apagado de fábrica (`hudModoEnReposo`). Nunca junto con el
+  punto ni con lo que revela el hover: uno solo, o ninguno.
+
 ## Ventana y navegación
 
 Destino de producto: Recientes, Reuniones y Ajustes.

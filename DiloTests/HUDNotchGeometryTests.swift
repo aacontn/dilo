@@ -62,8 +62,12 @@ struct HUDNotchGeometryTests {
     #expect(HUDNotchGeometry.measuredClosedSize(for: flat) == nil)
   }
 
-  @Test func closedSizeFallsBackToSimulatedFootprint() {
+  /// El tamaño prestado le quedó sólo a la píldora, que no dibuja ninguna
+  /// carcasa y lo usa nada más para dimensionar la ventana anfitriona. La
+  /// muesca simulada mide su propia franja (`MuescaTests`).
+  @Test func closedSizeFallsBackForThePill() {
     #expect(HUDNotchGeometry.closedSize(for: external) == CGSize(width: 185, height: 32))
+    #expect(HUDNotchGeometry.closedSize(for: externalSimulado).height == external.menuBarHeight)
   }
 
   @Test func hasMeasuredNotchReflectsMeasurement() {
@@ -298,8 +302,12 @@ struct HUDNotchGeometryTests {
     #expect(frame.midX == 300)
   }
 
-  @Test func filletsExistOnlyAgainstRealHousing() {
+  /// Las curvas cóncavas existen donde hay un borde en el que fundirse: el
+  /// bisel de una carcasa, o el borde de la pantalla bajo la muesca simulada.
+  /// La píldora flota separada y no toca ninguno.
+  @Test func filletsExistWhereThereIsAnEdgeToFlareInto() {
     #expect(HUDNotchGeometry.filletSize(for: notched) > 0)
+    #expect(HUDNotchGeometry.filletSize(for: externalSimulado) > 0)
     #expect(HUDNotchGeometry.filletSize(for: external) == 0)
   }
 

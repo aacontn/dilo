@@ -11,7 +11,37 @@ enum HUDNotchGeometry {
   /// Stand-in footprint for a display that reports no notch (ADR-0001).
   /// The menu-bar height is not a usable substitute — auto-hidden it
   /// measures zero, which would collapse the housing to nothing.
+  ///
+  /// Sólo le queda la píldora: el notch simulado dejó de usarlo el
+  /// 2026-09-21 y mide su propia muesca desde la pantalla
+  /// (`muescaSimulada(for:)`).
   static let fallbackClosedSize = CGSize(width: 185, height: 32)
+
+  /// El ancho de la muesca simulada en reposo.
+  ///
+  /// **No es el ancho de un notch de MacBook.** 185 puntos en un monitor
+  /// externo de 1080p se leen como un rectángulo negro puesto encima de la
+  /// barra —«deja tu cuadrado terrible feo», el veredicto del 2026-09-21—,
+  /// porque ahí no hay carcasa que justifique ese tamaño. Una muesca tiene
+  /// que leerse como un recorte del borde: angosta y del alto de la franja
+  /// que ya estaba reservada.
+  static let anchoDeLaMuescaSimulada: CGFloat = 160
+
+  /// El alto de la barra de menús de esta pantalla, con el piso de
+  /// `menuBarClearanceFloor` para cuando el sistema reporta cero.
+  ///
+  /// Medido y no constante: en 1080p la barra son ~24 puntos y en una
+  /// pantalla Retina escalada son más. Una muesca más alta que la barra
+  /// sobresale al escritorio y deja de leerse como parte del borde.
+  static func altoDeLaBarra(for screen: HUDScreenSnapshot) -> CGFloat {
+    max(screen.menuBarHeight, menuBarClearanceFloor)
+  }
+
+  /// La muesca simulada en reposo: del alto de la barra de menús de esta
+  /// pantalla y del ancho de una muesca, no de una carcasa prestada.
+  static func muescaSimulada(for screen: HUDScreenSnapshot) -> CGSize {
+    CGSize(width: anchoDeLaMuescaSimulada, height: altoDeLaBarra(for: screen))
+  }
 
   /// Slack on the left, right, and bottom so the shell's drawn shadow is not
   /// clipped by the fixed window frame. Nothing is added at the top: that
@@ -40,11 +70,17 @@ enum HUDNotchGeometry {
     return CGSize(width: width, height: screen.safeAreaTop)
   }
 
-  /// The housing footprint, falling back to the simulated stand-in. Never
-  /// scaled by the HUD size: this height is hardware on a notched display,
-  /// and the menu bar's clearance on every other one.
+  /// The housing footprint. Never scaled by the HUD size: this height is
+  /// hardware on a notched display, and the menu bar's own strip on every
+  /// other one.
+  ///
+  /// Tres ramas y no dos: con carcasa manda lo medido, con la muesca
+  /// simulada manda la barra de menús de esa pantalla, y a la píldora le
+  /// queda el tamaño prestado de siempre —no dibuja ninguna carcasa, así que
+  /// esto sólo le sirve para dimensionar la ventana anfitriona—.
   static func closedSize(for screen: HUDScreenSnapshot) -> CGSize {
-    measuredClosedSize(for: screen) ?? fallbackClosedSize
+    if let medida = measuredClosedSize(for: screen) { return medida }
+    return simulatesNotch(for: screen) ? muescaSimulada(for: screen) : fallbackClosedSize
   }
 
   /// Whether this display has a housing of its own for the HUD to hug.
@@ -147,12 +183,33 @@ enum HUDNotchGeometry {
     return min(max(scale, HUDMetrics.minimumScale), HUDMetrics.maximumScale)
   }
 
-  /// Size of the concave corner that flares the shape into the bezel, and
-  /// zero on a display with no housing to flare into — there the curve reads
-  /// as two detached tabs (ADR-0001: the simulated notch omits fillets).
+  /// Size of the concave corner that flares the shape into the bezel.
   /// Unscaled: the flare has to match a physical bezel curve.
+  ///
+  /// **La muesca simulada también los lleva, desde el 2026-09-21**, y eso
+  /// enmienda ADR-0001. El argumento de entonces —«sin bisel la curva se lee
+  /// como dos pestañas sueltas»— valía para una forma que aparecía al dictar
+  /// y se iba; ahora la muesca está siempre y pegada al borde, y son
+  /// justamente esas dos curvas cóncavas las que la funden con la barra en
+  /// vez de dejarla como un rectángulo apoyado encima. Un poco más chicos
+  /// que contra hardware: el bisel que imitan es dibujado, no físico.
   static func filletSize(for screen: HUDScreenSnapshot) -> CGFloat {
-    hasMeasuredNotch(for: screen) ? 11 : 0
+    if hasMeasuredNotch(for: screen) { return 11 }
+    return simulatesNotch(for: screen) ? filletDeLaMuescaSimulada : 0
+  }
+
+  /// El radio de las curvas cóncavas de la muesca simulada.
+  static let filletDeLaMuescaSimulada: CGFloat = 9
+
+  /// El radio de las esquinas de abajo mientras la forma descansa.
+  ///
+  /// La muesca las lleva más redondas que la forma abierta chica que había
+  /// antes: con 8 puntos sobre 25 de alto la silueta seguía leyéndose
+  /// cuadrada, que es la mitad del reclamo. La píldora se queda en 8 porque
+  /// además cierra por arriba con el mismo radio y ahí una cápsula perfecta
+  /// se lee como un óvalo suelto.
+  static func radioEnReposo(for screen: HUDScreenSnapshot) -> CGFloat {
+    dibujaPildora(for: screen) ? 8 : 11
   }
 
   /// Clearance between the true top of the screen and the housing, on a
@@ -181,7 +238,7 @@ enum HUDNotchGeometry {
   static func topInset(for screen: HUDScreenSnapshot) -> CGFloat {
     guard !hasMeasuredNotch(for: screen) else { return 0 }
     guard !simulatesNotch(for: screen) else { return 0 }
-    return max(screen.menuBarHeight, menuBarClearanceFloor) + pillDetachment
+    return altoDeLaBarra(for: screen) + pillDetachment
   }
 
   /// Si esta pantalla dibuja el notch simulado: no tiene carcasa que medir y
@@ -194,10 +251,30 @@ enum HUDNotchGeometry {
   /// esa franja mientras dura el dictado, y no hay forma de evitarlo sin
   /// mover el notch de lugar —que es exactamente lo que `.pildora` hace—.
   /// La forma nunca se hace más ancha de lo que necesita: en reposo son los
-  /// 185 puntos de `fallbackClosedSize`, y abierta es el ancho del contenido
-  /// que la persona eligió en Ajustes.
+  /// `anchoDeLaMuescaSimulada` puntos de la muesca, y abierta es el ancho del
+  /// contenido que la persona eligió en Ajustes.
   static func simulatesNotch(for screen: HUDScreenSnapshot) -> Bool {
     !hasMeasuredNotch(for: screen) && screen.estiloSinNotch == .notchSimulado
+  }
+
+  /// Si en esta pantalla el **reposo** se esconde.
+  ///
+  /// Sin barra de menús no hay franja de la que la muesca cuelgue: dibujarla
+  /// igual deja un bloque negro flotando sobre el borde de una app en
+  /// pantalla completa, que es lo contrario de «es la barra negra que ya
+  /// estaba ahí». Es sólo el reposo — dictando, procesando y el resultado
+  /// aparecen igual, porque ahí la forma está diciendo algo que no puede
+  /// esperar a salir del espacio.
+  ///
+  /// Con carcasa real no aplica: el recorte físico sigue en su lugar en
+  /// pantalla completa.
+  ///
+  /// Se mide por la barra y no por una API de pantalla completa porque eso es
+  /// exactamente lo que se quiere saber. El efecto secundario es que a quien
+  /// tenga la barra en «ocultar automáticamente» la muesca en reposo también
+  /// se le esconde, y es lo correcto: pidió que arriba no hubiera nada.
+  static func reposoSeEsconde(for screen: HUDScreenSnapshot) -> Bool {
+    !hasMeasuredNotch(for: screen) && screen.menuBarHeight <= 0
   }
 
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga

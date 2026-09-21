@@ -4,14 +4,24 @@ import CoreGraphics
 /// drive it with plain display bounds, a pointer location, and an optional
 /// target display ID.
 enum HUDPlacement {
-  /// Selection order: display of the focused target if known, else the
-  /// display containing the pointer, else the main display. The first
-  /// element of `displays` is the main display, matching `NSScreen.screens`.
+  /// Selection order: la pantalla que la persona eligió a mano si está
+  /// conectada, después la del destino con foco si se sabe cuál es, después
+  /// la que tiene el puntero, y si no la principal. The first element of
+  /// `displays` is the main display, matching `NSScreen.screens`.
+  ///
+  /// La elección a mano va primero a propósito: quien la hizo quiere la
+  /// muesca **ahí**, no donde ande el cursor. Si esa pantalla se desconectó,
+  /// se cae al orden automático en vez de dejar a Dilo sin escenario.
   static func selectDisplay(
     from displays: [HUDScreenSnapshot],
     targetDisplayID: CGDirectDisplayID?,
-    pointerLocation: CGPoint
+    pointerLocation: CGPoint,
+    pantallaElegida: String = ""
   ) -> HUDScreenSnapshot? {
+    if !pantallaElegida.isEmpty,
+     let elegida = displays.first(where: { $0.nombre == pantallaElegida }) {
+      return elegida
+    }
     if let targetDisplayID,
      let target = displays.first(where: { $0.id == targetDisplayID }) {
       return target

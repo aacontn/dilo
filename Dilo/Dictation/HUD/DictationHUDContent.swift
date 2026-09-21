@@ -49,6 +49,14 @@ final class DictationHUDContent {
   /// del día: el HUD ya no aparece y desaparece, cambia de tamaño.
   var estado = EstadoDelNotch.reposo
 
+  /// El modo que usaría el próximo dictado, o nil mientras no hay ninguno.
+  ///
+  /// Sobrevive a la sesión a propósito: es el único dato que la muesca en
+  /// reposo puede llegar a decir, y sólo si la persona encendió
+  /// `hudModoEnReposo`. Lo escribe el controlador de dictado, que es quien
+  /// resuelve el modo; la forma sólo lo dibuja.
+  var modoActivo: String?
+
   /// Lo que el hover revela: el modo activo, o lo último que se dictó. Lo
   /// escribe quien sabe (el controlador de dictado); la forma sólo lo dibuja.
   var contexto: String?

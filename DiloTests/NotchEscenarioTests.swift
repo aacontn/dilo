@@ -66,15 +66,19 @@ struct NotchEscenarioTests {
 
   // MARK: Reposo
 
-  /// En reposo la silueta mide lo que mide un notch de verdad: es lo que la
+  /// En reposo la silueta es una muesca: con carcasa, el recorte que la
+  /// pantalla reporta; sin ella, la franja de la barra de menús. Es lo que la
   /// hace leerse como notch y no como una ventana que se abrió.
-  @Test func enReposoLaSiluetaMideLoQueUnNotch() {
-    #expect(HUDNotchGeometry.reposoSize(for: simulado) == CGSize(width: 185, height: 32))
+  @Test func enReposoLaSiluetaEsUnaMuesca() {
     #expect(HUDNotchGeometry.reposoSize(for: conNotch) == CGSize(width: 185, height: 32))
+    #expect(
+      HUDNotchGeometry.reposoSize(for: simulado)
+        == CGSize(width: HUDNotchGeometry.anchoDeLaMuescaSimulada, height: simulado.menuBarHeight)
+    )
     // La píldora descansa más chica: cuelga sobre el escritorio, no sobre una
     // franja que el sistema ya tenía reservada.
     #expect(HUDNotchGeometry.reposoSize(for: pildora) == HUDNotchGeometry.reposoDeLaPildora)
-    #expect(HUDNotchGeometry.reposoDeLaPildora.height < 32)
+    #expect(HUDNotchGeometry.reposoDeLaPildora.height < 24)
   }
 
   /// La forma abierta crece **desde** donde descansaba: su cabecera es la
@@ -145,7 +149,7 @@ struct NotchEscenarioTests {
       width: zona.width,
       height: zona.height
     )
-    // 185 puntos centrados en una pantalla de 1920: quedan más de 800 puntos
+    // La muesca centrada en una pantalla de 1920 deja más de 800 puntos
     // libres de cada lado.
     #expect(enPantalla.minX - simulado.frame.minX > 800)
     #expect(simulado.frame.maxX - enPantalla.maxX > 800)
