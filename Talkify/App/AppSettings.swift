@@ -664,15 +664,26 @@ struct DictationSessionSettings: Equatable {
     voiceVisual.usesEdgeGlow ? glowPalette.statusAccent : SettingsTheme.accentColor
   }
 
-  /// Sólo los que piden clave: preguntarle al Llavero por el modelo del chip
-  /// sería una consulta al sistema para nada, y esto corre al empezar cada
-  /// dictado, donde los milisegundos se cuentan (spec §3).
+  /// Sólo los proveedores que esta sesión podría llegar a usar **y** que
+  /// piden clave: el general y los que algún modo eligió.
+  ///
+  /// Preguntarle al Llavero por el modelo del chip sería una consulta al
+  /// sistema para nada, y esto corre al empezar cada dictado, donde los
+  /// milisegundos se cuentan (spec §3). Y hay una razón más fuerte: leer un
+  /// ítem del Llavero desde un binario firmado distinto abre un diálogo que
+  /// espera a un humano, y eso colgaría la suite igual que lo hacía TCC. Con
+  /// los ajustes de fábrica —todo en el chip— no se consulta nada.
   private static func conClave(
-    _ proveedores: [Proveedor], en claves: some AlmacenDeClaves
+    _ proveedores: [Proveedor],
+    general: String,
+    modos: [Modo],
+    en claves: some AlmacenDeClaves
   ) -> Set<String> {
-    Set(
+    let alcanzables = Set([general] + modos.compactMap(\.proveedorID))
+    return Set(
       proveedores
-        .filter { $0.necesitaClave && claves.tieneClave(para: $0.cuentaEnElLlavero) }
+        .filter { alcanzables.contains($0.id) && $0.necesitaClave }
+        .filter { claves.tieneClave(para: $0.cuentaEnElLlavero) }
         .map(\.id)
     )
   }
@@ -716,7 +727,12 @@ struct DictationSessionSettings: Equatable {
     unAtajoDiloDecide = settings.unAtajoDiloDecide
     proveedores = settings.proveedores
     proveedorGeneralID = settings.proveedorGeneralID
-    proveedoresConClave = Self.conClave(settings.proveedores, en: claves)
+    proveedoresConClave = Self.conClave(
+      settings.proveedores,
+      general: settings.proveedorGeneralID,
+      modos: settings.modos,
+      en: claves
+    )
     textoPreferencias = settings.preferenciasDeTexto
     voiceVisual = settings.voiceVisual
     waveformStyle = settings.waveformStyle
