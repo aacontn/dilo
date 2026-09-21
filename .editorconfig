@@ -1,4 +1,4 @@
-# Talkify code style (see CLAUDE.md): 2-space indentation everywhere.
+# Estilo de Dilo (ver AGENTS.md): dos espacios de indentación en todo.
 root = true
 
 [*]

@@ -14,11 +14,12 @@ Instrucciones para cualquier asistente que escriba código en este repo.
 ## Qué es este repo
 
 **Dilo Mac** es la app nativa de Mac de Dilo: dictado en español, sólo Apple
-Silicon, macOS 26+, viviendo en la barra de menús y en el notch. Es un **fork
-de [Talkify](https://github.com/tornikegomareli/Talkify)** (Tornike Gomareli,
-MIT), remote `upstream`. Dilo es un fork con cariño de Talkify: el HUD, la
-sesión de dictado y el tap de teclado vienen de ahí y se conserva su
-copyright junto al propio.
+Silicon, macOS 26+, viviendo en la barra de menús y en el notch. **Se presenta
+como producto propio.** El árbol de la app nació de un fork (remote `upstream`)
+del que vienen el HUD, la sesión de dictado y el tap de teclado; de dónde
+exactamente, y dónde se cumple su licencia, está en `docs/historia/README.md`.
+Ese archivo y el `LICENSE` son los únicos dos lugares del repo que nombran el
+origen: no lo repitas en ningún otro.
 
 El repo Tauri (`/Volumes/SSD 1/Dilo/app`) está **congelado en 0.3.2**. De ahí
 se porta el **producto, no el código**: los specs de modos, español,
@@ -32,16 +33,17 @@ español. Los comentarios y los mensajes de commit también van en español.
 ## Documentos que mandan
 
 1. **`docs/superpowers/specs/2026-09-20-dilo-mac-nativo-design.md`** — la
-   dirección. Qué se toma de Talkify, el motor doble, los números no
+   dirección. Qué se toma del árbol de origen, el motor doble, los números no
    negociables, la capa de capacidades, las tres lecciones de la primera
    prueba en español.
 2. **`docs/superpowers/plans/2026-09-20-dilo-mac-v1.md`** — el plan de v1,
    tarea por tarea. Una tarea por agente, en orden de dependencias.
 3. **`docs/superpowers/spikes/`** — los tres reportes que abrieron la
-   compuerta: sandbox de Talkify, diarización de Gemini, Laya en español.
+   compuerta: el sandbox del árbol de origen, diarización de Gemini, Laya en
+   español.
 4. **`CONTEXT.md`** — el modelo de dominio y su vocabulario. Los términos que
    lista son vinculantes en identificadores, comentarios y commits.
-5. **`docs/adr/`** — las decisiones de arquitectura heredadas de Talkify.
+5. **`docs/adr/`** — las decisiones de arquitectura heredadas.
    Si tu cambio contradice una, dilo; no la pises en silencio.
 
 La dirección de experiencia más reciente está en
@@ -79,7 +81,7 @@ Distingue propuesta, implementación y deuda pendiente.
   nunca vacío. AppKit manda las teclas de función como caracteres del área de
   uso privado (`U+F700`–`U+F8FF`) que no dibujan nada: una fila de ajustes en
   blanco es lo que hace creer que el atajo no se guardó.
-- **Nunca se toca el volumen maestro.** El "Duck other audio" de Talkify está
+- **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
 - **La píldora sin notch va debajo de la barra de menús**, con identidad Dilo.
@@ -101,23 +103,26 @@ Distingue propuesta, implementación y deuda pendiente.
 mac/
   AGENTS.md, CLAUDE.md       instrucciones (copias byte-idénticas)
   CONTEXT.md                 modelo de dominio y vocabulario
-  Talkify/                   el árbol que viene de upstream (ver abajo)
-  Talkify/Onboarding/        los Primeros pasos (propio de Dilo)
-  Talkify/Resources/NotasDeVersion/  las notas de cada versión, en español
-  TalkifyTests/              tests de la app
+  Dilo/                      la app, por feature (ver abajo)
+  Dilo/Onboarding/           los Primeros pasos
+  Dilo/Resources/NotasDeVersion/  las notas de cada versión, en español
+  DiloTests/                 tests de la app
   DiloCore/                  el paquete propio: un módulo por tema
   docs/superpowers/          spec, plan y spikes de Dilo
-  docs/talkify/              lo de Talkify que se archiva con atribución
-  docs/adr/, docs/design/    heredados de Talkify, siguen vigentes
+  docs/historia/             de dónde viene el código, y la atribución
+  docs/adr/, docs/design/    heredados, siguen vigentes
   brand/                     ícono, wordmarks e íconos de barra de Dilo
   scripts/                   release, llaves de Sparkle, métricas
 ```
 
-**`Talkify/` y `TalkifyTests/` conservan su nombre a propósito.** Renombrar
-esas carpetas convertiría cada `git merge upstream/main` en un campo de
-conflictos de rename. El **target** y el **producto** sí se llaman `Dilo`; la
-carpeta no. Lo mismo vale para `CoreHUD/`, `Dictation/` e `Input/`: se
-mantienen lo más cerca posible del original y **todo lo de Dilo vive en
+**Las carpetas se renombraron a `Dilo/` y `DiloTests/` el 2026-09-21.** Antes
+conservaban el nombre heredado para abaratar `git merge upstream/main`; el
+árbol dejó de seguir a `upstream`, así que ese precio ya no compra nada. Lo que
+**no** se renombra, y no se va a renombrar: los bundle ids
+(`cl.espaciodigital.dilo`, `.mas`) y toda clave de `UserDefaults`. Renombrar
+una borra la preferencia de quien ya tiene la app instalada, en silencio —
+`AppSettingsTests` lo vigila. Dentro de `Dilo/`, `CoreHUD/`, `Dictation/` e
+`Input/` se mantienen cerca del original y **todo lo de Dilo vive en
 `DiloCore/`**.
 
 ### `DiloCore/` — el paquete propio
@@ -135,7 +140,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 
 **Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
-`DiloBrand` (`Talkify/Settings/Components/SettingsTheme.swift`), una sola vez
+`DiloBrand` (`Dilo/Settings/Components/SettingsTheme.swift`), una sola vez
 para SwiftUI y para los `NSImage`. El acento de la app es **mango**. Los
 activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
 `iconutil` desde `brand/dilo-icon.svg` y queda en `brand/generado/`.
@@ -154,10 +159,11 @@ producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8— se separa en
 `.library(name: "DiloModes", targets: ["DiloModes"])` y se agrega a los dos
 targets.
 
-### `Talkify/` — el mapa que viene de upstream
+### `Dilo/` — el mapa de la app
 
-Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su
-`CONTEXT.md` (original completo en `docs/talkify/`), y sigue siendo cierto:
+Lo que sigue es el mapa del árbol de origen 0.8.3, resumido de sus propios
+documentos (`docs/historia/README.md` dice cuáles y dónde están), y sigue
+siendo cierto:
 
 - `App/` — la raíz de composición: `AppDelegate` cablea cada controlador y
   observa los atajos; `StatusItemController` es el menú de la barra;
@@ -185,7 +191,7 @@ Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su
   el marco, `SettingsSections` la navegación, `Sections/` un archivo por
   panel, `Components/` el sistema de diseño reutilizable.
 
-### Reglas del HUD que siguen mordiendo (de Talkify)
+### Reglas del HUD que siguen mordiendo (heredadas)
 
 - Ventana anfitriona de tamaño fijo: el origen se mueve, nunca se
   redimensiona.
@@ -211,7 +217,7 @@ Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su
 ## Idioma, copy y el catálogo
 
 El **español es el idioma en que se escribe** (`developmentRegion = es`); el
-inglés se traduce desde ahí y vive en `Talkify/Localizable.xcstrings`. Nunca al
+inglés se traduce desde ahí y vive en `Dilo/Localizable.xcstrings`. Nunca al
 revés: una frase pensada en inglés y traducida suena a manual, y eso es
 exactamente lo que Dilo no es.
 
@@ -263,16 +269,16 @@ borrar entero). Nunca en el disco interno.
 
 ```bash
 # Los dos targets, limpio
-xcodebuild -project Talkify.xcodeproj -scheme Dilo -configuration Debug \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo -configuration Debug \
   -derivedDataPath /Volumes/SSD2/derived-data build
-xcodebuild -project Talkify.xcodeproj -scheme Dilo-MAS -configuration Debug \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo-MAS -configuration Debug \
   -derivedDataPath /Volumes/SSD2/derived-data build
 
 # El paquete propio, sin abrir Xcode
 cd DiloCore && swift test
 
 # Los tests de la app (el bundle id aparte evita el cuelgue por TCC, ver abajo)
-xcodebuild -project Talkify.xcodeproj -scheme Dilo \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo \
   -derivedDataPath /Volumes/SSD2/derived-data \
   PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
 
@@ -309,7 +315,7 @@ Para medir "soltar → texto" el `.app` tiene que ser un build **Debug** y el
 terminal necesita Accesibilidad: la medición inyecta un WAV y dispara la sesión
 apretando el menú de la barra. El gancho es la variable de entorno
 **`DILO_METRICS_WAV`**, que `MicrophoneInput` respeta sólo bajo `#if DEBUG`
-(`Talkify/Dictation/MicrophoneInput+MetricasWAV.swift`): con ella apuntando a un
+(`Dilo/Dictation/MicrophoneInput+MetricasWAV.swift`): con ella apuntando a un
 WAV, la sesión escucha ese archivo en vez del micrófono, al ritmo real, y anota
 en `<wav>.soltado` el instante en que el controlador manda a parar. En release
 no existe: el archivo entero está dentro de un `#if DEBUG`.
@@ -324,7 +330,7 @@ dispara TCC contra la entrada de la copia instalada y espera a un humano. Con
 un bundle id propio la entrada de TCC es otra y la suite corre sola:
 
 ```bash
-xcodebuild -project Talkify.xcodeproj -scheme Dilo \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo \
   -derivedDataPath /Volumes/SSD2/derived-data \
   PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
 ```
@@ -353,7 +359,7 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
 
 ## Primeros pasos y notas de versión
 
-- **El onboarding vive en `Talkify/Onboarding/`** y se abre solo la primera
+- **El onboarding vive en `Dilo/Onboarding/`** y se abre solo la primera
   vez; después, desde el menú de la barra (**Primeros pasos…**). Son cuatro
   pantallas: bienvenida con el gatillo real, permisos uno por uno con su
   porqué, elegir motor y un dictado de prueba en un campo de la propia ventana.
@@ -365,13 +371,13 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
   pantalla está abierta: TCC cambia por fuera del proceso y una foto tomada al
   abrir envejece mientras la persona está en Ajustes del Sistema.
 - **Las notas de versión son un `.md` por versión en
-  `Talkify/Resources/NotasDeVersion/`**, y son un solo archivo para dos usos:
+  `Dilo/Resources/NotasDeVersion/`**, y son un solo archivo para dos usos:
   la app las muestra en Ajustes → Novedades (leídas del bundle, parseadas por
   `NotasDeVersion` de `DiloText`) y `scripts/release.sh` publica ese mismo
-  archivo en el release. Talkify traía su changelog de GitHub; Dilo no depende
-  de internet para contar qué cambió, ni deja que el release y la app digan
-  cosas distintas. Las notas viejas de Talkify quedan archivadas en
-  `docs/release-notes/`.
+  archivo en el release. El árbol de origen traía su changelog de GitHub; Dilo
+  no depende de internet para contar qué cambió, ni deja que el release y la
+  app digan cosas distintas. **Las notas no llevan atribución**: eso vive en el
+  `LICENSE` y en Acerca de, y un test lo vigila.
 
 ## Firma, actualizaciones y cómo se publica
 
@@ -380,7 +386,7 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
   Todo lo de firma está escrito y verificado con firma ad-hoc, y listo para
   cuando exista.
 - **Sparkle: llave y feed propios.** La mitad privada EdDSA vive en el Llavero
-  de Alfonso, en la cuenta `dilo`; la pública está en `Talkify/Info.plist` y se
+  de Alfonso, en la cuenta `dilo`; la pública está en `Dilo/Info.plist` y se
   commitea. `scripts/setup-sparkle-keys.sh` la consulta y la genera la primera
   vez. Perderla deja a cada copia instalada sin poder actualizarse nunca más.
   **No edites ese plist con PlistBuddy**: reescribe el archivo y se lleva los
@@ -407,7 +413,7 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
 ## Estilo
 
 - **Dos espacios de indentación**, en Swift y en Metal. Nunca reformatear a
-  cuatro. (Regla de Talkify que se conserva; ver `CONTRIBUTING.md`.)
+  cuatro. (Regla heredada que se conserva; ver `CONTRIBUTING.md`.)
 - **Nada de comentarios `// MARK:`.** Un archivo que necesita separadores
   necesita partirse.
 - Los comentarios explican el **porqué**, no el qué. En español.
@@ -423,16 +429,28 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
 - Terminan con `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
 - **Sin `push`** salvo que Alfonso lo pida; hoy no hay `origin`.
 - Si estás en la rama principal y el trabajo es grande, crea una rama antes.
-- Las correcciones que también aplican a Talkify idealmente se contribuyen
-  allá y vuelven por `git fetch upstream && git merge upstream/main`.
+- Las correcciones que también le sirvan al árbol de origen idealmente se
+  contribuyen allá y vuelven por `git fetch upstream && git merge upstream/main`.
+  El remote `upstream` se queda: un remote no es un archivo del proyecto.
 
 ## Licencia y atribución
 
-MIT, con el copyright de Tornike Gomareli intacto y el propio agregado. La
-atribución **"Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT)"**
-aparece en el README y en la ventana Acerca de. No se quita.
+MIT, con los copyright de quienes escribieron el código heredado intactos y el
+propio arriba de ellos. La atribución se cumple en **tres lugares y sólo tres**,
+y cada uno dice lo suyo una vez:
 
-Dos activos heredados de Talkify no eran publicables y **ya se sacaron**
+- **`LICENSE`** — las líneas de copyright. Es lo que la licencia MIT exige.
+- **Ajustes → Acerca de → Licencias de terceros** — dentro de la app.
+  `UpdatesTests` falla si la sección desaparece.
+- **El final del `README.md`** («Agradecimientos») y `docs/historia/README.md`,
+  que es donde vive la genealogía completa.
+
+**Dilo no se presenta como fork** en la portada del README, en la app ni en las
+notas de versión: es un producto propio que reconoce de dónde viene. Si vas a
+escribir el nombre del origen en un archivo nuevo, no lo hagas: ya está escrito
+donde corresponde, y una cuarta copia es una que se va a desincronizar.
+
+Dos activos heredados no eran publicables y **ya se sacaron**
 (2026-09-21): el set de sonidos Pop (CC-BY-NC) y la obra del orbe Siri de
 `Assets.xcassets/Siri/` (sin licencia, imitaba a Apple). Todo lo que queda en
 el bundle es CC0, MIT o propio. Si vuelve un activo ajeno, su licencia va en

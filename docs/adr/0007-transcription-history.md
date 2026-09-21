@@ -2,9 +2,9 @@
 
 Direct Dictation gains an off-by-default transcription history: while the
 setting is on, each completed session appends one timestamped entry to a
-daily plain-text file. The default folder is `~/Documents/Talkify/`,
+daily plain-text file. The default folder is `~/Documents/Dilo/`,
 user-visible on purpose, unlike the Application Support JSON Insights keeps
-for data only Talkify reads. The write happens before the insertion outcome
+for data only Dilo reads. The write happens before the insertion outcome
 is routed, so a failed paste cannot lose the words that were spoken.
 
 Daily plain text was chosen over JSONL and over one file per session. The

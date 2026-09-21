@@ -15,12 +15,6 @@
 
 Aprieta, habla, suelta. Aparece escrito donde tengas el cursor.
 
-> **Dilo es un fork con cariño de [Talkify](https://github.com/tornikegomareli/Talkify)
-> (Tornike Gomareli, MIT).** El HUD del notch, la máquina de sesión y el tap de
-> teclado vienen de ahí, y son buenos. Dilo agrega lo que a un dictado en
-> español le faltaba: la voz, las muletillas, tus palabras, los modos con su
-> propio atajo y proveedor, y una píldora que no tapa la barra de menús.
-
 Dilo también existe como app multiplataforma en Tauri
 (`/Volumes/SSD 1/Dilo/app`), **congelada en 0.3.2**. Esta es la versión nativa
 de Mac, que continúa la numeración desde 0.4.0.
@@ -54,10 +48,10 @@ DerivedData va al disco de taller, nunca al interno:
 
 ```bash
 git clone <este repo> && cd mac
-open Talkify.xcodeproj                        # ⌘R
+open Dilo.xcodeproj                           # ⌘R
 
 # o sin abrir Xcode
-xcodebuild -project Talkify.xcodeproj -scheme Dilo -configuration Debug \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo -configuration Debug \
   -derivedDataPath /Volumes/SSD2/derived-data build
 
 # el paquete propio
@@ -97,16 +91,15 @@ dictar, se pausa la reproducción.
 
 ## Arquitectura
 
-El árbol que viene de Talkify conserva su nombre de carpeta a propósito, para
-que `git merge upstream/main` siga siendo barato:
+La app vive en `Dilo/`, por feature:
 
-- `Talkify/App/` — raíz de composición, ajustes persistidos, status item
-- `Talkify/Input/` — el tap global de teclado y los atajos grabados
-- `Talkify/Dictation/` — la máquina de sesión (un reducer puro con tests), los
+- `Dilo/App/` — raíz de composición, ajustes persistidos, status item
+- `Dilo/Input/` — el tap global de teclado y los atajos grabados
+- `Dilo/Dictation/` — la máquina de sesión (un reducer puro con tests), los
   servicios de voz e inserción, y el HUD que sólo el dictado dibuja
-- `Talkify/CoreHUD/` — lo que comparten todas las features: el panel único, la
+- `Dilo/CoreHUD/` — lo que comparten todas las features: el panel único, la
   geometría y los shaders de Metal
-- `Talkify/DropTranscription/`, `Translation/`, `ReadAloud/`, `Settings/`,
+- `Dilo/DropTranscription/`, `Translation/`, `ReadAloud/`, `Settings/`,
   `Insights/`, `Updates/`
 
 Y todo lo de Dilo vive aparte, en un Swift Package local:
@@ -123,9 +116,22 @@ dirección está en `docs/superpowers/specs/` y las decisiones heredadas en
 
 ## Licencia
 
-[MIT](LICENSE). El copyright de Tornike Gomareli se conserva intacto y el de
-Dilo se agrega al lado, igual que se hizo con Handy en el repo Tauri.
+[MIT](LICENSE). Los copyright de quienes escribieron el código que Dilo lleva
+adentro se conservan intactos junto al propio, y la app los nombra en
+**Ajustes → Acerca de → Licencias de terceros**.
 
-Dos activos heredados **no son publicables** y hay que reemplazarlos antes de
-cualquier release: el set de sonidos Pop (CC-BY-NC, `LICENSE-SOUNDS.txt`) y la
-obra del orbe Siri (`LICENSE-ARTWORK.txt`).
+## Agradecimientos
+
+Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
+
+- **[Talkify](https://github.com/tornikegomareli/Talkify)**, de Tornike
+  Gomareli (MIT) — el HUD del notch, la máquina de sesión del dictado y el tap
+  global de teclado salieron de ahí, y están bien hechos.
+- **[Handy](https://github.com/cjpais/Handy)**, de CJ Pais (MIT) — demostró
+  que un dictado local, abierto y sin cuenta podía ser mejor que uno de pago.
+  De ahí vienen los specs de producto que esta app reescribió en Swift.
+- **[FluidAudio](https://github.com/FluidInference/FluidAudio)** (Apache 2.0)
+  y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
+  dependencias.
+
+Cómo llegó cada cosa acá está en [`docs/historia/`](docs/historia/README.md).

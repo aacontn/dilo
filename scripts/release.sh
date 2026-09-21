@@ -81,8 +81,7 @@ APPCAST="$RAIZ/appcast.xml"
 # Notas escritas a mano para esta versión; ganan sobre el log de commits. Son
 # el **mismo archivo** que la app muestra en Ajustes → Novedades: viaja dentro
 # del bundle, así que lo que se publica y lo que la persona lee ahí adentro no
-# se pueden desincronizar. (Las de docs/release-notes/ son las de Talkify, que
-# se archivan.)
+# se pueden desincronizar.
 NOTAS_CURADAS="$RAIZ/Dilo/Resources/NotasDeVersion/$VERSION.md"
 ENTITLEMENTS="$RAIZ/Dilo.entitlements"
 NOTARY_PROFILE="${NOTARY_PROFILE:-dilo-notary}"
@@ -283,7 +282,7 @@ if [[ -d "$SPARKLE" ]]; then
   # reemplaza la firma entera y bota los entitlements que no le pasen, y bajo
   # Hardened Runtime una app sin com.apple.security.device.audio-input no
   # puede recibir el micrófono nunca: el prompt aparece y el switch no hace
-  # nada. Talkify publicó una versión así.
+  # nada. El árbol de origen publicó una versión así.
   [[ -f "$ENTITLEMENTS" ]] || fail "falta $ENTITLEMENTS"
   codesign --force --options runtime --timestamp \
     --entitlements "$ENTITLEMENTS" \

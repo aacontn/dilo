@@ -1,263 +1,250 @@
-# Contributing to Talkify
+# Contribuir a Dilo
 
-Talkify is a menu-bar-only dictation app for macOS 26 on Apple Silicon. It is
-maintained by one person in their spare time. This guide is the contract for
-everyone who writes code here, human or agent. `CLAUDE.md` and `AGENTS.md` point
-at this file and it wins over both.
+Dilo es una app de dictado en español que vive en la barra de menús, para
+macOS 26 en Apple Silicon. La mantiene una persona en su tiempo libre. Esta
+guía es el contrato para todo el que escriba código acá, humano o agente.
+`AGENTS.md` y `CLAUDE.md` apuntan a este archivo y este gana sobre los dos.
 
-Read [`CONTEXT.md`](CONTEXT.md) before you write anything. It is the domain model
-and the rulebook, its terminology is binding, and most review comments here are
-some version of "that is not what CONTEXT.md says".
+Lee [`CONTEXT.md`](CONTEXT.md) antes de escribir nada. Es el modelo de dominio
+y el reglamento, su vocabulario es vinculante, y casi todo comentario de
+revisión acá es alguna versión de "eso no es lo que dice CONTEXT.md".
 
-## Read the room
+## Mira alrededor primero
 
-The one rule that covers what the rest of this file spells out. Before you change
-anything, read the code around it. Match the naming, the comment density, the file
-size, the test style, and the way decisions are recorded. A patch that argues with
-the surrounding code is a patch that gets sent back, even when it is correct.
+La única regla que cubre todo lo que este archivo detalla. Antes de cambiar
+algo, lee el código de al lado. Copia los nombres, la densidad de comentarios,
+el tamaño de los archivos, el estilo de los tests y la forma en que se anotan
+las decisiones. Un parche que discute con el código que lo rodea es un parche
+que se devuelve, aunque esté correcto.
 
-## Before you write code
+## Antes de escribir código
 
-**Open an issue first.** Discussions are off, so
-[Issues](https://github.com/tornikegomareli/Talkify/issues) are the only channel:
-bugs, features and questions all start there.
+**Abre un issue primero.** Los issues de
+[aacontn/dilo](https://github.com/aacontn/dilo/issues) son el canal: bugs,
+funcionalidades y preguntas empiezan ahí.
 
-A pull request implements an issue. A pull request that arrives with no issue
-behind it may be closed or left to go stale, however good the code is. This is not
-about gatekeeping. It is that design belongs in the issue, where it is cheap to
-change, and a pull request is a bad place to discover that a feature is not wanted.
+Un pull request implementa un issue. Uno que llega sin issue detrás puede
+cerrarse o quedarse parado, por bueno que sea el código. No es burocracia: el
+diseño se discute en el issue, donde cambiar de opinión es barato, y un pull
+request es un mal lugar para descubrir que la funcionalidad no se quería.
 
-The flow, with the labels the tracker actually uses:
+### Qué necesita un reporte de bug
 
-| Label | What it means | Can you start? |
-| --- | --- | --- |
-| `needs-triage` | The maintainer has not evaluated it yet | No |
-| `needs-info` | Waiting on the reporter | No |
-| `ready-for-agent` | Fully specified, an agent could take it unattended | Yes |
-| `ready-for-human` | Specified, but needs human judgement or hardware | Yes |
-| `wontfix` | Decided against | No |
+Dilo se apoya en el servidor de ventanas, la API de Accesibilidad y un tap
+global de eventos, así que "no funcionó" nunca alcanza. Incluye:
 
-Search before you post. Add a reaction to an existing issue instead of a "+1"
-comment. Comment only when you have something to add, such as a reproduction, a
-diagnosis, or a case the issue does not cover.
+- Versión de macOS y modelo de Mac, y si la pantalla tiene notch físico
+- Versión de Dilo, desde el menú de la barra
+- Qué gatillo usaste y si fue sostenido o un toque corto
+- En qué aplicación dictabas
+- Qué esperabas y qué pasó en cambio
+- Una grabación de pantalla, para cualquier cosa del HUD, su animación o dónde
+  se dibuja
+- La salida de Consola filtrada por Dilo, para un cuelgue o un crash
 
-### What a bug report needs
+### Qué necesita una propuesta
 
-Talkify sits on top of the window server, the Accessibility API and a global event
-tap, so "it did not work" is never enough to act on. Include:
+- El caso que quieres resolver, no la solución que tienes en mente
+- Cómo lo resuelves hoy
+- Qué hacen otras apps de dictado ahí, si hacen algo
+- Qué términos de `CONTEXT.md` toca, o que necesita uno nuevo
 
-- macOS version and Mac model, and whether the display has a physical notch
-- Talkify version, from the status menu
-- The trigger you used and whether it was held or quick-tapped
-- The application you dictated into
-- What you expected and what happened instead
-- A screen recording, for anything about the HUD, its animation or its placement
-- Console output filtered to Talkify, for a crash or a hang
+Una propuesta que contradice una decisión de `docs/adr/` o una regla de
+`CONTEXT.md` tiene que discutir con esa decisión explícitamente. Ver
+[Decisiones ya tomadas](#decisiones-ya-tomadas).
 
-### What a feature request needs
+## Uso de IA
 
-- The case you are trying to solve, not the solution you have in mind
-- How you work around it today
-- What other dictation or speech apps do here, if anything
-- Which of the terms in `CONTEXT.md` it touches, or that it needs a new one
+Dilo se construye con ayuda de IA y la recibe bien. Las reglas son sobre
+comprensión, no sobre herramientas.
 
-Features that contradict a decision in `docs/adr/` or a rule in `CONTEXT.md` need
-to argue with that decision explicitly. See [Decisions already
-made](#decisions-already-made).
+**Dilo en el pull request.** Qué herramienta usaste y cuánto del trabajo hizo.
+Una línea basta.
 
-## AI usage
+**Entiende lo que mandas.** Tienes que poder explicar cada línea de tu cambio,
+por qué está escrita así y qué pasa en sus bordes. Usa IA para entender código,
+para aprender, para lo que quieras; lo que no se puede es mandar código que no
+entiendes, porque alguien va a tener que mantenerlo. Si un revisor pregunta por
+qué está esa guarda y la respuesta honesta es "la puso el agente", el cambio no
+está listo.
 
-Talkify is built with AI assistance and welcomes it. The rules are about
-comprehension, not about tooling.
+**Sólo texto y código.** Nada de imágenes, íconos, audio ni video generados.
 
-**Disclose it.** Say which tool you used and how much of the work it did. A line in
-the pull request is enough.
+**Córrelo.** Un cambio en el dictado, el HUD, la inserción o la lectura en voz
+alta tiene que haberse usado en un Mac de verdad, no sólo compilado. Di en el
+pull request qué probaste y en qué hardware. Si no puedes probar un camino, di
+cuál y por qué.
 
-**Understand what you submit.** You must be able to explain every line of your
-change, why it is written that way, and what happens at its edges, you can use AI to explain code to you, you can use AI to get more understanding but most important is that you need to understand what code you ship, because this code need to be maintained in the future. If a reviewer asks why a guard is there and the
-honest answer is "the agent put it there", the change is not ready. Submitting
-output you have not read moves the work of finding its bugs onto the maintainer.
+## Compilar y probar
 
-**Text and code only.** Do not submit generated images, icons, audio or video.
-
-**Run it.** A change to dictation, the HUD, insertion or Read Aloud needs to have
-been used on a real Mac, not only compiled. Say in the pull request what you
-tested and on what hardware. If you cannot test a path, say which one and why.
-
-Ignoring this gets pull requests closed. Repeatedly ignoring it gets them closed
-without a review.
-
-## Building and testing
-
-You need macOS 26 on Apple Silicon, and Xcode.
+Necesitas macOS 26 en Apple Silicon, y Xcode.
 
 ```bash
-git clone https://github.com/tornikegomareli/Talkify.git
-cd Talkify
-open Talkify.xcodeproj   # ⌘R
+git clone https://github.com/aacontn/dilo.git
+cd dilo/mac
+open Dilo.xcodeproj   # ⌘R
 ```
 
-Headless, which is what CI runs:
+Sin abrir Xcode, que es lo que corre CI:
 
 ```bash
-xcodebuild -project Talkify.xcodeproj -scheme Talkify -configuration Debug build
-xcodebuild test -project Talkify.xcodeproj -scheme Talkify -destination 'platform=macOS'
+cd DiloCore && swift test
+xcodebuild -project Dilo.xcodeproj -scheme Dilo -configuration Debug build
+xcodebuild -project Dilo.xcodeproj -scheme Dilo-MAS -configuration Debug build
+xcodebuild test -project Dilo.xcodeproj -scheme Dilo -destination 'platform=macOS'
 ```
 
-Both must pass before you open a pull request. Four media tests skip without their
-fixtures; that is expected and happens on `main` too.
+Todo eso tiene que pasar antes de abrir un pull request. Cuatro tests de medios
+se saltan sin sus archivos de prueba; es lo esperado y pasa igual en `main`.
+DerivedData va a `/Volumes/SSD2/derived-data`, nunca al disco interno.
 
-Talkify needs Microphone, Speech Recognition and Accessibility permission to run.
-A debug build asks for its own, separate from a released copy.
+Dilo necesita permiso de Micrófono, Reconocimiento de voz y Accesibilidad para
+correr. Un build de depuración pide los suyos, aparte de los de una copia
+publicada. El target `Dilo-MAS` se prueba con `open -a`, **nunca** lanzando el
+binario desde el terminal: TCC le atribuye los permisos al proceso padre y el
+audio llega en silencio.
 
-## Code style
+## Estilo
 
-These are rules, not preferences.
+Esto son reglas, no preferencias.
 
-- **Two spaces for indentation.** Everywhere: Swift, Metal, JSON, YAML. Indent
-  width 2, tab width 2, spaces not tabs. This matches the committed
-  `.editorconfig`. Never reformat a file back to four spaces.
-- **No `// MARK:` comments.** A file that needs section markers is a file that
-  needs splitting. Use small types and separate files instead.
-- **Use the vocabulary in `CONTEXT.md`.** It lists the term to use and the terms to
-  avoid. Write Direct Dictation, not voice typing. Write Dictation Trigger, not
-  hotkey. This applies to identifiers, comments, commit messages and UI strings.
-- **Comment why, not what.** The comments in this codebase explain the reason a
-  line survives review: which race it closes, which platform behaviour forced it.
-  Read a few in `GlobalKeyEventMonitor.swift` before writing your own.
-- **Keep the surface small.** No abstraction for a single caller, no configuration
-  nobody asked for, no error handling for states that cannot happen.
+- **Dos espacios de indentación.** En todo: Swift, Metal, JSON, YAML. Ancho 2,
+  tabulación 2, espacios y no tabs. Es lo que dice el `.editorconfig`
+  versionado. Nunca reformatees un archivo de vuelta a cuatro espacios.
+- **Nada de comentarios `// MARK:`.** Un archivo que necesita separadores es un
+  archivo que necesita partirse. Usa tipos chicos y archivos aparte.
+- **Usa el vocabulario de `CONTEXT.md`.** Lista el término que va y los que hay
+  que evitar. Aplica a identificadores, comentarios, mensajes de commit y copy.
+- **Comenta el porqué, no el qué.** Los comentarios de este código explican la
+  razón por la que una línea sobrevivió la revisión: qué carrera cierra, qué
+  comportamiento de la plataforma la obligó. En español.
+- **Superficie chica.** Ninguna abstracción para un solo llamador, ninguna
+  configuración que nadie pidió, ningún manejo de errores para estados que no
+  pueden pasar.
 
 ### Tests
 
-Put tests next to their peers in `TalkifyTests/`, named after the behaviour rather
-than the function: `releasingRightOptionWhileLeftIsHeldReadsAsUp`, not `testFlags`.
+Los tests de la app van junto a sus pares en `DiloTests/`; los del paquete
+propio, en `DiloCore/Tests/`. Se nombran por el comportamiento y no por la
+función: `releasingRightOptionWhileLeftIsHeldReadsAsUp`, no `testFlags`.
 
-Test the pure seams. `DictationSessionMachine`, `HUDPlacement`,
-`HUDNotchGeometry`, `UsageMetrics` and `KeyboardMap` are pure on purpose so their
-rules can be pinned without a microphone or a window. When a bug turns out to live
-in impure code, the fix is usually to move the rule into a value type and test that.
+Prueba las costuras puras. `DictationSessionMachine`, `HUDPlacement`,
+`HUDNotchGeometry`, `UsageMetrics`, `KeyboardMap` y lo que vive en `DiloCore/`
+son puros a propósito, para poder fijar sus reglas sin micrófono ni ventana.
+Cuando un bug resulta vivir en código impuro, el arreglo casi siempre es mover
+la regla a un value type y testear eso.
 
-A bug fix comes with a test that fails before it.
+Un arreglo de bug viene con un test que falla antes.
 
-## Branches
+## Ramas
 
-Name a branch `type/short-description`, in lower case, with words separated by
-hyphens:
+Nombra la rama `tipo/descripción-corta`, en minúsculas, con guiones:
 
 ```
 feature/drop-transcription
-fix/drop-target-sticks-while-dragging
-docs/drop-transcription-readme
-chore/versioned-dmg
+fix/el-drop-target-se-queda-pegado
+docs/drop-transcription-en-el-readme
+chore/dmg-con-version
 ```
 
-The type is one of six. It is the same word as the tag on the pull request title,
-so a branch and its pull request always agree:
+El tipo es uno de seis. Es la misma palabra que la etiqueta del título del pull
+request, así rama y PR siempre concuerdan:
 
-| Branch prefix | Pull request tag | For |
+| Prefijo de rama | Etiqueta del PR | Para |
 | --- | --- | --- |
-| `feature/` | `[FEATURE]` | New behaviour a user can see |
-| `fix/` | `[FIX]` | A bug, a crash, a race, a flaky test |
-| `refactor/` | `[REFACTOR]` | Changes shape, keeps behaviour |
-| `docs/` | `[DOCS]` | Documentation and comments only |
-| `test/` | `[TEST]` | Tests only |
-| `chore/` | `[CHORE]` | Build, CI, release, tooling, dependencies |
+| `feature/` | `[FEATURE]` | Comportamiento nuevo que alguien ve |
+| `fix/` | `[FIX]` | Un bug, un crash, una carrera, un test inestable |
+| `refactor/` | `[REFACTOR]` | Cambia la forma, conserva el comportamiento |
+| `docs/` | `[DOCS]` | Documentación y comentarios nada más |
+| `test/` | `[TEST]` | Sólo tests |
+| `chore/` | `[CHORE]` | Build, CI, release, herramientas, dependencias |
 
-Describe the change, not the ticket: `fix/hud-stutters-on-reveal`, never
-`fix/issue-42`. Do not use `bugfix/`, and do not leave your tool's default branch
-name such as `agent/...` or `codex/...`. Work on a branch, never on `main`.
+Describe el cambio, no el ticket: `fix/la-pildora-tiembla-al-aparecer`, nunca
+`fix/issue-42`. Nada de `bugfix/`, y nada de dejar el nombre por defecto de tu
+herramienta (`agent/...`, `codex/...`). Se trabaja en una rama, nunca en `main`.
 
 ## Pull requests
 
-**Title it `[TAG] What the change does`**, using the tag from the table above:
+**Titúlalo `[ETIQUETA] Qué hace el cambio`**, con la etiqueta de la tabla:
 
 ```
-[FEATURE] Allow mouse buttons to trigger dictation
-[FIX] Keep the drop target open while the pointer is still on it
-[DOCS] Put Drop Transcription in the README
+[FEATURE] Permitir que los botones del mouse disparen el dictado
+[FIX] Mantener abierto el drop target mientras el puntero sigue encima
+[DOCS] Poner Transcripción por arrastre en el README
 ```
 
-One tag, in square brackets, upper case, at the front. After it, write the change
-in the imperative, as a sentence without a full stop. The title survives the merge
-as the commit subject on `main`, so write it for someone reading `git log` in a
-year.
+Una etiqueta, entre corchetes, en mayúsculas, adelante. Después, el cambio en
+imperativo, una frase sin punto final. El título sobrevive al merge como
+asunto del commit en `main`: escríbelo para alguien que lea `git log` en un año.
 
-**Link the issue in the body.** If the pull request implements an issue, and it
-should, put the reference on its own line at the end:
+**Enlaza el issue en el cuerpo**, en su propia línea al final: `Closes #42`
+cuando el merge debe cerrarlo, que es lo normal, o `Refs #42` cuando se
+relaciona pero no lo termina.
 
-```
-Closes #42
-```
+**Las descripciones son chicas y concretas.** Unas frases que contesten qué,
+cómo y por qué. Nada más: ni viñetas, ni títulos, ni sección de plan de
+pruebas, ni resumen del diff.
 
-Use `Closes #42` when merging the pull request should close the issue, which is
-the normal case. Use `Refs #42` when it is related but does not finish the work.
-This one line is the only exception to the "nothing else" rule below.
+**Un pull request, un asunto.** Las limpiezas sueltas van en el suyo. Si ves
+código muerto mientras trabajas, dilo en el issue en vez de borrarlo de paso.
 
-**Descriptions are small and concrete.** A few sentences answering what, how and
-why. Nothing else.
+**No reformatees código que no estás cambiando.** Un diff donde cada línea
+tocada se explica por el propósito declarado es un diff que se puede revisar.
 
-- No bullet lists, no headings, no test-plan section, no caveats section, no
-  summary of the diff
-- **Never claim the pull request was generated by an agent.** No "Generated with"
-  line, no robot emoji, no tool attribution. Disclose AI usage in your own words
-  instead, as described above. The person opening the pull request is its author
+## Commits y merge
 
-**One pull request, one concern.** Unrelated cleanups belong in their own pull
-request. If you notice dead code while working, mention it in the issue rather than
-deleting it in passing.
+**Los mensajes de commit** van en español, en imperativo, y explican el porqué
+—el diff ya dice el qué—. No llevan `[ETIQUETA]`: esa es del título del PR.
+Mira `git log` antes de escribir uno.
 
-**Do not reformat code you are not changing.** A diff where every changed line
-traces back to the stated purpose is a diff that can be reviewed.
+- **Squash por defecto.** Una rama que iteró —prototipos, arreglos de revisión,
+  un merge de otra rama— se convierte en un commit en `main`.
+- **Rebase sólo cuando los commits ya son atómicos**, es decir, cada uno
+  compila, pasa y es un cambio que alguien querría tener solo. La prueba es
+  `git bisect`.
+- En los dos casos `main` queda lineal.
 
-## Commits and merging
+## Decisiones ya tomadas
 
-**Commit messages** say what the commit does, in the imperative, on one line where
-that is enough. They carry no `[TAG]`; the tag belongs to the pull request title.
-Look at `git log` before writing one.
+Están cerradas. Reabrir una necesita un argumento nuevo, no una preferencia:
 
-- **Squash by default.** A branch that iterated, with prototypes, review fixes or a
-  merge from another branch, becomes one commit on `main`.
-- **Rebase only when the commits are already atomic**, meaning each one builds,
-  passes and is a change someone might want to land on its own. The test is
-  `git bisect`: if a regression would be easier to find at one of these commits
-  than in the whole branch, keep them.
-- Either way `main` stays linear. Branch protection enforces it.
-
-## Decisions already made
-
-These are settled. Reopening one needs a new argument, not a preference:
-
-- A plain committed `Talkify.xcodeproj`. No Tuist, no project generation
-- Swift 6, strict concurrency complete
-- AppKit is the shell: lifecycle, status item, non-activating panels. SwiftUI
-  renders windowed UI inside it
-- Apple Speech only, `SpeechAnalyzer` and `SpeechTranscriber`. No Whisper, no
-  local inference models
-- Model-View with local pure reducers. No MVVM, no TCA, no global store
+- Un `Dilo.xcodeproj` versionado y a secas. Ni Tuist, ni generación de proyecto
+- Swift 6, concurrencia estricta completa
+- **Dos targets desde el día uno:** `Dilo` (venta directa, con Sparkle) y
+  `Dilo-MAS` (App Sandbox, sin Sparkle). Los bundle ids y las claves de
+  `UserDefaults` no se renombran: romperían las preferencias de quien ya tiene
+  la app
+- AppKit es el caparazón: ciclo de vida, status item, paneles que no activan.
+  SwiftUI dibuja la UI con ventana adentro
+- Model-View con reducers locales puros. Ni MVVM, ni TCA, ni store global
   (`docs/adr/0005-mv-with-local-reducers.md`)
-- Exactly one third-party dependency, Sparkle, confined to `Talkify/Updates/`.
-  Adding a second is a decision to raise, not one to make in a pull request
+- Todo el copy visible se escribe en español, de autoría propia; el inglés se
+  traduce desde ahí
+- Dos dependencias de terceros: Sparkle, encerrada en `Dilo/Updates/`, y
+  FluidAudio para el motor Parakeet. Agregar una tercera es una decisión que se
+  plantea, no una que se toma en un pull request
 
-Architectural decisions live in [`docs/adr/`](docs/adr/). If your change
-contradicts one, say so in the issue and say why it is worth reopening. If your
-change makes a new decision of that size, add an ADR alongside it.
+Las decisiones de arquitectura viven en [`docs/adr/`](docs/adr/). Si tu cambio
+contradice una, dilo en el issue y di por qué vale la pena reabrirla. Si tu
+cambio toma una decisión de ese tamaño, agrega un ADR al lado.
 
-## Licensing
+## Licencia
 
-Talkify is [MIT](LICENSE). Opening a pull request licenses your contribution under
-the same terms and allows the maintainer to modify it.
+Dilo es [MIT](LICENSE). Abrir un pull request licencia tu contribución bajo los
+mismos términos y permite que el mantenedor la modifique. De dónde viene el
+código que Dilo ya traía cuando nació está en
+[`docs/historia/`](docs/historia/README.md).
 
-## Working as or with an agent
+## Trabajar como agente o con uno
 
-`CLAUDE.md`, and `AGENTS.md` which is a symlink to it, orient an agent in this
-codebase: the module map, the traps that keep biting, the current roadmap. They
-name this file as binding and do not repeat it, apart from four rules restated
-there because they are the ones agents break most.
+`AGENTS.md` —y `CLAUDE.md`, su copia byte a byte— orientan a un agente en este
+código: el mapa de módulos, las trampas que siguen mordiendo, hacia dónde va la
+cosa. Nombran este archivo como vinculante y no lo repiten, salvo cuatro reglas
+que se reescriben allá porque son las que los agentes rompen más.
 
-Repo-specific agent conventions live in [`docs/agents/`](docs/agents/): how the
-issue tracker is used, what the triage labels mean, and how the domain docs should
-be read. An agent working here should read those, `CONTEXT.md`, and this file.
+Las convenciones propias del repo para agentes están en
+[`docs/agents/`](docs/agents/): cómo se usa el tracker de issues, qué significa
+cada etiqueta de triage y cómo se leen los documentos de dominio.
 
-Everything above applies to work an agent did on your behalf. You opened the pull
-request, so it is yours to explain.
+Todo lo de arriba aplica al trabajo que un agente hizo por ti. Tú abriste el
+pull request: es tuyo explicarlo.

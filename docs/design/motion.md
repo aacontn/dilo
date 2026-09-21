@@ -1,8 +1,8 @@
 # Motion
 
-Source: `Talkify/Dictation/HUD/DictationHUDShellView.swift`,
-`Talkify/CoreHUD/HUDRevealStyle.swift`,
-`Talkify/Dictation/HUD/Visuals/HUDCompactIndicatorView.swift`.
+Source: `Dilo/Dictation/HUD/DictationHUDShellView.swift`,
+`Dilo/CoreHUD/HUDRevealStyle.swift`,
+`Dilo/Dictation/HUD/Visuals/HUDCompactIndicatorView.swift`.
 
 Every animation in the app, with its real values. If a new surface needs
 motion, take a spring from this list rather than inventing one.

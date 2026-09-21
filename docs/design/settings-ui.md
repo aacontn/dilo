@@ -1,6 +1,6 @@
 # Settings UI
 
-Source: `Talkify/Settings/`.
+Source: `Dilo/Settings/`.
 
 Not part of Drop Transcription's main surface, but it defines the app's
 component vocabulary, and the feature adds one setting to it.
@@ -19,7 +19,7 @@ header moves it; controls and content are not draggable.
 
 Layout is a fixed sidebar plus a scrolling content pane. The header shows the
 close control on the leading edge, matching native window controls, and
-centers the Talkify identity: the ghost icon and the app name.
+centers the Dilo identity: the ghost icon and the app name.
 
 ## Components
 

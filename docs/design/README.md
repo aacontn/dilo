@@ -1,10 +1,10 @@
-# Talkify design reference
+# Dilo design reference
 
 Written for a design tool that has never seen this codebase. Every number here
 was read out of the shipping source, not remembered. File and line references
 point at the source of truth if something needs checking.
 
-Talkify is a menu-bar-only macOS dictation app. It has no Dock icon, no main
+Dilo is a menu-bar-only macOS dictation app. It has no Dock icon, no main
 window, and no document model. Its entire visible surface is three things: a
 black island that descends from the MacBook notch, a ghost icon in the menu
 bar, and a dark modal Settings window.

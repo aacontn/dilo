@@ -92,16 +92,18 @@ ventana final con contenido ficticio, no sustituye la implementación Swift.
 - Scroll del sidebar, nombres de destino más claros, progreso en español y
   mensaje de Novedades sin rutas internas. Sin renombrar claves persistidas.
 
-## Qué significa quitar las trazas de Talkify
+## Qué significa quitar las trazas del árbol de origen
 
 Quitar identidad y conceptos heredados del recorrido cotidiano, no borrar
-atribuciones. Se mantienen MIT, el agradecimiento en Acerca de y README y las
-carpetas `Talkify/` y `TalkifyTests/` para mantener el fork. No se hace un
-reemplazo masivo que rompa preferencias, IDs, tests o referencias upstream.
+atribuciones. Se mantienen la licencia MIT, las licencias de terceros en Acerca
+de y los agradecimientos del README. Lo que sí cambió (2026-09-21): las
+carpetas pasaron a `Dilo/` y `DiloTests/` y el proyecto a `Dilo.xcodeproj`,
+porque el árbol dejó de seguir a `upstream` y el nombre heredado ya no compraba
+merges baratos. Lo que no se toca: bundle ids y claves persistidas, que
+romperían las preferencias de quien ya tiene la app.
 
-Los sonidos Pop y el orbe Siri siguen siendo activos a retirar del bundle antes
-de publicar; ocultarlos no equivale a retirarlos. Esto requiere una pasada de
-recursos y comprobación del Release independiente del diseño de navegación.
+Los sonidos Pop y el orbe Siri ya se retiraron del bundle (2026-09-21): lo que
+queda es CC0, MIT o propio.
 
 ## Orden recomendado para continuar el core
 

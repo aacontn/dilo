@@ -4,10 +4,10 @@ El modelo de dominio y su vocabulario. **Los términos de abajo son
 vinculantes**: úsalos en identificadores, comentarios, copy y mensajes de
 commit, y evita los que dicen _evitar_.
 
-Este archivo desciende del `CONTEXT.md` de Talkify 0.8.3 (Tornike Gomareli,
-MIT). Lo que sigue siendo cierto se conserva traducido al vocabulario de
-Dilo; el original completo, con el detalle de cada regla del HUD, queda en
-`docs/talkify/CONTEXT-talkify-0.8.3.md`.
+Este archivo desciende del `CONTEXT.md` del árbol de origen 0.8.3. Lo que
+sigue siendo cierto se conserva traducido al vocabulario de Dilo; de dónde
+viene ese árbol y por qué el original ya no se archiva acá está en
+`docs/historia/README.md`.
 
 ## Qué es Dilo
 
@@ -26,7 +26,7 @@ y sólo con permiso explícito de la persona.
 
 ## Arquitectura
 
-- Dilo compila desde un `Talkify.xcodeproj` versionado, sin Tuist ni
+- Dilo compila desde un `Dilo.xcodeproj` versionado, sin Tuist ni
   generación de proyecto.
 - **Dos targets:** `Dilo` (venta directa, Sparkle) y `Dilo-MAS` (App Sandbox,
   sin Sparkle). Comparten todo el código; los separa un entitlement y una
@@ -35,7 +35,7 @@ y sólo con permiso explícito de la persona.
 - SwiftUI dibuja la UI con ventana (Ajustes, onboarding) hospedada en AppKit.
 - Swift 6 con concurrencia estricta completa.
 - Frameworks de Apple, con dos excepciones declaradas: **Sparkle** (sólo
-  target `Dilo`, encerrado en `Talkify/Updates/`) y **FluidAudio** cuando
+  target `Dilo`, encerrado en `Dilo/Updates/`) y **FluidAudio** cuando
   entre el motor Parakeet.
 - `FoundationModels` es donde corre la transformación de texto on-device: es
   un framework del sistema con un modelo del sistema, así que la promesa de

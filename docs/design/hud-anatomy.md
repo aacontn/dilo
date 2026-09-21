@@ -1,7 +1,7 @@
 # HUD anatomy
 
-Source: `Talkify/CoreHUD/HUDMetrics.swift`, `Talkify/CoreHUD/HUDNotchGeometry.swift`,
-`Talkify/Dictation/HUD/DictationHUDShellView.swift`.
+Source: `Dilo/CoreHUD/HUDMetrics.swift`, `Dilo/CoreHUD/HUDNotchGeometry.swift`,
+`Dilo/Dictation/HUD/DictationHUDShellView.swift`.
 
 The HUD is a black shape that descends from the top center of a display and
 appears to grow out of the MacBook's notch. It is the app's primary surface.

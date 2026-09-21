@@ -29,7 +29,7 @@ la app: es que no parece un producto terminado.
 | Handy hoy | v0.9.7, 31.9k ⭐; resolvió solo el Dock (`launch as accessory`), audio de cola, micrófono real-time |
 | SpeechAnalyzer (macOS 26+) | español, parciales en streaming, 0 MB, ~2× más rápido que Whisper turbo; sin diarización |
 | FluidAudio (Swift, Apache 2.0) | Parakeet v3 batch, Silero, diarización streaming (Sortformer 4 / LS-EEND 10), PocketTTS en español. Streaming ASR sólo inglés |
-| Talkify (MIT, 554 ⭐, un autor, release semanal) | Swift 6, SpeechAnalyzer + FoundationModels, notch propio en `CoreHUD/`, pegado por AX/CGEvent/pasteboard, reducer testeable, ~11k líneas, única dependencia Sparkle |
+| El árbol de origen (MIT, 554 ⭐, un autor, release semanal) | Swift 6, SpeechAnalyzer + FoundationModels, notch propio en `CoreHUD/`, pegado por AX/CGEvent/pasteboard, reducer testeable, ~11k líneas, única dependencia Sparkle |
 | Yap (MIT) | dictado Mac con SpeechAnalyzer en ~3k líneas, 4 MB, 60 MB en reposo |
 | Granola (referencia de notetaker) | transcript **Me/Them** (mic vs sistema), sin diarización en escritorio, **manda el audio a su proveedor**, no guarda audio, no acepta grabaciones |
 | El campo "dictado + reuniones en Mac, local" (visto 2026-09-20) | **Aside** (heyaside.com, cerrado, un autor, macOS 26+, Whisper local, hablantes al terminar + nombres desde la invitación del calendario, notas en Markdown, servidor MCP, US$8/mes o US$79 de por vida) es la referencia de posicionamiento y diseño. Abiertos y **MIT**: **meeting-transcriber** (Swift 6.2, 178 ⭐, 1.782 commits, CI/E2E; detecta Teams/Zoom/Webex/Meet por título de ventana + uso del micrófono, `CATapDescription`, WhisperKit o Parakeet v3, diarización por pista con FluidAudio, español, macOS 14.2+), **Humla** (Tauri + sidecars Swift, 287 ⭐, **noruego-primero**: el mismo playbook que Dilo con el español; fusiona notas escritas + transcript con etiquetas de procedencia; FTS5 + embeddings para "pregúntale a tus notas"), **Hark** (Swift + Rust por UniFFI, Parakeet en ANE, MCP). **AGPL, solo mirar:** next-notes (Swift 6, SpeechAnalyzer por defecto + Parakeet, tarjeta en el notch y cápsula bajo la barra en otros monitores, panel no activante) |
@@ -42,10 +42,10 @@ la app: es que no parece un producto terminado.
 
 - **Dilo se reescribe nativo en Swift, sólo Mac** (Apple Silicon, macOS 26+).
   No se planea portar: Swift no exporta. Superwhisper y VoiceInk son sólo Mac.
-- **Base: fork de Talkify**, en `/Volumes/SSD 1/Dilo/mac/`, con remote
+- **Base: fork del árbol de origen** (`docs/historia/`), en `/Volumes/SSD 1/Dilo/mac/`, con remote
   `upstream`. `CoreHUD/`, `Dictation/` e `Input/` se mantienen cerca del
   original para que los merges sean baratos; lo de Dilo va en módulos aparte.
-  Se conserva el copyright MIT de Talkify y se añade el propio, como se hizo
+  Se conserva el copyright MIT del árbol de origen y se añade el propio, como se hizo
   con Handy.
 - **De Handy/Dilo-Tauri se porta el producto, no el código**: modos con
   atajo y proveedor, palabras propias, historial, onboarding, proveedores de
@@ -72,11 +72,11 @@ la app: es que no parece un producto terminado.
 
 ## Diseño
 
-### 1 · Qué se toma de Talkify y qué se agrega
+### 1 · Qué se toma del árbol de origen y qué se agrega
 
-| Módulo Talkify | Se usa | Dilo agrega |
+| Módulo heredado | Se usa | Dilo agrega |
 | --- | --- | --- |
-| `CoreHUD/` (notch, placement, shaders) | tal cual | estados reunión/conversación; nivel de ventana sobre pantalla completa (issue #84 de Talkify; Handy lo resuelve) |
+| `CoreHUD/` (notch, placement, shaders) | tal cual | estados reunión/conversación; nivel de ventana sobre pantalla completa (issue #84 del árbol de origen; Handy lo resuelve) |
 | `Dictation/` (SpeechAnalyzer, sesión, pegado) | tal cual | motor doble (§2), limpieza de muletillas es, historial serio, diccionario personal |
 | `Input/` (atajos, hold/latch, fn) | tal cual | **atajo por modo** (spec 2026-08-05) |
 | `PromptShaping` (FoundationModels on-device) | tal cual | **modos** con proveedor (on-device, Gemini, Claude vía FoundationModels server, OpenAI) — spec 2026-07-29 |
@@ -104,7 +104,7 @@ la app: es que no parece un producto terminado.
 | Texto en pantalla tras soltar la tecla | **< 300 ms** | con parciales, el texto ya está cuando sueltas; es la ventaja contra Wispr (nube) |
 | Arranque en frío | **< 1 s** | |
 | Descarga | **< 25 MB** sin modelos | FluidAudio pesa ~12 MB y es el precio de Parakeet local; en v2 también diariza |
-| Micrófono Bluetooth | **aviso visible** mientras abre (issue #130 de Talkify) y *lazy close* como Handy | |
+| Micrófono Bluetooth | **aviso visible** mientras abre (issue #130 del árbol de origen) y *lazy close* como Handy | |
 
 Se miden en CI con un script, no a ojo. Si un cambio rompe un número, no
 entra.
@@ -115,7 +115,7 @@ Todo lo que dependa de la API de Accesibilidad hacia otras apps —foco antes
 de pegar, releer lo pegado, título de la ventana, "pegado directo"— va detrás
 de un protocolo `HostCapabilities` con dos implementaciones: completa (target
 directo) y sandbox (App Store). En sandbox la app **esconde lo que no puede
-hacer** (patrón TypeMeIt), nunca falla. Talkify usa AX en 17 puntos; se
+hacer** (patrón TypeMeIt), nunca falla. El árbol de origen usa AX en 17 puntos; se
 inventarían en la primera tarea del plan.
 
 ### 5 · Cimientos para v2 y v3 que se ponen en v1
@@ -133,7 +133,7 @@ inventarían en la primera tarea del plan.
 
 Se conserva todo lo que ya es de Dilo: locale `es` escrito a mano (tuteo,
 directo, cero relleno), muletillas del español, voseo y modismos, Spanglish
-técnico intacto. Es lo único que ningún fork de Handy ni de Talkify tiene.
+técnico intacto. Es lo único que ningún fork de Handy ni del árbol de origen tiene.
 
 ### 7 · Decisiones tipadas — contrato `Decider`
 
@@ -174,18 +174,18 @@ de quién. Hoy todo eso o lo decide el atajo que apretaste o no existe.
 - Lo que Jev **no** es: no genera, no oye audio, no reemplaza al cerebro de
   la conversación, no sirve para wake word ni diarización.
 
-### 8 · Lo que enseñó la primera prueba de Talkify (2026-09-20)
+### 8 · Lo que enseñó la primera prueba de la app de origen (2026-09-20)
 
-Alfonso dictó diez minutos con Talkify en un Mac sin notch, teclado
+Alfonso dictó diez minutos con la app de origen en un Mac sin notch, teclado
 latinoamericano. Tres reglas de v1 salen de ahí:
 
 1. **El gatillo nunca es una tecla que en teclado latino escriba
-   símbolos.** El segundo idioma de Talkify se dispara con ⌥ derecha, que en
+   símbolos.** El segundo idioma de la app de origen se dispara con ⌥ derecha, que en
    ISO-LatAm es AltGr (`@ # \ | { } [ ]`): dictando prompts arrancaba una
    sesión en inglés a cada rato y el resultado salía mezclado. Defaults de
    Dilo: `fn`/🌐 o una combinación con ⌘; nunca un modificador solo.
 2. **La píldora sin notch no tapa la barra de menús ni se parece al HUD del
-   sistema.** Talkify la dibuja encima de los status items
+   sistema.** La app de origen la dibuja encima de los status items
    (`HUDNotchGeometry.swift`, `hudClearsMenuBar = 0`, issue #83) en la misma
    franja donde macOS 27 pone el HUD de volumen. Dilo: debajo de la barra,
    con mango, forma de onda y texto parcial — identidad propia.
@@ -219,7 +219,7 @@ no se publique. Nada de reuniones ni de voz más allá de los cimientos de §5.
 1. **SpeechAnalyzer en español chileno.** Si no rinde en el audio real de
    Alfonso, el motor por defecto pasa a Parakeet v3 y se pierde el "0 MB".
    Se sabe en diez minutos (§Verificación 1).
-2. **Talkify tiene un solo autor y seis semanas de vida.** Mitigación: es un
+2. **El árbol de origen tiene un solo autor y seis semanas de vida.** Mitigación: es un
    fork, no una dependencia; si upstream muere, el código queda.
 3. ~~**El sandbox y el tap de audio del sistema.** Plausible, no confirmado.~~
    **Confirmado 2026-09-20: funciona.** El riesgo que queda es el pegado y
@@ -241,10 +241,10 @@ no se publique. Nada de reuniones ni de voz más allá de los cimientos de §5.
 
 Ninguna tarea del plan se ejecuta hasta tener estos cuatro números:
 
-1. **Talkify en español, sin tocar código.** Instalar, poner `es`, dictar diez
+1. **La app de origen en español, sin tocar código.** Instalar, poner `es`, dictar diez
    minutos de uso real (prompts, terminal, Slack). Veredicto: ¿mejor, igual o
    peor que Dilo 0.3.2 con Parakeet v3?
-2. **Build sandboxed de Talkify.** Activar App Sandbox en el target, firmar,
+2. **Build sandboxed de la app de origen.** Activar App Sandbox en el target, firmar,
    y probar: ¿pega en Cursor y en el terminal? ¿el atajo global responde?
    ¿`AudioHardwareCreateProcessTap` entrega audio del sistema con el
    entitlement `audio-input`? Tres sí/no. **Hecho 2026-09-20 (parcial):**
@@ -258,16 +258,16 @@ Ninguna tarea del plan se ejecuta hasta tener estos cuatro números:
    - **Pegar y atajo global: pendiente de clic de Alfonso.** El portapapeles
      funciona en sandbox; el Cmd+V sintético y `CGEvent.tapCreate` fallan
      igual con y sin sandbox porque faltan Accesibilidad e Input Monitoring,
-     que solo un humano concede. `Talkify-sandboxed.app` (bundle
-     `com.tgomareli.Talkify.sandboxed`) queda en `/Volumes/SSD2/scratch/talkify/`
+     que solo un humano concede. `origen-sandboxed.app` (bundle
+     `<id-de-origen>.sandboxed`) queda en `/Volumes/SSD2/scratch/origen/`
      para aprobarlos y probar pegado en Cursor y terminal.
    - Dato que sí distingue al sandbox: AX hacia otra app devuelve `-25204
      CannotComplete` sandboxed vs `-25211 APIDisabled` sin sandbox. El
-     sandbox **no rompe la compilación de una línea** de Talkify: todo lo que
+     sandbox **no rompe la compilación de una línea** del árbol de origen: todo lo que
      se cae, se cae en ejecución — por eso la capa de capacidades (§4) tiene
      que probarse en runtime, no confiar en el compilador.
    - Inventario de los usos de AX/CGEvent/pasteboard, archivo:línea, en
-     `docs/superpowers/spikes/2026-09-20-spike-1-2-talkify-sandbox.md`.
+     `docs/superpowers/spikes/2026-09-20-spike-1-2-sandbox-de-origen.md`.
 3. **Repetir el probe de diarización de Gemini** (quedó en 503 el
    2026-08-27). **Hecho 2026-09-20 13:31** con `scripts/probes/gc-probe.py`
    (port a Python; la key vive en el Llavero). Resultado: **compuerta
@@ -314,7 +314,7 @@ Los resultados se pegan aquí, con fecha, antes de escribir el plan.
   reunión (título de ventana + micrófono en uso), captura por
   `CATapDescription` en dos pistas, diarización por pista con FluidAudio.
   Son 1.782 commits de casos borde ya pagados; se porta al fork como se
-  porta Talkify, con atribución. No reinventar.
+  portó el árbol de origen, con atribución. No reinventar.
 - **Nombres sin diarizar:** en 1:1, el otro nombre sale de la invitación del
   calendario (truco de Aside). "Yo / Ellos" pasa a "Yo / Camila" gratis.
 - **Fusión notas + transcript** con etiquetas de procedencia (`[Notas]`

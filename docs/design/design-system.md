@@ -1,7 +1,7 @@
 # Design system
 
-Source of truth: `Talkify/Settings/Components/SettingsTheme.swift`,
-`Talkify/Dictation/HUD/Visuals/HUDVisualTokens.swift`, and the views themselves. Talkify
+Source of truth: `Dilo/Settings/Components/SettingsTheme.swift`,
+`Dilo/Dictation/HUD/Visuals/HUDVisualTokens.swift`, and the views themselves. Dilo
 has no central token file beyond those two — most values live at their point
 of use, so this document collects them.
 

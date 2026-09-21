@@ -1,12 +1,12 @@
 # Local aggregate Direct Dictation Insights
 
-Talkify stores daily aggregate usage for completed Direct Dictation sessions. Each daily record contains a calendar day, word count, speaking duration, and session count. Insights derives totals, weighted words per minute, average words per session, a 14-day chart, rolling seven-day Voice Momentum, streaks, and a 16-week heatmap from those records.
+Dilo stores daily aggregate usage for completed Direct Dictation sessions. Each daily record contains a calendar day, word count, speaking duration, and session count. Insights derives totals, weighted words per minute, average words per session, a 14-day chart, rolling seven-day Voice Momentum, streaks, and a 16-week heatmap from those records.
 
-The usage store never receives recognized text or target application identifiers. Talkify writes the JSON document to its Application Support directory. The feature has no account, network service, or cross-device sync.
+The usage store never receives recognized text or target application identifiers. Dilo writes the JSON document to its Application Support directory. The feature has no account, network service, or cross-device sync.
 
 ## Consequences
 
-- A session counts only after Talkify inserts nonempty recognized text.
+- A session counts only after Dilo inserts nonempty recognized text.
 - Cancelled, failed, and silent sessions do not change usage.
 - Word count is computed in memory before the aggregate reaches persistence.
 - Average words per minute uses total words divided by total speaking minutes.

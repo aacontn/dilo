@@ -1,6 +1,6 @@
 # MV with local reducers — no MVVM, no TCA
 
-Talkify's UI layer stays model–view: `@Observable` models (`AppSettings`,
+Dilo's UI layer stays model–view: `@Observable` models (`AppSettings`,
 `DictationHUDContent`, `UsageTracker`, `VoiceCatalog`) bound directly by
 SwiftUI views, with AppKit controllers doing orchestration and all
 cross-module wiring in `App/`. We do not adopt MVVM (view models forwarding

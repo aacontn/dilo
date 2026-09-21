@@ -1,12 +1,13 @@
-# Everything an update-channel compromise would have to go through.
+# Todo lo que tendría que atravesar un compromiso del canal de actualizaciones.
 #
-# Talkify is unsandboxed by necessity (a CGEvent tap and the Accessibility
-# APIs), so Sparkle is the one remote-influenced path into a fully privileged
-# process. These paths decide which signing key is trusted, what the feed
-# says, and what the release script does with both. A change to any of them
-# should be looked at by a human who is not the one proposing it.
+# Dilo corre sin sandbox por necesidad (un tap de CGEvent y las APIs de
+# Accesibilidad), así que Sparkle es el único camino influido desde afuera
+# hacia un proceso con todos los permisos. Estas rutas deciden qué llave de
+# firma se confía, qué dice el feed y qué hace el script de release con las
+# dos. Un cambio en cualquiera de ellas lo mira un humano que no sea quien lo
+# propone.
 
-/Dilo/Info.plist       @tornikegomareli
-/appcast.xml              @tornikegomareli
-/scripts/                 @tornikegomareli
-/.github/                 @tornikegomareli
+/Dilo/Info.plist          @aacontn
+/appcast.xml              @aacontn
+/scripts/                 @aacontn
+/.github/                 @aacontn

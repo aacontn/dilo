@@ -1,8 +1,8 @@
 # Valores de proyecto
 
 Los valores que hay que reponer a mano si alguna vez se vuelve a armar
-`Talkify.xcodeproj` desde cero. Desciende del documento homónimo de Talkify
-(Tornike Gomareli, MIT), actualizado a Dilo.
+`Dilo.xcodeproj` desde cero. Desciende del documento homónimo del árbol de
+origen (`docs/historia/`), actualizado a Dilo.
 
 ## Identidad — dos targets
 
@@ -19,9 +19,9 @@ Comunes: app de macOS, deployment target 26.0, sólo `arm64`, categoría
 `public.app-category.productivity`, versión de marketing `0.4.0`, build `400`.
 
 El target de tests se llama `DiloTests` y su bundle es
-`cl.espaciodigital.dilo.tests`. Las carpetas siguen llamándose `Talkify/` y
-`TalkifyTests/` a propósito: renombrarlas convertiría cada
-`git merge upstream/main` en un campo de conflictos de rename.
+`cl.espaciodigital.dilo.tests`. Las carpetas se llaman `Dilo/` y `DiloTests/`,
+igual que los targets: el árbol dejó de seguir a `upstream`, así que conservar
+el nombre heredado ya no abarataba ningún merge.
 
 ## Claves de Info.plist que importan
 
@@ -35,14 +35,14 @@ El target de tests se llama `DiloTests` y su bundle es
   contra SDKs modernos y el Info.plist generado de Xcode no tiene un
   `INFOPLIST_KEY_` para él.
 
-### Claves de Sparkle (`Talkify/Info.plist`, sólo target `Dilo`)
+### Claves de Sparkle (`Dilo/Info.plist`, sólo target `Dilo`)
 
 El target mantiene `GENERATE_INFOPLIST_FILE = YES` **y** además apunta
-`INFOPLIST_FILE = Talkify/Info.plist`; Xcode fusiona las claves generadas en
+`INFOPLIST_FILE = Dilo/Info.plist`; Xcode fusiona las claves generadas en
 ese archivo. El plist existe sólo porque Sparkle lee `SUPublicEDKey` directo
 del bundle y el passthrough `INFOPLIST_KEY_<nombre>` de Xcode descarta en
-silencio las claves que no conoce. (Razón heredada de Talkify, sigue siendo
-cierta.)
+silencio las claves que no conoce. (Razón heredada del árbol de origen, sigue
+siendo cierta.)
 
 - `SUFeedURL` = `https://raw.githubusercontent.com/aacontn/dilo/main/appcast.xml`.
   **Una copia instalada consulta el feed con el que se compiló**: esta URL hay
@@ -55,8 +55,9 @@ cierta.)
   app con Sparkle) y nunca en el repo. Si se pierde, ninguna copia instalada
   vuelve a actualizarse: exportarla una vez con `--export` y guardarla.
 - `SUEnableAutomaticChecks` = **true** desde la Tarea 8. Estuvo en false
-  mientras el feed y la llave eran los de Talkify, porque así Dilo se habría
-  ofrecido Talkify 0.8.3 como actualización de sí mismo, verificada y todo.
+  mientras el feed y la llave eran los heredados, porque así Dilo se habría
+  ofrecido la app de origen 0.8.3 como actualización de sí mismo, verificada
+  y todo.
 - `SUScheduledCheckInterval` = 86400 (una vez al día)
 - `SUAllowsAutomaticUpdates` = true (bajar solo sigue apagado por defecto)
 
@@ -240,7 +241,7 @@ tabla de `AGENTS.md`.
 idioma en que se escribe el copy; el inglés se traduce desde ahí, nunca al
 revés.
 
-El catálogo `Talkify/Localizable.xcstrings` **sí traduce en runtime**: los
+El catálogo `Dilo/Localizable.xcstrings` **sí traduce en runtime**: los
 componentes de Ajustes reciben `LocalizedStringKey`, no `String`, así que
 `Text` pasa por el catálogo. Lo que es valor y no copy —una ruta, el nombre de
 un modo, lo que dictaste— se envuelve en `"\(valor)"` para que salga tal cual,
@@ -259,7 +260,7 @@ la entrada de la copia instalada y espera a un humano. Con un bundle id propio
 la entrada de TCC es otra y la suite corre sola:
 
 ```bash
-xcodebuild -project Talkify.xcodeproj -scheme Dilo \
+xcodebuild -project Dilo.xcodeproj -scheme Dilo \
   -derivedDataPath /Volumes/SSD2/derived-data \
   PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
 ```

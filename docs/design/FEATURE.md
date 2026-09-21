@@ -6,7 +6,7 @@ shape this lives inside, and `motion.md` before proposing anything that moves.
 ## What it is
 
 Most speech-to-text apps let you hand them a file and get text back. It is
-always a file picker, a window, and a list. Talkify has a notch island, so it
+always a file picker, a window, and a list. Dilo has a notch island, so it
 can do something no one else can: you pick up an audio or video file, drag it
 toward the top of the screen, the island opens to receive it, you drop it in,
 and when it is done the island comes back holding the transcript as a file you
@@ -19,7 +19,7 @@ symmetry is the whole feature. Everything below protects it.
 
 1. The user starts dragging a media file — from Finder, or anywhere that
    drags files.
-2. Nothing happens yet. Talkify knows a drag is in progress, but reacting to
+2. Nothing happens yet. Dilo knows a drag is in progress, but reacting to
    every drag on the system is intrusive, so it waits.
 3. The pointer crosses into a catch strip along the top edge of the display.
    The island peeks: it drops a few points below the notch. This says "I am
@@ -53,7 +53,7 @@ Edge Glow + Draft selected the target wears that palette — the full gradient
 on its edge, where there is length enough to show a palette off, and the
 palette's one representative hue on the glyph, the peek bar and the closing
 line. Sunset makes an orange target; Aurora a green one. Every other visual
-keeps the Talkify blue. It is the same hue the status ghost takes during a
+keeps the the HUD's own blue. It is the same hue the status ghost takes during a
 glow session, so a palette means one colour
 across the whole app — except Settings chrome, which stays blue on purpose. The peek bar breathes for the same reason: a pointer crossing the
 top of the screen catches movement, never a static tab.
@@ -65,7 +65,7 @@ same vocabulary.
 If the user has configured a second dictation language, the open target
 splits into two labeled halves. Dropping on the left transcribes in one
 language, the right in the other. The drop *is* the language choice. This
-matters more here than for live dictation: Talkify never guesses a spoken
+matters more here than for live dictation: Dilo never guesses a spoken
 language, and picking wrong on a 40-minute file wastes minutes of compute and
 returns confident nonsense.
 
@@ -83,7 +83,7 @@ before it is acted on.
 After that, nothing on screen. The island collapses and the menu bar ghost
 carries the job from there.
 
-**Never dismiss the target on mouse-up.** Talkify watches the drag through a
+**Never dismiss the target on mouse-up.** Dilo watches the drag through a
 global event monitor, and that monitor sees the button come up. Acting on it —
 hiding the HUD, which stops the panel accepting the mouse — pulls the
 destination out from under the drop AppKit is at that moment delivering to it.
@@ -106,7 +106,7 @@ Two things make that safe:
 - `dropDestination(for: URL.self)` cannot be used, because it answers only
   after decoding the item's `Transferable`. `onDrop(of:isTargeted:perform:)`
   hands over the providers untouched and takes a synchronous Bool.
-- Talkify already knows the file. `DragWatcher` read it from the drag
+- Dilo already knows the file. `DragWatcher` read it from the drag
   pasteboard on the way in — that read is what opened this target, and the drag
   pasteboard cannot change mid-drag — so the drop needs to carry nothing but
   which half of a split target it landed on.
@@ -167,7 +167,7 @@ into a text field but leaves a file in Finder.
 Length is deliberately not part of that decision. Every product that switches
 format by length is a chat client applying its own message limit — Discord at
 2,000 characters, Slack against its own — and only a receiver knows what will
-not fit. Talkify cannot, so it offers both and lets each destination answer.
+not fit. Dilo cannot, so it offers both and lets each destination answer.
 Clicking is the escape hatch for receivers that always prefer a file: it puts
 the transcript on the clipboard, says `Copied`, and ends the job.
 
@@ -212,10 +212,10 @@ chosen folder, then the Desktop.
 
 **The drag is an ordinary file drag, copy-only.** The staged file lives
 somewhere the user never sees, so moving it out of there would mean nothing
-to them. Every destination gets a copy and Talkify cleans up after itself.
+to them. Every destination gets a copy and Dilo cleans up after itself.
 
 **The drag offers text as well as the file, and the receiver chooses.** There
-is no length threshold anywhere in Talkify; a click is the deterministic way
+is no length threshold anywhere in Dilo; a click is the deterministic way
 to ask for text.
 
 **Version 1 writes plain text** for audio and video alike. Timed subtitle

@@ -1,6 +1,6 @@
 # Voice visuals
 
-Source: `Talkify/Dictation/HUD/Visuals/`, `Talkify/CoreHUD/Shaders/`.
+Source: `Dilo/Dictation/HUD/Visuals/`, `Dilo/CoreHUD/Shaders/`.
 
 The animated thing inside the island that reacts to the user's voice. Four
 of them, user-selectable, default Waveform. Rendering is Metal for the heavy

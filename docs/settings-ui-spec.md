@@ -15,26 +15,26 @@ This is a draft for discussion, based on a live inspection of Wispr Flow 1.6.399
 - Uses a scrollable content area when a section is taller than the window.
 - Shows destructive actions away from normal preference controls.
 
-## Talkify mapping
+## Dilo mapping
 
-| Wispr Flow pattern | Talkify version |
+| Wispr Flow pattern | Dilo version |
 | --- | --- |
 | General | Appearance, sound, and dictation behavior |
 | System | Startup, permissions, notifications, and menu-bar behavior |
-| Notetaker | Not applicable until Talkify adds recording or notes |
+| Notetaker | Not applicable until Dilo adds recording or notes |
 | Vibe coding | Not applicable |
-| Connectors / MCP | Not applicable until Talkify adds integrations |
+| Connectors / MCP | Not applicable until Dilo adds integrations |
 | Account | Local profile and app information, if needed |
 | Plans and Billing | Not applicable for the local app |
 | Data and Privacy | Dictation retention, telemetry, and reset actions |
 
-The first Talkify release should use only sections that have real settings. Empty placeholder sections would make the app feel unfinished.
+The first Dilo release should use only sections that have real settings. Empty placeholder sections would make the app feel unfinished.
 
-## Proposed Talkify layout
+## Proposed Dilo layout
 
 Use a black glass window with two columns:
 
-- A 176-point left rail with a translucent black material, a small Talkify mark, and grouped navigation.
+- A 176-point left rail with a translucent black material, a small Dilo mark, and grouped navigation.
 - A wider content pane with a near-black material, subtle white borders, and a scroll view.
 - A selected row with a low-opacity white fill and a thin accent edge.
 - Cards with a black translucent fill, a 12-point corner radius, and one-pixel white opacity borders.
@@ -67,7 +67,7 @@ The preview must use the same `AppSettings` instance as the HUD. Changing a pick
 ### Dictation
 
 - Push-to-talk shortcut and recording behavior once those preferences exist.
-- Microphone selection once Talkify exposes more than the default input device.
+- Microphone selection once Dilo exposes more than the default input device.
 - Dictation language once speech recognition supports a user choice.
 
 ### Privacy and Data

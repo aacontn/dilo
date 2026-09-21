@@ -1,4 +1,4 @@
-# Spikes 1 y 2 — Talkify en sandbox (compuerta de entrada del plan nativo)
+# Spikes 1 y 2 — la app de origen en sandbox (compuerta de entrada del plan nativo)
 
 **Fecha:** 2026-09-20 · **Máquina:** M1 16 GB, macOS 27, Xcode 27 / Swift 6.4, sin notch · **Repo:** `/Volumes/SSD 1/Dilo/mac`, rama `spike/sandbox` · **Spec:** [Dilo Mac nativo](../specs/2026-09-20-dilo-mac-nativo-design.md) §4 y §Verificación 1–2
 
@@ -21,7 +21,7 @@ se corre desde el terminal: TCC atribuye la captura al proceso responsable, no a
 
 ## Inventario de Accesibilidad y entrada (base de `HostCapabilities`)
 
-Rutas relativas a `/Volumes/SSD 1/Dilo/mac/Talkify/`. **Accesibilidad hacia otras apps — lo que el sandbox rompe:**
+Rutas relativas a `/Volumes/SSD 1/Dilo/mac/Dilo/`. **Accesibilidad hacia otras apps — lo que el sandbox rompe:**
 
 | Sitio | Para qué |
 | --- | --- |
@@ -60,7 +60,7 @@ Rutas relativas a `/Volumes/SSD 1/Dilo/mac/Talkify/`. **Accesibilidad hacia otra
 ## Qué compiló y qué quedó inerte
 
 Ambos builds: `BUILD SUCCEEDED`, cero errores, 3 avisos preexistentes. **El sandbox no rompe la
-compilación de una sola línea de Talkify** — lo que se cae, se cae en ejecución. Sparkle 2.9.5
+compilación de una sola línea del árbol de origen** — lo que se cae, se cae en ejecución. Sparkle 2.9.5
 conserva sus `Downloader.xpc` e `Installer.xpc` dentro del bundle, así que con `network.client`
 debería seguir actualizándose; no se probó una actualización real. Lo que hay que envolver en
 `HostCapabilities` (§4), en orden de dolor:
@@ -78,27 +78,27 @@ debería seguir actualizándose; no se probó una actualización real. Lo que ha
 
 ## Lo que falta y es un clic de Alfonso
 
-1. Abrir `/Volumes/SSD2/scratch/talkify/Talkify.app` (spike 1: dictar diez minutos en español).
-   Pedirá **Micrófono**, **Reconocimiento de voz**, **Accesibilidad** (diálogo propio de Talkify
+1. Abrir `/Volumes/SSD2/scratch/origen/origen.app` (spike 1: dictar diez minutos en español).
+   Pedirá **Micrófono**, **Reconocimiento de voz**, **Accesibilidad** (diálogo propio de la app de origen
    y después el del sistema) e **Input Monitoring** al primer uso del atajo, todos en Ajustes del
-   Sistema → Privacidad y seguridad, como `Talkify` / `com.tgomareli.Talkify`.
-2. Abrir `Talkify-sandboxed.app` y conceder lo mismo: es una entrada **distinta** en Ajustes,
-   `com.tgomareli.Talkify.sandboxed`. Con permisos, probar y anotar acá: pegar en Cursor y en el
+   Sistema → Privacidad y seguridad, como la app de origen, con su propio bundle id.
+2. Abrir `origen-sandboxed.app` y conceder lo mismo: es una entrada **distinta** en Ajustes,
+   `<id-de-origen>.sandboxed`. Con permisos, probar y anotar acá: pegar en Cursor y en el
    terminal (foco, pegado, restauración del portapapeles); que el atajo responda con otra app al
    frente; que Leer en voz alta encuentre una selección — si no la encuentra, es la prueba dura
    de que el sandbox corta AX hacia otras apps.
-3. Con Accesibilidad concedida, volver a correr `axprobe`: si el no-sandboxed devuelve 0 y el sandboxed sigue en −25204, §4 queda cerrado sin depender de Talkify.
+3. Con Accesibilidad concedida, volver a correr `axprobe`: si el no-sandboxed devuelve 0 y el sandboxed sigue en −25204, §4 queda cerrado sin depender de la app de origen.
 
 ## Rutas
 
-- `/Volumes/SSD2/scratch/talkify/Talkify.app` (normal) y `Talkify-sandboxed.app`, ad-hoc, 20 MB cada uno; sus logs de build al lado
+- `/Volumes/SSD2/scratch/origen/origen.app` (normal) y `origen-sandboxed.app`, ad-hoc, 20 MB cada uno; sus logs de build al lado
 - `/Volumes/SSD2/scratch/tap-spike/` — paquete Swift, `tapspike-{plain,sandboxed}.app`, `axprobe-{plain,sandboxed}.app`
 - WAV del tap sandboxed: `~/Library/Containers/com.dilo.tapspike.sandboxed/Data/tap.wav`
-- En `spike/sandbox`: `Talkify-Sandboxed.entitlements` y el `Debug` del target con `ENABLE_APP_SANDBOX = YES`. `Release` queda intacto y sin sandbox.
+- En `spike/sandbox`: `Origen-Sandboxed.entitlements` y el `Debug` del target con `ENABLE_APP_SANDBOX = YES`. `Release` queda intacto y sin sandbox.
 
 ## Idioma y píldora sin notch
 
-**No fue el motor: fue el segundo gatillo.** `defaults read com.tgomareli.Talkify` da
+**No fue el motor: fue el segundo gatillo.** `defaults read` de la app de origen da
 `recognitionLocale = es_CL` y `recognitionLocaleSecondary = en_US`. El segundo idioma viene apagado
 de fábrica, así que lo encendió él, y su gatillo por defecto es `KeyBindings.rightOptionTrigger`
 (`Input/KeyBindings.swift:94`, keyCode 61, **⌥ derecha**) — que en teclado latinoamericano es AltGr,
@@ -121,7 +121,7 @@ ofrece las mismas cuatro. **No hay nada que descargar**: `AssetInventory` no va 
 **Píldora sin notch:** `CoreHUD/HUDNotchGeometry.swift:14,123-126,136-147`. Sin notch medido la
 píldora es un rectángulo negro de 185×32 centrado en `screen.frame.midX` y pegado al borde
 superior, **dibujado encima de la barra de menús** mientras `hudClearsMenuBar` sea false — y en
-los defaults de Alfonso vale 0. Tapa los status items que le queden debajo, el propio de Talkify
+los defaults de Alfonso vale 0. Tapa los status items que le queden debajo, el propio de la app de origen
 incluido (issue #83 de upstream). El HUD de volumen de macOS 26+ también es una píldora en esa
 franja pero a la derecha: no se superponen, solo comparten franja y lenguaje visual. Se baja con
 Ajustes → *Appearance* → "Clear the menu bar on other displays". Para Dilo es decisión de diseño,
@@ -136,11 +136,11 @@ MetalToolchain` antes de compilar nada; sin el segundo, los `.metal` de `CoreHUD
 cd "/Volumes/SSD 1/Dilo/mac" && git switch spike/sandbox
 SIGN='CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER='
 # normal (Release no lleva sandbox) / sandboxed (Debug sí, con bundle id propio)
-xcodebuild -project Talkify.xcodeproj -scheme Talkify -configuration Release \
-  -destination 'platform=macOS,arch=arm64' -derivedDataPath /Volumes/SSD2/derived-data/talkify-spike $SIGN build
-xcodebuild -project Talkify.xcodeproj -scheme Talkify -configuration Debug \
-  -destination 'platform=macOS,arch=arm64' -derivedDataPath /Volumes/SSD2/derived-data/talkify-sandboxed \
-  $SIGN PRODUCT_BUNDLE_IDENTIFIER=com.tgomareli.Talkify.sandboxed build
+xcodebuild -project Origen.xcodeproj -scheme Origen -configuration Release \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath /Volumes/SSD2/derived-data/origen-spike $SIGN build
+xcodebuild -project Origen.xcodeproj -scheme Origen -configuration Debug \
+  -destination 'platform=macOS,arch=arm64' -derivedDataPath /Volumes/SSD2/derived-data/origen-sandboxed \
+  $SIGN PRODUCT_BUNDLE_IDENTIFIER=<id-de-origen>.sandboxed build
 
 cd /Volumes/SSD2/scratch/tap-spike
 swift build -c release --scratch-path /Volumes/SSD2/derived-data/tap-spike

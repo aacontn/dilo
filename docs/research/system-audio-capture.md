@@ -251,9 +251,9 @@ permission with public API. AudioCap solves this with private TCC API behind a b
 The ScreenCaptureKit sample carries only `com.apple.security.app-sandbox` and
 `com.apple.security.files.user-selected.read-only`. So: a tap works inside the sandbox with the
 audio-input entitlement, and ScreenCaptureKit works inside the sandbox with no capture-specific
-entitlement at all. Neither route needs a special Apple-granted entitlement. Talkify is unsandboxed
+entitlement at all. Neither route needs a special Apple-granted entitlement. Dilo is unsandboxed
 (`ENABLE_APP_SANDBOX = NO`, `docs/ProjectSettings.md`) and already declares
-`com.apple.security.device.audio-input` in `Talkify.entitlements`, so the tap route adds one
+`com.apple.security.device.audio-input` in `Dilo.entitlements`, so the tap route adds one
 `Info.plist` key and nothing else.
 
 Notarization is orthogonal; nothing in either framework's documentation ties capture to it.
@@ -299,7 +299,7 @@ WWDC25 session 277 says the same thing about a non-fixed source, at [16:05]:
 
 (<https://developer.apple.com/videos/play/wwdc2025/277>)
 
-So the conversion shape is exactly what `Talkify/Dictation/MicrophoneInput.swift` already does with
+So the conversion shape is exactly what `Dilo/Dictation/MicrophoneInput.swift` already does with
 `AVAudioConverter`, only starting from a different source format. For a tap, the source format is
 whatever `kAudioTapPropertyFormat` reports, wrapped in an `AVAudioFormat`. For ScreenCaptureKit it is
 the `sampleRate` and `channelCount` you asked for, arriving inside a `CMSampleBuffer` that has to be
@@ -320,7 +320,7 @@ the list will be empty"
 (<https://developer.apple.com/documentation/speech/speechanalyzer>) `SFSpeechError.Code.insufficientResources`
 is macOS 26
 (<https://developer.apple.com/documentation/speech/sfspeecherror/code/insufficientresources>), so this
-applies today. It also means a Live Captions analyzer and Talkify's prewarmed dictation analyzer are
+applies today. It also means a Live Captions analyzer and Dilo's prewarmed dictation analyzer are
 competing for the same budget, and the budget is undocumented.
 
 **Careful with that page: it documents macOS 27 API without separating it.** The overview's sample
@@ -422,7 +422,7 @@ required. Untested.
 - **Apple, *Bringing advanced speech-to-text capabilities to your app***,
   <https://developer.apple.com/documentation/speech/bringing-advanced-speech-to-text-capabilities-to-your-app>,
   with WWDC25 session 277 <https://developer.apple.com/videos/play/wwdc2025/277>. Proves the
-  buffer-to-analyzer path Talkify already uses, including the explicit conversion step to
+  buffer-to-analyzer path Dilo already uses, including the explicit conversion step to
   `bestAvailableAudioFormat`.
 - **insidegui/AudioCap**, <https://github.com/insidegui/AudioCap>. Not first-party, but its README is
   the clearest ordered checklist of the tap sequence, including the detail that the aggregate's tap
@@ -451,7 +451,7 @@ required. Untested.
 - **The tap's audio format is discovered at runtime and can change.** The converter cannot be built
   once at prewarm time from a constant. That is a real difference from `MicrophoneInput`, which reads
   the input node's format once per session.
-- **Speech's concurrency budget is shared and undocumented.** A Live Captions analyzer plus Talkify's
+- **Speech's concurrency budget is shared and undocumented.** A Live Captions analyzer plus Dilo's
   prewarmed dictation analyzer per bound language can hit `insufficientResources`, and on macOS 26
   there is no override. Either the features take turns, or the failure has to be a designed state.
 - **Source selection is per application, and for browsers per set of processes.** The picker has to be
