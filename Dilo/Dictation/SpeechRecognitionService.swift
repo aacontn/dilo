@@ -10,19 +10,29 @@ actor SpeechRecognitionService {
     let volatileText: String
 
     var displayText: String {
-      finalizedText + volatileText
+      Union.unir(finalizedText, volatileText)
     }
   }
 
+  /// Junta los segmentos que `SpeechTranscriber` va dando por firmes.
+  ///
+  /// **Cada segmento llega con su propio espaciado y sin saber qué vino
+  /// antes**: algunos traen el espacio adelante y otros no, y pegarlos con
+  /// `+=` dejaba, cada cierto trecho, la última palabra de uno contra la
+  /// primera del siguiente —«no se ve como un notchTiene una línea»—. El
+  /// espacio lo pone `Union`, una sola vez para todos los motores.
   struct ResultAccumulator {
     private(set) var finalizedText = ""
     private(set) var volatileText = ""
 
     mutating func receive(_ text: String, isFinal: Bool) -> Update {
       if isFinal {
-        finalizedText += text
+        finalizedText = Union.unir(finalizedText, text)
         volatileText = ""
       } else {
+        // Lo volátil se guarda tal cual lo mandó el motor: el HUD pinta lo
+        // firme y lo volátil por separado y necesita los dos sin tocar. El
+        // espacio entre ambos lo pone quien los junta.
         volatileText = text
       }
 
@@ -33,7 +43,7 @@ actor SpeechRecognitionService {
     }
 
     var completedText: String {
-      finalizedText + volatileText
+      Union.unir(finalizedText, volatileText)
     }
   }
 

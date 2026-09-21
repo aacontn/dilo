@@ -1,3 +1,4 @@
+import DiloText
 import Foundation
 import os
 
@@ -338,7 +339,10 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     do {
       let texto = try await modelo.transcribirParcial(trozo)
       guard activa else { return }
-      textoParcial += texto
+      // Cada parcial es una transcripción entera de su trozo: llega recortada
+      // y con mayúscula al empezar. Pegarla con `+=` dejaba la última palabra
+      // del parcial anterior contra la primera de este.
+      textoParcial = Union.unir(textoParcial, texto)
       // Todo lo que Parakeet entrega ya viene firme: el modelo no revisa lo
       // que dijo. Por eso no hay nada volátil que mostrar.
       handlers?.parcial(EngineUpdate(finalizado: textoParcial, volatil: ""))

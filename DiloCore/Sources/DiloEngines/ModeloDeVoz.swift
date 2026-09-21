@@ -1,3 +1,4 @@
+import DiloText
 import FluidAudio
 import Foundation
 
@@ -68,7 +69,18 @@ actor ModeloDeParakeet: ModeloDeVoz {
     let resultado = try await manager.transcribe(
       muestras, decoderState: &estado, language: .spanish
     )
-    return resultado.text
+    // El texto ya armado viene con las costuras de las ventanas pegadas sin
+    // espacio; los tiempos de cada token son los que dicen dónde estuvo la
+    // costura (ver `CosturaDeTrozos`). Sin tiempos —nunca visto, pero el
+    // tipo los da opcionales— se devuelve lo que vino.
+    guard let tiempos = resultado.tokenTimings, !tiempos.isEmpty else {
+      return resultado.text
+    }
+    return CosturaDeTrozos.texto(
+      de: tiempos.map {
+        TokenDeVoz(texto: $0.token, inicio: $0.startTime, fin: $0.endTime)
+      }
+    )
   }
 
   func transcribirParcial(_ trozo: [Float]) async throws -> String {

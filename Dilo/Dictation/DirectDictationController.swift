@@ -747,7 +747,10 @@ final class DirectDictationController {
       .trimmingCharacters(in: .whitespacesAndNewlines)
       .isEmpty
     pendingLiveText = update.finalizedText
-    pendingVolatileText = update.volatileText
+    // El HUD recibe los dos pedazos por separado y los dibuja distinto, así
+    // que el espacio de la costura viaja con lo volátil: pegarlos a secas
+    // dejaba la última palabra firme contra la primera que todavía tiembla.
+    pendingVolatileText = Union.colaDe(update.finalizedText, update.volatileText)
     send(.updateReceived(hasVisibleText: hasVisibleText))
     pendingLiveText = nil
     pendingVolatileText = ""

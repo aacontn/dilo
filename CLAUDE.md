@@ -85,6 +85,14 @@ Distingue propuesta, implementación y deuda pendiente.
   nunca vacío. AppKit manda las teclas de función como caracteres del área de
   uso privado (`U+F700`–`U+F8FF`) que no dibujan nada: una fila de ajustes en
   blanco es lo que hace creer que el atajo no se guardó.
+- **Dos trozos de dictado se pegan en un solo lugar: `DiloText.Union`.**
+  Ningún motor, ni el HUD, ni el controlador juntan texto con `+`. Cada trozo
+  llega recortado y sin saber qué vino antes, así que el espacio lo pone quien
+  los junta; con `+=` la última palabra de un trozo salía pegada a la primera
+  del siguiente ("es rápidoAhora habría"). `Union` decide **sólo el espacio**:
+  no inventa puntos ni cambia mayúsculas. La costura de las ventanas de
+  Parakeet se corta antes, en `CosturaDeTrozos`, con los tiempos de cada
+  token como evidencia — nunca partiendo una palabra por su forma.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
@@ -137,7 +145,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | muletillas del español, diccionario personal, notas de versión | 5, 9 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso` | 2, 9 |

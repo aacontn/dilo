@@ -45,14 +45,19 @@ let package = Package(
     .target(name: "DiloCapabilities"),
     .target(
       name: "DiloEngines",
-      dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
+      dependencies: [
+        // La regla de cómo se pegan dos trozos de dictado vive una sola vez,
+        // en `DiloText.Union`, y la usan los motores y la app.
+        "DiloText",
+        .product(name: "FluidAudio", package: "FluidAudio"),
+      ]
     ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
-    .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines"]),
+    .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),
   ]
 )

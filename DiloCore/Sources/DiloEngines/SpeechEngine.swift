@@ -1,3 +1,4 @@
+import DiloText
 import Foundation
 
 /// Un parcial del dictado: lo que el motor ya dio por firme y lo que todavía
@@ -15,7 +16,10 @@ public struct EngineUpdate: Sendable, Equatable {
     self.volatil = volatil
   }
 
-  public var texto: String { finalizado + volatil }
+  /// Lo firme y lo volátil, pegados como corresponde: el motor entrega cada
+  /// pedazo recortado y por su cuenta, así que el espacio lo pone quien los
+  /// junta (`Union`).
+  public var texto: String { Union.unir(finalizado, volatil) }
 }
 
 /// Lo que el motor le cuenta a la sesión mientras corre: el flujo de

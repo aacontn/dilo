@@ -57,6 +57,36 @@ actor ModeloFalso: ModeloDeVoz {
   func liberar() { liberaciones += 1 }
 }
 
+/// Un modelo que entrega un trozo distinto por cada parcial, como lo haría
+/// Parakeet mientras la persona sigue hablando: cada uno recortado, con su
+/// puntuación y con mayúscula al empezar.
+actor ModeloPorTrozos: ModeloDeVoz {
+  private var pendientes: [String]
+  private let completo: String
+
+  init(trozos: [String], completo: String = "") {
+    pendientes = trozos
+    self.completo = completo
+  }
+
+  func transcribir(_ muestras: [Float]) async throws -> String { completo }
+
+  func transcribirParcial(_ trozo: [Float]) async throws -> String {
+    pendientes.isEmpty ? "" : pendientes.removeFirst()
+  }
+
+  func reiniciarParciales() {}
+  func liberar() {}
+}
+
+/// Un cargador que entrega el modelo que le pasen, sin esperar a nadie.
+struct CargadorDe: CargadorDeModelo {
+  let modelo: any ModeloDeVoz
+
+  var disponible: Bool { true }
+  func cargar() async throws -> any ModeloDeVoz { modelo }
+}
+
 /// Un cargador que cuenta cuántas veces lo llamaron y que puede quedarse
 /// colgado a propósito, para probar qué pasa cuando alguien suelta el gatillo
 /// antes de que el modelo esté.
