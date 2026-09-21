@@ -1402,7 +1402,7 @@ struct DirectDictationControllerTests {
     controller.toggleFromMenu()
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingChoiceLabels.last == "None")
+    #expect(recorder.shapingChoiceLabels.last == String(localized: "Sin reescritura"))
     #expect(recorder.insertedTexts == ["raw words"])
     #expect(shapeCalls.withLock { $0 } == 0)
     // None hides immediately, exactly as a shaping-off session does.

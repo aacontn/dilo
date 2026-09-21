@@ -15,7 +15,7 @@ struct SettingsView: View {
   @Environment(\.colorSchemeContrast) private var contrast
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  @State private var selectedSection: SettingsSection = .appearance
+  @State private var selectedSection: SettingsSection = .dictation
 
   var body: some View {
     VStack(spacing: 0) {
@@ -147,47 +147,47 @@ private struct SettingsSidebar: View {
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 22) {
-      ForEach(SettingsSectionGroup.allCases) { group in
-        SettingsSidebarGroup(title: group.title) {
-          ForEach(group.sections) { section in
-            Button {
-              withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
-                selectedSection = section
-              }
-            } label: {
-              Label(section.title, systemImage: section.icon)
-                .labelStyle(SettingsSidebarLabelStyle())
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(
-                  selectedSection == section
-                    ? .white
-                    : .white.opacity(contrast == .increased ? 0.82 : 0.62)
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 9)
-                .background {
-                  if selectedSection == section {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                      .fill(.white.opacity(contrast == .increased ? 0.15 : 0.09))
-                      .overlay(alignment: .leading) {
-                        Capsule()
-                          .fill(SettingsTheme.accent)
-                          .frame(width: 2)
-                          .padding(.vertical, 7)
-                      }
-                  }
+    ScrollView {
+      VStack(alignment: .leading, spacing: 22) {
+        ForEach(SettingsSectionGroup.allCases) { group in
+          SettingsSidebarGroup(title: group.title) {
+            ForEach(group.sections) { section in
+              Button {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
+                  selectedSection = section
                 }
+              } label: {
+                Label(section.title, systemImage: section.icon)
+                  .labelStyle(SettingsSidebarLabelStyle())
+                  .font(.system(size: 13, weight: .medium))
+                  .foregroundStyle(
+                    selectedSection == section
+                      ? .white
+                      : .white.opacity(contrast == .increased ? 0.82 : 0.62)
+                  )
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .padding(.horizontal, 11)
+                  .padding(.vertical, 9)
+                  .background {
+                    if selectedSection == section {
+                      RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(.white.opacity(contrast == .increased ? 0.15 : 0.09))
+                        .overlay(alignment: .leading) {
+                          Capsule()
+                            .fill(SettingsTheme.accent)
+                            .frame(width: 2)
+                            .padding(.vertical, 7)
+                        }
+                    }
+                  }
+              }
+              .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
           }
         }
       }
-
-      Spacer()
+      .padding(.vertical, 20)
     }
-    .padding(.top, 20)
     .frame(width: 190)
     .frame(maxHeight: .infinity, alignment: .topLeading)
     .background(SettingsTheme.sidebar)
@@ -241,20 +241,37 @@ private struct SettingsContent: View {
         switch section {
         case .general:
           GeneralSettingsView(launchAtLogin: launchAtLogin)
+          if SettingsSection.readAloud.isAvailable {
+            DisclosureGroup("Leer en voz alta") {
+              ReadAloudSettingsView(settings: settings).padding(.top, 12)
+            }
+          }
         case .appearance:
           AppearanceSettingsView(settings: settings)
+          DisclosureGroup("Sonidos") {
+            SoundsSettingsView(settings: settings, sounds: sounds).padding(.top, 12)
+          }
         case .sounds:
           SoundsSettingsView(settings: settings, sounds: sounds)
         case .motor:
           MotorSettingsView(settings: settings)
         case .dictation:
           DictationSettingsView(settings: settings)
+          DisclosureGroup("Idiomas y traducción") {
+            LanguageSettingsView(settings: settings, runtimeState: runtimeState).padding(.top, 12)
+          }
         case .modos:
           ModosSettingsView(settings: settings)
+          DisclosureGroup("Reescritura del dictado normal") {
+            PromptShapingSettingsView(settings: settings).padding(.top, 12)
+          }
         case .palabras:
           PalabrasSettingsView(settings: settings)
         case .historial:
           HistorialSettingsView(settings: settings)
+          DisclosureGroup("Actividad de dictado") {
+            InsightsSettingsView(tracker: usageTracker).padding(.top, 12)
+          }
         case .promptShaping:
           PromptShapingSettingsView(settings: settings)
         case .dropTranscription:
@@ -273,6 +290,9 @@ private struct SettingsContent: View {
           InsightsSettingsView(tracker: usageTracker)
         case .about:
           AboutSettingsView()
+          if SettingsSection.updates.isAvailable {
+            UpdatesSettingsView(updater: updater)
+          }
         }
       }
       .frame(maxWidth: 620, alignment: .leading)

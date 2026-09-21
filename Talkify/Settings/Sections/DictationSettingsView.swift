@@ -12,6 +12,19 @@ struct DictationSettingsView: View {
 
   var body: some View {
     VStack(spacing: 16) {
+      SettingsCard(title: "Aprieta, habla, suelta.") {
+        SettingsRow(
+          title: "Dictar desde cualquier app",
+          description: "Mantén el gatillo mientras hablas y suéltalo para entregar el texto. Un toque corto deja el dictado encendido; otro toque lo termina. Esc cancela."
+        ) {
+          Text(settings.dictationTriggerBinding.label)
+            .font(.system(size: 13, weight: .medium, design: .rounded))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        }
+      }
+
       SettingsCard(title: "Dónde aterriza") {
         SettingsPickerRow(
           title: "Entregar el texto",

@@ -44,6 +44,11 @@ español. Los comentarios y los mensajes de commit también van en español.
 5. **`docs/adr/`** — las decisiones de arquitectura heredadas de Talkify.
    Si tu cambio contradice una, dilo; no la pises en silencio.
 
+La dirección de experiencia más reciente está en
+`docs/design/2026-09-21-experiencia-dilo.md`: notch para interacción inmediata,
+ventana para resultados y depuración del core antes de reuniones y asistente.
+Distingue propuesta, implementación y deuda pendiente.
+
 ## Restricciones que no se negocian
 
 - **Dos targets, desde el día uno.** `Dilo` (venta directa, Sparkle,

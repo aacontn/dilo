@@ -33,7 +33,7 @@ struct NovedadesSettingsView: View {
         }
       } else {
         AvisoDeDilo(
-          texto: "Esta copia de Dilo no trae sus notas de versión. No es grave: están en el repo, en Talkify/Resources/NotasDeVersion/."
+          texto: "No pude cargar las novedades de esta versión. Puedes seguir usando Dilo."
         )
       }
     }

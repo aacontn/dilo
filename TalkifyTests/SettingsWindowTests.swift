@@ -37,7 +37,14 @@ struct SettingsWindowTests {
     #expect(SettingsSection.allCases == expected)
     // La navegación muestra lo mismo menos lo que el anfitrión esconde: el
     // sandbox de App Store se queda sin Sparkle ni relectura del foco.
-    #expect(SettingsSectionGroup.settings.sections == expected.filter(\.isAvailable))
+    let navegables = SettingsSectionGroup.allCases.flatMap(\.sections)
+    let principales: [SettingsSection] = [
+      .dictation, .modos, .palabras, .historial, .dropTranscription,
+      .motor, .shortcuts, .appearance, .general, .novedades, .about,
+    ]
+    #expect(navegables == principales.filter(\.isAvailable))
+    #expect(Set(navegables).count == navegables.count)
+    #expect(!navegables.contains(.readAloud)) // Se accede desde General, respetando capacidades.
   }
 
   @Test func deletingThePickedShapingPromptFallsBackToTheFirst() {
