@@ -1,0 +1,370 @@
+name: Release
+
+# Manual a propósito. Un release de Dilo firma con la identidad de Alfonso,
+# notariza contra Apple y —si se lo pide— sube un binario a App Store Connect:
+# ninguna de las tres cosas se dispara sola desde un push.
+on:
+  workflow_dispatch:
+    inputs:
+      subir_a_app_store:
+        description: "Subir el .pkg de Dilo-MAS a App Store Connect"
+        type: boolean
+        default: false
+
+# Los secrets que espera este workflow (todos en Settings → Secrets → Actions):
+#
+#   APPLE_CERTIFICATE               .p12 del Developer ID Application, en base64,
+#                                   con la intermedia "Developer ID Certification
+#                                   Authority" adentro o find-identity no lo da
+#                                   por válido.
+#   APPLE_CERTIFICATE_PASSWORD      contraseña de ese .p12
+#   KEYCHAIN_PASSWORD               contraseña del llavero temporal del runner
+#   APPLE_API_ISSUER                issuer de la Team key de App Store Connect
+#   APPLE_API_KEY                   id de esa key (el de AuthKey_XXXX.p8)
+#   APPLE_API_KEY_P8                contenido del .p8
+#   APPLE_MAS_APP_CERTIFICATE       .p12 de "Apple Distribution" (sólo MAS)
+#   APPLE_MAS_INSTALLER_CERTIFICATE .p12 de "3rd Party Mac Developer Installer"
+#   APPLE_MAS_CERTIFICATE_PASSWORD  contraseña de esos dos
+#
+# Los seis primeros ya existen en el repo del Dilo Tauri (aacontn/dilo); los
+# tres de MAS son nuevos. Sin ellos el workflow no falla: compila, firma
+# ad-hoc y avisa. Así se puede probar la cañería antes de tener identidad.
+
+jobs:
+  dilo:
+    name: Dilo (venta directa)
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      # Mismo import que build.yml del repo Tauri, que es donde se aprendió
+      # que `default-keychain` NO basta: codesign y find-identity buscan en la
+      # LISTA de búsqueda, y un llavero nuevo no entra solo a ella.
+      - name: Importar el certificado
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::warning::sin APPLE_CERTIFICATE — se firma ad-hoc y no se notariza"
+            exit 0
+          fi
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificado.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import "$RUNNER_TEMP/certificado.p12" -k build.keychain \
+            -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          rm -f "$RUNNER_TEMP/certificado.p12"
+          security find-identity -v -p codesigning build.keychain
+
+      # El Developer ID de Apple si existe; si no, la primera identidad válida.
+      # Hardened Runtime SÓLO con Developer ID real: es requisito de la
+      # notarización, y sobre una firma ad-hoc enciende library validation
+      # contra dylibs de otro "Team" y dyld se niega a cargar Sparkle.
+      - name: Elegir identidad
+        id: identidad
+        run: |
+          IDS="$(security find-identity -v -p codesigning build.keychain 2>/dev/null || true)"
+          CERT_ID="$(echo "$IDS" | grep "Developer ID Application" | head -1 | awk -F'"' '{print $2}' || true)"
+          if [ -z "$CERT_ID" ]; then
+            CERT_ID="$(echo "$IDS" | grep -m1 '"' | awk -F'"' '{print $2}' || true)"
+          fi
+          if [[ "$CERT_ID" == *"Developer ID Application"* ]]; then
+            HARDENED=YES
+            TEAM_ID="$(sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p' <<<"$CERT_ID")"
+          else
+            HARDENED=NO
+            TEAM_ID=""
+            echo "::warning::sin Developer ID: firma ad-hoc, sin Hardened Runtime y sin notarizar"
+          fi
+          {
+            echo "cert_id=$CERT_ID"
+            echo "hardened=$HARDENED"
+            echo "team_id=$TEAM_ID"
+          } >> "$GITHUB_OUTPUT"
+          echo "identidad: ${CERT_ID:-<ad-hoc>} · hardened runtime: $HARDENED"
+
+      - name: Archivar Dilo
+        env:
+          CERT_ID: ${{ steps.identidad.outputs.cert_id }}
+          HARDENED: ${{ steps.identidad.outputs.hardened }}
+          TEAM_ID: ${{ steps.identidad.outputs.team_id }}
+        run: |
+          set -o pipefail
+          ARGS=(DILO_HARDENED_RUNTIME="$HARDENED")
+          if [ -n "$CERT_ID" ]; then
+            ARGS+=(CODE_SIGN_IDENTITY="$CERT_ID" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID")
+          else
+            ARGS+=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="")
+          fi
+          xcodebuild archive \
+            -project Talkify.xcodeproj \
+            -scheme Dilo \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Dilo.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            -destination 'generic/platform=macOS' \
+            "${ARGS[@]}" | tail -50
+          mkdir -p "$RUNNER_TEMP/export"
+          cp -R "$RUNNER_TEMP/Dilo.xcarchive/Products/Applications/Dilo.app" "$RUNNER_TEMP/export/"
+
+      # Sparkle trae helpers precompilados —Updater.app, Autoupdate y dos XPC—
+      # y Xcode no refirma el contenido de un framework precompilado: llegan
+      # ad-hoc, sin team y sin timestamp seguro, que es justo lo que la
+      # notarización rechaza. codesign sella hasheando el contenido, así que
+      # esto va de adentro hacia afuera y la app se refirma al final CON sus
+      # entitlements: --force bota los que no se le pasen, y bajo Hardened
+      # Runtime una app sin audio-input no recibe el micrófono nunca.
+      - name: Refirmar Sparkle y la app
+        if: steps.identidad.outputs.hardened == 'YES'
+        env:
+          CERT_ID: ${{ steps.identidad.outputs.cert_id }}
+          TEAM_ID: ${{ steps.identidad.outputs.team_id }}
+        run: |
+          APP="$RUNNER_TEMP/export/Dilo.app"
+          SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+          for objetivo in \
+            "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
+            "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
+            "$SPARKLE/Versions/B/Updater.app" \
+            "$SPARKLE/Versions/B/Autoupdate" \
+            "$SPARKLE"; do
+            [ -e "$objetivo" ] || continue
+            codesign --force --options runtime --timestamp --sign "$CERT_ID" "$objetivo"
+          done
+          codesign --force --options runtime --timestamp \
+            --entitlements Dilo.entitlements --sign "$CERT_ID" "$APP"
+          codesign --verify --deep --strict "$APP"
+          # La salida se captura en vez de mandarla a grep: con pipefail, grep
+          # sale al primer match, mata a codesign con SIGPIPE y el pipeline
+          # reporta error por un binario que está bien firmado.
+          INFO="$(codesign -dvv "$APP" 2>&1 || true)"
+          [[ "$INFO" == *"TeamIdentifier=$TEAM_ID"* ]] || { echo "la app no quedó con el team $TEAM_ID"; exit 1; }
+          [[ "$INFO" == *"runtime"* ]] || { echo "la app no quedó con Hardened Runtime"; exit 1; }
+          ENT="$(codesign -d --entitlements :- "$APP" 2>/dev/null || true)"
+          [[ "$ENT" == *"com.apple.security.device.audio-input"* ]] \
+            || { echo "la app firmada perdió el entitlement de micrófono"; exit 1; }
+
+      - name: Armar el DMG
+        env:
+          CERT_ID: ${{ steps.identidad.outputs.cert_id }}
+        run: |
+          STAGE="$RUNNER_TEMP/dmg"
+          mkdir -p "$STAGE"
+          cp -R "$RUNNER_TEMP/export/Dilo.app" "$STAGE/Dilo.app"
+          ln -s /Applications "$STAGE/Applications"
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+            "$RUNNER_TEMP/export/Dilo.app/Contents/Info.plist")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          DMG="$RUNNER_TEMP/Dilo-v$VERSION.dmg"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+          # hdiutil contesta "Resource busy" si el bundle recién copiado
+          # todavía se está indexando, así que se le dan varios intentos.
+          for intento in 1 2 3 4 5; do
+            hdiutil create -volname "Dilo $VERSION" -srcfolder "$STAGE" \
+              -ov -format UDZO "$DMG" >/dev/null 2>&1 && break
+            [ "$intento" = 5 ] && { echo "hdiutil no pudo crear el DMG"; exit 1; }
+            echo "hdiutil ocupado, reintento $intento"
+            sleep 5
+          done
+          hdiutil verify "$DMG" >/dev/null
+          # Firmar el contenedor va ANTES de notarizar: firmar un DMG ya
+          # grapado lo reescribe y bota el ticket.
+          if [ -n "$CERT_ID" ]; then
+            codesign --force --timestamp --sign "$CERT_ID" "$DMG"
+          fi
+
+      # Paso propio, con reintentos. El fallo del 14-sep-2026 en el repo Tauri
+      # no fue la firma: notarytool subió bien y se cayó **sondeando el estado**
+      # —un error de red mientras esperaba—. Reintentar el submit completo
+      # cuesta unos minutos; descubrirlo después de publicar cuesta un release.
+      - name: Notarizar
+        if: steps.identidad.outputs.hardened == 'YES'
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          if [ -z "$APPLE_API_ISSUER" ] || [ -z "$APPLE_API_KEY" ] || [ -z "$APPLE_API_KEY_P8" ]; then
+            echo "::warning::hay Developer ID pero faltan APPLE_API_* — se firma sin notarizar"
+            exit 0
+          fi
+          LLAVE="$RUNNER_TEMP/AuthKey_$APPLE_API_KEY.p8"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$LLAVE"
+          chmod 600 "$LLAVE"
+          ok=0
+          for intento in 1 2 3; do
+            if xcrun notarytool submit "$DMG" \
+                --key "$LLAVE" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER" \
+                --wait --timeout 30m; then
+              ok=1
+              break
+            fi
+            echo "::warning::notarytool falló en el intento $intento (casi siempre es red al sondear)"
+            sleep 60
+          done
+          rm -f "$LLAVE"
+          [ "$ok" = 1 ] || { echo "la notarización falló tres veces"; exit 1; }
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl -a -t open --context context:primary-signature -v "$DMG"
+          # Notarizar el DMG notariza la app de adentro, así que la app se
+          # grapa contra los registros de Apple sin un segundo envío. Una app
+          # grapada valida sin red, que es lo que importa en un laptop que
+          # despierta, se actualiza y relanza antes de que vuelva el wifi.
+          xcrun stapler staple "$RUNNER_TEMP/export/Dilo.app"
+
+      # El ZIP es lo que consume Sparkle; el appcast se genera y se firma en el
+      # Mac de Alfonso con scripts/release.sh, porque la llave privada vive en
+      # su Llavero y no sube a ningún runner.
+      - name: Empaquetar la actualización de Sparkle
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/export/Dilo.app" "$RUNNER_TEMP/Dilo-v$VERSION.zip"
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v7
+        with:
+          name: dilo-directo
+          path: |
+            ${{ runner.temp }}/Dilo-v*.dmg
+            ${{ runner.temp }}/Dilo-v*.zip
+
+  dilo-mas:
+    name: Dilo-MAS (App Store)
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      # La App Store quiere dos identidades distintas: "Apple Distribution"
+      # firma la app y "3rd Party Mac Developer Installer" firma el .pkg.
+      # Nada de esto se notariza: App Store Connect hace su propia revisión.
+      - name: Importar los certificados de App Store
+        env:
+          APPLE_MAS_APP_CERTIFICATE: ${{ secrets.APPLE_MAS_APP_CERTIFICATE }}
+          APPLE_MAS_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_MAS_INSTALLER_CERTIFICATE }}
+          APPLE_MAS_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_MAS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_MAS_APP_CERTIFICATE" ]; then
+            echo "::warning::sin APPLE_MAS_APP_CERTIFICATE — el .app se firma ad-hoc y no habrá .pkg"
+            exit 0
+          fi
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          for var in APPLE_MAS_APP_CERTIFICATE APPLE_MAS_INSTALLER_CERTIFICATE; do
+            valor="${!var}"
+            [ -n "$valor" ] || continue
+            echo "$valor" | base64 --decode > "$RUNNER_TEMP/$var.p12"
+            security import "$RUNNER_TEMP/$var.p12" -k build.keychain \
+              -P "$APPLE_MAS_CERTIFICATE_PASSWORD" \
+              -T /usr/bin/codesign -T /usr/bin/productbuild
+            rm -f "$RUNNER_TEMP/$var.p12"
+          done
+          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: \
+            -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v build.keychain
+
+      - name: Elegir identidades
+        id: identidad
+        run: |
+          IDS="$(security find-identity -v build.keychain 2>/dev/null || true)"
+          APP_ID="$(echo "$IDS" | grep -E "Apple Distribution|3rd Party Mac Developer Application" | head -1 | awk -F'"' '{print $2}' || true)"
+          PKG_ID="$(echo "$IDS" | grep -E "3rd Party Mac Developer Installer|Apple Distribution Installer" | head -1 | awk -F'"' '{print $2}' || true)"
+          TEAM_ID="$(sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p' <<<"$APP_ID")"
+          {
+            echo "app_id=$APP_ID"
+            echo "pkg_id=$PKG_ID"
+            echo "team_id=$TEAM_ID"
+          } >> "$GITHUB_OUTPUT"
+          echo "app: ${APP_ID:-<ad-hoc>} · instalador: ${PKG_ID:-<ninguno>}"
+
+      # Hardened Runtime no se enciende acá: la App Store no lo pide y este
+      # binario no lleva Sparkle (condición DILO_MAS), que era el motivo por
+      # el que el runtime molestaba.
+      - name: Archivar Dilo-MAS
+        env:
+          APP_ID: ${{ steps.identidad.outputs.app_id }}
+          TEAM_ID: ${{ steps.identidad.outputs.team_id }}
+        run: |
+          set -o pipefail
+          ARGS=()
+          if [ -n "$APP_ID" ]; then
+            ARGS+=(CODE_SIGN_IDENTITY="$APP_ID" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID")
+          else
+            ARGS+=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="")
+          fi
+          xcodebuild archive \
+            -project Talkify.xcodeproj \
+            -scheme Dilo-MAS \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/Dilo-MAS.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            -destination 'generic/platform=macOS' \
+            "${ARGS[@]}" | tail -50
+          mkdir -p "$RUNNER_TEMP/export"
+          cp -R "$RUNNER_TEMP/Dilo-MAS.xcarchive/Products/Applications/Dilo-MAS.app" "$RUNNER_TEMP/export/"
+          codesign -d --entitlements :- "$RUNNER_TEMP/export/Dilo-MAS.app" || true
+
+      - name: productbuild
+        if: steps.identidad.outputs.pkg_id != ''
+        env:
+          PKG_ID: ${{ steps.identidad.outputs.pkg_id }}
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+            "$RUNNER_TEMP/export/Dilo-MAS.app/Contents/Info.plist")"
+          productbuild \
+            --component "$RUNNER_TEMP/export/Dilo-MAS.app" /Applications \
+            --sign "$PKG_ID" \
+            "$RUNNER_TEMP/Dilo-MAS-v$VERSION.pkg"
+          pkgutil --check-signature "$RUNNER_TEMP/Dilo-MAS-v$VERSION.pkg"
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v7
+        with:
+          name: dilo-mas
+          path: |
+            ${{ runner.temp }}/Dilo-MAS-v*.pkg
+          if-no-files-found: warn
+
+  # Subir a App Store Connect es irreversible de hecho: una build subida queda
+  # en el historial del app record y no se borra. Por eso es un job aparte que
+  # sólo corre si el despacho lo pidió con la casilla.
+  mas-upload:
+    name: Subir a App Store Connect
+    needs: dilo-mas
+    if: ${{ inputs.subir_a_app_store }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: dilo-mas
+          path: pkg
+
+      - name: altool --upload-app
+        env:
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          PKG="$(find pkg -name '*.pkg' | head -1)"
+          [ -n "$PKG" ] || { echo "no hay .pkg que subir"; exit 1; }
+          # altool busca la llave por id en este directorio; no acepta una ruta.
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"
+          xcrun altool --upload-app -t macos -f "$PKG" \
+            --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"

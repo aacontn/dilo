@@ -6,10 +6,10 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  test:
     name: Compilar y probar
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
 
@@ -21,7 +21,17 @@ jobs:
       - name: swift test (DiloCore)
         run: cd DiloCore && swift test
 
-      - name: Compilar y probar Dilo
+      # `xcodebuild test` se cuelga en el Mac de Alfonso antes de "Testing
+      # started": el host de los tests es la app real y al arrancar levanta su
+      # tap de CGEvent, que dispara TCC y espera a un humano. Acá TCC deniega
+      # solo y la suite corre, así que este job es el único lugar donde la
+      # suite de la app se ejecuta de verdad.
+      #
+      # DILO_SUFIJO_ID corre los bundle ids de la corrida (app y bundle de
+      # tests) a `.ci`, para que el build de CI nunca herede ni ensucie los
+      # permisos de TCC concedidos a la app de verdad. El sufijo se aplica a
+      # los dos a la vez, así que siguen siendo distintos entre sí.
+      - name: xcodebuild test (Dilo)
         run: |
           set -o pipefail
           xcodebuild test \
@@ -29,13 +39,14 @@ jobs:
             -scheme Dilo \
             -configuration Debug \
             -destination 'platform=macOS' \
+            DILO_SUFIJO_ID=.ci \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" | tail -100
 
-      # El App Sandbox no rompe la compilación de una sola línea: se cae en
-      # ejecución. Igual se compila en cada PR, porque un target que nadie
-      # compila se pudre en una semana.
+      # El App Sandbox no rompe la compilación: se cae en ejecución. Igual se
+      # compila en cada PR, porque un target que nadie compila se pudre en una
+      # semana.
       - name: Compilar Dilo-MAS
         run: |
           set -o pipefail
@@ -44,6 +55,52 @@ jobs:
             -scheme Dilo-MAS \
             -configuration Debug \
             -destination 'platform=macOS' \
+            DILO_SUFIJO_ID=.ci \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" | tail -100
+
+  metrics:
+    name: Los números del spec
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      # El .app tiene que ser Debug: el gancho DILO_METRICS_WAV que mide
+      # "soltar → texto" vive dentro de un #if DEBUG y en Release no existe.
+      - name: Compilar Dilo (Debug)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Talkify.xcodeproj \
+            -scheme Dilo \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            DILO_SUFIJO_ID=.ci \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" | tail -50
+
+      # scripts/metrics.sh termina con código ≠ 0 si un umbral del spec §3 se
+      # rompe o si una métrica no se pudo medir, así que no necesita más
+      # cañería que esta línea.
+      #
+      # --sin-latencia: medir "soltar → texto" necesita que el proceso que
+      # lanza tenga Accesibilidad, y en un runner TCC deniega solo. Los otros
+      # cuatro números —reposo, CPU, arranque en frío y tamaño del .app— se
+      # miden igual. La latencia se mide a mano en el Mac de Alfonso antes de
+      # cortar un release.
+      - name: scripts/metrics.sh
+        run: ./scripts/metrics.sh "$RUNNER_TEMP/dd/Build/Products/Debug/Dilo.app" --sin-latencia
+
+      # El reporte se versiona porque `swift test` lo lee; el de CI no se
+      # commitea, pero sirve para mirar qué midió esta corrida cuando falla.
+      - name: Guardar la medición
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: metricas
+          path: docs/metricas/ultima-medicion.json
+          if-no-files-found: warn
