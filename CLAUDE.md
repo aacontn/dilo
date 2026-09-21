@@ -253,8 +253,47 @@ la suite corre. Mientras tanto, la red de seguridad local es `swift test` en
 
 **Hardened Runtime apagado mientras la firma sea local.** Con firma ad-hoc y
 Hardened Runtime encendido, dyld se niega a cargar `Sparkle.framework` y la app
-no arranca. Vuelve a encenderse en la Tarea 8, junto con Developer ID. Detalle
-en `docs/ProjectSettings.md`.
+no arranca. El target `Dilo` lee `$(DILO_HARDENED_RUNTIME)`, que el proyecto
+define en `NO`: quien firma con Developer ID pasa `DILO_HARDENED_RUNTIME=YES`
+en la línea de comandos y nadie tiene que acordarse de un switch en Xcode.
+`Dilo-MAS` se queda en `NO`. Detalle en `docs/ProjectSettings.md`.
+
+**`DILO_SUFIJO_ID` corre los bundle ids de una corrida.** Vacío por defecto;
+con `DILO_SUFIJO_ID=.ci` la app pasa a `cl.espaciodigital.dilo.ci` y el bundle
+de tests a `…dilo.tests.ci`, los dos a la vez. Es lo que usa CI para que un
+build automático nunca herede ni ensucie los permisos de TCC de la app de
+verdad, y sirve igual para probar algo local sin pisar los propios.
+
+## Firma, actualizaciones y cómo se publica
+
+- **Hoy no hay identidad de firma en el Mac de Alfonso** (`security
+  find-identity -v -p codesigning` devuelve cero) ni perfil de `notarytool`.
+  Todo lo de firma está escrito y verificado con firma ad-hoc, y listo para
+  cuando exista.
+- **Sparkle: llave y feed propios.** La mitad privada EdDSA vive en el Llavero
+  de Alfonso, en la cuenta `dilo`; la pública está en `Talkify/Info.plist` y se
+  commitea. `scripts/setup-sparkle-keys.sh` la consulta y la genera la primera
+  vez. Perderla deja a cada copia instalada sin poder actualizarse nunca más.
+  **No edites ese plist con PlistBuddy**: reescribe el archivo y se lleva los
+  comentarios.
+- **Una copia instalada consulta el `SUFeedURL` con el que se compiló.** Esa
+  URL y la constante `REPO` de `scripts/release.sh` son los dos únicos lugares
+  donde vive el nombre del repo, y hay que dejarlos definitivos **antes del
+  primer release**.
+- **Venta directa:** `scripts/release.sh <versión>` desde `main` limpio. Firma,
+  refirma los helpers de Sparkle, arma el DMG, notariza con el perfil
+  `dilo-notary` (con reintentos: el fallo del 14-sep en el repo Tauri fue red
+  sondeando el estado, no la firma), grapa, regenera el appcast firmado y
+  publica el release.
+- **App Store:** despachar `.github/workflows/release.yml`. El job `dilo-mas`
+  deja el `.pkg` firmado como artefacto; subirlo a App Store Connect es el job
+  `mas-upload`, que sólo corre si el despacho marca la casilla.
+- **Los secrets que espera CI** —`APPLE_CERTIFICATE`,
+  `APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_API_ISSUER`,
+  `APPLE_API_KEY`, `APPLE_API_KEY_P8`, más `APPLE_MAS_APP_CERTIFICATE`,
+  `APPLE_MAS_INSTALLER_CERTIFICATE` y `APPLE_MAS_CERTIFICATE_PASSWORD`— están
+  en `docs/ProjectSettings.md`, con qué es cada uno y cómo firmar local. Acá
+  van los **nombres**; los valores, jamás.
 
 ## Estilo
 
