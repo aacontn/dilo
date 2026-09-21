@@ -14,7 +14,7 @@ struct AppSettingsTests {
 
   @Test func emptyStoreYieldsDefaults() {
     let settings = AppSettings(defaults: freshDefaults())
-    #expect(settings.soundSet == .synth8)
+    #expect(settings.soundSet == .marimba)
     #expect(settings.dictationSoundsEnabled)
     #expect(settings.dictationSoundVolume == 0.5)
     #expect(settings.voiceVisual == .waveform)
@@ -26,6 +26,15 @@ struct AppSettingsTests {
     #expect(settings.readAloudVoiceID.isEmpty)
     #expect(settings.dictationTriggerBinding == .fnTrigger)
     #expect(settings.readAloudBinding == .optionEscape)
+  }
+
+  /// Marimba pasó a ser el default en 0.4.0, y un cambio de default no puede
+  /// mover a quien ya eligió: el valor guardado gana siempre.
+  @Test func unaEleccionPreviaSobreviveAlCambioDeDefault() {
+    let defaults = freshDefaults()
+    defaults.set("Synth8", forKey: "dictationSoundSet")
+
+    #expect(AppSettings(defaults: defaults).soundSet == .synth8)
   }
 
   @Test func everyPreferenceRoundTrips() {
@@ -319,7 +328,7 @@ struct AppSettingsTests {
     defaults.set("Sparkles", forKey: "hudVoiceVisual")
 
     let settings = AppSettings(defaults: defaults)
-    #expect(settings.soundSet == .synth8)
+    #expect(settings.soundSet == .marimba)
     #expect(settings.voiceVisual == .waveform)
   }
 
@@ -335,7 +344,7 @@ struct AppSettingsTests {
     settings.glowPalette = .aurora
     settings.hudScale = 0.6
 
-    #expect(snapshot.sounds.set == .synth8)
+    #expect(snapshot.sounds.set == .marimba)
     #expect(snapshot.voiceVisual == .waveform)
     #expect(snapshot.waveformStyle == .siriWave)
     #expect(snapshot.revealStyle == .slide)

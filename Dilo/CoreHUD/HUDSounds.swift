@@ -9,6 +9,10 @@ import AppKit
 /// picks are stored under, and it prefixes the bundled asset names
 /// (`<rawValue>Begin/End/Paste.wav`). Renaming a case breaks both.
 enum DictationSoundSet: String, CaseIterable {
+  /// El default desde 0.4.0. Marimba sintetizada en el repo con
+  /// `scripts/generar-sonidos-marimba.py`: dos notas ascendentes al empezar,
+  /// las mismas al revés al terminar, una sola al pegar. Activo propio.
+  case marimba = "Marimba"
   /// Minimal 7ms UI click (freesound #370962, CC0).
   case click = "Click"
   /// Our own synthesized two-note pluck: rising fifth in, falling fifth

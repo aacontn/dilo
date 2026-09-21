@@ -381,7 +381,9 @@ final class AppSettings {
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
-    soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .synth8
+    // Marimba es el default desde 0.4.0: Synth8 sonaba a alarma sintética.
+    // Quien ya eligió otro juego lo conserva — el valor guardado manda.
+    soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .marimba
     dictationSoundsEnabled = defaults.object(forKey: Keys.soundsEnabled) as? Bool ?? true
     // Apagado y sin interruptor. "Duck other audio" baja el volumen de
     // salida del sistema por Core Audio, y macOS muestra su propio HUD de
