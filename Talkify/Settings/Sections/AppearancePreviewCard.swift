@@ -38,7 +38,7 @@ struct SettingsPreviewCard: View {
       content.isRevealed = true
       content.showsVoiceVisual = true
       content.isAudioAlive = true
-      content.text = "Direct Dictation preview"
+      content.text = String(localized: "Así se ve un dictado")
       content.sessionEpoch += 1
 
       if reduceMotion {
@@ -65,7 +65,7 @@ struct SettingsPreviewCard: View {
     demoTask?.cancel()
     demoTask = Task { @MainActor in
       // A cancelled long-draft demo may have left its long text up.
-      content.text = "Direct Dictation preview"
+      content.text = String(localized: "Así se ve un dictado")
       content.showsVoiceVisual = true
       content.isRevealed = false
       try? await Task.sleep(for: .milliseconds(450))
@@ -83,12 +83,13 @@ struct SettingsPreviewCard: View {
       // A cancelled reveal replay may have left the shape retracted.
       content.isRevealed = true
       content.showsVoiceVisual = false
-      let longDraft = "A long draft that outgrows a single line shows "
-        + "how the HUD handles longer dictated text while you speak"
+      let longDraft = String(
+        localized: "Un dictado largo que no cabe en una línea muestra qué hace la píldora con el texto mientras hablas"
+      )
       content.text = longDraft
       try? await Task.sleep(for: .seconds(2.5))
       guard !Task.isCancelled else { return }
-      content.text = "Direct Dictation preview"
+      content.text = String(localized: "Así se ve un dictado")
       content.showsVoiceVisual = true
     }
   }

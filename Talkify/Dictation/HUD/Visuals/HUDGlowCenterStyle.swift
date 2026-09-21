@@ -1,3 +1,5 @@
+import Foundation
+
 /// What lives inside the Edge Glow's shape while listening, a Settings pick.
 enum HUDGlowCenterStyle: String, CaseIterable {
   /// The compute-pipeline particle cloud chasing the beam's sweeping
@@ -10,8 +12,8 @@ enum HUDGlowCenterStyle: String, CaseIterable {
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
     switch self {
-    case .particles: "Partículas"
-    case .siriOrb: "Orbe"
+    case .particles: String(localized: "Partículas")
+    case .siriOrb: String(localized: "Orbe")
     }
   }
 

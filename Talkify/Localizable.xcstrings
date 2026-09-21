@@ -100,6 +100,50 @@
         }
       }
     },
+    "%lld prompts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld prompts"
+          }
+        }
+      }
+    },
+    "1 prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 prompt"
+          }
+        }
+      }
+    },
+    "AJUSTES": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SETTINGS"
+          }
+        }
+      }
+    },
+    "API key": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        }
+      }
+    },
     "Abre Dilo de nuevo para terminar": {
       "extractionState": "manual",
       "localizations": {
@@ -107,6 +151,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reopen Dilo to finish"
+          }
+        }
+      }
+    },
+    "Abre el menú de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the Dilo menu in the menu bar and pick \"Transcribe a file…\". When it is done, drag the transcript wherever you want it, or click to copy it. Leave it there and it saves itself."
           }
         }
       }
@@ -151,6 +206,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Personal Voice settings…"
+          }
+        }
+      }
+    },
+    "Acerca de": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
           }
         }
       }
@@ -210,6 +276,28 @@
         }
       }
     },
+    "Agregar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        }
+      }
+    },
+    "Agregar modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add mode"
+          }
+        }
+      }
+    },
     "Agregar prompt": {
       "extractionState": "manual",
       "localizations": {
@@ -217,6 +305,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add Prompt"
+          }
+        }
+      }
+    },
+    "Agregar una muletilla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a filler"
+          }
+        }
+      }
+    },
+    "Agregar una palabra": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a word"
           }
         }
       }
@@ -309,6 +419,17 @@
         }
       }
     },
+    "Aprieta la tecla de un modo desde cualquier app y dicta directo con él. El dictado normal no pasa por ninguna IA.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press a mode's key from any app and dictate straight into it. Plain dictation goes through no AI at all."
+          }
+        }
+      }
+    },
     "Aprieta las teclas…": {
       "extractionState": "manual",
       "localizations": {
@@ -382,6 +503,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Live preview"
+          }
+        }
+      }
+    },
+    "Así se ve un dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is what dictation looks like"
           }
         }
       }
@@ -628,6 +760,28 @@
         }
       }
     },
+    "Busca en lo que dictaste, en la app y en el modo. Sin tildes y sin mayúsculas: se busca como se recuerda.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searches what you dictated, the app and the mode. No accents, no case: you search the way you remember."
+          }
+        }
+      }
+    },
+    "Buscar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        }
+      }
+    },
     "Buscar actualizaciones solo": {
       "extractionState": "manual",
       "localizations": {
@@ -657,6 +811,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check Now"
+          }
+        }
+      }
+    },
+    "Cada modo con su tecla y su IA": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each mode with its own key and its own AI"
           }
         }
       }
@@ -738,6 +903,28 @@
         }
       }
     },
+    "Con algo adentro reemplaza a las de fábrica enteras.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With anything in it, it replaces the built-in list entirely."
+          }
+        }
+      }
+    },
+    "Con esto prendido, un dictado sin tecla de modo elige solo según la app que tengas al frente y lo que dijiste. Si no lo tiene claro, no toca nada y tu dictado sale como salió.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With this on, dictation without a mode key picks one on its own, from the app in front of you and what you said. When it is not sure, it changes nothing and your words land as spoken."
+          }
+        }
+      }
+    },
     "Conserva su función de siempre salvo que aprietes esa combinación exacta": {
       "extractionState": "manual",
       "localizations": {
@@ -815,6 +1002,17 @@
         }
       }
     },
+    "Cámbiala si usas otra región o apuntas a tu propio servidor.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change it if you use another region or point at your own server."
+          }
+        }
+      }
+    },
     "Cápsulas": {
       "extractionState": "manual",
       "localizations": {
@@ -866,6 +1064,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "How the dictation HUD looks"
+          }
+        }
+      }
+    },
+    "De dónde viene": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where it comes from"
           }
         }
       }
@@ -925,6 +1134,17 @@
         }
       }
     },
+    "Dictado en español para Mac. Aprieta, habla, suelta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spanish dictation for the Mac. Press, speak, release."
+          }
+        }
+      }
+    },
     "Dictados": {
       "extractionState": "manual",
       "localizations": {
@@ -947,6 +1167,28 @@
         }
       }
     },
+    "Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo"
+          }
+        }
+      }
+    },
+    "Dilo %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo %@"
+          }
+        }
+      }
+    },
     "Dilo arranca solo cuando entras a tu cuenta": {
       "extractionState": "manual",
       "localizations": {
@@ -954,6 +1196,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo opens on its own when you sign in"
+          }
+        }
+      }
+    },
+    "Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT). De ahí vienen la píldora del notch, la máquina de sesión y el tap de teclado, y están bien hechos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo is a fond fork of Talkify (Tornike Gomareli, MIT). The notch pill, the session machine and the keyboard tap come from there, and they are well made."
           }
         }
       }
@@ -1035,6 +1288,17 @@
         }
       }
     },
+    "EN LÍNEA": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ONLINE"
+          }
+        }
+      }
+    },
     "Editar": {
       "extractionState": "manual",
       "localizations": {
@@ -1068,6 +1332,61 @@
         }
       }
     },
+    "El Dilo multiplataforma hecho en Tauri quedó congelado en 0.3.2 y sigue disponible para Intel, Windows y Linux. Esta es la versión nativa de Mac, y continúa la numeración.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cross-platform Dilo built with Tauri is frozen at 0.3.2 and still available for Intel, Windows and Linux. This is the native Mac version, and it carries the numbering on."
+          }
+        }
+      }
+    },
+    "El general": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default one"
+          }
+        }
+      }
+    },
+    "El general (%@)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default one (%@)"
+          }
+        }
+      }
+    },
+    "El historial está apagado. Préndelo en Dictado para empezar a guardar lo que dictas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History is off. Turn it on in Dictation to start keeping what you dictate."
+          }
+        }
+      }
+    },
+    "El id tal cual lo muestra su consola.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The id exactly as their console shows it."
+          }
+        }
+      }
+    },
     "El marco alrededor de tus palabras es fijo. Es lo que evita que un dictado con forma de pregunta termine respondido.": {
       "extractionState": "manual",
       "localizations": {
@@ -1075,6 +1394,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The framing around your wording is fixed. It is what keeps a question-shaped dictation from being answered."
+          }
+        }
+      }
+    },
+    "El modelo de Apple corre en esta compu. Sin clave y sin internet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple's model runs on this Mac. No key, no internet."
           }
         }
       }
@@ -1090,6 +1420,17 @@
         }
       }
     },
+    "El que usan los modos que no eligieron uno propio.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The one used by modes that did not pick their own."
+          }
+        }
+      }
+    },
     "El reconocimiento de voz no está disponible": {
       "extractionState": "manual",
       "localizations": {
@@ -1097,6 +1438,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speech recognition is unavailable"
+          }
+        }
+      }
+    },
+    "El reconocimiento, la lectura en voz alta y la transformación de texto corren en esta compu, con frameworks de Apple. Dilo no guarda audio. Sólo los modos con proveedor en línea mandan texto afuera, y la tarjeta siempre lo dice.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognition, read aloud and text shaping all run on this Mac, with Apple frameworks. Dilo keeps no audio. Only modes with an online provider send text out, and the card always says so."
           }
         }
       }
@@ -1163,6 +1515,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose an audio or video file to transcribe."
+          }
+        }
+      }
+    },
+    "Elige un idioma para traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No translation language"
+          }
+        }
+      }
+    },
+    "Eliminar modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete mode"
+          }
+        }
+      }
+    },
+    "Elígelo desde el menú": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick it from the menu"
           }
         }
       }
@@ -1266,6 +1651,17 @@
         }
       }
     },
+    "Enséñale a Dilo cómo se escriben las palabras que usas. Se quedan sólo acá. Sirven de a varias: «Espacio Digital» se arregla aunque lo dictes en dos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teach Dilo how the words you use are spelled. They stay on this Mac. They work across words too: “Espacio Digital” is fixed even when you say it as two."
+          }
+        }
+      }
+    },
     "Entendido": {
       "extractionState": "manual",
       "localizations": {
@@ -1295,6 +1691,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Insights data error: %@"
+          }
+        }
+      }
+    },
+    "Esa tecla ya la usa %@. Elige otra, o quítasela primero: dos modos con la misma tecla es un atajo muerto.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ already uses that key. Pick another, or take it away from that one first: two modes on one key is a dead shortcut."
           }
         }
       }
@@ -1552,6 +1959,17 @@
         }
       }
     },
+    "IA de este modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This mode's AI"
+          }
+        }
+      }
+    },
     "Idioma": {
       "extractionState": "manual",
       "localizations": {
@@ -1629,6 +2047,17 @@
         }
       }
     },
+    "LOCAL": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LOCAL"
+          }
+        }
+      }
+    },
     "La actividad va de menos a más palabras dictadas": {
       "extractionState": "manual",
       "localizations": {
@@ -1684,6 +2113,17 @@
         }
       }
     },
+    "La traducción no está lista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation not ready"
+          }
+        }
+      }
+    },
     "La voz que lee lo que seleccionas": {
       "extractionState": "manual",
       "localizations": {
@@ -1702,6 +2142,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Updates download from GitHub and are verified with an EdDSA signature before they install. One that fails verification is thrown away."
+          }
+        }
+      }
+    },
+    "Las claves de API se guardan en el Llavero de macOS, nunca en un archivo de ajustes. El modelo de Apple corre acá mismo: no necesita clave, ni cuenta, ni internet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API keys live in the macOS Keychain, never in a settings file. Apple's model runs right here: no key, no account, no internet."
+          }
+        }
+      }
+    },
+    "Las de fábrica son los sonidos de duda («eh», «ehm», «mmm») y las muletillas que sólo salen cuando vienen puntuadas como pausa: «o sea,», «este,», «dale, cachái». «¿Cachái lo que digo?» se queda, porque ahí es un verbo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The built-in list is the hesitation sounds (“uh”, “um”, “mmm”) and the fillers that only go when punctuation marks them as a pause. A filler that is doing a real job in the sentence stays."
           }
         }
       }
@@ -1735,6 +2197,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read Selected Text"
+          }
+        }
+      }
+    },
+    "Licencia": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License"
           }
         }
       }
@@ -1794,6 +2267,28 @@
         }
       }
     },
+    "Lo que dictaste, buscable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything you dictated, searchable"
+          }
+        }
+      }
+    },
+    "Lo que dictes aparece acá, con el modo que usaste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you dictate shows up here, with the mode you used."
+          }
+        }
+      }
+    },
     "Lo que recibe el modelo": {
       "extractionState": "manual",
       "localizations": {
@@ -1849,6 +2344,17 @@
         }
       }
     },
+    "Los modos de fábrica no se eliminan: vuelven solos. Puedes cambiarles el nombre, las instrucciones o quitarles la tecla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Built-in modes cannot be deleted: they come back on their own. You can rename them, change their instructions or take their key away."
+          }
+        }
+      }
+    },
     "Los sonidos de empezar y terminar": {
       "extractionState": "manual",
       "localizations": {
@@ -1856,6 +2362,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The sounds a session begins and ends with"
+          }
+        }
+      }
+    },
+    "Los «eh», los «o sea» y los arranques en falso salen solos, acá mismo y sin internet. El voseo, los modismos y el spanglish técnico se quedan enteros: no son un defecto.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The “uh”s, the “I mean”s and the false starts go on their own, right here and with no internet. Dialect, slang and technical Spanglish stay whole: they are not a defect."
           }
         }
       }
@@ -1871,6 +2388,17 @@
         }
       }
     },
+    "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)."
+          }
+        }
+      }
+    },
     "Mantenla para dictar en %@, o tócala para empezar y tócala de nuevo para terminar": {
       "extractionState": "manual",
       "localizations": {
@@ -1878,6 +2406,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hold it to dictate in %@, or tap to start and tap again to finish"
+          }
+        }
+      }
+    },
+    "Mantén %1$@ para hablar y que salga en %2$@, o tócala para empezar y tócala de nuevo para terminar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %1$@ to speak and have it land in %2$@, or tap it to start and tap again to finish."
           }
         }
       }
@@ -1900,17 +2439,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hold %@ to speak and paste a translation. Pick the language in Language first."
-          }
-        }
-      }
-    },
-    "Mantén %@ para hablar y que salga en %@, o tócala para empezar y tócala de nuevo para terminar.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hold %@ to speak and have it land in %@, or tap to start and tap again to finish."
           }
         }
       }
@@ -1959,6 +2487,39 @@
         }
       }
     },
+    "Modelo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        }
+      }
+    },
+    "Modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode"
+          }
+        }
+      }
+    },
+    "Modos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modes"
+          }
+        }
+      }
+    },
     "Mono": {
       "extractionState": "manual",
       "localizations": {
@@ -1988,6 +2549,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Motion and layout"
+          }
+        }
+      }
+    },
+    "Muletillas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fillers"
           }
         }
       }
@@ -2025,6 +2597,17 @@
         }
       }
     },
+    "Nada que calce": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing matches"
+          }
+        }
+      }
+    },
     "No encontré voz ahí": {
       "extractionState": "manual",
       "localizations": {
@@ -2032,6 +2615,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No speech found"
+          }
+        }
+      }
+    },
+    "No hay nada que configurar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to set up here"
           }
         }
       }
@@ -2109,6 +2703,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Name"
+          }
+        }
+      }
+    },
+    "Nombres, proyectos, siglas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names, projects, acronyms"
           }
         }
       }
@@ -2355,6 +2960,28 @@
         }
       }
     },
+    "Proveedor general": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default provider"
+          }
+        }
+      }
+    },
+    "Prueba con otra palabra.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another word."
+          }
+        }
+      }
+    },
     "Prueba la voz que elegiste": {
       "extractionState": "manual",
       "localizations": {
@@ -2399,6 +3026,50 @@
         }
       }
     },
+    "Que Dilo elija el modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let Dilo pick the mode"
+          }
+        }
+      }
+    },
+    "Quitar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        }
+      }
+    },
+    "Quién reescribe": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who rewrites"
+          }
+        }
+      }
+    },
+    "Qué es Dilo y de quién es lo prestado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What Dilo is, and whose the borrowed parts are"
+          }
+        }
+      }
+    },
     "Qué hace": {
       "extractionState": "manual",
       "localizations": {
@@ -2417,6 +3088,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "What the HUD does with a long dictation"
+          }
+        }
+      }
+    },
+    "Qué hacer con lo que dictaste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What to do with what you dictated"
           }
         }
       }
@@ -2483,6 +3165,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Replaces every prompt in your library with the three built-in ones. It cannot be undone."
+          }
+        }
+      }
+    },
+    "Reemplaza tu lista por los cinco de fábrica. No se puede deshacer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaces your list with the five built-in modes. This cannot be undone."
           }
         }
       }
@@ -2575,6 +3268,17 @@
         }
       }
     },
+    "Sacar las muletillas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop the fillers"
+          }
+        }
+      }
+    },
     "Salir de Dilo": {
       "extractionState": "manual",
       "localizations": {
@@ -2608,6 +3312,17 @@
         }
       }
     },
+    "Se guarda en el Llavero de macOS. Dilo no la escribe en ningún archivo ni la muestra en pantalla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It lives in the macOS Keychain. Dilo never writes it to a file and never shows it on screen."
+          }
+        }
+      }
+    },
     "Se infla": {
       "extractionState": "manual",
       "localizations": {
@@ -2615,6 +3330,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bloom"
+          }
+        }
+      }
+    },
+    "Se muestran las 50 más nuevas. Busca para acotar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing the 50 newest. Search to narrow it down."
           }
         }
       }
@@ -2692,6 +3418,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No prompt picked, so dictation is pasted unchanged."
+          }
+        }
+      }
+    },
+    "Sin tecla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No key"
           }
         }
       }
@@ -2883,6 +3620,17 @@
         }
       }
     },
+    "Todavía no hay nada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing here yet"
+          }
+        }
+      }
+    },
     "Todavía no hay nada que mostrar": {
       "extractionState": "manual",
       "localizations": {
@@ -2894,6 +3642,17 @@
         }
       }
     },
+    "Todavía sin instrucciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No instructions yet"
+          }
+        }
+      }
+    },
     "Todavía sin instrucción": {
       "extractionState": "manual",
       "localizations": {
@@ -2901,6 +3660,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No instruction yet"
+          }
+        }
+      }
+    },
+    "Todo pasa acá": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It all happens here"
           }
         }
       }
@@ -3059,6 +3829,72 @@
         }
       }
     },
+    "Tu español": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Spanish"
+          }
+        }
+      }
+    },
+    "Tu lista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your list"
+          }
+        }
+      }
+    },
+    "Tus modos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your modes"
+          }
+        }
+      }
+    },
+    "Tus palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words"
+          }
+        }
+      }
+    },
+    "Tus palabras y las muletillas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words and the fillers"
+          }
+        }
+      }
+    },
+    "URL base": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base URL"
+          }
+        }
+      }
+    },
     "Un archivo de texto por día, que puedes abrir en el Finder. Viene apagado, y nada sale de acá: los archivos se quedan en esta compu.": {
       "extractionState": "manual",
       "localizations": {
@@ -3066,6 +3902,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "One text file per day, readable in Finder. Off by default, and nothing is sent anywhere: the files stay on this Mac."
+          }
+        }
+      }
+    },
+    "Un atajo, Dilo decide": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One shortcut, Dilo decides"
+          }
+        }
+      }
+    },
+    "Un dictado largo que no cabe en una línea muestra qué hace la píldora con el texto mientras hablas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A long dictation that outgrows one line shows what the pill does with text while you speak"
+          }
+        }
+      }
+    },
+    "Un fork con cariño": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A fond fork"
           }
         }
       }
@@ -3147,6 +4016,17 @@
         }
       }
     },
+    "Vacía: Dilo usa las de fábrica.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty: Dilo uses the built-in list."
+          }
+        }
+      }
+    },
     "Velocidad promedio": {
       "extractionState": "manual",
       "localizations": {
@@ -3154,6 +4034,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Average pace"
+          }
+        }
+      }
+    },
+    "Ver Talkify": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Talkify"
           }
         }
       }
@@ -3345,6 +4236,17 @@
         }
       }
     },
+    "¿Volver a los modos de fábrica?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore the built-in modes?"
+          }
+        }
+      }
+    },
     "¿Volver a los prompts de fábrica?": {
       "extractionState": "manual",
       "localizations": {
@@ -3363,6 +4265,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chart Area"
+          }
+        }
+      }
+    },
+    "Última búsqueda %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last checked %@."
           }
         }
       }

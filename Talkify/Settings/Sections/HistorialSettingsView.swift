@@ -23,10 +23,8 @@ struct HistorialSettingsView: View {
         SettingsRow(
           title: "Buscar",
           description: settings.dictationHistoryEnabled
-            ? "Busca en lo que dictaste, en la app y en el modo. Sin tildes y "
-              + "sin mayúsculas: se busca como se recuerda."
-            : "El historial está apagado. Préndelo en Dictado para empezar a "
-              + "guardar lo que dictas."
+            ? "Busca en lo que dictaste, en la app y en el modo. Sin tildes y sin mayúsculas: se busca como se recuerda."
+            : "El historial está apagado. Préndelo en Dictado para empezar a guardar lo que dictas."
         ) {
           TextField("Buscar", text: $consulta)
             .frame(width: 200)
@@ -59,10 +57,13 @@ struct HistorialSettingsView: View {
   }
 
   private func fila(_ entrada: DictationHistoryStore.Entrada) -> some View {
-    SettingsRow(
-      title: entrada.texto,
-      description: "\(entrada.dia) \(entrada.hora)"
-        + (entrada.procedencia.isEmpty ? "" : " · \(entrada.procedencia)")
+    // Lo dictado, la fecha y la app son datos: van como valor, no como copy.
+    let sello = entrada.procedencia.isEmpty
+      ? "\(entrada.dia) \(entrada.hora)"
+      : "\(entrada.dia) \(entrada.hora) · \(entrada.procedencia)"
+    return SettingsRow(
+      title: "\(entrada.texto)",
+      description: "\(sello)"
     ) {
       HStack(spacing: 8) {
         Button(copiada == entrada.id ? "Copiado" : "Copiar") { copiar(entrada) }

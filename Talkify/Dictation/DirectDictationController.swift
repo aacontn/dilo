@@ -589,7 +589,7 @@ final class DirectDictationController {
     activity.hold()
 
     guard isPrepared else {
-      dependencies.showMessage(preparationFailureMessage ?? "Preparing speech…", nil)
+      dependencies.showMessage(preparationFailureMessage ?? "Preparando el reconocimiento…", nil)
       activity.release()
       send(.beginRejected)
       return
@@ -616,7 +616,7 @@ final class DirectDictationController {
     // finish a sentence into a rescue path.
     if activeSlot == .translate, !translation.isReady {
       dependencies.showMessage(
-        translation.pair == nil ? "No translation language" : "Translation not ready",
+        translation.pair == nil ? "Elige un idioma para traducir" : "La traducción no está lista",
         target?.displayID
       )
       translation.retry()

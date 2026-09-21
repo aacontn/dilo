@@ -1,3 +1,5 @@
+import Foundation
+
 /// The voice-reactive visual shown while listening, user-selectable from
 /// Settings. Waveform and Edge Glow replace the draft text; Compact and
 /// Edge Glow + Draft keep it. Reduce Motion overrides all of them with a
@@ -22,10 +24,10 @@ enum HUDVoiceVisualStyle: String, CaseIterable {
   /// El nombre visible. El rawValue queda en inglés porque es lo que hay guardado en UserDefaults: renombrarlo borraría la elección de la persona en silencio.
   var title: String {
     switch self {
-    case .waveform: "Forma de onda"
-    case .glow: "Halo"
-    case .glowDraft: "Halo con texto"
-    case .compact: "Compacto"
+    case .waveform: String(localized: "Forma de onda")
+    case .glow: String(localized: "Halo")
+    case .glowDraft: String(localized: "Halo con texto")
+    case .compact: String(localized: "Compacto")
     }
   }
 

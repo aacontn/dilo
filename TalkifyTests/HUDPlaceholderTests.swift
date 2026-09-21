@@ -6,7 +6,7 @@ import Testing
 /// Compact and Edge Glow + Draft are built around the live draft, so they
 /// open with nothing. Three separate paths write the placeholder — opening,
 /// latching, and coming back from a model download — and fixing only the
-/// first left "Listening (latched)" still appearing.
+/// first left "Te escucho (trabado)" still appearing.
 @MainActor
 @Suite("HUD placeholder text")
 struct HUDPlaceholderTests {
@@ -67,10 +67,10 @@ struct HUDPlaceholderTests {
     let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
 
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    #expect(hud.textForTesting == "Listening…")
+    #expect(hud.textForTesting == "Te escucho…")
 
     hud.showLatched()
-    #expect(hud.textForTesting == "Listening (latched)")
+    #expect(hud.textForTesting == "Te escucho (trabado)")
   }
 
   /// The shaping phase is the fourth path, and the one that clears rather
@@ -102,7 +102,7 @@ struct HUDPlaceholderTests {
 
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: true, settings: session(store))
     hud.showLatched()
-    #expect(hud.textForTesting == "Listening (latched)")
+    #expect(hud.textForTesting == "Te escucho (trabado)")
 
     hud.showFinalizing()
     hud.showShaping(with: "Tighten grammar")
@@ -125,7 +125,7 @@ struct HUDPlaceholderTests {
     #expect(hud.textForTesting.isEmpty)
 
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    #expect(hud.textForTesting == "Listening…")
+    #expect(hud.textForTesting == "Te escucho…")
   }
 
   /// A Bluetooth headset costs about 1.4 seconds before its first buffer,

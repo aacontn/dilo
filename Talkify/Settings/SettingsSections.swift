@@ -1,4 +1,5 @@
 import DiloCapabilities
+import Foundation
 
 /// The Settings navigation model: labeled groups of sections with stable
 /// typed IDs (CONTEXT.md: sections are registered in code; no empty or
@@ -7,7 +8,13 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
   case settings
 
   var id: Self { self }
-  var title: String { rawValue.uppercased() }
+  /// El encabezado de la barra lateral. Salía del `rawValue` en mayúsculas, o
+  /// sea "SETTINGS" en una app que habla español.
+  var title: String {
+    switch self {
+    case .settings: String(localized: "AJUSTES")
+    }
+  }
 
   var sections: [SettingsSection] {
     SettingsSection.allCases.filter { $0.group == self && $0.isAvailable }
@@ -57,43 +64,43 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .general: "General"
-    case .appearance: "Apariencia"
-    case .sounds: "Sonidos"
-    case .motor: "Motor"
-    case .dictation: "Dictado"
-    case .modos: "Modos"
-    case .palabras: "Tu español"
-    case .historial: "Historial"
-    case .promptShaping: "Transformar"
-    case .dropTranscription: "Arrastrar archivos"
-    case .readAloud: "Leer en voz alta"
-    case .language: "Idioma"
-    case .shortcuts: "Atajos"
-    case .updates: "Actualizaciones"
-    case .insights: "Actividad"
-    case .about: "Acerca de"
+    case .general: String(localized: "General")
+    case .appearance: String(localized: "Apariencia")
+    case .sounds: String(localized: "Sonidos")
+    case .motor: String(localized: "Motor")
+    case .dictation: String(localized: "Dictado")
+    case .modos: String(localized: "Modos")
+    case .palabras: String(localized: "Tu español")
+    case .historial: String(localized: "Historial")
+    case .promptShaping: String(localized: "Transformar")
+    case .dropTranscription: String(localized: "Arrastrar archivos")
+    case .readAloud: String(localized: "Leer en voz alta")
+    case .language: String(localized: "Idioma")
+    case .shortcuts: String(localized: "Atajos")
+    case .updates: String(localized: "Actualizaciones")
+    case .insights: String(localized: "Actividad")
+    case .about: String(localized: "Acerca de")
     }
   }
 
   var subtitle: String {
     switch self {
-    case .general: "Cómo arranca Dilo"
-    case .appearance: "Cómo se ve la píldora mientras dictas"
-    case .sounds: "Los sonidos de empezar y terminar"
-    case .motor: "Quién convierte tu voz en texto"
-    case .dictation: "Dónde aterriza lo que dictaste"
-    case .modos: "Cada modo con su tecla y su IA"
-    case .palabras: "Tus palabras y las muletillas"
-    case .historial: "Lo que dictaste, buscable"
-    case .promptShaping: "Reescribe lo que dictas, acá mismo"
-    case .dropTranscription: "Transcribe audio y video que le sueltes"
-    case .readAloud: "La voz que lee lo que seleccionas"
-    case .language: "En qué idiomas dictas"
-    case .shortcuts: "Qué teclas hacen qué"
-    case .updates: "Mantén Dilo al día"
-    case .insights: "Cuánto dictaste, guardado sólo acá"
-    case .about: "Qué es Dilo y de quién es lo prestado"
+    case .general: String(localized: "Cómo arranca Dilo")
+    case .appearance: String(localized: "Cómo se ve la píldora mientras dictas")
+    case .sounds: String(localized: "Los sonidos de empezar y terminar")
+    case .motor: String(localized: "Quién convierte tu voz en texto")
+    case .dictation: String(localized: "Dónde aterriza lo que dictaste")
+    case .modos: String(localized: "Cada modo con su tecla y su IA")
+    case .palabras: String(localized: "Tus palabras y las muletillas")
+    case .historial: String(localized: "Lo que dictaste, buscable")
+    case .promptShaping: String(localized: "Reescribe lo que dictas, acá mismo")
+    case .dropTranscription: String(localized: "Transcribe audio y video que le sueltes")
+    case .readAloud: String(localized: "La voz que lee lo que seleccionas")
+    case .language: String(localized: "En qué idiomas dictas")
+    case .shortcuts: String(localized: "Qué teclas hacen qué")
+    case .updates: String(localized: "Mantén Dilo al día")
+    case .insights: String(localized: "Cuánto dictaste, guardado sólo acá")
+    case .about: String(localized: "Qué es Dilo y de quién es lo prestado")
     }
   }
 

@@ -13,10 +13,10 @@ struct PromptShapingServiceTests {
   private static let fullPrompt = ShapingPrompt(
     id: "full",
     name: "Full",
-    preInstruction: "Fix the grammar.",
-    postInstruction: "Keep the tone.",
-    exampleInput: "what time does the the meeting start",
-    exampleOutput: "What time does the meeting start?"
+    preInstruction: "Arregla la gramática.",
+    postInstruction: "No cambies el tono.",
+    exampleInput: "a que hora empieza la la reunion",
+    exampleOutput: "¿A qué hora empieza la reunión?"
   )
 
   /// A client whose model is available and answers with `result`.
@@ -48,11 +48,11 @@ struct PromptShapingServiceTests {
   /// The framing that keeps the model rewriting: the transcript reaches it
   /// as marked data, verbatim, never as the conversational request itself.
   @Test func requestWrapsTheTranscriptVerbatimBetweenMarkers() {
-    let transcript = "what time does the meeting start tomorrow"
+    let transcript = "a qué hora empieza la reunión mañana"
     for prompt in ShapingPrompt.defaults {
       let request = prompt.request(wrapping: transcript)
       #expect(request.contains("<transcript>\(transcript)</transcript>"))
-      #expect(request.contains("Rewrite the transcript"))
+      #expect(request.contains("Reescribe la transcripción"))
     }
   }
 
@@ -61,10 +61,10 @@ struct PromptShapingServiceTests {
   @Test func requestPlacesPreInstructionBeforeTheMarkersAndPostAfter() {
     let request = Self.fullPrompt.request(wrapping: "raw words")
     #expect(request == """
-      Fix the grammar.
-      Rewrite the transcript between the markers.
+      Arregla la gramática.
+      Reescribe la transcripción que va entre las marcas.
       <transcript>raw words</transcript>
-      Keep the tone.
+      No cambies el tono.
       """)
   }
 
@@ -74,7 +74,7 @@ struct PromptShapingServiceTests {
   @Test func instructionsFrameTheTranscriptAsDataWithAnExample() {
     for prompt in ShapingPrompt.defaults {
       let instructions = prompt.instructions
-      #expect(instructions.contains("never a question for you to answer"))
+      #expect(instructions.contains("Nunca es una pregunta que debas responder"))
       #expect(instructions.contains("<transcript>\(prompt.exampleInput)</transcript>"))
       #expect(instructions.contains(prompt.exampleOutput))
     }
@@ -86,7 +86,7 @@ struct PromptShapingServiceTests {
     let instructions = Self.fullPrompt.instructions
     #expect(!instructions.contains(Self.fullPrompt.preInstruction))
     #expect(!instructions.contains(Self.fullPrompt.postInstruction))
-    #expect(instructions.contains("never a question for you to answer"))
+    #expect(instructions.contains("Nunca es una pregunta que debas responder"))
   }
 
   /// A half-filled example teaches nothing, so it is dropped whole.
@@ -95,8 +95,8 @@ struct PromptShapingServiceTests {
     var prompt = Self.fullPrompt
     prompt.exampleInput = input
     prompt.exampleOutput = output
-    #expect(!prompt.instructions.contains("Example"))
-    #expect(prompt.instructions.hasSuffix("return it unchanged."))
+    #expect(!prompt.instructions.contains("Ejemplo"))
+    #expect(prompt.instructions.hasSuffix("Responde en el mismo idioma en que está escrita."))
   }
 
   /// Empty editable fields collapse without leaving blank lines at either
@@ -111,7 +111,7 @@ struct PromptShapingServiceTests {
       exampleOutput: ""
     )
     #expect(prompt.request(wrapping: "raw words") == """
-      Rewrite the transcript between the markers.
+      Reescribe la transcripción que va entre las marcas.
       <transcript>raw words</transcript>
       """)
   }
@@ -120,7 +120,7 @@ struct PromptShapingServiceTests {
   /// the model echoes the marked data back: nothing between recognition
   /// and insertion depends on the words not looking like a question.
   @Test func questionShapedTranscriptRoundTripsThroughAnEchoingClient() async {
-    let transcript = "what time does the meeting start tomorrow"
+    let transcript = "a qué hora empieza la reunión mañana"
     let service = PromptShapingService(
       client: availableClient { _, prompt in
         // Echo exactly what sits between the markers, as a faithful

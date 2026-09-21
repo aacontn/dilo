@@ -81,7 +81,7 @@ struct ShortcutsSettingsView: View {
         .dictation,
         allowsBareModifier: true,
         allowsMouseButton: true,
-        sentence: "Mantén %@ y habla; suéltala y listo. Un toque corto la deja trabada y otro toque termina."
+        sentence: String(localized: "Mantén %@ y habla; suéltala y listo. Un toque corto la deja trabada y otro toque termina.")
       )
 
       if settings.isSecondLanguageEnabled {
@@ -89,7 +89,7 @@ struct ShortcutsSettingsView: View {
           .secondLanguage,
           allowsBareModifier: true,
           allowsMouseButton: true,
-          sentence: "Mantén %@ para dictar en tu otro idioma, o tócala igual que la principal."
+          sentence: String(localized: "Mantén %@ para dictar en tu otro idioma, o tócala igual que la principal.")
         )
       }
 
@@ -107,7 +107,7 @@ struct ShortcutsSettingsView: View {
           .readAloud,
           allowsBareModifier: false,
           allowsMouseButton: false,
-          sentence: "Aprieta %@ para leer lo seleccionado; otra vez para parar."
+          sentence: String(localized: "Aprieta %@ para leer lo seleccionado; otra vez para parar.")
         )
       }
     }
@@ -118,12 +118,22 @@ struct ShortcutsSettingsView: View {
   /// so the sentence says where to fix that.
   private var translateSentence: String {
     guard settings.isTranslationEnabled else {
-      return "Mantén %@ para hablar y pegar la traducción. Elige antes el idioma en Idioma."
+      return String(localized: "Mantén %@ para hablar y pegar la traducción. Elige antes el idioma en Idioma.")
     }
     let name = SpeechLanguageCatalog.shortName(
       for: Locale(identifier: settings.translationTargetIdentifier)
     )
-    return "Mantén %@ para hablar y que salga en \(name), o tócala para empezar y tócala de nuevo para terminar."
+    // Dos huecos posicionales: el primero se deja tal cual para que la fila
+    // meta ahí las teclas más tarde, y sólo el segundo se llena ahora. Con
+    // `\(name)` dentro de `String(localized:)` el idioma caería en el hueco de
+    // las teclas.
+    return String(
+      format: String(
+        localized: "Mantén %1$@ para hablar y que salga en %2$@, o tócala para empezar y tócala de nuevo para terminar."
+      ),
+      "%@",
+      name
+    )
   }
 
   private func row(
@@ -150,8 +160,8 @@ struct ShortcutsSettingsView: View {
       let caps = KeyboardMap.caps(for: keyBinding, layout: layout)
       ShortcutRow(
         caps: caps,
-        title: role.title,
-        description: description(sentence, for: keyBinding, in: role, caps: caps),
+        title: "\(role.title)",
+        description: "\(description(sentence, for: keyBinding, in: role, caps: caps))",
         isRecording: isRecording,
         accent: role.color,
         acceptsMouseButton: allowsMouseButton,
@@ -174,10 +184,12 @@ struct ShortcutsSettingsView: View {
     let named = binding.isMouseButton ? binding.label : caps.joined(separator: " ")
     var description = String(format: sentence, named)
     if binding.isMouseButton {
-      description += " Este botón conserva su función de siempre salvo que aprietes esa combinación exacta."
+      description += " " + String(
+        localized: "Este botón conserva su función de siempre salvo que aprietes esa combinación exacta."
+      )
     }
     if let other = settings.roleUsing(binding, excluding: role) {
-      description += " También la usa \(other.title)."
+      description += " " + String(localized: "También la usa \(other.title).")
     }
     return description
   }

@@ -237,7 +237,7 @@ struct DirectDictationControllerTests {
     controller.handle(.triggerPressed(.primary))
 
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages == ["Preparing speech…"])
+    #expect(recorder.messages == ["Preparando el reconocimiento…"])
     #expect(startEntries.withLock { $0 } == 0)
   }
 
@@ -275,7 +275,7 @@ struct DirectDictationControllerTests {
     controller.toggleFromMenu()
 
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages == ["Secure field"])
+    #expect(recorder.messages == ["Campo protegido"])
     controller.stop()
   }
 
@@ -376,7 +376,7 @@ struct DirectDictationControllerTests {
 
     controller.toggleFromMenu()
     await waitUntil("Insertion failure message never shown") {
-      recorder.messages.contains("Couldn't insert text")
+      recorder.messages.contains("No se pudo pegar el texto")
     }
 
     #expect(controller.sessionStateForTesting == .idle)
@@ -951,10 +951,10 @@ struct DirectDictationControllerTests {
     }
     controller.handle(.triggerPressed(.translate))
     await waitUntil("Never reported") {
-      recorder.messages.contains { $0.hasPrefix("Couldn't translate") }
+      recorder.messages.contains { $0.hasPrefix("No se pudo traducir") }
     }
 
-    #expect(recorder.messages.contains("Couldn't translate or copy"))
+    #expect(recorder.messages.contains("No se pudo traducir ni copiar"))
     controller.stop()
   }
 
@@ -1091,7 +1091,7 @@ struct DirectDictationControllerTests {
 
     #expect(recorder.insertedTexts == ["spoken words"])
     #expect(recorder.insertedDestinations == [.clipboardOnly])
-    #expect(recorder.messages.contains("Couldn't translate"))
+    #expect(recorder.messages.contains("No se pudo traducir"))
     // A rescue is not a delivery.
     #expect(recorder.count(of: "playPasteSound") == 0)
     #expect(recorder.recordedSessions.isEmpty)
@@ -1176,14 +1176,14 @@ struct DirectDictationControllerTests {
     await prepare(controller, prewarmed: prewarmed)
     // Preparation does not wait for the translation model, so the pair may not
     // be resolved yet even though dictation is ready. Pressing before it is
-    // says "No translation language", which is a different refusal.
+    // dice "Elige un idioma para traducir", que es otra negativa.
     await waitUntil("Translation pair never resolved") {
       controller.translationPairForTesting != nil
     }
 
     controller.handle(.triggerPressed(.translate))
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages.contains("Translation not ready"))
+    #expect(recorder.messages.contains("La traducción no está lista"))
 
     // And plain dictation still works.
     controller.toggleFromMenu()
@@ -1196,7 +1196,7 @@ struct DirectDictationControllerTests {
   /// The regression: a target chosen after launch has to reach the pair.
   /// Preparation resolves it, so anything that changes the target must re-run
   /// preparation, or the trigger is installed with nothing to translate into
-  /// and refuses every press with "No translation language".
+  /// y rechaza cada apretón con "Elige un idioma para traducir".
   @Test func aTargetChosenAfterLaunchResolvesOnceLanguagesAreReapplied() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
@@ -1212,7 +1212,7 @@ struct DirectDictationControllerTests {
     // Prepared with translation off, exactly as a launch with no target.
     await prepare(controller, prewarmed: prewarmed)
     controller.handle(.triggerPressed(.translate))
-    #expect(recorder.messages.contains("No translation language"))
+    #expect(recorder.messages.contains("Elige un idioma para traducir"))
 
     // Now a target is chosen and the languages are reapplied.
     settings.translationTargetIdentifier = "es"
@@ -1443,12 +1443,12 @@ struct DirectDictationControllerTests {
     await waitUntil("Session never reached recording") {
       controller.sessionStateForTesting == .recording(.latched)
     }
-    #expect(recorder.shapingChoiceLabels.first == "Tighten grammar")
+    #expect(recorder.shapingChoiceLabels.first == "Ortografía y puntuación")
     controller.handle(.shapingCycleRight)
     controller.toggleFromMenu()
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingChoiceLabels.last == "Bullet my lists")
+    #expect(recorder.shapingChoiceLabels.last == "Hazme una lista")
     #expect(shapedPromptIDs.withLock { $0 } == ["bullet-lists"])
     #expect(recorder.insertedTexts == ["shaped raw words"])
     controller.stop()
@@ -1550,7 +1550,7 @@ struct DirectDictationControllerTests {
     controller.toggleFromMenu()
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingNames == ["Tighten grammar"])
+    #expect(recorder.shapingNames == ["Ortografía y puntuación"])
     let shapingIndex = recorder.events.firstIndex(of: "showShaping")
     let hideIndex = recorder.events.firstIndex(of: "hideHUD")
     let insertIndex = recorder.events.firstIndex(of: "insertText")

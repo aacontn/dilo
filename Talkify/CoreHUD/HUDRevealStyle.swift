@@ -1,3 +1,5 @@
+import Foundation
+
 /// How the HUD enters and leaves. All styles keep the shape's top edge glued
 /// to the screen edge: bounce is expressed in scale anchored at the top, never
 /// in position, so overshoot can't open a gap above the shape.
@@ -17,10 +19,10 @@ enum HUDRevealStyle: String, CaseIterable {
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
     switch self {
-    case .slide: "Baja"
-    case .unfurl: "Se despliega"
-    case .bloom: "Se infla"
-    case .drift: "Se asoma"
+    case .slide: String(localized: "Baja")
+    case .unfurl: String(localized: "Se despliega")
+    case .bloom: String(localized: "Se infla")
+    case .drift: String(localized: "Se asoma")
     }
   }
 }

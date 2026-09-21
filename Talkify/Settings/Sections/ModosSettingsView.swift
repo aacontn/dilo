@@ -29,8 +29,7 @@ struct ModosSettingsView: View {
 
         SettingsRow(
           title: "Tu lista",
-          description: "Aprieta la tecla de un modo desde cualquier app y "
-            + "dicta directo con él. El dictado normal no pasa por ninguna IA."
+          description: "Aprieta la tecla de un modo desde cualquier app y dicta directo con él. El dictado normal no pasa por ninguna IA."
         ) {
           HStack(spacing: 8) {
             Button("Restaurar los de fábrica…") { confirmandoRestaurar = true }
@@ -52,9 +51,7 @@ struct ModosSettingsView: View {
       SettingsCard(title: "Un atajo, Dilo decide") {
         SettingsRow(
           title: "Que Dilo elija el modo",
-          description: "Con esto prendido, un dictado sin tecla de modo elige "
-            + "solo según la app que tengas al frente y lo que dijiste. Si no "
-            + "lo tiene claro, no toca nada y tu dictado sale como salió."
+          description: "Con esto prendido, un dictado sin tecla de modo elige solo según la app que tengas al frente y lo que dijiste. Si no lo tiene claro, no toca nada y tu dictado sale como salió."
         ) {
           Toggle("Que Dilo elija el modo", isOn: $settings.unAtajoDiloDecide)
             .labelsHidden()
@@ -82,9 +79,7 @@ struct ModosSettingsView: View {
       }
 
       Text(
-        "Las claves de API se guardan en el Llavero de macOS, nunca en un "
-          + "archivo de ajustes. El modelo de Apple corre acá mismo: no "
-          + "necesita clave, ni cuenta, ni internet."
+        "Las claves de API se guardan en el Llavero de macOS, nunca en un archivo de ajustes. El modelo de Apple corre acá mismo: no necesita clave, ni cuenta, ni internet."
       )
       .font(.caption)
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
@@ -112,7 +107,7 @@ struct ModosSettingsView: View {
   }
 
   private func fila(_ modo: Modo) -> some View {
-    SettingsRow(title: modo.nombre, description: descripcion(de: modo)) {
+    SettingsRow(title: "\(modo.nombre)", description: descripcion(de: modo)) {
       HStack(spacing: 10) {
         Text(etiquetaDeDestino(modo))
           .font(.system(size: 10, weight: .semibold))
@@ -144,7 +139,7 @@ struct ModosSettingsView: View {
       ),
       onRecordingChanged: { settings.isRecordingKeybind = $0 }
     ) { binding, estaGrabando in
-      Text(estaGrabando ? "…" : (modo.gatillo?.etiqueta ?? "Sin tecla"))
+      Text(estaGrabando ? "…" : (modo.gatillo?.etiqueta ?? String(localized: "Sin tecla")))
         .font(.system(size: 11, weight: .medium, design: .rounded))
         .foregroundStyle(estaGrabando ? SettingsTheme.accent : .white.opacity(0.8))
         .frame(minWidth: 74)
@@ -166,8 +161,7 @@ struct ModosSettingsView: View {
     }
     let ocupada = settings.modos.modosQueYaUsan(gatillo, salvo: id)
     if let otro = ocupada.first {
-      reparo = "Esa tecla ya la usa \(otro.nombre). Elige otra, o quítasela "
-        + "primero: dos modos con la misma tecla es un atajo muerto."
+      reparo = "Esa tecla ya la usa \(otro.nombre). Elige otra, o quítasela primero: dos modos con la misma tecla es un atajo muerto."
       return
     }
     reparo = nil
@@ -175,9 +169,10 @@ struct ModosSettingsView: View {
     settings.modos[indice].gatillo = gatillo
   }
 
-  private func descripcion(de modo: Modo) -> String {
+  /// El prompt es del usuario y sale tal cual; el vacío sí es copy nuestro.
+  private func descripcion(de modo: Modo) -> LocalizedStringKey {
     let prompt = modo.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-    return prompt.isEmpty ? "Todavía sin instrucciones" : prompt
+    return prompt.isEmpty ? "Todavía sin instrucciones" : "\(prompt)"
   }
 
   /// LOCAL o EN LÍNEA: el vistazo que responde "¿cuáles de mis modos mandan
@@ -186,7 +181,7 @@ struct ModosSettingsView: View {
     let proveedor = settings.proveedores.proveedor(modo.proveedorID)
       ?? settings.proveedores.proveedor(settings.proveedorGeneralID)
     guard let proveedor else { return "" }
-    return proveedor.esLocal ? "LOCAL" : "EN LÍNEA"
+    return proveedor.etiquetaLocalOEnLinea
   }
 
   private var indiceDelGeneral: Int? {
@@ -199,7 +194,7 @@ struct ModosSettingsView: View {
     if proveedor.dialecto == .enElChip {
       SettingsRow(
         title: "No hay nada que configurar",
-        description: ClienteEnElChip.porQueNoSePuede()
+        description: ClienteEnElChip.porQueNoSePuede().map { "\($0)" }
           ?? "El modelo de Apple corre en esta compu. Sin clave y sin internet."
       ) { EmptyView() }
     } else {
@@ -231,8 +226,7 @@ struct ModosSettingsView: View {
       if proveedor.necesitaClave {
         SettingsRow(
           title: "API key",
-          description: "Se guarda en el Llavero de macOS. Dilo no la escribe "
-            + "en ningún archivo ni la muestra en pantalla."
+          description: "Se guarda en el Llavero de macOS. Dilo no la escribe en ningún archivo ni la muestra en pantalla."
         ) {
           SecureField(
             "API key",
@@ -309,7 +303,7 @@ struct ModoEditorView: View {
       Picker("IA de este modo", selection: proveedorElegido) {
         Text(textoDelGeneral).tag("")
         ForEach(proveedores) { proveedor in
-          Text("\(proveedor.nombre) · \(proveedor.esLocal ? "LOCAL" : "EN LÍNEA")")
+          Text("\(proveedor.nombre) · \(proveedor.etiquetaLocalOEnLinea)")
             .tag(proveedor.id)
         }
       }
@@ -321,8 +315,7 @@ struct ModoEditorView: View {
             cerrar()
           }
         } else {
-          Text("Los modos de fábrica no se eliminan: vuelven solos. Puedes "
-            + "cambiarles el nombre, las instrucciones o quitarles la tecla.")
+          Text("Los modos de fábrica no se eliminan: vuelven solos. Puedes cambiarles el nombre, las instrucciones o quitarles la tecla.")
             .font(.caption)
             .foregroundStyle(.white.opacity(0.45))
             .fixedSize(horizontal: false, vertical: true)
@@ -346,7 +339,15 @@ struct ModoEditorView: View {
   }
 
   private var textoDelGeneral: String {
-    guard let proveedorGeneral else { return "El general" }
-    return "El general (\(proveedorGeneral.nombre))"
+    guard let proveedorGeneral else { return String(localized: "El general") }
+    return String(localized: "El general (\(proveedorGeneral.nombre))")
+  }
+}
+
+/// LOCAL o EN LÍNEA: la misma etiqueta la usan la fila y el editor, y las dos
+/// la muestran traducida.
+extension Proveedor {
+  var etiquetaLocalOEnLinea: String {
+    esLocal ? String(localized: "LOCAL") : String(localized: "EN LÍNEA")
   }
 }

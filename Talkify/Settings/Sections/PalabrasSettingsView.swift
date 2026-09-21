@@ -20,9 +20,7 @@ struct PalabrasSettingsView: View {
       SettingsCard(title: "Tus palabras") {
         SettingsRow(
           title: "Nombres, proyectos, siglas",
-          description: "Enséñale a Dilo cómo se escriben las palabras que "
-            + "usas. Se quedan sólo acá. Sirven de a varias: «Espacio "
-            + "Digital» se arregla aunque lo dictes en dos."
+          description: "Enséñale a Dilo cómo se escriben las palabras que usas. Se quedan sólo acá. Sirven de a varias: «Espacio Digital» se arregla aunque lo dictes en dos."
         ) {
           HStack(spacing: 8) {
             TextField("Agregar una palabra", text: $palabraNueva)
@@ -35,7 +33,7 @@ struct PalabrasSettingsView: View {
         }
 
         ForEach(settings.palabrasPropias, id: \.self) { palabra in
-          SettingsRow(title: palabra, description: "") {
+          SettingsRow(title: "\(palabra)", description: "") {
             Button("Quitar") { settings.palabrasPropias.removeAll { $0 == palabra } }
               .buttonStyle(SettingsButtonStyle())
           }
@@ -45,9 +43,7 @@ struct PalabrasSettingsView: View {
       SettingsCard(title: "Muletillas") {
         SettingsRow(
           title: "Sacar las muletillas",
-          description: "Los «eh», los «o sea» y los arranques en falso salen "
-            + "solos, acá mismo y sin internet. El voseo, los modismos y el "
-            + "spanglish técnico se quedan enteros: no son un defecto."
+          description: "Los «eh», los «o sea» y los arranques en falso salen solos, acá mismo y sin internet. El voseo, los modismos y el spanglish técnico se quedan enteros: no son un defecto."
         ) {
           Toggle("Sacar las muletillas", isOn: $settings.limpiarMuletillas)
             .labelsHidden()
@@ -72,7 +68,7 @@ struct PalabrasSettingsView: View {
         .disabled(!settings.limpiarMuletillas)
 
         ForEach(settings.muletillasPropias, id: \.self) { muletilla in
-          SettingsRow(title: muletilla, description: "") {
+          SettingsRow(title: "\(muletilla)", description: "") {
             Button("Quitar") {
               settings.muletillasPropias.removeAll { $0 == muletilla }
             }
@@ -82,10 +78,7 @@ struct PalabrasSettingsView: View {
       }
 
       Text(
-        "Las de fábrica son los sonidos de duda («eh», «ehm», «mmm») y las "
-          + "muletillas que sólo salen cuando vienen puntuadas como pausa: "
-          + "«o sea,», «este,», «dale, cachái». «¿Cachái lo que digo?» se "
-          + "queda, porque ahí es un verbo."
+        "Las de fábrica son los sonidos de duda («eh», «ehm», «mmm») y las muletillas que sólo salen cuando vienen puntuadas como pausa: «o sea,», «este,», «dale, cachái». «¿Cachái lo que digo?» se queda, porque ahí es un verbo."
       )
       .font(.caption)
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))

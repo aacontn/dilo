@@ -32,7 +32,7 @@ struct PromptShapingSettingsView: View {
         }
 
         if let unavailability {
-          SettingsRow(title: "Acá no se puede", description: unavailability) {
+          SettingsRow(title: "Acá no se puede", description: "\(unavailability)") {
             EmptyView()
           }
         }
@@ -46,8 +46,9 @@ struct PromptShapingSettingsView: View {
         SettingsRow(
           title: "Tu biblioteca",
           description: hasSelection
-            ? "\(settings.shapingPrompts.count) prompt"
-              + (settings.shapingPrompts.count == 1 ? "" : "s")
+            ? (settings.shapingPrompts.count == 1
+              ? "1 prompt"
+              : "\(settings.shapingPrompts.count) prompts")
             : "Sin prompt elegido: lo que dictes se pega tal cual."
         ) {
           HStack(spacing: 8) {
@@ -93,7 +94,7 @@ struct PromptShapingSettingsView: View {
   private func promptRow(_ prompt: ShapingPrompt) -> some View {
     let isSelected = prompt.id == settings.promptShapingPromptID
     return SettingsRow(
-      title: prompt.name.isEmpty ? "Sin nombre" : prompt.name,
+      title: prompt.name.isEmpty ? "Sin nombre" : "\(prompt.name)",
       description: summary(of: prompt)
     ) {
       HStack(spacing: 10) {
@@ -112,9 +113,9 @@ struct PromptShapingSettingsView: View {
   /// What the prompt does, in the prompt's own words. Its instruction is
   /// already a sentence saying exactly that, so nothing else describes it
   /// better and nothing has to be kept in step with it.
-  private func summary(of prompt: ShapingPrompt) -> String {
+  private func summary(of prompt: ShapingPrompt) -> LocalizedStringKey {
     let instruction = prompt.preInstruction.trimmingCharacters(in: .whitespacesAndNewlines)
-    return instruction.isEmpty ? "Todavía sin instrucción" : instruction
+    return instruction.isEmpty ? "Todavía sin instrucción" : "\(instruction)"
   }
 
   private var editingPrompt: Binding<ShapingPrompt?> {

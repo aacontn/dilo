@@ -34,7 +34,7 @@ struct DictationSettingsView: View {
 
         SettingsRow(
           title: "Carpeta",
-          description: settings.resolvedHistoryFolder.path(percentEncoded: false)
+          description: "\(settings.resolvedHistoryFolder.path(percentEncoded: false))"
         ) {
           Button("Elegir…") { chooseFolder() }
             .buttonStyle(SettingsButtonStyle())

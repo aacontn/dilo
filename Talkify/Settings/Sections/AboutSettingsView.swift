@@ -26,10 +26,7 @@ struct AboutSettingsView: View {
 
         SettingsRow(
           title: "Todo pasa acá",
-          description: "El reconocimiento, la lectura en voz alta y la "
-            + "transformación de texto corren en esta compu, con frameworks de "
-            + "Apple. Dilo no guarda audio. Sólo los modos con proveedor en "
-            + "línea mandan texto afuera, y la tarjeta siempre lo dice."
+          description: "El reconocimiento, la lectura en voz alta y la transformación de texto corren en esta compu, con frameworks de Apple. Dilo no guarda audio. Sólo los modos con proveedor en línea mandan texto afuera, y la tarjeta siempre lo dice."
         ) {
           EmptyView()
         }
@@ -38,9 +35,7 @@ struct AboutSettingsView: View {
       SettingsCard(title: "De dónde viene") {
         SettingsRow(
           title: "Un fork con cariño",
-          description: "Dilo es un fork con cariño de Talkify "
-            + "(Tornike Gomareli, MIT). De ahí vienen la píldora del notch, la "
-            + "máquina de sesión y el tap de teclado, y están bien hechos."
+          description: "Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT). De ahí vienen la píldora del notch, la máquina de sesión y el tap de teclado, y están bien hechos."
         ) {
           Button("Ver Talkify") {
             open("https://github.com/tornikegomareli/Talkify")
@@ -50,17 +45,14 @@ struct AboutSettingsView: View {
 
         SettingsRow(
           title: "Licencia",
-          description: "MIT. © 2026 Tornike Gomareli (Talkify) · "
-            + "© 2026 Alfonso Contreras / Espacio Digital (Dilo)."
+          description: "MIT. © 2026 Tornike Gomareli (Talkify) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)."
         ) {
           EmptyView()
         }
       }
 
       Text(
-        "El Dilo multiplataforma hecho en Tauri quedó congelado en 0.3.2 y "
-          + "sigue disponible para Intel, Windows y Linux. Esta es la versión "
-          + "nativa de Mac, y continúa la numeración."
+        "El Dilo multiplataforma hecho en Tauri quedó congelado en 0.3.2 y sigue disponible para Intel, Windows y Linux. Esta es la versión nativa de Mac, y continúa la numeración."
       )
       .font(.caption)
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))

@@ -1,3 +1,5 @@
+import Foundation
+
 /// Where a finished Direct Dictation session's text is delivered.
 ///
 /// Inserting into the previously focused control is how every session ended
@@ -15,9 +17,9 @@ enum InsertionDestination: String, CaseIterable {
 
   var title: String {
     switch self {
-    case .insert: "Pegar en la app"
-    case .clipboardOnly: "Copiar al portapapeles"
-    case .both: "Pegar y copiar"
+    case .insert: String(localized: "Pegar en la app")
+    case .clipboardOnly: String(localized: "Copiar al portapapeles")
+    case .both: String(localized: "Pegar y copiar")
     }
   }
 }

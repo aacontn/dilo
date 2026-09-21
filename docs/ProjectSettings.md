@@ -239,3 +239,36 @@ tabla de `AGENTS.md`.
 `developmentRegion = es`, `knownRegions = (es, en, Base)`. El español es el
 idioma en que se escribe el copy; el inglés se traduce desde ahí, nunca al
 revés.
+
+El catálogo `Talkify/Localizable.xcstrings` **sí traduce en runtime**: los
+componentes de Ajustes reciben `LocalizedStringKey`, no `String`, así que
+`Text` pasa por el catálogo. Lo que es valor y no copy —una ruta, el nombre de
+un modo, lo que dictaste— se envuelve en `"\(valor)"` para que salga tal cual,
+y lo que se arma por pedazos (la frase de un atajo, el aviso de un modelo de
+traducción) usa `String(localized:)` en cada pedazo. La deuda que dejó la
+Tarea 1 quedó saldada.
+
+`STRING_CATALOG_GENERATE_SYMBOLS` sigue en `NO`: el generador de símbolos
+colapsa "Borrar" y "Borrar…" en el mismo identificador y falla la compilación.
+
+## Tests de la app en este Mac
+
+`xcodebuild test` se colgaba antes de "Testing started": el host de los tests
+es la app real y al arrancar levanta su tap de CGEvent, que dispara TCC contra
+la entrada de la copia instalada y espera a un humano. Con un bundle id propio
+la entrada de TCC es otra y la suite corre sola:
+
+```bash
+xcodebuild -project Talkify.xcodeproj -scheme Dilo \
+  -derivedDataPath /Volumes/SSD2/derived-data \
+  PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
+```
+
+El id puede ser cualquiera bajo `cl.espaciodigital.dilo`: `DiloTests` compara
+el host por prefijo justamente para que este truco no rompa la suite.
+
+El `-derivedDataPath` de la suite no puede ser el mismo desde el que lanzas la
+app a mano con `open -a`: el `.app` queda registrado en LaunchServices con el
+bundle id de esa build, y la corrida siguiente muere con *"the test runner hung
+before establishing connection"* aunque el código esté bien. Un directorio para
+probar a mano y otro para la suite, y listo.

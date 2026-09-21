@@ -5,8 +5,8 @@ import SwiftUI
 /// whole combination crammed into it.
 struct ShortcutRow: View {
   let caps: [String]
-  let title: String
-  let description: String
+  let title: LocalizedStringKey
+  let description: LocalizedStringKey
   let isRecording: Bool
   let accent: Color
   let acceptsMouseButton: Bool
@@ -65,7 +65,7 @@ struct ShortcutRow: View {
     }
   }
 
-  private var armedPrompt: String {
+  private var armedPrompt: LocalizedStringKey {
     if !pickedCaps.isEmpty {
       return "Haz clic en una tecla más para terminar, o usa lo que ya elegiste."
     }

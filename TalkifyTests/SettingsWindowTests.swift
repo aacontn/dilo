@@ -18,7 +18,7 @@ struct SettingsWindowTests {
       launchAtLogin: LaunchAtLoginService()
     )
     let window = try #require(controller.window)
-    #expect(window.title == "Talkify Settings")
+    #expect(window.title == "Ajustes de Dilo")
     #expect(window.styleMask.contains(.borderless))
     #expect(!window.styleMask.contains(.resizable))
     #expect(window.level == .normal)
@@ -30,11 +30,14 @@ struct SettingsWindowTests {
 
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
-      .general, .appearance, .sounds, .dictation, .promptShaping,
-      .dropTranscription, .readAloud, .language, .shortcuts, .updates, .insights,
+      .general, .appearance, .sounds, .dictation, .modos, .palabras, .historial,
+      .promptShaping, .dropTranscription, .readAloud, .language, .shortcuts,
+      .updates, .insights, .about,
     ]
     #expect(SettingsSection.allCases == expected)
-    #expect(SettingsSectionGroup.settings.sections == expected)
+    // La navegación muestra lo mismo menos lo que el anfitrión esconde: el
+    // sandbox de App Store se queda sin Sparkle ni relectura del foco.
+    #expect(SettingsSectionGroup.settings.sections == expected.filter(\.isAvailable))
   }
 
   @Test func deletingThePickedShapingPromptFallsBackToTheFirst() {

@@ -185,14 +185,23 @@ términos técnicos van sin traducir (commit, prompt, sandbox). La referencia es
 el locale `es` del repo Tauri (`app/src/i18n/locales/es/translation.json`),
 escrito a mano.
 
-**Agujero conocido, hoy:** los componentes de Ajustes reciben `String`
-(`SettingsRow.title`, `SettingsCard.title`, `description`…), y `Text(String)`
-**no** pasa por el catálogo — sólo `Text("literal")` lo hace. Así que hoy el
-catálogo es contenido correcto y revisable, pero cambiar el Mac a inglés no
-traduce la mayoría de Ajustes. Arreglarlo es convertir esos parámetros a
-`LocalizedStringKey` y resolver los call sites que pasan un `String` calculado
-(los de `LanguageSettingsView` sobre todo). No se hizo en la Tarea 1 porque es
-un refactor de los componentes, no del copy.
+**Ajustes traduce en runtime.** Los componentes (`SettingsRow`,
+`SettingsCard`, `SettingsPickerRow`, `SettingsPreviewStage`, `ShortcutRow`…)
+reciben `LocalizedStringKey` y no `String`, porque `Text(String)` **no** pasa
+por el catálogo y `Text("literal")` sí. Tres reglas al escribir un call site:
+
+- **Copy** → literal directo: `title: "Guardar lo que dictas"`. Nunca partido
+  en pedazos con `+`: una clave del catálogo es una frase entera.
+- **Valor** (una ruta, el nombre de un modo, lo que dictaste) → `"\(valor)"`.
+  Sale tal cual y no ensucia el catálogo con claves que nadie traduce.
+- **Frase armada por pedazos** (la de un atajo, la de un modelo de traducción)
+  → `String(localized:)` en cada pedazo, y se pegan después. Ojo con meter una
+  interpolación en un `String(localized:)` que además lleve un `%@` literal:
+  el idioma se cuela en el hueco equivocado. Ahí van huecos posicionales
+  (`%1$@`, `%2$@`), como en `ShortcutsSettingsView`.
+
+Lo mismo vale fuera de Ajustes: un `var title: String` de enum que se muestra
+en un picker devuelve `String(localized:)`.
 
 `STRING_CATALOG_GENERATE_SYMBOLS` está en `NO` a propósito: el generador de
 símbolos colapsa "Borrar" y "Borrar…" en el mismo identificador y falla la
@@ -218,9 +227,10 @@ xcodebuild -project Talkify.xcodeproj -scheme Dilo-MAS -configuration Debug \
 # El paquete propio, sin abrir Xcode
 cd DiloCore && swift test
 
-# Los tests de la app
+# Los tests de la app (el bundle id aparte evita el cuelgue por TCC, ver abajo)
 xcodebuild -project Talkify.xcodeproj -scheme Dilo \
-  -derivedDataPath /Volumes/SSD2/derived-data test
+  -derivedDataPath /Volumes/SSD2/derived-data \
+  PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
 
 # Los números del spec §3 contra el .app ya compilado
 ./scripts/metrics.sh /ruta/a/Dilo.app
@@ -241,15 +251,29 @@ WAV, la sesión escucha ese archivo en vez del micrófono, al ritmo real, y anot
 en `<wav>.soltado` el instante en que el controlador manda a parar. En release
 no existe: el archivo entero está dentro de un `#if DEBUG`.
 
-Los dos `xcodebuild` y `swift test` tienen que pasar antes de devolver el
-trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
+Los dos `xcodebuild`, `swift test` y la suite de la app tienen que pasar antes
+de devolver el trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
 el terminal.
 
-**`xcodebuild test` se cuelga en este Mac** antes de "Testing started": el host
-de los tests es la app real, y al arrancar levanta su tap de CGEvent, que
-dispara TCC y espera a un humano. En CI pasa igual pero ahí TCC deniega solo y
-la suite corre. Mientras tanto, la red de seguridad local es `swift test` en
-`DiloCore/` más los dos `xcodebuild build`.
+**`xcodebuild test` se colgaba en este Mac** antes de "Testing started": el
+host de los tests es la app real, y al arrancar levanta su tap de CGEvent, que
+dispara TCC contra la entrada de la copia instalada y espera a un humano. Con
+un bundle id propio la entrada de TCC es otra y la suite corre sola:
+
+```bash
+xcodebuild -project Talkify.xcodeproj -scheme Dilo \
+  -derivedDataPath /Volumes/SSD2/derived-data \
+  PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
+```
+
+El id puede ser cualquiera bajo `cl.espaciodigital.dilo`: `DiloTests` compara
+el host por prefijo para que el truco no rompa la suite.
+
+**Los tests quieren un `-derivedDataPath` propio.** Si lanzas a mano con
+`open -a` el `.app` que está en el mismo DerivedData, LaunchServices se queda
+con esa copia y la siguiente corrida muere en *"the test runner hung before
+establishing connection"*. Un directorio para probar a mano y otro para la
+suite. Detalle en `docs/ProjectSettings.md`.
 
 **Hardened Runtime apagado mientras la firma sea local.** Con firma ad-hoc y
 Hardened Runtime encendido, dyld se niega a cargar `Sparkle.framework` y la app
