@@ -8,20 +8,31 @@
 	     y el passthrough INFOPLIST_KEY_ de Xcode descarta en silencio las
 	     claves que no conoce. (Heredado de Talkify, sigue siendo cierto.)
 
-	     El feed apunta al repo de Dilo y todavía no existe: el appcast propio
-	     y la llave propia son la Tarea 8 del plan. Apuntarlo al appcast de
-	     Talkify ofrecería Talkify 0.8.3 como actualización de Dilo, y la
-	     llave de abajo la verificaría. Por eso la búsqueda automática queda
-	     apagada hasta que la Tarea 8 ponga feed y llave de Dilo. -->
+	     Ojo con editar este archivo con PlistBuddy: reescribe el plist entero
+	     y se lleva estos comentarios. Cámbialo a mano o con sed.
+
+	     El feed y la llave son de Dilo desde la Tarea 8. Una copia instalada
+	     consulta el SUFeedURL con el que se compiló, así que esta URL hay que
+	     dejarla definitiva **antes del primer release**: cambiarla después
+	     deja a las copias viejas consultando la anterior para siempre. Hoy
+	     apunta al repo donde van a vivir los releases; si termina llamándose
+	     distinto, esta línea y la constante REPO de scripts/release.sh son
+	     los dos únicos lugares que cambian. -->
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/aacontn/dilo-mac/main/appcast.xml</string>
-	<!-- Mitad pública de la llave EdDSA. TODO Tarea 8: generar la llave de
-	     Dilo con scripts/setup-sparkle-keys.sh y reemplazar ésta, que es la
-	     de Talkify. La mitad privada vive en el Llavero, nunca en el repo. -->
+	<string>https://raw.githubusercontent.com/aacontn/dilo/main/appcast.xml</string>
+	<!-- Mitad pública de la llave EdDSA de Dilo, generada en este Mac con
+	     scripts/setup-sparkle-keys.sh (cuenta de llavero `dilo`, separada de
+	     la de cualquier otra app que use Sparkle). La mitad privada vive en
+	     el Llavero y nunca en el repo: si se pierde, ninguna copia instalada
+	     vuelve a actualizarse. Expórtala una vez con `--export` y guárdala. -->
 	<key>SUPublicEDKey</key>
-	<string>CS7EqGMvprKkjontSt/uLAG3gkw4CSwaMKVLd+W1UV4=</string>
+	<string>IXp7uKrAaa11T4A/3krMjgPgQxwzFBAFAKSP1SbKsVI=</string>
+	<!-- Encendida desde la Tarea 8: ya hay feed propio y llave propia, así
+	     que una copia de Dilo sólo puede ofrecerse a sí misma. Antes estaba
+	     apagada porque el feed apuntaba al de Talkify y Dilo se habría
+	     ofrecido Talkify 0.8.3 como actualización de sí mismo. -->
 	<key>SUEnableAutomaticChecks</key>
-	<false/>
+	<true/>
 	<!-- Una vez al día. Dilo es una app de barra de menús que la gente deja
 	     corriendo semanas; menos que eso es ruido. -->
 	<key>SUScheduledCheckInterval</key>

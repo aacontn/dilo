@@ -1,547 +1,508 @@
 #!/bin/bash
 #
-# Cuts a Talkify release: builds Release, packages a DMG, publishes a GitHub
-# release with the DMG attached, and points the Homebrew cask at it.
+# Corta un release de Dilo (el target de **venta directa**): compila Release,
+# arma el DMG, publica el release de GitHub con el DMG adjunto y regenera el
+# appcast de Sparkle.
 #
-#   scripts/release.sh 0.2.0            # build, publish, update the cask
-#   scripts/release.sh 0.2.0 --dry-run  # build and package only, publish nothing
+#   scripts/release.sh 0.4.0            # compila, firma, notariza y publica
+#   scripts/release.sh 0.4.0 --dry-run  # compila y empaqueta, no publica nada
 #
-# The update-signing public key is compared against the last tagged release
-# before anything is built. Changing it orphans every existing install, so a
-# deliberate rotation has to say so:
-#   scripts/release.sh 0.3.0 --confirm-key-rotation
+# La llave pública de actualización se compara contra el último tag antes de
+# compilar nada. Cambiarla deja huérfana a cada copia instalada, así que una
+# rotación deliberada tiene que decirlo:
+#   scripts/release.sh 0.5.0 --confirmar-rotacion-de-llave
 #
-# Two copies of the same DMG ship with every release. Talkify-vX.Y.Z.dmg is the
-# one people download, so the file in their Downloads folder says which version
-# it is. Talkify.dmg is a byte-identical copy that keeps
-# github.com/<repo>/releases/latest/download/Talkify.dmg resolving — the
-# Homebrew cask, the README and the landing page's fallback all use that URL.
+# **`Dilo-MAS` no pasa por acá.** Ese target va a la App Store y se sube con
+# `.github/workflows/release.yml` (job `mas-upload`, manual): App Store Connect
+# no acepta un DMG ni notariza nada, y Sparkle no existe en ese binario.
 #
-# Notarization uses a notarytool keychain profile, shared with Camus:
-#   NOTARY_PROFILE   keychain profile name  (default: camus-notary)
-#   SKIP_NOTARIZE=1  sign and package without notarizing (local testing only)
+# Dos copias del mismo DMG en cada release. `Dilo-vX.Y.Z.dmg` es la que la
+# gente baja, para que el archivo en su carpeta Descargas diga qué versión es.
+# `Dilo.dmg` es una copia byte a byte que mantiene resolviendo la URL
+# github.com/<repo>/releases/latest/download/Dilo.dmg, que es la que apunta el
+# README y la landing.
 #
-# The landing page names the current release, so it is rebuilt and uploaded
-# once the release exists:
-#   LANDING_REPO     path to the talkify-landing checkout
-#                    (default: ../talkify-landing; skipped if it is missing)
+# La notarización usa un perfil de llavero de notarytool:
+#   NOTARY_PROFILE   nombre del perfil        (por defecto: dilo-notary)
+#   SKIP_NOTARIZE=1  firma y empaqueta sin notarizar (sólo pruebas locales)
+#
+# La identidad y el Team salen del Llavero, o de las variables:
+#   DILO_TEAM_ID     Team ID de Apple         (si no, se deduce de la identidad)
+#   SIGN_IDENTITY    "Developer ID Application: … (TEAMID)"
+#
+# El taller es SSD2: nada de artefactos de compilación en el disco interno.
 
 set -euo pipefail
 
 VERSION="${1:-}"
 DRY_RUN=false
-CONFIRM_KEY_ROTATION=false
+CONFIRMAR_ROTACION=false
 shift || true
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
-    --confirm-key-rotation) CONFIRM_KEY_ROTATION=true ;;
-    *) echo "unknown option: $arg" >&2; exit 1 ;;
+    --confirmar-rotacion-de-llave) CONFIRMAR_ROTACION=true ;;
+    *) echo "opción desconocida: $arg" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$VERSION" ]]; then
-  echo "usage: scripts/release.sh <version> [--dry-run] [--confirm-key-rotation]" >&2
+  echo "uso: scripts/release.sh <versión> [--dry-run] [--confirmar-rotacion-de-llave]" >&2
   exit 1
 fi
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "version must be semver, e.g. 0.2.0 (got '$VERSION')" >&2
+  echo "la versión tiene que ser semver, por ejemplo 0.4.0 (llegó '$VERSION')" >&2
   exit 1
 fi
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$REPO_ROOT"
+RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$RAIZ"
+
+# El único lugar, junto con SUFeedURL en Talkify/Info.plist, donde vive el
+# nombre del repo. Si el repo cambia de nombre se cambian los dos, y se
+# cambian ANTES del primer release: una copia instalada consulta el feed con
+# el que se compiló.
+REPO="aacontn/dilo"
+SITIO="https://dilo-d14.pages.dev"
 
 TAG="v$VERSION"
-BUILD_DIR="$REPO_ROOT/.build/release"
-ARCHIVE="$BUILD_DIR/Talkify.xcarchive"
+TALLER="${DILO_TALLER:-/Volumes/SSD2/derived-data}/release"
+BUILD_DIR="$TALLER/$VERSION"
+ARCHIVE="$BUILD_DIR/Dilo.xcarchive"
 EXPORT_DIR="$BUILD_DIR/export"
 STAGE_DIR="$BUILD_DIR/dmg"
-DMG="$BUILD_DIR/Talkify-$TAG.dmg"
-# The stable-URL copy, made after the versioned one is signed and stapled.
-STABLE_DMG="$BUILD_DIR/Talkify.dmg"
-# Sparkle needs its own directory holding only the update ZIP.
+DMG="$BUILD_DIR/Dilo-$TAG.dmg"
+# La copia de URL estable, hecha después de firmar, notarizar y grapar.
+DMG_ESTABLE="$BUILD_DIR/Dilo.dmg"
+# Sparkle necesita un directorio con el ZIP de actualización y nada más.
 SPARKLE_DIR="$BUILD_DIR/sparkle"
-SPARKLE_ZIP="$SPARKLE_DIR/Talkify-$TAG.zip"
-APPCAST="$REPO_ROOT/appcast.xml"
-# Hand-written release notes for this version, used instead of the commit log.
-CURATED_NOTES="$REPO_ROOT/docs/release-notes/$VERSION.md"
-CASK="$REPO_ROOT/Casks/talkify.rb"
-TEAM_ID="539293JFA3"
-NOTARY_PROFILE="${NOTARY_PROFILE:-camus-notary}"
-SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: Techzy LLC ($TEAM_ID)}"
-ENTITLEMENTS="$REPO_ROOT/Talkify.entitlements"
-# The landing page's checkout, deployed after the release so the site names
-# this version. Only a sibling clone by default; override to point elsewhere.
-LANDING_REPO="${LANDING_REPO:-$REPO_ROOT/../talkify-landing}"
+SPARKLE_ZIP="$SPARKLE_DIR/Dilo-$TAG.zip"
+APPCAST="$RAIZ/appcast.xml"
+# Notas escritas a mano para esta versión; ganan sobre el log de commits.
+NOTAS_CURADAS="$RAIZ/docs/release-notes/$VERSION.md"
+ENTITLEMENTS="$RAIZ/Dilo.entitlements"
+NOTARY_PROFILE="${NOTARY_PROFILE:-dilo-notary}"
+# La cuenta del Llavero donde vive la llave EdDSA de Dilo, separada de la de
+# cualquier otra app con Sparkle. Ver scripts/setup-sparkle-keys.sh.
+CUENTA_SPARKLE="dilo"
 
-step() { printf '\n\033[1;33m▸ %s\033[0m\n' "$1"; }
+paso() { printf '\n\033[1;33m▸ %s\033[0m\n' "$1"; }
 fail() { printf '\033[1;31m✗ %s\033[0m\n' "$1" >&2; exit 1; }
 
 # ---------------------------------------------------------------- preflight
 
-step "Preflight"
-command -v xcodebuild >/dev/null || fail "xcodebuild not found"
-command -v hdiutil >/dev/null || fail "hdiutil not found"
+paso "Preflight"
+command -v xcodebuild >/dev/null || fail "no está xcodebuild"
+command -v hdiutil >/dev/null || fail "no está hdiutil"
 if ! $DRY_RUN; then
-  command -v gh >/dev/null || fail "gh not found — install the GitHub CLI"
-  gh auth status >/dev/null 2>&1 || fail "gh is not authenticated — run 'gh auth login'"
+  command -v gh >/dev/null || fail "no está gh — instala el CLI de GitHub"
+  gh auth status >/dev/null 2>&1 || fail "gh no está autenticado — corre 'gh auth login'"
 fi
 
-# Check the notary credentials before spending minutes on a build.
+# La identidad de firma: la que diga SIGN_IDENTITY, o el primer Developer ID
+# Application del Llavero. Sin ninguna no se corta un release: un DMG firmado
+# ad-hoc no pasa Gatekeeper y la gente no puede abrirlo.
+if [[ -z "${SIGN_IDENTITY:-}" ]]; then
+  SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
+    | grep "Developer ID Application" | head -1 | awk -F'"' '{print $2}' || true)"
+fi
+[[ -n "$SIGN_IDENTITY" ]] || fail "no hay ninguna identidad 'Developer ID Application' en el Llavero.
+  Importa el .p12 (con la intermedia 'Developer ID Certification Authority'
+  adentro) o pasa SIGN_IDENTITY a mano. Ver docs/ProjectSettings.md."
+# El Team ID va entre paréntesis al final del nombre de la identidad.
+TEAM_ID="${DILO_TEAM_ID:-$(sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p' <<<"$SIGN_IDENTITY")}"
+[[ -n "$TEAM_ID" ]] || fail "no se pudo deducir el Team ID de '$SIGN_IDENTITY'; pasa DILO_TEAM_ID"
+echo "  identidad: $SIGN_IDENTITY (team $TEAM_ID)"
+
+# Revisa las credenciales de notarización antes de gastar minutos compilando.
 if [[ "${SKIP_NOTARIZE:-0}" == "1" ]]; then
-  echo "  SKIP_NOTARIZE=1 — the DMG will be signed but not notarized"
+  echo "  SKIP_NOTARIZE=1 — el DMG se firma pero NO se notariza"
 elif xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-  echo "  notary profile '$NOTARY_PROFILE' ready"
+  echo "  perfil de notarización '$NOTARY_PROFILE' listo"
 else
-  fail "notarytool profile '$NOTARY_PROFILE' not found. Store it once with:
+  fail "no existe el perfil de notarytool '$NOTARY_PROFILE'. Guárdalo una vez con:
     xcrun notarytool store-credentials \"$NOTARY_PROFILE\" \\
-      --apple-id <apple-id> --team-id $TEAM_ID --password <app-specific-password>
-  or re-run with SKIP_NOTARIZE=1 to skip notarization."
+      --apple-id <apple-id> --team-id $TEAM_ID --password <contraseña-de-app>
+  o vuelve a correr con SKIP_NOTARIZE=1 para saltar la notarización."
 fi
 
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [[ "$CURRENT_BRANCH" != "main" ]] && ! $DRY_RUN; then
-  fail "releases are cut from main (on '$CURRENT_BRANCH')"
+RAMA="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$RAMA" != "main" ]] && ! $DRY_RUN; then
+  fail "los releases se cortan desde main (estás en '$RAMA')"
 fi
 if [[ -n "$(git status --porcelain)" ]] && ! $DRY_RUN; then
-  fail "working tree is dirty — commit or stash first"
+  fail "el árbol de trabajo está sucio — commitea o guarda antes"
 fi
 if git rev-parse "$TAG" >/dev/null 2>&1; then
-  fail "tag $TAG already exists"
+  fail "el tag $TAG ya existe"
 fi
-echo "  version $VERSION, tag $TAG, branch $CURRENT_BRANCH"
+echo "  versión $VERSION, tag $TAG, rama $RAMA"
 
-# The public key every installed copy checks updates against. If it changes,
-# those copies stop trusting anything signed with the new one, and a key
-# swapped in by someone else would be trusted by every install from here on.
-# Neither is something to discover after publishing.
-read_public_key() {
+# La llave pública contra la que cada copia instalada verifica sus
+# actualizaciones. Si cambia, esas copias dejan de confiar en lo firmado con
+# la nueva; y una llave cambiada por otro la creerían todas las instalaciones
+# de acá en adelante. Ninguna de las dos cosas se descubre después de publicar.
+leer_llave() {
   /usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" /dev/stdin <<<"$1" 2>/dev/null || true
 }
-CURRENT_KEY="$(read_public_key "$(cat "$REPO_ROOT/Talkify/Info.plist")")"
-[[ -n "$CURRENT_KEY" ]] || fail "Talkify/Info.plist has no SUPublicEDKey"
+LLAVE_ACTUAL="$(leer_llave "$(cat "$RAIZ/Talkify/Info.plist")")"
+[[ -n "$LLAVE_ACTUAL" ]] || fail "Talkify/Info.plist no tiene SUPublicEDKey"
 
-PREVIOUS_TAG="$(git tag --list 'v*' --sort=-v:refname | head -1)"
-if [[ -z "$PREVIOUS_TAG" ]]; then
-  echo "  no previous tag to compare the update key against (first release)"
-elif PREVIOUS_PLIST="$(git show "$PREVIOUS_TAG:Talkify/Info.plist" 2>/dev/null)"; then
-  PREVIOUS_KEY="$(read_public_key "$PREVIOUS_PLIST")"
-  if [[ -z "$PREVIOUS_KEY" ]]; then
-    echo "  $PREVIOUS_TAG carried no SUPublicEDKey; nothing to compare"
-  elif [[ "$CURRENT_KEY" == "$PREVIOUS_KEY" ]]; then
-    echo "  update key unchanged since $PREVIOUS_TAG"
-  elif $CONFIRM_KEY_ROTATION; then
-    echo "  update key CHANGED since $PREVIOUS_TAG, confirmed by flag"
-    echo "    was: $PREVIOUS_KEY"
-    echo "    now: $CURRENT_KEY"
+TAG_ANTERIOR="$(git tag --list 'v*' --sort=-v:refname | head -1 || true)"
+if [[ -z "$TAG_ANTERIOR" ]]; then
+  echo "  no hay tag anterior con qué comparar la llave (primer release)"
+elif PLIST_ANTERIOR="$(git show "$TAG_ANTERIOR:Talkify/Info.plist" 2>/dev/null)"; then
+  LLAVE_ANTERIOR="$(leer_llave "$PLIST_ANTERIOR")"
+  if [[ -z "$LLAVE_ANTERIOR" ]]; then
+    echo "  $TAG_ANTERIOR no llevaba SUPublicEDKey; nada que comparar"
+  elif [[ "$LLAVE_ACTUAL" == "$LLAVE_ANTERIOR" ]]; then
+    echo "  la llave de actualización no cambió desde $TAG_ANTERIOR"
+  elif $CONFIRMAR_ROTACION; then
+    echo "  la llave CAMBIÓ desde $TAG_ANTERIOR, confirmado por bandera"
   else
-    fail "SUPublicEDKey changed since $PREVIOUS_TAG.
-    was: $PREVIOUS_KEY
-    now: $CURRENT_KEY
-  Every existing install trusts the old key and will refuse updates signed
-  with the new one. If this is a deliberate rotation, re-run with
-  --confirm-key-rotation. If it is not, find out who changed it."
+    fail "SUPublicEDKey cambió desde $TAG_ANTERIOR.
+  Cada copia instalada confía en la vieja y va a rechazar lo firmado con la
+  nueva. Si la rotación es deliberada, vuelve a correr con
+  --confirmar-rotacion-de-llave. Si no lo es, averigua quién la cambió."
   fi
 else
-  echo "  $PREVIOUS_TAG has no Info.plist; nothing to compare"
+  echo "  $TAG_ANTERIOR no tiene Info.plist; nada que comparar"
 fi
 
 # ------------------------------------------------------------------- tests
 
-step "Tests"
-xcodebuild test \
-  -project Talkify.xcodeproj \
-  -scheme Talkify \
-  -destination 'platform=macOS' \
-  -quiet
-echo "  suite passed"
+# `xcodebuild test` se cuelga en este Mac antes de "Testing started": el host
+# de los tests es la app real y al arrancar levanta su tap de CGEvent, que
+# dispara TCC y espera a un humano. La red de seguridad local es `swift test`
+# del paquete propio más los dos `xcodebuild build`; la suite completa corre
+# en CI (.github/workflows/ci.yml), que es donde TCC deniega solo.
+paso "Tests"
+(cd DiloCore && swift test --scratch-path "$TALLER/swiftpm" 2>&1 | tail -5)
+for esquema in Dilo Dilo-MAS; do
+  xcodebuild build \
+    -project Talkify.xcodeproj \
+    -scheme "$esquema" \
+    -configuration Debug \
+    -derivedDataPath "$TALLER/xcode" \
+    -quiet
+  echo "  $esquema compila"
+done
 
 # ------------------------------------------------------------------- build
 
 if $DRY_RUN; then
-  step "Skipping the version bump (dry run)"
+  paso "Sin subir la versión (dry run)"
 else
-  step "Setting version to $VERSION"
-  # Written straight into the project rather than through agvtool. Since the
-  # target gained a real Info.plist for Sparkle, agvtool reads an empty
-  # CFBundleShortVersionString from it and silently leaves MARKETING_VERSION
-  # alone, which shipped an app that called itself 0.1.0.
+  paso "Fijando la versión en $VERSION"
+  # Escrita directo en el proyecto y no con agvtool: desde que el target tiene
+  # un Info.plist real por Sparkle, agvtool lee un CFBundleShortVersionString
+  # vacío de ahí y deja MARKETING_VERSION como estaba, en silencio.
   BUILD_NUMBER="$(git rev-list --count HEAD)"
   /usr/bin/sed -i '' \
     -e "s/^\([[:space:]]*\)MARKETING_VERSION = .*;$/\1MARKETING_VERSION = $VERSION;/" \
     -e "s/^\([[:space:]]*\)CURRENT_PROJECT_VERSION = .*;$/\1CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" \
     Talkify.xcodeproj/project.pbxproj
 
-  # Every configuration must agree, or Debug and Release disagree about what
-  # version is running.
-  STRAY="$(grep -c "MARKETING_VERSION = $VERSION;" Talkify.xcodeproj/project.pbxproj || true)"
+  # Todas las configuraciones tienen que coincidir, o Debug y Release
+  # discrepan sobre qué versión está corriendo.
+  PUESTAS="$(grep -c "MARKETING_VERSION = $VERSION;" Talkify.xcodeproj/project.pbxproj || true)"
   TOTAL="$(grep -c "MARKETING_VERSION = " Talkify.xcodeproj/project.pbxproj || true)"
-  [[ "$STRAY" == "$TOTAL" ]] || fail "only $STRAY of $TOTAL MARKETING_VERSION entries became $VERSION"
-  echo "  marketing $VERSION, build $BUILD_NUMBER ($TOTAL configurations)"
+  [[ "$PUESTAS" == "$TOTAL" ]] || fail "sólo $PUESTAS de $TOTAL MARKETING_VERSION quedaron en $VERSION"
+  echo "  marketing $VERSION, build $BUILD_NUMBER ($TOTAL configuraciones)"
 fi
 
-step "Archiving Release"
+paso "Archivando Release"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
+# Hardened Runtime encendido explícitamente: el proyecto lo deja apagado por
+# defecto porque la firma del día a día es ad-hoc y con runtime dyld se niega
+# a cargar Sparkle.framework. Acá hay Developer ID de verdad, y la
+# notarización lo exige. Ver docs/ProjectSettings.md.
 xcodebuild archive \
   -project Talkify.xcodeproj \
-  -scheme Talkify \
+  -scheme Dilo \
   -configuration Release \
   -archivePath "$ARCHIVE" \
+  -derivedDataPath "$TALLER/xcode" \
   -destination 'generic/platform=macOS' \
+  DILO_HARDENED_RUNTIME=YES \
+  CODE_SIGN_IDENTITY="$SIGN_IDENTITY" \
+  CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM="$TEAM_ID" \
   -quiet
 
-APP_IN_ARCHIVE="$ARCHIVE/Products/Applications/Talkify.app"
-[[ -d "$APP_IN_ARCHIVE" ]] || fail "archive has no Talkify.app"
+APP_EN_ARCHIVE="$ARCHIVE/Products/Applications/Dilo.app"
+[[ -d "$APP_EN_ARCHIVE" ]] || fail "el archive no tiene Dilo.app"
 
 mkdir -p "$EXPORT_DIR"
-cp -R "$APP_IN_ARCHIVE" "$EXPORT_DIR/Talkify.app"
-APP="$EXPORT_DIR/Talkify.app"
-echo "  archived $(du -sh "$APP" | cut -f1)"
+cp -R "$APP_EN_ARCHIVE" "$EXPORT_DIR/Dilo.app"
+APP="$EXPORT_DIR/Dilo.app"
+echo "  archivado, $(du -sh "$APP" | cut -f1)"
 
 if ! $DRY_RUN; then
-  BUILT_SHORT="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+  CORTA="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
     "$APP/Contents/Info.plist" 2>/dev/null || echo "")"
-  BUILT_BUILD="$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" \
+  LARGA="$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" \
     "$APP/Contents/Info.plist" 2>/dev/null || echo "")"
-  [[ "$BUILT_SHORT" == "$VERSION" ]] \
-    || fail "the built app reports version '$BUILT_SHORT', not $VERSION"
-  echo "  reports $BUILT_SHORT ($BUILT_BUILD)"
+  [[ "$CORTA" == "$VERSION" ]] \
+    || fail "la app compilada dice versión '$CORTA', no $VERSION"
+  echo "  dice $CORTA ($LARGA)"
 fi
 
-# Ad-hoc sign if the archive came out unsigned, so Gatekeeper's message is
-# "unidentified developer" rather than "damaged".
-if ! codesign -dv "$APP" >/dev/null 2>&1; then
-  step "Ad-hoc signing (no Developer ID in this build)"
-  codesign --force --deep --sign - "$APP"
-fi
-codesign -dv "$APP" 2>&1 | grep -E "Authority|Signature" | sed 's/^/  /' || true
+# ---------------------------------------------------------------- refirmado
 
-# ----------------------------------------------------------------- resigning
-
-# Sparkle ships prebuilt helpers inside its framework — Updater.app, Autoupdate
-# and two XPC services — and Xcode does not re-sign the contents of a prebuilt
-# framework. They arrive ad-hoc signed with no team and no secure timestamp,
-# which Apple's notary service rejects outright.
+# Sparkle trae helpers precompilados dentro de su framework —Updater.app,
+# Autoupdate y dos servicios XPC— y Xcode no refirma el contenido de un
+# framework precompilado. Llegan firmados ad-hoc, sin team y sin timestamp
+# seguro, que es exactamente lo que el servicio de notarización rechaza.
 #
-# codesign seals a bundle by hashing its contents, so this runs strictly
-# inside-out: helpers, then the framework, then the app. Signing the app first
-# would invalidate its seal the moment a helper changed.
+# codesign sella un bundle hasheando su contenido, así que esto va estricto de
+# adentro hacia afuera: helpers, después el framework, después la app. Firmar
+# la app primero invalidaría su sello apenas cambiara un helper.
 SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
 if [[ -d "$SPARKLE" ]]; then
-  if security find-identity -v -p codesigning 2>/dev/null | grep -q "$TEAM_ID"; then
-    step "Re-signing Sparkle's helpers"
-    # Sparkle's helpers carry empty entitlement dictionaries, so they are signed
-    # without any.
-    for target in \
-      "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
-      "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
-      "$SPARKLE/Versions/B/Updater.app" \
-      "$SPARKLE/Versions/B/Autoupdate" \
-      "$SPARKLE"; do
-      [[ -e "$target" ]] || continue
-      codesign --force --options runtime --timestamp \
-        --sign "$SIGN_IDENTITY" "$target" 2>&1 | sed 's/^/  /'
-    done
-
-    # The app MUST be re-signed with its entitlements. codesign --force replaces
-    # the signature wholesale and drops any entitlements it is not given, and
-    # under the hardened runtime an app without com.apple.security.device.audio-input
-    # can never be granted the microphone: the prompt appears and the toggle
-    # does nothing. v0.3.0 shipped that way.
-    [[ -f "$ENTITLEMENTS" ]] || fail "missing $ENTITLEMENTS"
+  paso "Refirmando los helpers de Sparkle"
+  # Los helpers de Sparkle llevan diccionarios de entitlements vacíos, así que
+  # se firman sin ninguno.
+  for objetivo in \
+    "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
+    "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
+    "$SPARKLE/Versions/B/Updater.app" \
+    "$SPARKLE/Versions/B/Autoupdate" \
+    "$SPARKLE"; do
+    [[ -e "$objetivo" ]] || continue
     codesign --force --options runtime --timestamp \
-      --entitlements "$ENTITLEMENTS" \
-      --sign "$SIGN_IDENTITY" "$APP" 2>&1 | sed 's/^/  /'
+      --sign "$SIGN_IDENTITY" "$objetivo" 2>&1 | sed 's/^/  /'
+  done
 
-    # Every nested binary must now carry the team, or notarization fails again
-    # after the DMG and the notary round-trip have already been paid for.
-    codesign --verify --deep --strict "$APP" || fail "the re-signed app fails verification"
+  # La app TIENE que refirmarse con sus entitlements. `codesign --force`
+  # reemplaza la firma entera y bota los entitlements que no le pasen, y bajo
+  # Hardened Runtime una app sin com.apple.security.device.audio-input no
+  # puede recibir el micrófono nunca: el prompt aparece y el switch no hace
+  # nada. Talkify publicó una versión así.
+  [[ -f "$ENTITLEMENTS" ]] || fail "falta $ENTITLEMENTS"
+  codesign --force --options runtime --timestamp \
+    --entitlements "$ENTITLEMENTS" \
+    --sign "$SIGN_IDENTITY" "$APP" 2>&1 | sed 's/^/  /'
 
-    # The output is captured rather than piped into grep -q: with pipefail set,
-    # grep exiting early on a match kills codesign with SIGPIPE and the pipeline
-    # reports failure for a binary that is in fact signed correctly.
-    for nested in \
-      "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
-      "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
-      "$SPARKLE/Versions/B/Updater.app" \
-      "$SPARKLE/Versions/B/Autoupdate" \
-      "$SPARKLE" \
-      "$APP"; do
-      [[ -e "$nested" ]] || continue
-      INFO="$(codesign -dvv "$nested" 2>&1 || true)"
-      [[ "$INFO" == *"TeamIdentifier=$TEAM_ID"* ]] \
-        || fail "$(basename "$nested") is not signed with team $TEAM_ID"
-      [[ "$INFO" == *"flags=0x10000(runtime)"* || "$INFO" == *"runtime"* ]] \
-        || fail "$(basename "$nested") is missing the hardened runtime"
-    done
-    SIGNED_ENTITLEMENTS="$(codesign -d --entitlements :- "$APP" 2>/dev/null || true)"
-    [[ "$SIGNED_ENTITLEMENTS" == *"com.apple.security.device.audio-input"* ]] \
-      || fail "the signed app has no microphone entitlement — dictation would never work"
-    echo "  helpers, framework and app signed with $TEAM_ID, entitlements intact"
-  else
-    echo "  no Developer ID identity — Sparkle's helpers stay ad-hoc signed"
-    echo "  (notarization will reject this build)"
-  fi
+  codesign --verify --deep --strict "$APP" || fail "la app refirmada no pasa verificación"
+
+  # La salida se captura en vez de mandarla a grep: con pipefail, grep sale al
+  # primer match, mata a codesign con SIGPIPE y el pipeline reporta error por
+  # un binario que está bien firmado.
+  for anidado in \
+    "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
+    "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
+    "$SPARKLE/Versions/B/Updater.app" \
+    "$SPARKLE/Versions/B/Autoupdate" \
+    "$SPARKLE" \
+    "$APP"; do
+    [[ -e "$anidado" ]] || continue
+    INFO="$(codesign -dvv "$anidado" 2>&1 || true)"
+    [[ "$INFO" == *"TeamIdentifier=$TEAM_ID"* ]] \
+      || fail "$(basename "$anidado") no está firmado con el team $TEAM_ID"
+    [[ "$INFO" == *"runtime"* ]] \
+      || fail "$(basename "$anidado") no tiene Hardened Runtime"
+  done
+  FIRMADOS="$(codesign -d --entitlements :- "$APP" 2>/dev/null || true)"
+  [[ "$FIRMADOS" == *"com.apple.security.device.audio-input"* ]] \
+    || fail "la app firmada no tiene el entitlement de micrófono — el dictado no funcionaría"
+  echo "  helpers, framework y app firmados con $TEAM_ID, entitlements intactos"
 fi
 
 # --------------------------------------------------------------------- dmg
 
-step "Packaging DMG"
+paso "Armando el DMG"
 rm -rf "$STAGE_DIR" "$DMG"
 mkdir -p "$STAGE_DIR"
-cp -R "$APP" "$STAGE_DIR/Talkify.app"
+cp -R "$APP" "$STAGE_DIR/Dilo.app"
 ln -s /Applications "$STAGE_DIR/Applications"
-# hdiutil reports "Resource busy" if the freshly copied bundle is still being
-# indexed, so give it a few attempts.
-for attempt in 1 2 3 4 5; do
+# hdiutil contesta "Resource busy" si el bundle recién copiado todavía se está
+# indexando, así que se le dan varios intentos.
+for intento in 1 2 3 4 5; do
   if hdiutil create \
-      -volname "Talkify $VERSION" \
+      -volname "Dilo $VERSION" \
       -srcfolder "$STAGE_DIR" \
       -ov -format UDZO \
       "$DMG" >/dev/null 2>&1; then
     break
   fi
-  [[ $attempt == 5 ]] && fail "hdiutil could not create the DMG"
-  echo "  hdiutil busy, retrying ($attempt)"
+  [[ $intento == 5 ]] && fail "hdiutil no pudo crear el DMG"
+  echo "  hdiutil ocupado, reintentando ($intento)"
   sleep 3
 done
-hdiutil verify "$DMG" >/dev/null 2>&1 || fail "the DMG failed verification"
+hdiutil verify "$DMG" >/dev/null 2>&1 || fail "el DMG no pasa verificación"
 
-# Sign the container too, so Gatekeeper can vouch for the DMG itself and not
-# only the app inside. This must happen BEFORE notarization: signing a stapled
-# DMG rewrites the file and throws the ticket away.
-if security find-identity -v -p codesigning 2>/dev/null | grep -q "$TEAM_ID"; then
-  codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
-  echo "  container signed"
-else
-  echo "  no Developer ID identity found — leaving the container unsigned"
-fi
+# Firmar también el contenedor, para que Gatekeeper responda por el DMG y no
+# sólo por la app de adentro. Esto va ANTES de notarizar: firmar un DMG ya
+# grapado lo reescribe y bota el ticket.
+codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
+echo "  contenedor firmado"
 
-# ------------------------------------------------------------- notarization
+# ------------------------------------------------------------- notarización
 
 if [[ "${SKIP_NOTARIZE:-0}" == "1" ]]; then
-  step "Notarization skipped (SKIP_NOTARIZE=1)"
-  echo "  This DMG is signed but NOT notarized: Gatekeeper will refuse to open"
-  echo "  it, and a brew install will land an app that cannot launch."
+  paso "Notarización saltada (SKIP_NOTARIZE=1)"
+  echo "  Este DMG está firmado pero NO notarizado: Gatekeeper se va a negar"
+  echo "  a abrirlo. Sirve para probar localmente, no para publicar."
 else
-  step "Notarizing with profile '$NOTARY_PROFILE'"
-  xcrun notarytool submit "$DMG" \
-    --keychain-profile "$NOTARY_PROFILE" \
-    --wait
+  paso "Notarizando con el perfil '$NOTARY_PROFILE'"
+  # El fallo del 14-sep-2026 en el repo Tauri fue **red sondeando el estado**,
+  # no la firma: notarytool sube bien y después se cae esperando. Por eso se
+  # reintenta el submit completo antes de dar el release por perdido.
+  for intento in 1 2 3; do
+    if xcrun notarytool submit "$DMG" \
+        --keychain-profile "$NOTARY_PROFILE" \
+        --wait --timeout 30m; then
+      break
+    fi
+    [[ $intento == 3 ]] && fail "la notarización falló tres veces; mira el log con
+    xcrun notarytool log <submission-id> --keychain-profile $NOTARY_PROFILE"
+    echo "  reintento $intento tras un fallo de notarytool (suele ser red)"
+    sleep 30
+  done
   xcrun stapler staple "$DMG"
   xcrun stapler validate "$DMG"
   spctl -a -t open --context context:primary-signature -v "$DMG" 2>&1 | sed 's/^/  /'
-  echo "  notarized and stapled"
+  echo "  notarizado y grapado"
 fi
 
 SHA="$(shasum -a 256 "$DMG" | cut -d' ' -f1)"
 echo "  $DMG ($(du -h "$DMG" | cut -f1))"
 echo "  sha256 $SHA"
 
-# Copied after signing, notarizing and stapling, so the stable-URL asset is the
-# same bytes with the same ticket. The cask's checksum covers both.
-cp "$DMG" "$STABLE_DMG"
-echo "  $STABLE_DMG (copy for the latest-download URL)"
+# Copiado después de firmar, notarizar y grapar, para que el asset de URL
+# estable sean los mismos bytes con el mismo ticket.
+cp "$DMG" "$DMG_ESTABLE"
+echo "  $DMG_ESTABLE (copia para la URL latest/download)"
 
 # ----------------------------------------------------------------- sparkle
 
-# Sparkle updates from a ZIP, not the DMG: it is what BinaryDelta and
-# generate_appcast expect, and it unpacks without mounting anything.
+# Sparkle actualiza desde un ZIP, no desde el DMG: es lo que esperan
+# BinaryDelta y generate_appcast, y se desempaqueta sin montar nada.
 #
-# Notarizing the DMG notarizes the app inside it, so the app can be stapled
-# directly from Apple's records — no second submission and no extra wait. A
-# stapled app validates with no network, which matters on a laptop that wakes
-# up, updates, and relaunches before Wi-Fi is back.
-step "Packaging the Sparkle update"
+# Notarizar el DMG notariza la app de adentro, así que la app se puede grapar
+# directo contra los registros de Apple: ni segundo envío ni segunda espera.
+# Una app grapada valida sin red, que es lo que importa en un laptop que
+# despierta, se actualiza y relanza antes de que vuelva el wifi.
+paso "Armando la actualización de Sparkle"
 if [[ "${SKIP_NOTARIZE:-0}" != "1" ]]; then
-  xcrun stapler staple "$APP" && echo "  app stapled"
+  xcrun stapler staple "$APP" && echo "  app grapada"
 fi
 
 rm -rf "$SPARKLE_DIR"
 mkdir -p "$SPARKLE_DIR"
-# ditto keeps the bundle's symlinks and resource forks intact; `zip` does not,
-# and a mangled bundle fails its signature check after the update lands.
+# ditto conserva los symlinks y los resource forks del bundle; `zip` no, y un
+# bundle mutilado no pasa su chequeo de firma después de actualizarse.
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$SPARKLE_ZIP"
 echo "  $(basename "$SPARKLE_ZIP") ($(du -h "$SPARKLE_ZIP" | cut -f1))"
 
-SPARKLE_BIN="$(find "$HOME/Library/Developer/Xcode/DerivedData"/Talkify-*/SourcePackages/artifacts/sparkle/Sparkle/bin \
-  -name generate_appcast 2>/dev/null | head -1)"
-[[ -n "$SPARKLE_BIN" ]] || fail "Sparkle's tools are missing. Build once in Xcode to fetch them."
-SPARKLE_BIN="$(dirname "$SPARKLE_BIN")"
+SPARKLE_BIN="$(find "${DILO_TALLER:-/Volumes/SSD2/derived-data}" \
+  "$HOME/Library/Developer/Xcode/DerivedData" \
+  -path '*/artifacts/sparkle/Sparkle/bin/generate_appcast' 2>/dev/null | head -1 || true)"
+[[ -n "$SPARKLE_BIN" ]] || fail "no están las herramientas de Sparkle. Compila una vez para que Xcode baje el paquete."
 
-# The private key lives in the login Keychain (see scripts/setup-sparkle-keys.sh),
-# so the tools find it without a key file on disk. The Keychain WILL prompt for
-# access the first time and blocks until it is answered — choose Always Allow so
-# later releases run unattended. This step cannot be run headlessly until then.
-# Only the ZIP is in SPARKLE_DIR: generate_appcast refuses two archives that
-# report the same bundle version, which the DMG would.
-"$SPARKLE_BIN/generate_appcast" \
-  --download-url-prefix "https://github.com/tornikegomareli/Talkify/releases/download/$TAG/" \
-  --link "https://usetalkify.app" \
-  --full-release-notes-url "https://github.com/tornikegomareli/Talkify/releases" \
+# La privada vive en el Llavero, en la cuenta 'dilo' (ver
+# scripts/setup-sparkle-keys.sh), así que las herramientas la encuentran sin
+# ningún archivo de llave en disco. El Llavero VA a pedir permiso la primera
+# vez y se queda esperando: elige "Permitir siempre" para que los releases
+# siguientes corran solos. Hasta entonces este paso no se puede correr sin
+# alguien mirando.
+# En SPARKLE_DIR está sólo el ZIP: generate_appcast se niega a dos archivos
+# que reporten la misma versión de bundle, que es lo que pasaría con el DMG.
+"$SPARKLE_BIN" \
+  --account "$CUENTA_SPARKLE" \
+  --download-url-prefix "https://github.com/$REPO/releases/download/$TAG/" \
+  --link "$SITIO" \
+  --full-release-notes-url "https://github.com/$REPO/releases" \
   --maximum-versions 5 \
   -o "$APPCAST" \
   "$SPARKLE_DIR"
 
-[[ -s "$APPCAST" ]] || fail "generate_appcast produced no appcast"
-grep -q "sparkle:edSignature" "$APPCAST" || fail "the appcast has no EdDSA signature"
-echo "  appcast written, signature present"
-
-# -------------------------------------------------------------------- cask
-
-step "Updating the Homebrew cask"
-[[ -f "$CASK" ]] || fail "missing $CASK"
-/usr/bin/sed -i '' \
-  -e "s/^  version \".*\"$/  version \"$VERSION\"/" \
-  -e "s/^  sha256 \".*\"$/  sha256 \"$SHA\"/" \
-  "$CASK"
-grep -E "^  (version|sha256)" "$CASK" | sed 's/^/  /'
+[[ -s "$APPCAST" ]] || fail "generate_appcast no produjo appcast"
+grep -q "sparkle:edSignature" "$APPCAST" || fail "el appcast no tiene firma EdDSA"
+echo "  appcast escrito, firma presente"
 
 if $DRY_RUN; then
-  step "Dry run — nothing published"
-  echo "  DMG:  $DMG"
-  echo "  copy: $STABLE_DMG"
-  echo "  ZIP:  $SPARKLE_ZIP"
-  echo "  appcast: $APPCAST (uncommitted)"
-  echo "  cask updated locally; revert with: git checkout -- Casks/talkify.rb"
+  paso "Dry run — no se publicó nada"
+  echo "  DMG:   $DMG"
+  echo "  copia: $DMG_ESTABLE"
+  echo "  ZIP:   $SPARKLE_ZIP"
+  echo "  appcast: $APPCAST (sin commitear)"
   exit 0
 fi
 
-# ----------------------------------------------------------------- publish
+# ----------------------------------------------------------------- publicar
 
-step "Committing and tagging"
-# Stage each path that exists: a single git add with one missing pathspec
-# fails wholesale and would silently stage nothing.
-for path in Casks/talkify.rb Talkify.xcodeproj/project.pbxproj Talkify/Info.plist appcast.xml; do
-  [[ -e "$path" ]] && git add "$path"
+paso "Commiteando y etiquetando"
+for ruta in Talkify.xcodeproj/project.pbxproj Talkify/Info.plist appcast.xml; do
+  [[ -e "$ruta" ]] && git add "$ruta"
 done
 if git diff --cached --quiet; then
-  echo "  nothing staged — version and cask already match"
+  echo "  nada que commitear — la versión ya coincide"
 else
-  git commit -q -m "Release $VERSION"
-  echo "  committed $(git diff --name-only HEAD~1 HEAD | tr '\n' ' ')"
+  git commit -q -m "chore(release): $VERSION"
+  echo "  commiteado $(git diff --name-only HEAD~1 HEAD | tr '\n' ' ')"
 fi
-git tag -a "$TAG" -m "Talkify $VERSION"
+git tag -a "$TAG" -m "Dilo $VERSION"
 git push -q origin main
 git push -q origin "$TAG"
-echo "  pushed $TAG"
+echo "  $TAG empujado"
 
-step "Publishing the GitHub release"
-NOTES_FILE="$BUILD_DIR/notes.md"
-PREV_TAG="$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)"
+paso "Publicando el release de GitHub"
+NOTAS="$BUILD_DIR/notas.md"
+TAG_PREVIO="$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)"
 {
-  echo "## Install"
+  echo "## Instalar"
   echo
-  echo '```'
-  echo "brew tap tornikegomareli/talkify https://github.com/tornikegomareli/Talkify"
-  # Homebrew 6 will not load a cask from a third-party tap until it is trusted.
-  echo "brew trust --tap tornikegomareli/talkify"
-  echo "brew install --cask talkify"
-  echo '```'
+  echo "Baja **Dilo.dmg** de acá abajo. Necesita macOS 26 en Apple Silicon."
   echo
-  echo "Or download **Talkify.dmg** below. Requires macOS 26 on Apple Silicon."
+  echo "## Qué cambió"
   echo
-  echo "## Changes"
-  echo
-  # Written notes win when they exist: a commit log says what changed in the
-  # code, which is not the same as what changed for the person reading it.
-  if [[ -f "$CURATED_NOTES" ]]; then
-    cat "$CURATED_NOTES"
-  elif [[ -n "$PREV_TAG" ]]; then
-    git log --no-merges --pretty='- %s' "$PREV_TAG..$TAG"
+  # Las notas escritas ganan cuando existen: un log de commits dice qué
+  # cambió en el código, que no es lo mismo que qué cambió para quien lee.
+  if [[ -f "$NOTAS_CURADAS" ]]; then
+    cat "$NOTAS_CURADAS"
+  elif [[ -n "$TAG_PREVIO" ]]; then
+    git log --no-merges --pretty='- %s' "$TAG_PREVIO..$TAG"
   else
     git log --no-merges --pretty='- %s' -20 "$TAG"
   fi
-} > "$NOTES_FILE"
+} > "$NOTAS"
 
-# The ZIP ships alongside the DMG because the appcast's enclosure URL points
-# at it. Without it every existing install would poll a 404 forever.
+# El ZIP sube junto al DMG porque el enclosure del appcast apunta a él. Sin
+# eso, cada copia instalada sondearía un 404 para siempre.
 #
-# appcast.xml goes up too, as the immutable copy of what this tag published.
-# The live SUFeedURL still reads the one on main, which anyone with write
-# access could rewrite; this asset is what that claim can be checked against.
-gh release create "$TAG" "$DMG" "$STABLE_DMG" "$SPARKLE_ZIP" "$APPCAST" \
-  --title "Talkify $VERSION" \
-  --notes-file "$NOTES_FILE"
+# appcast.xml sube también, como copia inmutable de lo que publicó este tag.
+# El SUFeedURL en vivo sigue leyendo el de main, que cualquiera con permiso de
+# escritura podría reescribir; este asset es contra qué se comprueba.
+gh release create "$TAG" "$DMG" "$DMG_ESTABLE" "$SPARKLE_ZIP" "$APPCAST" \
+  -R "$REPO" \
+  --title "Dilo $VERSION" \
+  --notes-file "$NOTAS"
 
-# The feed is only live once the appcast on main names a release that exists,
-# so check the URL Sparkle will actually poll rather than assuming.
-step "Verifying the update feed"
-FEED="https://raw.githubusercontent.com/tornikegomareli/Talkify/main/appcast.xml"
+# El feed recién está vivo cuando el appcast de main nombra un release que
+# existe, así que se consulta la URL que Sparkle va a sondear de verdad.
+paso "Verificando el feed de actualización"
+FEED="https://raw.githubusercontent.com/$REPO/main/appcast.xml"
 if curl -fsS "$FEED" | grep -q "$TAG"; then
-  echo "  $FEED serves $TAG"
+  echo "  $FEED sirve $TAG"
 else
-  echo "  WARNING: $FEED does not mention $TAG yet."
-  echo "  raw.githubusercontent.com caches for a few minutes; re-check before"
-  echo "  announcing, and confirm appcast.xml was pushed to main."
+  echo "  OJO: $FEED todavía no menciona $TAG."
+  echo "  raw.githubusercontent.com cachea unos minutos; vuelve a mirar antes"
+  echo "  de anunciar, y confirma que appcast.xml se empujó a main."
 fi
-ENCLOSURE="$(grep -o 'url="[^"]*\.zip"' "$APPCAST" | head -1 | cut -d'"' -f2)"
+ENCLOSURE="$(grep -o 'url="[^"]*\.zip"' "$APPCAST" | head -1 | cut -d'"' -f2 || true)"
 if [[ -n "$ENCLOSURE" ]] && curl -fsSI "$ENCLOSURE" >/dev/null 2>&1; then
-  echo "  enclosure reachable"
+  echo "  enclosure alcanzable"
 else
-  echo "  WARNING: the appcast enclosure is not reachable: $ENCLOSURE"
+  echo "  OJO: el enclosure del appcast no se alcanza: $ENCLOSURE"
 fi
 
-# The landing page reads the latest release when it builds, so it only learns
-# about this one when it is rebuilt and re-uploaded. The Pages project is
-# direct upload rather than git-connected, so there is no deploy hook to fire:
-# the files have to be built here and pushed. Nothing below is fatal — the
-# release is already published, and a landing page one version behind is worth
-# less than a script that exits non-zero after doing the irreversible part.
-step "Redeploying the landing page"
-deploy_landing() {
-  # Asking git rather than looking for a .git directory: in a worktree .git is
-  # a file, and this repo is worked on in worktrees.
-  git -C "$LANDING_REPO" rev-parse --git-dir >/dev/null 2>&1 || {
-    echo "  no landing checkout at $LANDING_REPO — skipping."
-    return 1
-  }
-
-  local branch
-  branch="$(git -C "$LANDING_REPO" rev-parse --abbrev-ref HEAD)"
-  [[ "$branch" == "main" ]] || {
-    echo "  landing checkout is on '$branch', not main — skipping."
-    return 1
-  }
-
-  # Tracked changes only. The landing repo carries an AGENTS.md that Next
-  # rewrites on every `next dev`, so counting untracked files would block
-  # every release.
-  [[ -z "$(git -C "$LANDING_REPO" status --porcelain --untracked-files=no)" ]] || {
-    echo "  landing checkout has uncommitted changes — skipping."
-    return 1
-  }
-
-  [[ "$(git -C "$LANDING_REPO" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)" == "0" ]] || {
-    echo "  landing checkout has unpushed commits — skipping."
-    return 1
-  }
-
-  (cd "$LANDING_REPO" && npm run build >/dev/null) || {
-    echo "  the landing build failed — skipping the upload."
-    return 1
-  }
-  (cd "$LANDING_REPO" && npx wrangler pages deploy out \
-    --project-name=talkify --branch=main >/dev/null) || {
-    echo "  wrangler could not upload the build."
-    return 1
-  }
-
-  echo "  usetalkify.app rebuilt; it now names $VERSION"
-  return 0
-}
-
-if ! deploy_landing; then
-  echo "  usetalkify.app keeps naming the previous version until it is"
-  echo "  redeployed. Its Download button still resolves to this release."
-  echo "  To do it by hand:"
-  echo "    cd $LANDING_REPO && npm run build"
-  echo "    npx wrangler pages deploy out --project-name=talkify --branch=main"
-fi
-
-step "Done"
-echo "  release:  $(gh release view "$TAG" --json url -q .url)"
-echo "  download: https://github.com/tornikegomareli/Talkify/releases/latest/download/Talkify.dmg"
+paso "Listo"
+echo "  release:  $(gh release view "$TAG" -R "$REPO" --json url -q .url)"
+echo "  descarga: https://github.com/$REPO/releases/latest/download/Dilo.dmg"
 echo "  feed:     $FEED"
+echo
+echo "  Dilo-MAS no salió de acá: para la App Store, despacha el job"
+echo "  'mas-upload' de .github/workflows/release.yml."

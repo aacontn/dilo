@@ -3,71 +3,22 @@
     <channel>
         <title>Dilo</title>
         <!--
-          Sparkle's update feed, served from main at
-          https://raw.githubusercontent.com/tornikegomareli/Talkify/main/appcast.xml
+          El feed de Sparkle de Dilo, servido desde main en
+          https://raw.githubusercontent.com/aacontn/dilo/main/appcast.xml
+          (la misma URL que lleva SUFeedURL en Talkify/Info.plist).
 
-          scripts/release.sh regenerates this file with generate_appcast and
-          commits it as part of a release, so it is not edited by hand.
+          scripts/release.sh lo regenera con generate_appcast y lo commitea
+          como parte de un release: no se edita a mano. Cada release agrega
+          un <item> firmado con la llave EdDSA de Dilo y conserva los cinco
+          más recientes.
 
-          Before the first release the channel is empty on purpose: an empty
-          channel makes a check report "you're up to date", while a missing file
-          makes it report a failure. Each release appends a signed <item> below
-          and keeps the five most recent.
+          Antes del primer release el canal va vacío a propósito: un canal
+          vacío hace que la búsqueda responda "estás al día", mientras que un
+          archivo que no existe la hace fallar.
+
+          Sólo el target `Dilo` (venta directa) se actualiza por acá.
+          `Dilo-MAS` no lleva Sparkle: sus actualizaciones las reparte la
+          App Store.
         -->
-        <item>
-            <title>0.8.3</title>
-            <pubDate>Sat, 19 Sep 2026 12:06:53 +0400</pubDate>
-            <link>https://usetalkify.app</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/tornikegomareli/Talkify/releases</sparkle:fullReleaseNotesLink>
-            <sparkle:version>200</sparkle:version>
-            <sparkle:shortVersionString>0.8.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tornikegomareli/Talkify/releases/download/v0.8.3/Talkify-v0.8.3.zip" length="9019188" type="application/octet-stream" sparkle:edSignature="XjO3UZ9DswyXHmgd/rPNxIy2+7OdmFEIaNdDSpHNynAKwf6YQH3Oc3vsp8flcPF9kREPDVX7EMFZo+3xsialAg=="/>
-        </item>
-        <item>
-            <title>0.8.2</title>
-            <pubDate>Tue, 08 Sep 2026 14:44:46 +0400</pubDate>
-            <link>https://usetalkify.app</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/tornikegomareli/Talkify/releases</sparkle:fullReleaseNotesLink>
-            <sparkle:version>196</sparkle:version>
-            <sparkle:shortVersionString>0.8.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tornikegomareli/Talkify/releases/download/v0.8.2/Talkify-v0.8.2.zip" length="9015956" type="application/octet-stream" sparkle:edSignature="8GhzM3d6k0HPuto5xVL/pCT9aGMkuAf8WXEWwZe9/RBFSon84B29TqE6WOqs5OJ1CcQJlVKvsjr1XbvVc6d2CA=="/>
-        </item>
-        <item>
-            <title>0.8.1</title>
-            <pubDate>Sun, 06 Sep 2026 09:39:39 +0400</pubDate>
-            <link>https://usetalkify.app</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/tornikegomareli/Talkify/releases</sparkle:fullReleaseNotesLink>
-            <sparkle:version>192</sparkle:version>
-            <sparkle:shortVersionString>0.8.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tornikegomareli/Talkify/releases/download/v0.8.1/Talkify-v0.8.1.zip" length="9013951" type="application/octet-stream" sparkle:edSignature="bPwEauGqmI9w9W/31vAia6NdMk0JcnmntV5viGteZ8xtGsNeDuvrDHMWd+uy6uK+cyj8nYgHXGKuvl9uMAE1DA=="/>
-        </item>
-        <item>
-            <title>0.8.0</title>
-            <pubDate>Fri, 04 Sep 2026 01:21:24 +0400</pubDate>
-            <link>https://usetalkify.app</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/tornikegomareli/Talkify/releases</sparkle:fullReleaseNotesLink>
-            <sparkle:version>186</sparkle:version>
-            <sparkle:shortVersionString>0.8.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tornikegomareli/Talkify/releases/download/v0.8.0/Talkify-v0.8.0.zip" length="8993053" type="application/octet-stream" sparkle:edSignature="DWiqk579t2rSXcHRI16tr7Pqcepx/BqzNX4zSxMI3JIrlsxLuloGXj+iUeB4Tz5r3qcDRxWAVY4IjFKWGGctDA=="/>
-        </item>
-        <item>
-            <title>0.7.1</title>
-            <pubDate>Fri, 28 Aug 2026 00:57:27 +0400</pubDate>
-            <link>https://usetalkify.app</link>
-            <sparkle:fullReleaseNotesLink>https://github.com/tornikegomareli/Talkify/releases</sparkle:fullReleaseNotesLink>
-            <sparkle:version>178</sparkle:version>
-            <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/tornikegomareli/Talkify/releases/download/v0.7.1/Talkify-v0.7.1.zip" length="8919993" type="application/octet-stream" sparkle:edSignature="fafQ2p8ehLmuEVw00wfquMsYsto2ahn7OEHT2gmFrirTgCcrUB4ZcH6pO1PQK5xYPhTrGrYQMSpK+NOjKMV5Dg=="/>
-        </item>
     </channel>
 </rss>
