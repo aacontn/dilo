@@ -75,10 +75,34 @@ public struct Gatillo: Codable, Equatable, Hashable, Sendable {
     public static let mayusculaDerecha: Int64 = 60
     public static let fn: Int64 = 63
 
+    /// La fila extendida de un teclado Apple completo. No estaban nombradas y
+    /// por eso no se podían elegir: ese fue el reporte de Alfonso.
+    public static let f13: Int64 = 105
+    public static let f14: Int64 = 107
+    public static let f15: Int64 = 113
+    public static let f16: Int64 = 106
+    public static let f17: Int64 = 64
+    public static let f18: Int64 = 79
+    public static let f19: Int64 = 80
+    public static let f20: Int64 = 90
+
     /// Volumen y silencio (`kVK_VolumeUp`, `VolumeDown`, `Mute`) y el brillo.
     /// Son teclas del sistema: robarlas deja a la persona sin subir el volumen
     /// y sin forma obvia de entender por qué.
-    public static let sistema: Set<Int64> = [72, 73, 74, 144, 145, 107, 113]
+    ///
+    /// **F14 y F15 ya no están acá.** Estaban porque en los teclados Apple de
+    /// 2007 esas dos teclas llevaban impreso el brillo; en cualquier teclado
+    /// de hoy el brillo viaja como evento `NSSystemDefined` y no pasa por
+    /// estos códigos, así que lo único que lograba la lista era dejar sin
+    /// usar dos teclas libres de la fila extendida.
+    ///
+    /// F11 y F12 tampoco están: en un Mac con los ajustes de fábrica el
+    /// sistema las convierte en volumen antes del tap y nunca llegan como
+    /// `keyDown`; con "Usar F1, F2 como teclas de función" activado llegan
+    /// normales y sirven de gatillo. No hay nada que rechazar en el validador
+    /// —lo que no llega no se puede asignar— y prohibirlas a mano le quitaría
+    /// dos teclas a quien sí las tiene.
+    public static let sistema: Set<Int64> = [72, 73, 74, 144, 145]
   }
 
   /// El gatillo por defecto del dictado: fn/🌐 sostenido. No escribe nada en

@@ -1,4 +1,5 @@
 import DiloCapabilities
+import DiloModes
 import SwiftUI
 
 /// The Shortcuts section: the user's own keyboard with the bound keys lit,
@@ -18,6 +19,10 @@ struct ShortcutsSettingsView: View {
   /// row can be armed, so the section owns this rather than each recorder.
   @State private var armed: BindingRole?
   @State private var picked: [Int64] = []
+  /// Por qué la última tecla elegida no se guardó. Vivía sólo en Modos: acá
+  /// el atajo se guardaba pasara lo que pasara, así que ⌥ derecha —el bug
+  /// original— seguía siendo asignable desde esta pantalla.
+  @State private var reparo: String?
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -30,6 +35,13 @@ struct ShortcutsSettingsView: View {
     VStack(spacing: 16) {
       keyboardPanel
       keysCard
+      if let reparo {
+        Text(reparo)
+          .font(.caption)
+          .foregroundStyle(SettingsTheme.accent)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.horizontal, 6)
+      }
     }
     .task {
       layout = KeyboardLayout.current()
@@ -153,6 +165,7 @@ struct ShortcutsSettingsView: View {
         set: { isArmed in
           armed = isArmed ? role : nil
           picked = []
+          if isArmed { reparo = nil }
         }
       ),
       onRecordingChanged: { settings.isRecordingKeybind = $0 }
@@ -210,10 +223,25 @@ struct ShortcutsSettingsView: View {
     picked = []
   }
 
+  /// El atajo de este rol, con el validador de por medio al guardar.
+  ///
+  /// La regla que aplica es la misma que en Modos y vive en un solo lado
+  /// (`ValidadorDeGatillos`): cualquier tecla física que no escriba un
+  /// carácter sirve de gatillo —fn, F13 a F20, esc, § en ISO, Clear del
+  /// numérico—, y lo único que se rechaza es ⌥ pelada, el volumen y el brillo,
+  /// y una tecla que escribe usada sola. Rechazar es no guardar y decir por
+  /// qué: el atajo anterior se queda, que es lo que la persona tenía andando.
   private func binding(for role: BindingRole) -> Binding<KeyBinding> {
     Binding(
       get: { settings.binding(for: role) },
-      set: { settings.setBinding($0, for: role) }
+      set: { nuevo in
+        if let reparoDelValidador = ValidadorDeGatillos.revisar(nuevo.gatillo).reparo {
+          reparo = reparoDelValidador.explicacion
+          return
+        }
+        reparo = nil
+        settings.setBinding(nuevo, for: role)
+      }
     )
   }
 
