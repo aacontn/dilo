@@ -97,6 +97,12 @@ final class MicrophoneInput: @unchecked Sendable {
 
   private var running = false
   private var reportedFailure = false
+#if DEBUG
+  /// Gancho de medición de la Tarea 7, sólo en Debug: ver
+  /// `MicrophoneInput+MetricasWAV.swift`. Nil en cuanto la variable de entorno
+  /// no está, que es siempre salvo cuando corre `scripts/metrics.sh`.
+  private var wavDeMetricas: EntradaWAVDeMetricas?
+#endif
 
   init(
     analyzerContinuation: AsyncStream<AnalyzerInput>.Continuation,
@@ -109,6 +115,23 @@ final class MicrophoneInput: @unchecked Sendable {
   }
 
   func start(outputFormat: AVAudioFormat) throws {
+#if DEBUG
+    if let ruta = ProcessInfo.processInfo.environment[EntradaWAVDeMetricas.variable],
+      !ruta.isEmpty {
+      let entrada = try EntradaWAVDeMetricas(
+        ruta: ruta,
+        formatoDelAnalizador: outputFormat,
+        continuacion: analyzerContinuation,
+        nivel: levelHandler
+      )
+      stateLock.withLock {
+        wavDeMetricas = entrada
+        running = true
+      }
+      entrada.empezar()
+      return
+    }
+#endif
     let hardwareFormat = audioEngine.inputNode.inputFormat(forBus: 0)
     guard Self.hasUsableHardwareInput(hardwareFormat) else {
       throw InputError.unavailable
@@ -246,6 +269,18 @@ final class MicrophoneInput: @unchecked Sendable {
   }
 
   func stop() {
+#if DEBUG
+    let entradaDeMetricas = stateLock.withLock { () -> EntradaWAVDeMetricas? in
+      defer { wavDeMetricas = nil }
+      guard running, wavDeMetricas != nil else { return nil }
+      running = false
+      return wavDeMetricas
+    }
+    if let entradaDeMetricas {
+      entradaDeMetricas.parar()
+      return
+    }
+#endif
     let shouldStop = stateLock.withLock { () -> Bool in
       guard running else { return false }
       running = false

@@ -1,0 +1,13 @@
+{
+  "app" : "\/Volumes\/SSD2\/derived-data\/metricas\/Build\/Products\/Debug\/Dilo.app",
+  "generado" : "2026-09-21T00:25:35Z",
+  "maquina" : "Macmini9,1 · Version 27.0 (Build 26A428)",
+  "nota" : "Arranque: mediana de 5 lanzamientos (112\/116\/119\/145\/186 ms). El caché de archivos está caliente: vaciarlo exige sudo purge o un reinicio. Latencia: segunda pasada, con el modelo ya cargado. Transcrito: “Oye, anota esto, hay que revisar el deploy de la landin antes del viernes y avisarle al equipo.”.",
+  "valores" : {
+    "arranqueEnFrio" : 0.11897897720336914,
+    "cpuEnReposo" : 0.04859346507183356,
+    "latenciaSoltarTexto" : 0.0899200439453125,
+    "ramEnReposo" : 18.78216552734375,
+    "tamanoDelApp" : 17.29545021057129
+  }
+}
