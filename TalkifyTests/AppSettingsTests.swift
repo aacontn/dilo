@@ -17,7 +17,7 @@ struct AppSettingsTests {
     #expect(settings.dictationSoundsEnabled)
     #expect(settings.dictationSoundVolume == 0.5)
     #expect(settings.voiceVisual == .waveform)
-    #expect(settings.waveformStyle == .chartLine)
+    #expect(settings.waveformStyle == .siriWave)
     #expect(settings.revealStyle == .slide)
     #expect(settings.longDraftStyle == .growDown)
     // Existing users must not be resized by an upgrade.
@@ -337,7 +337,7 @@ struct AppSettingsTests {
 
     #expect(snapshot.sounds.set == .synth8)
     #expect(snapshot.voiceVisual == .waveform)
-    #expect(snapshot.waveformStyle == .chartLine)
+    #expect(snapshot.waveformStyle == .siriWave)
     #expect(snapshot.revealStyle == .slide)
     #expect(snapshot.longDraftStyle == .growDown)
     #expect(snapshot.glowPalette == .spectrum)
