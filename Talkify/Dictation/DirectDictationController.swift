@@ -1,4 +1,5 @@
 import AppKit
+import DiloModes
 import DiloText
 import os
 
@@ -55,10 +56,21 @@ final class DirectDictationController {
   /// The key that slot was bound to when the session began. A rebind while a
   /// gesture is running must not take the key the gesture is still using.
   private var activeBinding: KeyBinding?
-  /// The shaping prompt this session will finish with, cycled by the bare
-  /// arrows while recording; nil is None, which inserts the words as spoken.
-  /// Session-scoped on purpose: cycling never writes the persisted selection.
-  private var sessionShapingChoice: ShapingPrompt?
+  /// El modo con que esta sesión va a terminar, recorrido con las flechas
+  /// peladas mientras grabas; nil es "sin modo", que pega las palabras tal
+  /// como se dijeron. Vive sólo en la sesión: recorrer nunca escribe Ajustes.
+  private var sessionModo: Modo?
+  /// Verdadero cuando el modo lo nombró una persona —apretó su tecla o movió
+  /// las flechas—. Es lo que impide que "un atajo, Dilo decide" contradiga
+  /// una elección explícita, que es la regla de `ResolucionDeModo`.
+  private var modoElegidoAMano = false
+  /// Lo último que se dictó, entero y en sus dos mitades. En memoria y nada
+  /// más: el historial viene apagado de fábrica y encenderlo para poder
+  /// recuperar un dictado sería cambiar la privacidad por un rescate.
+  private(set) var ultimoDictado: UltimoDictado?
+  /// Avisa que hay algo nuevo que copiar, para que el menú de la barra
+  /// aparezca y diga qué.
+  var onUltimoDictadoChange: ((UltimoDictado?) -> Void)?
   /// Whether the tap is currently swallowing the bare arrows, so the toggle
   /// fires only on transitions.
   private var isShapingCycleCaptureEnabled = false
@@ -149,7 +161,8 @@ final class DirectDictationController {
       trigger: bindings.trigger,
       secondaryTrigger: bindings.secondary,
       readAloud: bindings.readAloud,
-      translateTrigger: bindings.translate
+      translateTrigger: bindings.translate,
+      modos: bindings.modos
     )
     keyEventMonitor?.setEventHandlingSuspended(settings.isRecordingKeybind)
   }
@@ -173,10 +186,22 @@ final class DirectDictationController {
     trigger: KeyBinding,
     secondary: KeyBinding?,
     readAloud: KeyBinding,
-    translate: KeyBinding?
+    translate: KeyBinding?,
+    modos: [(id: String, binding: KeyBinding)]
   ) {
     func held(_ slot: GlobalKeyEventMonitor.TriggerSlot) -> KeyBinding? {
       sessionSlot == slot ? sessionBinding : nil
+    }
+
+    // La tecla de cada modo que tiene una. Es lo que faltaba: los modos se
+    // guardaban con su gatillo y el tap nunca se enteraba, así que de los
+    // cinco modos de Alfonso ninguno disparaba nada.
+    let modos = settings.modos.compactMap { modo -> (id: String, binding: KeyBinding)? in
+      let slot = GlobalKeyEventMonitor.TriggerSlot.modo(modo.id)
+      guard let binding = held(slot) ?? modo.gatillo.flatMap(KeyBinding.init) else {
+        return nil
+      }
+      return (modo.id, binding)
     }
 
     return (
@@ -189,7 +214,8 @@ final class DirectDictationController {
       // swallows nothing and behaves as if the feature were not there.
       translate: settings.isTranslationEnabled || sessionSlot == .translate
         ? held(.translate) ?? settings.translateTriggerBinding
-        : nil
+        : nil,
+      modos: modos
     )
   }
 
@@ -261,7 +287,15 @@ final class DirectDictationController {
   /// press while refusing the one they can.
   private func claimSession(for slot: GlobalKeyEventMonitor.TriggerSlot) {
     activeSlot = slot
-    activeBinding = settings.binding(for: slot.bindingRole)
+    if let rol = slot.bindingRole {
+      activeBinding = settings.binding(for: rol)
+    } else {
+      // Un modo: su tecla vive dentro del modo. Que sea nil —el modo se
+      // borró entre el apretón y esto— es el mismo caso que un rol cuya
+      // tecla cambió: la sesión sigue y el tap ya tiene la suya.
+      activeBinding = settings.modos.modo(slot.modoID)?.gatillo
+        .flatMap(KeyBinding.init)
+    }
   }
 
   private func locale(for slot: GlobalKeyEventMonitor.TriggerSlot) -> Locale? {
@@ -272,6 +306,9 @@ final class DirectDictationController {
     // language exists so a different language can be dictated; translating
     // from it would put two settings behind one key.
     case .translate: primaryLocale
+    // Un modo transforma lo dictado, no cambia de idioma: dicta en el
+    // principal, como el atajo de siempre.
+    case .modo: primaryLocale
     }
   }
 
@@ -298,7 +335,7 @@ final class DirectDictationController {
   /// that window loses the words with nothing to recover them from. No longer
   /// than that: a wedged insertion must not hold the quit open forever.
   static let finishGrace = TranslationService.defaultTimeout
-    + PromptShapingService.defaultTimeout
+    + TransformacionDeModo.timeoutPorDefecto
     + .seconds(2)
 
   /// Waits for an in-flight finish to insert its text, giving up after
@@ -480,7 +517,7 @@ final class DirectDictationController {
   private func updateShapingCycleCapture() {
     var shouldCapture = false
     if case .recording = machine.state,
-       currentSessionSettings?.shapingLibrary.isEmpty == false {
+       currentSessionSettings?.modos.isEmpty == false {
       shouldCapture = true
     }
     guard shouldCapture != isShapingCycleCaptureEnabled else { return }
@@ -494,15 +531,17 @@ final class DirectDictationController {
   /// flag, because a queued event can arrive after the session moved on.
   private func cycleShapingChoice(by delta: Int) {
     guard case .recording = machine.state,
-       let library = currentSessionSettings?.shapingLibrary,
-       !library.isEmpty
+       let biblioteca = currentSessionSettings?.modos,
+       !biblioteca.isEmpty
     else { return }
-    let optionCount = library.count + 1
-    let current = sessionShapingChoice
-      .flatMap { choice in library.firstIndex { $0.id == choice.id } }
-      ?? library.count
+    let optionCount = biblioteca.count + 1
+    let current = sessionModo
+      .flatMap { elegido in biblioteca.firstIndex { $0.id == elegido.id } }
+      ?? biblioteca.count
     let next = (current + delta + optionCount) % optionCount
-    sessionShapingChoice = next < library.count ? library[next] : nil
+    sessionModo = next < biblioteca.count ? biblioteca[next] : nil
+    // Mover las flechas es elegir: desde acá, "Dilo decide" ya no opina.
+    modoElegidoAMano = true
     dependencies.showShapingChoice(shapingChoiceLabel)
   }
 
@@ -510,8 +549,8 @@ final class DirectDictationController {
   /// cycle at all. The bare name on purpose: the shell owns the tag's
   /// wording, because its width is a layout decision.
   private var shapingChoiceLabel: String? {
-    guard currentSessionSettings?.shapingLibrary.isEmpty == false else { return nil }
-    return sessionShapingChoice?.name ?? String(localized: "Sin reescritura")
+    guard currentSessionSettings?.modos.isEmpty == false else { return nil }
+    return sessionModo?.nombre ?? String(localized: "Sin modo")
   }
 
   private func perform(_ effects: [DictationSessionMachine.Effect]) {
@@ -548,9 +587,13 @@ final class DirectDictationController {
         translation: activeSlot == .translate ? translation.pair : nil
       )
       currentSessionSettings = session
-      // The cycled pick starts where the persisted selection points; a
-      // missing or deleted id starts on None.
-      sessionShapingChoice = session.shapingPrompt
+      // El modo de la sesión empieza en el de la tecla que la abrió. Si fue
+      // el atajo de siempre, empieza sin ninguno: el dictado normal sale
+      // limpio y no pasa por ninguna IA, salvo que "Dilo decide" opine al
+      // final. Congelado acá y no leído después: cambiar Ajustes a mitad de
+      // dictado aplica al siguiente (ADR-0004).
+      sessionModo = session.modos.modo(activeSlot.modoID)
+      modoElegidoAMano = sessionModo != nil
       dependencies.showListening(
         focusedTarget?.displayID,
         latched,
@@ -710,6 +753,54 @@ final class DirectDictationController {
     pendingVolatileText = ""
   }
 
+  /// Qué modo aplica a este dictado.
+  ///
+  /// La tecla siempre gana: es lo que la persona dijo explícitamente, y
+  /// ningún decididor tiene derecho a contradecirla. Las reglas sólo opinan
+  /// cuando nadie eligió **y** "un atajo, Dilo decide" está prendido; si no
+  /// se la juegan, el dictado sale como salió (`ResolucionDeModo`, con tests).
+  private func resolverModo(
+    texto: String,
+    delaTecla: Modo?,
+    elegidoAMano: Bool,
+    appAlFrente: String?,
+    session: DictationSessionSettings
+  ) async -> ResolucionDeModo.Eleccion {
+    if elegidoAMano {
+      return ResolucionDeModo.Eleccion(
+        modo: delaTecla, razon: delaTecla == nil ? .ninguna : .atajo
+      )
+    }
+    guard session.unAtajoDiloDecide, !session.modos.isEmpty else {
+      return ResolucionDeModo.Eleccion(modo: nil, razon: .ninguna)
+    }
+    return await ResolucionDeModo.porReglas(
+      texto: texto,
+      contexto: ContextoDeDecision(appAlFrente: appAlFrente),
+      modos: session.modos,
+      decider: DeciderPorReglas(modos: session.modos)
+    )
+  }
+
+  /// Lo que el historial guarda como modo: el nombre y el id, porque el
+  /// nombre se edita y el id no, y —cuando lo eligió Dilo— la regla que ganó.
+  /// Un modo que apareció sin que nadie apretara su tecla tiene que poder
+  /// explicarse, o la próxima vez no se sabe si corregir el dictado o la regla.
+  static func paraElHistorial(_ eleccion: ResolucionDeModo.Eleccion) -> String? {
+    guard let modo = eleccion.modo else { return nil }
+    let nombre = "\(modo.nombre) (\(modo.id))"
+    guard let explicacion = eleccion.razon.explicacion else { return nombre }
+    return "\(nombre) — \(explicacion)"
+  }
+
+  /// Guarda lo último que se dictó y avisa al menú de la barra. Sólo memoria:
+  /// nada de esto toca el disco.
+  private func recordar(_ dictado: UltimoDictado) {
+    guard !dictado.texto(.entregado).isEmpty || !dictado.original.isEmpty else { return }
+    ultimoDictado = dictado
+    onUltimoDictadoChange?(dictado)
+  }
+
   /// Writes the session's entry, after any translation and before the
   /// insertion: an entry names where the words were headed, and words the
   /// paste then loses are exactly the words history exists to keep.
@@ -757,49 +848,84 @@ final class DirectDictationController {
   ///
   /// - Parameter speakingDuration: The completed session's measured speech time.
   private func finishRecognition(speakingDuration: TimeInterval) {
-    // The cycled pick at the moment the session ended is what shapes, not
-    // the snapshot's stored selection. Read before the task so the next
-    // session's seeding cannot race the finish still in flight.
-    let chosenPrompt = sessionShapingChoice
+    // Lo que la persona eligió en el momento en que soltó, no lo que Ajustes
+    // diga después. Se lee antes de la tarea para que el sembrado de la
+    // sesión siguiente no le gane la carrera a este final.
+    let modoDeLaTecla = sessionModo
+    let elegidoAMano = modoElegidoAMano
+    let appAlFrente = focusedTarget?.applicationName
     finishTask = Task { [weak self] in
       guard let self else { return }
       defer { finishTask = nil }
       do {
-        // La costura de español de Dilo: todo lo reconocido pasa por DiloText
-        // antes de que nadie más lo toque — espacios, muletillas y tus
-        // palabras, en ese orden. Las preferencias son las que la sesión
-        // capturó al empezar: cambiar una palabra a mitad de dictado aplica
-        // al siguiente (ADR-0004).
-        let spoken = DiloText.limpiar(
-          try await dependencies.finishRecognition(),
-          con: (currentSessionSettings ?? settings.sessionSettings).textoPreferencias
-        )
-        // A session about to shape keeps the HUD up saying so; every other
-        // session dismisses here exactly as before.
-        let willShape = chosenPrompt != nil && !spoken.isEmpty
-        if let chosenPrompt, willShape {
-          dependencies.showShaping(chosenPrompt.name)
-        } else {
-          dependencies.hideHUD()
-        }
         // Delivery follows the session snapshot, so a Settings change
         // mid-session applies to the next session (ADR-0004).
         let session = currentSessionSettings ?? settings.sessionSettings
+        // El crudo se guarda antes de tocarlo: es lo único de todo esto que
+        // no se puede reconstruir (punto 4 del encargo).
+        let crudo = try await dependencies.finishRecognition()
+        // La costura de español de Dilo: todo lo reconocido pasa por DiloText
+        // antes de que nadie más lo toque — espacios, muletillas y tus
+        // palabras, en ese orden. Las preferencias son las que la sesión
+        // capturó al empezar.
+        let spoken = DiloText.limpiar(crudo, con: session.textoPreferencias)
+
+        // Qué modo aplica. La tecla siempre gana; las reglas sólo opinan
+        // cuando nadie eligió y la persona lo pidió (spec §7).
+        let eleccion = await resolverModo(
+          texto: spoken,
+          delaTecla: modoDeLaTecla,
+          elegidoAMano: elegidoAMano,
+          appAlFrente: appAlFrente,
+          session: session
+        )
+        let modo = eleccion.modo
+
+        // A session about to shape keeps the HUD up saying so; every other
+        // session dismisses here exactly as before.
+        let willShape = modo != nil && !spoken.isEmpty
+        if let modo, willShape {
+          dependencies.showShaping(modo.nombre)
+        } else {
+          dependencies.hideHUD()
+        }
 
         // The one place between recognition and insertion where the words may
         // change. A transform that fails delivers nothing: the trigger
         // promised a translation, and pasting the untranslated words instead
         // lands the wrong language in someone else's document.
         var text = spoken
-        // Shaping first, then translation. A prompt is written in one language,
-        // with a one-shot example in it, so handing it a translation of the
-        // words asks it to work in a language it was not written for; and a
-        // translator given cleaned-up words has less to get wrong.
-        if let chosenPrompt, willShape {
-          text = await dependencies.shapeText(text, chosenPrompt)
+        var transformado: String?
+        var avisoDelModo: String?
+        // El modo primero, la traducción después. Un prompt está escrito en
+        // un idioma, con su ejemplo en ese idioma, así que darle una
+        // traducción es pedirle trabajar en uno para el que no se escribió.
+        if let modo, willShape {
+          switch await dependencies.transformar(
+            text, modo, session.proveedorDeSesion(para: modo)
+          ) {
+          case let .transformado(reescrito):
+            text = reescrito
+            transformado = reescrito
+          case let .salioTalCual(aviso):
+            // Nunca un segundo proveedor. Se dice qué pasó y las palabras
+            // quedan enteras en "Copiar el último dictado".
+            avisoDelModo = aviso
+          case .sinModo:
+            break
+          }
         }
         // Shaped or passed through, the phase is over.
         if willShape { dependencies.hideHUD() }
+
+        recordar(
+          UltimoDictado(
+            original: crudo,
+            limpio: spoken,
+            transformado: transformado,
+            modo: transformado == nil ? nil : modo?.nombre
+          )
+        )
 
         if let pair = session.translation, !text.isEmpty {
           do {
@@ -808,7 +934,8 @@ final class DirectDictationController {
             // The rescue is the words as spoken, not as shaped: shaping is a
             // convenience and the raw words are what must survive.
             await recordHistory(
-              spoken: spoken, delivered: nil, modo: chosenPrompt?.name, session: session
+              spoken: spoken, delivered: nil,
+              modo: Self.paraElHistorial(eleccion), session: session
             )
             // Clipboard-only whatever the session's destination: nothing is
             // pasted, and the words survive where the user can reach them.
@@ -832,7 +959,8 @@ final class DirectDictationController {
         // because shaping had not run yet. Still before insertion, so a
         // failed paste cannot lose the words (ADR-0007).
         await recordHistory(
-          spoken: spoken, delivered: text, modo: chosenPrompt?.name, session: session
+          spoken: spoken, delivered: text,
+          modo: Self.paraElHistorial(eleccion), session: session
         )
 
         let outcome = await dependencies.insertText(
@@ -845,6 +973,19 @@ final class DirectDictationController {
         case .inserted, .copiedToClipboard:
           dependencies.playPasteSound()
           send(.sessionEnded)
+          // Lo que la píldora todavía tiene que decir. El pegado que se cayó
+          // al portapapeles ya lo hacía el camino de Talkify, pero callado:
+          // las palabras estaban en otra parte y nadie lo decía. El modo que
+          // no corrió es la otra mitad de lo mismo.
+          let avisos = [
+            outcome == .copiedToClipboard
+              ? String(localized: "No pude pegarlo ahí, así que te lo copié. Pégalo con ⌘V.")
+              : nil,
+            avisoDelModo,
+          ].compactMap(\.self)
+          if !avisos.isEmpty {
+            dependencies.showMessage("\(avisos.joined(separator: " "))", nil)
+          }
           // The words that were spoken, not the words inserted. Speaking
           // duration is measured on the source side, so counting a
           // translation's words against it would divide one language's count

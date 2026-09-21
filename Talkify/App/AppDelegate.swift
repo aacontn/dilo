@@ -138,6 +138,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     translation.onStateChange = { [weak settingsRuntimeState] state in
       settingsRuntimeState?.translationModelState = state
     }
+    // Lo último que se dictó llega al menú de la barra, que es donde alguien
+    // lo va a buscar cuando el pegado no aterrizó donde esperaba.
+    dictationController.onUltimoDictadoChange = { [weak statusItemController] dictado in
+      statusItemController?.setUltimoDictado(dictado)
+    }
     dictationController.onLanguageDownloadChange = {
       [weak settingsRuntimeState] identifier, fraction in
       settingsRuntimeState?.setDownload(identifier: identifier, fraction: fraction)
@@ -188,6 +193,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       _ = settings.readAloudBinding
       _ = settings.translateTriggerBinding
       _ = settings.isRecordingKeybind
+      // Cada modo trae su propia tecla, así que la lista entra en este bucle:
+      // sin esto, asignarle una tecla a un modo la guardaba y el tap no se
+      // enteraba hasta el próximo arranque.
+      _ = settings.modos
       // The second trigger is only installed once a second language exists,
       // so the pick that enables it belongs in this loop too.
       _ = settings.secondaryRecognitionLocaleIdentifier

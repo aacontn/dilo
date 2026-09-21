@@ -1,5 +1,6 @@
 import AppKit
 import DiloEngines
+import DiloModes
 
 /// Injectable speech, insertion, permission, HUD, and usage boundaries for
 /// Direct Dictation, following the TextInsertionService.Dependencies
@@ -95,10 +96,15 @@ extension DirectDictationController {
     /// enterarse: una costura nueva no tiene por qué costarle a nadie.
     var setPalabrasPropias: @Sendable ([String]) async -> Void = { _ in }
 
-    // The beta prompt shaping pass; passthrough on any failure.
-    let shapeText: @Sendable (
-      _ text: String, _ prompt: ShapingPrompt
-    ) async -> String
+    /// Correr un modo sobre lo dictado, con el proveedor que la sesión
+    /// congeló al empezar. El proveedor entra como parámetro y no se lee de
+    /// Ajustes acá adentro: eso es lo que hace que cambiar Ajustes a mitad de
+    /// dictado no pueda mandar a una nube un texto que empezó siendo local.
+    let transformar: @Sendable (
+      _ texto: String,
+      _ modo: Modo,
+      _ proveedor: ResolucionDeProveedor.DeSesion
+    ) async -> TransformacionDeModo.Resultado
 
     /// Builds the production boundaries around the live services the
     /// controller previously constructed itself.
@@ -208,8 +214,8 @@ extension DirectDictationController {
           )
         },
         setPalabrasPropias: { await speechService.setPalabrasPropias($0) },
-        shapeText: { text, prompt in
-          await PromptShapingService(client: .live).shape(text, with: prompt)
+        transformar: { texto, modo, proveedor in
+          await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         }
       )
     }

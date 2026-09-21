@@ -155,13 +155,14 @@ struct ModosSettingsView: View {
     grabando = nil
     let gatillo = binding.gatillo
 
-    if let reparoDelValidador = ValidadorDeGatillos.revisar(gatillo).reparo {
+    // Contra **todos** los atajos de Dilo, no sólo contra los otros modos:
+    // así era como un modo podía quedarse con la tecla del dictado normal y
+    // no disparar nunca sin que nada lo dijera.
+    let veredicto = ValidadorDeGatillos.revisar(
+      gatillo, entre: settings.gatillosEnUso, salvo: id
+    )
+    if let reparoDelValidador = veredicto.reparo {
       reparo = reparoDelValidador.explicacion
-      return
-    }
-    let ocupada = settings.modos.modosQueYaUsan(gatillo, salvo: id)
-    if let otro = ocupada.first {
-      reparo = "Esa tecla ya la usa \(otro.nombre). Elige otra, o quítasela primero: dos modos con la misma tecla es un atajo muerto."
       return
     }
     reparo = nil

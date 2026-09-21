@@ -1,3 +1,4 @@
+import DiloModes
 import Foundation
 import os
 import Testing
@@ -15,6 +16,7 @@ struct DirectDictationControllerTests {
     let text: String
     let translation: DictationHistoryStore.Translation?
     let source: String?
+    let modo: String?
     let folder: URL
   }
 
@@ -82,8 +84,9 @@ struct DirectDictationControllerTests {
     translationPrepareHangs: Bool = false,
     translateBody: (@Sendable (String) async throws -> String)? = nil,
     retainedPairs: OSAllocatedUnfairLock<[TranslationPair?]> = .init(initialState: []),
-    shapeText: @escaping @Sendable (String, ShapingPrompt) async -> String
-      = { text, _ in text },
+    transformar: @escaping @Sendable (
+      String, Modo, ResolucionDeProveedor.DeSesion
+    ) async -> TransformacionDeModo.Resultado = { texto, _, _ in .transformado(texto) },
     insertOutcome: TextInsertionService.InsertionOutcome = .inserted
   ) -> DirectDictationController.Dependencies {
     DirectDictationController.Dependencies(
@@ -168,12 +171,15 @@ struct DirectDictationControllerTests {
         recorder.events.append("recordSession")
         recorder.recordedSessions.append((wordCount, speakingDuration))
       },
-      recordHistory: { text, translation, source, _, folder in
+      recordHistory: { text, translation, source, modo, folder in
         historyEntries.withLock {
-          $0.append(HistoryEntry(text: text, translation: translation, source: source, folder: folder))
+          $0.append(HistoryEntry(
+            text: text, translation: translation, source: source,
+            modo: modo, folder: folder
+          ))
         }
       },
-      shapeText: shapeText
+      transformar: transformar
     )
   }
 
@@ -839,18 +845,16 @@ struct DirectDictationControllerTests {
     #expect(bindings.translate == nil)
   }
 
-  /// Shaping runs before translation. A prompt is written in one language,
-  /// with its one-shot example in that language, so handing it a translation
-  /// of the words asks it to work in a language it was not written for.
-  @Test func shapingSeesTheSpokenWordsAndTranslationSeesTheShapedOnes() async {
+  /// El modo corre antes de la traducción. Un prompt está escrito en un
+  /// idioma, con su ejemplo en ese idioma, así que darle una traducción es
+  /// pedirle trabajar en uno para el que no se escribió.
+  @Test func elModoVeLoDichoYLaTraduccionVeLoTransformado() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
     let shapedInput = OSAllocatedUnfairLock<String?>(initialState: nil)
     let translatedInput = OSAllocatedUnfairLock<String?>(initialState: nil)
     let settings = AppSettings(defaults: freshDefaults())
     settings.translationTargetIdentifier = "es"
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = settings.shapingPrompts[0].id
     let controller = makeController(
       settings: settings,
       dependencies: makeDependencies(
@@ -861,9 +865,9 @@ struct DirectDictationControllerTests {
           translatedInput.withLock { $0 = text }
           return "envíalo el jueves"
         },
-        shapeText: { text, _ in
-          shapedInput.withLock { $0 = text }
-          return "Ship it on Thursday"
+        transformar: { texto, _, _ in
+          shapedInput.withLock { $0 = texto }
+          return .transformado("Ship it on Thursday")
         }
       )
     )
@@ -874,6 +878,10 @@ struct DirectDictationControllerTests {
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
+    // Una sesión de traducir no tiene tecla de modo, así que el modo se
+    // elige con las flechas mientras habla: una flecha desde "sin modo" cae
+    // en el primero de la lista.
+    controller.handle(.shapingCycleRight)
     controller.handle(.triggerPressed(.translate))
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
@@ -893,8 +901,6 @@ struct DirectDictationControllerTests {
     let settings = AppSettings(defaults: freshDefaults())
     settings.dictationHistoryEnabled = true
     settings.translationTargetIdentifier = "es"
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = settings.shapingPrompts[0].id
     let controller = makeController(
       settings: settings,
       dependencies: makeDependencies(
@@ -903,7 +909,7 @@ struct DirectDictationControllerTests {
         finishRecognition: { "um so ship it thursday" },
         historyEntries: historyEntries,
         translateBody: { _ in "envíalo el jueves" },
-        shapeText: { _, _ in "Ship it on Thursday" }
+        transformar: { _, _, _ in .transformado("Ship it on Thursday") }
       )
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
@@ -913,6 +919,7 @@ struct DirectDictationControllerTests {
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
+    controller.handle(.shapingCycleRight)
     controller.handle(.triggerPressed(.translate))
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
@@ -1299,19 +1306,18 @@ struct DirectDictationControllerTests {
     controller.stop()
   }
 
-  /// Shaping runs between finish and insertion, and history keeps the raw
-  /// words: the insert receives the shaped text, history what was spoken.
-  @Test func finishShapesTextAfterHistoryAndBeforeInsertion() async {
+
+  /// El encargo entero, de punta a punta: apretar la tecla de un modo dicta y
+  /// transforma **con ese modo**. Era justo lo que no pasaba — los modos se
+  /// guardaban con su gatillo y el controlador seguía usando la otra
+  /// biblioteca, así que de los cinco modos ninguno disparaba nada.
+  @Test func laTeclaDeUnModoTerminaTransformandoConEseModo() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let historyEntries = OSAllocatedUnfairLock<[HistoryEntry]>(
-      initialState: []
-    )
-    let shapedPromptIDs = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let historyEntries = OSAllocatedUnfairLock<[HistoryEntry]>(initialState: [])
+    let modosUsados = OSAllocatedUnfairLock<[String]>(initialState: [])
     let settings = AppSettings(defaults: freshDefaults())
     settings.dictationHistoryEnabled = true
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
     let controller = makeController(
       settings: settings,
       dependencies: makeDependencies(
@@ -1319,151 +1325,378 @@ struct DirectDictationControllerTests {
         prewarmed: prewarmed,
         finishRecognition: { "raw words" },
         historyEntries: historyEntries,
-        shapeText: { text, prompt in
-          shapedPromptIDs.withLock { $0.append(prompt.id) }
-          return "shaped \(text)"
+        transformar: { texto, modo, _ in
+          modosUsados.withLock { $0.append(modo.id) }
+          return .transformado("con \(modo.id): \(texto)")
         }
       )
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.toggleFromMenu()
-    await waitUntil("Session never reached recording") {
+    controller.handle(.triggerPressed(.modo("correo")))
+    controller.handle(.triggerReleased(.modo("correo")))
+    await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
-    controller.toggleFromMenu()
-    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+    controller.handle(.triggerPressed(.modo("correo")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.insertedTexts == ["shaped raw words"])
+    #expect(modosUsados.withLock { $0 } == ["correo"])
+    #expect(recorder.insertedTexts == ["con correo: raw words"])
+    #expect(recorder.shapingNames == ["Correo"])
+    // El historial guarda el modo real, con su id: el nombre se edita, el id
+    // no, y antes ahí iba el nombre de un prompt de la otra biblioteca.
+    #expect(historyEntries.withLock { $0 }.map(\.modo) == ["Correo (correo)"])
     #expect(historyEntries.withLock { $0 }.map(\.text) == ["raw words"])
-    #expect(shapedPromptIDs.withLock { $0 } == ["tighten-grammar"])
     controller.stop()
   }
 
-  /// Shaping off — the default — never touches the text.
-  @Test func finishInsertsRawTextWhileShapingIsOff() async {
+  /// La tecla del dictado de siempre no pasa por ninguna IA. Es la promesa
+  /// del producto y el default: sin modo elegido y con "Dilo decide" apagado,
+  /// nadie transforma nada.
+  @Test func elDictadoNormalNoPasaPorNingunModo() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let shapeCalls = OSAllocatedUnfairLock(initialState: 0)
+    let llamadas = OSAllocatedUnfairLock(initialState: 0)
     let controller = makeController(
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "raw words" },
-        shapeText: { text, _ in
-          shapeCalls.withLock { $0 += 1 }
-          return "shaped"
+        transformar: { texto, _, _ in
+          llamadas.withLock { $0 += 1 }
+          return .transformado("transformado \(texto)")
         }
       )
     )
     await prepare(controller, prewarmed: prewarmed)
 
     controller.toggleFromMenu()
-    await waitUntil("Session never reached recording") {
+    await waitUntil("La sesión nunca grabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
     controller.toggleFromMenu()
-    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 
     #expect(recorder.insertedTexts == ["raw words"])
-    #expect(shapeCalls.withLock { $0 } == 0)
+    #expect(llamadas.withLock { $0 } == 0)
     controller.stop()
   }
 
-  /// The list the arrows cycle is [each prompt in session order…, None],
-  /// wrapping: one step right from the last prompt is None, and None is
-  /// passthrough — raw words, no shape call, no shaping phase.
-  @Test func cyclingRightFromTheLastPromptLandsOnNoneAndInsertsRawWords() async {
+  /// **Nunca un fallback silencioso.** Si el proveedor congelado falla, no se
+  /// prueba otro: se dice qué pasó y las palabras salen tal como se dijeron.
+  @Test func unProveedorQueFallaNoSeVaAOtroYLaPildoraLoDice() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let shapeCalls = OSAllocatedUnfairLock(initialState: 0)
+    let intentos = OSAllocatedUnfairLock(initialState: 0)
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "raw words" },
+        transformar: { _, modo, _ in
+          intentos.withLock { $0 += 1 }
+          return .salioTalCual(
+            aviso: "\(modo.nombre) no pudo reescribir: OpenAI no respondió."
+          )
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.modo("limpio")))
+    controller.handle(.triggerReleased(.modo("limpio")))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.modo("limpio")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    // Un solo intento: no hay segundo proveedor.
+    #expect(intentos.withLock { $0 } == 1)
+    #expect(recorder.insertedTexts == ["raw words"])
+    #expect(recorder.messages.last?.contains("no pudo reescribir") == true)
+    // Y las palabras quedan recuperables desde el menú de la barra.
+    #expect(controller.ultimoDictado?.texto(.original) == "raw words")
+    controller.stop()
+  }
+
+  /// El proveedor se congela al empezar. Cambiar Ajustes mientras alguien
+  /// habla aplica al dictado siguiente (ADR-0004), y acá eso es lo que impide
+  /// que un modo que empezó local termine saliendo a una nube.
+  @Test func cambiarAjustesAMitadDeDictadoNoCambiaElProveedorDeLaSesion() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let vistos = OSAllocatedUnfairLock<[String]>(initialState: [])
     let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = ShapingPrompt.defaults.last!.id
+    settings.proveedorGeneralID = "chip"
     let controller = makeController(
       settings: settings,
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "raw words" },
-        shapeText: { text, _ in
-          shapeCalls.withLock { $0 += 1 }
-          return "shaped \(text)"
+        transformar: { texto, _, proveedor in
+          if case let .corre(resuelto) = proveedor {
+            vistos.withLock { $0.append(resuelto.proveedor.id) }
+          }
+          return .transformado(texto)
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.modo("limpio")))
+    controller.handle(.triggerReleased(.modo("limpio")))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    // Mientras la persona habla, alguien cambia el proveedor general a una
+    // nube y le pone modelo para que resuelva de verdad.
+    settings.proveedorGeneralID = "openai"
+    if let indice = settings.proveedores.firstIndex(where: { $0.id == "openai" }) {
+      settings.proveedores[indice].modelo = "gpt-5"
+    }
+    controller.handle(.triggerPressed(.modo("limpio")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    #expect(vistos.withLock { $0 } == ["chip"])
+    controller.stop()
+  }
+
+  /// "Un atajo, Dilo decide": con el interruptor prendido, el atajo de
+  /// siempre resuelve el modo por reglas, y el historial guarda cuál ganó.
+  @Test func conDiloDecidiendoElAtajoPrincipalEligeModoYElHistorialDiceporQue() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let historyEntries = OSAllocatedUnfairLock<[HistoryEntry]>(initialState: [])
+    let modosUsados = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.unAtajoDiloDecide = true
+    settings.dictationHistoryEnabled = true
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        // Ghostty al frente: el modo Código lo lista, y la app al frente es
+        // la señal que mide 100 % en el set de evaluación.
+        captureFocusedTarget: { Self.makeTarget(applicationName: "Ghostty") },
+        finishRecognition: { "raw words" },
+        historyEntries: historyEntries,
+        transformar: { texto, modo, _ in
+          modosUsados.withLock { $0.append(modo.id) }
+          return .transformado("con \(modo.id): \(texto)")
         }
       )
     )
     await prepare(controller, prewarmed: prewarmed)
 
     controller.toggleFromMenu()
-    await waitUntil("Session never reached recording") {
+    await waitUntil("La sesión nunca grabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
-    controller.handle(.shapingCycleRight)
     controller.toggleFromMenu()
-    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingChoiceLabels.last == String(localized: "Sin reescritura"))
+    #expect(modosUsados.withLock { $0 } == ["codigo"])
+    #expect(recorder.insertedTexts == ["con codigo: raw words"])
+    let modoEnElHistorial = historyEntries.withLock { $0 }.first?.modo
+    #expect(modoEnElHistorial?.contains("Código (codigo)") == true)
+    #expect(modoEnElHistorial?.contains("la app al frente era Ghostty") == true)
+    controller.stop()
+  }
+
+  /// La tecla le gana al decididor: lo que la persona dijo explícitamente no
+  /// lo contradice ninguna regla.
+  @Test func laTeclaDelModoLeGanaADiloDecide() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let modosUsados = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.unAtajoDiloDecide = true
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        captureFocusedTarget: { Self.makeTarget(applicationName: "Ghostty") },
+        finishRecognition: { "raw words" },
+        transformar: { texto, modo, _ in
+          modosUsados.withLock { $0.append(modo.id) }
+          return .transformado(texto)
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.modo("mensaje")))
+    controller.handle(.triggerReleased(.modo("mensaje")))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.modo("mensaje")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    #expect(modosUsados.withLock { $0 } == ["mensaje"])
+    controller.stop()
+  }
+
+  /// El original y el resultado se guardan separados, en memoria de la
+  /// sesión: es lo que "Copiar el último dictado" ofrece sin que nadie tenga
+  /// que encender el historial, que escribe a disco y viene apagado.
+  @Test func elUltimoDictadoGuardaLasDosMitades() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let avisados = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let settings = AppSettings(defaults: freshDefaults())
+    // Historial apagado, que es el default: esto tiene que funcionar igual.
+    #expect(!settings.dictationHistoryEnabled)
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "eh o sea mándale el correo" },
+        transformar: { _, _, _ in .transformado("Estimado Juan:") }
+      )
+    )
+    controller.onUltimoDictadoChange = { dictado in
+      if let dictado { avisados.withLock { $0.append(dictado.texto(.entregado)) } }
+    }
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.modo("correo")))
+    controller.handle(.triggerReleased(.modo("correo")))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.modo("correo")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    let ultimo = controller.ultimoDictado
+    // El crudo es el de antes de limpiar muletillas: es lo único de todo
+    // esto que no se puede reconstruir.
+    #expect(ultimo?.texto(.original) == "eh o sea mándale el correo")
+    #expect(ultimo?.texto(.entregado) == "Estimado Juan:")
+    #expect(ultimo?.modo == "Correo")
+    #expect(ultimo?.tieneDosMitades == true)
+    #expect(avisados.withLock { $0 } == ["Estimado Juan:"])
+    controller.stop()
+  }
+
+  /// El pegado que se cae al portapapeles ya lo hacía el camino de Talkify,
+  /// pero callado: las palabras quedaban en otra parte y nadie lo decía.
+  @Test func unPegadoQueSeCaeAlPortapapelesLoDiceEnLaPildora() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "raw words" },
+        insertOutcome: .copiedToClipboard
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+    await waitUntil("La sesión nunca grabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.toggleFromMenu()
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    #expect(recorder.messages.last?.contains("te lo copié") == true)
+    controller.stop()
+  }
+
+  /// Lo que las flechas recorren es [cada modo…, sin modo], dando la vuelta:
+  /// un paso a la izquierda desde "sin modo" cae en el último de la lista.
+  @Test func lasFlechasRecorrenLaListaYVuelvenASinModo() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let llamadas = OSAllocatedUnfairLock(initialState: 0)
+    let settings = AppSettings(defaults: freshDefaults())
+    let ultimo = settings.modos.last!
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "raw words" },
+        transformar: { texto, _, _ in
+          llamadas.withLock { $0 += 1 }
+          return .transformado(texto)
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+    await waitUntil("La sesión nunca grabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.shapingCycleLeft)
+    #expect(recorder.shapingChoiceLabels.last == "\(ultimo.nombre)")
+    controller.handle(.shapingCycleRight)
+    #expect(recorder.shapingChoiceLabels.last == String(localized: "Sin modo"))
+    controller.toggleFromMenu()
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    // De vuelta en "sin modo": nada transforma y el HUD se va de inmediato,
+    // igual que un dictado normal.
     #expect(recorder.insertedTexts == ["raw words"])
-    #expect(shapeCalls.withLock { $0 } == 0)
-    // None hides immediately, exactly as a shaping-off session does.
+    #expect(llamadas.withLock { $0 } == 0)
     #expect(recorder.count(of: "showShaping") == 0)
-    let hideIndex = recorder.events.firstIndex(of: "hideHUD")
-    let insertIndex = recorder.events.firstIndex(of: "insertText")
-    #expect(hideIndex != nil && insertIndex != nil)
-    if let hideIndex, let insertIndex {
-      #expect(hideIndex < insertIndex)
-    }
     controller.stop()
   }
 
-  /// The cycle seeds from the snapshot's selection, so one step right from
-  /// the selected first prompt shapes with the second.
-  @Test func cyclingSeedsFromTheSelectionAndFinishShapesWithTheCycledPrompt() async {
+  /// Mover las flechas es elegir: desde ahí, "Dilo decide" ya no opina.
+  @Test func elegirConLasFlechasLeGanaADiloDecide() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let shapedPromptIDs = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let llamadas = OSAllocatedUnfairLock(initialState: 0)
     let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
+    settings.unAtajoDiloDecide = true
     let controller = makeController(
       settings: settings,
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
+        captureFocusedTarget: { Self.makeTarget(applicationName: "Ghostty") },
         finishRecognition: { "raw words" },
-        shapeText: { text, prompt in
-          shapedPromptIDs.withLock { $0.append(prompt.id) }
-          return "shaped \(text)"
+        transformar: { texto, _, _ in
+          llamadas.withLock { $0 += 1 }
+          return .transformado(texto)
         }
       )
     )
     await prepare(controller, prewarmed: prewarmed)
 
     controller.toggleFromMenu()
-    await waitUntil("Session never reached recording") {
+    await waitUntil("La sesión nunca grabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
-    #expect(recorder.shapingChoiceLabels.first == "Ortografía y puntuación")
+    // Una flecha a la derecha y otra a la izquierda: vuelve a "sin modo",
+    // pero ya fue una elección, así que las reglas se callan.
     controller.handle(.shapingCycleRight)
+    controller.handle(.shapingCycleLeft)
     controller.toggleFromMenu()
-    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingChoiceLabels.last == "Hazme una lista")
-    #expect(shapedPromptIDs.withLock { $0 } == ["bullet-lists"])
-    #expect(recorder.insertedTexts == ["shaped raw words"])
+    #expect(llamadas.withLock { $0 } == 0)
+    #expect(recorder.insertedTexts == ["raw words"])
     controller.stop()
   }
 
-  /// The bare arrows are swallowed exactly while a session that can shape is
-  /// recording: capture arms when recording begins and disarms on the finish
-  /// and on Escape alike.
+  /// Las flechas peladas se tragan exactamente mientras una sesión que puede
+  /// elegir modo está grabando: se arman al empezar y se sueltan tanto en el
+  /// final como en Escape.
   @Test func arrowCaptureFollowsRecordingThroughEndAndCancel() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
     let controller = makeController(
-      settings: settings,
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
@@ -1494,52 +1727,16 @@ struct DirectDictationControllerTests {
     controller.stop()
   }
 
-  /// With shaping off, or on over an empty library, there is nothing to
-  /// cycle, so the arrows are never captured and no pick is shown.
-  @Test func arrowCaptureNeverArmsWithShapingOffOrAnEmptyLibrary() async {
-    for enableWithEmptyLibrary in [false, true] {
-      let recorder = Recorder()
-      let prewarmed = OSAllocatedUnfairLock(initialState: false)
-      let settings = AppSettings(defaults: freshDefaults())
-      if enableWithEmptyLibrary {
-        settings.promptShapingEnabled = true
-        settings.shapingPrompts = []
-      }
-      let controller = makeController(
-        settings: settings,
-        dependencies: makeDependencies(recorder: recorder, prewarmed: prewarmed)
-      )
-      await prepare(controller, prewarmed: prewarmed)
-
-      controller.toggleFromMenu()
-      await waitUntil("Session never reached recording") {
-        controller.sessionStateForTesting == .recording(.latched)
-      }
-      controller.toggleFromMenu()
-      await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
-
-      #expect(recorder.cycleCaptureStates.isEmpty)
-      #expect(recorder.shapingChoiceLabels == [nil])
-      controller.stop()
-    }
-  }
-
-  /// The visible shaping phase: a session that will shape says which prompt
-  /// it is shaping with, before the insertion, instead of hiding the HUD.
-  @Test func aShapingSessionShowsShapingWithTheChosenNameBeforeInsertion() async {
+  /// Sin modos no hay nada que recorrer, así que las flechas nunca se tragan
+  /// y no se muestra ninguna elección.
+  @Test func arrowCaptureNeverArmsWithAnEmptyLibrary() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
     let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
+    settings.modos = []
     let controller = makeController(
       settings: settings,
-      dependencies: makeDependencies(
-        recorder: recorder,
-        prewarmed: prewarmed,
-        finishRecognition: { "raw words" },
-        shapeText: { text, _ in "shaped \(text)" }
-      )
+      dependencies: makeDependencies(recorder: recorder, prewarmed: prewarmed)
     )
     await prepare(controller, prewarmed: prewarmed)
 
@@ -1550,38 +1747,60 @@ struct DirectDictationControllerTests {
     controller.toggleFromMenu()
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
-    #expect(recorder.shapingNames == ["Ortografía y puntuación"])
+    #expect(recorder.cycleCaptureStates.isEmpty)
+    #expect(recorder.shapingChoiceLabels == [nil])
+    controller.stop()
+  }
+
+  /// La fase visible: una sesión que va a transformar dice con qué modo, y lo
+  /// dice antes de la inserción, en vez de esconder el HUD en silencio.
+  @Test func unaSesionConModoLoNombraAntesDeInsertar() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "raw words" },
+        transformar: { texto, _, _ in .transformado("transformado \(texto)") }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.modo("limpio")))
+    controller.handle(.triggerReleased(.modo("limpio")))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.modo("limpio")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    #expect(recorder.shapingNames == ["Limpio"])
     let shapingIndex = recorder.events.firstIndex(of: "showShaping")
     let hideIndex = recorder.events.firstIndex(of: "hideHUD")
     let insertIndex = recorder.events.firstIndex(of: "insertText")
     #expect(shapingIndex != nil && hideIndex != nil && insertIndex != nil)
     if let shapingIndex, let hideIndex, let insertIndex {
-      // Shaping shows first, the HUD leaves when the answer lands, and only
-      // then does the insertion run — exactly the unshaped order from there.
       #expect(shapingIndex < hideIndex)
       #expect(hideIndex < insertIndex)
     }
     controller.stop()
   }
 
-  /// A queued arrow event landing outside recording is dead: the finish
-  /// still shapes with the seeded selection.
+  /// Una flecha en cola que llega fuera de la grabación está muerta: el final
+  /// transforma con el modo de la tecla que abrió la sesión.
   @Test func cyclingWhileNotRecordingChangesNothing() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
-    let shapedPromptIDs = OSAllocatedUnfairLock<[String]>(initialState: [])
-    let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
+    let modosUsados = OSAllocatedUnfairLock<[String]>(initialState: [])
     let controller = makeController(
-      settings: settings,
       dependencies: makeDependencies(
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "raw words" },
-        shapeText: { text, prompt in
-          shapedPromptIDs.withLock { $0.append(prompt.id) }
-          return "shaped \(text)"
+        transformar: { texto, modo, _ in
+          modosUsados.withLock { $0.append(modo.id) }
+          return .transformado(texto)
         }
       )
     )
@@ -1590,14 +1809,33 @@ struct DirectDictationControllerTests {
     controller.handle(.shapingCycleRight)
     #expect(recorder.shapingChoiceLabels.isEmpty)
 
-    controller.toggleFromMenu()
-    await waitUntil("Session never reached recording") {
+    controller.handle(.triggerPressed(.modo("limpio")))
+    controller.handle(.triggerReleased(.modo("limpio")))
+    await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
-    controller.toggleFromMenu()
-    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+    controller.handle(.triggerPressed(.modo("limpio")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 
-    #expect(shapedPromptIDs.withLock { $0 } == ["tighten-grammar"])
+    #expect(modosUsados.withLock { $0 } == ["limpio"])
     controller.stop()
+  }
+
+  /// El tap tiene que recibir la tecla de cada modo. Sin esto —que es como
+  /// estaba— el gatillo se guardaba en Ajustes y nunca llegaba al teclado.
+  @Test func lasTeclasDeLosModosLleganAlTap() {
+    let settings = AppSettings(defaults: freshDefaults())
+    let bindings = DirectDictationController.triggerBindings(
+      settings: settings, sessionSlot: nil, sessionBinding: nil
+    )
+    // De fábrica sólo Limpio trae tecla.
+    #expect(bindings.modos.map(\.id) == ["limpio"])
+    #expect(bindings.modos.first?.binding == .controlCommandL)
+
+    settings.modos[1].gatillo = KeyBinding.optionEscape.gatillo
+    let conDos = DirectDictationController.triggerBindings(
+      settings: settings, sessionSlot: nil, sessionBinding: nil
+    )
+    #expect(conDos.modos.map(\.id) == ["limpio", settings.modos[1].id])
   }
 }

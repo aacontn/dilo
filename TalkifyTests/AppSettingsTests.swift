@@ -1,3 +1,4 @@
+import DiloModes
 import Foundation
 import Testing
 @testable import Dilo
@@ -407,128 +408,126 @@ struct AppSettingsTests {
     #expect(snapshot.historyFolder.path(percentEncoded: false) == "/tmp/history")
   }
 
-  @Test func promptShapingDefaultsToOffWithTheFirstPrompt() {
-    let settings = AppSettings(defaults: freshDefaults())
-    #expect(!settings.promptShapingEnabled)
-    #expect(settings.promptShapingPromptID == ShapingPrompt.defaults[0].id)
-  }
-
-  @Test func freshStoreSeedsTheBuiltInShapingPrompts() {
-    let settings = AppSettings(defaults: freshDefaults())
-    #expect(settings.shapingPrompts == ShapingPrompt.defaults)
-  }
-
-  @Test func editedShapingPromptsPersistAndReadBack() {
+  /// La migración de "Transformar" a modos: idempotente, en el chip, y sin
+  /// perder lo que alguien escribió. La regla entera vive en `DiloModes` con
+  /// sus tests; acá se prueba que los ajustes la corren y la anotan.
+  @Test func laPrimeraLecturaMigraLosPromptsHeredadosAModos() {
     let defaults = freshDefaults()
-    let settings = AppSettings(defaults: defaults)
-    settings.shapingPrompts[0].name = "My grammar fixer"
-    settings.shapingPrompts.append(ShapingPrompt(
-      id: "mine",
-      name: "Mine",
-      preInstruction: "Shout it.",
-      postInstruction: "Politely.",
-      exampleInput: "",
-      exampleOutput: ""
-    ))
-    settings.shapingPrompts.removeAll { $0.id == "bullet-lists" }
-
-    let reloaded = AppSettings(defaults: defaults)
-    #expect(reloaded.shapingPrompts == settings.shapingPrompts)
-    #expect(reloaded.shapingPrompts[0].name == "My grammar fixer")
-    #expect(reloaded.shapingPrompts.prompt(for: "mine")?.postInstruction == "Politely.")
-    #expect(reloaded.shapingPrompts.prompt(for: "bullet-lists") == nil)
-  }
-
-  @Test func undecodableStoredShapingPromptsReseedFromTheDefaults() {
-    let defaults = freshDefaults()
-    defaults.set(Data("not json".utf8), forKey: "dictationShapingPrompts")
+    let heredados = [
+      PromptHeredado(
+        id: "acta", name: "Acta", preInstruction: "Ordénalo como acta.",
+        postInstruction: "Sin inventar fechas.", exampleInput: "a", exampleOutput: "b"
+      ),
+    ]
+    defaults.set(try! JSONEncoder().encode(heredados), forKey: "dictationShapingPrompts")
 
     let settings = AppSettings(defaults: defaults)
-    #expect(settings.shapingPrompts == ShapingPrompt.defaults)
+    let acta = settings.modos.modo(MigracionDeModos.idDeModo("acta"))
+    #expect(acta?.nombre == "Acta")
+    #expect(acta?.prompt == "Ordénalo como acta.")
+    #expect(acta?.instruccionFinal == "Sin inventar fechas.")
+    // En el chip, no en el general: heredar el general habría mandado a una
+    // nube un texto que hasta ayer no salía de la compu.
+    #expect(acta?.proveedorID == "chip")
+    #expect(settings.versionDeMigracionDeModos == MigracionDeModos.version)
   }
 
-  @Test func restoringDefaultsReseedsTheShapingPrompts() {
+  @Test func laMigracionNoSeRepiteNiDuplicaLaLista() {
     let defaults = freshDefaults()
-    let settings = AppSettings(defaults: defaults)
-    settings.promptShapingPromptID = "mine"
-    settings.shapingPrompts = [ShapingPrompt(
-      id: "mine",
-      name: "Mine",
-      preInstruction: "",
-      postInstruction: "",
-      exampleInput: "",
-      exampleOutput: ""
-    )]
+    let heredados = [PromptHeredado(id: "acta", name: "Acta", preInstruction: "x")]
+    defaults.set(try! JSONEncoder().encode(heredados), forKey: "dictationShapingPrompts")
 
-    settings.restoreDefaultShapingPrompts()
-
-    #expect(settings.shapingPrompts == ShapingPrompt.defaults)
-    #expect(AppSettings(defaults: defaults).shapingPrompts == ShapingPrompt.defaults)
-    // The selection is left alone: an id the seeds do not carry resolves to
-    // nil, which is passthrough.
-    #expect(settings.promptShapingPromptID == "mine")
+    let primera = AppSettings(defaults: defaults)
+    let segunda = AppSettings(defaults: defaults)
+    #expect(segunda.modos == primera.modos)
+    #expect(Set(segunda.modos.map(\.id)).count == segunda.modos.count)
   }
 
-  @Test func promptShapingRoundTripsUnderItsKeys() {
+  /// Los datos viejos se quedan una versión más: si la migración salió mal,
+  /// la biblioteca de alguien todavía se puede reconstruir a mano.
+  @Test func laMigracionNoBorraLoViejo() {
     let defaults = freshDefaults()
-    let settings = AppSettings(defaults: defaults)
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "bullet-lists"
+    let heredados = [PromptHeredado(id: "acta", name: "Acta", preInstruction: "x")]
+    defaults.set(try! JSONEncoder().encode(heredados), forKey: "dictationShapingPrompts")
+    defaults.set(true, forKey: "dictationPromptShapingEnabled")
 
+    _ = AppSettings(defaults: defaults)
+    #expect(defaults.data(forKey: "dictationShapingPrompts") != nil)
     #expect(defaults.object(forKey: "dictationPromptShapingEnabled") as? Bool == true)
-    #expect(defaults.string(forKey: "dictationPromptShapingPrompt") == "bullet-lists")
-
-    let reloaded = AppSettings(defaults: defaults)
-    #expect(reloaded.promptShapingEnabled)
-    #expect(reloaded.promptShapingPromptID == "bullet-lists")
   }
 
-  /// The snapshot resolves the pick to a prompt: nil while shaping is off,
-  /// and nil again when the stored id names nothing in the user's list.
-  @Test func sessionSnapshotResolvesTheShapingPrompt() {
+  /// Quien tenía "Transformar" prendido pedía que el atajo principal hiciera
+  /// algo con lo dictado; eso sobrevive como "un atajo, Dilo decide".
+  @Test func transformarPrendidoDejaAlAtajoPrincipalDecidiendo() {
+    let defaults = freshDefaults()
+    defaults.set(true, forKey: "dictationPromptShapingEnabled")
+
+    let settings = AppSettings(defaults: defaults)
+    #expect(settings.unAtajoDiloDecide)
+    #expect(defaults.object(forKey: "diloUnAtajoDiloDecide") as? Bool == true)
+  }
+
+  @Test func unaInstalacionNuevaQuedaConLosModosDeFabricaYSinDecidir() {
     let settings = AppSettings(defaults: freshDefaults())
-    #expect(settings.sessionSettings.shapingPrompt == nil)
-
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "bullet-lists"
-    #expect(settings.sessionSettings.shapingPrompt?.id == "bullet-lists")
-
-    settings.promptShapingPromptID = "no-such-prompt"
-    #expect(settings.sessionSettings.shapingPrompt == nil)
+    #expect(settings.modos == Modo.deFabrica)
+    #expect(!settings.unAtajoDiloDecide)
   }
 
-  /// The session runs the user's edit, not the seed the id started as.
-  @Test func sessionSnapshotResolvesTheShapingPromptFromTheEditedList() {
+  /// La instantánea congela la biblioteca y el catálogo de proveedores:
+  /// cambiar Ajustes a mitad de dictado aplica al siguiente (ADR-0004).
+  @Test func laInstantaneaCongelaLosModosYLosProveedores() {
     let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
-    settings.shapingPrompts[0].preInstruction = "Fix everything."
+    let instantanea = settings.sessionSettings
 
-    #expect(settings.sessionSettings.shapingPrompt?.preInstruction == "Fix everything.")
+    settings.modos = []
+    settings.proveedorGeneralID = "openai"
+
+    #expect(instantanea.modos == Modo.deFabrica)
+    #expect(instantanea.proveedorGeneralID == "chip")
   }
 
-  /// The snapshot carries the whole library while shaping is on — the
-  /// arrows cycle the session's own list — and an empty one while it is
-  /// off, so an off session has nothing to cycle.
-  @Test func sessionSnapshotCapturesTheShapingLibraryOnlyWhileOn() {
+  /// Y resuelve **un** proveedor, sin respaldo: el del chip resuelve solo,
+  /// porque no necesita ni clave ni modelo.
+  @Test func laInstantaneaResuelveUnProveedorPorSesion() {
     let settings = AppSettings(defaults: freshDefaults())
-    #expect(settings.sessionSettings.shapingLibrary.isEmpty)
-
-    settings.promptShapingEnabled = true
-    #expect(settings.sessionSettings.shapingLibrary == settings.shapingPrompts)
-
-    settings.promptShapingEnabled = false
-    #expect(settings.sessionSettings.shapingLibrary.isEmpty)
+    let instantanea = settings.sessionSettings
+    guard case let .corre(resuelto) = instantanea.proveedorDeSesion(
+      para: Modo.deFabrica[0]
+    ) else {
+      Issue.record("La sesión quedó sin proveedor")
+      return
+    }
+    #expect(resuelto.proveedor.id == "chip")
+    #expect(resuelto.esLocal)
   }
 
-  @Test func deletingTheSelectedPromptFallsBackToPassthrough() {
+  /// El modo de la tecla sale de la biblioteca congelada, no de Ajustes.
+  @Test func laInstantaneaEncuentraElModoDeUnaTecla() {
     let settings = AppSettings(defaults: freshDefaults())
-    settings.promptShapingEnabled = true
-    settings.promptShapingPromptID = "tighten-grammar"
-    settings.shapingPrompts.removeAll { $0.id == "tighten-grammar" }
-
-    #expect(settings.sessionSettings.shapingPrompt == nil)
+    let instantanea = settings.sessionSettings
+    #expect(instantanea.modo(delGatillo: .controlComandoL)?.id == "limpio")
+    #expect(instantanea.modo(delGatillo: .fn) == nil)
+    #expect(instantanea.modo(delGatillo: nil) == nil)
   }
+
+  /// Los atajos ocupados incluyen los modos, que es lo que faltaba para que
+  /// una tecla no se pudiera asignar dos veces.
+  @Test func losAtajosOcupadosIncluyenLosModos() {
+    let settings = AppSettings(defaults: freshDefaults())
+    let ocupados = settings.gatillosEnUso
+
+    #expect(ocupados.contains { $0.id == AppSettings.idDeRol(.dictation) })
+    #expect(ocupados.contains { $0.id == "limpio" })
+    // Segundo idioma y traducir vienen apagados: no tienen tecla instalada,
+    // así que no le quitan nada a nadie.
+    #expect(!ocupados.contains { $0.id == AppSettings.idDeRol(.secondLanguage) })
+    #expect(!ocupados.contains { $0.id == AppSettings.idDeRol(.translate) })
+
+    #expect(settings.quienUsa(.controlCommandL, salvo: "correo") == "Limpio")
+    #expect(settings.quienUsa(.controlCommandL, salvo: "limpio") == nil)
+    #expect(settings.quienUsa(.fnTrigger, salvo: "limpio") == BindingRole.dictation.title)
+  }
+
 
   @Test func sessionSnapshotCapturesTheInsertionDestination() {
     let settings = AppSettings(defaults: freshDefaults())

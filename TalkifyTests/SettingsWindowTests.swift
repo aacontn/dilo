@@ -31,7 +31,7 @@ struct SettingsWindowTests {
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
       .general, .appearance, .sounds, .motor, .dictation, .modos, .palabras,
-      .historial, .promptShaping, .dropTranscription, .readAloud, .language,
+      .historial, .dropTranscription, .readAloud, .language,
       .shortcuts, .updates, .novedades, .insights, .about,
     ]
     #expect(SettingsSection.allCases == expected)
@@ -47,18 +47,11 @@ struct SettingsWindowTests {
     #expect(!navegables.contains(.readAloud)) // Se accede desde General, respetando capacidades.
   }
 
-  @Test func deletingThePickedShapingPromptFallsBackToTheFirst() {
-    let prompts = ShapingPrompt.defaults
-    let picked = prompts[1].id
-    #expect(
-      PromptShapingSettingsView.resolvedSelection(picked: picked, in: prompts) == picked
-    )
-    let remaining = prompts.filter { $0.id != picked }
-    #expect(
-      PromptShapingSettingsView.resolvedSelection(picked: picked, in: remaining)
-        == remaining[0].id
-    )
-    #expect(PromptShapingSettingsView.resolvedSelection(picked: picked, in: []) == "")
+  /// "Transformar" era una segunda biblioteca de modos con su propio panel.
+  /// Ahora hay una sola, así que su sección ya no existe y nada debería
+  /// seguir nombrándola.
+  @Test func laSeccionDeTransformarYaNoExiste() {
+    #expect(!SettingsSection.allCases.contains { $0.title == "Transformar" })
   }
 
   @Test func appearanceOptionsFollowTheSelectedVisual() {

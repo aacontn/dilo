@@ -262,9 +262,6 @@ private struct SettingsContent: View {
           }
         case .modos:
           ModosSettingsView(settings: settings)
-          DisclosureGroup("Reescritura del dictado normal") {
-            PromptShapingSettingsView(settings: settings).padding(.top, 12)
-          }
         case .palabras:
           PalabrasSettingsView(settings: settings)
         case .historial:
@@ -272,8 +269,6 @@ private struct SettingsContent: View {
           DisclosureGroup("Actividad de dictado") {
             InsightsSettingsView(tracker: usageTracker).padding(.top, 12)
           }
-        case .promptShaping:
-          PromptShapingSettingsView(settings: settings)
         case .dropTranscription:
           DropTranscriptionSettingsView(settings: settings)
         case .readAloud:
