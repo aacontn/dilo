@@ -16,7 +16,15 @@ func valor(de bandera: String, en argumentos: [String]) -> String? {
 let argumentos = Array(CommandLine.arguments.dropFirst())
 
 guard let rutaDelApp = valor(de: "--app", en: argumentos) else {
-  FileHandle.standardError.write(Data("uso: dilo-metrics --app <ruta.app> [--salida <json>]\n".utf8))
+  FileHandle.standardError.write(
+    Data(
+      """
+      uso: dilo-metrics --app <ruta.app> [--salida <json>] [--tamano-de <ruta.app>]
+                        [--sin-latencia] [--ci] [--reposo <s>] [--arranques <n>]
+
+      """.utf8
+    )
+  )
   exit(2)
 }
 
@@ -30,6 +38,10 @@ let mideLatencia = !argumentos.contains("--sin-latencia")
 // Debug y el tamaño sobre su gemelo Release del mismo commit.
 let rutaDelTamano = valor(de: "--tamano-de", en: argumentos)
 let rutaDeSalida = valor(de: "--salida", en: argumentos)
+// En CI lo que el entorno no deja medir no tumba la corrida: se anota con su
+// razón y se sigue. En un Mac de verdad una métrica sin medir sigue siendo un
+// fallo —si no, el archivo versionado se vuelve una lista de excusas—.
+let enCI = argumentos.contains("--ci") || ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == "true"
 
 func avisar(_ texto: String) {
   FileHandle.standardError.write(Data((texto + "\n").utf8))
@@ -45,15 +57,26 @@ func maquina() -> String {
 do {
   let app = try Aplicacion(ruta: URL(fileURLWithPath: rutaDelApp).standardizedFileURL)
   var valores: [Metrica: Double] = [:]
+  var sinMedir: [Metrica: String] = [:]
   var notas: [String] = []
 
   avisar("→ tamaño del bundle")
-  if let rutaDelTamano {
-    let gemelo = try Aplicacion(ruta: URL(fileURLWithPath: rutaDelTamano).standardizedFileURL)
-    valores[.tamanoDelApp] = Double(try gemelo.tamanoEnBytes()) / Umbrales.bytesPorMB
-    notas.append("Tamaño: medido sobre \(gemelo.ruta.path), el gemelo Release del mismo commit.")
+  let appDelTamano = try rutaDelTamano
+    .map { try Aplicacion(ruta: URL(fileURLWithPath: $0).standardizedFileURL) } ?? app
+  if appDelTamano.esBuildDebug {
+    // Sin `--tamano-de` y con un Debug adelante, el número que saldría sería
+    // el de un bundle que nadie descarga. Mejor no medirlo y decirlo.
+    sinMedir[.tamanoDelApp] =
+      "el .app es un build Debug y carga un .debug.dylib que no viaja en la descarga; "
+      + "compila Release y pásalo con --tamano-de"
+    notas.append("Tamaño: no se midió, el bundle es Debug.")
   } else {
-    valores[.tamanoDelApp] = Double(try app.tamanoEnBytes()) / Umbrales.bytesPorMB
+    valores[.tamanoDelApp] = Double(try appDelTamano.tamanoEnBytes()) / Umbrales.bytesPorMB
+    if rutaDelTamano != nil {
+      notas.append(
+        "Tamaño: medido sobre \(appDelTamano.ruta.path), el gemelo Release del mismo commit."
+      )
+    }
   }
 
   avisar("→ arranque en frío (\(arranques) lanzamientos)")
@@ -104,6 +127,9 @@ do {
     notas.append("Latencia: segunda pasada, con el modelo ya cargado. Transcrito: “\(resultado.texto)”.")
     app.matar()
   } else {
+    sinMedir[.latenciaSoltarTexto] =
+      "disparar el dictado pide Accesibilidad y una sesión gráfica, que un runner no tiene; "
+      + "se mide a mano en un Mac antes de cortar un release"
     notas.append("Latencia: no se midió (--sin-latencia).")
   }
 
@@ -111,7 +137,8 @@ do {
     app: app.ruta.path,
     maquina: maquina(),
     nota: notas.joined(separator: " "),
-    valores: valores
+    valores: valores,
+    sinMedirEnEsteEntorno: enCI ? sinMedir : [:]
   )
 
   if let rutaDeSalida {
@@ -123,8 +150,20 @@ do {
   print(reporte.tabla())
   print("")
   for problema in reporte.problemas { print("✗ \(problema)") }
+  for (metrica, razon) in reporte.sinMedirEnEsteEntorno.sorted(by: { $0.key.titulo < $1.key.titulo }) {
+    print("· \(metrica.titulo): no medible acá — \(razon). El umbral sigue vigente en un Mac.")
+  }
+  if !enCI {
+    for (metrica, razon) in sinMedir.sorted(by: { $0.key.titulo < $1.key.titulo }) {
+      print("  \(metrica.titulo): \(razon).")
+    }
+  }
   if reporte.cumple {
-    print("Los cinco números del spec §3 se cumplen.")
+    print(
+      enCI && !reporte.sinMedirEnEsteEntorno.isEmpty
+        ? "Los números que este entorno puede medir se cumplen."
+        : "Los cinco números del spec §3 se cumplen."
+    )
     exit(0)
   }
   exit(1)

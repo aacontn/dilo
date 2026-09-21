@@ -85,19 +85,43 @@ public struct Reporte: Codable, Sendable, Equatable {
   /// Una entrada por métrica medida. Una métrica ausente es una métrica que
   /// no se pudo medir, y eso también es un fallo (ver `problemas`).
   public var valores: [Metrica: Double]
+  /// Lo que este entorno no puede medir, con la razón, métrica por métrica.
+  ///
+  /// Una métrica acá no cuenta como fallo: el runner de CI no tiene
+  /// Accesibilidad ni a quién pedírsela, así que exigirle la latencia es
+  /// pedirle que invente un número. Igual sale en la tabla, con el porqué.
+  /// **Sólo la llena `dilo-metrics --ci`**: en un Mac de verdad lo que no se
+  /// midió sigue siendo un fallo, que es todo el punto del archivo versionado.
+  public var sinMedirEnEsteEntorno: [Metrica: String]
 
   public init(
     generado: Date = Date(),
     app: String,
     maquina: String,
     nota: String = "",
-    valores: [Metrica: Double]
+    valores: [Metrica: Double],
+    sinMedirEnEsteEntorno: [Metrica: String] = [:]
   ) {
     self.generado = generado
     self.app = app
     self.maquina = maquina
     self.nota = nota
     self.valores = valores
+    self.sinMedirEnEsteEntorno = sinMedirEnEsteEntorno
+  }
+
+  /// Decodifica a mano por un solo campo: `sinMedirEnEsteEntorno` no está en
+  /// las mediciones ya versionadas y Swift no usa el valor por defecto cuando
+  /// la clave falta. Sin esto, agregar el campo rompe cada reporte anterior.
+  public init(from decoder: Decoder) throws {
+    let contenedor = try decoder.container(keyedBy: CodingKeys.self)
+    generado = try contenedor.decode(Date.self, forKey: .generado)
+    app = try contenedor.decode(String.self, forKey: .app)
+    maquina = try contenedor.decode(String.self, forKey: .maquina)
+    nota = try contenedor.decodeIfPresent(String.self, forKey: .nota) ?? ""
+    valores = try contenedor.decode([Metrica: Double].self, forKey: .valores)
+    sinMedirEnEsteEntorno =
+      try contenedor.decodeIfPresent([Metrica: String].self, forKey: .sinMedirEnEsteEntorno) ?? [:]
   }
 
   /// Los umbrales rotos y las métricas que faltan, en español y listos para
@@ -106,6 +130,9 @@ public struct Reporte: Codable, Sendable, Equatable {
     var salida: [String] = []
     for metrica in Metrica.allCases {
       guard let valor = valores[metrica] else {
+        // Lo que este entorno no puede medir se cuenta aparte: sale en la
+        // tabla con su razón, pero no tumba la corrida.
+        if sinMedirEnEsteEntorno[metrica] != nil { continue }
         salida.append("\(metrica.titulo): no se midió (\(metrica.metodo))")
         continue
       }
@@ -129,13 +156,17 @@ public struct Reporte: Codable, Sendable, Equatable {
     for metrica in Metrica.allCases {
       let medido = valores[metrica].map(metrica.formatear) ?? "—"
       let pasa: String
+      var como = metrica.metodo
       if let valor = valores[metrica] {
         pasa = metrica.cumple(valor) ? "sí" : "**no**"
+      } else if let razon = sinMedirEnEsteEntorno[metrica] {
+        pasa = "no medible acá"
+        como = "\(metrica.metodo) — \(razon)"
       } else {
         pasa = "**sin medir**"
       }
       lineas.append(
-        "| \(metrica.titulo) | \(medido) | \(metrica.umbralFormateado) | \(pasa) | \(metrica.metodo) |"
+        "| \(metrica.titulo) | \(medido) | \(metrica.umbralFormateado) | \(pasa) | \(como) |"
       )
     }
     return lineas.joined(separator: "\n")

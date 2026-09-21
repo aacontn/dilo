@@ -55,6 +55,56 @@ struct UmbralesTests {
     #expect(reporte.problemas[0].contains("no se midió"))
   }
 
+  /// CI no tiene Accesibilidad y no la va a tener: ahí la latencia no se mide
+  /// y eso no puede ser un fallo. Lo que no se negocia es que la razón salga
+  /// escrita, para que "no medible acá" nunca se confunda con "cumple".
+  @Test func loQueElEntornoNoPuedeMedirNoTumbaLaCorrida() {
+    var valores = Self.justoPorDebajo
+    valores[.latenciaSoltarTexto] = nil
+    let reporte = Reporte(
+      app: "/tmp/Dilo.app",
+      maquina: "un runner",
+      valores: valores,
+      sinMedirEnEsteEntorno: [.latenciaSoltarTexto: "el runner no tiene Accesibilidad"]
+    )
+    #expect(reporte.cumple)
+    #expect(reporte.problemas.isEmpty)
+    #expect(reporte.tabla().contains("no medible acá"))
+    #expect(reporte.tabla().contains("el runner no tiene Accesibilidad"))
+  }
+
+  /// La excusa es para lo que no se pudo medir, no para lo que se midió y
+  /// salió mal. Un número medido por encima del umbral falla igual.
+  @Test func excusarAlEntornoNoTapaUnUmbralRoto() {
+    var valores = Self.justoPorDebajo
+    valores[.tamanoDelApp] = 34.9
+    let reporte = Reporte(
+      app: "/tmp/Dilo.app",
+      maquina: "un runner",
+      valores: valores,
+      sinMedirEnEsteEntorno: [.tamanoDelApp: "una excusa que no corresponde"]
+    )
+    #expect(!reporte.cumple)
+    #expect(reporte.problemas.count == 1)
+    #expect(reporte.problemas[0].contains(Metrica.tamanoDelApp.titulo))
+  }
+
+  /// El campo llegó después de las primeras mediciones versionadas. Si un
+  /// reporte viejo dejara de leerse, `swift test` fallaría por el formato y
+  /// no por un número, que es justo lo que este archivo existe para evitar.
+  @Test func unaMedicionAnteriorSeLeeSinElCampoNuevo() throws {
+    let json = #"{"app":"/tmp/Dilo.app","generado":"2026-09-20T00:25:35Z","maquina":"prueba","#
+      + #""nota":"","valores":{"ramEnReposo":18.7,"cpuEnReposo":0.04,"#
+      + #""arranqueEnFrio":0.11,"latenciaSoltarTexto":0.08,"tamanoDelApp":17.2}}"#
+    let archivo = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appending(path: "dilo-reporte-viejo-\(UUID().uuidString).json")
+    try Data(json.utf8).write(to: archivo)
+    defer { try? FileManager.default.removeItem(at: archivo) }
+    let leido = try Reporte.leer(de: archivo)
+    #expect(leido.sinMedirEnEsteEntorno.isEmpty)
+    #expect(leido.cumple)
+  }
+
   @Test func losUmbralesSonLosDelSpec() {
     // Si alguien relaja uno, que sea acá y con el spec abierto.
     #expect(Metrica.ramEnReposo.umbral == 60)

@@ -9,12 +9,18 @@
 #   --tamano-de <.app>  mide el tamaño sobre otro bundle: el Release, que es el
 #                       que se descarga, mientras la latencia se mide sobre el
 #                       Debug, que es el único que trae el gancho
+#   --ci                lo que este entorno no puede medir no tumba la corrida
 #   --reposo <s>        ventana de reposo, por defecto 60
 #   --arranques <n>     lanzamientos para la mediana de arranque, por defecto 5
 #
 # Deja el reporte en docs/metricas/ultima-medicion.json —que se versiona— e
 # imprime la tabla. **Termina con código ≠ 0 si un umbral no se cumple o si una
 # métrica no se pudo medir**, para poder colgarlo de CI sin más cañería.
+#
+# El tamaño se mide sobre el .app **Release**, que es el que se descarga: un
+# Debug de Xcode 26 arrastra un `Dilo.debug.dylib` de doce megas que no viaja.
+# Si el bundle que te toca medir es Debug, el tamaño queda sin medir —y sin
+# medir es fallo— hasta que le des el Release con `--tamano-de`.
 #
 # Para medir la latencia el .app tiene que ser un build **Debug**: el gancho
 # DILO_METRICS_WAV no existe en release. Y el terminal desde el que corres esto

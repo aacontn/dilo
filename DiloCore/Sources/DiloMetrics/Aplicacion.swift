@@ -53,6 +53,20 @@ public struct Aplicacion: Sendable {
     return total
   }
 
+  /// Si este bundle es un build Debug, o sea uno que nadie descarga.
+  ///
+  /// Xcode 26 saca todo el código de la app a un `*.debug.dylib` aparte para
+  /// poder recargarlo en caliente, y le suma un `__preview.dylib`. Eso son
+  /// doce megas que no viajan en el release: medir ahí el "tamaño de la
+  /// descarga" es medir otra app. El tamaño se mide contra Release.
+  public var esBuildDebug: Bool {
+    let ejecutables =
+      (try? FileManager.default.contentsOfDirectory(
+        atPath: ruta.appending(path: "Contents/MacOS").path
+      )) ?? []
+    return ejecutables.contains { $0.hasSuffix(".debug.dylib") || $0 == "__preview.dylib" }
+  }
+
   public func corriendo() -> [NSRunningApplication] {
     NSRunningApplication.runningApplications(withBundleIdentifier: identificadorDeBundle)
   }

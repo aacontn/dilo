@@ -67,15 +67,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # El .app tiene que ser Debug: el gancho DILO_METRICS_WAV que mide
-      # "soltar → texto" vive dentro de un #if DEBUG y en Release no existe.
-      - name: Compilar Dilo (Debug)
+      # Release y no Debug. El único número que pide Debug es "soltar → texto"
+      # —su gancho vive en un #if DEBUG— y acá no se mide de todos modos. A
+      # cambio, un .app Debug de Xcode 26 arrastra un Dilo.debug.dylib de doce
+      # megas que nadie descarga, y medir el tamaño ahí daba 34 MB contra un
+      # umbral de 25: se estaba midiendo otra app.
+      - name: Compilar Dilo (Release)
         run: |
           set -o pipefail
           xcodebuild build \
             -project Talkify.xcodeproj \
             -scheme Dilo \
-            -configuration Debug \
+            -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/dd" \
             DILO_SUFIJO_ID=.ci \
@@ -84,16 +87,20 @@ jobs:
             DEVELOPMENT_TEAM="" | tail -50
 
       # scripts/metrics.sh termina con código ≠ 0 si un umbral del spec §3 se
-      # rompe o si una métrica no se pudo medir, así que no necesita más
-      # cañería que esta línea.
+      # rompe, así que no necesita más cañería que esta línea.
       #
       # --sin-latencia: medir "soltar → texto" necesita que el proceso que
       # lanza tenga Accesibilidad, y en un runner TCC deniega solo. Los otros
       # cuatro números —reposo, CPU, arranque en frío y tamaño del .app— se
       # miden igual. La latencia se mide a mano en el Mac de Alfonso antes de
       # cortar un release.
+      #
+      # --ci: lo que este entorno no puede medir se anota con su razón y no
+      # tumba la corrida. El umbral sigue vigente en un Mac, donde una métrica
+      # sin medir es un fallo: si no, la medición versionada se convierte en
+      # una lista de excusas.
       - name: scripts/metrics.sh
-        run: ./scripts/metrics.sh "$RUNNER_TEMP/dd/Build/Products/Debug/Dilo.app" --sin-latencia
+        run: ./scripts/metrics.sh "$RUNNER_TEMP/dd/Build/Products/Release/Dilo.app" --sin-latencia --ci
 
       # El reporte se versiona porque `swift test` lo lee; el de CI no se
       # commitea, pero sirve para mirar qué midió esta corrida cuando falla.

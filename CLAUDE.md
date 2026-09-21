@@ -209,6 +209,15 @@ en un picker devuelve `String(localized:)`.
 símbolos colapsa "Borrar" y "Borrar…" en el mismo identificador y falla la
 compilación. Nada usa esos símbolos.
 
+**Un test no compara copy contra el literal en español.** `title` y compañía
+pasan por el catálogo, así que hablan el idioma del Mac: en el runner de CI,
+que corre en inglés, `SettingsSection.updates.title` vale "Updates". Compara
+contra `String(localized: "Actualizaciones")` —la misma clave, resuelta igual—
+y, si quieres afirmar que el original en español sigue ahí, pregúntale a
+`es.lproj` directo, con un centinela: `localizedString` devuelve la clave
+cuando no encuentra la entrada, y entonces una traducción borrada pasaría
+como buena (`UpdatesTests.copiaEnEspanol`).
+
 **Enums persistidos:** un `rawValue` guardado en `UserDefaults` no se traduce
 nunca — renombrarlo borra la elección de la persona en silencio. El nombre
 visible va en un `var title: String` aparte, y el picker muestra `title`, no
@@ -234,15 +243,34 @@ xcodebuild -project Talkify.xcodeproj -scheme Dilo \
   -derivedDataPath /Volumes/SSD2/derived-data \
   PRODUCT_BUNDLE_IDENTIFIER=cl.espaciodigital.dilo.deuda test
 
-# Los números del spec §3 contra el .app ya compilado
-./scripts/metrics.sh /ruta/a/Dilo.app
-./scripts/metrics.sh /ruta/a/Dilo.app --sin-latencia   # sin el gancho Debug
+# Los números del spec §3 contra el .app ya compilado. La latencia y el reposo
+# se miden contra el Debug; el tamaño, contra el Release, que es lo que se
+# descarga.
+./scripts/metrics.sh /ruta/Debug/Dilo.app --tamano-de /ruta/Release/Dilo.app
+./scripts/metrics.sh /ruta/Release/Dilo.app --sin-latencia   # sin el gancho Debug
 ```
 
 `scripts/metrics.sh` deja el reporte en `docs/metricas/ultima-medicion.json`
 —que **se versiona**, porque `swift test` lo lee y falla si un número se
 rompe— y termina con código ≠ 0 si un umbral no se cumple o si una métrica no
 se pudo medir. Tarda unos tres minutos: la ventana de reposo sola son 60 s.
+
+**El tamaño se mide contra el `.app` Release.** Un Debug de Xcode 26 saca todo
+el código de la app a un `Dilo.debug.dylib` aparte —doce megas que nadie
+descarga— y medir ahí daba 34 MB contra un umbral de 25: era medir otra app.
+Si le pasas un Debug, `dilo-metrics` no lo mide y te dice que compiles Release
+y se lo des con `--tamano-de`; sin medir sigue siendo un fallo.
+
+**Qué se mide dónde.** En un Mac se miden los cinco números y lo que no se
+pudo medir es un fallo, sin excepciones. En CI, `--ci` (o `GITHUB_ACTIONS`)
+cambia sólo una cosa: lo que ese entorno no puede medir se anota con su razón,
+sale en la tabla como "no medible acá" y no tumba la corrida. Hoy es una sola
+métrica: **soltar → texto**, porque disparar el dictado pide Accesibilidad y
+una sesión gráfica, y un runner no las tiene ni las va a tener; se mide a mano
+antes de cortar un release. Los otros cuatro —RAM, CPU, arranque y tamaño— se
+miden en CI igual que acá, contra el `.app` Release, y rompen la corrida si se
+pasan. Un número medido que no cumple falla siempre: `--ci` excusa lo que no
+se pudo medir, nunca lo que salió mal.
 
 Para medir "soltar → texto" el `.app` tiene que ser un build **Debug** y el
 terminal necesita Accesibilidad: la medición inyecta un WAV y dispara la sesión
