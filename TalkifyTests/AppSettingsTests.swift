@@ -332,7 +332,6 @@ struct AppSettingsTests {
     settings.revealStyle = .bloom
     settings.longDraftStyle = .tailOnly
     settings.glowPalette = .aurora
-    settings.glowCenter = .siriOrb
     settings.hudScale = 0.6
 
     #expect(snapshot.sounds.set == .synth8)

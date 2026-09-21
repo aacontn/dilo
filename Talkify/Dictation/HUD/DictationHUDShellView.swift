@@ -198,7 +198,6 @@ struct DictationHUDShellView: View {
       },
       overlays: {
         particleCloud
-        siriOrb
         edgeGlow
       }
     )
@@ -491,18 +490,6 @@ struct DictationHUDShellView: View {
 
   /// The Edge Glow's orb center: centered on the whole notch island rather
   /// than tucked in the band, sized just short of the island's height.
-  /// Gated on the listening state — as an overlay it no longer disappears
-  /// with the band, so it must gate itself.
-  @ViewBuilder
-  private var siriOrb: some View {
-    if !reduceMotion,
-     settings.voiceVisual == .glow,
-     settings.glowCenter == .siriOrb,
-     content.showsVoiceVisual {
-      HUDSiriOrbView(content: content, side: size.height - 8 * metrics.scale)
-    }
-  }
-
   /// The edge-glow voice visual: an origin glow blooming from the notch
   /// housing along the open silhouette, breathing with the voice
   /// (HUDEdgeGlowView). Mounted whenever the variant is selected — not only

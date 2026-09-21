@@ -432,7 +432,8 @@ MIT, con el copyright de Tornike Gomareli intacto y el propio agregado. La
 atribución **"Dilo es un fork con cariño de Talkify (Tornike Gomareli, MIT)"**
 aparece en el README y en la ventana Acerca de. No se quita.
 
-Dos activos heredados de Talkify **no son publicables**: el set de sonidos Pop
-(CC-BY-NC, `LICENSE-SOUNDS.txt`) y la obra del orbe Siri en
-`Assets.xcassets/Siri/` (sin licencia, imita a Apple, `LICENSE-ARTWORK.txt`).
-Hay que reemplazarlos o sacarlos antes de cualquier release.
+Dos activos heredados de Talkify no eran publicables y **ya se sacaron**
+(2026-09-21): el set de sonidos Pop (CC-BY-NC) y la obra del orbe Siri de
+`Assets.xcassets/Siri/` (sin licencia, imitaba a Apple). Todo lo que queda en
+el bundle es CC0, MIT o propio. Si vuelve un activo ajeno, su licencia va en
+`LICENSE-SOUNDS.txt` o en un `LICENSE-ARTWORK.txt` antes que el archivo.

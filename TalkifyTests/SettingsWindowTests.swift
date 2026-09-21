@@ -85,6 +85,6 @@ struct SettingsWindowTests {
     #expect(DictationSoundSet.synth8.isShippable)
     #expect(DictationSoundSet.allCases.allSatisfy { $0.isShippable })
     #expect(HUDGlowCenterStyle.particles.isShippable)
-    #expect(!HUDGlowCenterStyle.siriOrb.isShippable)
+    #expect(HUDGlowCenterStyle.allCases.allSatisfy { $0.isShippable })
   }
 }
