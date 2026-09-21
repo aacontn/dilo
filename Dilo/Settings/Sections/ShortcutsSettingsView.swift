@@ -91,24 +91,21 @@ struct ShortcutsSettingsView: View {
     SettingsCard(title: "Teclas") {
       row(
         .dictation,
-        allowsBareModifier: true,
-        allowsMouseButton: true,
+        politica: .deDictado,
         sentence: String(localized: "Mantén %@ y habla; suéltala y listo. Un toque corto la deja trabada y otro toque termina.")
       )
 
       if settings.isSecondLanguageEnabled {
         row(
           .secondLanguage,
-          allowsBareModifier: true,
-          allowsMouseButton: true,
+          politica: .deDictado,
           sentence: String(localized: "Mantén %@ para dictar en tu otro idioma, o tócala igual que la principal.")
         )
       }
 
       row(
         .translate,
-        allowsBareModifier: true,
-        allowsMouseButton: true,
+        politica: .deDictado,
         sentence: translateSentence
       )
 
@@ -117,8 +114,7 @@ struct ShortcutsSettingsView: View {
       if Anfitrion.actual.admite(.relecturaDelFoco) {
         row(
           .readAloud,
-          allowsBareModifier: false,
-          allowsMouseButton: false,
+          politica: .apretarYSoltar,
           sentence: String(localized: "Aprieta %@ para leer lo seleccionado; otra vez para parar.")
         )
       }
@@ -150,16 +146,17 @@ struct ShortcutsSettingsView: View {
 
   private func row(
     _ role: BindingRole,
-    allowsBareModifier: Bool,
-    allowsMouseButton: Bool,
+    /// Qué se puede grabar en esta fila. La misma que usa Modos para la tecla
+    /// de un modo: las dos pantallas asignan gatillos que se sostienen para
+    /// hablar, así que ofrecen lo mismo (`PoliticaDeGrabador`).
+    politica: PoliticaDeGrabador,
     /// A sentence with %@ where the bound keys go, so it renames itself with
     /// the binding.
     sentence: String
   ) -> some View {
     KeyRecorderView(
       keyBinding: binding(for: role),
-      allowsBareModifier: allowsBareModifier,
-      allowsMouseButton: allowsMouseButton,
+      politica: politica,
       isRecording: Binding(
         get: { armed == role },
         set: { isArmed in
@@ -177,7 +174,7 @@ struct ShortcutsSettingsView: View {
         description: "\(description(sentence, for: keyBinding, in: role, caps: caps))",
         isRecording: isRecording,
         accent: role.color,
-        acceptsMouseButton: allowsMouseButton,
+        acceptsMouseButton: politica.admiteBotonDelMouse,
         isMouseBinding: keyBinding.isMouseButton,
         pickedCaps: isRecording ? pickedCaps : [],
         onConfirm: isRecording && !picked.isEmpty ? { commit(picked) } : nil

@@ -1,3 +1,4 @@
+import DiloModes
 import SwiftUI
 
 /// The Language section: the dictation language, an optional second language,
@@ -52,8 +53,7 @@ struct LanguageSettingsView: View {
             KeyRecorderView(
               keyBinding: $settings.secondaryTriggerBinding,
               isRecording: $isRecordingSecondKey,
-              allowsBareModifier: true,
-              allowsMouseButton: true,
+              politica: .deDictado,
               onRecordingChanged: { settings.isRecordingKeybind = $0 }
             )
           }

@@ -1,4 +1,5 @@
 import AppKit
+import DiloModes
 import SwiftUI
 
 /// System Settings-style input recorder: click to arm, and the next key press
@@ -7,13 +8,15 @@ import SwiftUI
 /// trigger tap so the rebind cannot start a dictation session. Plain Escape
 /// cancels recording.
 ///
-/// Dictation Trigger recorders allow a bare modifier such as fn and auxiliary
-/// mouse buttons. Read Aloud allows neither. Both record whatever keyboard
-/// modifiers are held alongside the chosen input.
+/// Qué se puede grabar lo dice `PoliticaDeGrabador`, en `DiloModes`: los
+/// gatillos que se sostienen para hablar —dictado, segundo idioma, traducir y
+/// cada modo— aceptan un modificador solo como fn y los botones auxiliares
+/// del mouse; Leer en voz alta, que dispara en `keyDown`, no acepta ninguno
+/// de los dos. Ningún call site arma su propia combinación: eso fue lo que
+/// dejó a los modos sin poder usar fn.
 struct KeyRecorderView<Label: View>: View {
   @Binding var keyBinding: KeyBinding
-  let allowsBareModifier: Bool
-  let allowsMouseButton: Bool
+  let politica: PoliticaDeGrabador
   /// Owned by the caller so only one recorder is ever armed, and so a click on
   /// the drawn keyboard can finish a binding and disarm this at the same time.
   @Binding var isRecording: Bool
@@ -74,7 +77,7 @@ struct KeyRecorderView<Label: View>: View {
   private func handle(_ event: NSEvent) {
     switch event.type {
     case .otherMouseDown:
-      guard allowsMouseButton,
+      guard politica.admiteBotonDelMouse,
          let binding = KeyBinding.mouseButton(
            number: Int64(event.buttonNumber),
            modifiers: event.modifierFlags
@@ -107,7 +110,7 @@ struct KeyRecorderView<Label: View>: View {
       // with others held. The chord is committed on the first release rather
       // than on each press, so reaching fn + ⌥ is not cut short by ⌥ landing
       // first.
-      guard allowsBareModifier,
+      guard politica.admiteModificadorSolo,
          let name = KeyBinding.modifierKeyName(forKeyCode: Int64(event.keyCode)),
          !KeyBinding.modifierMask(forKeyCode: Int64(event.keyCode)).isEmpty
       else { return }
@@ -184,21 +187,19 @@ extension KeyRecorderView where Label == KeyRecorderCapsule {
   init(
     keyBinding: Binding<KeyBinding>,
     isRecording: Binding<Bool>,
-    allowsBareModifier: Bool,
-    allowsMouseButton: Bool,
+    politica: PoliticaDeGrabador,
     onRecordingChanged: @escaping (Bool) -> Void
   ) {
     self.init(
       keyBinding: keyBinding,
-      allowsBareModifier: allowsBareModifier,
-      allowsMouseButton: allowsMouseButton,
+      politica: politica,
       isRecording: isRecording,
       onRecordingChanged: onRecordingChanged
     ) { binding, armed in
       KeyRecorderCapsule(
         title: binding.label,
         isRecording: armed,
-        acceptsMouseButton: allowsMouseButton
+        acceptsMouseButton: politica.admiteBotonDelMouse
       )
     }
   }

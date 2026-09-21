@@ -75,7 +75,11 @@ Distingue propuesta, implementación y deuda pendiente.
   documento de eles—. La misma tecla con ⌃ o ⌘ encima vuelve a servir, y eso
   es lo que dice el mensaje de rechazo. La regla vive **sólo** en
   `ValidadorDeGatillos`, y las dos pantallas que asignan teclas (Atajos y
-  Modos) la consultan; ninguna decide por su cuenta.
+  Modos) la consultan; ninguna decide por su cuenta. Lo que cada grabador
+  **deja llegar** al validador —un modificador solo, un botón del mouse— vive
+  al lado, en `PoliticaDeGrabador`: Modos y Atajos nombran la misma política y
+  un test puro compara las dos listas. Modos tenía su propia copia y por eso
+  `fn` sola, el gatillo de fábrica, no se le podía dar a un modo.
 - **Toda tecla tiene nombre.** `NombresDeTecla` (en `DiloModes`) nombra de F1
   a F20, el numérico y la navegación; si no la conoce escribe `Tecla 0x4F`,
   nunca vacío. AppKit manda las teclas de función como caracteres del área de

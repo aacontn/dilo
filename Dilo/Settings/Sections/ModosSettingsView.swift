@@ -127,14 +127,18 @@ struct ModosSettingsView: View {
   /// La tecla del modo, grabada en la misma fila. El binding es el que valida:
   /// nada llega a los ajustes sin pasar por el validador y por la búsqueda de
   /// colisiones.
+  ///
+  /// La política es la misma que la de Atajos —`PoliticaDeGrabador`, en
+  /// `DiloModes`— y no una copia local: acá estaban apagados a mano los
+  /// modificadores solos, así que `fn`, el gatillo de fábrica de Dilo, no se
+  /// le podía dar a un modo aunque el validador lo bendice y Atajos lo acepta.
   private func grabadorDeTecla(_ modo: Modo) -> some View {
     KeyRecorderView(
       keyBinding: Binding(
         get: { modo.gatillo.flatMap(KeyBinding.init) ?? .controlCommandL },
         set: { asignar($0, a: modo.id) }
       ),
-      allowsBareModifier: false,
-      allowsMouseButton: false,
+      politica: .deUnModo,
       isRecording: Binding(
         get: { grabando == modo.id },
         set: { armado in
