@@ -27,7 +27,7 @@ struct UmbralesTests {
     .cpuEnReposo: 0.99,
     .arranqueEnFrio: 0.999,
     .latenciaSoltarTexto: 0.299,
-    .tamanoDelApp: 19.9,
+    .tamanoDelApp: 24.9,
   ]
 
   @Test func unaCorridaQueCumpleNoTieneProblemas() {
@@ -61,7 +61,7 @@ struct UmbralesTests {
     #expect(Metrica.cpuEnReposo.umbral == 1)
     #expect(Metrica.arranqueEnFrio.umbral == 1)
     #expect(Metrica.latenciaSoltarTexto.umbral == 0.3)
-    #expect(Metrica.tamanoDelApp.umbral == 20)
+    #expect(Metrica.tamanoDelApp.umbral == 25)
   }
 
   @Test func elReporteViajaPorJSONSinPerderNada() throws {

@@ -32,7 +32,7 @@ let package = Package(
     //
     // `traits: []` apaga `NemoTextProcessing`, un staticlib de Rust
     // (~8 MB por slice) que sólo sirve a los frontends de TTS. Dilo no hace
-    // TTS con FluidAudio y el `.app` tiene que pesar menos de 20 MB (spec §3).
+    // TTS con FluidAudio y el `.app` tiene que pesar menos de 25 MB (spec §3).
     .package(
       url: "https://github.com/FluidInference/FluidAudio.git",
       exact: "0.15.8",

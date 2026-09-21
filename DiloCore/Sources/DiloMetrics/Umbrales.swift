@@ -27,6 +27,9 @@ public enum Umbrales {
   /// los que transcriben en la nube (spec §3).
   public static let latenciaSoltarTextoSegundos = 0.300
 
-  /// El `.app` sin modelos < 20 MB (spec §3: "descarga").
-  public static let tamanoDelAppMB = 20.0
+  /// El `.app` sin modelos < 25 MB (spec §3: "descarga"). Subió de 20 a 25
+  /// con el motor doble: FluidAudio pesa ~12 MB y es el precio de Parakeet
+  /// local; en v2 también diariza, así que podarlo hoy sería trabajo tirado.
+  /// Yap pesa 4 MB porque sólo usa Apple; Dilo trae su propio motor.
+  public static let tamanoDelAppMB = 25.0
 }

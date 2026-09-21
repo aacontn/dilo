@@ -67,7 +67,7 @@ español. Los comentarios y los mensajes de commit también van en español.
 - **La píldora sin notch va debajo de la barra de menús**, con identidad Dilo.
   Nunca tapa los status items ni imita el HUD de volumen del sistema.
 - **Los números del spec §3 se miden, no se prometen**: 60 MB en reposo, ~0 %
-  de CPU, arranque en frío < 1 s, soltar→texto < 300 ms, `.app` < 20 MB sin
+  de CPU, arranque en frío < 1 s, soltar→texto < 300 ms, `.app` < 25 MB sin
   modelos. Si un cambio empeora uno, no entra.
 - **Nada de secretos en el repo.** Las credenciales viven en el Llavero. El
   `AGENTS.md` está versionado y se empuja a GitHub: lo que escribas acá queda

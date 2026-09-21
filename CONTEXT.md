@@ -196,7 +196,7 @@ No se registra una sección vacía ni deshabilitada.
 | CPU en reposo (60 s) | ~0 % |
 | Texto en pantalla tras soltar | < 300 ms |
 | Arranque en frío | < 1 s |
-| Tamaño del `.app` sin modelos | < 20 MB |
+| Tamaño del `.app` sin modelos | < 25 MB |
 
 Se miden con `DiloMetrics` y `scripts/metrics.sh`, no a ojo. Si un cambio
 rompe un número, no entra.

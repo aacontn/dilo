@@ -103,7 +103,7 @@ la app: es que no parece un producto terminado.
 | CPU en reposo | **~0 %** | el tap de teclado no puede costar |
 | Texto en pantalla tras soltar la tecla | **< 300 ms** | con parciales, el texto ya está cuando sueltas; es la ventaja contra Wispr (nube) |
 | Arranque en frío | **< 1 s** | |
-| Descarga | **< 20 MB** sin modelos | Talkify hoy ronda eso |
+| Descarga | **< 25 MB** sin modelos | FluidAudio pesa ~12 MB y es el precio de Parakeet local; en v2 también diariza |
 | Micrófono Bluetooth | **aviso visible** mientras abre (issue #130 de Talkify) y *lazy close* como Handy | |
 
 Se miden en CI con un script, no a ojo. Si un cambio rompe un número, no
