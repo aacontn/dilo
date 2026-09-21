@@ -303,6 +303,12 @@ final class AppSettings {
     didSet { EnginePreference.guardar(motorDeVoz, in: defaults) }
   }
 
+  /// Cuánto aguanta el modelo de Parakeet en la RAM sin que dictes. La clave
+  /// y el default viven en `PreferenciaDeReposo`, por lo mismo que el motor.
+  var descargarModeloTras: DescargaPorReposo {
+    didSet { PreferenciaDeReposo.guardar(descargarModeloTras, in: defaults) }
+  }
+
   var recognitionLocaleIdentifier: String {
     didSet {
       defaults.set(recognitionLocaleIdentifier, forKey: Keys.recognitionLocale)
@@ -455,6 +461,7 @@ final class AppSettings {
     onboardingVisto = defaults.bool(forKey: Keys.onboardingVisto)
     versionVista = defaults.string(forKey: Keys.versionVista) ?? ""
     motorDeVoz = EnginePreference.leer(defaults)
+    descargarModeloTras = PreferenciaDeReposo.leer(defaults)
     recognitionLocaleIdentifier = defaults.string(forKey: Keys.recognitionLocale) ?? ""
     secondaryRecognitionLocaleIdentifier =
       defaults.string(forKey: Keys.secondaryRecognitionLocale) ?? ""

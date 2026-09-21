@@ -95,6 +95,50 @@ struct MedicionDeMotoresTests {
     print("  parcial de 2 s: p50 \(Self.ms(Self.mediana(parciales)))")
   }
 
+  /// **Cuánto cuesta meter el modelo a la RAM**, que es la espera que paga la
+  /// primera persona que aprieta el gatillo después de que Dilo soltó el
+  /// modelo (o después de arrancar la app, que ya no lo carga sola).
+  ///
+  /// Se mide con el mismo cargador que usa el motor y no con FluidAudio a
+  /// pelo: lo que importa es lo que espera el dictado, no lo que tarda una
+  /// API. El número vive en la cabecera de `ParakeetEngine`.
+  @Test(.enabled(if: MedicionDeMotoresTests.encendida))
+  func cargaEnFrioDelModelo() async throws {
+    guard ParakeetModelStore.estaDescargado else {
+      print("CARGA: el modelo no está en disco; no se midió")
+      return
+    }
+
+    let cargador = CargadorDeParakeet()
+    let inicio = Date()
+    let modelo = try await cargador.cargar()
+    let frio = Date().timeIntervalSince(inicio)
+
+    // La primera predicción, que es donde Core ML termina de aterrizar el
+    // grafo en el Neural Engine: si esto cuesta más que la carga, la espera
+    // de verdad no está en leer el disco.
+    let ruido = [Float](repeating: 0, count: Int(ParakeetEngine.sampleRate * 3))
+    let inicioPrimera = Date()
+    _ = try await modelo.transcribir(ruido)
+    let primera = Date().timeIntervalSince(inicioPrimera)
+    let inicioSegunda = Date()
+    _ = try await modelo.transcribir(ruido)
+    let segunda = Date().timeIntervalSince(inicioSegunda)
+    print("  primera predicción: \(Self.ms(primera)) · segunda: \(Self.ms(segunda))")
+
+    // Y lo mismo otra vez tras soltarlo: es lo que paga el dictado siguiente
+    // cuando pasaron los cinco minutos de reposo.
+    await modelo.liberar()
+    let inicioTibio = Date()
+    let segundo = try await cargador.cargar()
+    let tibio = Date().timeIntervalSince(inicioTibio)
+    await segundo.liberar()
+
+    print("PARAKEET carga a la RAM:")
+    print("  en frío: \(Self.ms(frio))")
+    print("  tras soltarlo: \(Self.ms(tibio))")
+  }
+
   @Test(.enabled(if: MedicionDeMotoresTests.encendida))
   func appleSoltarATexto() async throws {
     let url = try #require(Self.wav, "falta DILO_BENCH_WAV")

@@ -52,6 +52,16 @@ public actor SpeechEngineRouter: SpeechEngine {
     try await motor(for: seleccion().efectivo).prewarm(locale: locale)
   }
 
+  /// Cada cuánto el motor que carga un modelo pesado lo suelta de la RAM.
+  ///
+  /// Se pregunta por el protocolo y no por el tipo: hoy sólo Parakeet tiene
+  /// RAM que devolver, y el motor falso de los tests ocupa su lugar sin tener
+  /// que fingir que la tiene.
+  public func configurarReposo(_ intervalo: Duration?) async {
+    guard let conModelo = parakeet as? any MotorConModeloEnMemoria else { return }
+    await conModelo.configurarReposo(intervalo)
+  }
+
   public func start(locale: Locale, handlers: EngineHandlers) async throws {
     guard enCurso == nil else { throw EngineError.sesionActiva }
 

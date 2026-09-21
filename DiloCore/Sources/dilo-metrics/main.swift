@@ -119,8 +119,10 @@ do {
     // y recién entonces prepara el idioma. Antes de eso el ítem del menú no
     // hace nada.
     dormir(8)
-    // La primera sesión de SpeechAnalyzer carga el modelo del idioma; medir esa
-    // carga sería medir el disco, no a Dilo. La primera pasada calienta.
+    // La primera sesión carga el modelo: el del idioma con Apple, y el de
+    // Parakeet con Parakeet, que desde `fix/motor-perezoso` entra a la RAM al
+    // dictar y no al arrancar. Medir esa carga sería medir el disco, no a
+    // Dilo: la primera pasada calienta y se tira.
     _ = try? Latencia.medir(pid: pidConGancho, wav: wav, duracionDelWav: duracion)
     let resultado = try Latencia.medir(pid: pidConGancho, wav: wav, duracionDelWav: duracion)
     valores[.latenciaSoltarTexto] = resultado.segundos

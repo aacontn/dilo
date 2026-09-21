@@ -92,7 +92,7 @@ struct DirectDictationControllerTests {
       supportedLocale: { _ in nil },
       retainOnly: { _ in },
       prewarm: { _ in prewarmed.withLock { $0 = true } },
-      startRecognition: { locale, _, _, _ in
+      startRecognition: { locale, _, _, _, _ in
         startEntries.withLock { $0 += 1 }
         try await startRecognitionBody?(locale)
       },
