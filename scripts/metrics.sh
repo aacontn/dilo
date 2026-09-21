@@ -30,7 +30,15 @@ if [[ ! -d "$app" ]]; then
 fi
 
 # El taller es SSD2: nada de artefactos de compilación en el disco interno.
-taller="${DILO_TALLER:-/Volumes/SSD2/derived-data}/dilo-metrics"
+# En CI no existe SSD2 y la carpeta por defecto no se puede crear: ahí se usa
+# el temporal del runner. `DILO_TALLER` manda si está definido.
+if [[ -n "${DILO_TALLER:-}" ]]; then
+  taller="$DILO_TALLER/dilo-metrics"
+elif [[ -d /Volumes/SSD2/derived-data ]]; then
+  taller="/Volumes/SSD2/derived-data/dilo-metrics"
+else
+  taller="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/dilo-metrics"
+fi
 
 echo "→ construyendo dilo-metrics"
 swift build \
