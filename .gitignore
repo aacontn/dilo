@@ -13,3 +13,7 @@ sparkle_eddsa_private_key
 # An empty file some tool drops in the repo root; it has no business here
 # and a wide "git add" keeps catching it.
 .oss
+
+# El `Package.resolved` que deja `swift test` dentro de DiloCore. El que manda
+# es el del `.xcodeproj`; tener dos es tener dos que se contradicen.
+DiloCore/Package.resolved

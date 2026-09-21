@@ -72,6 +72,7 @@ final class DirectDictationController {
     self.init(
       settings: settings,
       dependencies: .live(
+        settings: settings,
         hudController: hudController,
         usageTracker: usageTracker,
         textInsertionService: textInsertionService

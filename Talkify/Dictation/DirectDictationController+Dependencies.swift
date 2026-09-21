@@ -1,4 +1,5 @@
 import AppKit
+import DiloEngines
 
 /// Injectable speech, insertion, permission, HUD, and usage boundaries for
 /// Direct Dictation, following the TextInsertionService.Dependencies
@@ -93,30 +94,56 @@ extension DirectDictationController {
     /// controller previously constructed itself.
     @MainActor
     static func live(
+      settings: AppSettings,
       hudController: DictationHUDController,
       usageTracker: UsageTracker,
       textInsertionService: TextInsertionService
     ) -> Self {
       let speechService = SpeechRecognitionService()
       let historyStore = DictationHistoryStore()
+      // El motor doble. `speechService` sigue siendo el dueño de
+      // SpeechAnalyzer, de las reservas de idioma y de las sesiones tibias:
+      // el router sólo elige quién escucha.
+      let motores = DiloSpeechStack.armar(apple: speechService)
+      // La elección se lee al arrancar cada dictado, no una vez: cambiarla en
+      // Ajustes aplica al próximo dictado, como todo lo demás.
+      let motorElegido: @Sendable () async -> SpeechEngineKind = {
+        await MainActor.run { settings.motorDeVoz }
+      }
 
       return Self(
         setDownloadHandler: { await speechService.setDownloadHandler($0) },
         resolveLocale: { try await speechService.resolveLocale(identifier: $0) },
         supportedLocale: { await speechService.supportedLocale(identifier: $0) },
         retainOnly: { await speechService.retainOnly(locales: $0) },
-        prewarm: { try await speechService.prewarm(locale: $0) },
+        prewarm: { locale in
+          await motores.elegir(await motorElegido())
+          try await motores.prewarm(locale: locale)
+        },
         startRecognition: { locale, updateHandler, failureHandler, levelHandler in
-          try await speechService.start(
+          await motores.elegir(await motorElegido())
+          try await motores.start(
             locale: locale,
-            updateHandler: updateHandler,
-            failureHandler: failureHandler,
-            levelHandler: levelHandler
+            handlers: EngineHandlers(
+              parcial: { update in
+                updateHandler(
+                  SpeechRecognitionService.Update(
+                    finalizedText: update.finalizado,
+                    volatileText: update.volatil
+                  )
+                )
+              },
+              falla: failureHandler,
+              nivel: levelHandler
+            )
           )
         },
-        finishRecognition: { try await speechService.finish() },
-        cancelRecognition: { await speechService.cancel() },
-        shutDownRecognition: { await speechService.shutDown() },
+        finishRecognition: { try await motores.finish() },
+        cancelRecognition: { await motores.cancel() },
+        shutDownRecognition: {
+          await motores.cancel()
+          await speechService.shutDown()
+        },
         translation: TranslationCoordinator(
           service: TranslationService(client: .live)
         ),
