@@ -139,7 +139,14 @@ No se registra una sección vacía ni deshabilitada.
 - Con carcasa física: fillets contra el recorte. Sin notch: **píldora debajo
   de la barra de menús**, que no tapa status items y no imita el HUD de
   volumen del sistema.
-- El HUD aparece sobre apps en pantalla completa y en todos los Espacios.
+- La píldora lleva **corona mango, onda del micrófono y texto parcial**: la
+  identidad de Dilo, no un HUD del sistema. La onda es menta con puntas mango
+  también con notch.
+- El HUD aparece sobre apps en pantalla completa y en todos los Espacios, y se
+  reordena al frente en cada cambio de espacio activo.
+- La máquina del HUD prevé **tres estados** —dictando, reunión, conversando—
+  y en v1 sólo dibuja el primero. Los otros dos existen como casos explícitos
+  sin UI; un estado que no dibuja nada no abre el escenario.
 - Durante el **Dictado** el HUD es sólo visual: los clics lo atraviesan y
   nunca toma el foco. Acepta el mouse sólo cuando recibe un archivo o
   sostiene una transcripción terminada.

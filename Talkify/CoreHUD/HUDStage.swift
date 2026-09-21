@@ -33,6 +33,12 @@ final class HUDStage {
 
   private(set) var occupant = Occupant.none
 
+  /// El estado de sesión que el escenario está sosteniendo. Hoy siempre
+  /// `dictando`: reunión y conversación están previstas y no se dibujan
+  /// (`HUDSessionKind`, spec §5). Vive acá y no en el controlador de dictado
+  /// porque el escenario es uno solo para los tres.
+  private(set) var sessionKind = HUDSessionKind.dictando
+
   let dictationContent = DictationHUDContent()
   let dropContent = DropHUDContent()
   let sounds = HUDSounds()
@@ -48,6 +54,10 @@ final class HUDStage {
   private var renderedSettings: DictationSessionSettings
   private var orderOutTask: Task<Void, Never>?
   private var messageDismissTask: Task<Void, Never>?
+  /// El observador de cambio de espacio. Se guarda y no se da de baja: el
+  /// escenario vive lo que vive la app, y un `deinit` en un tipo aislado al
+  /// actor principal no puede tocar sus propiedades.
+  private var spaceObserver: (any NSObjectProtocol)?
 
   init(settings: AppSettings) {
     self.settings = settings
@@ -76,6 +86,32 @@ final class HUDStage {
       contentRect: CGRect(origin: .zero, size: CGSize(width: 1, height: 1)),
       contentView: hostingView
     )
+    observeSpaceChanges()
+  }
+
+  /// Vuelve a poner la forma al frente cuando cambia el espacio activo.
+  ///
+  /// `canJoinAllSpaces` la lleva a todos los espacios, pero no arregla el
+  /// orden: si el espacio nuevo es una app en pantalla completa nativa, su
+  /// ventana se ordena al frente al entrar y la forma queda detrás —
+  /// visible en el Escritorio, invisible en Keynote o en Safari en pantalla
+  /// completa (issue #84 de Talkify). Reordenar al frente en cada cambio de
+  /// espacio es lo que el overlay de Dilo-Tauri conseguía siendo un NSPanel
+  /// `nonactivating` + `floating` que se muestra de nuevo en cada estado.
+  ///
+  /// Sólo mientras hay alguien en el escenario: sin sesión no hay ventana que
+  /// ordenar y el observador no cuesta nada.
+  private func observeSpaceChanges() {
+    spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+      forName: NSWorkspace.activeSpaceDidChangeNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self, self.occupant != .none else { return }
+        self.panel.assertOverlayOrder()
+      }
+    }
   }
 
   /// Whether the shape currently takes the mouse. Only a drop surface does.
@@ -120,12 +156,17 @@ final class HUDStage {
   func claim(
     _ occupant: Occupant,
     on screen: HUDScreenSnapshot,
-    rendering settings: DictationSessionSettings? = nil
+    rendering settings: DictationSessionSettings? = nil,
+    kind: HUDSessionKind = .dictando
   ) {
+    // Un estado que todavía no dibuja nada no abre el escenario: una forma
+    // negra vacía se lee como un cuelgue (`HUDSessionKind.isDrawn`).
+    guard kind.isDrawn else { return }
     orderOutTask?.cancel()
     if occupant != .message { cancelMessageDismiss() }
     if occupant != .drop { evictDrop() }
     self.occupant = occupant
+    sessionKind = kind
     renderedSettings = settings ?? self.settings.sessionSettings
     mount(on: screen)
   }
@@ -239,6 +280,7 @@ final class HUDStage {
       settings: renderedSettings,
       content: dictationContent,
       drop: dropContent,
+      kind: sessionKind,
       onDrop: { [weak self] index in
         self?.onDropReceived?(index)
       },
@@ -253,7 +295,7 @@ final class HUDStage {
       ),
       display: true
     )
-    panel.orderFrontRegardless()
+    panel.assertOverlayOrder()
   }
 
   private func evictDrop() {

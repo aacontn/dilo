@@ -79,5 +79,13 @@ struct HUDMetrics: Equatable {
   /// took the glance the visual and the draft are there for.
   var shapingBandHeight: CGFloat { 22 * scale }
 
+  /// Alto de la corona de la píldora: la franja mango de arriba, con el
+  /// glifo del micrófono y la etiqueta de idioma.
+  ///
+  /// Reemplaza los 32 puntos de la carcasa simulada, que en una pantalla sin
+  /// notch no esquivan ninguna cámara y quedaban vacíos. A diferencia de la
+  /// carcasa, esta sí escala: no imita hardware, es la identidad de Dilo.
+  var pillCrownHeight: CGFloat { 16 * scale }
+
   var bottomCornerRadius: CGFloat { 20 * scale }
 }

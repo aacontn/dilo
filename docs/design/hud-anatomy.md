@@ -111,6 +111,38 @@ the housing empty.
 **Window level is `.mainMenu + 3`** so it clears full-screen apps, and it
 appears on every Space. No private APIs anywhere.
 
+Sobrevivir a una app en pantalla completa nativa cuesta cuatro cosas juntas
+(issue #84): el nivel, `canJoinAllSpaces`, `fullScreenAuxiliary` y
+`nonactivatingPanel` + `isFloatingPanel`. `isFloatingPanel` se asigna **antes**
+que el nivel: su setter le pone `.floating` (3) a la ventana de paso. Y falta
+una quinta, que no es una bandera: al entrar a un espacio de pantalla completa
+su ventana se ordena al frente y deja la forma detrás, así que `HUDStage`
+escucha `activeSpaceDidChange` y vuelve a ordenarla
+(`HUDPanel.assertOverlayOrder()`).
+
+## La píldora de Dilo (sin notch)
+
+En una pantalla sin carcasa la forma **no imita el notch**: es una píldora
+propia, y lo decide la pantalla, no el picker de Ajustes.
+
+- Va **debajo** de la barra de menús, más cuatro puntos de aire
+  (`pillDetachment`), para no tapar status items (issue #83) y para no leerse
+  como la franja donde macOS 27 pone su HUD de volumen.
+- El despeje tiene piso (`menuBarClearanceFloor`, 24 pt): dentro de un espacio
+  en pantalla completa la barra se autooculta y el sistema reporta cero, y sin
+  piso la píldora saltaría al borde al cambiar de espacio.
+- Se cierra por los cuatro lados: flota separada, no nace de un recorte.
+- Los 32 pt de carcasa simulada —vacíos, porque no hay cámara que esquivar—
+  son la **corona**: glifo de micrófono y ceja mango, más la etiqueta de
+  idioma. Es lo que la firma como Dilo.
+- Siempre lleva onda del micrófono **y** texto parcial. Ningún HUD del sistema
+  muestra lo que estás diciendo.
+- La onda es menta con las puntas mango (`HUDVisualTokens.wave`), con notch y
+  sin él. Era plata metálica, que es exactamente la paleta del sistema.
+
+La forma negra es `Color.black`: no hay material ni foto de la pantalla
+detrás, así que el HUD **no pide Captura de pantalla** a TCC.
+
 ## Interaction
 
 Historically none: the HUD ignored all mouse events and never took focus, so

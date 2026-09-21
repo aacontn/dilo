@@ -10,6 +10,16 @@ struct DictationHUDShellView: View {
   let screen: HUDScreenSnapshot
   let settings: DictationSessionSettings
   let content: DictationHUDContent
+  /// El estado de sesión que esta superficie dibuja. Hoy sólo existe uno con
+  /// UI; reunión y conversación entran por acá cuando tengan la suya
+  /// (`HUDSessionKind`).
+  var kind: HUDSessionKind = .dictando
+
+  /// Si esta pantalla dibuja la píldora de Dilo en vez de la forma que cuelga
+  /// del notch. Lo decide la pantalla, no el picker de Ajustes: sin carcasa no
+  /// hay de qué colgar, y la píldora es una forma distinta, no la misma más
+  /// abajo.
+  private var isPill: Bool { HUDNotchGeometry.drawsPill(for: screen) }
 
   /// The shape's dimensions at the session's HUD size. Everything the user
   /// can resize is read from here; the housing band and fillets are not.
@@ -35,12 +45,17 @@ struct DictationHUDShellView: View {
   }
 
   private var metrics: HUDMetrics {
-    Self.metrics(
+    let base = Self.metrics(
       picked: settings.hudMetrics,
       screen: screen,
       visual: settings.voiceVisual,
       reduceMotion: reduceMotion
     )
+    // La píldora siempre lleva texto parcial, así que hereda el piso de los
+    // visuales que se construyen alrededor del texto: más chica que eso, el
+    // parcial deja de ser texto que alguien lee.
+    guard isPill else { return base }
+    return HUDMetrics(scale: max(base.scale, HUDMetrics.minimumReadableScale))
   }
 
   private var size: CGSize {
@@ -54,7 +69,8 @@ struct DictationHUDShellView: View {
         + (showsRecentDraft
           ? metrics.glowDraftStageHeight - metrics.textBandHeight : 0),
       includesTextBand: showsTextBand,
-      shapingBandHeight: showsShapingLabel ? metrics.shapingBandHeight : 0
+      shapingBandHeight: showsShapingLabel ? metrics.shapingBandHeight : 0,
+      housingBandHeight: isPill ? metrics.pillCrownHeight : nil
     )
   }
 
@@ -88,6 +104,9 @@ struct DictationHUDShellView: View {
   private var visualBandHeight: CGFloat {
     guard keepsVisualLayout else { return 0 }
     if reduceMotion { return metrics.visualBandHeight }
+    // La píldora tiene una sola forma: corona, onda del micrófono y texto
+    // parcial. El picker elige el *estilo* de la onda, no si la hay.
+    if isPill { return metrics.waveBandHeight }
     switch settings.voiceVisual {
     case .compact, .glowDraft: return 0
     case .waveform, .glow: return metrics.waveBandHeight
@@ -99,6 +118,10 @@ struct DictationHUDShellView: View {
   /// Reduce Motion the draft text always shows.
   private var showsTextBand: Bool {
     if !keepsVisualLayout || reduceMotion { return true }
+    // El texto parcial mientras hablas es parte de la identidad de la
+    // píldora, no una opción: es lo que la separa de cualquier HUD del
+    // sistema, que nunca muestra lo que estás diciendo.
+    if isPill { return true }
     return settings.voiceVisual.showsDraftWhileListening
   }
 
@@ -113,7 +136,7 @@ struct DictationHUDShellView: View {
   /// as a glitch mid retract, so the layout stays and the indicator settles
   /// instead. Edge Glow + Draft has its own centered stage.
   private var showsLeadingDraft: Bool {
-    settings.voiceVisual == .compact && !reduceMotion
+    !isPill && settings.voiceVisual == .compact && !reduceMotion
   }
 
   private var filletSize: CGFloat {
@@ -121,14 +144,29 @@ struct DictationHUDShellView: View {
   }
 
   private var housingShape: UnevenRoundedRectangle {
-    UnevenRoundedRectangle(
+    let top = HUDNotchGeometry.topCornerRadius(for: screen, metrics: metrics)
+    return UnevenRoundedRectangle(
+      topLeadingRadius: top,
       bottomLeadingRadius: metrics.bottomCornerRadius,
       bottomTrailingRadius: metrics.bottomCornerRadius,
+      topTrailingRadius: top,
       style: .continuous
     )
   }
 
   var body: some View {
+    switch kind.surface {
+    case .dictado:
+      dictationSurface
+    // Reunión y conversación están previstas y no se dibujan en v1 (spec §5).
+    // Casos explícitos, no un `default:`: cuando lleguen sus specs, el
+    // compilador va a traer a alguien hasta acá.
+    case .ninguna:
+      EmptyView()
+    }
+  }
+
+  private var dictationSurface: some View {
     HUDSurface(
       screen: screen,
       metrics: metrics,
@@ -145,7 +183,9 @@ struct DictationHUDShellView: View {
           // clears the camera, and an overlay so it never changes the fixed
           // window's size. Edge Glow + Draft places its own tag on the island.
           .overlay(alignment: .topLeading) {
-            if !showsRecentDraft { languageTag }
+            // La píldora lleva su etiqueta dentro de la corona, no colgando
+            // bajo una carcasa que ahí no existe.
+            if !showsRecentDraft, !isPill { languageTag }
           }
           // Grow Down springs the island's height. Glyphs opt out so new
           // words land immediately; the token is coarse so a wrap is one spring.
@@ -209,8 +249,19 @@ struct DictationHUDShellView: View {
       // Strip level with the housing: kept empty so text never collides
       // with the camera. Edge Glow + Draft still counts it in the box the
       // words are centered in, because the flanks of that strip are visible.
-      Color.clear
-        .frame(height: HUDNotchGeometry.closedSize(for: screen).height)
+      // Sin carcasa no hay cámara ni puntos que respetar: ahí va la corona.
+      if isPill {
+        HUDPillCrownView(
+          content: content,
+          scale: metrics.scale,
+          languageTag: content.languageTag,
+          languageTagWidth: content.languageTag.map(tagTextWidth) ?? 0
+        )
+        .frame(height: metrics.pillCrownHeight)
+      } else {
+        Color.clear
+          .frame(height: HUDNotchGeometry.closedSize(for: screen).height)
+      }
       if visualBandHeight > 0 {
         Group {
           if reduceMotion {
@@ -266,7 +317,8 @@ struct DictationHUDShellView: View {
   }
 
   private var showsRecentDraft: Bool {
-    Self.showsRecentDraft(
+    guard !isPill else { return false }
+    return Self.showsRecentDraft(
       visual: settings.voiceVisual,
       listening: content.showsVoiceVisual,
       dismissing: content.isDismissing,

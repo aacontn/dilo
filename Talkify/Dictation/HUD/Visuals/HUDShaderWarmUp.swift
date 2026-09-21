@@ -9,15 +9,17 @@ import SwiftUI
 ///
 /// The arguments are placeholders: what is compiled is the function, and the
 /// values it happens to be handed here never reach a screen.
+///
+/// `WaveformSheen.metal` ya no está en esta lista: la onda de Dilo dejó de
+/// pasar por él. Su fringing cromático estaba afinado para una onda blanca y
+/// sobre menta la volvía un arcoíris — el color de la marca desaparecía, que
+/// es justo lo que la onda tiene que decir. El `.metal` se conserva por si
+/// vuelve con otra afinación; calentar un shader que nadie dibuja no.
 enum HUDShaderWarmUp {
   static let shaders: [(Shader, Shader.UsageType)] = [
     (
       ShaderLibrary.edgeGlow(.float2(CGPoint.zero), .float2(CGSize(width: 1, height: 1)), .float(0), .float(0)),
       .colorEffect
-    ),
-    (
-      ShaderLibrary.waveformSheen(.float2(CGSize(width: 1, height: 1)), .float(0), .float(0)),
-      .layerEffect
     ),
     (
       ShaderLibrary.shapingSheen(

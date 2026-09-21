@@ -8,12 +8,20 @@ struct HUDRootView: View {
   let settings: DictationSessionSettings
   let content: DictationHUDContent
   let drop: DropHUDContent
+  /// El estado de sesión del HUD. Hoy siempre `dictando`: es el único de los
+  /// tres que dibuja algo (`HUDSessionKind`).
+  var kind: HUDSessionKind = .dictando
   var onDrop: (Int) -> Void = { _ in }
   var onCardEvent: (HUDCardEvent) -> Void = { _ in }
 
   var body: some View {
     if drop.mode == .none {
-      DictationHUDShellView(screen: screen, settings: settings, content: content)
+      DictationHUDShellView(
+        screen: screen,
+        settings: settings,
+        content: content,
+        kind: kind
+      )
     } else {
       DropHUDView(
         screen: screen,

@@ -10,46 +10,20 @@ struct HUDWaveformView: View {
   let settings: DictationSessionSettings
   let content: DictationHUDContent
 
-  @State private var start = Date()
-
-  /// Chart Line and Siri Wave carry their own treatment (layered glow and
-  /// gradient; the source's three-color blend) — the sheen shader and the
-  /// bar styles' side margins would only muddy them.
-  private var carriesOwnTreatment: Bool {
+  /// Chart Line y Siri Wave corren de borde a borde; los estilos de barras
+  /// guardan margen lateral.
+  private var runsEdgeToEdge: Bool {
     settings.waveformStyle == .chartLine || settings.waveformStyle == .siriWave
   }
 
   var body: some View {
-    Group {
-      if carriesOwnTreatment {
-        styledWave
-      } else {
-        TimelineView(.animation) { context in
-          styledWave
-            // WWDC26-style finish over the drawn pixels:
-            // chromatic edge fringing, a metallic specular sweep,
-            // and soft bloom (WaveformSheen.metal).
-            .layerEffect(
-              ShaderLibrary.waveformSheen(
-                .float2(waveSize),
-                .float(Float(context.date.timeIntervalSince(start))),
-                .float(Float(content.audioLevel))
-              ),
-              maxSampleOffset: CGSize(width: 8, height: 8)
-            )
-        }
-      }
-    }
-    .onGeometryChange(for: CGSize.self, of: \.size) { waveSize = $0 }
-    .animation(.linear(duration: 0.05), value: content.levelHistory)
-    // Full-width styles run edge to edge; the bar styles keep margins.
-    .padding(.horizontal, carriesOwnTreatment ? 0 : 28)
-    .padding(.vertical, 6)
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
+    styledWave
+      .animation(.linear(duration: 0.05), value: content.levelHistory)
+      .padding(.horizontal, runsEdgeToEdge ? 0 : 28)
+      .padding(.vertical, 6)
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
   }
-
-  @State private var waveSize = CGSize(width: 1, height: 1)
 
   @ViewBuilder
   private var styledWave: some View {
@@ -82,21 +56,13 @@ struct HUDWaveformView: View {
     }
   }
 
-  /// One color language for every style: the edge glow's white/silver —
-  /// a hot white body cooling at the extremes, faint blue-violet fringe.
-  /// Amber when the microphone dies (CONTEXT.md).
+  /// Un solo lenguaje de color para todos los estilos: la onda de Dilo,
+  /// menta con las puntas mango (`HUDVisualTokens.wave`). Ámbar quieto cuando
+  /// el micrófono se muere (CONTEXT.md).
   private var silver: AnyShapeStyle {
     content.isAudioAlive
-      ? AnyShapeStyle(LinearGradient(
-        colors: [
-          Color(red: 0.62, green: 0.72, blue: 1.0).opacity(0.75),
-          .white,
-          Color(red: 0.62, green: 0.72, blue: 1.0).opacity(0.75),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      ))
-      : AnyShapeStyle(Color.orange.opacity(0.55))
+      ? AnyShapeStyle(HUDVisualTokens.wave)
+      : AnyShapeStyle(HUDVisualTokens.deadMicAmber.opacity(0.55))
   }
 
   /// AudioWaveform's capsule mode: dampened heights, width-derived bars.
