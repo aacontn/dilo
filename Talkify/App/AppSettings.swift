@@ -537,10 +537,10 @@ enum BindingRole: Hashable, CaseIterable {
 
   var title: String {
     switch self {
-    case .dictation: "Dictado"
-    case .secondLanguage: "Segundo idioma"
-    case .translate: "Traducir"
-    case .readAloud: "Leer en voz alta"
+    case .dictation: String(localized: "Dictado")
+    case .secondLanguage: String(localized: "Segundo idioma")
+    case .translate: String(localized: "Traducir")
+    case .readAloud: String(localized: "Leer en voz alta")
     }
   }
 }

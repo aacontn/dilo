@@ -2,8 +2,8 @@ import SwiftUI
 
 /// One preference row: title, optional description, trailing control.
 struct SettingsRow<Control: View>: View {
-  let title: String
-  var description = ""
+  let title: LocalizedStringKey
+  var description: LocalizedStringKey = ""
   @ViewBuilder let control: Control
 
   @Environment(\.colorSchemeContrast) private var contrast
@@ -13,7 +13,7 @@ struct SettingsRow<Control: View>: View {
       VStack(alignment: .leading, spacing: 4) {
         Text(title)
           .font(.system(size: 13, weight: .medium))
-        if !description.isEmpty {
+        if description != "" {
           Text(description)
             .font(.caption)
             .foregroundStyle(.white.opacity(contrast == .increased ? 0.72 : 0.48))
@@ -36,8 +36,8 @@ struct SettingsRow<Control: View>: View {
 /// current value read out beside it. For preferences with no natural set of
 /// named choices, where a picker would only invent arbitrary steps.
 struct SettingsSliderRow: View {
-  let title: String
-  var description = ""
+  let title: LocalizedStringKey
+  var description: LocalizedStringKey = ""
   @Binding var value: Double
   let range: ClosedRange<Double>
   /// The slider still steps: a stored value the user cannot land on again
@@ -89,8 +89,8 @@ struct SettingsSliderRow: View {
 /// The repeated shape of most preference rows: a SettingsRow whose control
 /// is the standard trailing menu picker.
 struct SettingsPickerRow<Value: Hashable>: View {
-  let title: String
-  var description = ""
+  let title: LocalizedStringKey
+  var description: LocalizedStringKey = ""
   let options: [Value]
   let optionLabel: (Value) -> String
   @Binding var selection: Value

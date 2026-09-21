@@ -55,7 +55,7 @@ struct UpdatesSettingsView: View {
     }
   }
 
-  private var lastCheckedDescription: String {
+  private var lastCheckedDescription: LocalizedStringKey {
     guard let date = updater.lastCheckedAt else {
       return "Dilo todavía no ha buscado actualizaciones."
     }

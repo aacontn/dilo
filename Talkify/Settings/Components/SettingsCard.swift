@@ -3,7 +3,7 @@ import SwiftUI
 /// A labeled group of related Settings rows on one rounded card
 /// (CONTEXT.md: related rows share rounded cards with subtle separators).
 struct SettingsCard<Content: View>: View {
-  let title: String
+  let title: LocalizedStringKey
   @ViewBuilder let content: Content
 
   @Environment(\.colorSchemeContrast) private var contrast

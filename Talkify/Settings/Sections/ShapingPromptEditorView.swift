@@ -260,8 +260,8 @@ struct ShapingPromptEditorView: View {
 /// closes with a separator, which would cut a label away from the box it
 /// describes. A prompt is a paragraph, so its field has to be a paragraph.
 private struct FieldBlock<Trailing: View>: View {
-  let title: String
-  var description = ""
+  let title: LocalizedStringKey
+  var description: LocalizedStringKey = ""
   @Binding var text: String
   var height: CGFloat = 76
   @ViewBuilder var trailing: Trailing
@@ -274,7 +274,7 @@ private struct FieldBlock<Trailing: View>: View {
         VStack(alignment: .leading, spacing: 4) {
           Text(title)
             .font(.system(size: 13, weight: .medium))
-          if !description.isEmpty {
+          if description != "" {
             Text(description)
               .font(.caption)
               .foregroundStyle(.white.opacity(contrast == .increased ? 0.72 : 0.48))
@@ -311,8 +311,8 @@ private struct FieldBlock<Trailing: View>: View {
 
 extension FieldBlock where Trailing == EmptyView {
   init(
-    title: String,
-    description: String = "",
+    title: LocalizedStringKey,
+    description: LocalizedStringKey = "",
     text: Binding<String>,
     height: CGFloat = 76
   ) {

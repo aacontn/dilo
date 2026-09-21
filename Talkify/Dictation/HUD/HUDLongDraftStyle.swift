@@ -1,3 +1,5 @@
+import Foundation
+
 /// What the HUD does when the draft outgrows one line. CONTEXT.md flags this
 /// as undecided; all three variants stay selectable until the pick is made
 /// by feel.
@@ -14,9 +16,9 @@ enum HUDLongDraftStyle: String, CaseIterable {
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
     switch self {
-    case .tailOnly: "Solo el final"
-    case .growDown: "Crece hacia abajo"
-    case .shrinkToFit: "Achica la letra"
+    case .tailOnly: String(localized: "Solo el final")
+    case .growDown: String(localized: "Crece hacia abajo")
+    case .shrinkToFit: String(localized: "Achica la letra")
     }
   }
 }

@@ -16,8 +16,8 @@ enum TranscriptDestination {
     /// El nombre visible; el rawValue es la elección guardada y no se toca.
     var title: String {
       switch self {
-      case .besideSource: "Junto al archivo"
-      case .chosenFolder: "En una carpeta que elijas"
+      case .besideSource: String(localized: "Junto al archivo")
+      case .chosenFolder: String(localized: "En una carpeta que elijas")
       }
     }
   }

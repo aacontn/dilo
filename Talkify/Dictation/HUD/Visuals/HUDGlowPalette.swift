@@ -15,12 +15,12 @@ enum HUDGlowPalette: String, CaseIterable {
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
     switch self {
-    case .spectrum: "Espectro"
-    case .silver: "Plata"
-    case .aurora: "Aurora"
-    case .sunset: "Atardecer"
-    case .ocean: "Océano"
-    case .mono: "Mono"
+    case .spectrum: String(localized: "Espectro")
+    case .silver: String(localized: "Plata")
+    case .aurora: String(localized: "Aurora")
+    case .sunset: String(localized: "Atardecer")
+    case .ocean: String(localized: "Océano")
+    case .mono: String(localized: "Mono")
     }
   }
 

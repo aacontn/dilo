@@ -1,3 +1,5 @@
+import Foundation
+
 /// The waveform looks the user can choose, each mimicking a reference
 /// implementation, all fed by the same live level history:
 /// - Article: "Writing a High-Performance Audio Wave in SwiftUI" — the
@@ -26,15 +28,15 @@ enum HUDWaveformStyle: String, CaseIterable {
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
     switch self {
-    case .article: "Barras"
-    case .silver: "Plata"
-    case .capsules: "Cápsulas"
-    case .chartLine: "Línea"
-    case .chartArea: "Área"
-    case .dots: "Puntos"
-    case .curve: "Curva"
-    case .filled: "Relleno"
-    case .siriWave: "Ola"
+    case .article: String(localized: "Barras")
+    case .silver: String(localized: "Plata")
+    case .capsules: String(localized: "Cápsulas")
+    case .chartLine: String(localized: "Línea")
+    case .chartArea: String(localized: "Área")
+    case .dots: String(localized: "Puntos")
+    case .curve: String(localized: "Curva")
+    case .filled: String(localized: "Relleno")
+    case .siriWave: String(localized: "Ola")
     }
   }
 }

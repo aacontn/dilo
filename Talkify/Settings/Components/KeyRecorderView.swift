@@ -154,11 +154,15 @@ struct KeyRecorderCapsule: View {
   @Environment(\.colorSchemeContrast) private var contrast
 
   var body: some View {
-    Text(
-      isRecording
-        ? (acceptsMouseButton ? "Aprieta teclas o un botón…" : "Aprieta las teclas…")
-        : title
-    )
+    // El rótulo de la tecla es un símbolo, no copy: sale tal cual. Los dos
+    // avisos sí son copy, así que se separan para que el catálogo los vea.
+    Group {
+      if isRecording {
+        Text(acceptsMouseButton ? "Aprieta teclas o un botón…" : "Aprieta las teclas…")
+      } else {
+        Text(title)
+      }
+    }
       .font(.system(size: 12, weight: .semibold))
       .foregroundStyle(isRecording ? SettingsTheme.accent : .white)
       .frame(minWidth: 96)

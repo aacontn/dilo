@@ -12,8 +12,8 @@ struct SettingsPreviewStage<HUD: View>: View {
   @Environment(\.colorSchemeContrast) private var contrast
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  let title: String
-  let subtitle: String
+  let title: LocalizedStringKey
+  let subtitle: LocalizedStringKey
   @ViewBuilder let hud: HUD
 
   var body: some View {
@@ -71,7 +71,7 @@ struct SettingsPreviewStage<HUD: View>: View {
       HStack(spacing: 7) {
         Image(systemName: "apple.logo")
           .font(.system(size: 8))
-        Text("Finder")
+        Text(verbatim: "Finder")
           .font(.system(size: 8.5, weight: .semibold))
       }
       Spacer()
@@ -83,7 +83,7 @@ struct SettingsPreviewStage<HUD: View>: View {
           .frame(height: 8.5)
         Image(systemName: "wifi")
           .font(.system(size: 8))
-        Text("11:41")
+        Text(verbatim: "11:41")
           .font(.system(size: 8.5, weight: .medium))
       }
     }

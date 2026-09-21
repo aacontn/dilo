@@ -54,11 +54,13 @@ struct DropTranscriptionSettingsView: View {
 
   /// Says where the transcript actually lands, rather than only naming the
   /// pick: an unset folder silently falls back, and that should not surprise.
-  private var folderDescription: String {
+  /// Una ruta no se traduce, así que sale como valor; el caso sin carpeta sí
+  /// es copy y pasa por el catálogo.
+  private var folderDescription: LocalizedStringKey {
     guard let folder = settings.transcriptFolder else {
       return "Sin carpeta elegida: van al Escritorio"
     }
-    return folder.path(percentEncoded: false)
+    return "\(folder.path(percentEncoded: false))"
   }
 
   private func chooseFolder() {

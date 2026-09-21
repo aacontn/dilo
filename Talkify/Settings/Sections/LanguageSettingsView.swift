@@ -47,7 +47,7 @@ struct LanguageSettingsView: View {
         if settings.isSecondLanguageEnabled {
           SettingsRow(
             title: "Tecla del segundo idioma",
-            description: secondaryTriggerDescription
+            description: "\(secondaryTriggerDescription)"
           ) {
             KeyRecorderView(
               keyBinding: $settings.secondaryTriggerBinding,
@@ -165,7 +165,7 @@ struct LanguageSettingsView: View {
       .name ?? "el segundo idioma"
   }
 
-  private var translationDescription: String {
+  private var translationDescription: LocalizedStringKey {
     guard settings.isTranslationEnabled else {
       return "Apagado. Elige uno y la tecla de traducir lo pega en ese idioma"
     }
@@ -179,7 +179,7 @@ struct LanguageSettingsView: View {
       // A stored pick this source cannot reach. Kept visible rather than
       // silently dropped: it is still the user's choice.
       return SpeechLanguageCatalog.shortName(for: Locale(identifier: identifier))
-        + " — no se puede desde tu idioma de dictado"
+        + " " + String(localized: "— no se puede desde tu idioma de dictado")
     }
     return target.label
   }
@@ -232,7 +232,7 @@ struct LanguageSettingsView: View {
           .buttonStyle(SettingsButtonStyle())
       }
     } else if let target = chosenTarget, let problem = modelProblem {
-      SettingsRow(title: "\(target.name) \(problem.title)", description: problem.detail) {
+      SettingsRow(title: "\(target.name) \(problem.title)", description: "\(problem.detail)") {
         Button(problem.button) { install(target) }
           .buttonStyle(SettingsButtonStyle())
       }
@@ -264,12 +264,22 @@ struct LanguageSettingsView: View {
   /// `needsDownload` is only reachable when the app was quit mid-download,
   /// because the picker otherwise never commits a language whose model is
   /// missing. `failed` is a model this Mac has that will not load.
+  /// Se arma con `String(localized:)` y no con literales de vista porque el
+  /// título se pega al nombre del idioma antes de llegar a la fila.
   private var modelProblem: (title: String, detail: String, button: String)? {
     switch runtimeState.translationModelState {
     case .needsDownload:
-      ("todavía necesita su modelo", "Traducir no funciona hasta que baje.", "Bajar")
+      (
+        String(localized: "todavía necesita su modelo"),
+        String(localized: "Traducir no funciona hasta que baje."),
+        String(localized: "Bajar")
+      )
     case .failed:
-      ("no se pudo preparar", "Traducir no funciona hasta que cargue.", "Reintentar")
+      (
+        String(localized: "no se pudo preparar"),
+        String(localized: "Traducir no funciona hasta que cargue."),
+        String(localized: "Reintentar")
+      )
     case .none, .ready, .downloading:
       nil
     }
@@ -331,14 +341,20 @@ struct LanguageSettingsView: View {
     }
   }
 
+  /// Una frase que se arma por pedazos no cabe en una clave del catálogo, así
+  /// que cada pedazo se traduce por su cuenta y se pegan después.
   private var secondaryTriggerDescription: String {
     let binding = settings.secondaryTriggerBinding
-    var description = "Mantenla para dictar en \(secondaryName), o tócala para empezar y tócala de nuevo para terminar"
+    var description = String(
+      localized: "Mantenla para dictar en \(secondaryName), o tócala para empezar y tócala de nuevo para terminar"
+    )
     if binding.isMouseButton {
-      description += ". Conserva su función de siempre salvo que aprietes esa combinación exacta"
+      description += ". " + String(
+        localized: "Conserva su función de siempre salvo que aprietes esa combinación exacta"
+      )
     }
     if let other = settings.roleUsing(binding, excluding: .secondLanguage) {
-      description += ". También la usa \(other.title)"
+      description += ". " + String(localized: "También la usa \(other.title)")
     }
     return description
   }
