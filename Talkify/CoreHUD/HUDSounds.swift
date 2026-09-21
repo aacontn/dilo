@@ -1,15 +1,14 @@
 import AppKit
 
-/// The sound sets a session can use. Licensing differs per set — see
-/// Resources/Sounds/LICENSE-SOUNDS.txt before shipping (Pop is CC-BY-NC and
-/// must be replaced or dropped before release).
+/// The sound sets a session can use. All of them are shippable: Click is CC0
+/// and the rest are original synthesized assets — see
+/// Resources/Sounds/LICENSE-SOUNDS.txt. (Pop, CC-BY-NC, was dropped for
+/// Dilo 0.4.0 rather than shipped as a placeholder.)
 ///
 /// rawValue is load-bearing twice over: it is the UserDefaults value existing
 /// picks are stored under, and it prefixes the bundled asset names
 /// (`<rawValue>Begin/End/Paste.wav`). Renaming a case breaks both.
 enum DictationSoundSet: String, CaseIterable {
-  /// Plunger pop (freesound #321807, CC-BY-NC — placeholder, not shippable).
-  case pop = "Pop"
   /// Minimal 7ms UI click (freesound #370962, CC0).
   case click = "Click"
   /// Our own synthesized two-note pluck: rising fifth in, falling fifth
@@ -25,9 +24,7 @@ enum DictationSoundSet: String, CaseIterable {
   /// in the style of the reference app's synth8 trio. Original asset.
   case synth8 = "Synth8"
 
-  var isShippable: Bool {
-    self != .pop
-  }
+  var isShippable: Bool { true }
 
   static var settingsCases: [Self] {
 #if DEBUG

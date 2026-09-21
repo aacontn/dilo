@@ -83,7 +83,7 @@ struct SettingsWindowTests {
 
   @Test func releaseMetadataExcludesUnlicensedOptions() {
     #expect(DictationSoundSet.synth8.isShippable)
-    #expect(!DictationSoundSet.pop.isShippable)
+    #expect(DictationSoundSet.allCases.allSatisfy(\.isShippable))
     #expect(HUDGlowCenterStyle.particles.isShippable)
     #expect(!HUDGlowCenterStyle.siriOrb.isShippable)
   }

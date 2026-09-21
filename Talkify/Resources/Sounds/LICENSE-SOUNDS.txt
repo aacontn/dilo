@@ -1,11 +1,5 @@
-Session sound candidates, selectable from the debug menu.
-
-PopBegin.wav / PopEnd.wav
-  Source: "Plunger pop 1" by lloydevans09
-  https://freesound.org/people/lloydevans09/sounds/321807/
-  License: CC-BY-NC 4.0 (Attribution NonCommercial).
-  PLACEHOLDER — the NonCommercial clause forbids use in a commercial or
-  App Store build. Must be replaced or dropped before any release.
+Session sound sets. Pop (CC-BY-NC, freesound #321807) was removed in Dilo 0.4.0:
+nothing NonCommercial ships in the bundle.
 
 ClickBegin.wav / ClickEnd.wav
   Source: "Click 01 (Minimal UI Sounds)" by cabled_mess
@@ -21,6 +15,6 @@ Synth3*, Synth7*, Synth8*, ChimePaste.wav
   styled after a reference app's pairs but generated from hand-chosen
   parameters. Original Talkify assets — no external license.
 
-Pop/Click derivatives (End, Paste) are edits of their Begin recordings
+Click derivatives (End, Paste) are edits of the Begin recording
 (header resampling / repetition) and carry the same license as the
 source recording.
