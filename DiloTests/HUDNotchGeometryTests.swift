@@ -289,17 +289,23 @@ struct HUDNotchGeometryTests {
   }
 
   @Test func windowFrameClampsToNarrowScreen() {
+    // Angosta de verdad: menos que lo que la ventana pide por su cuenta —el
+    // ancho del contenido más la holgura de la sombra a cada lado—, o no hay
+    // nada que recortar y el test pasa sin tocar el recorte. Se deriva y no
+    // se escribe a mano porque ya pasó: la forma abierta bajó de 540 a 400 y
+    // los 600 puntos de esta pantalla dejaron de ser angostos en silencio.
+    let ancho = HUDMetrics.standard.contentWidth + HUDNotchGeometry.shadowPadding * 2 - 100
     let narrow = HUDScreenSnapshot(
       id: 4,
-      frame: CGRect(x: 0, y: 0, width: 600, height: 800),
+      frame: CGRect(x: 0, y: 0, width: ancho, height: 800),
       safeAreaTop: 0,
       auxiliaryTopLeftArea: nil,
       auxiliaryTopRightArea: nil,
       menuBarHeight: 24
     )
     let frame = HUDNotchGeometry.windowFrame(for: narrow)
-    #expect(frame.width == 600)
-    #expect(frame.midX == 300)
+    #expect(frame.width == ancho)
+    #expect(frame.midX == ancho / 2)
   }
 
   /// Las curvas cóncavas existen donde hay un borde en el que fundirse: el

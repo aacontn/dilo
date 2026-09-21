@@ -96,8 +96,16 @@ final class DirectDictationController {
     self.settings = settings
     self.dependencies = dependencies
     keyEventMonitor = GlobalKeyEventMonitor { [weak self] event in
+      // El instante se toma acá, en el tap, y no cuando el main actor llegue
+      // a atender el evento. Arrancar una sesión —la assertion de actividad,
+      // la foto de los ajustes, los primeros cuadros del HUD— ocupa el main
+      // actor, y el evento de soltar espera en la cola detrás de eso. Con
+      // `.now` leído al atenderlo, un toque corto de verdad se medía como
+      // sostenido apenas el arranque pasaba de los 250 ms del umbral, y la
+      // sesión no se trababa.
+      let instante = ContinuousClock.now
       Task { @MainActor [weak self] in
-        self?.handle(event)
+        self?.handle(event, at: instante)
       }
     }
   }
@@ -471,7 +479,13 @@ final class DirectDictationController {
   /// about a translate press has to wait for this rather than for isPrepared.
   var translationPairForTesting: TranslationPair? { translation.pair }
 
-  func handle(_ event: GlobalKeyEventMonitor.Event) {
+  /// Atiende un evento del monitor. `instante` es cuándo ocurrió, no cuándo
+  /// se lo atiende: el umbral del toque corto se mide entre los dos eventos
+  /// de la persona y no entre las dos veces que este método alcanzó a correr.
+  func handle(
+    _ event: GlobalKeyEventMonitor.Event,
+    at instante: ContinuousClock.Instant = .now
+  ) {
     switch event {
     case let .triggerPressed(slot):
       // While a session runs, only the key that started it controls it. The
@@ -482,10 +496,10 @@ final class DirectDictationController {
       } else {
         claimSession(for: slot)
       }
-      send(.triggerPressed(now: .now))
+      send(.triggerPressed(now: instante))
     case let .triggerReleased(slot):
       guard slot == activeSlot else { return }
-      send(.triggerReleased(now: .now))
+      send(.triggerReleased(now: instante))
     case .cancelPressed:
       send(.escapePressed)
     case .readAloudPressed:

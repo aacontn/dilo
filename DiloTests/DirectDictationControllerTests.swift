@@ -200,6 +200,24 @@ struct DirectDictationControllerTests {
     )
   }
 
+  /// Un toque corto: apretar y soltar el gatillo de `slot`, que es lo que
+  /// traba la sesión (`DictationSessionMachine.tapThreshold`).
+  ///
+  /// Los dos instantes son explícitos porque el umbral se mide **entre los
+  /// eventos** y no entre las dos llamadas: arrancar la sesión ocurre entera
+  /// dentro del apretón, y en un runner cargado esos milisegundos se comían
+  /// los 250 del presupuesto. El toque se leía como un sostenido, la sesión
+  /// no se trababa y la espera se iba a los 10 s. Acá el gesto dura 10 ms
+  /// pase lo que pase en la máquina.
+  private func toque(
+    _ controller: DirectDictationController,
+    _ slot: GlobalKeyEventMonitor.TriggerSlot
+  ) {
+    let inicio = ContinuousClock.now
+    controller.handle(.triggerPressed(slot), at: inicio)
+    controller.handle(.triggerReleased(slot), at: inicio + .milliseconds(10))
+  }
+
   /// Espera a que la condición se cumpla, y recién se rinde a los 10 s de
   /// reloj. Los `sleep` le sueltan el main actor a las tareas del controlador.
   ///
@@ -722,11 +740,10 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    // Press and release with no wait is a quick tap, which latches; the next
-    // press is what finishes. Latching rather than sleeping past the 250ms
-    // hold threshold keeps this test off the clock.
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    // Un toque corto traba la sesión y el siguiente apretón es el que la
+    // termina. Trabar en vez de dormir más allá del umbral de 250 ms es lo
+    // que deja a este test fuera del reloj.
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -776,8 +793,7 @@ struct DirectDictationControllerTests {
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
     // A translate session first, so a stale binding exists to inherit.
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -896,8 +912,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -937,8 +952,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -974,8 +988,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1008,8 +1021,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1041,8 +1053,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1076,8 +1087,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1111,8 +1121,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1148,8 +1157,7 @@ struct DirectDictationControllerTests {
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1248,8 +1256,7 @@ struct DirectDictationControllerTests {
     settings.translationTargetIdentifier = "es"
     await prepareWithTranslation(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.translate))
-    controller.handle(.triggerReleased(.translate))
+    toque(controller, .translate)
     await waitUntil("Session never latched") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1356,8 +1363,7 @@ struct DirectDictationControllerTests {
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("correo")))
-    controller.handle(.triggerReleased(.modo("correo")))
+    toque(controller, .modo("correo"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1427,8 +1433,7 @@ struct DirectDictationControllerTests {
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("limpio")))
-    controller.handle(.triggerReleased(.modo("limpio")))
+    toque(controller, .modo("limpio"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1469,8 +1474,7 @@ struct DirectDictationControllerTests {
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("limpio")))
-    controller.handle(.triggerReleased(.modo("limpio")))
+    toque(controller, .modo("limpio"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1553,8 +1557,7 @@ struct DirectDictationControllerTests {
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("mensaje")))
-    controller.handle(.triggerReleased(.modo("mensaje")))
+    toque(controller, .modo("mensaje"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1589,8 +1592,7 @@ struct DirectDictationControllerTests {
     }
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("correo")))
-    controller.handle(.triggerReleased(.modo("correo")))
+    toque(controller, .modo("correo"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1790,8 +1792,7 @@ struct DirectDictationControllerTests {
     )
     await prepare(controller, prewarmed: prewarmed)
 
-    controller.handle(.triggerPressed(.modo("limpio")))
-    controller.handle(.triggerReleased(.modo("limpio")))
+    toque(controller, .modo("limpio"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }
@@ -1832,8 +1833,7 @@ struct DirectDictationControllerTests {
     controller.handle(.shapingCycleRight)
     #expect(recorder.shapingChoiceLabels.isEmpty)
 
-    controller.handle(.triggerPressed(.modo("limpio")))
-    controller.handle(.triggerReleased(.modo("limpio")))
+    toque(controller, .modo("limpio"))
     await waitUntil("La sesión nunca se trabó") {
       controller.sessionStateForTesting == .recording(.latched)
     }

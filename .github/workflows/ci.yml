@@ -34,6 +34,8 @@ jobs:
       - name: xcodebuild test (Dilo)
         run: |
           set -o pipefail
+          registro="$RUNNER_TEMP/xcodebuild-test.log"
+          estado=0
           xcodebuild test \
             -project Dilo.xcodeproj \
             -scheme Dilo \
@@ -42,7 +44,18 @@ jobs:
             DILO_SUFIJO_ID=.ci \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" | tail -100
+            DEVELOPMENT_TEAM="" > "$registro" 2>&1 || estado=$?
+          # Lo único que sirve para arreglar un test rojo es la línea del
+          # `#expect` que falló, y con `tail` sola se perdía: la app escribe
+          # miles de líneas de log después del resumen, y el nombre que
+          # xcodebuild imprime en "Failing tests" para una suite de
+          # swift-testing es el del primer test de la suite, no el del que
+          # falló. Los issues van primero y la cola después.
+          echo "--- issues ---"
+          grep -E '✘|recorded an issue|Failing tests:|error:' "$registro" | head -100 || true
+          echo "--- cola ---"
+          tail -100 "$registro"
+          exit $estado
 
       # El App Sandbox no rompe la compilación: se cae en ejecución. Igual se
       # compila en cada PR, porque un target que nadie compila se pudre en una
