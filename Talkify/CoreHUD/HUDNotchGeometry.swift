@@ -122,19 +122,35 @@ enum HUDNotchGeometry {
   /// own (issue #83). So there the shape hangs just below the menu bar
   /// instead of over it.
   ///
-  /// En Dilo eso no es una preferencia con dos lados buenos: la píldora
-  /// **siempre** va debajo (spec §8, `AGENTS.md`). Alfonso dictó diez minutos
-  /// con la de Talkify encima y le tapó sus propios status items en dos
-  /// monitores sin notch, que es el 80 % de su uso. El ajuste sigue existiendo
-  /// para quien quiera la imitación exacta del notch, pero viene encendido.
-  /// - Parameter clearsMenuBar: Whether a display with no housing hangs the
-  ///   shape below the menu bar instead of over it. Over it looks like the
-  ///   notch it imitates; below it keeps the status items reachable, which is
-  ///   what someone with a crowded menu bar needs (issue #83).
-  static func topInset(for screen: HUDScreenSnapshot, clearsMenuBar: Bool) -> CGFloat {
+  /// En Dilo el default no se discute: la píldora va debajo (spec §8,
+  /// `AGENTS.md`). Alfonso dictó diez minutos con la de Talkify encima y le
+  /// tapó sus propios status items en dos monitores sin notch, que es el 80 %
+  /// de su uso. La imitación sigue disponible —Ajustes → Apariencia, «En
+  /// pantallas sin notch»— para quien la prefiera, porque la franja del
+  /// centro de la barra de menús suele estar vacía; pero se elige a mano.
+  /// Quién elige entre las dos es `screen.estiloSinNotch`: con
+  /// `.notchSimulado` la forma nace del borde (relleno cero) y con `.pildora`
+  /// cuelga por debajo de la barra.
+  static func topInset(for screen: HUDScreenSnapshot) -> CGFloat {
     guard !hasMeasuredNotch(for: screen) else { return 0 }
-    guard clearsMenuBar else { return 0 }
+    guard !simulatesNotch(for: screen) else { return 0 }
     return max(screen.menuBarHeight, menuBarClearanceFloor) + pillDetachment
+  }
+
+  /// Si esta pantalla dibuja el notch simulado: no tiene carcasa que medir y
+  /// la preferencia pide la imitación.
+  ///
+  /// La forma se pega a `y = 0` y queda encima de la barra de menús, que en
+  /// macOS está vacía justo en el centro: los menús de la app se acomodan a
+  /// la izquierda y los status items a la derecha. **El límite es ese**: una
+  /// barra con tantos menús abiertos que lleguen al centro queda tapada en
+  /// esa franja mientras dura el dictado, y no hay forma de evitarlo sin
+  /// mover el notch de lugar —que es exactamente lo que `.pildora` hace—.
+  /// La forma nunca se hace más ancha de lo que necesita: en reposo son los
+  /// 185 puntos de `fallbackClosedSize`, y abierta es el ancho del contenido
+  /// que la persona eligió en Ajustes.
+  static func simulatesNotch(for screen: HUDScreenSnapshot) -> Bool {
+    !hasMeasuredNotch(for: screen) && screen.estiloSinNotch == .notchSimulado
   }
 
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
@@ -164,11 +180,19 @@ enum HUDNotchGeometry {
   }
 
   /// El radio de las esquinas de arriba. Cero contra una carcasa real —la
-  /// forma nace del recorte y no tiene borde propio ahí— y el mismo radio de
-  /// abajo en la píldora, que flota separada y se cierra por los cuatro
-  /// lados.
+  /// forma nace del recorte y no tiene borde propio ahí—, cero también en el
+  /// notch simulado por la misma razón, y el mismo radio de abajo en la
+  /// píldora, que flota separada y se cierra por los cuatro lados.
   static func topCornerRadius(for screen: HUDScreenSnapshot, metrics: HUDMetrics) -> CGFloat {
-    drawsPill(for: screen) ? metrics.bottomCornerRadius : 0
+    closesAtTop(for: screen) ? metrics.bottomCornerRadius : 0
+  }
+
+  /// Si la forma se cierra también por arriba. Sólo la píldora: el notch
+  /// —real o simulado— nace de un borde y compartirlo es lo que lo hace
+  /// leerse como notch. Una imitación con el tope redondeado se ve como una
+  /// pastilla mal pegada al canto de la pantalla.
+  static func closesAtTop(for screen: HUDScreenSnapshot) -> Bool {
+    drawsPill(for: screen) && !simulatesNotch(for: screen)
   }
 
   /// The host window's frame: content size plus shadow slack, centered and
@@ -179,14 +203,11 @@ enum HUDNotchGeometry {
   /// window stays fixed per display (ADR-0001) and a smaller shape simply
   /// centers itself inside it. The window is invisible and click-through, so
   /// the unused slack costs nothing.
-  static func windowFrame(
-    for screen: HUDScreenSnapshot,
-    clearsMenuBar: Bool
-  ) -> CGRect {
+  static func windowFrame(for screen: HUDScreenSnapshot) -> CGRect {
     let size = windowSize(for: screen)
     return CGRect(
       x: screen.frame.midX - size.width / 2,
-      y: screen.frame.maxY - size.height - topInset(for: screen, clearsMenuBar: clearsMenuBar),
+      y: screen.frame.maxY - size.height - topInset(for: screen),
       width: size.width,
       height: size.height
     )

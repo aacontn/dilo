@@ -42,7 +42,7 @@ struct HUDPildoraTests {
   /// franja de la barra de menús, que es donde viven los status items —
   /// incluido el de Dilo.
   @Test func laPildoraNuncaEntraEnLaFranjaDeLaBarraDeMenus() {
-    let frame = HUDNotchGeometry.windowFrame(for: sinNotch, clearsMenuBar: true)
+    let frame = HUDNotchGeometry.windowFrame(for: sinNotch)
     #expect(frame.maxY <= sinNotch.frame.maxY - sinNotch.menuBarHeight)
   }
 
@@ -50,7 +50,7 @@ struct HUDPildoraTests {
   /// aparte en vez de la continuación de la franja donde macOS 27 pone su
   /// propio HUD de volumen.
   @Test func laPildoraSeSeparaDeLaBarraDeMenus() {
-    let frame = HUDNotchGeometry.windowFrame(for: sinNotch, clearsMenuBar: true)
+    let frame = HUDNotchGeometry.windowFrame(for: sinNotch)
     let borde = sinNotch.frame.maxY - sinNotch.menuBarHeight
     #expect(borde - frame.maxY == HUDNotchGeometry.pillDetachment)
     #expect(HUDNotchGeometry.pillDetachment > 0)
@@ -68,7 +68,7 @@ struct HUDPildoraTests {
       auxiliaryTopRightArea: nil,
       menuBarHeight: 0
     )
-    let inset = HUDNotchGeometry.topInset(for: enPantallaCompleta, clearsMenuBar: true)
+    let inset = HUDNotchGeometry.topInset(for: enPantallaCompleta)
     #expect(inset == HUDNotchGeometry.menuBarClearanceFloor + HUDNotchGeometry.pillDetachment)
     #expect(inset > 0)
   }
@@ -76,9 +76,9 @@ struct HUDPildoraTests {
   /// Una pantalla con carcasa no se toca: ahí la forma nace del recorte y
   /// hugs el borde real, con la preferencia encendida o apagada.
   @Test func conNotchNadaDeEstoAplica() {
-    #expect(HUDNotchGeometry.topInset(for: conNotch, clearsMenuBar: true) == 0)
+    #expect(HUDNotchGeometry.topInset(for: conNotch) == 0)
     #expect(
-      HUDNotchGeometry.windowFrame(for: conNotch, clearsMenuBar: true).maxY
+      HUDNotchGeometry.windowFrame(for: conNotch).maxY
         == conNotch.frame.maxY
     )
   }
@@ -92,12 +92,19 @@ struct HUDPildoraTests {
     #expect(HUDNotchGeometry.topCornerRadius(for: conNotch, metrics: .standard) == 0)
   }
 
-  /// La preferencia existe, pero viene encendida: es la regla de `AGENTS.md`,
-  /// no una opción con dos lados buenos. Si alguien le cambia el default, esto
-  /// se cae.
+  /// El ajuste tiene dos valores, pero el default es la píldora: es la regla
+  /// de `AGENTS.md`, no una opción con dos lados buenos. Si alguien le cambia
+  /// el default, esto se cae.
   @MainActor
-  @Test func despejarLaBarraDeMenusVieneEncendidoDeFabrica() {
-    #expect(AppSettings.previewStore().hudClearsMenuBar)
+  @Test func laPildoraEsElDefaultDeFabrica() {
+    #expect(AppSettings.previewStore().hudEstiloSinNotch == .pildora)
+  }
+
+  /// Y una pantalla sin notch recién sacada de la caja dibuja la píldora, no
+  /// la imitación.
+  @Test func sinAjusteGuardadoLaPantallaDibujaLaPildora() {
+    #expect(sinNotch.estiloSinNotch == .pildora)
+    #expect(!HUDNotchGeometry.simulatesNotch(for: sinNotch))
   }
 
   /// La corona mango reemplaza los 32 puntos de carcasa simulada, que sin
@@ -121,7 +128,7 @@ struct HUDPildoraTests {
       shapingBandHeight: metrics.shapingBandHeight,
       housingBandHeight: metrics.pillCrownHeight
     ).height
-    let ventana = HUDNotchGeometry.windowFrame(for: sinNotch, clearsMenuBar: true)
+    let ventana = HUDNotchGeometry.windowFrame(for: sinNotch)
     #expect(alto <= ventana.height - HUDNotchGeometry.shadowPadding)
   }
 

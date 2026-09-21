@@ -70,7 +70,9 @@ Distingue propuesta, implementación y deuda pendiente.
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
 - **La píldora sin notch va debajo de la barra de menús**, con identidad Dilo.
-  Nunca tapa los status items ni imita el HUD de volumen del sistema.
+  Nunca tapa los status items ni imita el HUD de volumen del sistema. Es el
+  **default** y no se cambia. Quien quiera la imitación la elige a mano en
+  Ajustes → Apariencia, «En pantallas sin notch» → *Notch simulado*.
 - **Los números del spec §3 se miden, no se prometen**: 60 MB en reposo, ~0 %
   de CPU, arranque en frío < 1 s, soltar→texto < 300 ms, `.app` < 25 MB sin
   modelos. Si un cambio empeora uno, no entra.
@@ -174,8 +176,21 @@ Lo que sigue es el mapa de Talkify 0.8.3 resumido de su `CLAUDE.md` y su
 
 - Ventana anfitriona de tamaño fijo: el origen se mueve, nunca se
   redimensiona.
-- Fillets sólo contra una carcasa real; notch simulado (185×32) en el resto.
-  `NSWindow.Level.mainMenu + 3`, sin APIs privadas.
+- Fillets sólo contra una carcasa real; carcasa simulada (185×32) en el
+  resto. `NSWindow.Level.mainMenu + 3`, sin APIs privadas.
+- **En una pantalla sin notch hay dos formas, y las elige la persona**
+  (`HUDEstiloSinNotch`, guardado en `hudEstiloSinNotch`): *Píldora bajo la
+  barra* —el default— y *Notch simulado*, que se pega a `y = 0` centrado, con
+  las esquinas de arriba rectas. El estilo viaja dentro de
+  `HUDScreenSnapshot` y no como parámetro suelto: la ventana anfitriona, el
+  contorno y el relleno de arriba tienen que estar de acuerdo. Con notch real
+  el ajuste no se mira.
+- **El notch simulado tapa la franja central de la barra de menús.** Es la
+  zona que macOS deja vacía —menús a la izquierda, status items a la
+  derecha—, y son 185 puntos en reposo o el ancho del HUD abierto. Si alguien
+  tiene tantos menús que llegan al centro, esa parte queda tapada mientras
+  dura el dictado: el arreglo es elegir la píldora, no ensanchar ni angostar
+  la forma.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **El silencio y un micrófono muerto tienen que verse distinto.**

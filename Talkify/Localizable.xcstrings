@@ -1101,17 +1101,6 @@
         }
       }
     },
-    "Dejar libre la barra de menús": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear the menu bar"
-          }
-        }
-      }
-    },
     "Después": {
       "extractionState": "manual",
       "localizations": {
@@ -1636,17 +1625,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chosen folder"
-          }
-        }
-      }
-    },
-    "En una pantalla sin notch, la píldora se cuelga debajo de la barra de menús para no tapar tus íconos. Apágalo sólo si prefieres que se ponga donde iría el notch.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On a display with no notch the pill hangs below the menu bar so it never covers your status icons. Turn it off only if you want it where a notch would be."
           }
         }
       }
@@ -4491,6 +4469,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Downloading %@… %lld%%"
+          }
+        }
+      }
+    },
+    "En pantallas sin notch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On displays without a notch"
+          }
+        }
+      }
+    },
+    "La píldora cuelga debajo de la barra de menús y no tapa tus íconos. El notch simulado se pega al borde de arriba, sobre el centro vacío de la barra, y se ve como el de un MacBook.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pill hangs below the menu bar and never covers your icons. The simulated notch sits flush against the top edge, over the empty middle of the bar, and looks like a MacBook's."
+          }
+        }
+      }
+    },
+    "Píldora bajo la barra": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pill below the bar"
+          }
+        }
+      }
+    },
+    "Notch simulado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulated notch"
           }
         }
       }

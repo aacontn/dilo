@@ -15,4 +15,12 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// housing the HUD hugs; this is the *menu bar*, a bar of status items the
   /// HUD must clear (issue #83).
   let menuBarHeight: CGFloat
+  /// Qué se dibuja acá cuando esta pantalla no tiene notch.
+  ///
+  /// Viaja con la pantalla en vez de ser un parámetro de cada función porque
+  /// la ventana anfitriona, el contorno de la forma y el relleno de arriba
+  /// tienen que estar de acuerdo: un parámetro suelto se olvida en uno de los
+  /// tres y la forma queda pegada arriba con las esquinas redondeadas.
+  /// Con notch real no se mira.
+  var estiloSinNotch: HUDEstiloSinNotch = .pildora
 }

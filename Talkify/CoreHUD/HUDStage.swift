@@ -138,7 +138,8 @@ final class HUDStage {
         safeAreaTop: screen.safeAreaInsets.top,
         auxiliaryTopLeftArea: screen.auxiliaryTopLeftArea,
         auxiliaryTopRightArea: screen.auxiliaryTopRightArea,
-        menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY
+        menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY,
+        estiloSinNotch: settings.hudEstiloSinNotch
       )
     }
     return HUDPlacement.selectDisplay(
@@ -288,13 +289,7 @@ final class HUDStage {
         self?.onCardEvent?(event)
       }
     )
-    panel.setFrame(
-      HUDNotchGeometry.windowFrame(
-        for: screen,
-        clearsMenuBar: settings.hudClearsMenuBar
-      ),
-      display: true
-    )
+    panel.setFrame(HUDNotchGeometry.windowFrame(for: screen), display: true)
     panel.assertOverlayOrder()
   }
 
