@@ -33,14 +33,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		9EDILOMAS0000000000000E1 /* Exceptions for "Talkify" folder in "Dilo-MAS" target */ = {
+		9EDILOMAS0000000000000E1 /* Exceptions for "Dilo" folder in "Dilo-MAS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 9EDILOMAS0000000000000T1 /* Dilo-MAS */;
 		};
-		9ESPARK04000000000000004 /* Exceptions for "Talkify" folder in "Dilo" target */ = {
+		9ESPARK04000000000000004 /* Exceptions for "Dilo" folder in "Dilo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -50,18 +50,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9E87DA68302384C5007A1A70 /* Talkify */ = {
+		9E87DA68302384C5007A1A70 /* Dilo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				9ESPARK04000000000000004 /* Exceptions for "Talkify" folder in "Dilo" target */,
-				9EDILOMAS0000000000000E1 /* Exceptions for "Talkify" folder in "Dilo-MAS" target */,
+				9ESPARK04000000000000004 /* Exceptions for "Dilo" folder in "Dilo" target */,
+				9EDILOMAS0000000000000E1 /* Exceptions for "Dilo" folder in "Dilo-MAS" target */,
 			);
-			path = Talkify;
+			path = Dilo;
 			sourceTree = "<group>";
 		};
-		9E87DA76302384C5007A1A70 /* TalkifyTests */ = {
+		9E87DA76302384C5007A1A70 /* DiloTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TalkifyTests;
+			path = DiloTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -101,8 +101,8 @@
 		9E87DA5D302384C5007A1A70 = {
 			isa = PBXGroup;
 			children = (
-				9E87DA68302384C5007A1A70 /* Talkify */,
-				9E87DA76302384C5007A1A70 /* TalkifyTests */,
+				9E87DA68302384C5007A1A70 /* Dilo */,
+				9E87DA76302384C5007A1A70 /* DiloTests */,
 				9E87DA67302384C5007A1A70 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -133,7 +133,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				9E87DA68302384C5007A1A70 /* Talkify */,
+				9E87DA68302384C5007A1A70 /* Dilo */,
 			);
 			name = Dilo;
 			packageProductDependencies = (
@@ -159,7 +159,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				9E87DA68302384C5007A1A70 /* Talkify */,
+				9E87DA68302384C5007A1A70 /* Dilo */,
 			);
 			name = "Dilo-MAS";
 			packageProductDependencies = (
@@ -185,7 +185,7 @@
 				9E87DA75302384C5007A1A70 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				9E87DA76302384C5007A1A70 /* TalkifyTests */,
+				9E87DA76302384C5007A1A70 /* DiloTests */,
 			);
 			name = DiloTests;
 			packageProductDependencies = (
@@ -216,7 +216,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 9E87DA61302384C5007A1A70 /* Build configuration list for PBXProject "Talkify" */;
+			buildConfigurationList = 9E87DA61302384C5007A1A70 /* Build configuration list for PBXProject "Dilo" */;
 			developmentRegion = es;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -443,10 +443,10 @@
 				ENABLE_HARDENED_RUNTIME = "$(DILO_HARDENED_RUNTIME)";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Talkify/Info.plist;
+				INFOPLIST_FILE = Dilo/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -483,10 +483,10 @@
 				ENABLE_HARDENED_RUNTIME = "$(DILO_HARDENED_RUNTIME)";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Talkify/Info.plist;
+				INFOPLIST_FILE = Dilo/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -573,7 +573,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -614,7 +614,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Tornike Gomareli (Talkify, MIT) · © 2026 Alfonso Contreras / Espacio Digital (Dilo)";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -641,7 +641,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9E87DA61302384C5007A1A70 /* Build configuration list for PBXProject "Talkify" */ = {
+		9E87DA61302384C5007A1A70 /* Build configuration list for PBXProject "Dilo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9E87DA85302384C5007A1A70 /* Debug */,

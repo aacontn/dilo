@@ -58,7 +58,7 @@ fi
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$RAIZ"
 
-# El único lugar, junto con SUFeedURL en Talkify/Info.plist, donde vive el
+# El único lugar, junto con SUFeedURL en Dilo/Info.plist, donde vive el
 # nombre del repo. Si el repo cambia de nombre se cambian los dos, y se
 # cambian ANTES del primer release: una copia instalada consulta el feed con
 # el que se compiló.
@@ -83,7 +83,7 @@ APPCAST="$RAIZ/appcast.xml"
 # del bundle, así que lo que se publica y lo que la persona lee ahí adentro no
 # se pueden desincronizar. (Las de docs/release-notes/ son las de Talkify, que
 # se archivan.)
-NOTAS_CURADAS="$RAIZ/Talkify/Resources/NotasDeVersion/$VERSION.md"
+NOTAS_CURADAS="$RAIZ/Dilo/Resources/NotasDeVersion/$VERSION.md"
 ENTITLEMENTS="$RAIZ/Dilo.entitlements"
 NOTARY_PROFILE="${NOTARY_PROFILE:-dilo-notary}"
 # La cuenta del Llavero donde vive la llave EdDSA de Dilo, separada de la de
@@ -149,13 +149,13 @@ echo "  versión $VERSION, tag $TAG, rama $RAMA"
 leer_llave() {
   /usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" /dev/stdin <<<"$1" 2>/dev/null || true
 }
-LLAVE_ACTUAL="$(leer_llave "$(cat "$RAIZ/Talkify/Info.plist")")"
-[[ -n "$LLAVE_ACTUAL" ]] || fail "Talkify/Info.plist no tiene SUPublicEDKey"
+LLAVE_ACTUAL="$(leer_llave "$(cat "$RAIZ/Dilo/Info.plist")")"
+[[ -n "$LLAVE_ACTUAL" ]] || fail "Dilo/Info.plist no tiene SUPublicEDKey"
 
 TAG_ANTERIOR="$(git tag --list 'v*' --sort=-v:refname | head -1 || true)"
 if [[ -z "$TAG_ANTERIOR" ]]; then
   echo "  no hay tag anterior con qué comparar la llave (primer release)"
-elif PLIST_ANTERIOR="$(git show "$TAG_ANTERIOR:Talkify/Info.plist" 2>/dev/null)"; then
+elif PLIST_ANTERIOR="$(git show "$TAG_ANTERIOR:Dilo/Info.plist" 2>/dev/null)"; then
   LLAVE_ANTERIOR="$(leer_llave "$PLIST_ANTERIOR")"
   if [[ -z "$LLAVE_ANTERIOR" ]]; then
     echo "  $TAG_ANTERIOR no llevaba SUPublicEDKey; nada que comparar"
@@ -184,7 +184,7 @@ paso "Tests"
 (cd DiloCore && swift test --scratch-path "$TALLER/swiftpm" 2>&1 | tail -5)
 for esquema in Dilo Dilo-MAS; do
   xcodebuild build \
-    -project Talkify.xcodeproj \
+    -project Dilo.xcodeproj \
     -scheme "$esquema" \
     -configuration Debug \
     -derivedDataPath "$TALLER/xcode" \
@@ -205,12 +205,12 @@ else
   /usr/bin/sed -i '' \
     -e "s/^\([[:space:]]*\)MARKETING_VERSION = .*;$/\1MARKETING_VERSION = $VERSION;/" \
     -e "s/^\([[:space:]]*\)CURRENT_PROJECT_VERSION = .*;$/\1CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" \
-    Talkify.xcodeproj/project.pbxproj
+    Dilo.xcodeproj/project.pbxproj
 
   # Todas las configuraciones tienen que coincidir, o Debug y Release
   # discrepan sobre qué versión está corriendo.
-  PUESTAS="$(grep -c "MARKETING_VERSION = $VERSION;" Talkify.xcodeproj/project.pbxproj || true)"
-  TOTAL="$(grep -c "MARKETING_VERSION = " Talkify.xcodeproj/project.pbxproj || true)"
+  PUESTAS="$(grep -c "MARKETING_VERSION = $VERSION;" Dilo.xcodeproj/project.pbxproj || true)"
+  TOTAL="$(grep -c "MARKETING_VERSION = " Dilo.xcodeproj/project.pbxproj || true)"
   [[ "$PUESTAS" == "$TOTAL" ]] || fail "sólo $PUESTAS de $TOTAL MARKETING_VERSION quedaron en $VERSION"
   echo "  marketing $VERSION, build $BUILD_NUMBER ($TOTAL configuraciones)"
 fi
@@ -223,7 +223,7 @@ mkdir -p "$BUILD_DIR"
 # a cargar Sparkle.framework. Acá hay Developer ID de verdad, y la
 # notarización lo exige. Ver docs/ProjectSettings.md.
 xcodebuild archive \
-  -project Talkify.xcodeproj \
+  -project Dilo.xcodeproj \
   -scheme Dilo \
   -configuration Release \
   -archivePath "$ARCHIVE" \
@@ -439,7 +439,7 @@ fi
 # ----------------------------------------------------------------- publicar
 
 paso "Commiteando y etiquetando"
-for ruta in Talkify.xcodeproj/project.pbxproj Talkify/Info.plist appcast.xml; do
+for ruta in Dilo.xcodeproj/project.pbxproj Dilo/Info.plist appcast.xml; do
   [[ -e "$ruta" ]] && git add "$ruta"
 done
 if git diff --cached --quiet; then

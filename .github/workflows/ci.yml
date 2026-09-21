@@ -35,7 +35,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
-            -project Talkify.xcodeproj \
+            -project Dilo.xcodeproj \
             -scheme Dilo \
             -configuration Debug \
             -destination 'platform=macOS' \
@@ -51,7 +51,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
-            -project Talkify.xcodeproj \
+            -project Dilo.xcodeproj \
             -scheme Dilo-MAS \
             -configuration Debug \
             -destination 'platform=macOS' \
@@ -76,7 +76,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild build \
-            -project Talkify.xcodeproj \
+            -project Dilo.xcodeproj \
             -scheme Dilo \
             -configuration Release \
             -destination 'platform=macOS' \

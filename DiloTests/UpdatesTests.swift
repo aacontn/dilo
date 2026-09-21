@@ -43,13 +43,13 @@ struct UpdatesTests {
   }
 
   /// Sparkle es la única dependencia de terceros y vive encerrada en
-  /// `Talkify/Updates/` (AGENTS.md). Esto falla en el momento en que otro
+  /// `Dilo/Updates/` (AGENTS.md). Esto falla en el momento en que otro
   /// archivo la importe, que es el punto: la regla sólo es real si algo mira.
   @Test func onlyTheUpdatesModuleImportsSparkle() throws {
     let root = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()
       .deletingLastPathComponent()
-      .appending(path: "Talkify")
+      .appending(path: "Dilo")
 
     let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?
       .compactMap { $0 as? URL }

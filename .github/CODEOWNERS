@@ -6,7 +6,7 @@
 # says, and what the release script does with both. A change to any of them
 # should be looked at by a human who is not the one proposing it.
 
-/Talkify/Info.plist       @tornikegomareli
+/Dilo/Info.plist       @tornikegomareli
 /appcast.xml              @tornikegomareli
 /scripts/                 @tornikegomareli
 /.github/                 @tornikegomareli

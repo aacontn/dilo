@@ -10,7 +10,7 @@
 # una **cuenta propia** del Llavero (`dilo`, la variable CUENTA de abajo) en vez
 # de la global: así la llave de Dilo no se mezcla con la de ninguna otra app
 # que use Sparkle en este Mac, y exportar una no expone la otra. La mitad
-# pública va en Talkify/Info.plist bajo SUPublicEDKey y es segura de commitear.
+# pública va en Dilo/Info.plist bajo SUPublicEDKey y es segura de commitear.
 #
 # Perder la privada significa que ninguna copia instalada vuelve a
 # actualizarse: cada una sólo confía en la llave con la que se compiló.
@@ -31,7 +31,7 @@ CUENTA="dilo"
 fail() { echo "error: $*" >&2; exit 1; }
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLIST="$RAIZ/Talkify/Info.plist"
+PLIST="$RAIZ/Dilo/Info.plist"
 TALLER="${DILO_TALLER:-/Volumes/SSD2/derived-data}"
 
 # El `|| true` no es decorativo: con `pipefail`, `head -1` cierra la tubería
@@ -66,10 +66,10 @@ echo "Llave pública: $PUBLICA"
 
 EN_PLIST="$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$PLIST" 2>/dev/null || true)"
 if [[ "$EN_PLIST" == "$PUBLICA" ]]; then
-  echo "Talkify/Info.plist ya lleva esta llave."
+  echo "Dilo/Info.plist ya lleva esta llave."
 else
   echo
-  echo "Talkify/Info.plist tiene: ${EN_PLIST:-<nada>}"
+  echo "Dilo/Info.plist tiene: ${EN_PLIST:-<nada>}"
   echo "Cámbialo a mano para que coincidan, o las actualizaciones no van a"
   echo "pasar la verificación. **No uses PlistBuddy**: reescribe el plist"
   echo "entero y se lleva los comentarios que explican cada clave."

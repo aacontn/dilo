@@ -5,7 +5,7 @@
         <!--
           El feed de Sparkle de Dilo, servido desde main en
           https://raw.githubusercontent.com/aacontn/dilo/main/appcast.xml
-          (la misma URL que lleva SUFeedURL en Talkify/Info.plist).
+          (la misma URL que lleva SUFeedURL en Dilo/Info.plist).
 
           scripts/release.sh lo regenera con generate_appcast y lo commitea
           como parte de un release: no se edita a mano. Cada release agrega

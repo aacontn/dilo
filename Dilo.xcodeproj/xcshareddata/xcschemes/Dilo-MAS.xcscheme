@@ -5,35 +5,25 @@
          <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9E87DA65302384C5007A1A70"
-               BuildableName = "Dilo.app"
-               BlueprintName = "Dilo"
-               ReferencedContainer = "container:Talkify.xcodeproj">
+               BlueprintIdentifier = "9EDILOMAS0000000000000T1"
+               BuildableName = "Dilo-MAS.app"
+               BlueprintName = "Dilo-MAS"
+               ReferencedContainer = "container:Dilo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-         <TestableReference skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9E87DA72302384C5007A1A70"
-               BuildableName = "DiloTests.xctest"
-               BlueprintName = "DiloTests"
-               ReferencedContainer = "container:Talkify.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      <Testables></Testables>
    </TestAction>
    <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9E87DA65302384C5007A1A70"
-            BuildableName = "Dilo.app"
-            BlueprintName = "Dilo"
-            ReferencedContainer = "container:Talkify.xcodeproj">
+            BlueprintIdentifier = "9EDILOMAS0000000000000T1"
+            BuildableName = "Dilo-MAS.app"
+            BlueprintName = "Dilo-MAS"
+            ReferencedContainer = "container:Dilo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -41,10 +31,10 @@
       <BuildableProductRunnable runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "9E87DA65302384C5007A1A70"
-            BuildableName = "Dilo.app"
-            BlueprintName = "Dilo"
-            ReferencedContainer = "container:Talkify.xcodeproj">
+            BlueprintIdentifier = "9EDILOMAS0000000000000T1"
+            BuildableName = "Dilo-MAS.app"
+            BlueprintName = "Dilo-MAS"
+            ReferencedContainer = "container:Dilo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

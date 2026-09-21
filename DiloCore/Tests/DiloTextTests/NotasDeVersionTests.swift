@@ -65,7 +65,7 @@ struct NotasDeVersionTests {
   /// deja vacío, la sección Novedades queda muda y nadie se entera hasta
   /// abrirla.
   @Test func lasNotasDeLa040EstanEscritasYSeParsean() throws {
-    let archivo = Self.raiz.appending(path: "Talkify/Resources/NotasDeVersion/0.4.0.md")
+    let archivo = Self.raiz.appending(path: "Dilo/Resources/NotasDeVersion/0.4.0.md")
     let markdown = try String(contentsOf: archivo, encoding: .utf8)
     let notas = NotasDeVersion(version: "0.4.0", markdown: markdown)
 
