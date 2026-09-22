@@ -41,10 +41,11 @@ se basa en sus páginas y repositorios, no en una prueba de uso.
 | Estado | Qué comunica | Acción disponible | Qué no debe pasar |
 | --- | --- | --- | --- |
 | Reposo | Presencia discreta, sin animación continua | Abrir acciones por clic o gatillo | Escuchar sin activación |
-| Dictando | Nivel real, texto parcial, destino y modo cuando aplique | Soltar, terminar, cancelar | Robar foco o confundir silencio con fallo |
+| Dictando | Nivel real y texto parcial, en una línea | Soltar, terminar, cancelar | Robar foco, confundir silencio con fallo, o crecer como un panel |
 | Preparando | Qué falta: cargar motor o permiso | Cancelar; resolver permiso fuera del HUD | Mostrar onda ficticia |
 | Procesando | Trabajo pendiente sobre lo ya grabado | Cancelar cuando sea posible | Parecer que sigue grabando |
-| Resultado | Texto entregado o recuperable | Copiar; abrir original | Perder las palabras porque falló el pegado |
+| Resultado | **Sólo el error**: que el pegado falló, que falta un permiso | Ninguna; se va solo | Perder las palabras porque falló el pegado |
+| Terminó bien | Un check donde estaba la onda, menos de un segundo | Ninguna; vuelve a reposo | Abrir una franja con botones para decir «Listo» |
 | Reunión | Captura activa, tiempo y fuentes de audio | Abrir reunión; terminar | Esconder la grabación al cerrar la ventana |
 | Asistente (futuro) | Escuchando, pensando o preparando una acción | Revisar acción, confirmar o cancelar | Confundir una frase dictada con una orden |
 
@@ -170,6 +171,60 @@ de NotchDrop, la atribución entra antes que el código.
 - **Un único dato minúsculo en reposo, opcional.** El nombre del modo activo
   en 9 pt gris, apagado de fábrica (`hudModoEnReposo`). Nunca junto con el
   punto ni con lo que revela el hover: uno solo, o ninguno.
+
+## La muesca sobria (2026-09-22, tarde)
+
+Alfonso probó la build instalada con la muesca ya arreglada en reposo y dictó
+tres cosas. Las tres se implementaron.
+
+**«El hover sigue muerto.»** Tercer reporte del mismo síntoma. La raíz estaba
+en el enfoque, no en el ajuste: una ventana con `ignoresMouseEvents = true` no
+recibe `mouseEntered`, y el monitor global que lo suplía no ve los eventos que
+caen sobre nuestra propia ventana. Ahora la ventana **nunca** ignora el mouse;
+el `hitTest` que devuelve nil fuera de la silueta es lo que deja pasar el clic
+a la app de abajo, y un `NSTrackingArea` `.activeAlways` avisa la entrada en el
+instante en que ocurre. Detalle y contraargumentos en ADR-0001.
+
+**«Crece mucho cuando le estoy dictando; podría crecer por un 10 % del notch
+real y avanzar en el texto como lo está haciendo actualmente, que sería lo
+ideal.»** Los 400×88 aprobados la noche anterior seguían siendo un panel en
+chico. La muesca dictando pasa a **184×26** donde la barra mide 24 —el alto de
+la barra más un décimo, un 15 % más de ancho que el reposo— y todo lo que dice
+comparte una línea: la onda de brasas encogida a cinco barras y el parcial
+avanzando, recortado por la izquierda. El chip de modo sale: ni fila propia ni
+prefijo, porque se come justo las palabras que se vienen a leer. El modo se
+dice en reposo —si se pidió— y en el panel del hover. Procesando, preparando y
+el aviso de error miden lo mismo.
+
+**«Encuentro que es una tontera, sácaselo.»** Fuera «Te escucho…» y «Te
+escucho (trabado)». La onda ya dice que el micrófono está abierto, y una frase
+de estado obliga a la muesca a medir lo que mida esa frase en el idioma más
+largo. Que el gatillo esté trabado lo dice la misma onda.
+
+**«Al finalizar de dictar me sale Listo y Copiar al lado, porque también es
+innecesario; podría reemplazarse la onda por un check o algo así como lo
+hacíamos en el Tauri.»** El estado Resultado sale del camino feliz: terminar
+bien acusa con un check donde estaba la onda —el `.scheck` del overlay de
+Tauri, punto por punto, en menta— y vuelve a reposo en 700 ms, sin crecer y
+sin botones. Resultado queda **sólo para el error**: que el pegado falló, que
+falta un permiso, un aviso; eso sí se dice con palabras, porque perder un
+dictado en silencio es lo único que el contrato prohíbe de plano. «Copiar el
+último dictado» sigue en el menú de la barra y ahora también es la acción del
+panel del hover.
+
+**Hacia dónde va el panel del hover.** Va a tener acciones más allá del
+dictado —reuniones, último dictado, modos, ajustes—, así que puede ser más
+alto que la muesca de dictado: ahí el mouse está encima a propósito, y nadie
+lo abre de paso. Por eso conserva los 400 de ancho mientras la muesca dictando
+baja a 184, y por eso es él quien dimensiona la ventana abierta.
+
+**Y con qué motor se transcribió.** Alfonso dudó de si había estado dictando
+con Parakeet o con Apple y no tuvo dónde mirarlo. El historial guarda ahora el
+motor que **escuchó** —no el elegido: son distintos mientras Parakeet esté
+elegido sin su modelo en disco— y lo muestra en la fila junto al modo; las
+entradas viejas no lo llevan y se siguen leyendo enteras. En Ajustes, la
+tarjeta elegida se distingue por fondo y borde además del punto de radio, y la
+que está dictando de verdad lo dice con todas sus letras.
 
 ## La fusión con el overlay de Tauri (2026-09-21, madrugada)
 

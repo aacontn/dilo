@@ -269,13 +269,29 @@ siendo cierto:
   están anotados ahí donde se usan. Lo que **no** se trajo —el vidrio, el botón
   de cancelar, el cronómetro, las cuatro anchuras— y por qué está en
   `docs/design/2026-09-21-experiencia-dilo.md`.
-- **Y crece poco: 400×88 al 100 %** (`HUDMetrics`), no los 540×146 heredados.
-  Onda, una línea de texto parcial y el nombre del modo. En la muesca el
-  borrador es **siempre una línea recortada por la izquierda**: el ajuste «Si
-  el texto se pasa de largo» sólo manda contra una carcasa real, donde la
-  banda tiene de dónde crecer sin taparle la pantalla a nadie. El panel del
-  hover comparte ese ancho y su alto es el que pide su contenido, con techo en
+- **Y dictar apenas la agranda: 184×26 donde la barra mide 24**
+  (`HUDNotchGeometry.tamañoDictando` — el alto de la barra más un décimo, un
+  15 % más de ancho que el reposo). Todo lo que dice comparte **una línea**:
+  la onda de brasas encogida a cinco barras y el parcial avanzando, recortado
+  por la izquierda para que nunca se pierda el final (`HUDLineaSobria`). Sin
+  chip de modo —ni fila propia ni prefijo: se come las palabras que se vienen
+  a leer— y sin frase de estado: «Te escucho…» se fue el 2026-09-22, porque la
+  onda ya dice que el micrófono está abierto. 400×88 y 540×146 son lo que ya
+  se rechazó dos veces. **Contra una carcasa real no aplica**: ahí los
+  primeros puntos del borde son el recorte físico y el contenido tiene que
+  colgar por debajo, así que esa pantalla sigue apilando bandas
+  (`HUDNotchGeometry.contentSize`). El panel del hover mide 400 y **sí** puede
+  ser más alto que la muesca de dictado —ahí el mouse está encima a propósito,
+  y es donde van a vivir las acciones que no son el dictado—, con techo en
   `altoMaximoDelHover`.
+- **El final del dictado no abre nada.** El camino feliz acusa con un check
+  donde estaba la onda —el `.scheck` del overlay de Tauri, punto por punto, en
+  menta— y vuelve a reposo en 700 ms (`HUDCheckDeAcuse`,
+  `MaquinaDelNotch.duracionDelAcuse`). El estado Resultado quedó **sólo para
+  el camino del error**: que el pegado falló, que falta un permiso, un aviso,
+  y eso sí se dice con palabras porque perder un dictado en silencio está
+  prohibido. «Copiar el último dictado» vive en el menú de la barra y en el
+  panel del hover, no en una franja de 400×50 que dura dos segundos y medio.
 - **Tres cosas del escenario son ajustes, no constantes** (Apariencia): el
   retardo del hover (`hudRetardoDeHover`, medio segundo de fábrica), en qué
   pantalla vive la muesca (`hudPantalla`, vacío = automática) y si dice el
@@ -289,8 +305,8 @@ siendo cierto:
   estado dentro de una ventana simulada del tamaño real** —el marco punteado
   del PNG— y con la misma cadena de layout de `HUDSurface`; rasterizar la
   silueta suelta con su `frame(width:height:)` daba PNG que no podían fallar
-  nunca, y por eso nadie vio el bloque negro. También deja `apertura-1..4.png`:
-  cuatro cortes de la revelación repartidos por avance —no por tiempo, que la
+  nunca, y por eso nadie vio el bloque negro. También deja `apertura-1..3.png`:
+  tres cortes de la revelación repartidos por avance —no por tiempo, que la
   curva está tan cargada al principio que salían tres veces el mismo PNG—, que
   son lo único que deja juzgar la animación sin mirar la pantalla.
 - **La forma no se va de la pantalla: se encoge.** `HUDSurface.tamañoEnReposo`
@@ -298,7 +314,7 @@ siendo cierto:
   cabecera de la forma abierta **es** la silueta en reposo
   (`HUDNotchGeometry.alturaDeCabecera`), así que crece desde donde descansaba.
 - **La ventana grande no es la forma.** La forma mide lo que mide su estado
-  —160×24 en reposo, 400×88 dictando—, anclada arriba y al centro, con el resto
+  —160×24 en reposo, 184×26 dictando—, anclada arriba y al centro, con el resto
   de la ventana transparente. Nada adentro de `HUDSurface` pide
   `maxHeight: .infinity`: el `frame(minHeight:)` le ofrece al contenido el alto
   entero de la ventana y un hijo goloso se lo queda con el fondo negro detrás.
@@ -314,32 +330,35 @@ siendo cierto:
   tiene dos tamaños por pantalla: en reposo la anfitriona **es** la silueta
   —178×24 en un 1080p sin carcasa: la muesca más lo que las alas cóncavas
   cuelgan a los lados, y ni un punto de alto de más— y sólo crece al estado más
-  alto (488×190) mientras la forma está abierta. En reposo no hay sombra que
+  alto —el panel del hover, 488×90— mientras la forma está abierta. En reposo no hay sombra que
   alojar: la muesca quieta es hardware y no tiñe lo que tiene debajo
   (`HUDSurface.proyectaSombra`). Crece
   **antes** de que la animación arranque y se encoge **después** de que
   termine, con la holgura que el rebote del resorte necesita
   (`HUDRevealStyle.sobrepaso`). Una ventana grande en reposo es pantalla
   muerta: macOS le entrega todos los clics de su rectángulo aunque no dibuje
-  nada, y un `hitTest` que devuelve nil los pierde en vez de pasarlos
-  (ADR-0001, enmienda del 2026-09-22).
-- **Sólo la silueta toma el mouse.** Dos cosas a la vez: `HUDHostingView.hitTest`
-  acota la ventana a `HUDNotchGeometry.zonaInteractiva`, y `HUDStage` sólo le
-  saca el `ignoresMouseEvents` al panel mientras el puntero está sobre la
-  silueta (`MonitorDelPuntero`, un monitor global de `.mouseMoved` como los de
-  Boring Notch y Notch Buddy). El hit test solo no basta: pierde el clic en vez
-  de pasarlo a la ventana de abajo. Un hover revela contexto y **nunca**
-  arranca una captura.
-- **Quién sabe que el puntero está encima es el monitor, no la vista.** El
-  `onHover` de SwiftUI no ve la entrada —la ventana está ignorando el mouse
-  justo cuando el puntero llega, así que el `mouseEntered` no existe— y sí
-  manda una salida falsa cuando la ventana cambia de tamaño, que es lo que el
-  hover hace al abrirse: con las dos fuentes peleándose, posarse sobre la
-  muesca no hacía nada. `MonitorDelPuntero` (global + sondeo de 80 ms) alimenta
-  a `HUDStage.punteroSeMovio` y el escenario aplica el retardo. Y el panel
-  siempre tiene algo que decir (`DictationHUDContent.contextoVisible`): exigir
-  `contexto`, que sólo existe después del primer dictado, dejaba el hover mudo
-  en una app recién instalada.
+  nada (ADR-0001, enmienda del 2026-09-22).
+- **La ventana no ignora el mouse nunca, y ésa es la clave del hover.**
+  `HUDPanel` deja `ignoresMouseEvents = false` siempre; quién se queda con un
+  clic lo decide `HUDHostingView.hitTest`, que devuelve nil fuera de
+  `HUDNotchGeometry.zonaInteractiva` —y un punto que ninguna vista reclama
+  sobre un panel transparente deja el clic en la app de abajo—. Es el patrón
+  de NotchDrop y boring.notch. **No se copió código de ninguna**, así que el
+  `LICENSE` no cambia; el día que se adapte algo de NotchDrop (MIT), la
+  atribución entra antes que el código.
+- **Quién sabe que el puntero está encima es un `NSTrackingArea`.** En la
+  vista de hospedaje, `.activeAlways` + `.mouseEnteredAndExited` +
+  `.mouseMoved` + `.inVisibleRect`, alimentando `HUDStage.punteroSeMovio` y
+  `punteroSalio`; el escenario aplica el retardo. Fallaron dos intentos antes:
+  con `ignoresMouseEvents = true` la ventana no recibe `mouseEntered`, y un
+  monitor global de `.mouseMoved` **no ve los eventos que caen sobre nuestra
+  propia ventana**, así que el aviso llegaba por un sondeo de 80 ms —tarde— o
+  no llegaba. El `onHover` de SwiftUI tampoco sirve: manda una salida falsa
+  cuando la ventana cambia de tamaño, que es justo lo que el hover hace al
+  abrirse. Y el panel siempre tiene algo que decir
+  (`DictationHUDContent.contextoVisible`): exigir `contexto`, que sólo existe
+  después del primer dictado, dejaba el hover mudo en una app recién
+  instalada. Un hover revela contexto y **nunca** arranca una captura.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**

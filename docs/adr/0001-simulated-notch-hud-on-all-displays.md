@@ -82,3 +82,56 @@ direcciones no sean simétricas.
 Lo que no cambia: una sola superficie, el origen y el tamaño calculados desde
 la pantalla y nunca desde el contenido, el split medido-vs-simulado, el panel
 que no activa la app y nada de APIs privadas.
+
+## Enmienda 2026-09-22 (tarde) — la ventana no ignora el mouse nunca
+
+Se revierte la última frase de la enmienda de esta misma mañana: «en reposo la
+ventana ignora el mouse fuera de la silueta». `MonitorDelPuntero` se retira.
+
+Era el tercer intento de hacer andar el hover y los tres fallaron por la misma
+raíz, que la enmienda anterior tenía al revés: **una ventana con
+`ignoresMouseEvents = true` no recibe nada, `mouseEntered` incluido**. Por eso
+hacía falta un monitor global de `.mouseMoved` para suplirlo, y un monitor
+global no ve los eventos que caen sobre nuestra propia ventana — justo los que
+importan. El encendido llegaba por un sondeo de 80 ms, o sea tarde, o no
+llegaba. Alfonso lo reportó tres veces: «el hover sigue muerto».
+
+- **`ignoresMouseEvents` se queda en `false`, siempre.** Quién se queda con un
+  clic lo decide `HUDHostingView.hitTest`, que devuelve nil fuera de
+  `zonaInteractiva`: dentro de la jerarquía AppKit sigue buscando hacia atrás,
+  y sobre un panel transparente un punto que ninguna vista reclama deja el
+  clic en la app de abajo. Es lo que hacen NotchDrop y boring.notch.
+  `VentanaDeLaMuescaTests` lo afirma con una vista de prueba detrás.
+- **La entrada del puntero la avisa un `NSTrackingArea`** sobre la vista de
+  hospedaje (`.activeAlways`, `.mouseEnteredAndExited`, `.mouseMoved`,
+  `.inVisibleRect`), más `acceptsMouseMovedEvents` en el panel. `.activeAlways`
+  es lo que hace que llegue sin que Dilo esté activa ni la ventana sea key, y
+  `.inVisibleRect` lo que evita rearmar el rect cada vez que el hover cambia
+  el tamaño de la forma — el paso que se olvida.
+- **La zona muerta sigue arreglada por su propio motivo.** Que la ventana en
+  reposo mida lo que mide la muesca (`EncuadreDeLaVentana`) no dependía de
+  esto y no se toca. Son dos arreglos, no uno con dos mitades.
+- **Nada de NotchDrop está copiado.** Se adoptó el patrón, no el código, así
+  que el `LICENSE` no cambia. El día que se adapte código suyo (MIT), la
+  atribución entra antes que el código.
+
+## Enmienda 2026-09-22 (tarde) — la muesca dictando apenas crece
+
+`contentSize` deja de ser la forma abierta de toda pantalla. Sin carcasa, la
+muesca dictando mide `tamañoDictando`: el alto de la barra de menús más un
+décimo y un 15 % más de ancho que el reposo — 184×26 donde la barra mide 24.
+
+Alfonso probó los 400×88 aprobados la noche anterior: «crece mucho cuando le
+estoy dictando; podría crecer por un 10 % del notch real y avanzar en el texto
+como lo está haciendo actualmente, que sería lo ideal». En chico seguía siendo
+el panel que la muesca había dejado de ser dos veces.
+
+- **Contra una carcasa real no aplica**, y por física: los primeros
+  `safeAreaTop` puntos son el recorte, y una línea de texto ahí es una línea
+  que nadie puede leer. Esa pantalla sigue apilando bandas bajo la carcasa.
+- **La ventana abierta la dimensiona el panel del hover**, que ahora es la
+  forma más alta que esta pantalla dibuja: 488×90 en vez de 488×190.
+- **El panel del hover puede ser más grande que la muesca de dictado.** No es
+  una inconsistencia: dictando la forma aparece sola encima de la barra
+  mientras alguien escribe en otra app, y en el hover el mouse está encima a
+  propósito. Ahí van a vivir las acciones que no son el dictado.

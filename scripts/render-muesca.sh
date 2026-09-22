@@ -19,7 +19,7 @@
 set -euo pipefail
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-salida="${1:-/Volumes/SSD2/scratch/dilo-mac/muesca}"
+salida="${1:-/Volumes/SSD2/scratch/dilo-mac/muesca-sobria}"
 taller="$(mktemp -d)"
 trap 'rm -rf "$taller"' EXIT
 

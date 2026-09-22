@@ -46,23 +46,28 @@ struct HUDLineaSobria: View {
   }
 
   var body: some View {
-    HStack(spacing: 6) {
-      if muestraOnda {
-        HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
-          .frame(width: HUDOndaDeBrasas.anchoCompacto)
-      } else if acusa {
-        // El check ocupa **el lugar de la onda**, ni uno más: terminar bien
-        // no agranda la muesca ni la mueve, sólo cambia lo que hay en esa
-        // casilla (`HUDCheckDeAcuse`).
+    Group {
+      if acusa {
+        // El check **reemplaza la onda y el texto**: terminar bien no agranda
+        // la muesca ni la mueve, y no hay nada más que decir, así que va solo
+        // y centrado (`HUDCheckDeAcuse`). Con la onda a la izquierda y el
+        // resto vacío quedaba una marca arrinconada.
         HUDCheckDeAcuse(lado: HUDOndaDeBrasas.altoDeLaBandaCompacta, reduceMotion: reduceMotion)
-          .frame(width: HUDOndaDeBrasas.anchoCompacto)
-      }
-      texto
-        .frame(maxWidth: .infinity, alignment: acusa ? .center : .leading)
-      if muestraOnda {
-        // El cursor mango dice lo que ninguna onda dice: que lo escrito sigue
-        // creciendo. Encogido con la línea.
-        HUDCursorDeDictado(scale: Self.cuerpo / 15, reduceMotion: reduceMotion)
+          .frame(maxWidth: .infinity)
+      } else {
+        HStack(spacing: 6) {
+          if muestraOnda {
+            HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
+              .frame(width: HUDOndaDeBrasas.anchoCompacto)
+          }
+          texto
+            .frame(maxWidth: .infinity, alignment: .leading)
+          if muestraOnda {
+            // El cursor mango dice lo que ninguna onda dice: que lo escrito
+            // sigue creciendo. Encogido con la línea.
+            HUDCursorDeDictado(scale: Self.cuerpo / 15, reduceMotion: reduceMotion)
+          }
+        }
       }
     }
     .padding(.horizontal, 10)

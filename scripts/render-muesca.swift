@@ -60,13 +60,15 @@ enum RenderDeLaMuesca {
     let enReposo = enLaVentana(tamaño: reposo, radio: radio, encuadre: .reposo) {
       marcaDeReposo(alto: reposo.height)
     }
-    try escribir(lienzo(claro: true) { enReposo }, en: destino, como: "reposo-claro")
+    try escribir(lienzo(claro: true) { enReposo }, en: destino, como: "reposo")
     try escribir(lienzo(claro: false) { enReposo }, en: destino, como: "reposo-oscuro")
-    try escribir(lienzo(claro: true) { hoverExpandido }, en: destino, como: "hover-expandido")
-    try escribir(lienzo(claro: false) { dictando }, en: destino, como: "dictando")
-    try escribir(lienzo(claro: false) { resultado }, en: destino, como: "resultado")
+    try escribir(lienzo(claro: true) { hoverExpandido }, en: destino, como: "hover")
+    try escribir(lienzo(claro: true) { dictando }, en: destino, como: "dictando")
+    try escribir(lienzo(claro: true) { acuse }, en: destino, como: "check")
     try escribir(comparacion, en: destino, como: "comparacion")
-    for (i, avance) in [0.0, 1.0 / 3, 2.0 / 3, 1.0].enumerated() {
+    // Tres cortes y no cuatro: la muesca sobria crece tan poco que un cuarto
+    // era el mismo PNG.
+    for (i, avance) in [0.0, 0.5, 1.0].enumerated() {
       try escribir(
         lienzo(claro: false) { apertura(avance) },
         en: destino,
@@ -111,7 +113,7 @@ enum RenderDeLaMuesca {
     medir("reposo", enReposo)
     medir("hover", hoverExpandido)
     medir("dictando", dictando)
-    medir("resultado", resultado)
+    medir("check", acuse)
     print("PNG en \(destino.path())")
   }
 
@@ -220,87 +222,78 @@ enum RenderDeLaMuesca {
 
   static var metricas: HUDMetrics { .standard }
 
+  /// La muesca mientras hay sesión: apenas más grande que el reposo.
   static var tamañoAbierto: CGSize {
-    HUDNotchGeometry.contentSize(
-      for: pantalla,
-      metrics: metricas,
-      visualBandHeight: metricas.waveBandHeight,
-      includesTextBand: true,
-      shapingBandHeight: metricas.shapingBandHeight
-    )
+    HUDNotchGeometry.tamañoDictando(for: pantalla)
   }
 
+  /// El radio de abajo de la muesca dictando. El de las métricas (18) es más
+  /// que la mitad de una forma de 26 puntos de alto: la dejaría en cápsula.
+  static var radioDictando: CGFloat {
+    min(metricas.bottomCornerRadius, HUDNotchGeometry.radioEnReposo(for: pantalla))
+  }
+
+  /// Dictando: una sola línea. La onda compacta a la izquierda, el parcial
+  /// avanzando recortado por la izquierda, y el cursor mango al final
+  /// (`HUDLineaSobria`). Sin chip de modo: no cabe sin comerse las palabras.
   static var dictando: some View {
-    enLaVentana(tamaño: tamañoAbierto, radio: metricas.bottomCornerRadius) {
-      VStack(spacing: 0) {
-        // La cabecera **es** la silueta en reposo: la forma crece desde donde
-        // descansaba.
-        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
-        onda.frame(height: metricas.waveBandHeight)
-        // Una línea que se recorta por la izquierda: lo último dicho es lo
-        // que se está revisando. En la cursiva de quince puntos del overlay de
-        // Tauri, con su cursor mango al final.
-        HStack(alignment: .firstTextBaseline, spacing: 1) {
-          Text("…el martes a las diez en la oficina")
-            .font(.system(size: 15, weight: .regular).italic())
-            .foregroundStyle(.white.opacity(0.9))
-          cursor.alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
-        }
-        .frame(height: metricas.textBandHeight)
-        Text("Correo")
-          .font(.system(size: 10, weight: .semibold, design: .rounded))
-          .foregroundStyle(mango)
-          .frame(height: metricas.shapingBandHeight)
+    enLaVentana(tamaño: tamañoAbierto, radio: radioDictando) {
+      lineaSobria {
+        ondaCompacta
+        Text("…el martes a las diez")
+          .font(.system(size: 11, weight: .regular).italic())
+          .foregroundStyle(.white.opacity(0.9))
+          .lineLimit(1)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        cursor
       }
     }
+  }
+
+  /// El final: el check donde estaba la onda, dentro de la misma muesca y sin
+  /// crecer (`HUDCheckDeAcuse`).
+  static var acuse: some View {
+    enLaVentana(tamaño: tamañoAbierto, radio: radioDictando) {
+      lineaSobria {
+        // Solo y centrado: el check reemplaza la onda **y** el texto.
+        check.frame(maxWidth: .infinity)
+      }
+    }
+  }
+
+  /// La línea de la muesca sobria: su alto exacto, el mismo aire lateral y la
+  /// misma separación que `HUDLineaSobria`.
+  static func lineaSobria(@ViewBuilder _ contenido: () -> some View) -> some View {
+    HStack(spacing: 6) { contenido() }
+      .padding(.horizontal, 10)
+      .frame(height: tamañoAbierto.height)
   }
 
   /// Lo que el hover abre después del retardo: la misma muesca, un poco más
   /// grande, con lo último que se dictó. Crece hacia abajo desde la silueta,
   /// nunca hacia arriba.
   static var hoverExpandido: some View {
-    let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
     let contexto = "Listo · «quedamos el martes a las diez»"
     let tamaño = CGSize(
       width: metricas.contentWidth,
-      height: min(
-        reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
-        HUDNotchGeometry.altoMaximoDelHover
-      )
+      height: HUDNotchGeometry.altoDelPanelDeHover(for: pantalla)
     )
     return enLaVentana(tamaño: tamaño, radio: HUDNotchGeometry.radioEnReposo(for: pantalla)) {
-      Text(contexto)
-        .font(.system(size: 10, weight: .medium, design: .rounded))
-        .foregroundStyle(.white.opacity(0.78))
-        .lineLimit(1)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 6)
-        .frame(maxWidth: .infinity, alignment: .bottom)
-        .frame(height: tamaño.height, alignment: .bottom)
-    }
-  }
-
-  static var resultado: some View {
-    let tamaño = HUDNotchGeometry.contentSize(
-      for: pantalla,
-      metrics: metricas,
-      visualBandHeight: 0,
-      includesTextBand: true,
-      shapingBandHeight: 0
-    )
-    return enLaVentana(tamaño: tamaño, radio: metricas.bottomCornerRadius) {
-      VStack(spacing: 0) {
-        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
-        HStack(spacing: 8) {
-          Text("Listo")
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(.white)
-          Text("Copiar")
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
-            .foregroundStyle(mango)
-        }
-        .frame(height: metricas.textBandHeight)
+      HStack(spacing: 8) {
+        Text(contexto)
+          .font(.system(size: 10, weight: .medium, design: .rounded))
+          .foregroundStyle(.white.opacity(0.78))
+          .lineLimit(1)
+        // La acción del panel: copiar el último dictado, que es donde quedó
+        // al salir el estado Resultado del camino feliz.
+        Text("Copiar")
+          .font(.system(size: 10, weight: .semibold, design: .rounded))
+          .foregroundStyle(mango)
       }
+      .padding(.horizontal, 12)
+      .padding(.bottom, 6)
+      .frame(maxWidth: .infinity, alignment: .bottom)
+      .frame(height: tamaño.height, alignment: .bottom)
     }
   }
 
@@ -310,6 +303,39 @@ enum RenderDeLaMuesca {
 
   /// Nueve niveles congelados, con forma de sílaba. No hay micrófono acá.
   static let niveles: [Double] = [0.18, 0.46, 0.72, 0.95, 0.61, 0.33, 0.78, 0.52, 0.24]
+
+  /// La onda compacta de la muesca sobria: cinco barras de 3 con 2 de aire,
+  /// entre 4 y 11 de alto (`HUDOndaDeBrasas.compacta`). Redibujada y no
+  /// importada, por lo mismo que la grande.
+  static var ondaCompacta: some View {
+    HStack(alignment: .center, spacing: 2) {
+      ForEach(Array(niveles.prefix(5).enumerated()), id: \.offset) { _, v in
+        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+          .fill(
+            LinearGradient(colors: [mango, rojo], startPoint: .bottom, endPoint: .top)
+          )
+          .frame(width: 3, height: min(max(4, (6 + pow(v, 0.7) * 11) * 11 / 16), 11))
+          .shadow(color: rojo.opacity(0.5), radius: 3)
+      }
+    }
+    .frame(width: 23, height: 13)
+  }
+
+  /// Menta, el color de lo que salió bien.
+  static let menta = Color(red: 0.18, green: 0.902, blue: 0.659)
+
+  /// El check del acuse: el trazado de `.scheck` del overlay de Tauri sobre
+  /// su lienzo de 16×16 (`HUDCheckDeAcuse`), a los 13 puntos de la banda.
+  static var check: some View {
+    Path { p in
+      let k = 13.0 / 16
+      p.move(to: CGPoint(x: 3.5 * k, y: 8.5 * k))
+      p.addLine(to: CGPoint(x: 6.5 * k, y: 11.5 * k))
+      p.addLine(to: CGPoint(x: 12.5 * k, y: 4.5 * k))
+    }
+    .stroke(menta, style: StrokeStyle(lineWidth: 1.8 * 13 / 15, lineCap: .round, lineJoin: .round))
+    .frame(width: 23, height: 13)
+  }
 
   /// La onda de brasas de `HUDOndaDeBrasas`, con sus medidas y su degradado.
   ///
@@ -332,16 +358,17 @@ enum RenderDeLaMuesca {
     .frame(height: 20)
   }
 
-  /// El cursor mango del final del parcial (`HUDCursorDeDictado`), encendido.
+  /// El cursor mango del final del parcial (`HUDCursorDeDictado`), encendido
+  /// y encogido con la línea.
   static var cursor: some View {
     RoundedRectangle(cornerRadius: 1, style: .continuous)
       .fill(mango)
-      .frame(width: 2, height: 15)
+      .frame(width: 2 * 11 / 15, height: 11)
   }
 
   // MARK: La apertura
 
-  /// Los cuatro fotogramas de la revelación: 0 %, 33 %, 66 % y 100 % de la
+  /// Los tres fotogramas de la revelación: 0 %, 50 % y 100 % de la
   /// **apertura**.
   ///
   /// Del avance y no del tiempo. La curva de Tauri está tan cargada al
@@ -367,24 +394,18 @@ enum RenderDeLaMuesca {
       height: reposo.height + (abierta.height - reposo.height) * p
     )
     let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
-      + (metricas.bottomCornerRadius - HUDNotchGeometry.radioEnReposo(for: pantalla)) * p
+      + (radioDictando - HUDNotchGeometry.radioEnReposo(for: pantalla)) * p
     return enLaVentana(tamaño: tamaño, radio: radio) {
       // El `scard-pop`: lo de adentro entra desde 0,92 y opacidad cero,
       // anclado arriba, como en la app (`DictationHUDShellView.popDelContenido`).
-      VStack(spacing: 0) {
-        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
-        onda.frame(height: metricas.waveBandHeight)
-        HStack(alignment: .firstTextBaseline, spacing: 1) {
-          Text("…el martes a las diez")
-            .font(.system(size: 15, weight: .regular).italic())
-            .foregroundStyle(.white.opacity(0.9))
-          cursor.alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
-        }
-        .frame(height: metricas.textBandHeight)
-        Text("Correo")
-          .font(.system(size: 10, weight: .semibold, design: .rounded))
-          .foregroundStyle(mango)
-          .frame(height: metricas.shapingBandHeight)
+      lineaSobria {
+        ondaCompacta
+        Text("…el martes a las diez")
+          .font(.system(size: 11, weight: .regular).italic())
+          .foregroundStyle(.white.opacity(0.9))
+          .lineLimit(1)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        cursor
       }
       .frame(height: tamaño.height, alignment: .top)
       .clipped()
