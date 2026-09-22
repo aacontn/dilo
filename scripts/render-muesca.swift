@@ -57,7 +57,9 @@ enum RenderDeLaMuesca {
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
     let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
 
-    let enReposo = enLaVentana(tamaño: reposo, radio: radio) { marcaDeReposo(alto: reposo.height) }
+    let enReposo = enLaVentana(tamaño: reposo, radio: radio, encuadre: .reposo) {
+      marcaDeReposo(alto: reposo.height)
+    }
     try escribir(lienzo(claro: true) { enReposo }, en: destino, como: "reposo-claro")
     try escribir(lienzo(claro: false) { enReposo }, en: destino, como: "reposo-oscuro")
     try escribir(lienzo(claro: true) { hoverExpandido }, en: destino, como: "hover-expandido")
@@ -92,12 +94,14 @@ enum RenderDeLaMuesca {
 
     let abierta = tamañoAbierto
     let ventana = HUDNotchGeometry.windowSize(for: pantalla)
+    let ventanaEnReposo = HUDNotchGeometry.windowSize(for: pantalla, encuadre: .reposo)
     print("""
       muesca en reposo: \(Int(reposo.width))×\(Int(reposo.height)) pt \
       (barra \(Int(HUDNotchGeometry.altoDeLaBarra(for: pantalla))) pt), \
       fillet \(Int(fillet)) pt, radio inferior \(Int(radio)) pt
       muesca abierta:   \(Int(abierta.width))×\(Int(abierta.height)) pt
-      ventana:          \(Int(ventana.width))×\(Int(ventana.height)) pt
+      ventana en reposo:\(Int(ventanaEnReposo.width))×\(Int(ventanaEnReposo.height)) pt
+      ventana abierta:  \(Int(ventana.width))×\(Int(ventana.height)) pt
       """)
 
     // Lo que el PNG no dice solo: cuánto negro hay de verdad adentro de la
@@ -156,9 +160,14 @@ enum RenderDeLaMuesca {
   static func enLaVentana(
     tamaño: CGSize,
     radio: CGFloat,
+    encuadre: HUDNotchGeometry.EncuadreDeLaVentana = .abierta,
     @ViewBuilder contenido: () -> some View
   ) -> some View {
-    let ventana = HUDNotchGeometry.windowSize(for: pantalla)
+    // La ventana mide lo que mide el estado: en reposo es la muesca más la
+    // holgura de la sombra, y sólo crece con la forma abierta. El marco
+    // punteado del PNG es lo que deja ver de un vistazo que ya no hay 190
+    // puntos de ventana transparente comiéndose clics bajo la muesca.
+    let ventana = HUDNotchGeometry.windowSize(for: pantalla, encuadre: encuadre)
     // El marco va **detrás**: es el contorno de la ventana, y una línea
     // punteada cruzando la silueta arruina justo lo que se viene a mirar.
     return ZStack(alignment: .top) {

@@ -297,10 +297,9 @@ siendo cierto:
   es lo que la vuelve un escenario permanente en vez de una notificación. La
   cabecera de la forma abierta **es** la silueta en reposo
   (`HUDNotchGeometry.alturaDeCabecera`), así que crece desde donde descansaba.
-- **La ventana grande no es la forma.** La anfitriona está dimensionada para
-  el estado más alto de todos (488×190 en un 1080p sin carcasa) y la forma mide
-  lo que mide su estado —160×24 en reposo, 400×88 dictando—, anclada arriba y
-  al centro, con el resto transparente. Nada adentro de `HUDSurface` pide
+- **La ventana grande no es la forma.** La forma mide lo que mide su estado
+  —160×24 en reposo, 400×88 dictando—, anclada arriba y al centro, con el resto
+  de la ventana transparente. Nada adentro de `HUDSurface` pide
   `maxHeight: .infinity`: el `frame(minHeight:)` le ofrece al contenido el alto
   entero de la ventana y un hijo goloso se lo queda con el fondo negro detrás.
   Así se veía la muesca en un monitor externo, como un bloque de 160×190
@@ -308,10 +307,23 @@ siendo cierto:
   Cada cambio de estado deja una línea con los dos tamaños en
   `log show --predicate 'subsystem == "cl.espaciodigital.dilo"'`, categoría
   `muesca` (`RegistroDeLaMuesca`; en Release, con `DILO_LOG_MUESCA=1`).
-- **Sólo la silueta toma el mouse.** La ventana anfitriona es mucho más ancha
-  que la forma; `HUDHostingView.hitTest` la acota a
-  `HUDNotchGeometry.zonaInteractiva`, y sin eso el HUD se come clics en media
-  barra de menús. Un hover revela contexto y **nunca** arranca una captura.
+- **Y la ventana tampoco es siempre la misma.** `HUDNotchGeometry.EncuadreDeLaVentana`
+  tiene dos tamaños por pantalla: en reposo la anfitriona se ajusta a la
+  silueta más la holgura de la sombra (190×39 en un 1080p sin carcasa) y sólo
+  crece al estado más alto (488×190) mientras la forma está abierta. Crece
+  **antes** de que la animación arranque y se encoge **después** de que
+  termine, con la holgura que el rebote del resorte necesita
+  (`HUDRevealStyle.sobrepaso`). Una ventana grande en reposo es pantalla
+  muerta: macOS le entrega todos los clics de su rectángulo aunque no dibuje
+  nada, y un `hitTest` que devuelve nil los pierde en vez de pasarlos
+  (ADR-0001, enmienda del 2026-09-22).
+- **Sólo la silueta toma el mouse.** Dos cosas a la vez: `HUDHostingView.hitTest`
+  acota la ventana a `HUDNotchGeometry.zonaInteractiva`, y `HUDStage` sólo le
+  saca el `ignoresMouseEvents` al panel mientras el puntero está sobre la
+  silueta (`MonitorDelPuntero`, un monitor global de `.mouseMoved` como los de
+  Boring Notch y Notch Buddy). El hit test solo no basta: pierde el clic en vez
+  de pasarlo a la ventana de abajo. Un hover revela contexto y **nunca**
+  arranca una captura.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**

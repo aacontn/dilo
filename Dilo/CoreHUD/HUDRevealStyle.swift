@@ -67,6 +67,54 @@ extension HUDRevealStyle {
 }
 
 extension HUDRevealStyle {
+  /// Cuánto se pasa del tamaño final el rebote de este estilo, como fracción
+  /// de la forma: 0,046 se lee «se pasa un 4,6 % y vuelve».
+  ///
+  /// La ventana anfitriona se dimensiona con esto
+  /// (`HUDNotchGeometry.holguraDeRevelacion`). Un resorte llega a su destino y
+  /// **sigue**, así que una ventana ajustada al tamaño final le recortaría el
+  /// rebote justo en los fotogramas que se miran.
+  var sobrepaso: CGFloat {
+    switch self {
+    // Los dos que no rebotan: su carácter es la curva, y una
+    // `cubic-bezier(0.22, 1, 0.36, 1)` no pasa nunca de 1.
+    case .slide, .drift: 0
+    case .unfurl: Self.sobrepasoDeUnResorte(bounce: 0.3)
+    case .bloom: Self.sobrepasoDeUnResorte(bounce: 0.25)
+    }
+  }
+
+  /// El rebote extra del resorte con que la forma crece desde la muesca en
+  /// Drop Transcription: el de NotchDrop, tal cual.
+  static let reboteExtraDelArrastre = 0.25
+
+  /// Su rebote total. `interactiveSpring` parte de 0,14 de rebote y
+  /// `extraBounce` le suma, así que éste es el sobrepaso más grande que el
+  /// HUD llega a dibujar — más que el de cualquier estilo de revelación.
+  static let reboteDelArrastre = 0.14 + reboteExtraDelArrastre
+
+  /// El sobrepaso más grande que la ventana tiene que aguantar: el peor de
+  /// los estilos y el del arrastre.
+  static let sobrepasoMaximo: CGFloat = max(
+    allCases.map(\.sobrepaso).max() ?? 0,
+    sobrepasoDeUnResorte(bounce: reboteDelArrastre)
+  )
+
+  /// Cuánto se pasa de su destino un resorte de SwiftUI con este `bounce`.
+  ///
+  /// `bounce` es `1 − ζ` (WWDC23, «Animate with springs»), y un sistema de
+  /// segundo orden subamortiguado sobrepasa `exp(−πζ/√(1−ζ²))` de lo que
+  /// recorre. Se calcula en vez de estimarse a ojo porque lo que sale de acá
+  /// es holgura de ventana: si alguien sube el rebote de un estilo, la
+  /// ventana crece con él sin que nadie tenga que acordarse.
+  static func sobrepasoDeUnResorte(bounce: Double) -> CGFloat {
+    guard bounce > 0 else { return 0 }
+    let zeta = min(max(1 - bounce, 0.0001), 1)
+    return CGFloat(exp(-Double.pi * zeta / (1 - zeta * zeta).squareRoot()))
+  }
+}
+
+extension HUDRevealStyle {
   /// La curva de Tauri evaluada en `t` (0–1), que es lo que un render fuera de
   /// pantalla necesita y una `Animation` no sabe decir.
   ///

@@ -47,9 +47,9 @@ final class HUDPanel: NSPanel {
     hasShadow = false
     isMovable = false
     isMovableByWindowBackground = false
-    // Display-only during dictation: clicks pass through everywhere and it
-    // never takes focus. Drop Transcription flips this on while the shape is a
-    // drop target or holding a transcript, and off again afterwards.
+    // Display-only por defecto: los clics pasan de largo y nunca toma el
+    // foco. `HUDStage` se lo saca mientras el puntero está sobre la silueta, y
+    // Drop Transcription mientras la forma es un destino de arrastre.
     ignoresMouseEvents = true
     hidesOnDeactivate = false
     isReleasedWhenClosed = false
@@ -93,11 +93,16 @@ final class HUDPanel: NSPanel {
   /// La franja de la ventana que recibe el mouse, en coordenadas de la vista
   /// de contenido, o nil para toda la ventana.
   ///
-  /// Desde que el escenario vive siempre en pantalla, la ventana anfitriona
-  /// —540 puntos más holgura de sombra— está encima de media barra de menús
-  /// todo el tiempo. Si tomara el mouse entera se comería clics en los menús
-  /// de la app de al lado; con esto sólo la silueta lo toma
+  /// Con la forma abierta la ventana anfitriona —400 puntos más holgura— es
+  /// mucho más ancha que la silueta. Si tomara el mouse entera se comería
+  /// clics en los menús de la app de al lado; con esto sólo la silueta lo toma
   /// (`HUDNotchGeometry.zonaInteractiva`).
+  ///
+  /// **No alcanza solo.** Un `hitTest` que devuelve nil pierde el clic en vez
+  /// de pasarlo a la ventana de abajo, así que lo que de verdad libera la
+  /// pantalla es `ignoresMouseEvents` fuera de la silueta —lo conmuta
+  /// `HUDStage` con `MonitorDelPuntero`— y que la ventana en reposo mida lo
+  /// que mide la muesca (`HUDNotchGeometry.EncuadreDeLaVentana`).
   var zonaInteractiva: CGRect? {
     get { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva }
     set { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva = newValue }

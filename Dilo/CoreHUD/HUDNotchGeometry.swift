@@ -46,7 +46,65 @@ enum HUDNotchGeometry {
   /// Slack on the left, right, and bottom so the shell's drawn shadow is not
   /// clipped by the fixed window frame. Nothing is added at the top: that
   /// edge is the top of the screen and the shape is flush against it.
+  ///
+  /// **Es la holgura de la ventana abierta, no la de todas.** En reposo la
+  /// ventana se ajusta a la muesca con `holguraDeSombra` y nada más
+  /// (`EncuadreDeLaVentana`): estos 44 puntos alrededor de una silueta de
+  /// 160×24 eran 190 puntos de pantalla muerta bajo la barra de menús.
   static let shadowPadding: CGFloat = 44
+
+  /// Cuánta ventana anfitriona pide la forma ahora mismo.
+  ///
+  /// La ventana **mide lo que mide el estado**. macOS le entrega a una
+  /// ventana todos los clics de su rectángulo aunque ahí no haya dibujado
+  /// nada, y un `hitTest` que devuelve nil no hace que el clic siga de largo
+  /// hacia la ventana de abajo: lo pierde. Con una sola ventana dimensionada
+  /// para el estado más alto, los ~190 puntos bajo la muesca quedaban
+  /// inutilizados todo el tiempo aunque el 99 % del tiempo la forma sea una
+  /// muesca de 24 puntos de alto (ADR-0001, enmienda del 2026-09-22).
+  enum EncuadreDeLaVentana: Equatable, Sendable {
+    /// La silueta quieta: la ventana es la muesca más la sombra que se
+    /// dibuja alrededor de ella.
+    case reposo
+    /// Cualquier forma abierta o creciendo: la ventana da lugar al estado más
+    /// alto, a su sombra y al sobrepaso del resorte.
+    case abierta
+  }
+
+  /// Lo que la sombra dibujada necesita alrededor de la forma para no salir
+  /// recortada: su desenfoque más lo que baja (`HUDMetrics.shadowRadius`,
+  /// `shadowOffsetY`).
+  ///
+  /// Con las métricas estándar son 15 puntos. Sale de los mismos números con
+  /// los que `HUDSurface` dibuja la sombra, para que no haya forma de
+  /// achicarla en un lado y recortarla en el otro.
+  static func holguraDeSombra(_ metrics: HUDMetrics = .standard) -> CGFloat {
+    metrics.shadowRadius + metrics.shadowOffsetY
+  }
+
+  /// La holgura de la ventana **en reposo**: la sombra, y a los lados también
+  /// las dos alas cóncavas, que cuelgan fuera de la silueta.
+  static func holguraEnReposo(for screen: HUDScreenSnapshot) -> CGFloat {
+    max(holguraDeSombra(), filletSize(for: screen))
+  }
+
+  /// La holgura de la ventana **abierta**: la sombra más lo que el rebote del
+  /// resorte se pasa del tamaño final (`HUDRevealStyle.sobrepasoMaximo`).
+  ///
+  /// Con el piso histórico de `shadowPadding`, que hoy gana: el peor
+  /// sobrepaso es un 9 % y la forma abierta mide 400 puntos de ancho, o sea
+  /// 18 de cada lado, que con los 15 de la sombra son 33 — dentro de los 44.
+  /// Se deriva igual para que subir un rebote agrande la ventana sola en vez
+  /// de recortar la animación en silencio.
+  static func holguraDeRevelacion(for screen: HUDScreenSnapshot) -> CGFloat {
+    let sobrepaso = max(
+      // El ancho rebota hacia los dos lados; el alto, sólo hacia abajo (el
+      // anclaje es `.top`).
+      HUDMetrics.standard.contentWidth * HUDRevealStyle.sobrepasoMaximo / 2,
+      altoDeLaFormaMasAlta(for: screen) * HUDRevealStyle.sobrepasoMaximo
+    )
+    return max(shadowPadding, holguraDeSombra() + sobrepaso)
+  }
 
   /// The notch this display actually reports, or nil when there is nothing
   /// to measure. Width comes from the two auxiliary areas by subtraction so
@@ -144,8 +202,12 @@ enum HUDNotchGeometry {
   /// la sombra—, y desde que el escenario vive siempre en pantalla, dejarla
   /// entera sensible al mouse se tragaría clics en media barra de menús. Sólo
   /// la silueta toma el mouse; el resto pasa de largo (`HUDHostingView`).
-  static func zonaInteractiva(for screen: HUDScreenSnapshot, tamaño: CGSize) -> CGRect {
-    let ventana = windowSize(for: screen)
+  static func zonaInteractiva(
+    for screen: HUDScreenSnapshot,
+    tamaño: CGSize,
+    encuadre: EncuadreDeLaVentana = .abierta
+  ) -> CGRect {
+    let ventana = windowSize(for: screen, encuadre: encuadre)
     let ancho = min(tamaño.width, ventana.width)
     let alto = min(tamaño.height, ventana.height)
     return CGRect(
@@ -153,6 +215,28 @@ enum HUDNotchGeometry {
       y: ventana.height - alto,
       width: ancho,
       height: alto
+    )
+  }
+
+  /// La misma franja, pero en coordenadas de pantalla (origen abajo a la
+  /// izquierda, como `NSEvent.mouseLocation`).
+  ///
+  /// Es lo que el monitor global del puntero compara para decidir si la
+  /// ventana toma el mouse o lo deja pasar: con `ignoresMouseEvents` no hay
+  /// `onHover` que consultar, así que la pregunta «¿está el puntero sobre la
+  /// silueta?» se responde con geometría.
+  static func siluetaEnPantalla(
+    for screen: HUDScreenSnapshot,
+    tamaño: CGSize,
+    encuadre: EncuadreDeLaVentana = .abierta
+  ) -> CGRect {
+    let ventana = windowFrame(for: screen, encuadre: encuadre)
+    let zona = zonaInteractiva(for: screen, tamaño: tamaño, encuadre: encuadre)
+    return CGRect(
+      x: ventana.minX + zona.minX,
+      y: ventana.minY + zona.minY,
+      width: zona.width,
+      height: zona.height
     )
   }
 
@@ -342,12 +426,15 @@ enum HUDNotchGeometry {
   /// pinned to the top (below the menu bar on a display with no notch of its
   /// own), clamped to the screen width.
   ///
-  /// Sized for the standard metrics whatever the user's HUD size, so the
-  /// window stays fixed per display (ADR-0001) and a smaller shape simply
-  /// centers itself inside it. The window is invisible and click-through, so
-  /// the unused slack costs nothing.
-  static func windowFrame(for screen: HUDScreenSnapshot) -> CGRect {
-    let size = windowSize(for: screen)
+  /// Sized for the standard metrics whatever the user's HUD size, so a smaller
+  /// shape simply centers itself inside it (ADR-0001). Lo que ya no es fijo es
+  /// el **encuadre**: en reposo la ventana se ajusta a la muesca, y sólo crece
+  /// cuando la forma se abre.
+  static func windowFrame(
+    for screen: HUDScreenSnapshot,
+    encuadre: EncuadreDeLaVentana = .abierta
+  ) -> CGRect {
+    let size = windowSize(for: screen, encuadre: encuadre)
     return CGRect(
       x: screen.frame.midX - size.width / 2,
       y: screen.frame.maxY - size.height - topInset(for: screen),
@@ -359,16 +446,35 @@ enum HUDNotchGeometry {
   /// The window's size, which does not depend on where it is pinned. Separate
   /// so the callers that only want its width need know nothing about the menu
   /// bar.
-  static func windowSize(for screen: HUDScreenSnapshot) -> CGSize {
+  static func windowSize(
+    for screen: HUDScreenSnapshot,
+    encuadre: EncuadreDeLaVentana = .abierta
+  ) -> CGSize {
+    switch encuadre {
+    case .reposo:
+      let silueta = reposoSize(for: screen)
+      let holgura = holguraEnReposo(for: screen)
+      return CGSize(
+        width: min(silueta.width + holgura * 2, screen.frame.width),
+        height: silueta.height + holgura
+      )
+    case .abierta:
+      let holgura = holguraDeRevelacion(for: screen)
+      return CGSize(
+        width: min(HUDMetrics.standard.contentWidth + holgura * 2, screen.frame.width),
+        height: altoDeLaFormaMasAlta(for: screen) + holgura
+      )
+    }
+  }
+
+  /// El alto de la forma abierta más alta que esta pantalla puede dibujar, sin
+  /// holgura ninguna. Es lo que la ventana abierta tiene que poder contener.
+  static func altoDeLaFormaMasAlta(for screen: HUDScreenSnapshot) -> CGFloat {
     let metrics = HUDMetrics.standard
     // The shaping band rides outside the max: it can sit under either
     // alternative, so the tallest layout is whichever band stack wins plus it.
-    return CGSize(
-      width: min(metrics.contentWidth + shadowPadding * 2, screen.frame.width),
-      height: closedSize(for: screen).height
-        + max(metrics.waveBandHeight, metrics.visualBandHeight + metrics.maxTextBandHeight)
-        + metrics.shapingBandHeight
-        + shadowPadding
-    )
+    return closedSize(for: screen).height
+      + max(metrics.waveBandHeight, metrics.visualBandHeight + metrics.maxTextBandHeight)
+      + metrics.shapingBandHeight
   }
 }

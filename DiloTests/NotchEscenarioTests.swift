@@ -119,13 +119,15 @@ struct NotchEscenarioTests {
 
   // MARK: Sólo la franja central
 
-  /// La ventana anfitriona es mucho más ancha que la forma. Desde que el
-  /// escenario vive siempre en pantalla, sólo la silueta puede tomar el
-  /// mouse: lo demás son clics de la barra de menús y de la app de al lado.
+  /// La ventana anfitriona sigue siendo más ancha que la forma —en reposo,
+  /// por la holgura de la sombra—, y sólo la silueta puede tomar el mouse: lo
+  /// demás son clics de la barra de menús y de la app de al lado.
   @Test func soloLaSiluetaTomaElMouse() {
     let reposo = HUDNotchGeometry.reposoSize(for: simulado)
-    let zona = HUDNotchGeometry.zonaInteractiva(for: simulado, tamaño: reposo)
-    let ventana = HUDNotchGeometry.windowSize(for: simulado)
+    let zona = HUDNotchGeometry.zonaInteractiva(
+      for: simulado, tamaño: reposo, encuadre: .reposo
+    )
+    let ventana = HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo)
 
     #expect(zona.width == reposo.width)
     #expect(zona.height == reposo.height)
@@ -138,16 +140,10 @@ struct NotchEscenarioTests {
   /// vacío: ni los menús de la app de la izquierda ni los status items de la
   /// derecha quedan debajo (issue #83).
   @Test func laFranjaEnReposoNoLlegaALosStatusItems() {
-    let ventana = HUDNotchGeometry.windowFrame(for: simulado)
-    let zona = HUDNotchGeometry.zonaInteractiva(
+    let enPantalla = HUDNotchGeometry.siluetaEnPantalla(
       for: simulado,
-      tamaño: HUDNotchGeometry.reposoSize(for: simulado)
-    )
-    let enPantalla = CGRect(
-      x: ventana.minX + zona.minX,
-      y: ventana.minY + zona.minY,
-      width: zona.width,
-      height: zona.height
+      tamaño: HUDNotchGeometry.reposoSize(for: simulado),
+      encuadre: .reposo
     )
     // La muesca centrada en una pantalla de 1920 deja más de 800 puntos
     // libres de cada lado.

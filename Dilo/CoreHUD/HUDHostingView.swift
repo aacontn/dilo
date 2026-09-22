@@ -3,15 +3,17 @@ import SwiftUI
 
 /// La vista que hospeda el HUD, con el mouse acotado a la silueta.
 ///
-/// La ventana anfitriona es de tamaño fijo y mucho más ancha que la forma
-/// —lleva holgura invisible para la sombra (ADR-0001)—. Mientras el HUD sólo
-/// aparecía durante un dictado eso no importaba, porque la ventana no tomaba
-/// el mouse nunca. Desde que el notch es un escenario permanente sí lo toma,
-/// y una ventana de 628 puntos encima de la barra de menús que se traga cada
-/// clic es exactamente el tipo de cosa que hace desinstalar una app.
+/// La ventana anfitriona es más ancha que la forma —lleva holgura invisible
+/// para la sombra y para el rebote de la revelación (ADR-0001)—, así que
+/// mientras toma el mouse sólo la silueta puede responderle: `hitTest`
+/// devuelve nil fuera de `zonaInteractiva`.
 ///
-/// `hitTest` devuelve nil fuera de `zonaInteractiva`, que es lo que hace que
-/// el clic siga de largo hasta lo que haya debajo.
+/// **Esto acota, no libera.** Un `hitTest` nil hace que el clic se pierda, no
+/// que llegue a la ventana de abajo: eso es cosa de `ignoresMouseEvents`, que
+/// `HUDStage` conmuta con `MonitorDelPuntero`, y del tamaño de la ventana en
+/// reposo (`HUDNotchGeometry.EncuadreDeLaVentana`). Los ~190 puntos muertos
+/// bajo la muesca que Alfonso reportó el 2026-09-22 salían justo de confiar
+/// sólo en esto.
 final class HUDHostingView<Content: View>: NSHostingView<Content>, HUDHostingViewProtocol {
   /// La franja que sí recibe el mouse, en coordenadas de esta vista. Nil
   /// mientras no hay ninguna, que es lo mismo que no recibir nada.

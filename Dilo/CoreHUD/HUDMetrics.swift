@@ -94,4 +94,16 @@ struct HUDMetrics: Equatable {
   var shapingBandHeight: CGFloat { 14 * scale }
 
   var bottomCornerRadius: CGFloat { 18 * scale }
+
+  /// El desenfoque de la sombra que la forma dibuja debajo de sí misma.
+  ///
+  /// Vive acá y no suelto en `HUDSurface` porque la ventana anfitriona se
+  /// dimensiona con él: la holgura que le sobra a la forma es exactamente lo
+  /// que la sombra necesita para no salir recortada
+  /// (`HUDNotchGeometry.holguraDeSombra`). Con el número escrito en dos
+  /// lugares, achicar la ventana recorta una sombra que nadie recordó medir.
+  var shadowRadius: CGFloat { 11 * scale }
+
+  /// Cuánto baja esa sombra respecto de la forma.
+  var shadowOffsetY: CGFloat { 4 * scale }
 }

@@ -242,12 +242,20 @@ struct DictationHUDShellView: View {
     .onChange(of: content.estado, initial: true) {
       RegistroDeLaMuesca.anotar(
         estado: content.estado,
-        ventana: HUDNotchGeometry.windowSize(for: screen),
+        ventana: HUDNotchGeometry.windowSize(for: screen, encuadre: encuadreDeLaVentana),
         forma: formaDibujada,
         pantalla: screen.nombre,
         notchReal: HUDNotchGeometry.hasMeasuredNotch(for: screen)
       )
     }
+  }
+
+  /// Qué ventana anfitriona pide este estado. Va al log porque la ventana
+  /// dejó de ser una sola: en reposo se ajusta a la muesca y sólo crece
+  /// cuando la forma se abre, así que `ventana=` tiene que decir cuál de las
+  /// dos estaba puesta (`HUDNotchGeometry.EncuadreDeLaVentana`).
+  private var encuadreDeLaVentana: HUDNotchGeometry.EncuadreDeLaVentana {
+    content.estado.esCompacto && content.contextoVisible == nil ? .reposo : .abierta
   }
 
   /// El tamaño que la forma tiene ahora mismo: la silueta en reposo —abierta

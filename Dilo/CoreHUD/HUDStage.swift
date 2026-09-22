@@ -69,10 +69,10 @@ final class HUDStage {
 
   /// Cuánto se queda abierto el contexto como mucho.
   ///
-  /// Red de seguridad y no diseño: la ventana deja de recibir el mouse en
-  /// cuanto el puntero sale de la silueta (`HUDHostingView.hitTest`), así que
-  /// la salida puede no llegar nunca. Sin esto, un contexto abierto se queda
-  /// abierto para siempre.
+  /// Red de seguridad y no diseño: la salida del puntero llega por el monitor
+  /// global (`MonitorDelPuntero`) o por el hover de la vista, y ninguno de los
+  /// dos está garantizado —un espacio que cambia, una sesión que se bloquea—.
+  /// Sin esto, un contexto abierto se queda abierto para siempre.
   static let contextoMaximo = Duration.seconds(4)
 
   /// El estado del contrato que el escenario está sosteniendo.
@@ -104,6 +104,16 @@ final class HUDStage {
   private let reloj: DeadlineClock
   private var renderedSettings: DictationSessionSettings
   private var orderOutTask: Task<Void, Never>?
+  /// El encuadre que la ventana tiene **ahora**, que no siempre es el que el
+  /// estado pide: al abrirse crece antes de que arranque la animación, y al
+  /// cerrarse se encoge después de que termine.
+  private(set) var encuadre = HUDNotchGeometry.EncuadreDeLaVentana.reposo
+  private var encogerTask: Task<Void, Never>?
+  /// Quién avisa dónde está el puntero mientras la ventana lo ignora.
+  private let puntero: MonitorDelPuntero
+  /// Si el puntero está sobre la silueta ahora mismo. Es lo único que hace
+  /// que la ventana deje de ignorar el mouse.
+  private(set) var punteroSobreLaSilueta = false
   /// El observador de cambio de espacio. Se guarda y no se da de baja: el
   /// escenario vive lo que vive la app, y un `deinit` en un tipo aislado al
   /// actor principal no puede tocar sus propiedades.
@@ -118,6 +128,7 @@ final class HUDStage {
     self.reloj = reloj
     sounds = sonidos
     control = ControlDelNotch(reloj: reloj)
+    puntero = MonitorDelPuntero(reloj: reloj)
     renderedSettings = settings.sessionSettings
     let placeholder = HUDScreenSnapshot(
       id: 0,
@@ -159,6 +170,9 @@ final class HUDStage {
     dictationContent.alHacerClic = { [weak self] in
       self?.clicEnLaSilueta()
     }
+    puntero.alMoverse = { [weak self] punto in
+      self?.punteroSeMovio(a: punto)
+    }
   }
 
   /// Pone la forma en pantalla en reposo y la deja ahí.
@@ -172,6 +186,10 @@ final class HUDStage {
     dictationContent.isRevealed = false
     mount(on: screen)
     aplicar(.reposo)
+    // El monitor del puntero se enciende acá y no se apaga nunca: la ventana
+    // ignora el mouse mientras el puntero esté fuera de la silueta, y sin
+    // alguien mirando dónde está no habría forma de volver a tomarlo.
+    puntero.empezar()
   }
 
   /// Mueve la máquina del contrato. Es la única puerta: el estado no se
@@ -183,6 +201,10 @@ final class HUDStage {
   /// Anota en qué estado está el escenario y ajusta lo que depende de él: si
   /// la forma toma el mouse y qué franja de la ventana lo recibe.
   private func aplicar(_ estado: EstadoDelNotch) {
+    // La ventana crece **antes** de que el estado nuevo empiece a animarse:
+    // una revelación dentro de una ventana del tamaño del reposo sale
+    // recortada en los primeros fotogramas, que son los que se miran.
+    ajustarVentana(a: encuadreQuePide(estado))
     dictationContent.estado = estado
     if !estado.tomaElMouse {
       cancelarHover()
@@ -191,7 +213,7 @@ final class HUDStage {
     // Un arrastre en curso manda: la superficie de Drop Transcription pide el
     // mouse por su cuenta y no se lo quita un cambio de estado del dictado.
     if occupant != .drop {
-      acceptsMouse = estado.tomaElMouse
+      refrescarElMouse()
       panel.tomaElTeclado = false
     }
     actualizarPresencia()
@@ -292,35 +314,148 @@ final class HUDStage {
       panel.zonaInteractiva = nil
       return
     }
-    let tamaño: CGSize
-    if estado.esCompacto {
-      let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
-      // Con el contexto abierto la silueta crece hasta el ancho de la forma
-      // abierta; la zona crece con ella y no más, que es lo que evita que la
-      // muesca se coma clics de media barra de menús.
-      if dictationContent.contextoVisible == nil {
-        tamaño = reposo
-      } else {
-        let ventana = HUDNotchGeometry.windowSize(for: pantallaActual)
-        tamaño = CGSize(
-          width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
-          height: min(
-            reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
-            HUDNotchGeometry.altoMaximoDelHover
-          )
-        )
-      }
-    } else {
-      let ventana = HUDNotchGeometry.windowSize(for: pantallaActual)
-      tamaño = CGSize(
-        width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
-        height: ventana.height - HUDNotchGeometry.shadowPadding
-      )
-    }
     panel.zonaInteractiva = HUDNotchGeometry.zonaInteractiva(
       for: pantallaActual,
-      tamaño: tamaño
+      tamaño: tamañoDeLaSilueta,
+      encuadre: encuadre
     )
+  }
+
+  /// El tamaño de la forma que hay dibujada ahora mismo.
+  ///
+  /// En reposo es la silueta compacta —abierta por el hover o no—; en los
+  /// estados abiertos, lo más ancho que la forma puede llegar a ser con los
+  /// ajustes de esta sesión. Generoso a propósito ahí: esos estados duran lo
+  /// que dura una sesión, y errar por unos puntos vale menos que perder un
+  /// clic en Copiar.
+  private var tamañoDeLaSilueta: CGSize {
+    guard let pantallaActual else { return .zero }
+    let ventana = HUDNotchGeometry.windowSize(for: pantallaActual, encuadre: encuadre)
+    guard estado.esCompacto else {
+      return CGSize(
+        width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
+        height: ventana.height - HUDNotchGeometry.holguraDeRevelacion(for: pantallaActual)
+      )
+    }
+    let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
+    // Con el contexto abierto la silueta crece hasta el ancho de la forma
+    // abierta; la zona crece con ella y no más, que es lo que evita que la
+    // muesca se coma clics de media barra de menús.
+    guard dictationContent.contextoVisible != nil else { return reposo }
+    return CGSize(
+      width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
+      height: min(
+        reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
+        HUDNotchGeometry.altoMaximoDelHover
+      )
+    )
+  }
+
+  // MARK: La ventana mide lo que mide el estado
+
+  /// Qué ventana pide este estado, contando lo que el hover tenga abierto y
+  /// un arrastre en curso.
+  private func encuadreQuePide(_ estado: EstadoDelNotch) -> HUDNotchGeometry.EncuadreDeLaVentana {
+    guard estado.esCompacto else { return .abierta }
+    if dictationContent.contextoVisible != nil { return .abierta }
+    if occupant == .drop || dropContent.mode != .none { return .abierta }
+    return .reposo
+  }
+
+  /// El que pide lo que la forma está mostrando ahora.
+  private var encuadreNecesario: HUDNotchGeometry.EncuadreDeLaVentana {
+    encuadreQuePide(estado)
+  }
+
+  /// Cambia el tamaño de la ventana anfitriona, creciendo en el acto y
+  /// encogiendo con retardo.
+  ///
+  /// Las dos direcciones no son simétricas y esa asimetría es todo el
+  /// arreglo: si la ventana creciera junto con la animación, la revelación
+  /// saldría recortada; si se encogiera junto con ella, el cierre se cortaría
+  /// de golpe. Crece antes de que la animación arranque y se encoge cuando ya
+  /// terminó (`dismissDuration`, la duración perceptual del encogimiento).
+  private func ajustarVentana(a necesario: HUDNotchGeometry.EncuadreDeLaVentana) {
+    guard let pantalla = pantallaActual else { return }
+    guard necesario == .reposo else {
+      encogerTask?.cancel()
+      encogerTask = nil
+      guard encuadre != .abierta else { return }
+      aplicarEncuadre(.abierta, en: pantalla)
+      return
+    }
+    guard encuadre == .abierta, encogerTask == nil else { return }
+    encogerTask = Task { [weak self, reloj] in
+      try? await reloj.sleep(Self.dismissDuration)
+      guard !Task.isCancelled, let self else { return }
+      encogerTask = nil
+      guard encuadreNecesario == .reposo, let actual = pantallaActual else { return }
+      aplicarEncuadre(.reposo, en: actual)
+    }
+  }
+
+  private func aplicarEncuadre(
+    _ nuevo: HUDNotchGeometry.EncuadreDeLaVentana,
+    en pantalla: HUDScreenSnapshot
+  ) {
+    encuadre = nuevo
+    panel.setFrame(HUDNotchGeometry.windowFrame(for: pantalla, encuadre: nuevo), display: true)
+    actualizarZonaInteractiva()
+  }
+
+  /// El marco de la ventana anfitriona, en coordenadas de pantalla. Para que
+  /// un test pueda afirmar que en reposo mide la muesca y no la pantalla.
+  var marcoDeLaVentana: CGRect { panel.frame }
+
+  /// Si la ventana está dejando pasar el mouse ahora mismo.
+  var ventanaIgnoraElMouse: Bool { panel.ignoresMouseEvents }
+
+  /// Pone la forma en esta pantalla sin que nadie ocupe el escenario. Es lo
+  /// que `despertar()` hace con la pantalla que elige, expuesto para que un
+  /// test no dependa de los monitores que tenga la máquina que corre.
+  func colocar(en pantalla: HUDScreenSnapshot) {
+    mount(on: pantalla)
+  }
+
+  /// El puntero se movió, en coordenadas de pantalla.
+  ///
+  /// La ventana sólo deja de ignorar el mouse mientras el puntero está sobre
+  /// la silueta. Fuera de ella, `ignoresMouseEvents` vuelve a `true` y el clic
+  /// llega a lo que haya debajo — que es lo que un `hitTest` devolviendo nil
+  /// **no** consigue: ahí el clic se pierde, no pasa.
+  ///
+  /// Tomar el mouse es inmediato y no espera el retardo del hover: con el
+  /// retardo, el primer clic sobre la muesca se perdería. Lo que sigue
+  /// esperando es la revelación del contexto, que es para lo que el retardo
+  /// existe.
+  func punteroSeMovio(a punto: CGPoint) {
+    guard let pantallaActual else { return }
+    let silueta = HUDNotchGeometry.siluetaEnPantalla(
+      for: pantallaActual,
+      tamaño: tamañoDeLaSilueta,
+      encuadre: encuadre
+    )
+    let dentro = silueta.contains(punto)
+    guard dentro != punteroSobreLaSilueta else { return }
+    punteroSobreLaSilueta = dentro
+    // Un arrastre en curso manda: la superficie de Drop Transcription pide el
+    // mouse por su cuenta.
+    if occupant != .drop { refrescarElMouse() }
+    if estado.tomaElMouse { punteroEncima(dentro) }
+  }
+
+  /// Vuelve a decidir si la ventana toma el mouse: sólo con el puntero encima
+  /// de la silueta, en un estado que hace algo con él y con la forma visible.
+  private func refrescarElMouse() {
+    // Un arrastre en curso manda: la superficie de Drop Transcription pide el
+    // mouse por su cuenta y no se lo quita ni un movimiento del puntero ni un
+    // cambio de estado del dictado.
+    guard occupant != .drop else { return }
+    acceptsMouse = estado.tomaElMouse && punteroSobreLaSilueta && !escondido
+    // Mientras la ventana toma el mouse, los eventos son de la app y el
+    // monitor global deja de verlos: el sondeo es lo que nota que el puntero
+    // se fue.
+    puntero.seguirDeCerca(acceptsMouse)
   }
 
   /// El puntero entró o salió de la silueta. La tolerancia va acá y no en la
@@ -335,14 +470,22 @@ final class HUDStage {
       guard !Task.isCancelled, let self else { return }
       // Un hover jamás arranca una captura: lo único que toca es qué se
       // dibuja (contrato del notch).
+      let abre = dentro && estado.tomaElMouse && dictationContent.contexto?.isEmpty == false
+      // La ventana primero, el contexto después: el panel del hover también
+      // es la silueta creciendo, y crece con la misma curva.
+      if abre { ajustarVentana(a: .abierta) }
       dictationContent.punteroEncima = dentro && estado.tomaElMouse
       actualizarZonaInteractiva()
-      guard dictationContent.punteroEncima else { return }
+      guard dictationContent.punteroEncima else {
+        ajustarVentana(a: encuadreNecesario)
+        return
+      }
 
       try? await reloj.sleep(Self.contextoMaximo)
       guard !Task.isCancelled else { return }
       dictationContent.punteroEncima = false
       actualizarZonaInteractiva()
+      ajustarVentana(a: encuadreNecesario)
     }
   }
 
@@ -355,7 +498,7 @@ final class HUDStage {
   /// coordenadas de pantalla.
   var puntoDeAcciones: NSPoint? {
     guard let pantallaActual else { return nil }
-    let ventana = HUDNotchGeometry.windowFrame(for: pantallaActual)
+    let ventana = HUDNotchGeometry.windowFrame(for: pantallaActual, encuadre: encuadre)
     let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
     return NSPoint(x: ventana.midX, y: ventana.maxY - reposo.height)
   }
@@ -474,6 +617,9 @@ final class HUDStage {
     occupant = .none
     dictationContent.isRevealed = false
     dropContent.isRevealed = false
+    // La ventana se encoge después, no ahora: lo que queda por delante es la
+    // animación de cierre, y una ventana ya achicada la recorta.
+    ajustarVentana(a: encuadreNecesario)
 
     orderOutTask?.cancel()
     orderOutTask = Task { [weak self, reloj] in
@@ -582,10 +728,14 @@ final class HUDStage {
       }
     )
     pantallaActual = screen
-    panel.setFrame(HUDNotchGeometry.windowFrame(for: screen), display: true)
+    // Con un encogimiento en curso la ventana se queda grande hasta que
+    // termine: volver a medir la pantalla no es razón para cortar el cierre
+    // por la mitad.
+    aplicarEncuadre(encogerTask == nil ? encuadreNecesario : .abierta, en: screen)
     panel.assertOverlayOrder()
     actualizarPresencia()
     actualizarZonaInteractiva()
+    refrescarElMouse()
   }
 
   private func evictDrop() {

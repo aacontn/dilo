@@ -221,7 +221,11 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     }
     // NotchDrop's spring, verbatim, in both directions — it is symmetric there.
     if growsFromHousing {
-      return .interactiveSpring(duration: 0.5, extraBounce: 0.25, blendDuration: 0.125)
+      return .interactiveSpring(
+        duration: 0.5,
+        extraBounce: HUDRevealStyle.reboteExtraDelArrastre,
+        blendDuration: 0.125
+      )
     }
     if isRevealed {
       switch revealStyle {
@@ -267,7 +271,14 @@ struct HUDSurface<Content: View, Overlays: View>: View {
           duration: HUDRippleModifier.duration
         )
       }
-      .shadow(color: .black.opacity(0.35), radius: 11 * metrics.scale, y: 4 * metrics.scale)
+      // Los dos números salen de las métricas y no de acá: la ventana
+      // anfitriona se dimensiona con ellos (`HUDNotchGeometry.holguraDeSombra`),
+      // y una sombra que crece sin que la ventana se entere sale recortada.
+      .shadow(
+        color: .black.opacity(0.35),
+        radius: metrics.shadowRadius,
+        y: metrics.shadowOffsetY
+      )
   }
 
   /// Sits alongside the body rather than inside it. Las dos curvas cóncavas
