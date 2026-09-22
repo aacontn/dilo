@@ -254,15 +254,10 @@ struct NotchEscenarioTests {
   @MainActor
   @Test func elHoverNoCaptura() async {
     let reloj = DrivenClock()
-    // El puntero entra por el monitor, que es la única fuente de «está
-    // encima» desde que el `onHover` de la vista demostró no ver la entrada
-    // (`MonitorDelPuntero`). Simulado, para no leer el cursor de nadie.
-    let cursor = CursorSimulado()
-    let stage = HUDStage(
-      settings: AppSettings.previewStore(),
-      reloj: reloj.deadlineClock,
-      punteroEn: { cursor.punto }
-    )
+    // El puntero entra por el área de seguimiento de `HUDHostingView`, que es
+    // la única fuente de «está encima»: la ventana ya no ignora el mouse, así
+    // que ve entrar el puntero en el instante en que entra.
+    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
     stage.colocar(en: simulado)
     stage.dictationContent.contexto = "Correo"
     let silueta = HUDNotchGeometry.siluetaEnPantalla(
@@ -270,8 +265,7 @@ struct NotchEscenarioTests {
       tamaño: HUDNotchGeometry.reposoSize(for: simulado),
       encuadre: .reposo
     )
-    cursor.punto = CGPoint(x: silueta.midX, y: silueta.midY)
-    stage.punteroSeMovio(a: cursor.punto)
+    stage.punteroSeMovio(a: CGPoint(x: silueta.midX, y: silueta.midY))
 
     await reloj.waitForSleeper()
     while !stage.dictationContent.punteroEncima {
@@ -294,5 +288,34 @@ struct NotchEscenarioTests {
     stage.dictationContent.alHacerClic?()
     #expect(pedidos == 1)
     #expect(stage.estado == .reposo)
+  }
+
+  /// Con el panel del hover abierto y un dictado anterior, el clic copia: es
+  /// donde quedó «copiar el último dictado» al salir el estado Resultado del
+  /// camino feliz (2026-09-22).
+  @MainActor
+  @Test func elClicEnElPanelDelHoverCopiaLoUltimo() {
+    let stage = HUDStage(settings: AppSettings.previewStore())
+    var copias = 0
+    var acciones = 0
+    stage.alPedirCopiar = { copias += 1 }
+    stage.alPedirAcciones = { acciones += 1 }
+
+    // Panel abierto pero sin nada dictado todavía: sigue siendo el menú.
+    stage.dictationContent.punteroEncima = true
+    stage.dictationContent.alHacerClic?()
+    #expect(acciones == 1)
+    #expect(copias == 0)
+
+    stage.dictationContent.contexto = "Listo · «quedamos el martes»"
+    stage.dictationContent.alHacerClic?()
+    #expect(copias == 1)
+    #expect(acciones == 1)
+
+    // Con el panel cerrado vuelve a ser el menú, aunque haya qué copiar.
+    stage.dictationContent.punteroEncima = false
+    stage.dictationContent.alHacerClic?()
+    #expect(acciones == 2)
+    #expect(copias == 1)
   }
 }

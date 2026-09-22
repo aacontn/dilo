@@ -225,15 +225,9 @@ struct MuescaTests {
     ajustes.hudRetardoDeHover = 1.2
     let reloj = DrivenClock()
     let simulada = pantalla(barra: 24)
-    // El puntero entra por el monitor y no por la vista: es la única fuente
-    // de «está encima» desde que el `onHover` demostró no ver la entrada
-    // (`MonitorDelPuntero`). Simulado, para no leer el cursor de nadie.
-    let cursor = CursorSimulado()
-    let stage = HUDStage(
-      settings: ajustes,
-      reloj: reloj.deadlineClock,
-      punteroEn: { cursor.punto }
-    )
+    // El puntero entra por el área de seguimiento de `HUDHostingView`, que es
+    // la única fuente de «está encima»: la ventana ya no ignora el mouse.
+    let stage = HUDStage(settings: ajustes, reloj: reloj.deadlineClock)
     stage.colocar(en: simulada)
     stage.dictationContent.contexto = "Correo"
     let silueta = HUDNotchGeometry.siluetaEnPantalla(
@@ -241,8 +235,7 @@ struct MuescaTests {
       tamaño: HUDNotchGeometry.reposoSize(for: simulada),
       encuadre: .reposo
     )
-    cursor.punto = CGPoint(x: silueta.midX, y: silueta.midY)
-    stage.punteroSeMovio(a: cursor.punto)
+    stage.punteroSeMovio(a: CGPoint(x: silueta.midX, y: silueta.midY))
 
     await reloj.waitForSleeper()
     reloj.advance(by: .milliseconds(500))

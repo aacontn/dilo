@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import SwiftUI
 import Testing
 
 @testable import Dilo
@@ -194,15 +195,8 @@ struct VentanaDeLaMuescaTests {
   // MARK: El mouse
 
   @MainActor
-  private func escenarioEnReposo(
-    _ reloj: DrivenClock,
-    puntero: CursorSimulado = CursorSimulado()
-  ) -> HUDStage {
-    let stage = HUDStage(
-      settings: AppSettings.previewStore(),
-      reloj: reloj.deadlineClock,
-      punteroEn: { puntero.punto }
-    )
+  private func escenarioEnReposo(_ reloj: DrivenClock) -> HUDStage {
+    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
     stage.colocar(en: simulado)
     return stage
   }
@@ -217,74 +211,105 @@ struct VentanaDeLaMuescaTests {
     return CGPoint(x: silueta.midX, y: silueta.midY)
   }
 
-  /// En reposo, con el puntero en cualquier otra parte, la ventana deja pasar
-  /// el mouse entero. Es la mitad del arreglo que el tamaño no cubre: aun
-  /// dentro de los 178×24, los puntos que ocupan las alas son barra de menús
-  /// de la app de al lado.
+  /// Fuera de la silueta el clic sigue de largo, y dentro lo toma la forma.
+  ///
+  /// La ventana **ya no conmuta `ignoresMouseEvents`** (2026-09-22, tercer
+  /// intento del hover): es `HUDHostingView.hitTest` el que devuelve nil
+  /// fuera de la silueta, y un punto sin vista que lo reclame sobre un panel
+  /// transparente deja el clic en la app de abajo. Aun dentro de los 178×24
+  /// de la ventana en reposo, los puntos que ocupan las alas son barra de
+  /// menús de la app de al lado.
   @MainActor
-  @Test func enReposoConElPunteroFueraLaVentanaIgnoraElMouse() {
+  @Test func fueraDeLaSiluetaElClicSigueDeLargo() {
     let stage = escenarioEnReposo(DrivenClock())
     #expect(stage.encuadre == .reposo)
-    #expect(stage.ventanaIgnoraElMouse)
 
     // Un punto dentro de la ventana pero al costado de la silueta: la franja
     // de las alas no toma clics.
     let ventana = stage.marcoDeLaVentana
-    stage.punteroSeMovio(a: CGPoint(x: ventana.minX + 2, y: ventana.midY))
-    #expect(!stage.punteroSobreLaSilueta)
-    #expect(stage.ventanaIgnoraElMouse)
-
+    #expect(stage.dejaPasarElMouse(en: CGPoint(x: ventana.minX + 2, y: ventana.midY)))
     // Y la barra de menús a la derecha, que es donde viven los status items.
-    stage.punteroSeMovio(a: CGPoint(x: 1600, y: simulado.frame.maxY - 8))
-    #expect(stage.ventanaIgnoraElMouse)
+    #expect(stage.dejaPasarElMouse(en: CGPoint(x: 1600, y: simulado.frame.maxY - 8)))
+    // La silueta sí.
+    #expect(!stage.dejaPasarElMouse(en: sobreLaMuesca))
   }
 
-  /// Con el puntero encima de la silueta la ventana sí toma el mouse, para
-  /// que el clic abra el menú de acciones.
+  /// Y el puntero sobre la silueta es lo que el área de seguimiento reporta.
   @MainActor
-  @Test func conElPunteroSobreLaSiluetaLaVentanaTomaElMouse() {
+  @Test func elAreaDeSeguimientoDiceCuandoElPunteroEstaEncima() {
     let stage = escenarioEnReposo(DrivenClock())
     stage.punteroSeMovio(a: sobreLaMuesca)
     #expect(stage.punteroSobreLaSilueta)
-    #expect(!stage.ventanaIgnoraElMouse)
 
-    // Y al irse vuelve a dejar pasar todo.
-    stage.punteroSeMovio(a: CGPoint(x: 400, y: simulado.frame.maxY - 8))
+    // Y al irse de la ventana entera, aunque el último movimiento no caiga
+    // en la silueta.
+    stage.punteroSalio()
     #expect(!stage.punteroSobreLaSilueta)
-    #expect(stage.ventanaIgnoraElMouse)
   }
 
   /// Mientras se dicta, el clic es del documento en el que estás escribiendo:
-  /// ni con el puntero encima la ventana lo toma (`EstadoDelNotch.tomaElMouse`).
+  /// ni con el puntero encima la forma lo reclama
+  /// (`EstadoDelNotch.tomaElMouse`).
   @MainActor
-  @Test func dictandoLaVentanaNoTomaElMouseNiConElPunteroEncima() {
+  @Test func dictandoLaFormaNoReclamaElMouseNiConElPunteroEncima() {
     let stage = escenarioEnReposo(DrivenClock())
     stage.claim(.dictation, on: simulado)
     stage.recibir(.escuchar)
     stage.punteroSeMovio(a: sobreLaMuesca)
     #expect(stage.estado == .dictando)
-    #expect(stage.ventanaIgnoraElMouse)
+    #expect(!stage.laFormaRecibeElMouse)
+    #expect(stage.dejaPasarElMouse(en: sobreLaMuesca))
+  }
+
+  /// Un `hitTest` que devuelve nil no se queda con el evento: AppKit sigue
+  /// buscando hacia atrás en la jerarquía y se lo entrega a la vista de
+  /// abajo. Es la propiedad en la que se apoya el hover nuevo, y por eso se
+  /// afirma con una vista de prueba detrás en vez de darla por sabida.
+  ///
+  /// Sin ventana, sin GUI: dos vistas hermanas en un contenedor.
+  @MainActor
+  @Test func elHitTestNilDejaPasarElClicALaVistaDeAbajo() {
+    let contenedor = NSView(frame: CGRect(x: 0, y: 0, width: 200, height: 60))
+    let deAbajo = NSView(frame: contenedor.bounds)
+    let hud = HUDHostingView(rootView: Color.clear)
+    hud.frame = contenedor.bounds
+    contenedor.addSubview(deAbajo)
+    contenedor.addSubview(hud)
+    // La silueta: 160 de ancho pegados arriba, como en reposo.
+    hud.zonaInteractiva = CGRect(x: 20, y: 36, width: 160, height: 24)
+
+    let dentro = CGPoint(x: 100, y: 48)
+    let fuera = CGPoint(x: 100, y: 10)
+    #expect(hud.hitTest(dentro) != nil)
+    #expect(hud.hitTest(fuera) == nil)
+    #expect(contenedor.hitTest(dentro) !== deAbajo, "la silueta se queda con el clic")
+    #expect(contenedor.hitTest(fuera) === deAbajo, "fuera de la silueta pasa de largo")
+
+    // Y sin zona no reclama nada en ninguna parte.
+    hud.zonaInteractiva = nil
+    #expect(contenedor.hitTest(dentro) === deAbajo)
   }
 
   // MARK: El hover
 
   /// Posarse sobre la muesca revela contexto, y el único que lo decide es el
-  /// monitor del puntero.
+  /// área de seguimiento de la vista.
   ///
-  /// Sale del reporte del 2026-09-22: «hover no hace nada». Eran dos cosas a
-  /// la vez, y las dos se afirman acá. La primera, que la revelación exigía
-  /// `contexto`, que sólo se escribe al terminar el primer dictado: en una app
-  /// recién instalada la condición era falsa siempre. La segunda, que quien
-  /// avisaba de la entrada era el `onHover` de la vista, que no puede verla —
-  /// la ventana está ignorando el mouse justo cuando el puntero llega— y que
-  /// además mandaba una salida falsa al crecer la ventana.
+  /// Sale del reporte del 2026-09-22, que fue el tercero: «el hover sigue
+  /// muerto». Los dos intentos anteriores fallaron por la misma raíz —la
+  /// ventana ponía `ignoresMouseEvents = true` en reposo, y una ventana que
+  /// ignora el mouse no recibe `mouseEntered`; el monitor global que la
+  /// suplía no ve los eventos que caen sobre nuestra propia ventana, así que
+  /// el aviso llegaba por un sondeo, tarde, o no llegaba—. Ahora la ventana
+  /// nunca ignora el mouse, el `hitTest` nil es lo que deja pasar el clic
+  /// fuera de la silueta, y un `NSTrackingArea` `.activeAlways` ve la entrada
+  /// en el instante en que ocurre.
   ///
-  /// Nada de esto toca la GUI: el puntero es simulado y el reloj es dirigido.
+  /// Nada de esto toca la GUI: el punto se inyecta y el reloj es dirigido.
   @MainActor
   @Test func elPunteroSobreLaMuescaAbreElContextoYAlIrseLoCierra() async {
     let reloj = DrivenClock()
-    let puntero = CursorSimulado()
-    let stage = escenarioEnReposo(reloj, puntero: puntero)
+    let stage = escenarioEnReposo(reloj)
     let afuera = CGPoint(x: 400, y: simulado.frame.maxY - 8)
 
     // Recién instalada: nadie dictó todavía, así que no hay nada que contar.
@@ -292,17 +317,15 @@ struct VentanaDeLaMuescaTests {
     #expect(stage.dictationContent.contexto == nil)
     #expect(stage.dictationContent.contextoVisible == nil)
 
-    puntero.punto = afuera
     stage.punteroSeMovio(a: afuera)
     #expect(!stage.punteroSobreLaSilueta)
     #expect(!stage.dictationContent.punteroEncima)
 
-    // Encima: el mouse se toma en el acto —si no, el primer clic se pierde—
-    // y el contexto todavía no, que es para lo que existe el retardo.
-    puntero.punto = sobreLaMuesca
+    // Encima: la silueta ya reclama el clic —nunca dejó de hacerlo— y el
+    // contexto todavía no, que es para lo que existe el retardo.
     stage.punteroSeMovio(a: sobreLaMuesca)
     #expect(stage.punteroSobreLaSilueta)
-    #expect(!stage.ventanaIgnoraElMouse)
+    #expect(!stage.dejaPasarElMouse(en: sobreLaMuesca))
     #expect(!stage.dictationContent.punteroEncima)
 
     await reloj.waitForSleeper()
@@ -318,7 +341,6 @@ struct VentanaDeLaMuescaTests {
     #expect(!stage.estado.captura, "un hover jamás abre el micrófono")
 
     // Y al irse se cierra tras la misma gracia, sin que la vista avise nada.
-    puntero.punto = afuera
     stage.punteroSeMovio(a: afuera)
     #expect(stage.dictationContent.punteroEncima, "todavía no: la gracia manda")
     await reloj.waitForSleeper()
@@ -327,7 +349,7 @@ struct VentanaDeLaMuescaTests {
       await Task.yield()
     }
     #expect(stage.dictationContent.contextoVisible == nil)
-    #expect(stage.ventanaIgnoraElMouse)
+    #expect(stage.dejaPasarElMouse(en: afuera))
   }
 
   /// Lo último que se dictó manda sobre el nombre de fábrica: el hover está

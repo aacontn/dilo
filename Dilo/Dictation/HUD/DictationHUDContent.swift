@@ -89,7 +89,20 @@ final class DictationHUDContent {
     return Self.contextoDeFabrica
   }
 
-  /// Un clic en la silueta: abre el menú de acciones en reposo, copia en
-  /// resultado. Lo cablea `HUDStage`.
+  /// Si hay un dictado anterior que copiar.
+  ///
+  /// Es lo que convierte el panel del hover en una acción y no sólo en una
+  /// etiqueta: desde que el estado Resultado salió del camino feliz
+  /// (2026-09-22), «copiar el último dictado» vive en el menú de la barra y
+  /// acá. Se deduce de `contexto`, que es justamente lo que el controlador
+  /// escribe al terminar un dictado; una segunda bandera sería un segundo
+  /// lugar del que desviarse.
+  var puedeCopiar: Bool {
+    guard let contexto else { return false }
+    return !contexto.isEmpty
+  }
+
+  /// Un clic en la silueta: con el panel del hover abierto y algo que copiar,
+  /// copia; si no, abre el menú de acciones. Lo cablea `HUDStage`.
   @ObservationIgnored var alHacerClic: (() -> Void)?
 }

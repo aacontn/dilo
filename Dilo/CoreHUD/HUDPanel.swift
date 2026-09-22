@@ -47,10 +47,17 @@ final class HUDPanel: NSPanel {
     hasShadow = false
     isMovable = false
     isMovableByWindowBackground = false
-    // Display-only por defecto: los clics pasan de largo y nunca toma el
-    // foco. `HUDStage` se lo saca mientras el puntero está sobre la silueta, y
-    // Drop Transcription mientras la forma es un destino de arrastre.
-    ignoresMouseEvents = true
+    // **La ventana nunca ignora el mouse.** Quién recibe un clic lo decide
+    // `HUDHostingView.hitTest`: nil fuera de la silueta, y un punto sin vista
+    // que lo reclame sobre un panel transparente deja el clic en la app de
+    // abajo. Conmutar `ignoresMouseEvents` era el enfoque anterior y es lo
+    // que tenía el hover muerto: una ventana que ignora el mouse tampoco
+    // recibe `mouseEntered`, así que nadie se enteraba de que el puntero
+    // había llegado hasta que un sondeo lo alcanzara — tarde, o nunca.
+    ignoresMouseEvents = false
+    // Y los movimientos del puntero llegan aunque la ventana no sea key: es
+    // lo que alimenta el `NSTrackingArea` de la vista.
+    acceptsMouseMovedEvents = true
     hidesOnDeactivate = false
     isReleasedWhenClosed = false
     collectionBehavior = Self.overlayCollectionBehavior
@@ -82,14 +89,6 @@ final class HUDPanel: NSPanel {
     orderFrontRegardless()
   }
 
-  /// Whether the shape currently receives the mouse. Kept as a named property
-  /// rather than callers setting `ignoresMouseEvents` directly, so the one
-  /// place this is allowed to change stays greppable.
-  var acceptsMouse: Bool {
-    get { !ignoresMouseEvents }
-    set { ignoresMouseEvents = !newValue }
-  }
-
   /// La franja de la ventana que recibe el mouse, en coordenadas de la vista
   /// de contenido, o nil para toda la ventana.
   ///
@@ -98,11 +97,10 @@ final class HUDPanel: NSPanel {
   /// clics en los menús de la app de al lado; con esto sólo la silueta lo toma
   /// (`HUDNotchGeometry.zonaInteractiva`).
   ///
-  /// **No alcanza solo.** Un `hitTest` que devuelve nil pierde el clic en vez
-  /// de pasarlo a la ventana de abajo, así que lo que de verdad libera la
-  /// pantalla es `ignoresMouseEvents` fuera de la silueta —lo conmuta
-  /// `HUDStage` con `MonitorDelPuntero`— y que la ventana en reposo mida lo
-  /// que mide la muesca (`HUDNotchGeometry.EncuadreDeLaVentana`).
+  /// **Es lo único que acota el mouse, y basta.** Nil significa «esta forma
+  /// no recibe nada», y entonces todo el rectángulo de la ventana deja pasar.
+  /// La otra mitad de que no haya pantalla muerta es que la ventana en reposo
+  /// mida lo que mide la muesca (`HUDNotchGeometry.EncuadreDeLaVentana`).
   var zonaInteractiva: CGRect? {
     get { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva }
     set { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva = newValue }
@@ -120,10 +118,10 @@ final class HUDPanel: NSPanel {
   /// NotchDrop's window can become key and its drops land instantly; a window
   /// that can never become key is a slower path for the dragging source. The
   /// panel is still `.nonactivatingPanel`, so this never activates Dilo or
-  /// takes the frontmost app's focus — and during dictation, when the focused
-  /// control is the whole point, `acceptsMouse` is false and this is false
-  /// with it.
-  override var canBecomeKey: Bool { tomaElTeclado && acceptsMouse }
+  /// takes the frontmost app's focus — y mientras se dicta, cuando el control
+  /// con foco es todo el punto, no hay `zonaInteractiva` y esto es falso con
+  /// ella.
+  override var canBecomeKey: Bool { tomaElTeclado && zonaInteractiva != nil }
 
   /// The frame is computed from the screen, not proposed by AppKit; without
   /// this the window gets pushed below the menu bar strip it exists to cover.

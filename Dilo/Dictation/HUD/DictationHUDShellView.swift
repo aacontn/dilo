@@ -225,12 +225,11 @@ struct DictationHUDShellView: View {
     // él (`EstadoDelNotch.tomaElMouse`); la ventana anfitriona es mucho más
     // ancha que la forma y el resto tiene que dejar pasar el clic.
     //
-    // **Sin `onHover`.** Que el puntero esté encima lo decide el monitor del
-    // puntero, no esta vista: la ventana ignora el mouse justo mientras el
-    // puntero entra, así que el `mouseEntered` de esa entrada no llega nunca,
-    // y el `mouseExited` que AppKit manda al rearmar el área de seguimiento
-    // cuando la ventana crece cerraba el panel recién abierto
-    // (`MonitorDelPuntero`, `HUDStage.punteroSeMovio`).
+    // **Sin `onHover`.** Que el puntero esté encima lo decide el área de
+    // seguimiento de `HUDHostingView`, no esta vista: el `onHover` de SwiftUI
+    // mandaba una salida falsa cada vez que la ventana cambiaba de tamaño,
+    // que es justo lo que el hover hace al abrirse
+    // (`HUDStage.punteroSeMovio`).
     .contentShape(Rectangle())
     .onTapGesture {
       guard content.estado.tomaElMouse else { return }
