@@ -64,6 +64,17 @@ enum RenderDeLaMuesca {
     try escribir(lienzo(claro: false) { dictando }, en: destino, como: "dictando")
     try escribir(lienzo(claro: false) { resultado }, en: destino, como: "resultado")
     try escribir(comparacion, en: destino, como: "comparacion")
+    for (i, avance) in [0.0, 1.0 / 3, 2.0 / 3, 1.0].enumerated() {
+      try escribir(
+        lienzo(claro: false) { apertura(avance) },
+        en: destino,
+        como: "apertura-\(i + 1)"
+      )
+      print(
+        "apertura-\(i + 1): \(Int((avance * 100).rounded())) % de la forma "
+          + "a los \(Int((cuandoLlega(a: avance) * 460).rounded())) ms de 460"
+      )
+    }
     // La curva cóncava se juzga de cerca: a tamaño real son nueve puntos.
     try escribir(
       ZStack(alignment: .top) {
@@ -204,11 +215,15 @@ enum RenderDeLaMuesca {
         Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
         onda.frame(height: metricas.waveBandHeight)
         // Una línea que se recorta por la izquierda: lo último dicho es lo
-        // que se está revisando.
-        Text("…el martes a las diez en la oficina")
-          .font(.system(size: 13, weight: .medium))
-          .foregroundStyle(.white)
-          .frame(height: metricas.textBandHeight)
+        // que se está revisando. En la cursiva de quince puntos del overlay de
+        // Tauri, con su cursor mango al final.
+        HStack(alignment: .firstTextBaseline, spacing: 1) {
+          Text("…el martes a las diez en la oficina")
+            .font(.system(size: 15, weight: .regular).italic())
+            .foregroundStyle(.white.opacity(0.9))
+          cursor.alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+        }
+        .frame(height: metricas.textBandHeight)
         Text("Correo")
           .font(.system(size: 10, weight: .semibold, design: .rounded))
           .foregroundStyle(mango)
@@ -253,24 +268,120 @@ enum RenderDeLaMuesca {
     return enLaVentana(tamaño: tamaño, radio: metricas.bottomCornerRadius) {
       VStack(spacing: 0) {
         Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
-        Text("Listo")
-          .font(.system(size: 13, weight: .medium))
-          .foregroundStyle(.white)
-          .frame(height: metricas.textBandHeight)
+        HStack(spacing: 8) {
+          Text("Listo")
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(.white)
+          Text("Copiar")
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .foregroundStyle(mango)
+        }
+        .frame(height: metricas.textBandHeight)
       }
     }
   }
 
-  /// Una onda de mentira: barras quietas con una envolvente de sílabas. Acá
-  /// sólo tiene que ocupar su banda para que la silueta se vea completa.
+  /// Rojo `#FF5C5C`, la punta de la onda de brasas. Repetido como el mango y
+  /// por lo mismo: traer `DiloBrand` arrastraría media app.
+  static let rojo = Color(red: 1.0, green: 0.361, blue: 0.361)
+
+  /// Nueve niveles congelados, con forma de sílaba. No hay micrófono acá.
+  static let niveles: [Double] = [0.18, 0.46, 0.72, 0.95, 0.61, 0.33, 0.78, 0.52, 0.24]
+
+  /// La onda de brasas de `HUDOndaDeBrasas`, con sus medidas y su degradado.
+  ///
+  /// Redibujada y no importada: la vista de verdad depende de
+  /// `DictationHUDContent`, que arrastra el dictado entero. Lo que estos PNG
+  /// aprueban es la **forma** —que las nueve barras quepan en su banda y que
+  /// el color se lea sobre el negro—, y para eso las medidas tienen que ser
+  /// las mismas: 5 de ancho, 4 de aire, 3 de radio, entre 7 y 16 de alto.
   static var onda: some View {
-    HStack(alignment: .center, spacing: 3) {
-      ForEach(0..<36, id: \.self) { i in
-        let t = Double(i) / 35
-        let alto = 4 + 16 * abs(sin(t * 9)) * (0.35 + 0.65 * sin(t * .pi))
-        Capsule().fill(.white.opacity(0.85)).frame(width: 3, height: alto)
+    HStack(alignment: .center, spacing: 4) {
+      ForEach(Array(niveles.enumerated()), id: \.offset) { _, v in
+        RoundedRectangle(cornerRadius: 3, style: .continuous)
+          .fill(
+            LinearGradient(colors: [mango, rojo], startPoint: .bottom, endPoint: .top)
+          )
+          .frame(width: 5, height: min(max(7, 6 + pow(v, 0.7) * 11), 16))
+          .shadow(color: rojo.opacity(0.5), radius: 4)
       }
     }
+    .frame(height: 20)
+  }
+
+  /// El cursor mango del final del parcial (`HUDCursorDeDictado`), encendido.
+  static var cursor: some View {
+    RoundedRectangle(cornerRadius: 1, style: .continuous)
+      .fill(mango)
+      .frame(width: 2, height: 15)
+  }
+
+  // MARK: La apertura
+
+  /// Los cuatro fotogramas de la revelación: 0 %, 33 %, 66 % y 100 % de la
+  /// **apertura**.
+  ///
+  /// Del avance y no del tiempo. La curva de Tauri está tan cargada al
+  /// principio que a un tercio del tiempo la forma ya está casi abierta, y los
+  /// cuatro cortes salían tres veces el mismo PNG. Repartidos por avance se ve
+  /// la forma a media altura, que es lo que hay que juzgar; cuánto tarda en
+  /// llegar a cada uno lo dice la corrida del script, en milisegundos.
+  ///
+  /// Existe porque la animación es lo único de la muesca que un PNG suelto no
+  /// puede mostrar, y una sesión que no puede tocar la GUI no la va a ver
+  /// correr. Cuatro cortes alcanzan para juzgar lo que importa: que crezca
+  /// hacia abajo desde la silueta, que la cabecera no se mueva del borde y que
+  /// lo de adentro entre después de que la forma tenga dónde ponerlo.
+  ///
+  /// La curva es la del estilo de fábrica —«Baja», que en el escenario
+  /// permanente es la de Tauri—, evaluada con la misma función que la app
+  /// compila (`HUDRevealStyle.progresoDeTauri`), no con una copia.
+  static func apertura(_ p: Double) -> some View {
+    let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
+    let abierta = tamañoAbierto
+    let tamaño = CGSize(
+      width: reposo.width + (abierta.width - reposo.width) * p,
+      height: reposo.height + (abierta.height - reposo.height) * p
+    )
+    let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
+      + (metricas.bottomCornerRadius - HUDNotchGeometry.radioEnReposo(for: pantalla)) * p
+    return enLaVentana(tamaño: tamaño, radio: radio) {
+      // El `scard-pop`: lo de adentro entra desde 0,92 y opacidad cero,
+      // anclado arriba, como en la app (`DictationHUDShellView.popDelContenido`).
+      VStack(spacing: 0) {
+        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
+        onda.frame(height: metricas.waveBandHeight)
+        HStack(alignment: .firstTextBaseline, spacing: 1) {
+          Text("…el martes a las diez")
+            .font(.system(size: 15, weight: .regular).italic())
+            .foregroundStyle(.white.opacity(0.9))
+          cursor.alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 }
+        }
+        .frame(height: metricas.textBandHeight)
+        Text("Correo")
+          .font(.system(size: 10, weight: .semibold, design: .rounded))
+          .foregroundStyle(mango)
+          .frame(height: metricas.shapingBandHeight)
+      }
+      .frame(height: tamaño.height, alignment: .top)
+      .clipped()
+      .scaleEffect(0.92 + 0.08 * p, anchor: .top)
+      .opacity(p)
+    }
+  }
+
+  /// En qué fracción del tiempo la curva de Tauri llega a este avance. Es su
+  /// inversa, y se despeja igual que ella: por bisección.
+  static func cuandoLlega(a avance: Double) -> Double {
+    guard avance > 0 else { return 0 }
+    guard avance < 1 else { return 1 }
+    var bajo = 0.0
+    var alto = 1.0
+    for _ in 0..<40 {
+      let medio = (bajo + alto) / 2
+      if HUDRevealStyle.progresoDeTauri(medio) < avance { bajo = medio } else { alto = medio }
+    }
+    return (bajo + alto) / 2
   }
 
   // MARK: El lienzo

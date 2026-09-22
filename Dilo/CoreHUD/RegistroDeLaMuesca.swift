@@ -63,9 +63,15 @@ enum RegistroDeLaMuesca {
       pantalla: pantalla,
       notchReal: notchReal
     )
+    // `notice` y no `info`: los `info` no se persisten salvo que alguien haya
+    // encendido el nivel a mano, así que `log show --last 5m` volvía vacío y
+    // el registro no servía para lo único que existe —diagnosticar la forma
+    // sin mirar la pantalla de nadie—. El gasto lo acota `activo`: cuatro
+    // líneas por dictado, y en Release sólo con `DILO_LOG_MUESCA=1`.
+    //
     // Público entero: es lo que hace que `log show` lo muestre en vez de
     // `<private>`, y no hay nada acá que no se pueda leer.
-    log.info("\(linea, privacy: .public)")
+    log.notice("\(linea, privacy: .public)")
   }
 
   /// `488x190`, en puntos enteros. La `x` es una equis y no un `×`: un

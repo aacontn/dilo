@@ -472,7 +472,7 @@ final class AppSettings {
     muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
-    waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .siriWave
+    waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas
     revealStyle = Self.stored(in: defaults, key: Keys.revealStyle) ?? .slide
     longDraftStyle = Self.stored(in: defaults, key: Keys.longDraftStyle) ?? .growDown
     glowPalette = Self.stored(in: defaults, key: Keys.glowPalette) ?? .spectrum

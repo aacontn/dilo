@@ -276,7 +276,23 @@ struct DictationHUDShellView: View {
       )
     } else {
       islaConEtiquetas
+        // El `scard-pop` del overlay de Tauri: lo de adentro entra desde 0,92
+        // y opacidad cero mientras la forma crece, y se va apagándose y
+        // encogiéndose a 0,96. Va en el contenido y no en la forma porque la
+        // forma es la muesca y la muesca no se apaga nunca; lo que aparece y
+        // desaparece es lo que trae adentro.
+        .scaleEffect(content.isRevealed ? 1 : 0.92, anchor: .top)
+        .opacity(content.isRevealed ? 1 : 0)
+        .animation(popDelContenido, value: content.isRevealed)
     }
+  }
+
+  /// La curva del pop: la de Tauri al abrir, su salida más corta al cerrar.
+  private var popDelContenido: Animation {
+    if reduceMotion { return .easeOut(duration: 0.12) }
+    return content.isRevealed
+      ? HUDRevealStyle.aperturaDeTauri
+      : .easeOut(duration: 0.24)
   }
 
   /// El nombre del modo que la muesca dice en reposo, o nil —lo de fábrica—.
@@ -387,7 +403,9 @@ struct DictationHUDShellView: View {
         .frame(height: metrics.glowDraftStageHeight)
     } else {
       Group {
-        if showsLeadingDraft {
+        if let resultado = resultadoVisible {
+          lineaDeResultado(resultado)
+        } else if showsLeadingDraft {
           HStack(alignment: .top, spacing: 10 * metrics.scale) {
             HUDCompactIndicatorView(content: content, scale: metrics.scale)
               .padding(.top, 3 * metrics.scale)
@@ -395,17 +413,74 @@ struct DictationHUDShellView: View {
               .frame(maxWidth: .infinity, alignment: .leading)
           }
         } else {
-          draftText
+          conCursor { draftText }
         }
       }
-      .font(.system(size: 13 * metrics.scale, weight: .medium))
-      .foregroundStyle(.white)
+      // La tipografía del transcript de Tauri: quince puntos en cursiva. La
+      // cursiva no es adorno — separa lo que alguien **acaba de decir** de lo
+      // que la forma dice por su cuenta («Listo», «Procesando…»), que sale
+      // recto. Blanco al 90 %, como `--color-text` sobre el vidrio.
+      .font(.system(size: 15 * metrics.scale, weight: .regular).italic())
+      .foregroundStyle(.white.opacity(0.9))
       // The tag sits in the inset rather than in the flow, and the inset grows
       // on both sides, so centered drafts stay centered and nothing overlaps.
       .padding(.horizontal, tagInset * metrics.scale)
       .padding(.top, 4 * metrics.scale)
       .padding(.bottom, 4 * metrics.scale)
-      .frame(minHeight: metrics.textBandHeight)
+      // En la muesca el parcial es **siempre** una línea (`longDraftStyle` cae
+      // a `.tailOnly` más abajo), así que la banda mide exactamente lo que la
+      // geometría declara: con techo, los 400×88 dejan de depender de cuánto
+      // ocupe una cursiva de quince puntos en la versión de macOS de turno.
+      // Contra una carcasa real sigue siendo sólo un mínimo, porque ahí la
+      // banda sí tiene de dónde crecer (`HUDLongDraftStyle.growDown`).
+      .frame(
+        minHeight: metrics.textBandHeight,
+        maxHeight: sinCarcasa ? metrics.textBandHeight : nil
+      )
+    }
+  }
+
+  /// El resultado que la forma está mostrando, o nil mientras hay sesión.
+  private var resultadoVisible: ResultadoDelNotch? {
+    guard case let .resultado(resultado) = content.estado else { return nil }
+    return resultado
+  }
+
+  /// El resultado: qué pasó, y —cuando hay algo que copiar— que un clic lo
+  /// copia. Una sola línea recta, en la misma banda: el resultado dura dos
+  /// segundos y medio y no vale una franja más de alto.
+  private func lineaDeResultado(_ resultado: ResultadoDelNotch) -> some View {
+    HStack(spacing: 8 * metrics.scale) {
+      Text(content.text.isEmpty ? resultado.texto : content.text)
+        .font(.system(size: 13 * metrics.scale, weight: .medium))
+        .foregroundStyle(.white)
+        .lineLimit(1)
+        .truncationMode(.tail)
+      if resultado.ofreceCopiar {
+        Text("Copiar")
+          .font(.system(size: 11 * metrics.scale, weight: .semibold, design: .rounded))
+          .foregroundStyle(DiloBrand.mango)
+          .lineLimit(1)
+      }
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  /// El texto parcial con el cursor mango pegado al final, mientras el
+  /// micrófono está abierto. Fuera de ese estado no hay cursor: nada está
+  /// creciendo.
+  @ViewBuilder
+  private func conCursor(@ViewBuilder _ texto: () -> some View) -> some View {
+    if content.estado == .dictando {
+      HStack(alignment: .firstTextBaseline, spacing: 1 * metrics.scale) {
+        texto()
+          .layoutPriority(1)
+        HUDCursorDeDictado(scale: metrics.scale, reduceMotion: reduceMotion)
+          .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 3 * metrics.scale }
+      }
+      .frame(maxWidth: .infinity)
+    } else {
+      texto()
     }
   }
 
@@ -527,7 +602,7 @@ struct DictationHUDShellView: View {
   private var liveDraft: some View {
     let committed = AttributedString(content.text)
     var guess = AttributedString(content.volatileText)
-    guess.font = .system(size: 13 * metrics.scale, weight: .regular)
+    guess.font = .system(size: 15 * metrics.scale, weight: .regular).italic()
     guess.foregroundColor = Color.white.opacity(0.55)
     return Text(committed + guess)
       .transaction { $0.animation = nil }

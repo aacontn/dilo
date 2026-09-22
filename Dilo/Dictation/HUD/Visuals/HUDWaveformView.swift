@@ -7,6 +7,8 @@ import SwiftUI
 struct HUDWaveformView: View {
   static let barCount = 56
 
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
   let settings: DictationSessionSettings
   let content: DictationHUDContent
 
@@ -16,11 +18,15 @@ struct HUDWaveformView: View {
     settings.waveformStyle == .chartLine || settings.waveformStyle == .siriWave
   }
 
+  /// Brasas mide lo suyo —nueve barras centradas— y el aire vertical lo lleva
+  /// adentro, así que el relleno de la banda no le toca.
+  private var traeSuPropioTamaño: Bool { settings.waveformStyle == .brasas }
+
   var body: some View {
     styledWave
       .animation(.linear(duration: 0.05), value: content.levelHistory)
-      .padding(.horizontal, runsEdgeToEdge ? 0 : 28)
-      .padding(.vertical, 6)
+      .padding(.horizontal, traeSuPropioTamaño || runsEdgeToEdge ? 0 : 28)
+      .padding(.vertical, traeSuPropioTamaño ? 0 : 6)
       .allowsHitTesting(false)
       .accessibilityHidden(true)
   }
@@ -52,6 +58,8 @@ struct HUDWaveformView: View {
           .fill(silver)
       case .siriWave:
         HUDSiriWaveView(content: content)
+      case .brasas:
+        HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion)
       }
     }
   }

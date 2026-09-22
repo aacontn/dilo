@@ -1665,7 +1665,10 @@ struct DirectDictationControllerTests {
     controller.handle(.shapingCycleLeft)
     #expect(recorder.shapingChoiceLabels.last == "\(ultimo.nombre)")
     controller.handle(.shapingCycleRight)
-    #expect(recorder.shapingChoiceLabels.last == String(localized: "Sin modo"))
+    // Nil, no «Sin modo»: sin modo no hay nada que nombrar y el chip no se
+    // dibuja. El texto de relleno decía en la muesca abierta que no está
+    // pasando nada, ocupando la franja del nombre del modo.
+    #expect(recorder.shapingChoiceLabels.last == .some(nil))
     controller.toggleFromMenu()
     await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
 

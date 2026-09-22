@@ -18,7 +18,9 @@ struct AppSettingsTests {
     #expect(settings.dictationSoundsEnabled)
     #expect(settings.dictationSoundVolume == 0.5)
     #expect(settings.voiceVisual == .waveform)
-    #expect(settings.waveformStyle == .siriWave)
+    // Brasas desde el 2026-09-21: es la onda que Dilo ya tenía en el overlay
+    // de Tauri, y la que Alfonso reconoce. Siri Wave sigue en el picker.
+    #expect(settings.waveformStyle == .brasas)
     #expect(settings.revealStyle == .slide)
     #expect(settings.longDraftStyle == .growDown)
     // Existing users must not be resized by an upgrade.
@@ -346,7 +348,7 @@ struct AppSettingsTests {
 
     #expect(snapshot.sounds.set == .marimba)
     #expect(snapshot.voiceVisual == .waveform)
-    #expect(snapshot.waveformStyle == .siriWave)
+    #expect(snapshot.waveformStyle == .brasas)
     #expect(snapshot.revealStyle == .slide)
     #expect(snapshot.longDraftStyle == .growDown)
     #expect(snapshot.glowPalette == .spectrum)

@@ -171,6 +171,98 @@ de NotchDrop, la atribución entra antes que el código.
   en 9 pt gris, apagado de fábrica (`hudModoEnReposo`). Nunca junto con el
   punto ni con lo que revela el hover: uno solo, o ninguno.
 
+## La fusión con el overlay de Tauri (2026-09-21, madrugada)
+
+Con la muesca ya aprobada en reposo, Alfonso miró la build instalada y dijo
+tres cosas:
+
+> «¿antes teníamos sonido cuando se activaba?» · «el que diga *sin modo* me da
+> igual: fuera» · «no se ve bien; revisa la animación que teníamos antes;
+> quizás va como la fusión de ambas ideas.»
+
+«La animación que teníamos antes» es la del **overlay de Dilo-Tauri**, el repo
+congelado en 0.3.2 (`src/overlay/RecordingOverlay.{tsx,css}`). La fusión es
+entonces: **el reposo se queda como está** —muesca de 160×24, curvas cóncavas,
+punto mango— y lo que se abre adentro vuelve a ser el overlay, traducido a
+SwiftUI.
+
+**Qué se trajo, con sus números:**
+
+- **La onda de brasas** (`HUDOndaDeBrasas`, `.swave`): nueve barras de 5 pt con
+  4 de aire, radio 3, entre 7 y 16 de alto, degradado mango→rojo de abajo
+  arriba y un halo tenue. La altura la manda el nivel con la fórmula del
+  overlay, `max(7, min(16, 6 + v^0,7 · 11))`, y encima corre el vaivén de
+  `wsway` —`scaleY` entre 0,55 y 1,7, desfasado por barra— para que en silencio
+  la onda siga viva. Es el estilo de onda **de fábrica** desde hoy; los nueve
+  anteriores siguen en el picker.
+- **La cursiva del transcript** (`.stext-cap`): quince puntos, blanco al 90 %.
+  La cursiva separa lo que alguien acaba de decir de lo que la forma dice por
+  su cuenta («Listo», «Procesando…»), que sale recto.
+- **El cursor mango** (`HUDCursorDeDictado`, `.scaret`): dos puntos de ancho,
+  parpadeo de 1,05 s en `steps(1)`, sólo mientras el micrófono está abierto.
+  Dice lo que ninguna onda dice: que lo escrito sigue creciendo.
+- **Las curvas** (`.scard-pop`, la transición de ancho y `.leaving`):
+  `cubic-bezier(0,22 1 0,36 1)` en 460 ms para abrir y 300 ms para cerrar, en
+  `HUDRevealStyle.aperturaDeTauri`. Y **el estilo elegido vuelve a mandar**: el
+  resorte único de 0,32 s dejaba «Baja» y «Se infla» abriendo igual, o sea el
+  ajuste sin efecto. Lo que el escenario sí impone es que ningún estilo mueve
+  la muesca de lugar ni la apaga — las curvas se aplican al tamaño.
+- **El pop del contenido**: lo de adentro entra desde 0,92 y opacidad cero
+  mientras la forma crece. Va en el contenido y no en la forma, porque la
+  forma es la muesca y la muesca no se apaga nunca.
+
+**Qué no cabía:**
+
+- **El vidrio.** El overlay flotaba sobre el escritorio y se vendía con tinte
+  translúcido, hairline y highlight superior. La muesca **es** el borde negro
+  de la pantalla: una tarjeta de vidrio adentro se lee como un segundo objeto
+  pegado, que es el mismo error que la corona mango que ya se sacó.
+- **El botón de cancelar y el cronómetro.** Mientras se dicta la forma no toma
+  el mouse (contrato del notch: el clic es del documento en el que estás
+  escribiendo), así que un botón ahí es un botón que no se puede apretar. Esc
+  sigue cancelando.
+- **Las cuatro anchuras del overlay** (172 / 184 / 216 / 392) y su morph. Acá
+  hay dos: la muesca en reposo y los 400 de la forma abierta.
+- **El scroll-back del transcript.** En la muesca el borrador es siempre una
+  línea recortada por la izquierda; un panel con historial scrolleable es
+  justo lo que la muesca dejó de ser.
+
+**Y las otras dos cosas del veredicto:**
+
+- **«Sin modo» fuera.** `shapingChoiceLabel` devolvía ese texto cuando no había
+  modo elegido, y la muesca abierta terminaba anunciando que no está pasando
+  nada en la franja donde va el nombre del modo. Ahora devuelve nil y el chip
+  no se dibuja. Soltar el modo con las flechas también lo borra del reposo.
+- **El sonido volvió.** Ver abajo.
+
+## El sonido de empezar y terminar (2026-09-21, madrugada)
+
+No sonaba. Dos causas, las dos arregladas:
+
+1. **El Begin no colgaba de la transición sino del micrófono.** Se disparaba
+   dentro de `showAudioLevel` —el primer búfer de audio, y sólo con el visual
+   de voz montado—, así que el escenario podía pasar de reposo a dictando sin
+   que nadie tocara `HUDSounds`. Ahora los dos sonidos los toca el escenario en
+   la transición del contrato (`HUDStage.sonarPor`): reposo→dictando es Begin y
+   dictando→lo que sea es End, uno de cada por sesión. Es el mismo momento que
+   usaba Dilo-Tauri (`src-tauri/src/actions.rs`: el sonido sale al arrancar la
+   grabación, no al oír).
+2. **Marimba estaba diez decibeles por debajo de todo lo demás.** El generador
+   normalizaba a −14 dBFS mientras Synth va a −4,5 y Click a −0,5; al 50 % de
+   volumen —también de fábrica— el aviso aterrizaba en −20 dBFS. Sonaba y no se
+   notaba, que para un aviso es lo mismo que no sonar. El generador ahora
+   normaliza a −6.
+
+`HUDStage` recibe su reproductor por el inicializador
+(`ReproductorDeSonidos`), así que `SonidosDeLaSesionTests` afirma los dos
+momentos con un doble y sin tocar el audio de nadie.
+
+**Un cabo suelto, anotado y no arreglado:** con «bajar el volumen mientras
+dicto» encendido —apagado de fábrica— el ducking baja el volumen de salida del
+sistema entero, Dilo incluido, y arranca antes que el Begin. `AudioDucker`
+dice en su encabezado que el ducking empieza después del sonido de empezar, y
+hoy no es verdad.
+
 ## Ventana y navegación
 
 Destino de producto: Recientes, Reuniones y Ajustes.

@@ -15,10 +15,15 @@ enum DiloBrand {
   static let mangoColor = NSColor(red: 0xFF / 255, green: 0x9E / 255, blue: 0x1B / 255, alpha: 1)
   /// Menta `#2EE6A8` — la onda de audio; confirma, no manda.
   static let mentaColor = NSColor(red: 0x2E / 255, green: 0xE6 / 255, blue: 0xA8 / 255, alpha: 1)
+  /// Rojo `#FF5C5C` — grabando. Es la punta de la onda de brasas y nada más:
+  /// en Dilo no es un color de error, es el que dice que el micrófono está
+  /// abierto (viene de `--dilo-rojo` del repo Tauri).
+  static let rojoColor = NSColor(red: 0xFF / 255, green: 0x5C / 255, blue: 0x5C / 255, alpha: 1)
 
   static let tinta = Color(nsColor: tintaColor)
   static let mango = Color(nsColor: mangoColor)
   static let menta = Color(nsColor: mentaColor)
+  static let rojo = Color(nsColor: rojoColor)
 }
 
 /// La paleta oscura de la ventana de Ajustes: los tokens de los que dibuja

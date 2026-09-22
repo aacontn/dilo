@@ -253,10 +253,22 @@ siendo cierto:
   «ocultar automáticamente» pidió lo mismo. Se esconde con `alphaValue`, no
   con `orderOut`: la ventana se queda montada y no hay que pelear otra vez por
   el orden al volver.
-- **La forma crece hacia abajo desde la muesca, con un resorte corto.** El
-  anclaje es `.top` y la cabecera de la forma abierta **es** la silueta en
-  reposo, así que el rebote sólo empuja hacia el escritorio y nunca abre una
-  rendija contra el borde. Con Reducir movimiento es un corte de 120 ms.
+- **La forma crece hacia abajo desde la muesca, con la curva del estilo
+  elegido.** El anclaje es `.top` y la cabecera de la forma abierta **es** la
+  silueta en reposo, así que el rebote sólo empuja hacia el escritorio y nunca
+  abre una rendija contra el borde. Cada `HUDRevealStyle` abre con la suya
+  (`apertura`/`cierre`): un resorte único para los cuatro era el ajuste sin
+  efecto. La base de los que no rebotan es la curva del overlay de Dilo-Tauri,
+  `cubic-bezier(0,22 1 0,36 1)` en 460 ms (`aperturaDeTauri`). Con Reducir
+  movimiento es un corte de 120 ms.
+- **Lo que la forma abierta lleva adentro es el overlay de Tauri traducido**:
+  la onda de brasas de nueve barras mango→rojo (`HUDOndaDeBrasas`, el estilo de
+  fábrica), la cursiva de quince puntos del transcript y el cursor mango que
+  parpadea mientras el micrófono está abierto (`HUDCursorDeDictado`). Los
+  números salen de `src/overlay/RecordingOverlay.css` del repo congelado y
+  están anotados ahí donde se usan. Lo que **no** se trajo —el vidrio, el botón
+  de cancelar, el cronómetro, las cuatro anchuras— y por qué está en
+  `docs/design/2026-09-21-experiencia-dilo.md`.
 - **Y crece poco: 400×88 al 100 %** (`HUDMetrics`), no los 540×146 heredados.
   Onda, una línea de texto parcial y el nombre del modo. En la muesca el
   borrador es **siempre una línea recortada por la izquierda**: el ajuste «Si
@@ -277,7 +289,10 @@ siendo cierto:
   estado dentro de una ventana simulada del tamaño real** —el marco punteado
   del PNG— y con la misma cadena de layout de `HUDSurface`; rasterizar la
   silueta suelta con su `frame(width:height:)` daba PNG que no podían fallar
-  nunca, y por eso nadie vio el bloque negro.
+  nunca, y por eso nadie vio el bloque negro. También deja `apertura-1..4.png`:
+  cuatro cortes de la revelación repartidos por avance —no por tiempo, que la
+  curva está tan cargada al principio que salían tres veces el mismo PNG—, que
+  son lo único que deja juzgar la animación sin mirar la pantalla.
 - **La forma no se va de la pantalla: se encoge.** `HUDSurface.tamañoEnReposo`
   es lo que la vuelve un escenario permanente en vez de una notificación. La
   cabecera de la forma abierta **es** la silueta en reposo
@@ -299,6 +314,12 @@ siendo cierto:
   barra de menús. Un hover revela contexto y **nunca** arranca una captura.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
+- **Los sonidos de empezar y terminar son de la transición, no del micrófono.**
+  Los toca el escenario en `HUDStage.sonarPor`: reposo→dictando es Begin,
+  dictando→lo que sea es End, uno de cada por sesión. Colgados del primer búfer
+  de audio —que es de donde colgaban— una sesión podía empezar muda. El
+  reproductor entra por el inicializador (`ReproductorDeSonidos`) para que un
+  test lo afirme sin tocar el audio de nadie.
 - **El silencio y un micrófono muerto tienen que verse distinto.**
 
 ## Idioma, copy y el catálogo

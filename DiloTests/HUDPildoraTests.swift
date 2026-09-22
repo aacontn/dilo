@@ -196,7 +196,7 @@ struct HUDPildoraTests {
     // El estilo por defecto (Chart Line) llena su buffer desde un `onChange`
     // que en un render de una sola pasada nunca corre; los estilos de barras
     // dibujan directo del historial, que es lo que hay que poder mirar acá.
-    for estilo in [HUDWaveformStyle.article, .silver, .siriWave] {
+    for estilo in [HUDWaveformStyle.article, .silver, .siriWave, .brasas] {
       let store = AppSettings.previewStore()
       store.waveformStyle = estilo
       let vista = DictationHUDShellView(

@@ -11,6 +11,9 @@ import Foundation
 /// - Filled: AudioKit/Waveform's min/max region.
 /// - Siri Wave: alfianlosari/SiriWaveView's classic Siri 9 multi-wave (MIT,
 ///   © 2019 Noah Chalifour; carries its own colors and treatment).
+/// - Brasas: la onda del overlay de Dilo-Tauri, traducida a SwiftUI
+///   (`HUDOndaDeBrasas`). Activo propio y el juego de fábrica desde el
+///   2026-09-21: es la onda que Dilo ya tenía, y la que Alfonso reconoce.
 ///
 /// rawValue is the UserDefaults value existing picks are stored under —
 /// renaming a case silently resets that preference.
@@ -24,6 +27,7 @@ enum HUDWaveformStyle: String, CaseIterable {
   case curve = "Curve"
   case filled = "Filled"
   case siriWave = "Siri Wave"
+  case brasas = "Brasas"
 
   /// El nombre visible; el rawValue es la elección guardada y no se toca.
   var title: String {
@@ -37,6 +41,7 @@ enum HUDWaveformStyle: String, CaseIterable {
     case .curve: String(localized: "Curva")
     case .filled: String(localized: "Relleno")
     case .siriWave: String(localized: "Ola")
+    case .brasas: String(localized: "Brasas")
     }
   }
 }

@@ -204,13 +204,17 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     // El escenario permanente crece y se encoge, hacia abajo y desde la
     // muesca: la cabecera de la forma abierta **es** la silueta en reposo y
     // el anclaje es `.top`, así que el rebote sólo puede empujar hacia el
-    // escritorio y nunca despega la forma del borde de la pantalla. Resorte
-    // corto y con algo de rebote —lo que las apps de notch de referencia
-    // llaman «líquido»—; con Reducir movimiento, un corte de 120 ms.
+    // escritorio y nunca despega la forma del borde de la pantalla.
+    //
+    // **El estilo elegido vuelve a mandar.** Un único resorte de 0,32 para
+    // todos era lo que había dejado la revelación sin carácter: «Baja» y «Se
+    // infla» abrían exactamente igual y el ajuste no hacía nada. Lo que el
+    // escenario sí impone es que no hay parqueo —la muesca no se va de la
+    // pantalla, así que ningún estilo puede moverla de lugar ni apagarla— y
+    // por eso las curvas se aplican al **tamaño** y no a la posición.
     if tamañoEnReposo != nil {
-      return reduceMotion
-        ? .easeOut(duration: 0.12)
-        : .spring(duration: 0.32, bounce: 0.22)
+      if reduceMotion { return Self.reducedMotionFade }
+      return isRevealed ? revealStyle.apertura : revealStyle.cierre
     }
     if reduceMotion {
       return Self.reducedMotionFade

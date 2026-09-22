@@ -559,12 +559,19 @@ final class DirectDictationController {
     dependencies.showShapingChoice(shapingChoiceLabel)
   }
 
-  /// The session's current pick by name, or nil when this session cannot
-  /// cycle at all. The bare name on purpose: the shell owns the tag's
-  /// wording, because its width is a layout decision.
+  /// El modo de la sesión por su nombre, o nil cuando no hay ninguno.
+  ///
+  /// Nil y no «Sin modo». Ese texto era relleno: la muesca abierta pasaba a
+  /// decir que no está haciendo nada, ocupando la misma franja que el nombre
+  /// del modo cuando sí lo hay —«el que diga *sin modo* me da igual: fuera»,
+  /// el veredicto del 2026-09-21—. Sin modo no hay nada que nombrar, así que
+  /// el chip no se dibuja (`DictationHUDShellView.chipDeModo`).
+  ///
+  /// El nombre pelado a propósito: la forma decide cómo se escribe, porque su
+  /// ancho es una decisión de layout.
   private var shapingChoiceLabel: String? {
     guard currentSessionSettings?.modos.isEmpty == false else { return nil }
-    return sessionModo?.nombre ?? String(localized: "Sin modo")
+    return sessionModo?.nombre
   }
 
   private func perform(_ effects: [DictationSessionMachine.Effect]) {
