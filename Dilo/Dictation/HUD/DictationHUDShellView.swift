@@ -54,15 +54,22 @@ struct DictationHUDShellView: View {
       visual: settings.voiceVisual,
       reduceMotion: reduceMotion
     )
-    // La píldora siempre lleva texto parcial, así que hereda el piso de los
-    // visuales que se construyen alrededor del texto: más chica que eso, el
-    // parcial deja de ser texto que alguien lee.
+    // Sin carcasa el único contenido que el tamaño elegido escala es el
+    // panel del hover, y ahí hay una línea de texto: más chico que este piso,
+    // deja de ser texto que alguien lee. La muesca dictando no entra en el
+    // trato — se mide de la barra de menús y no se escala
+    // (`HUDNotchGeometry.tamañoDictando`).
     guard sinCarcasa else { return base }
     return HUDMetrics(scale: max(base.scale, HUDMetrics.minimumReadableScale))
   }
 
   private var size: CGSize {
-    HUDNotchGeometry.contentSize(
+    // Sin carcasa la forma abierta **es** la muesca apenas más grande: una
+    // sola línea, sin bandas apiladas (`HUDLineaSobria`). La pila de bandas
+    // se queda para el notch real, donde el contenido tiene que colgar por
+    // debajo del recorte físico.
+    guard !sinCarcasa else { return HUDNotchGeometry.tamañoDictando(for: screen) }
+    return HUDNotchGeometry.contentSize(
       for: screen,
       metrics: metrics,
       // Edge Glow + Draft has no visual band; its hanging stage is 40
@@ -93,7 +100,12 @@ struct DictationHUDShellView: View {
   /// `trabajando`, para que la línea no salte ni cambie de texto justo cuando
   /// el dictado termina.
   private var chipDeModo: HUDChipDeModo.Contenido? {
-    Self.chipDeModo(
+    // La muesca sobria no tiene dónde ponerlo: una fila propia la volvería a
+    // convertir en el panel que dejó de ser, y de prefijo se come las
+    // palabras que se vienen a leer (`HUDLineaSobria`). El modo se dice en
+    // reposo y en el panel del hover.
+    guard !sinCarcasa else { return nil }
+    return Self.chipDeModo(
       estado: content.estado,
       modo: content.shapingName ?? content.shapingChoiceLabel
     )
@@ -192,17 +204,20 @@ struct DictationHUDShellView: View {
   private var tamañoEnReposo: CGSize {
     let base = HUDNotchGeometry.reposoSize(for: screen)
     guard content.contextoVisible != nil else { return base }
-    // El mismo ancho que la forma abierta, y no uno medido del texto: el
-    // panel del hover y el del dictado son el mismo objeto creciendo, y dos
-    // anchos distintos lo delatan. El alto es lo que pide su contenido, con
-    // un techo para que nunca se vuelva una ventana.
+    // El panel del hover es el ancho del contenido elegido en Ajustes, no uno
+    // medido del texto ni el de la muesca dictando: acá el mouse está encima
+    // a propósito —nadie lo abre de paso— y es donde van a vivir las acciones
+    // que no son el dictado. El alto es lo que pide su contenido, con techo
+    // para que nunca se vuelva una ventana.
     return CGSize(
-      width: size.width,
-      height: min(
-        base.height + HUDNotchGeometry.altoDelContextoEnReposo,
-        HUDNotchGeometry.altoMaximoDelHover
-      )
+      width: anchoDelPanelDeHover,
+      height: HUDNotchGeometry.altoDelPanelDeHover(for: screen)
     )
+  }
+
+  /// El ancho del panel que abre el hover, acotado a la ventana.
+  private var anchoDelPanelDeHover: CGFloat {
+    min(metrics.contentWidth, HUDNotchGeometry.windowSize(for: screen).width)
   }
 
   private var dictationSurface: some View {
@@ -285,7 +300,7 @@ struct DictationHUDShellView: View {
         alto: tamañoEnReposo.height
       )
     } else {
-      islaConEtiquetas
+      contenidoAbierto
         // El `scard-pop` del overlay de Tauri: lo de adentro entra desde 0,92
         // y opacidad cero mientras la forma crece, y se va apagándose y
         // encogiéndose a 0,96. Va en el contenido y no en la forma porque la
@@ -294,6 +309,21 @@ struct DictationHUDShellView: View {
         .scaleEffect(content.isRevealed ? 1 : 0.92, anchor: .top)
         .opacity(content.isRevealed ? 1 : 0)
         .animation(popDelContenido, value: content.isRevealed)
+    }
+  }
+
+  /// Lo que lleva la forma abierta: una línea en la muesca sobria, la pila de
+  /// bandas contra una carcasa real.
+  @ViewBuilder
+  private var contenidoAbierto: some View {
+    if sinCarcasa {
+      HUDLineaSobria(
+        content: content,
+        alto: HUDNotchGeometry.tamañoDictando(for: screen).height,
+        reduceMotion: reduceMotion
+      )
+    } else {
+      islaConEtiquetas
     }
   }
 
@@ -695,7 +725,8 @@ struct DictationHUDShellView: View {
 
   @ViewBuilder
   private var particleCloud: some View {
-    if montaVisualesDeVoz, settings.voiceVisual == .glow, settings.glowCenter == .particles {
+    if !sinCarcasa, montaVisualesDeVoz, settings.voiceVisual == .glow,
+      settings.glowCenter == .particles {
       HUDParticleCloudView(
         content: content,
         settings: settings,
@@ -715,7 +746,10 @@ struct DictationHUDShellView: View {
   /// ends; the view disables its shader once the ramp reaches zero.
   @ViewBuilder
   private var edgeGlow: some View {
-    if montaVisualesDeVoz, settings.voiceVisual.usesEdgeGlow {
+    // En la muesca sobria no hay silueta que envolver: la forma mide 26
+    // puntos de alto y el resplandor se leería como un halo cruzando la barra
+    // de menús. El único visual de voz ahí es la onda compacta.
+    if !sinCarcasa, montaVisualesDeVoz, settings.voiceVisual.usesEdgeGlow {
       HUDEdgeGlowView(
         content: content,
         settings: settings,

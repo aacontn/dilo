@@ -24,6 +24,11 @@ struct HUDOndaDeBrasas: View {
   /// adelgazan hasta volver a ser un ecualizador.
   static let barras = 9
 
+  /// Cinco en la muesca sobria: con nueve, cada barra tendría que bajar de
+  /// dos puntos de ancho para caber, y una fila de pelos deja de leerse como
+  /// brasas.
+  static let barrasCompactas = 5
+
   /// El período del vaivén de cada barra, en segundos, y su desfase. Desiguales
   /// a propósito: con todas iguales las nueve suben y bajan juntas y parece un
   /// latido.
@@ -40,9 +45,38 @@ struct HUDOndaDeBrasas: View {
   /// muesca puede ser más alta; la onda se queda con lo suyo y se centra.
   static let altoDeLaBanda: CGFloat = 20
 
+  /// La franja de la onda compacta: cabe dentro de una muesca del alto de la
+  /// barra de menús con aire arriba y abajo.
+  static let altoDeLaBandaCompacta: CGFloat = 13
+
   let content: DictationHUDContent
   var scale: CGFloat = 1
   var reduceMotion = false
+  /// La onda encogida para la muesca sobria: cinco barras finas dentro de una
+  /// franja del alto de la barra de menús.
+  ///
+  /// Desde el 2026-09-22 dictar apenas agranda la muesca —26 puntos de alto,
+  /// no 88—, y las nueve barras de 5 puntos con su banda de 20 no entran ahí
+  /// sin tocar los dos bordes. Lo que la onda tiene que decir en ese tamaño
+  /// es sólo «te estoy oyendo», así que se queda con la mitad de las barras y
+  /// con las proporciones de `.swave` divididas: mismo degradado, mismo
+  /// vaivén, misma fórmula de altura.
+  var compacta = false
+
+  /// Cuántas barras dibuja esta onda.
+  var barras: Int { compacta ? Self.barrasCompactas : Self.barras }
+  private var anchoDeBarra: CGFloat { compacta ? 3 : Self.anchoDeBarra }
+  private var separacion: CGFloat { compacta ? 2 : Self.separacion }
+  private var radio: CGFloat { compacta ? 1.5 : Self.radio }
+  private var altoMinimo: CGFloat { compacta ? 4 : Self.altoMinimo }
+  private var altoMaximo: CGFloat { compacta ? 11 : Self.altoMaximo }
+  private var altoDeLaBanda: CGFloat { compacta ? Self.altoDeLaBandaCompacta : Self.altoDeLaBanda }
+
+  /// Lo que la onda compacta ocupa de ancho, sin escalar. Lo necesita quien
+  /// reparte la línea de la muesca sobria.
+  static var anchoCompacto: CGFloat {
+    CGFloat(barrasCompactas) * 3 + CGFloat(barrasCompactas - 1) * 2
+  }
 
   var body: some View {
     Group {
@@ -55,7 +89,7 @@ struct HUDOndaDeBrasas: View {
         }
       }
     }
-    .frame(height: Self.altoDeLaBanda * scale)
+    .frame(height: altoDeLaBanda * scale)
     .allowsHitTesting(false)
     .accessibilityHidden(true)
   }
@@ -65,8 +99,8 @@ struct HUDOndaDeBrasas: View {
   }
 
   private func fila(vaiven: @escaping (Int) -> CGFloat) -> some View {
-    HStack(alignment: .center, spacing: Self.separacion * scale) {
-      ForEach(0..<Self.barras, id: \.self) { indice in
+    HStack(alignment: .center, spacing: separacion * scale) {
+      ForEach(0..<barras, id: \.self) { indice in
         barra(indice, vaiven: vaiven(indice))
       }
     }
@@ -77,9 +111,9 @@ struct HUDOndaDeBrasas: View {
   }
 
   private func barra(_ indice: Int, vaiven: CGFloat) -> some View {
-    RoundedRectangle(cornerRadius: Self.radio * scale, style: .continuous)
+    RoundedRectangle(cornerRadius: radio * scale, style: .continuous)
       .fill(relleno)
-      .frame(width: Self.anchoDeBarra * scale, height: alto(indice) * scale)
+      .frame(width: anchoDeBarra * scale, height: alto(indice) * scale)
       // El halo de `box-shadow: 0 0 8px` — la mitad en radio de sombra, que es
       // la conversión de siempre entre el blur de CSS y el de Core Graphics.
       .shadow(color: halo, radius: 4 * scale)
@@ -116,7 +150,10 @@ struct HUDOndaDeBrasas: View {
   func alto(_ indice: Int) -> CGFloat {
     let v = Double(nivel(indice))
     let crudo = 6 + pow(max(0, v), 0.7) * 11
-    return min(max(Self.altoMinimo, crudo), Self.altoMaximo)
+    // La fórmula es la de Tauri y no se toca; lo que cambia en la compacta
+    // son los topes, o la onda chica saldría siempre pegada al techo.
+    let escala = compacta ? altoMaximo / Self.altoMaximo : 1
+    return min(max(altoMinimo, crudo * escala), altoMaximo)
   }
 
   /// Las nueve barras son las nueve lecturas más recientes, la más vieja a la
@@ -126,10 +163,10 @@ struct HUDOndaDeBrasas: View {
   /// ya comparte.
   private func nivel(_ indice: Int) -> Float {
     let historial = content.levelHistory
-    guard historial.count >= Self.barras else {
+    guard historial.count >= barras else {
       return historial.indices.contains(indice) ? historial[indice] : 0
     }
-    return historial[historial.count - Self.barras + indice]
+    return historial[historial.count - barras + indice]
   }
 
   /// El vaivén de `@keyframes wsway`: `scaleY` entre 0,55 y 1,7, con

@@ -351,6 +351,12 @@ final class HUDStage {
     guard let pantallaActual else { return .zero }
     let ventana = HUDNotchGeometry.windowSize(for: pantallaActual, encuadre: encuadre)
     guard estado.esCompacto else {
+      // Sin carcasa la forma abierta es la muesca apenas más grande, medida:
+      // una zona del ancho del panel del hover se comería clics de media
+      // barra de menús mientras se dicta.
+      guard HUDNotchGeometry.hasMeasuredNotch(for: pantallaActual) else {
+        return HUDNotchGeometry.tamañoDictando(for: pantallaActual)
+      }
       return CGSize(
         width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
         height: ventana.height - HUDNotchGeometry.holguraDeRevelacion(for: pantallaActual)
@@ -363,10 +369,7 @@ final class HUDStage {
     guard dictationContent.contextoVisible != nil else { return reposo }
     return CGSize(
       width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
-      height: min(
-        reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
-        HUDNotchGeometry.altoMaximoDelHover
-      )
+      height: HUDNotchGeometry.altoDelPanelDeHover(for: pantallaActual)
     )
   }
 

@@ -111,13 +111,7 @@ struct MuescaTests {
     #expect(ventana.midX == simulada.frame.midX)
 
     let reposo = HUDNotchGeometry.reposoSize(for: simulada)
-    let abierta = HUDNotchGeometry.contentSize(
-      for: simulada,
-      metrics: .standard,
-      visualBandHeight: HUDMetrics.standard.waveBandHeight,
-      includesTextBand: true,
-      shapingBandHeight: HUDMetrics.standard.shapingBandHeight
-    )
+    let abierta = HUDNotchGeometry.tamañoDictando(for: simulada)
     #expect(abierta.width > reposo.width)
     #expect(abierta.height > reposo.height)
 
@@ -129,41 +123,80 @@ struct MuescaTests {
     }
   }
 
-  /// Y crece **poco**: onda, una línea de texto parcial y el nombre del modo.
+  /// Y dictando **apenas** crece.
   ///
-  /// Alfonso aprobó la muesca y rechazó lo abierto: 540×146 era un panel de
-  /// media barra de menús colgando de una silueta de 160. Las medidas que
-  /// pidió son ~400×88.
-  @Test func laFormaAbiertaEsChica() {
-    let simulada = pantalla(barra: 24)
+  /// 540×146 fue un panel de media barra de menús; 400×88 seguía siéndolo en
+  /// chico. El veredicto del 2026-09-22: «crece mucho cuando le estoy
+  /// dictando; podría crecer por un 10 % del notch real y avanzar en el texto
+  /// como lo está haciendo actualmente, que sería lo ideal». Los rangos que
+  /// pidió, escritos: el alto de la barra más un décimo, y entre un 10 y un
+  /// 25 % más de ancho que el reposo.
+  @Test(arguments: [24.0, 25.0, 37.0] as [CGFloat])
+  func dictandoLaMuescaApenasCrece(barra: CGFloat) {
+    let simulada = pantalla(barra: barra)
+    let reposo = HUDNotchGeometry.reposoSize(for: simulada)
+    let dictando = HUDNotchGeometry.tamañoDictando(for: simulada)
+
+    #expect(dictando.height > reposo.height, "crece, pero se nota apenas")
+    #expect(dictando.height <= reposo.height * 1.15)
+    #expect(dictando.width >= reposo.width * 1.10)
+    #expect(dictando.width <= reposo.width * 1.25)
+  }
+
+  /// Los números de la pantalla del reclamo, enteros: 184×26 donde la barra
+  /// mide 24, contra los 400×88 que Alfonso rechazó.
+  @Test func laMuescaDictandoMide184Por26() {
+    let dictando = HUDNotchGeometry.tamañoDictando(for: pantalla(barra: 24))
+    #expect(dictando == CGSize(width: 184, height: 26))
+    #expect(dictando.height >= 26 && dictando.height <= 28)
+    #expect(dictando.width >= 180 && dictando.width <= 200)
+  }
+
+  /// Contra una carcasa real no aplica: ahí los primeros puntos del borde son
+  /// el recorte físico, y una línea de texto adentro es una línea que nadie
+  /// puede leer. Esa pantalla sigue colgando sus bandas por debajo.
+  @Test func conCarcasaRealLaFormaAbiertaSigueColgandoBandas() {
     let abierta = HUDNotchGeometry.contentSize(
-      for: simulada,
+      for: conNotch,
       metrics: .standard,
       visualBandHeight: HUDMetrics.standard.waveBandHeight,
       includesTextBand: true,
       shapingBandHeight: HUDMetrics.standard.shapingBandHeight
     )
     #expect(abierta.width == 400)
-    #expect(abierta.height == 88)
-    // Y sigue siendo bastante más que la silueta, o crecer no se notaría.
-    #expect(abierta.width >= HUDNotchGeometry.reposoSize(for: simulada).width * 2)
+    #expect(abierta.height > HUDNotchGeometry.reposoSize(for: conNotch).height * 2)
   }
 
-  /// El panel que abre el hover comparte el ancho con la forma abierta —son
-  /// el mismo objeto creciendo— y tiene techo: revelar contexto no es abrir
-  /// una ventana.
-  @Test func elPanelDelHoverComparteAnchoYTieneTecho() {
+  /// El panel del hover **sí** puede ser más grande que la muesca dictando, y
+  /// tiene techo.
+  ///
+  /// Ahí el mouse está encima a propósito —nadie abre el hover de paso— y es
+  /// donde van a vivir las acciones que no son el dictado: reuniones, el
+  /// último dictado, modos, ajustes. Dictando es al revés: la forma aparece
+  /// sola encima de la barra de menús mientras alguien escribe en otra app.
+  @Test func elPanelDelHoverPuedeSerMasGrandeQueLaMuescaDictando() {
     let simulada = pantalla(barra: 24)
     let reposo = HUDNotchGeometry.reposoSize(for: simulada)
-    let alto = min(
-      reposo.height + HUDNotchGeometry.altoDelContextoEnReposo,
-      HUDNotchGeometry.altoMaximoDelHover
-    )
+    let alto = HUDNotchGeometry.altoDelPanelDeHover(for: simulada)
     #expect(alto > reposo.height)
+    #expect(alto > HUDNotchGeometry.tamañoDictando(for: simulada).height)
     #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
     #expect(HUDNotchGeometry.altoMaximoDelHover <= 110)
-    // El ancho es el de la forma abierta, no uno medido del texto.
+    // El ancho es el del contenido elegido en Ajustes, no uno medido del
+    // texto ni el de la muesca dictando.
     #expect(HUDMetrics.standard.contentWidth == 400)
+    #expect(HUDMetrics.standard.contentWidth > HUDNotchGeometry.tamañoDictando(for: simulada).width)
+  }
+
+  /// Y la ventana abierta se dimensiona por el más alto de los dos, que es el
+  /// panel del hover: 90 puntos de alto donde antes eran 190.
+  @Test func laVentanaAbiertaLaManejaElPanelDelHover() {
+    let simulada = pantalla(barra: 24)
+    #expect(
+      HUDNotchGeometry.altoDeLaFormaMasAlta(for: simulada)
+        == HUDNotchGeometry.altoDelPanelDeHover(for: simulada)
+    )
+    #expect(HUDNotchGeometry.windowSize(for: simulada) == CGSize(width: 488, height: 90))
   }
 
   /// Y la cabecera de la forma abierta sigue siendo la silueta en reposo: la
@@ -435,12 +468,12 @@ struct MuescaTests {
     // El síntoma exacto del bug, afirmado aparte: la forma no se come la
     // ventana entera.
     #expect(
-      forma.marco.height < ventana.height - HUDNotchGeometry.shadowPadding,
+      forma.marco.height <= ventana.height - HUDNotchGeometry.holguraDeSombra(),
       "\(estado): la forma no es la ventana"
     )
   }
 
-  /// En reposo la muesca mide 160×24 dentro de una ventana de 488×190, y el
+  /// En reposo la muesca mide 160×24 dentro de una ventana de 488×90, y el
   /// resto de la ventana queda transparente.
   @MainActor
   @Test func enReposoLaFormaMideLaMuescaYNoLaVentana() throws {
@@ -472,8 +505,8 @@ struct MuescaTests {
     #expect(forma.marco.height <= HUDNotchGeometry.altoMaximoDelHover)
   }
 
-  /// Dictando: 400×88, que es lo que Alfonso aprobó. Onda, una línea de texto
-  /// parcial y el chip del modo.
+  /// Dictando: 184×26 en una sola línea —la onda compacta y el parcial—, que
+  /// es lo que Alfonso pidió el 2026-09-22.
   @MainActor
   @Test func dictandoLaFormaMideLoQueDeclaraLaGeometria() throws {
     let simulada = pantalla(barra: 24)
@@ -487,7 +520,7 @@ struct MuescaTests {
       content: content,
       settings: AppSettings.previewStore().sessionSettings
     )
-    afirmar(forma, mide: CGSize(width: 400, height: 88), en: simulada, "dictando")
+    afirmar(forma, mide: CGSize(width: 184, height: 26), en: simulada, "dictando")
   }
 
   /// El resultado se encoge: sin onda y sin chip queda la cabecera y la línea.
@@ -519,18 +552,18 @@ struct MuescaTests {
         forma: HUDNotchGeometry.reposoSize(for: simulada),
         pantalla: simulada.nombre,
         notchReal: HUDNotchGeometry.hasMeasuredNotch(for: simulada)
-      ) == "estado=reposo ventana=488x190 forma=160x24 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=reposo ventana=488x90 forma=160x24 pantalla=DELL U2412M notchReal=false"
     )
     // Sin nombre no se escribe un hueco: una línea con `pantalla=` vacío se
     // lee como que la pantalla no tiene nombre, no como que el campo faltó.
     #expect(
       RegistroDeLaMuesca.linea(
         estado: .dictando,
-        ventana: CGSize(width: 488, height: 190),
-        forma: CGSize(width: 400, height: 88),
+        ventana: CGSize(width: 488, height: 90),
+        forma: CGSize(width: 184, height: 26),
         pantalla: "",
         notchReal: true
-      ) == "estado=dictando ventana=488x190 forma=400x88 pantalla=? notchReal=true"
+      ) == "estado=dictando ventana=488x90 forma=184x26 pantalla=? notchReal=true"
     )
   }
 }

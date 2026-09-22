@@ -76,7 +76,7 @@ struct VentanaDeLaMuescaTests {
   }
 
   /// Los números de la pantalla del reclamo, escritos enteros: 178×24 en
-  /// reposo contra los 488×190 de la forma abierta.
+  /// reposo contra los 488×90 de la forma abierta.
   ///
   /// El 190×45 que Alfonso midió con `CGWindowListCopyWindowInfo` el
   /// 2026-09-22 salía de alojar la sombra en reposo. Los 18 puntos de ancho
@@ -85,7 +85,7 @@ struct VentanaDeLaMuescaTests {
   @Test func enReposoLaVentanaNoTapaLaBarraDeMenus() {
     let reposo = HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo)
     #expect(reposo == CGSize(width: 178, height: 24))
-    #expect(HUDNotchGeometry.windowSize(for: simulado) == CGSize(width: 488, height: 190))
+    #expect(HUDNotchGeometry.windowSize(for: simulado) == CGSize(width: 488, height: 90))
     // Lo que el reclamo medía: la ventana en reposo no baja de la barra de
     // menús ni un punto.
     #expect(reposo.height == simulado.menuBarHeight)
@@ -383,7 +383,7 @@ struct VentanaDeLaMuescaTests {
     stage.recibir(.escuchar)
     // Ya creció, y la forma todavía no se reveló.
     #expect(stage.encuadre == .abierta)
-    #expect(stage.marcoDeLaVentana.size == CGSize(width: 488, height: 190))
+    #expect(stage.marcoDeLaVentana.size == CGSize(width: 488, height: 90))
     #expect(!stage.dictationContent.isRevealed)
 
     stage.retract()
@@ -421,10 +421,10 @@ struct VentanaDeLaMuescaTests {
       RegistroDeLaMuesca.linea(
         estado: .dictando,
         ventana: HUDNotchGeometry.windowSize(for: simulado, encuadre: .abierta),
-        forma: CGSize(width: 400, height: 88),
+        forma: HUDNotchGeometry.tamañoDictando(for: simulado),
         pantalla: simulado.nombre,
         notchReal: false
-      ) == "estado=dictando ventana=488x190 forma=400x88 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=dictando ventana=488x90 forma=184x26 pantalla=DELL U2412M notchReal=false"
     )
   }
 

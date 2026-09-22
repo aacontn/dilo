@@ -189,10 +189,60 @@ enum HUDNotchGeometry {
     reposoSize(for: screen).height
   }
 
+  /// Cuánto se ensancha la muesca al dictar, y cuánto crece de alto.
+  ///
+  /// **Dictar apenas agranda la muesca** (2026-09-22). Los 400×88 de ayer
+  /// eran un panel colgando de una silueta de 160×24: «crece mucho cuando le
+  /// estoy dictando; podría crecer por un 10 % del notch real y avanzar en el
+  /// texto como lo está haciendo actualmente, que sería lo ideal». Así que el
+  /// alto es el de la barra de menús más un décimo —26 puntos donde la barra
+  /// mide 24— y el ancho, un 15 % más que el reposo: lo justo para que la
+  /// onda compacta y el parcial compartan una línea, y lo bastante poco para
+  /// que la forma siga siendo la muesca.
+  static let crecimientoAlDictar: CGFloat = 0.10
+  static let ensancheAlDictar: CGFloat = 0.15
+
+  /// La muesca mientras hay una sesión abierta: dictando, preparando,
+  /// procesando y el aviso de un error.
+  ///
+  /// **Sin escalar, y por el mismo motivo que la carcasa**: esto sale del
+  /// alto de la barra de menús de esta pantalla, que es lo que mide, no una
+  /// preferencia. Lo que el tamaño elegido en Ajustes sí escala es el panel
+  /// del hover, que es el único que tiene contenido de sobra que achicar.
+  ///
+  /// No aplica contra una carcasa real: ahí los primeros `safeAreaTop`
+  /// puntos son el recorte físico, y una línea de texto dentro de ellos es
+  /// una línea que nadie puede leer. Esa pantalla sigue colgando sus bandas
+  /// por debajo de la carcasa (`contentSize`).
+  static func tamañoDictando(for screen: HUDScreenSnapshot) -> CGSize {
+    let reposo = reposoSize(for: screen)
+    return CGSize(
+      width: (reposo.width * (1 + ensancheAlDictar)).rounded(),
+      height: (reposo.height * (1 + crecimientoAlDictar)).rounded()
+    )
+  }
+
+  /// El alto del panel que abre el hover: la silueta más lo que pide una
+  /// línea, con techo.
+  ///
+  /// Tiene su propia función porque va a crecer: el panel del hover es donde
+  /// van a vivir las acciones que no son el dictado —reuniones, el último
+  /// dictado, modos, ajustes— y ahí el mouse está encima a propósito, así que
+  /// puede ser más alto que la muesca de dictado sin tapar nada de paso.
+  static func altoDelPanelDeHover(for screen: HUDScreenSnapshot) -> CGFloat {
+    min(reposoSize(for: screen).height + altoDelContextoEnReposo, altoMaximoDelHover)
+  }
+
   /// The HUD shape's size: the header band, whatever voice-visual band the
   /// selected visual uses, the text band unless the visual replaces it, and
   /// the shaping band while a session carries one, clamped so a narrow
   /// display never gets a shape wider than its window.
+  ///
+  /// **Sólo contra una carcasa real, desde el 2026-09-22.** Ahí los primeros
+  /// puntos del borde son el recorte físico y el contenido tiene que colgar
+  /// por debajo, así que la forma abierta sigue siendo una pila de bandas.
+  /// Una pantalla sin carcasa dibuja `tamañoDictando`: una sola línea, la
+  /// muesca apenas más grande.
   static func contentSize(
     for screen: HUDScreenSnapshot,
     metrics: HUDMetrics,
@@ -487,7 +537,13 @@ enum HUDNotchGeometry {
 
   /// El alto de la forma abierta más alta que esta pantalla puede dibujar, sin
   /// holgura ninguna. Es lo que la ventana abierta tiene que poder contener.
+  ///
+  /// Sin carcasa son dos candidatas y gana el panel del hover: la muesca
+  /// dictando apenas crece (`tamañoDictando`) y el panel sí tiene contenido.
   static func altoDeLaFormaMasAlta(for screen: HUDScreenSnapshot) -> CGFloat {
+    guard hasMeasuredNotch(for: screen) else {
+      return max(tamañoDictando(for: screen).height, altoDelPanelDeHover(for: screen))
+    }
     let metrics = HUDMetrics.standard
     // The shaping band rides outside the max: it can sit under either
     // alternative, so the tallest layout is whichever band stack wins plus it.
