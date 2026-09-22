@@ -38,6 +38,48 @@ struct SeleccionDeMotorTests {
     }
   }
 
+  /// El router recuerda cuál escuchó de verdad, y sobrevive a `finish()`.
+  ///
+  /// El historial se escribe después de terminar, así que preguntarlo antes
+  /// no sirve; y no se puede deducir de lo elegido, porque son distintos
+  /// justo cuando importa. Sale de la duda de Alfonso del 2026-09-22: «si
+  /// estuve usando Parakeet o Apple».
+  @Test func elRouterRecuerdaQueMotorEscuchoDeVerdad() async throws {
+    let apple = MotorFalso(texto: "de Apple")
+    let parakeet = MotorFalso(texto: "de Parakeet")
+    let motor = SpeechEngineRouter(
+      apple: apple,
+      parakeet: parakeet,
+      elegido: .parakeet,
+      parakeetDescargado: { false }
+    )
+
+    // Antes de la primera sesión no hay nada que contestar, y eso es un nil,
+    // no un motor inventado.
+    #expect(await motor.motorDeLaUltimaSesion() == nil)
+
+    try await motor.start(locale: .current, handlers: EngineHandlers { _ in })
+    _ = try await motor.finish()
+    #expect(
+      await motor.motorDeLaUltimaSesion() == .apple,
+      "eligió Parakeet y escuchó Apple: eso es lo que el historial tiene que guardar"
+    )
+  }
+
+  /// Y con el modelo puesto, el mismo elegido deja otra respuesta.
+  @Test func conElModeloPuestoElRouterRecuerdaParakeet() async throws {
+    let motor = SpeechEngineRouter(
+      apple: MotorFalso(texto: "de Apple"),
+      parakeet: MotorFalso(texto: "de Parakeet"),
+      elegido: .parakeet,
+      parakeetDescargado: { true }
+    )
+
+    try await motor.start(locale: .current, handlers: EngineHandlers { _ in })
+    _ = try await motor.finish()
+    #expect(await motor.motorDeLaUltimaSesion() == .parakeet)
+  }
+
   @Test func elRouterCorreAppleYAvisaCuandoParakeetNoEsta() async throws {
     let apple = MotorFalso(texto: "de Apple")
     let parakeet = MotorFalso(texto: "de Parakeet")

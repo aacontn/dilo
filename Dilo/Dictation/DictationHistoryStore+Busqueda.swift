@@ -17,13 +17,21 @@ extension DictationHistoryStore {
     let fuente: String?
     /// El modo con que se dictó, si hubo uno.
     let modo: String?
+    /// Qué motor transcribió, si la entrada lo dice.
+    ///
+    /// Opcional **y por defecto nil**: todo lo escrito antes del 2026-09-22
+    /// no lo lleva, y un historial que dejara de leerse por eso sería peor
+    /// que no saber el motor. Una entrada vieja se sigue mostrando entera,
+    /// sin motor.
+    var motor: String? = nil
     let texto: String
 
     var id: String { "\(dia) \(hora) \(texto.prefix(24))" }
 
-    /// Lo que se muestra bajo el texto: dónde iba y con qué modo salió.
+    /// Lo que se muestra bajo el texto: dónde iba, con qué modo salió y qué
+    /// motor lo transcribió.
     var procedencia: String {
-      [fuente, modo].compactMap { $0 }.joined(separator: " · ")
+      [fuente, modo, motor].compactMap { $0 }.joined(separator: " · ")
     }
   }
 
@@ -78,6 +86,7 @@ extension DictationHistoryStore {
     var partes = [entrada.hora]
     if let fuente = entrada.fuente { partes.append(fuente) }
     if let modo = entrada.modo { partes.append("\(separadorDeModo)\(modo)") }
+    if let motor = entrada.motor { partes.append("\(separadorDeMotor)\(motor)") }
     return partes.joined(separator: " ")
   }
 
@@ -89,6 +98,7 @@ extension DictationHistoryStore {
     var hora: String?
     var fuente: String?
     var modo: String?
+    var motor: String?
     var cuerpo: [String] = []
 
     func cerrar() {
@@ -97,12 +107,16 @@ extension DictationHistoryStore {
         .trimmingCharacters(in: .whitespacesAndNewlines)
       if !texto.isEmpty {
         entradas.append(
-          Entrada(dia: dia, hora: horaAbierta, fuente: fuente, modo: modo, texto: texto)
+          Entrada(
+            dia: dia, hora: horaAbierta, fuente: fuente,
+            modo: modo, motor: motor, texto: texto
+          )
         )
       }
       hora = nil
       fuente = nil
       modo = nil
+      motor = nil
       cuerpo = []
     }
 
@@ -115,6 +129,7 @@ extension DictationHistoryStore {
       hora = partes.hora
       fuente = partes.fuente
       modo = partes.modo
+      motor = partes.motor
     }
     cerrar()
     return entradas
@@ -122,19 +137,32 @@ extension DictationHistoryStore {
 
   static func encabezadoPartido(
     _ linea: String
-  ) -> (hora: String, fuente: String?, modo: String?)? {
+  ) -> (hora: String, fuente: String?, modo: String?, motor: String?)? {
     guard linea.hasPrefix("["), let cierre = linea.firstIndex(of: "]") else { return nil }
     let hora = String(linea[linea.startIndex ... cierre])
     guard hora.count == 10 else { return nil }
 
     var resto = String(linea[linea.index(after: cierre)...])
       .trimmingCharacters(in: .whitespaces)
+    // El motor primero: va al final de la línea, así que sacarlo antes deja
+    // el modo donde siempre estuvo y una entrada vieja —que no lo lleva— se
+    // parte exactamente igual que antes.
+    var motor: String?
+    if let marca = resto.range(of: separadorDeMotor) {
+      motor = String(resto[marca.upperBound...]).trimmingCharacters(in: .whitespaces)
+      resto = String(resto[..<marca.lowerBound]).trimmingCharacters(in: .whitespaces)
+    }
     var modo: String?
     if let marca = resto.range(of: separadorDeModo) {
       modo = String(resto[marca.upperBound...]).trimmingCharacters(in: .whitespaces)
       resto = String(resto[..<marca.lowerBound]).trimmingCharacters(in: .whitespaces)
     }
-    return (hora, resto.isEmpty ? nil : resto, modo?.isEmpty == true ? nil : modo)
+    return (
+      hora,
+      resto.isEmpty ? nil : resto,
+      modo?.isEmpty == true ? nil : modo,
+      motor?.isEmpty == true ? nil : motor
+    )
   }
 
   static func plegar(_ texto: String) -> String {

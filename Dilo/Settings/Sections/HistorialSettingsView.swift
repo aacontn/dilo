@@ -57,7 +57,10 @@ struct HistorialSettingsView: View {
   }
 
   private func fila(_ entrada: DictationHistoryStore.Entrada) -> some View {
-    // Lo dictado, la fecha y la app son datos: van como valor, no como copy.
+    // Lo dictado, la fecha, la app, el modo y el motor son datos: van como
+    // valor, no como copy. El motor entra en `procedencia` desde el
+    // 2026-09-22, para que «¿esto se transcribió con Apple o con Parakeet?»
+    // tenga respuesta sin abrir el archivo.
     let sello = entrada.procedencia.isEmpty
       ? "\(entrada.dia) \(entrada.hora)"
       : "\(entrada.dia) \(entrada.hora) · \(entrada.procedencia)"

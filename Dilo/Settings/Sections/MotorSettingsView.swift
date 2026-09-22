@@ -41,6 +41,14 @@ struct SelectorDeMotor: View {
 
   @State private var descargas = DescargaDeParakeet.compartida
 
+  /// Qué motor está elegido y cuál va a dictar de verdad. Son distintos
+  /// mientras Parakeet esté elegido sin su modelo en disco, y ésa es
+  /// justamente la confusión que Alfonso reportó el 2026-09-22: no podía
+  /// saber con cuál estaba dictando.
+  private var seleccion: EngineSelection {
+    EngineResolver.resolver(elegido: settings.motorDeVoz, parakeetDescargado: descargas.listo)
+  }
+
   var body: some View {
     VStack(spacing: 16) {
       SettingsCard(title: "Motor de voz") {
@@ -48,6 +56,7 @@ struct SelectorDeMotor: View {
           MotorCard(
             motor: motor,
             elegido: settings.motorDeVoz == motor,
+            enUso: seleccion.efectivo == motor,
             esUltima: indice == SpeechEngineKind.allCases.count - 1
           ) {
             settings.motorDeVoz = motor
@@ -108,9 +117,20 @@ struct SelectorDeMotor: View {
 }
 
 /// Una tarjeta de motor: nombre, etiqueta LOCAL, qué es y qué cuesta.
+///
+/// **Elegido y en uso son dos cosas**, y hasta el 2026-09-22 la tarjeta sólo
+/// mostraba la primera, con un punto de radio de quince puntos sobre fondo
+/// oscuro. Alfonso, con Parakeet guardado en sus preferencias, leyó la
+/// pantalla y dijo que «salía Apple, no salía Parakeet»: el punto no se veía,
+/// y con el modelo sin descargar quien dictaba de verdad **era** Apple. Ahora
+/// la tarjeta elegida se distingue por fondo y borde además del punto, y la
+/// que está dictando lo dice con todas sus letras.
 struct MotorCard: View {
   let motor: SpeechEngineKind
   let elegido: Bool
+  /// Si es este el que va a dictar. Distinto de `elegido` mientras Parakeet
+  /// esté elegido sin su modelo en disco.
+  var enUso = false
   let esUltima: Bool
   let elegir: () -> Void
 
@@ -120,15 +140,27 @@ struct MotorCard: View {
     Button(action: elegir) {
       HStack(alignment: .top, spacing: 12) {
         Image(systemName: elegido ? "largecircle.fill.circle" : "circle")
-          .font(.system(size: 15))
-          .foregroundStyle(elegido ? SettingsTheme.accent : .white.opacity(0.3))
+          .font(.system(size: 17, weight: .medium))
+          .foregroundStyle(elegido ? SettingsTheme.accent : .white.opacity(0.45))
           .padding(.top, 1)
 
         VStack(alignment: .leading, spacing: 6) {
           HStack(spacing: 8) {
             Text(motor.title)
               .font(.system(size: 13, weight: .semibold))
+              .foregroundStyle(elegido ? SettingsTheme.accent : .white)
             EtiquetaDeOrigen(texto: motor.etiqueta)
+            if enUso {
+              // La respuesta a «¿con cuál estoy dictando?», en la tarjeta que
+              // de verdad lo está haciendo.
+              Text("Dictando con este")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(DiloBrand.menta)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(DiloBrand.menta.opacity(0.14), in: Capsule())
+            }
             if motor == .porDefecto {
               Text("Por defecto")
                 .font(.system(size: 10, weight: .semibold))
@@ -154,9 +186,26 @@ struct MotorCard: View {
         Spacer(minLength: 0)
       }
       .padding(.vertical, 13)
+      .padding(.horizontal, elegido ? 10 : 0)
+      .background {
+        // El fondo y el borde, no sólo el punto: sobre una tarjeta oscura un
+        // radio de quince puntos no alcanza para que alguien sepa qué eligió.
+        if elegido {
+          RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(SettingsTheme.accent.opacity(contrast == .increased ? 0.20 : 0.10))
+            .overlay {
+              RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(SettingsTheme.accent.opacity(contrast == .increased ? 0.9 : 0.5))
+            }
+        }
+      }
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+    .accessibilityAddTraits(elegido ? [.isSelected] : [])
+    .accessibilityValue(
+      Text(enUso ? "Dictando con este" : (elegido ? "Elegido" : ""))
+    )
     .overlay(alignment: .bottom) {
       if !esUltima {
         Rectangle()

@@ -21,6 +21,14 @@ public actor SpeechEngineRouter: SpeechEngine {
   private var elegido: SpeechEngineKind
   private var enCurso: (any SpeechEngine)?
   private var ultimoAviso: String?
+  /// Cuál motor escuchó de verdad la última sesión que arrancó.
+  ///
+  /// No se deduce de `elegido` a propósito: son distintos justo cuando más
+  /// importa saberlo —Parakeet elegido sin su modelo en disco dicta con
+  /// Apple—, y es la pregunta que Alfonso no pudo responder el 2026-09-22
+  /// («si estuve usando Parakeet o Apple»). Sobrevive a `finish()` porque el
+  /// historial se escribe después de terminar.
+  private var ultimoEfectivo: SpeechEngineKind?
 
   public init(
     apple: any SpeechEngine,
@@ -48,6 +56,9 @@ public actor SpeechEngineRouter: SpeechEngine {
   /// Por qué el último dictado no corrió con el motor elegido, o nil si sí.
   public func avisoVigente() -> String? { ultimoAviso }
 
+  /// Qué motor escuchó la última sesión, o nil si todavía no hubo ninguna.
+  public func motorDeLaUltimaSesion() -> SpeechEngineKind? { ultimoEfectivo }
+
   public func prewarm(locale: Locale) async throws {
     try await motor(for: seleccion().efectivo).prewarm(locale: locale)
   }
@@ -72,6 +83,9 @@ public actor SpeechEngineRouter: SpeechEngine {
     let elegidoAhora = motor(for: eleccion.efectivo)
     try await elegidoAhora.start(locale: locale, handlers: handlers)
     enCurso = elegidoAhora
+    // Después del `start`, no antes: una sesión que no llegó a arrancar no
+    // transcribió nada y no puede quedar anotada como si sí.
+    ultimoEfectivo = eleccion.efectivo
   }
 
   public func finish() async throws -> String {

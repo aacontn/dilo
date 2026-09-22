@@ -17,6 +17,8 @@ struct DirectDictationControllerTests {
     let translation: DictationHistoryStore.Translation?
     let source: String?
     let modo: String?
+    /// Qué motor transcribió, tal como el controlador lo preguntó.
+    let motor: String?
     let folder: URL
   }
 
@@ -178,14 +180,18 @@ struct DirectDictationControllerTests {
         recorder.events.append("recordSession")
         recorder.recordedSessions.append((wordCount, speakingDuration))
       },
-      recordHistory: { text, translation, source, modo, folder in
+      recordHistory: { text, translation, source, modo, motor, folder in
         historyEntries.withLock {
           $0.append(HistoryEntry(
             text: text, translation: translation, source: source,
-            modo: modo, folder: folder
+            modo: modo, motor: motor, folder: folder
           ))
         }
       },
+      // El motor que escuchó de verdad. Fijo acá: lo que se afirma es que el
+      // controlador lo pregunta y lo pasa al historial, no cuál contesta el
+      // router.
+      motorDelDictado: { "Parakeet v3" },
       transformar: transformar
     )
   }

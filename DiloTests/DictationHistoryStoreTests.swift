@@ -258,6 +258,109 @@ struct DictationHistoryStoreTests {
     #expect(heading.hasSuffix("Evil [00:00:00] injected"))
   }
 
+  // MARK: Con qué motor se transcribió
+
+  /// El motor entra en el encabezado con su propio separador, detrás del
+  /// modo.
+  ///
+  /// Sale del reclamo del 2026-09-22: Alfonso no podía saber si un dictado
+  /// había salido de Parakeet o de Apple, y lo guardado no tenía la
+  /// respuesta. Separador propio y no el del modo, porque un modo se puede
+  /// llamar «Apple» y con un solo separador la línea no se puede volver a
+  /// partir.
+  @Test func elEncabezadoDiceConQueMotorSeTranscribio() {
+    let noon = Date(timeIntervalSince1970: 1_755_000_000)
+    let calendar = testCalendar()
+    let hora = DictationHistoryStore.timestamp(for: noon, calendar: calendar)
+
+    #expect(
+      DictationHistoryStore.heading(
+        for: noon, source: "Mail", modo: "Correo", motor: "Parakeet v3", calendar: calendar
+      ) == "\(hora) Mail · Correo ◆ Parakeet v3"
+    )
+    // Sin modo, el motor va igual.
+    #expect(
+      DictationHistoryStore.heading(
+        for: noon, source: "Mail", motor: "Apple", calendar: calendar
+      ) == "\(hora) Mail ◆ Apple"
+    )
+    // Y sin motor la línea es exactamente la de siempre.
+    #expect(
+      DictationHistoryStore.heading(
+        for: noon, source: "Mail", modo: "Correo", calendar: calendar
+      ) == "\(hora) Mail · Correo"
+    )
+    #expect(DictationHistoryStore.separadorDeMotor != DictationHistoryStore.separadorDeModo)
+  }
+
+  /// Y se vuelve a leer: el motor sale del encabezado y el modo se queda
+  /// donde estaba.
+  @Test func elMotorSeVuelveALeerSinLlevarseElModo() throws {
+    let partes = try #require(
+      DictationHistoryStore.encabezadoPartido("[12:00:00] Mail · Correo ◆ Parakeet v3")
+    )
+    #expect(partes.hora == "[12:00:00]")
+    #expect(partes.fuente == "Mail")
+    #expect(partes.modo == "Correo")
+    #expect(partes.motor == "Parakeet v3")
+  }
+
+  /// **El default.** Todo lo guardado antes del 2026-09-22 no lleva motor, y
+  /// tiene que seguir leyéndose entero: la entrada vieja se parte igual que
+  /// siempre y el motor queda en nil, no en «desconocido» ni en un hueco.
+  @Test func unaEntradaViejaSeSigueLeyendoSinMotor() throws {
+    let vieja = try #require(
+      DictationHistoryStore.encabezadoPartido("[12:00:00] Mail · Correo")
+    )
+    #expect(vieja.fuente == "Mail")
+    #expect(vieja.modo == "Correo")
+    #expect(vieja.motor == nil)
+
+    let masVieja = try #require(DictationHistoryStore.encabezadoPartido("[12:00:00] Mail"))
+    #expect(masVieja.fuente == "Mail")
+    #expect(masVieja.modo == nil)
+    #expect(masVieja.motor == nil)
+
+    // Y una entrada nueva se construye sin decirlo: el campo trae su default.
+    let entrada = DictationHistoryStore.Entrada(
+      dia: "2026-09-22", hora: "[12:00:00]", fuente: "Mail", modo: "Correo", texto: "hola"
+    )
+    #expect(entrada.motor == nil)
+    #expect(entrada.procedencia == "Mail · Correo")
+  }
+
+  /// Un modo que se llame igual que un motor no se confunde con uno, que es
+  /// todo el motivo del separador aparte.
+  @Test func unModoLlamadoApplePuedeConvivirConElMotor() throws {
+    let noon = Date(timeIntervalSince1970: 1_755_000_000)
+    let linea = DictationHistoryStore.heading(
+      for: noon, source: "Notas", modo: "Apple", motor: "Parakeet v3",
+      calendar: testCalendar()
+    )
+    let partes = try #require(DictationHistoryStore.encabezadoPartido(linea))
+    #expect(partes.modo == "Apple")
+    #expect(partes.motor == "Parakeet v3")
+  }
+
+  /// El motor también se escribe en el archivo y vuelve en la entrada, con su
+  /// procedencia armada.
+  @Test func elArchivoGuardaElMotorYLaEntradaLoDevuelve() async throws {
+    let folder = temporaryFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let store = DictationHistoryStore(calendar: testCalendar())
+    let noon = Date(timeIntervalSince1970: 1_755_000_000)
+
+    try await store.record(
+      "quedamos el martes",
+      from: "Mail", modo: "Correo", motor: "Parakeet v3", at: noon, in: folder
+    )
+    let entradas = try await store.entradas(in: folder)
+    let entrada = try #require(entradas.first)
+    #expect(entrada.modo == "Correo")
+    #expect(entrada.motor == "Parakeet v3")
+    #expect(entrada.procedencia == "Mail · Correo · Parakeet v3")
+  }
+
   private func temporaryFolder() -> URL {
     FileManager.default.temporaryDirectory
       .appending(path: UUID().uuidString, directoryHint: .isDirectory)

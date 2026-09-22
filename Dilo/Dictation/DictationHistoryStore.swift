@@ -45,10 +45,14 @@ actor DictationHistoryStore {
   /// - Parameter modo: el modo con que se dictó, cuando hubo uno. Va al final
   ///   y separado por "·" para que una lectura vieja del archivo siga viendo
   ///   la fuente donde siempre estuvo.
+  /// - Parameter motor: qué motor transcribió. Va después del modo y con su
+  ///   propio separador, por el mismo motivo: una entrada vieja no lo lleva
+  ///   y se sigue leyendo entera.
   static func heading(
     for date: Date,
     source: String?,
     modo: String? = nil,
+    motor: String? = nil,
     calendar: Calendar = .current
   ) -> String {
     let time = timestamp(for: date, calendar: calendar)
@@ -59,6 +63,9 @@ actor DictationHistoryStore {
     if let modo, !modo.trimmingCharacters(in: .whitespaces).isEmpty {
       partes.append("\(separadorDeModo)\(enUnaLinea(modo))")
     }
+    if let motor, !motor.trimmingCharacters(in: .whitespaces).isEmpty {
+      partes.append("\(separadorDeMotor)\(enUnaLinea(motor))")
+    }
     guard !partes.isEmpty else { return time }
     return "\(time) \(partes.joined(separator: " "))"
   }
@@ -66,6 +73,15 @@ actor DictationHistoryStore {
   /// El modo va detrás de este separador. Es un carácter que ninguna app se
   /// llama y que ningún modo va a tener en el nombre.
   static let separadorDeModo = "· "
+
+  /// Y el motor detrás de este otro.
+  ///
+  /// Un separador propio y no el del modo: con uno solo, «Correo · Apple» no
+  /// se puede volver a partir —un modo se puede llamar «Apple»— y la fila del
+  /// historial mostraría el motor como si fuera otro modo. Sale del reclamo
+  /// del 2026-09-22: Alfonso no pudo saber si un dictado había salido de
+  /// Parakeet o de Apple, y lo guardado no tenía la respuesta.
+  static let separadorDeMotor = "◆ "
 
   /// Newlines would forge a second entry inside this one.
   private static func enUnaLinea(_ texto: String) -> String {
@@ -100,6 +116,7 @@ actor DictationHistoryStore {
     translation: Translation? = nil,
     from source: String? = nil,
     modo: String? = nil,
+    motor: String? = nil,
     at date: Date = .now,
     in folder: URL
   ) throws {
@@ -113,7 +130,7 @@ actor DictationHistoryStore {
 
     let fileURL = folder.appending(path: Self.fileName(for: date, calendar: calendar))
     let heading = Self.heading(
-      for: date, source: source, modo: modo, calendar: calendar
+      for: date, source: source, modo: modo, motor: motor, calendar: calendar
     )
     let entry = "\(heading)\n\(Self.body(trimmed, translation))\n\n"
     let entryData = Data(entry.utf8)

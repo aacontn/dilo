@@ -854,6 +854,9 @@ final class DirectDictationController {
       translation,
       historySource(for: session.insertionDestination),
       modo,
+      // Qué motor escuchó, y no cuál estaba elegido: la entrada tiene que
+      // poder contestar «¿esto salió de Parakeet o de Apple?» para siempre.
+      await dependencies.motorDelDictado(),
       session.historyFolder
     )
   }

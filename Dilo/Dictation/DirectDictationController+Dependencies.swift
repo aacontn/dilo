@@ -94,8 +94,19 @@ extension DirectDictationController {
       _ translation: DictationHistoryStore.Translation?,
       _ source: String?,
       _ modo: String?,
+      _ motor: String?,
       _ folder: URL
     ) async -> Void
+
+    /// Qué motor escuchó de verdad la sesión que acaba de terminar.
+    ///
+    /// Del router y no de Ajustes: son distintos justo cuando más importa
+    /// —Parakeet elegido sin su modelo en disco dicta con Apple— y ésa es la
+    /// pregunta que el historial no sabía contestar (2026-09-22). Trae un
+    /// valor por defecto que devuelve nil para que los tests que arman estas
+    /// dependencias a mano sigan compilando: una entrada sin motor es
+    /// exactamente lo que ya sabe leer el historial viejo.
+    var motorDelDictado: @Sendable () async -> String? = { nil }
 
     /// Las palabras propias que se le pasan al motor como contexto antes de
     /// reconocer. Trae un valor por defecto que no hace nada para que los
@@ -211,7 +222,7 @@ extension DirectDictationController {
         recordSession: {
           await usageTracker.recordSession(wordCount: $0, speakingDuration: $1)
         },
-        recordHistory: { text, translation, source, modo, folder in
+        recordHistory: { text, translation, source, modo, motor, folder in
           // A history write must never cost the session its insertion; a
           // full disk or revoked folder loses the entry, not the words.
           try? await historyStore.record(
@@ -219,9 +230,11 @@ extension DirectDictationController {
             translation: translation,
             from: source,
             modo: modo,
+            motor: motor,
             in: folder
           )
         },
+        motorDelDictado: { await motores.motorDeLaUltimaSesion()?.title },
         setPalabrasPropias: { await speechService.setPalabrasPropias($0) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
