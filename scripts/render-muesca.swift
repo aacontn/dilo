@@ -15,6 +15,14 @@ import SwiftUI
 /// parcial, el chip—, porque arrastrar la vista de dictado entera traería la
 /// app completa y estos PNG son para aprobar la **forma**.
 ///
+/// **Cada estado se dibuja dentro de una ventana simulada del tamaño real**,
+/// con la misma cadena de layout de `HUDSurface`, y el marco punteado del PNG
+/// es esa ventana. Antes cada forma se rasterizaba suelta con su
+/// `frame(width:height:)`: los PNG salían impecables mientras la app estiraba
+/// la muesca al alto de la ventana anfitriona —160×24 se veía como 160×196 en
+/// un 1080p externo— y el render dejaba de ser evidencia justo del error que
+/// había que ver.
+///
 /// Se corre con `scripts/render-muesca.sh`.
 @main
 enum RenderDeLaMuesca {
@@ -49,10 +57,9 @@ enum RenderDeLaMuesca {
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
     let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
 
-    try escribir(lienzo(claro: true) { silueta(tamaño: reposo, radio: radio) { marcaDeReposo } },
-                 en: destino, como: "reposo-claro")
-    try escribir(lienzo(claro: false) { silueta(tamaño: reposo, radio: radio) { marcaDeReposo } },
-                 en: destino, como: "reposo-oscuro")
+    let enReposo = enLaVentana(tamaño: reposo, radio: radio) { marcaDeReposo(alto: reposo.height) }
+    try escribir(lienzo(claro: true) { enReposo }, en: destino, como: "reposo-claro")
+    try escribir(lienzo(claro: false) { enReposo }, en: destino, como: "reposo-oscuro")
     try escribir(lienzo(claro: true) { hoverExpandido }, en: destino, como: "hover-expandido")
     try escribir(lienzo(claro: false) { dictando }, en: destino, como: "dictando")
     try escribir(lienzo(claro: false) { resultado }, en: destino, como: "resultado")
@@ -64,7 +71,7 @@ enum RenderDeLaMuesca {
           Color(white: 0.93).frame(height: HUDNotchGeometry.altoDeLaBarra(for: pantalla))
           Color(red: 0.62, green: 0.72, blue: 0.86)
         }
-        silueta(tamaño: reposo, radio: radio) { marcaDeReposo }
+        silueta(tamaño: reposo, radio: radio) { marcaDeReposo(alto: reposo.height) }
       }
       .frame(width: 220, height: 60, alignment: .top),
       en: destino,
@@ -73,19 +80,31 @@ enum RenderDeLaMuesca {
     )
 
     let abierta = tamañoAbierto
+    let ventana = HUDNotchGeometry.windowSize(for: pantalla)
     print("""
       muesca en reposo: \(Int(reposo.width))×\(Int(reposo.height)) pt \
       (barra \(Int(HUDNotchGeometry.altoDeLaBarra(for: pantalla))) pt), \
       fillet \(Int(fillet)) pt, radio inferior \(Int(radio)) pt
       muesca abierta:   \(Int(abierta.width))×\(Int(abierta.height)) pt
-      PNG en \(destino.path())
+      ventana:          \(Int(ventana.width))×\(Int(ventana.height)) pt
       """)
+
+    // Lo que el PNG no dice solo: cuánto negro hay de verdad adentro de la
+    // ventana, que es lo que `MuescaTests` afirma contra la vista real.
+    medir("reposo", enReposo)
+    medir("hover", hoverExpandido)
+    medir("dictando", dictando)
+    medir("resultado", resultado)
+    print("PNG en \(destino.path())")
   }
 
   // MARK: La silueta
 
-  /// La misma composición que `HUDSurface`: el cuerpo negro con las esquinas
-  /// de arriba rectas —nace del borde— y las dos curvas cóncavas al costado.
+  /// La misma composición **y la misma cadena de layout** que `HUDSurface`:
+  /// el ancho fijo, el `fixedSize` que impide que un hijo goloso se quede con
+  /// el alto ofrecido, el alto como mínimo —la banda de texto puede crecer— y
+  /// recién ahí el fondo negro. Copiar `frame(width:height:)` en su lugar es
+  /// lo que hacía que estos PNG no pudieran fallar nunca.
   static func silueta(
     tamaño: CGSize,
     radio: CGFloat,
@@ -93,7 +112,9 @@ enum RenderDeLaMuesca {
   ) -> some View {
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
     return contenido()
-      .frame(width: tamaño.width, height: tamaño.height, alignment: .top)
+      .frame(width: tamaño.width)
+      .fixedSize(horizontal: false, vertical: true)
+      .frame(minHeight: tamaño.height, alignment: .top)
       .background {
         UnevenRoundedRectangle(
           topLeadingRadius: 0,
@@ -119,13 +140,46 @@ enum RenderDeLaMuesca {
     }
   }
 
-  /// El punto mango abajo al centro, lo único que la muesca dice en reposo.
-  static var marcaDeReposo: some View {
-    VStack {
-      Spacer(minLength: 0)
-      Circle().fill(mango.opacity(0.9)).frame(width: 3, height: 3)
+  /// La ventana anfitriona: del tamaño real y anclando la forma arriba y al
+  /// centro, igual que `HUDSurface`. El resto tiene que quedar transparente.
+  static func enLaVentana(
+    tamaño: CGSize,
+    radio: CGFloat,
+    @ViewBuilder contenido: () -> some View
+  ) -> some View {
+    let ventana = HUDNotchGeometry.windowSize(for: pantalla)
+    // El marco va **detrás**: es el contorno de la ventana, y una línea
+    // punteada cruzando la silueta arruina justo lo que se viene a mirar.
+    return ZStack(alignment: .top) {
+      marcoDeLaVentana
+      silueta(tamaño: tamaño, radio: radio, contenido: contenido)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
-    .padding(.bottom, 5)
+    .frame(width: ventana.width, height: ventana.height)
+  }
+
+  /// El contorno de la ventana anfitriona, punteado y apenas visible. No es
+  /// decoración: es lo que deja ver de un vistazo que la forma mide lo suyo y
+  /// no lo que mide la ventana.
+  static var marcoDeLaVentana: some View {
+    Rectangle()
+      .strokeBorder(
+        Color.white.opacity(0.22),
+        style: StrokeStyle(lineWidth: 1, dash: [4, 4])
+      )
+  }
+
+  /// El punto mango abajo al centro, lo único que la muesca dice en reposo.
+  ///
+  /// Con su alto exacto y el aire adentro, como `HUDMarcaDeReposo`: pedir
+  /// `maxHeight: .infinity` acá es justo lo que estiraba la forma.
+  static func marcaDeReposo(alto: CGFloat) -> some View {
+    Circle()
+      .fill(mango.opacity(0.9))
+      .frame(width: 3, height: 3)
+      .padding(.bottom, 5)
+      .frame(maxWidth: .infinity, alignment: .bottom)
+      .frame(height: alto, alignment: .bottom)
   }
 
   // MARK: Los estados abiertos
@@ -143,7 +197,7 @@ enum RenderDeLaMuesca {
   }
 
   static var dictando: some View {
-    silueta(tamaño: tamañoAbierto, radio: metricas.bottomCornerRadius) {
+    enLaVentana(tamaño: tamañoAbierto, radio: metricas.bottomCornerRadius) {
       VStack(spacing: 0) {
         // La cabecera **es** la silueta en reposo: la forma crece desde donde
         // descansaba.
@@ -176,16 +230,15 @@ enum RenderDeLaMuesca {
         HUDNotchGeometry.altoMaximoDelHover
       )
     )
-    return silueta(tamaño: tamaño, radio: HUDNotchGeometry.radioEnReposo(for: pantalla)) {
-      VStack {
-        Spacer(minLength: 0)
-        Text(contexto)
-          .font(.system(size: 10, weight: .medium, design: .rounded))
-          .foregroundStyle(.white.opacity(0.78))
-          .lineLimit(1)
-          .padding(.horizontal, 12)
-      }
-      .padding(.bottom, 6)
+    return enLaVentana(tamaño: tamaño, radio: HUDNotchGeometry.radioEnReposo(for: pantalla)) {
+      Text(contexto)
+        .font(.system(size: 10, weight: .medium, design: .rounded))
+        .foregroundStyle(.white.opacity(0.78))
+        .lineLimit(1)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .bottom)
+        .frame(height: tamaño.height, alignment: .bottom)
     }
   }
 
@@ -197,7 +250,7 @@ enum RenderDeLaMuesca {
       includesTextBand: true,
       shapingBandHeight: 0
     )
-    return silueta(tamaño: tamaño, radio: metricas.bottomCornerRadius) {
+    return enLaVentana(tamaño: tamaño, radio: metricas.bottomCornerRadius) {
       VStack(spacing: 0) {
         Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: pantalla))
         Text("Listo")
@@ -240,7 +293,8 @@ enum RenderDeLaMuesca {
       }
       forma()
     }
-    .frame(width: 720, height: 240, alignment: .top)
+    .frame(width: 720, height: max(240, HUDNotchGeometry.windowSize(for: pantalla).height),
+           alignment: .top)
   }
 
   /// El antes y el después, lado a lado sobre la misma barra: el rectángulo
@@ -269,7 +323,7 @@ enum RenderDeLaMuesca {
         silueta(
           tamaño: HUDNotchGeometry.reposoSize(for: pantalla),
           radio: HUDNotchGeometry.radioEnReposo(for: pantalla)
-        ) { marcaDeReposo }
+        ) { marcaDeReposo(alto: HUDNotchGeometry.reposoSize(for: pantalla).height) }
       }
     }
     .frame(width: 720, height: 200, alignment: .top)
@@ -302,6 +356,53 @@ enum RenderDeLaMuesca {
   }
 
   // MARK: Rasterizar
+
+  /// El rectángulo de negro **opaco** que una vista deja, en puntos. La
+  /// sombra es negro al 35 %, así que lo que las separa es la opacidad.
+  ///
+  /// Es la misma medición que hace `MuescaTests`: acá se imprime para que la
+  /// corrida del script diga los números, y allá se afirma.
+  @MainActor
+  static func medir(_ nombre: String, _ vista: some View) {
+    let renderer = ImageRenderer(content: vista)
+    renderer.scale = 1
+    guard let imagen = renderer.cgImage else {
+      print("\(nombre): no rasterizó")
+      return
+    }
+    let mapa = NSBitmapImageRep(cgImage: imagen)
+    // Las alas cóncavas se afinan hacia afuera hasta desaparecer, así que sus
+    // últimas columnas son antialias: el ancho del cuerpo se mide por debajo
+    // de ellas, donde la forma tiene su ancho entero.
+    let ala = Int(HUDNotchGeometry.filletSize(for: pantalla).rounded(.up))
+    var minX = Int.max, maxX = Int.min, minY = Int.max, maxY = Int.min
+    var cuerpoMinX = Int.max, cuerpoMaxX = Int.min
+    for y in 0..<mapa.pixelsHigh {
+      for x in 0..<mapa.pixelsWide {
+        guard
+          let color = mapa.colorAt(x: x, y: y)?.usingColorSpace(.sRGB),
+          color.alphaComponent > 0.9,
+          color.redComponent < 0.1, color.greenComponent < 0.1, color.blueComponent < 0.1
+        else { continue }
+        minX = min(minX, x)
+        maxX = max(maxX, x)
+        minY = min(minY, y)
+        maxY = max(maxY, y)
+        if y >= ala {
+          cuerpoMinX = min(cuerpoMinX, x)
+          cuerpoMaxX = max(cuerpoMaxX, x)
+        }
+      }
+    }
+    guard minX <= maxX, cuerpoMinX <= cuerpoMaxX else {
+      print("\(nombre): sin negro")
+      return
+    }
+    print(
+      "\(nombre): cuerpo \(cuerpoMaxX - cuerpoMinX + 1)×\(maxY - minY + 1) pt, "
+        + "con alas \(maxX - minX + 1) pt de ancho, arriba en y=\(minY)"
+    )
+  }
 
   @MainActor
   static func escribir(

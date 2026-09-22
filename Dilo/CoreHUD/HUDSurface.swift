@@ -10,6 +10,12 @@ import SwiftUI
 /// gap. Fillets exist only where there is a physical housing to flare into. The
 /// host window never resizes, so the shape top-aligns inside whatever frame it
 /// is handed.
+///
+/// **La ventana grande no es la forma.** La anfitriona está dimensionada para
+/// el estado más alto y lleva holgura de sombra; la forma mide lo que mide su
+/// estado y el resto de la ventana queda transparente. Lo que rompió eso una
+/// vez fue un hijo goloso de alto, no la geometría — ver el `fixedSize` del
+/// cuerpo.
 struct HUDSurface<Content: View, Overlays: View>: View {
   /// With Reduce Motion every style collapses to a quiet fade.
   static var reducedMotionFade: Animation { .easeOut(duration: 0.12) }
@@ -121,6 +127,16 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   var body: some View {
     contentLayer
       .frame(width: renderedSize.width)
+      // Cada estado dibuja su forma **a su propio tamaño**, y esto es lo que
+      // lo garantiza. Sin `fixedSize`, el `frame(minHeight:)` de abajo le
+      // ofrece al contenido el alto entero de la ventana anfitriona —que está
+      // dimensionada para el estado más alto de todos— y cualquier hijo que
+      // pida `maxHeight: .infinity` se lo queda, con el fondo negro estirado
+      // detrás. Así se veía la muesca en reposo en un monitor externo sin
+      // carcasa: 160×196 en vez de 160×24. Sigue siendo un mínimo y no un
+      // máximo porque la banda de texto sí puede crecer sobre lo declarado
+      // contra una carcasa real (`HUDLongDraftStyle.growDown`).
+      .fixedSize(horizontal: false, vertical: true)
       .frame(minHeight: renderedSize.height, alignment: .top)
       .clipShape(clipsContent ? AnyShape(housingShape) : AnyShape(Rectangle()))
       .background { housing }

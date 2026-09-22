@@ -273,11 +273,26 @@ siendo cierto:
 - **La forma se revisa en PNG, no en pantalla.** `scripts/render-muesca.sh`
   compila la geometría de verdad y rasteriza fuera de pantalla con
   `ImageRenderer`: sin ventanas, sin foco y sin captura de pantalla, que es
-  lo que hace que un agente pueda cambiar la silueta y mostrarla.
+  lo que hace que un agente pueda cambiar la silueta y mostrarla. **Dibuja cada
+  estado dentro de una ventana simulada del tamaño real** —el marco punteado
+  del PNG— y con la misma cadena de layout de `HUDSurface`; rasterizar la
+  silueta suelta con su `frame(width:height:)` daba PNG que no podían fallar
+  nunca, y por eso nadie vio el bloque negro.
 - **La forma no se va de la pantalla: se encoge.** `HUDSurface.tamañoEnReposo`
   es lo que la vuelve un escenario permanente en vez de una notificación. La
   cabecera de la forma abierta **es** la silueta en reposo
   (`HUDNotchGeometry.alturaDeCabecera`), así que crece desde donde descansaba.
+- **La ventana grande no es la forma.** La anfitriona está dimensionada para
+  el estado más alto de todos (488×190 en un 1080p sin carcasa) y la forma mide
+  lo que mide su estado —160×24 en reposo, 400×88 dictando—, anclada arriba y
+  al centro, con el resto transparente. Nada adentro de `HUDSurface` pide
+  `maxHeight: .infinity`: el `frame(minHeight:)` le ofrece al contenido el alto
+  entero de la ventana y un hijo goloso se lo queda con el fondo negro detrás.
+  Así se veía la muesca en un monitor externo, como un bloque de 160×190
+  colgando de la barra, mientras la geometría decía 24 y los PNG salían bien.
+  Cada cambio de estado deja una línea con los dos tamaños en
+  `log show --predicate 'subsystem == "cl.espaciodigital.dilo"'`, categoría
+  `muesca` (`RegistroDeLaMuesca`; en Release, con `DILO_LOG_MUESCA=1`).
 - **Sólo la silueta toma el mouse.** La ventana anfitriona es mucho más ancha
   que la forma; `HUDHostingView.hitTest` la acota a
   `HUDNotchGeometry.zonaInteractiva`, y sin eso el HUD se come clics en media

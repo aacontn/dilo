@@ -1,5 +1,7 @@
+import AppKit
 import CoreGraphics
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import Dilo
@@ -15,7 +17,11 @@ import Testing
 /// son cóncavas.
 @Suite("La muesca")
 struct MuescaTests {
-  private func pantalla(barra: CGFloat, ancho: CGFloat = 1920) -> HUDScreenSnapshot {
+  private func pantalla(
+    barra: CGFloat,
+    ancho: CGFloat = 1920,
+    nombre: String = ""
+  ) -> HUDScreenSnapshot {
     HUDScreenSnapshot(
       id: 2,
       frame: CGRect(x: 0, y: 0, width: ancho, height: 1080),
@@ -23,7 +29,8 @@ struct MuescaTests {
       auxiliaryTopLeftArea: nil,
       auxiliaryTopRightArea: nil,
       menuBarHeight: barra,
-      estiloSinNotch: .notchSimulado
+      estiloSinNotch: .notchSimulado,
+      nombre: nombre
     )
   }
 
@@ -315,5 +322,206 @@ struct MuescaTests {
     #expect(HUDNotchGeometry.reposoSize(for: conAjuste) == CGSize(width: 185, height: 32))
     #expect(HUDNotchGeometry.filletSize(for: conAjuste) == 11)
     #expect(HUDNotchGeometry.radioEnReposo(for: conAjuste) == 11)
+  }
+
+  /// La forma dentro de la ventana, estado por estado.
+  ///
+  /// La geometría pura ya estaba probada y estaba **bien**: lo que se rompió
+  /// fue el paso de la geometría a la vista. Un hijo que pedía
+  /// `maxHeight: .infinity` se quedaba con el alto entero de la ventana
+  /// anfitriona —dimensionada para el estado más alto— y el fondo negro se
+  /// estiraba detrás: la muesca de 160×24 se veía en un 1080p externo como un
+  /// bloque de 160×196 colgando de la barra, con el punto mango abajo del
+  /// todo. Ningún test de geometría podía verlo, porque la geometría decía
+  /// 24.
+  ///
+  /// Por eso esto no le pregunta a `HUDNotchGeometry`: rasteriza la vista de
+  /// verdad dentro de un lienzo del tamaño de la ventana y mira dónde quedó el
+  /// negro. Fuera de pantalla, sin montar ninguna ventana y sin tocar la GUI.
+  @MainActor
+  private func formaDibujada(
+    en pantalla: HUDScreenSnapshot,
+    content: DictationHUDContent,
+    settings: DictationSessionSettings
+  ) throws -> FormaMedida {
+    let ventana = HUDNotchGeometry.windowSize(for: pantalla)
+    let renderer = ImageRenderer(
+      content: DictationHUDShellView(screen: pantalla, settings: settings, content: content)
+        .frame(width: ventana.width, height: ventana.height, alignment: .top)
+    )
+    renderer.scale = 1
+    let mapa = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+
+    // Las alas cóncavas se van afinando hacia afuera hasta desaparecer, así
+    // que sus últimas columnas son antialias y no cuentan como negro opaco:
+    // un ancho medido incluyéndolas depende del rasterizador. El cuerpo se
+    // mide por debajo de ellas, donde la forma tiene su ancho entero.
+    let ala = Int(HUDNotchGeometry.filletSize(for: pantalla).rounded(.up))
+    var marco = Extremos()
+    var cuerpo = Extremos()
+    for y in 0..<mapa.pixelsHigh {
+      for x in 0..<mapa.pixelsWide {
+        guard let color = mapa.colorAt(x: x, y: y), esNegroOpaco(color) else { continue }
+        marco.sumar(x: x, y: y)
+        if y >= ala { cuerpo.sumar(x: x, y: y) }
+      }
+    }
+    return FormaMedida(
+      marco: try #require(marco.rect, "la forma no dibujó nada negro"),
+      cuerpo: try #require(cuerpo.rect, "la forma no tiene cuerpo bajo las alas")
+    )
+  }
+
+  /// Lo que se mide de un PNG de la forma: todo el negro, y el negro por
+  /// debajo de las alas, que es el cuerpo a su ancho entero.
+  private struct FormaMedida {
+    let marco: CGRect
+    let cuerpo: CGRect
+  }
+
+  private struct Extremos {
+    var minX = Int.max, maxX = Int.min, minY = Int.max, maxY = Int.min
+
+    mutating func sumar(x: Int, y: Int) {
+      minX = min(minX, x)
+      maxX = max(maxX, x)
+      minY = min(minY, y)
+      maxY = max(maxY, y)
+    }
+
+    var rect: CGRect? {
+      guard minX <= maxX else { return nil }
+      return CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+    }
+  }
+
+  /// La forma es negro opaco y la sombra que la rodea es negro al 35 %, así
+  /// que lo que las separa es la opacidad, no el color.
+  private func esNegroOpaco(_ color: NSColor) -> Bool {
+    guard let rgb = color.usingColorSpace(.sRGB) else { return false }
+    return rgb.alphaComponent > 0.9
+      && rgb.redComponent < 0.1
+      && rgb.greenComponent < 0.1
+      && rgb.blueComponent < 0.1
+  }
+
+  /// Lo que se le pide a cada estado: su tamaño, pegado arriba y centrado, y
+  /// nunca el alto de la ventana.
+  @MainActor
+  private func afirmar(
+    _ forma: FormaMedida,
+    mide esperado: CGSize,
+    en pantalla: HUDScreenSnapshot,
+    _ estado: String
+  ) {
+    let ala = HUDNotchGeometry.filletSize(for: pantalla)
+    let ventana = HUDNotchGeometry.windowSize(for: pantalla)
+    #expect(abs(forma.cuerpo.width - esperado.width) <= 1, "\(estado): ancho \(forma.cuerpo.width)")
+    #expect(abs(forma.marco.height - esperado.height) <= 1, "\(estado): alto \(forma.marco.height)")
+    #expect(forma.marco.minY == 0, "\(estado): nace del borde de arriba")
+    #expect(abs(forma.cuerpo.midX - ventana.width / 2) <= 1, "\(estado): centrada en la ventana")
+    // Las alas cuelgan a los lados y no ensanchan el cuerpo ni un punto más
+    // que su propio radio.
+    #expect(forma.marco.width <= esperado.width + ala * 2, "\(estado): las alas no se pasan")
+    // El síntoma exacto del bug, afirmado aparte: la forma no se come la
+    // ventana entera.
+    #expect(
+      forma.marco.height < ventana.height - HUDNotchGeometry.shadowPadding,
+      "\(estado): la forma no es la ventana"
+    )
+  }
+
+  /// En reposo la muesca mide 160×24 dentro de una ventana de 488×190, y el
+  /// resto de la ventana queda transparente.
+  @MainActor
+  @Test func enReposoLaFormaMideLaMuescaYNoLaVentana() throws {
+    let simulada = pantalla(barra: 24)
+    let content = DictationHUDContent()
+    let forma = try formaDibujada(
+      en: simulada,
+      content: content,
+      settings: AppSettings.previewStore().sessionSettings
+    )
+    afirmar(forma, mide: CGSize(width: 160, height: 24), en: simulada, "reposo")
+  }
+
+  /// El hover abre la silueta hasta el ancho de la forma abierta y unos pocos
+  /// puntos más de alto, con techo. Sigue siendo la silueta creciendo, no una
+  /// ventana que se abrió.
+  @MainActor
+  @Test func elHoverDibujaElPanelDeContextoYNadaMas() throws {
+    let simulada = pantalla(barra: 24)
+    let content = DictationHUDContent()
+    content.contexto = "Correo"
+    content.punteroEncima = true
+    let forma = try formaDibujada(
+      en: simulada,
+      content: content,
+      settings: AppSettings.previewStore().sessionSettings
+    )
+    afirmar(forma, mide: CGSize(width: 400, height: 46), en: simulada, "hover")
+    #expect(forma.marco.height <= HUDNotchGeometry.altoMaximoDelHover)
+  }
+
+  /// Dictando: 400×88, que es lo que Alfonso aprobó. Onda, una línea de texto
+  /// parcial y el chip del modo.
+  @MainActor
+  @Test func dictandoLaFormaMideLoQueDeclaraLaGeometria() throws {
+    let simulada = pantalla(barra: 24)
+    let content = DictationHUDContent()
+    content.estado = .dictando
+    content.isRevealed = true
+    content.showsVoiceVisual = true
+    content.shapingChoiceLabel = "Correo"
+    let forma = try formaDibujada(
+      en: simulada,
+      content: content,
+      settings: AppSettings.previewStore().sessionSettings
+    )
+    afirmar(forma, mide: CGSize(width: 400, height: 88), en: simulada, "dictando")
+  }
+
+  /// El resultado se encoge: sin onda y sin chip queda la cabecera y la línea.
+  @MainActor
+  @Test func elResultadoSeEncogeALaCabeceraYLaLinea() throws {
+    let simulada = pantalla(barra: 24)
+    let content = DictationHUDContent()
+    content.estado = .resultado(.listo)
+    content.isRevealed = true
+    content.text = "Listo"
+    let forma = try formaDibujada(
+      en: simulada,
+      content: content,
+      settings: AppSettings.previewStore().sessionSettings
+    )
+    afirmar(forma, mide: CGSize(width: 400, height: 50), en: simulada, "resultado")
+  }
+
+  /// La línea que deja el escenario en el log del sistema, para diagnosticar
+  /// esto sin mirar la pantalla de nadie:
+  ///
+  ///     log show --predicate 'subsystem == "cl.espaciodigital.dilo"' --last 5m
+  @Test func laLineaDelLogLlevaLosDosTamanos() {
+    let simulada = pantalla(barra: 24, nombre: "DELL U2412M")
+    #expect(
+      RegistroDeLaMuesca.linea(
+        estado: .reposo,
+        ventana: HUDNotchGeometry.windowSize(for: simulada),
+        forma: HUDNotchGeometry.reposoSize(for: simulada),
+        pantalla: simulada.nombre,
+        notchReal: HUDNotchGeometry.hasMeasuredNotch(for: simulada)
+      ) == "estado=reposo ventana=488x190 forma=160x24 pantalla=DELL U2412M notchReal=false"
+    )
+    // Sin nombre no se escribe un hueco: una línea con `pantalla=` vacío se
+    // lee como que la pantalla no tiene nombre, no como que el campo faltó.
+    #expect(
+      RegistroDeLaMuesca.linea(
+        estado: .dictando,
+        ventana: CGSize(width: 488, height: 190),
+        forma: CGSize(width: 400, height: 88),
+        pantalla: "",
+        notchReal: true
+      ) == "estado=dictando ventana=488x190 forma=400x88 pantalla=? notchReal=true"
+    )
   }
 }

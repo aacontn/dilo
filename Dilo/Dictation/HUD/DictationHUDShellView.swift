@@ -234,6 +234,27 @@ struct DictationHUDShellView: View {
       content.alHacerClic?()
     }
     .allowsHitTesting(content.estado.tomaElMouse)
+    // Una línea por cambio de estado con los dos tamaños al lado. Se anota acá
+    // y no en `HUDStage` porque estos son los números que la vista acaba de
+    // usar para dibujar: recalcularlos afuera sería un segundo lugar que
+    // decide el tamaño de la forma, que es exactamente el error que se está
+    // diagnosticando (`RegistroDeLaMuesca`).
+    .onChange(of: content.estado, initial: true) {
+      RegistroDeLaMuesca.anotar(
+        estado: content.estado,
+        ventana: HUDNotchGeometry.windowSize(for: screen),
+        forma: formaDibujada,
+        pantalla: screen.nombre,
+        notchReal: HUDNotchGeometry.hasMeasuredNotch(for: screen)
+      )
+    }
+  }
+
+  /// El tamaño que la forma tiene ahora mismo: la silueta en reposo —abierta
+  /// por el hover o no— o la forma del estado abierto. Es el mismo número que
+  /// `HUDSurface` dibuja, no una estimación.
+  private var formaDibujada: CGSize {
+    content.estado.esCompacto ? tamañoEnReposo : size
   }
 
   /// Lo que la forma lleva adentro, según el estado del contrato.
@@ -249,7 +270,9 @@ struct DictationHUDShellView: View {
         dibujaMarca: sinCarcasa,
         contexto: content.contextoVisible,
         modo: modoEnReposo,
-        scale: metrics.scale
+        scale: metrics.scale,
+        // El alto de la silueta, medido: la marca lo llena y no lo estira.
+        alto: tamañoEnReposo.height
       )
     } else {
       islaConEtiquetas

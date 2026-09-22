@@ -70,6 +70,21 @@ enum EstadoDelNotch: Equatable, Sendable {
     self == .reposo
   }
 
+  /// El nombre corto con que este estado aparece en el log de la muesca
+  /// (`RegistroDeLaMuesca`). Sin pasar por el catálogo a propósito: `log show`
+  /// tiene que leerse igual en un Mac en inglés que en uno en español, y el
+  /// valor asociado no viaja — lo que se está diagnosticando ahí es el tamaño
+  /// de la forma, no qué dice.
+  var nombreEnElLog: String {
+    switch self {
+    case .reposo: "reposo"
+    case .preparando: "preparando"
+    case .dictando: "dictando"
+    case .procesando: "procesando"
+    case .resultado: "resultado"
+    }
+  }
+
   /// La línea que le toca a este estado, o nil cuando no dice nada.
   var texto: String? {
     switch self {

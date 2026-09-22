@@ -22,6 +22,13 @@ struct HUDMarcaDeReposo: View {
   /// (`AppSettings.hudModoEnReposo`).
   var modo: String?
   var scale: CGFloat = 1
+  /// El alto exacto de la silueta que esta marca llena: el de la muesca en
+  /// reposo, o el del panel que abre el hover.
+  ///
+  /// Llega de afuera y no se deduce acá porque quien lo sabe es la forma
+  /// (`HUDNotchGeometry.reposoSize`), y un segundo lugar que lo calcule es un
+  /// lugar del que se va a desviar.
+  let alto: CGFloat
 
   var body: some View {
     VStack(spacing: 2 * scale) {
@@ -47,8 +54,16 @@ struct HUDMarcaDeReposo: View {
         punto
       }
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     .padding(.bottom, 5 * scale)
+    .frame(maxWidth: .infinity, alignment: .bottom)
+    // Un alto exacto, y **nunca** `maxHeight: .infinity`. Con infinito la
+    // marca se quedaba con el alto entero de la ventana anfitriona —que está
+    // dimensionada para el estado más alto— y el fondo negro de `HUDSurface`
+    // se estiraba detrás de ella: en un 1080p externo la muesca de 160×24
+    // salía como un bloque de 160×196 colgando de la barra, con el punto
+    // mango abajo del todo. El aire de abajo va adentro del alto, no sumado
+    // encima, o la silueta mide cinco puntos de más.
+    .frame(height: alto, alignment: .bottom)
     .accessibilityElement()
     .accessibilityLabel(Text("Dilo"))
     .accessibilityValue(Text(contexto ?? modo ?? String(localized: "En reposo")))
