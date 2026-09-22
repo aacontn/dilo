@@ -1,10 +1,15 @@
 import AppKit
 
 /// What the HUD says during a Direct Dictation session: listening, the live
-/// draft, finalizing, and the session's sounds.
+/// draft, finalizing.
 ///
 /// It owns none of the window. `HUDStage` decides where the shape is and who
 /// holds it; this decides what dictation puts in it.
+///
+/// Los sonidos de empezar y terminar tampoco son suyos: son de la transición
+/// del contrato y los toca el escenario (`HUDStage.sonarPor`). Acá sólo queda
+/// el de pegar, que no es un estado de la forma sino lo que pasó con el texto
+/// en el documento de otra app.
 @MainActor
 final class DictationHUDController {
   private static let latchedText = "Te escucho (trabado)"
@@ -36,10 +41,6 @@ final class DictationHUDController {
   /// input may simply still be opening rather than broken.
   private var hasHeardAudio = false
   private var micWatchdogTask: Task<Void, Never>?
-  private var hasPlayedBeginSound = false
-  /// Mirrors hasPlayedBeginSound: a shaping phase plays End when speech
-  /// ends, and the hide() that follows it must not replay the sound.
-  private var hasPlayedEndSound = false
 
   private var content: DictationHUDContent { stage.dictationContent }
   private var isListening: Bool { stage.occupant == .dictation }
@@ -54,10 +55,6 @@ final class DictationHUDController {
   /// and marks the microphone alive for the dead-mic watchdog.
   func showAudioLevel(_ level: Float) {
     guard content.showsVoiceVisual else { return }
-    if !hasPlayedBeginSound {
-      hasPlayedBeginSound = true
-      stage.sounds.playBegin(using: sessionSettings.sounds)
-    }
     hasHeardAudio = true
     content.audioLevel = max(Double(level), content.audioLevel * 0.88)
     content.levelHistory.removeFirst()
@@ -98,7 +95,6 @@ final class DictationHUDController {
     guard isListening else { return }
     hasStoppedListening = true
     stopVoiceVisual()
-    reproducirFinal()
     stage.recibir(.procesar)
     // Las palabras dichas se quedan mientras se entregan: son lo que la
     // persona está esperando ver. Sólo se reemplaza el placeholder de
@@ -114,7 +110,6 @@ final class DictationHUDController {
   func showResultado(_ resultado: ResultadoDelNotch) {
     guard isListening else { return }
     stopVoiceVisual()
-    reproducirFinal()
     content.shapingName = nil
     stage.recibir(.entregar(resultado))
     setDraft(resultado.texto)
@@ -128,8 +123,6 @@ final class DictationHUDController {
   ) {
     guard let screen = stage.screen(preferring: displayID) else { return }
     sessionSettings = settings
-    hasPlayedBeginSound = false
-    hasPlayedEndSound = false
     hasStoppedListening = false
     content.languageTag = languageTag
     content.shapingName = nil
@@ -211,7 +204,6 @@ final class DictationHUDController {
     guard isListening else { return }
     hasStoppedListening = true
     stopVoiceVisual()
-    reproducirFinal()
     stage.recibir(.procesar)
     // The arrows are dead once the session finishes, so the pick leaves with
     // them and the caption names the prompt instead.
@@ -236,14 +228,16 @@ final class DictationHUDController {
   func showShapingChoice(_ label: String?) {
     // El modo activo sobrevive a la sesión: es lo que la muesca en reposo
     // puede decir si la persona lo pidió, y es el modo con el que el próximo
-    // dictado arrancaría.
-    if let label, !label.isEmpty { content.modoActivo = label }
+    // dictado arrancaría. Se escribe también cuando llega nil, porque recorrer
+    // las flechas hasta «ningún modo» es una elección: guardando sólo los
+    // nombres, la muesca seguía anunciando el modo que la persona acababa de
+    // soltar.
+    content.modoActivo = label.flatMap { $0.isEmpty ? nil : $0 }
     guard isListening else { return }
     content.shapingChoiceLabel = label
   }
 
   func hide() {
-    if isListening { reproducirFinal() }
     // The shape retracts exactly as it stands. The visual stops reacting so a
     // glow can play its drain, but the bands are pinned and the text is left
     // alone: resizing or relabelling a shape that is already sliding away is
@@ -293,13 +287,5 @@ final class DictationHUDController {
   private func stopWatchdog() {
     micWatchdogTask?.cancel()
     micWatchdogTask = nil
-  }
-
-  /// El sonido de cierre, una sola vez por sesión: la transformación, la
-  /// entrega y el cierre pasan los tres por acá y el habla terminó una vez.
-  private func reproducirFinal() {
-    guard !hasPlayedEndSound else { return }
-    hasPlayedEndSound = true
-    stage.sounds.playEnd(using: sessionSettings.sounds)
   }
 }

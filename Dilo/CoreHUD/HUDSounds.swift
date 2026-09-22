@@ -57,6 +57,19 @@ struct DictationSoundSettings: Equatable {
   }
 }
 
+/// Quién puede reproducir los tres sonidos de una sesión.
+///
+/// Existe para que el escenario pueda decir «acá suena Begin» en un test sin
+/// abrir la tarjeta de sonido de nadie. La regla de este repo —nada que toque
+/// el audio del Mac de Alfonso— vale también para la suite: sin esta costura,
+/// afirmar que empezar un dictado suena obligaba a reproducirlo de verdad.
+@MainActor
+protocol ReproductorDeSonidos: AnyObject {
+  func playBegin(using settings: DictationSoundSettings)
+  func playEnd(using settings: DictationSoundSettings)
+  func playPaste(using settings: DictationSoundSettings)
+}
+
 /// The sounds that bracket a Direct Dictation session: begin when listening
 /// starts, end when the session closes, paste when text lands in the target.
 ///
@@ -68,7 +81,7 @@ struct DictationSoundSettings: Equatable {
 /// Callers supply captured or live sound settings. Assets reload lazily when
 /// the selected set changes.
 @MainActor
-final class HUDSounds {
+final class HUDSounds: ReproductorDeSonidos {
   private var loadedSet: DictationSoundSet?
   private var begin: NSSound?
   private var end: NSSound?

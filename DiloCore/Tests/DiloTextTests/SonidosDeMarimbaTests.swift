@@ -108,14 +108,21 @@ struct SonidosDeMarimbaTests {
     #expect(!wav.muestras.isEmpty)
   }
 
-  /// Es un aviso, no una alarma: el generador normaliza a −14 dBFS y nada
-  /// debe subirlo. La tolerancia es la del redondeo a entero.
+  /// El generador normaliza a −6 dBFS y nada debe moverlo. La tolerancia es
+  /// la del redondeo a entero.
+  ///
+  /// Eran −14, y ese fue medio veredicto del 2026-09-21: «¿antes teníamos
+  /// sonido cuando se activaba?». A −14 el juego de fábrica quedaba diez
+  /// decibeles por debajo de todos los demás del bundle, y al 50 % de volumen
+  /// —también de fábrica— el aviso de empezar aterrizaba en −20 dBFS. Sonaba y
+  /// no se notaba, que para un aviso es lo mismo que no sonar. Sigue sin ser
+  /// una alarma: −6 deja seis decibeles de aire y no recorta en ninguna punta.
   @Test(arguments: SonidosDeMarimbaTests.archivos)
   func cadaWAVLlegaAlPicoEsperado(_ nombre: String) throws {
     let wav = try Self.leer(nombre)
     #expect(
-      abs(wav.picoEnDBFS - (-14.0)) < 0.1,
-      "\(nombre) mide \(wav.picoEnDBFS) dBFS y debería medir -14"
+      abs(wav.picoEnDBFS - (-6.0)) < 0.1,
+      "\(nombre) mide \(wav.picoEnDBFS) dBFS y debería medir -6"
     )
   }
 

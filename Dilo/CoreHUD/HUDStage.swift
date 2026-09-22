@@ -40,7 +40,11 @@ final class HUDStage {
 
   let dictationContent = DictationHUDContent()
   let dropContent = DropHUDContent()
-  let sounds = HUDSounds()
+
+  /// Quien reproduce los tres sonidos de una sesión. Entra por el inicializador
+  /// para que un test pueda afirmar que empezar y terminar suenan sin tocar el
+  /// audio de nadie (`ReproductorDeSonidos`).
+  let sounds: any ReproductorDeSonidos
 
   /// Forwarded to the drop surface, which is the only part of the HUD that
   /// takes input.
@@ -105,9 +109,14 @@ final class HUDStage {
   /// actor principal no puede tocar sus propiedades.
   private var spaceObserver: (any NSObjectProtocol)?
 
-  init(settings: AppSettings, reloj: DeadlineClock = .continuous) {
+  init(
+    settings: AppSettings,
+    reloj: DeadlineClock = .continuous,
+    sonidos: any ReproductorDeSonidos = HUDSounds()
+  ) {
     self.settings = settings
     self.reloj = reloj
+    sounds = sonidos
     control = ControlDelNotch(reloj: reloj)
     renderedSettings = settings.sessionSettings
     let placeholder = HUDScreenSnapshot(
@@ -136,9 +145,10 @@ final class HUDStage {
     )
     observeSpaceChanges()
     observarCambiosDePantallas()
-    control.alCambiar = { [weak self] estado in
+    control.alCambiar = { [weak self] anterior, estado in
       guard let self else { return }
       aplicar(estado)
+      sonarPor(anterior, a: estado)
       // La vuelta a reposo puede venir del temporizador del resultado, y
       // entonces nadie más soltó la forma.
       if estado == .reposo { retract() }
@@ -187,6 +197,55 @@ final class HUDStage {
     actualizarPresencia()
     actualizarZonaInteractiva()
   }
+
+  /// Los dos sonidos que enmarcan una sesión, atados a la **transición** del
+  /// contrato y no a que llegue un búfer de micrófono.
+  ///
+  /// Antes vivían en el controlador de dictado: Begin salía de
+  /// `showAudioLevel`, es decir del primer nivel de audio que llegara, y sólo
+  /// si el visual de voz estaba montado. Una sesión que empieza y no alcanza a
+  /// entregar un búfer —o un visual que no se monta— empezaba muda, y el
+  /// escenario nuevo no tenía dónde avisar. Reposo→dictando es el momento
+  /// exacto que Dilo-Tauri usaba (`actions.rs`: el sonido sale al arrancar la
+  /// grabación, no al oír), así que acá vuelve a estar.
+  ///
+  /// Uno solo por sesión de cada lado, y por eso hay dos banderas y no una
+  /// comparación de estados: esperar un modelo a mitad de dictado manda la
+  /// forma a `preparando` y la trae de vuelta a `dictando`, así que «entrar a
+  /// dictando» ocurre más de una vez por sesión. La sesión termina al volver a
+  /// reposo, que es donde las dos se reinician.
+  private func sonarPor(_ anterior: EstadoDelNotch, a nuevo: EstadoDelNotch) {
+    let ajustes = renderedSettings.sounds
+    guard nuevo != .reposo else {
+      // Un dictado cancelado no pasa por procesando ni por resultado, y
+      // terminó igual.
+      if comenzoSonando, !terminoSonando { sounds.playEnd(using: ajustes) }
+      comenzoSonando = false
+      terminoSonando = false
+      return
+    }
+    switch nuevo {
+    case .dictando:
+      guard !comenzoSonando else { return }
+      comenzoSonando = true
+      sounds.playBegin(using: ajustes)
+    case .procesando, .resultado:
+      // Sin comienzo no hay final: por acá pasan también los avisos de estado,
+      // que entran a la forma por el mismo resultado del contrato y sonarían
+      // como si alguien hubiera terminado de hablar.
+      guard comenzoSonando, !terminoSonando else { return }
+      terminoSonando = true
+      sounds.playEnd(using: ajustes)
+    case .preparando, .reposo:
+      break
+    }
+  }
+
+  /// Si esta sesión ya sonó al empezar y al terminar. Del escenario y no del
+  /// controlador de dictado porque el escenario es uno solo: dos features se
+  /// turnan la misma forma y llevarían dos copias de esto.
+  private var comenzoSonando = false
+  private var terminoSonando = false
 
   /// Si la forma está escondida ahora mismo: sólo el reposo, y sólo donde no
   /// hay barra de menús de la que colgar (`HUDNotchGeometry.reposoSeEsconde`).

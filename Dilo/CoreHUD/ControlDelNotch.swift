@@ -19,7 +19,13 @@ final class ControlDelNotch {
 
   /// Se llama en cada cambio de estado, incluida la vuelta a reposo por
   /// tiempo cumplido.
-  var alCambiar: ((EstadoDelNotch) -> Void)?
+  ///
+  /// Lleva los dos estados y no sólo el nuevo porque hay cosas que son de la
+  /// **transición** y no del estado: el sonido de empezar es reposo→dictando,
+  /// el de terminar es dictando→lo que sea. Con sólo el destino, quien
+  /// escucha tiene que llevar su propia copia del estado anterior, y esa copia
+  /// es un segundo lugar que se desincroniza.
+  var alCambiar: ((_ anterior: EstadoDelNotch, _ nuevo: EstadoDelNotch) -> Void)?
 
   var estado: EstadoDelNotch { maquina.estado }
 
@@ -34,7 +40,7 @@ final class ControlDelNotch {
       aplicar(efecto)
     }
     if maquina.estado != anterior {
-      alCambiar?(maquina.estado)
+      alCambiar?(anterior, maquina.estado)
     }
   }
 

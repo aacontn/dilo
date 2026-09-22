@@ -29,7 +29,13 @@ import wave
 from pathlib import Path
 
 FRECUENCIA_DE_MUESTREO = 48_000
-PICO_OBJETIVO_DBFS = -14.0
+# -6 dBFS y no -14. A -14 el juego de fábrica quedaba unos diez decibeles por
+# debajo de todos los demás del bundle (Synth va a -4,5 y Click a -0,5), y al
+# 50 % de volumen —también de fábrica— el aviso de empezar aterrizaba en -20
+# dBFS: sonaba, pero no se notaba. Ese fue medio veredicto del 2026-09-21
+# («¿antes teníamos sonido cuando se activaba?»). Sigue siendo un aviso y no
+# una alarma: -6 deja seis decibeles de aire y no recorta en ninguna punta.
+PICO_OBJETIVO_DBFS = -6.0
 
 SOL4 = 392.00
 DO5 = 523.25

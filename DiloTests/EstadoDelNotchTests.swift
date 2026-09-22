@@ -157,7 +157,7 @@ struct EstadoDelNotchTests {
     let reloj = DrivenClock()
     let control = ControlDelNotch(reloj: reloj.deadlineClock)
     var vistos: [EstadoDelNotch] = []
-    control.alCambiar = { vistos.append($0) }
+    control.alCambiar = { _, nuevo in vistos.append(nuevo) }
 
     control.recibir(.escuchar)
     control.recibir(.entregar(.listo))
