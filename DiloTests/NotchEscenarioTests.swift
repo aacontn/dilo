@@ -254,13 +254,28 @@ struct NotchEscenarioTests {
   @MainActor
   @Test func elHoverNoCaptura() async {
     let reloj = DrivenClock()
-    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
+    // El puntero entra por el monitor, que es la única fuente de «está
+    // encima» desde que el `onHover` de la vista demostró no ver la entrada
+    // (`MonitorDelPuntero`). Simulado, para no leer el cursor de nadie.
+    let cursor = CursorSimulado()
+    let stage = HUDStage(
+      settings: AppSettings.previewStore(),
+      reloj: reloj.deadlineClock,
+      punteroEn: { cursor.punto }
+    )
+    stage.colocar(en: simulado)
     stage.dictationContent.contexto = "Correo"
-    stage.dictationContent.alEntrarElPuntero?(true)
+    let silueta = HUDNotchGeometry.siluetaEnPantalla(
+      for: simulado,
+      tamaño: HUDNotchGeometry.reposoSize(for: simulado),
+      encuadre: .reposo
+    )
+    cursor.punto = CGPoint(x: silueta.midX, y: silueta.midY)
+    stage.punteroSeMovio(a: cursor.punto)
 
     await reloj.waitForSleeper()
-    reloj.advance(by: HUDStage.toleranciaDelHover)
     while !stage.dictationContent.punteroEncima {
+      reloj.advance(by: HUDStage.toleranciaDelHover)
       await Task.yield()
     }
 

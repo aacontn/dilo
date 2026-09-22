@@ -51,10 +51,13 @@ pasa del tamaño final y la sombra necesita su holgura, así que una ventana
 ajustada al reposo recortaba la animación. La salida es que las dos
 direcciones no sean simétricas.
 
-- **En reposo la ventana es la silueta más la holgura que de verdad se
-  dibuja**: la sombra (`HUDMetrics.shadowRadius + shadowOffsetY`, 15 puntos) y,
-  a los lados, las alas cóncavas si son más anchas. En un 1080p sin carcasa,
-  190×39 en vez de 488×190.
+- **En reposo la ventana es la silueta, y nada más**: ni un punto debajo de
+  ella, y a los lados sólo lo que las dos alas cóncavas cuelgan fuera. En un
+  1080p sin carcasa, 178×24 en vez de 488×190. La holgura de la sombra no
+  entra, porque **en reposo no hay sombra**: la muesca quieta es hardware y el
+  recorte de un MacBook no tiñe lo que tiene debajo. Pintarla igual costaba las
+  dos cosas juntas —un halo cruzando la barra de menús y una ventana de 190×45
+  medida con `CGWindowListCopyWindowInfo`— y las dos se veían (2026-09-22).
 - **Abierta, la ventana es el estado más alto más la holgura de la revelación**:
   la sombra más lo que el rebote se pasa del tamaño final. El sobrepaso no se
   estima a ojo, se calcula del `bounce` de cada estilo —`exp(−πζ/√(1−ζ²))`, con

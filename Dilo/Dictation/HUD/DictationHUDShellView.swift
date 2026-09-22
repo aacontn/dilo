@@ -224,11 +224,14 @@ struct DictationHUDShellView: View {
     // Sólo la silueta toma el mouse, y sólo en los estados que hacen algo con
     // él (`EstadoDelNotch.tomaElMouse`); la ventana anfitriona es mucho más
     // ancha que la forma y el resto tiene que dejar pasar el clic.
+    //
+    // **Sin `onHover`.** Que el puntero esté encima lo decide el monitor del
+    // puntero, no esta vista: la ventana ignora el mouse justo mientras el
+    // puntero entra, así que el `mouseEntered` de esa entrada no llega nunca,
+    // y el `mouseExited` que AppKit manda al rearmar el área de seguimiento
+    // cuando la ventana crece cerraba el panel recién abierto
+    // (`MonitorDelPuntero`, `HUDStage.punteroSeMovio`).
     .contentShape(Rectangle())
-    .onHover { dentro in
-      guard content.estado.tomaElMouse else { return }
-      content.alEntrarElPuntero?(dentro)
-    }
     .onTapGesture {
       guard content.estado.tomaElMouse else { return }
       content.alHacerClic?()

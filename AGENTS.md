@@ -306,11 +306,17 @@ siendo cierto:
   colgando de la barra, mientras la geometría decía 24 y los PNG salían bien.
   Cada cambio de estado deja una línea con los dos tamaños en
   `log show --predicate 'subsystem == "cl.espaciodigital.dilo"'`, categoría
-  `muesca` (`RegistroDeLaMuesca`; en Release, con `DILO_LOG_MUESCA=1`).
+  `muesca`, más una línea al arrancar (`RegistroDeLaMuesca`). En Release hay que
+  encenderlo, y con un ajuste y no sólo con la variable de entorno: una app
+  abierta desde el Finder no hereda el entorno de ningún terminal —
+  `defaults write cl.espaciodigital.dilo DILO_LOG_MUESCA -bool YES`.
 - **Y la ventana tampoco es siempre la misma.** `HUDNotchGeometry.EncuadreDeLaVentana`
-  tiene dos tamaños por pantalla: en reposo la anfitriona se ajusta a la
-  silueta más la holgura de la sombra (190×39 en un 1080p sin carcasa) y sólo
-  crece al estado más alto (488×190) mientras la forma está abierta. Crece
+  tiene dos tamaños por pantalla: en reposo la anfitriona **es** la silueta
+  —178×24 en un 1080p sin carcasa: la muesca más lo que las alas cóncavas
+  cuelgan a los lados, y ni un punto de alto de más— y sólo crece al estado más
+  alto (488×190) mientras la forma está abierta. En reposo no hay sombra que
+  alojar: la muesca quieta es hardware y no tiñe lo que tiene debajo
+  (`HUDSurface.proyectaSombra`). Crece
   **antes** de que la animación arranque y se encoge **después** de que
   termine, con la holgura que el rebote del resorte necesita
   (`HUDRevealStyle.sobrepaso`). Una ventana grande en reposo es pantalla
@@ -324,6 +330,16 @@ siendo cierto:
   Boring Notch y Notch Buddy). El hit test solo no basta: pierde el clic en vez
   de pasarlo a la ventana de abajo. Un hover revela contexto y **nunca**
   arranca una captura.
+- **Quién sabe que el puntero está encima es el monitor, no la vista.** El
+  `onHover` de SwiftUI no ve la entrada —la ventana está ignorando el mouse
+  justo cuando el puntero llega, así que el `mouseEntered` no existe— y sí
+  manda una salida falsa cuando la ventana cambia de tamaño, que es lo que el
+  hover hace al abrirse: con las dos fuentes peleándose, posarse sobre la
+  muesca no hacía nada. `MonitorDelPuntero` (global + sondeo de 80 ms) alimenta
+  a `HUDStage.punteroSeMovio` y el escenario aplica el retardo. Y el panel
+  siempre tiene algo que decir (`DictationHUDContent.contextoVisible`): exigir
+  `contexto`, que sólo existe después del primer dictado, dejaba el hover mudo
+  en una app recién instalada.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**

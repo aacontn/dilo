@@ -224,17 +224,33 @@ struct MuescaTests {
     let ajustes = AppSettings.previewStore()
     ajustes.hudRetardoDeHover = 1.2
     let reloj = DrivenClock()
-    let stage = HUDStage(settings: ajustes, reloj: reloj.deadlineClock)
+    let simulada = pantalla(barra: 24)
+    // El puntero entra por el monitor y no por la vista: es la única fuente
+    // de «está encima» desde que el `onHover` demostró no ver la entrada
+    // (`MonitorDelPuntero`). Simulado, para no leer el cursor de nadie.
+    let cursor = CursorSimulado()
+    let stage = HUDStage(
+      settings: ajustes,
+      reloj: reloj.deadlineClock,
+      punteroEn: { cursor.punto }
+    )
+    stage.colocar(en: simulada)
     stage.dictationContent.contexto = "Correo"
-    stage.dictationContent.alEntrarElPuntero?(true)
+    let silueta = HUDNotchGeometry.siluetaEnPantalla(
+      for: simulada,
+      tamaño: HUDNotchGeometry.reposoSize(for: simulada),
+      encuadre: .reposo
+    )
+    cursor.punto = CGPoint(x: silueta.midX, y: silueta.midY)
+    stage.punteroSeMovio(a: cursor.punto)
 
     await reloj.waitForSleeper()
     reloj.advance(by: .milliseconds(500))
     await Task.yield()
     #expect(!stage.dictationContent.punteroEncima, "medio segundo no alcanza con 1,2 s")
 
-    reloj.advance(by: .milliseconds(700))
     while !stage.dictationContent.punteroEncima {
+      reloj.advance(by: .milliseconds(700))
       await Task.yield()
     }
     #expect(stage.dictationContent.contextoVisible == "Correo")

@@ -84,7 +84,9 @@ enum RenderDeLaMuesca {
           Color(white: 0.93).frame(height: HUDNotchGeometry.altoDeLaBarra(for: pantalla))
           Color(red: 0.62, green: 0.72, blue: 0.86)
         }
-        silueta(tamaño: reposo, radio: radio) { marcaDeReposo(alto: reposo.height) }
+        silueta(tamaño: reposo, radio: radio, sombra: false) {
+          marcaDeReposo(alto: reposo.height)
+        }
       }
       .frame(width: 220, height: 60, alignment: .top),
       en: destino,
@@ -120,9 +122,16 @@ enum RenderDeLaMuesca {
   /// el alto ofrecido, el alto como mínimo —la banda de texto puede crecer— y
   /// recién ahí el fondo negro. Copiar `frame(width:height:)` en su lugar es
   /// lo que hacía que estos PNG no pudieran fallar nunca.
+  ///
+  /// `sombra: false` es el reposo, y no es un gusto del render: la muesca
+  /// quieta es hardware y el hardware no tiñe lo que tiene debajo
+  /// (`HUDSurface.proyectaSombra`). Con la sombra puesta, estos PNG mostraban
+  /// un halo bajo la barra de menús que la app también dibujaba, y dejaban de
+  /// ser evidencia de nada.
   static func silueta(
     tamaño: CGSize,
     radio: CGFloat,
+    sombra: Bool = true,
     @ViewBuilder contenido: () -> some View
   ) -> some View {
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
@@ -139,7 +148,11 @@ enum RenderDeLaMuesca {
           style: .continuous
         )
         .fill(Color.black)
-        .shadow(color: .black.opacity(0.35), radius: 11, y: 4)
+        .shadow(
+          color: .black.opacity(sombra ? 0.35 : 0),
+          radius: sombra ? HUDMetrics.standard.shadowRadius : 0,
+          y: sombra ? HUDMetrics.standard.shadowOffsetY : 0
+        )
       }
       .overlay(alignment: .topLeading) { ala(.leading, fillet) }
       .overlay(alignment: .topTrailing) { ala(.trailing, fillet) }
@@ -163,16 +176,17 @@ enum RenderDeLaMuesca {
     encuadre: HUDNotchGeometry.EncuadreDeLaVentana = .abierta,
     @ViewBuilder contenido: () -> some View
   ) -> some View {
-    // La ventana mide lo que mide el estado: en reposo es la muesca más la
-    // holgura de la sombra, y sólo crece con la forma abierta. El marco
-    // punteado del PNG es lo que deja ver de un vistazo que ya no hay 190
-    // puntos de ventana transparente comiéndose clics bajo la muesca.
+    // La ventana mide lo que mide el estado: en reposo **es** la muesca —sin
+    // sombra que alojar, sólo lo que las alas cuelgan a los lados— y sólo
+    // crece con la forma abierta. El marco punteado del PNG es lo que deja ver
+    // de un vistazo que ya no hay 190 puntos de ventana transparente
+    // comiéndose clics bajo la muesca.
     let ventana = HUDNotchGeometry.windowSize(for: pantalla, encuadre: encuadre)
     // El marco va **detrás**: es el contorno de la ventana, y una línea
     // punteada cruzando la silueta arruina justo lo que se viene a mirar.
     return ZStack(alignment: .top) {
       marcoDeLaVentana
-      silueta(tamaño: tamaño, radio: radio, contenido: contenido)
+      silueta(tamaño: tamaño, radio: radio, sombra: encuadre == .abierta, contenido: contenido)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     .frame(width: ventana.width, height: ventana.height)
@@ -442,7 +456,8 @@ enum RenderDeLaMuesca {
       panelDeComparacion(titulo: "Después · muesca del alto de la barra") {
         silueta(
           tamaño: HUDNotchGeometry.reposoSize(for: pantalla),
-          radio: HUDNotchGeometry.radioEnReposo(for: pantalla)
+          radio: HUDNotchGeometry.radioEnReposo(for: pantalla),
+          sombra: false
         ) { marcaDeReposo(alto: HUDNotchGeometry.reposoSize(for: pantalla).height) }
       }
     }

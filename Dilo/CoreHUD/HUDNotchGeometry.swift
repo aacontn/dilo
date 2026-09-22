@@ -63,8 +63,10 @@ enum HUDNotchGeometry {
   /// inutilizados todo el tiempo aunque el 99 % del tiempo la forma sea una
   /// muesca de 24 puntos de alto (ADR-0001, enmienda del 2026-09-22).
   enum EncuadreDeLaVentana: Equatable, Sendable {
-    /// La silueta quieta: la ventana es la muesca más la sombra que se
-    /// dibuja alrededor de ella.
+    /// La silueta quieta: la ventana **es** la muesca. Ni un punto debajo de
+    /// ella, porque en reposo no hay sombra que alojar
+    /// (`HUDSurface.proyectaSombra`); a los lados, sólo lo que las dos alas
+    /// cóncavas cuelgan fuera de la silueta.
     case reposo
     /// Cualquier forma abierta o creciendo: la ventana da lugar al estado más
     /// alto, a su sombra y al sobrepaso del resorte.
@@ -82,10 +84,22 @@ enum HUDNotchGeometry {
     metrics.shadowRadius + metrics.shadowOffsetY
   }
 
-  /// La holgura de la ventana **en reposo**: la sombra, y a los lados también
-  /// las dos alas cóncavas, que cuelgan fuera de la silueta.
+  /// La holgura de la ventana **en reposo**, y sólo a los lados: lo que las
+  /// dos alas cóncavas cuelgan fuera de la silueta.
+  ///
+  /// **La sombra ya no entra acá.** En reposo la muesca es hardware: el
+  /// recorte de un MacBook no tiñe lo que tiene debajo, y la imitación
+  /// tampoco puede hacerlo. Pintarla igual costaba dos cosas a la vez —un
+  /// halo gris cruzando la barra de menús, y una ventana de 190×45 donde la
+  /// silueta mide 160×24— y las dos se veían (veredicto del 2026-09-22: «una
+  /// sombra debajo que tiñe lo que está abajo»). La holgura de sombra entra
+  /// al abrir, que es cuando la forma de verdad cuelga sobre el escritorio.
+  ///
+  /// Las alas sí se quedan: son negro opaco de la propia silueta, y una
+  /// ventana de exactamente 160 puntos se las recortaría — que es lo único
+  /// que separa a la muesca de un rectángulo apoyado encima de la barra.
   static func holguraEnReposo(for screen: HUDScreenSnapshot) -> CGFloat {
-    max(holguraDeSombra(), filletSize(for: screen))
+    filletSize(for: screen)
   }
 
   /// La holgura de la ventana **abierta**: la sombra más lo que el rebote del
@@ -456,7 +470,11 @@ enum HUDNotchGeometry {
       let holgura = holguraEnReposo(for: screen)
       return CGSize(
         width: min(silueta.width + holgura * 2, screen.frame.width),
-        height: silueta.height + holgura
+        // Exactamente la silueta: **nada** debajo. Las alas cuelgan a los
+        // lados y a la altura de la silueta, así que no piden alto; cada
+        // punto de más sería barra de menús que la ventana se queda sin
+        // dibujar nada en ella.
+        height: silueta.height
       )
     case .abierta:
       let holgura = holguraDeRevelacion(for: screen)

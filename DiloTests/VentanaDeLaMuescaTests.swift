@@ -61,7 +61,9 @@ struct VentanaDeLaMuescaTests {
         let silueta = HUDNotchGeometry.reposoSize(for: pantalla)
         let holgura = HUDNotchGeometry.holguraEnReposo(for: pantalla)
         #expect(ventana.width == silueta.width + holgura * 2)
-        #expect(ventana.height == silueta.height + holgura)
+        // Ni un punto de alto de más: en reposo no hay sombra que alojar, y
+        // lo que sobrara sería barra de menús que la ventana se queda.
+        #expect(ventana.height == silueta.height)
       case .abierta:
         let holgura = HUDNotchGeometry.holguraDeRevelacion(for: pantalla)
         #expect(ventana.width == HUDMetrics.standard.contentWidth + holgura * 2)
@@ -72,22 +74,31 @@ struct VentanaDeLaMuescaTests {
     }
   }
 
-  /// Los números de la pantalla del reclamo, escritos enteros: 190×39 en
+  /// Los números de la pantalla del reclamo, escritos enteros: 178×24 en
   /// reposo contra los 488×190 de la forma abierta.
+  ///
+  /// El 190×45 que Alfonso midió con `CGWindowListCopyWindowInfo` el
+  /// 2026-09-22 salía de alojar la sombra en reposo. Los 18 puntos de ancho
+  /// que quedan son las dos alas cóncavas, que son negro de la propia
+  /// silueta: una ventana de 160 exactos se las recortaría.
   @Test func enReposoLaVentanaNoTapaLaBarraDeMenus() {
     let reposo = HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo)
-    #expect(reposo == CGSize(width: 190, height: 39))
+    #expect(reposo == CGSize(width: 178, height: 24))
     #expect(HUDNotchGeometry.windowSize(for: simulado) == CGSize(width: 488, height: 190))
-    // Lo que el reclamo medía: la ventana en reposo ya no llega ni a la
-    // cuarta parte de lo que llegaba.
-    #expect(reposo.height < 40)
-    #expect(reposo.width < 200)
+    // Lo que el reclamo medía: la ventana en reposo no baja de la barra de
+    // menús ni un punto.
+    #expect(reposo.height == simulado.menuBarHeight)
+    #expect(reposo.width < 180)
   }
 
-  /// La holgura de reposo es la que la sombra dibujada necesita —el mismo
-  /// desenfoque y el mismo desplazamiento con que `HUDSurface` la pinta—, y
-  /// alcanza además para las dos alas cóncavas que cuelgan a los lados.
-  @Test func laHolguraEnReposoEsLaSombraQueDeVerdadSeDibuja() {
+  /// En reposo la ventana no lleva sombra, así que tampoco lleva holgura para
+  /// ella: lo único que cuelga fuera de la silueta son las dos alas cóncavas.
+  ///
+  /// Las dos mitades del mismo arreglo, y por eso se afirman juntas: la
+  /// sombra dibujada y la holgura de la ventana salían del mismo número, y
+  /// bajar una sin la otra deja o un halo recortado o una ventana con
+  /// pantalla muerta adentro.
+  @Test func enReposoNoHayHolguraDeSombraPorqueNoHaySombra() {
     #expect(
       HUDNotchGeometry.holguraDeSombra()
         == HUDMetrics.standard.shadowRadius + HUDMetrics.standard.shadowOffsetY
@@ -95,8 +106,29 @@ struct VentanaDeLaMuescaTests {
     #expect(HUDNotchGeometry.holguraDeSombra() == 15)
     for pantalla in [simulado, pildora, conNotch] {
       let holgura = HUDNotchGeometry.holguraEnReposo(for: pantalla)
-      #expect(holgura >= HUDNotchGeometry.holguraDeSombra())
-      #expect(holgura >= HUDNotchGeometry.filletSize(for: pantalla), "las alas caben")
+      #expect(holgura == HUDNotchGeometry.filletSize(for: pantalla), "sólo las alas")
+      #expect(holgura < HUDNotchGeometry.holguraDeSombra(), "la sombra no entra en reposo")
+      // Y la holgura de la revelación sí la sigue llevando: al abrirse la
+      // forma cuelga de verdad sobre el escritorio.
+      #expect(
+        HUDNotchGeometry.holguraDeRevelacion(for: pantalla)
+          >= HUDNotchGeometry.holguraDeSombra()
+      )
+    }
+  }
+
+  /// La ventana en reposo no baja de la barra de menús en ninguna pantalla:
+  /// su borde de abajo es el borde de abajo de la silueta.
+  @Test func laVentanaEnReposoTerminaDondeTerminaLaSilueta() {
+    for pantalla in [simulado, pildora, conNotch] {
+      let ventana = HUDNotchGeometry.windowFrame(for: pantalla, encuadre: .reposo)
+      let silueta = HUDNotchGeometry.siluetaEnPantalla(
+        for: pantalla,
+        tamaño: HUDNotchGeometry.reposoSize(for: pantalla),
+        encuadre: .reposo
+      )
+      #expect(ventana.minY == silueta.minY)
+      #expect(ventana.height == silueta.height)
     }
   }
 
@@ -162,8 +194,15 @@ struct VentanaDeLaMuescaTests {
   // MARK: El mouse
 
   @MainActor
-  private func escenarioEnReposo(_ reloj: DrivenClock) -> HUDStage {
-    let stage = HUDStage(settings: AppSettings.previewStore(), reloj: reloj.deadlineClock)
+  private func escenarioEnReposo(
+    _ reloj: DrivenClock,
+    puntero: CursorSimulado = CursorSimulado()
+  ) -> HUDStage {
+    let stage = HUDStage(
+      settings: AppSettings.previewStore(),
+      reloj: reloj.deadlineClock,
+      punteroEn: { puntero.punto }
+    )
     stage.colocar(en: simulado)
     return stage
   }
@@ -180,18 +219,18 @@ struct VentanaDeLaMuescaTests {
 
   /// En reposo, con el puntero en cualquier otra parte, la ventana deja pasar
   /// el mouse entero. Es la mitad del arreglo que el tamaño no cubre: aun
-  /// dentro de los 190×39, los puntos de la holgura de la sombra son barra de
-  /// menús de la app de al lado.
+  /// dentro de los 178×24, los puntos que ocupan las alas son barra de menús
+  /// de la app de al lado.
   @MainActor
   @Test func enReposoConElPunteroFueraLaVentanaIgnoraElMouse() {
     let stage = escenarioEnReposo(DrivenClock())
     #expect(stage.encuadre == .reposo)
     #expect(stage.ventanaIgnoraElMouse)
 
-    // Un punto dentro de la ventana pero debajo de la silueta: la holgura de
-    // la sombra no toma clics.
+    // Un punto dentro de la ventana pero al costado de la silueta: la franja
+    // de las alas no toma clics.
     let ventana = stage.marcoDeLaVentana
-    stage.punteroSeMovio(a: CGPoint(x: ventana.midX, y: ventana.minY + 2))
+    stage.punteroSeMovio(a: CGPoint(x: ventana.minX + 2, y: ventana.midY))
     #expect(!stage.punteroSobreLaSilueta)
     #expect(stage.ventanaIgnoraElMouse)
 
@@ -227,6 +266,85 @@ struct VentanaDeLaMuescaTests {
     #expect(stage.ventanaIgnoraElMouse)
   }
 
+  // MARK: El hover
+
+  /// Posarse sobre la muesca revela contexto, y el único que lo decide es el
+  /// monitor del puntero.
+  ///
+  /// Sale del reporte del 2026-09-22: «hover no hace nada». Eran dos cosas a
+  /// la vez, y las dos se afirman acá. La primera, que la revelación exigía
+  /// `contexto`, que sólo se escribe al terminar el primer dictado: en una app
+  /// recién instalada la condición era falsa siempre. La segunda, que quien
+  /// avisaba de la entrada era el `onHover` de la vista, que no puede verla —
+  /// la ventana está ignorando el mouse justo cuando el puntero llega— y que
+  /// además mandaba una salida falsa al crecer la ventana.
+  ///
+  /// Nada de esto toca la GUI: el puntero es simulado y el reloj es dirigido.
+  @MainActor
+  @Test func elPunteroSobreLaMuescaAbreElContextoYAlIrseLoCierra() async {
+    let reloj = DrivenClock()
+    let puntero = CursorSimulado()
+    let stage = escenarioEnReposo(reloj, puntero: puntero)
+    let afuera = CGPoint(x: 400, y: simulado.frame.maxY - 8)
+
+    // Recién instalada: nadie dictó todavía, así que no hay nada que contar.
+    // Antes esto bastaba para que el hover no hiciera absolutamente nada.
+    #expect(stage.dictationContent.contexto == nil)
+    #expect(stage.dictationContent.contextoVisible == nil)
+
+    puntero.punto = afuera
+    stage.punteroSeMovio(a: afuera)
+    #expect(!stage.punteroSobreLaSilueta)
+    #expect(!stage.dictationContent.punteroEncima)
+
+    // Encima: el mouse se toma en el acto —si no, el primer clic se pierde—
+    // y el contexto todavía no, que es para lo que existe el retardo.
+    puntero.punto = sobreLaMuesca
+    stage.punteroSeMovio(a: sobreLaMuesca)
+    #expect(stage.punteroSobreLaSilueta)
+    #expect(!stage.ventanaIgnoraElMouse)
+    #expect(!stage.dictationContent.punteroEncima)
+
+    await reloj.waitForSleeper()
+    // Por vueltas y no de un golpe: el sondeo del puntero y el retardo del
+    // hover arman su espera cada uno por su lado, y un único `advance` puede
+    // caer antes de que la segunda se registre.
+    while !stage.dictationContent.punteroEncima {
+      reloj.advance(by: HUDStage.toleranciaDelHover)
+      await Task.yield()
+    }
+    #expect(stage.dictationContent.contextoVisible == DictationHUDContent.contextoDeFabrica)
+    #expect(stage.encuadre == .abierta, "la ventana creció antes que el panel")
+    #expect(!stage.estado.captura, "un hover jamás abre el micrófono")
+
+    // Y al irse se cierra tras la misma gracia, sin que la vista avise nada.
+    puntero.punto = afuera
+    stage.punteroSeMovio(a: afuera)
+    #expect(stage.dictationContent.punteroEncima, "todavía no: la gracia manda")
+    await reloj.waitForSleeper()
+    while stage.dictationContent.punteroEncima {
+      reloj.advance(by: HUDStage.toleranciaDelHover)
+      await Task.yield()
+    }
+    #expect(stage.dictationContent.contextoVisible == nil)
+    #expect(stage.ventanaIgnoraElMouse)
+  }
+
+  /// Lo último que se dictó manda sobre el nombre de fábrica: el hover está
+  /// para eso, y el nombre es sólo lo que queda cuando no hay nada mejor.
+  @MainActor
+  @Test func elHoverPrefiereLoUltimoDictado() {
+    let content = DictationHUDContent()
+    content.punteroEncima = true
+    #expect(content.contextoVisible == DictationHUDContent.contextoDeFabrica)
+    content.modoActivo = "Correo"
+    #expect(content.contextoVisible == "Correo")
+    content.contexto = "Listo · «quedamos el martes»"
+    #expect(content.contextoVisible == "Listo · «quedamos el martes»")
+    content.punteroEncima = false
+    #expect(content.contextoVisible == nil)
+  }
+
   // MARK: El momento de crecer y el de encoger
 
   /// La ventana crece **antes** de que la revelación arranque y se encoge
@@ -237,7 +355,7 @@ struct VentanaDeLaMuescaTests {
     let reloj = DrivenClock()
     let stage = escenarioEnReposo(reloj)
     #expect(stage.encuadre == .reposo)
-    #expect(stage.marcoDeLaVentana.height == 39)
+    #expect(stage.marcoDeLaVentana.height == 24)
 
     stage.claim(.dictation, on: simulado)
     stage.recibir(.escuchar)
@@ -259,8 +377,8 @@ struct VentanaDeLaMuescaTests {
       reloj.advance(by: HUDStage.dismissDuration)
       await Task.yield()
     }
-    #expect(stage.marcoDeLaVentana.height == 39)
-    #expect(stage.marcoDeLaVentana.width == 190)
+    #expect(stage.marcoDeLaVentana.height == 24)
+    #expect(stage.marcoDeLaVentana.width == 178)
   }
 
   /// El log dice qué ventana estaba puesta en cada estado, que es lo que
@@ -275,7 +393,7 @@ struct VentanaDeLaMuescaTests {
         forma: HUDNotchGeometry.reposoSize(for: simulado),
         pantalla: simulado.nombre,
         notchReal: false
-      ) == "estado=reposo ventana=190x39 forma=160x24 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=reposo ventana=178x24 forma=160x24 pantalla=DELL U2412M notchReal=false"
     )
     #expect(
       RegistroDeLaMuesca.linea(
@@ -286,5 +404,52 @@ struct VentanaDeLaMuescaTests {
         notchReal: false
       ) == "estado=dictando ventana=488x190 forma=400x88 pantalla=DELL U2412M notchReal=false"
     )
+  }
+
+  /// Y una línea al arrancar, con su prefijo: si falta, lo que no ocurrió fue
+  /// el montaje del escenario, que es un diagnóstico distinto de «la forma
+  /// salió mal».
+  @Test func elLogDejaUnaLineaAlArrancar() {
+    #expect(
+      RegistroDeLaMuesca.lineaDelArranque(
+        estado: .reposo,
+        ventana: HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo),
+        forma: HUDNotchGeometry.reposoSize(for: simulado),
+        pantalla: simulado.nombre,
+        notchReal: false
+      )
+        == "arranque estado=reposo ventana=178x24 forma=160x24 "
+        + "pantalla=DELL U2412M notchReal=false"
+    )
+  }
+
+  /// El gating del registro, que es lo que lo dejó mudo.
+  ///
+  /// En Debug pasa siempre. En Release hay que encenderlo, y la variable de
+  /// entorno sola no alcanzaba: una app abierta desde el Finder, desde el Dock
+  /// o con `open -a` no hereda el entorno de ningún terminal, así que
+  /// `DILO_LOG_MUESCA=1` se exportaba y no llegaba nunca. El ajuste sí llega.
+  @Test func elRegistroPasaEnDebugYSoloEncendidoEnRelease() {
+    #expect(RegistroDeLaMuesca.dejaPasar(debug: true, entorno: [:], ajustes: nil))
+    #expect(!RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [:], ajustes: nil))
+
+    let interruptor = RegistroDeLaMuesca.interruptor
+    #expect(
+      RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [interruptor: "1"], ajustes: nil)
+    )
+    #expect(
+      RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [interruptor: "TRUE"], ajustes: nil)
+    )
+    #expect(
+      !RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [interruptor: "0"], ajustes: nil)
+    )
+
+    let suite = "cl.espaciodigital.dilo.tests.muesca"
+    let ajustes = UserDefaults(suiteName: suite)
+    ajustes?.removeObject(forKey: interruptor)
+    #expect(!RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [:], ajustes: ajustes))
+    ajustes?.set(true, forKey: interruptor)
+    #expect(RegistroDeLaMuesca.dejaPasar(debug: false, entorno: [:], ajustes: ajustes))
+    ajustes?.removeObject(forKey: interruptor)
   }
 }

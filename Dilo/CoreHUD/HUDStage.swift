@@ -122,13 +122,14 @@ final class HUDStage {
   init(
     settings: AppSettings,
     reloj: DeadlineClock = .continuous,
-    sonidos: any ReproductorDeSonidos = HUDSounds()
+    sonidos: any ReproductorDeSonidos = HUDSounds(),
+    punteroEn: @escaping @MainActor () -> CGPoint = { NSEvent.mouseLocation }
   ) {
     self.settings = settings
     self.reloj = reloj
     sounds = sonidos
     control = ControlDelNotch(reloj: reloj)
-    puntero = MonitorDelPuntero(reloj: reloj)
+    puntero = MonitorDelPuntero(reloj: reloj, posicion: punteroEn)
     renderedSettings = settings.sessionSettings
     let placeholder = HUDScreenSnapshot(
       id: 0,
@@ -164,9 +165,6 @@ final class HUDStage {
       // entonces nadie más soltó la forma.
       if estado == .reposo { retract() }
     }
-    dictationContent.alEntrarElPuntero = { [weak self] dentro in
-      self?.punteroEncima(dentro)
-    }
     dictationContent.alHacerClic = { [weak self] in
       self?.clicEnLaSilueta()
     }
@@ -190,6 +188,17 @@ final class HUDStage {
     // ignora el mouse mientras el puntero esté fuera de la silueta, y sin
     // alguien mirando dónde está no habría forma de volver a tomarlo.
     puntero.empezar()
+    // Una línea al arrancar, y desde el escenario y no desde la vista: si el
+    // registro está encendido y **esta** línea falta, lo que no ocurrió fue
+    // el montaje — que es un diagnóstico distinto de «no se dibujó nada»
+    // (`RegistroDeLaMuesca`).
+    RegistroDeLaMuesca.anotarElArranque(
+      estado: estado,
+      ventana: HUDNotchGeometry.windowSize(for: screen, encuadre: encuadre),
+      forma: HUDNotchGeometry.reposoSize(for: screen),
+      pantalla: screen.nombre,
+      notchReal: HUDNotchGeometry.hasMeasuredNotch(for: screen)
+    )
   }
 
   /// Mueve la máquina del contrato. Es la única puerta: el estado no se
@@ -460,6 +469,12 @@ final class HUDStage {
 
   /// El puntero entró o salió de la silueta. La tolerancia va acá y no en la
   /// vista porque es tiempo, y el tiempo del escenario lo lleva el escenario.
+  ///
+  /// Lo llama sólo `punteroSeMovio`, es decir el monitor global y su sondeo.
+  /// La vista ya no opina: su `onHover` no veía la entrada —la ventana estaba
+  /// ignorando el mouse cuando el puntero llegó— y sí mandaba una salida
+  /// falsa cada vez que la ventana cambiaba de tamaño, que es justo lo que el
+  /// hover hace al abrirse.
   private func punteroEncima(_ dentro: Bool) {
     hoverTask?.cancel()
     let retardo = Duration.milliseconds(
@@ -470,7 +485,13 @@ final class HUDStage {
       guard !Task.isCancelled, let self else { return }
       // Un hover jamás arranca una captura: lo único que toca es qué se
       // dibuja (contrato del notch).
-      let abre = dentro && estado.tomaElMouse && dictationContent.contexto?.isEmpty == false
+      //
+      // **Ya no exige `contexto`.** Pedirlo era la otra mitad del hover
+      // muerto: sólo se escribe al terminar el primer dictado, así que en una
+      // app recién instalada la condición era falsa siempre y el puntero
+      // encima no abría nada. Qué se dice con el panel abierto lo resuelve
+      // `DictationHUDContent.contextoVisible`, que nunca se queda sin algo.
+      let abre = dentro && estado.tomaElMouse
       // La ventana primero, el contexto después: el panel del hover también
       // es la silueta creciendo, y crece con la misma curva.
       if abre { ajustarVentana(a: .abierta) }

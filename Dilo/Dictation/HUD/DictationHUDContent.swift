@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 /// What the HUD currently says — the one mutable model shared between the
@@ -66,15 +67,27 @@ final class DictationHUDContent {
   /// arranca nunca una captura.
   var punteroEncima = false
 
-  /// El contexto que corresponde dibujar ahora mismo, o nil.
-  var contextoVisible: String? {
-    guard punteroEncima, let contexto, !contexto.isEmpty else { return nil }
-    return contexto
-  }
+  /// Lo que el hover revela cuando todavía no hay nada que contar: el nombre.
+  ///
+  /// Existe porque sin él el hover no revelaba **nada** en una instalación
+  /// recién hecha: `contexto` sólo se escribe al terminar el primer dictado
+  /// (`AppDelegate.onUltimoDictadoChange`), así que hasta entonces posarse
+  /// sobre la muesca no hacía absolutamente nada y no había cómo saber si
+  /// estaba rota o si era así (reporte del 2026-09-22). Una muesca que
+  /// responde al puntero diciendo quién es sigue siendo una respuesta.
+  static let contextoDeFabrica = String(localized: "Dilo")
 
-  /// Avisa que el puntero entró o salió de la silueta. Lo cablea `HUDStage`,
-  /// que es quien aplica la tolerancia.
-  @ObservationIgnored var alEntrarElPuntero: ((Bool) -> Void)?
+  /// El contexto que corresponde dibujar ahora mismo, o nil.
+  ///
+  /// Con el puntero encima **siempre** hay algo: lo último que se dictó, el
+  /// modo activo, o el nombre. El hover es la promesa de que la muesca está
+  /// viva; una que a veces no abre se lee como una que no funciona.
+  var contextoVisible: String? {
+    guard punteroEncima else { return nil }
+    if let contexto, !contexto.isEmpty { return contexto }
+    if let modoActivo, !modoActivo.isEmpty { return modoActivo }
+    return Self.contextoDeFabrica
+  }
 
   /// Un clic en la silueta: abre el menú de acciones en reposo, copia en
   /// resultado. Lo cablea `HUDStage`.

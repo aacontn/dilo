@@ -106,6 +106,25 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     return tamañoEnReposo ?? HUDNotchGeometry.closedSize(for: screen)
   }
 
+  /// Si la forma proyecta sombra.
+  ///
+  /// **En reposo no.** La muesca quieta es hardware: el recorte de un MacBook
+  /// no tiñe la barra de menús ni lo que hay debajo, y una imitación que sí lo
+  /// hace se delata sola —«una sombra debajo que tiñe lo que está abajo», el
+  /// veredicto del 2026-09-22—. Y no era sólo el gris: la ventana anfitriona
+  /// se dimensiona con lo que la sombra necesita, así que pintarla cerrada
+  /// obligaba a un reposo de 190×45 con una silueta de 160×24 adentro
+  /// (`HUDNotchGeometry.holguraEnReposo`).
+  ///
+  /// Abierta sí, y el hover también: ahí la forma de verdad cuelga sobre el
+  /// escritorio y la sombra es lo que la despega de él. Se decide por el
+  /// tamaño dibujado y no por `isRevealed` porque el hover crece sin revelar
+  /// nada.
+  private var proyectaSombra: Bool {
+    guard isCollapsedIntoHousing else { return true }
+    return renderedSize != HUDNotchGeometry.reposoSize(for: screen)
+  }
+
   /// Growing from the housing, the content exists only while the shape is open
   /// and flies in from behind it, which is NotchDrop's transition exactly.
   @ViewBuilder
@@ -251,6 +270,10 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       y: HUDNotchGeometry.closedSize(for: screen).height
     )
     let ripplePlays = !reduceMotion && rippleEnabled
+    // En reposo la muesca no hace sombra, y la ventana en reposo tampoco
+    // tiene dónde alojarla: los dos números van a cero juntos o uno de los
+    // dos recorta al otro.
+    let sombra = proyectaSombra
     return Color.black
       .clipShape(housingShape)
       .keyframeAnimator(
@@ -275,9 +298,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       // anfitriona se dimensiona con ellos (`HUDNotchGeometry.holguraDeSombra`),
       // y una sombra que crece sin que la ventana se entere sale recortada.
       .shadow(
-        color: .black.opacity(0.35),
-        radius: metrics.shadowRadius,
-        y: metrics.shadowOffsetY
+        color: .black.opacity(sombra ? 0.35 : 0),
+        radius: sombra ? metrics.shadowRadius : 0,
+        y: sombra ? metrics.shadowOffsetY : 0
       )
   }
 
