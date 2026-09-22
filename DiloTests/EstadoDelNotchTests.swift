@@ -35,11 +35,14 @@ struct EstadoDelNotchTests {
     #expect(EstadoDelNotch.procesando.anima)
   }
 
-  /// La forma toma el mouse donde hace algo con él: abrir el menú en reposo,
-  /// copiar en resultado. Mientras se dicta, el clic es del documento.
-  @Test func soloReposoYResultadoTomanElMouse() {
+  /// La forma toma el mouse **sólo en reposo**, que es donde hace algo con
+  /// él: abrir el menú de acciones, o copiar lo último dictado con el panel
+  /// del hover abierto. El resultado dejó de ser la excepción el 2026-09-22:
+  /// lo que queda ahí son errores y avisos, que no ofrecen ninguna acción.
+  @Test func soloReposoTomaElMouse() {
     #expect(EstadoDelNotch.reposo.tomaElMouse)
-    #expect(EstadoDelNotch.resultado(.copiado).tomaElMouse)
+    #expect(!EstadoDelNotch.resultado(.copiado).tomaElMouse)
+    #expect(!EstadoDelNotch.resultado(.listo).tomaElMouse)
     #expect(!EstadoDelNotch.dictando.tomaElMouse)
     #expect(!EstadoDelNotch.procesando.tomaElMouse)
     #expect(!EstadoDelNotch.preparando(.permisoDeMicrofono).tomaElMouse)
@@ -55,7 +58,8 @@ struct EstadoDelNotchTests {
   @Test func cadaEstadoDiceLoSuyo() {
     #expect(EstadoDelNotch.preparando(.cargandoModelo).texto == FaltaDelNotch.cargandoModelo.texto)
     #expect(EstadoDelNotch.preparando(.aviso("Bajando es-CL, 40 %")).texto == "Bajando es-CL, 40 %")
-    #expect(EstadoDelNotch.resultado(.listo).texto == ResultadoDelNotch.listo.texto)
+    // El acuse no lleva palabras en la forma: el check las dice todas.
+    #expect(EstadoDelNotch.resultado(.listo).texto == nil)
     #expect(EstadoDelNotch.resultado(.copiado).texto == ResultadoDelNotch.copiado.texto)
     #expect(ResultadoDelNotch.listo.texto != ResultadoDelNotch.copiado.texto)
     #expect(!ResultadoDelNotch.listo.texto.isEmpty)
@@ -66,12 +70,21 @@ struct EstadoDelNotchTests {
     #expect(EstadoDelNotch.reposo.texto == nil)
   }
 
-  /// Un aviso no ofrece copiar: no hay nada que copiar en «No se pudo pegar
-  /// el texto».
-  @Test func soloLoEntregadoOfreceCopiar() {
-    #expect(ResultadoDelNotch.listo.ofreceCopiar)
-    #expect(ResultadoDelNotch.copiado.ofreceCopiar)
-    #expect(!ResultadoDelNotch.aviso("No se pudo pegar el texto").ofreceCopiar)
+  /// El camino feliz se acusa con un check y se va en menos de un segundo;
+  /// un error hay que alcanzar a leerlo.
+  ///
+  /// Sale del veredicto del 2026-09-22: «al finalizar de dictar me sale Listo
+  /// y Copiar al lado, porque también es innecesario; podría reemplazarse la
+  /// onda por un check o algo así como lo hacíamos en el Tauri».
+  @Test func soloElCaminoFelizEsUnAcuse() {
+    #expect(ResultadoDelNotch.listo.esAcuse)
+    #expect(!ResultadoDelNotch.copiado.esAcuse, "el pegado falló: eso se dice")
+    #expect(!ResultadoDelNotch.aviso("No se pudo pegar el texto").esAcuse)
+
+    #expect(ResultadoDelNotch.listo.duracion == MaquinaDelNotch.duracionDelAcuse)
+    #expect(MaquinaDelNotch.duracionDelAcuse <= .seconds(1), "un acuse, no un estado")
+    #expect(ResultadoDelNotch.copiado.duracion == MaquinaDelNotch.duracionDelResultado)
+    #expect(MaquinaDelNotch.duracionDelAcuse < MaquinaDelNotch.duracionDelResultado)
   }
 
   // MARK: Las transiciones
@@ -93,7 +106,7 @@ struct EstadoDelNotchTests {
     #expect(maquina.estado == .resultado(.listo))
     #expect(
       efectos == [
-        .programarVueltaAReposo(MaquinaDelNotch.duracionDelResultado, turno: 1)
+        .programarVueltaAReposo(MaquinaDelNotch.duracionDelAcuse, turno: 1)
       ]
     )
 
@@ -164,7 +177,7 @@ struct EstadoDelNotchTests {
     #expect(control.estado == .resultado(.listo))
 
     await reloj.waitForSleeper()
-    reloj.advance(by: MaquinaDelNotch.duracionDelResultado - .milliseconds(1))
+    reloj.advance(by: MaquinaDelNotch.duracionDelAcuse - .milliseconds(1))
     await Task.yield()
     #expect(control.estado == .resultado(.listo), "se fue antes de tiempo")
 
@@ -185,7 +198,7 @@ struct EstadoDelNotchTests {
     control.recibir(.entregar(.listo))
     await reloj.waitForSleeper()
     control.recibir(.escuchar)
-    reloj.advance(by: MaquinaDelNotch.duracionDelResultado * 4)
+    reloj.advance(by: MaquinaDelNotch.duracionDelResultado * 8)
     await Task.yield()
     await Task.yield()
 

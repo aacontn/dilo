@@ -3554,28 +3554,6 @@
         }
       }
     },
-    "Te escucho (trabado)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Listening (latched)"
-          }
-        }
-      }
-    },
-    "Te escucho…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Listening…"
-          }
-        }
-      }
-    },
     "Tecla del segundo idioma": {
       "extractionState": "manual",
       "localizations": {

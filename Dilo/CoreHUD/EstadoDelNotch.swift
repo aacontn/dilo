@@ -29,8 +29,17 @@ enum EstadoDelNotch: Equatable, Sendable {
   /// grabando: acá no hay onda ni texto parcial.
   case procesando
 
-  /// Lo entregado, por unos segundos, con la acción de copiar a mano.
-  /// Después vuelve solo a reposo.
+  /// Cómo terminó, por un instante, en la misma muesca y sin crecer.
+  ///
+  /// **Dejó de ser una franja con botones** (2026-09-22): eran 400×50 con
+  /// «Listo» y «Copiar» al lado. Un dictado que aterriza donde tenía que
+  /// aterrizar acusa recibo con un check donde estaba la onda —«podría
+  /// reemplazarse la onda por un check o algo así como lo hacíamos en el
+  /// Tauri»— y se va en menos de un segundo. Lo que sí se dice con palabras
+  /// es el camino del error: que el pegado falló, que falta un permiso, un
+  /// aviso. «Copiar el último dictado» vive en el menú de la barra y en el
+  /// panel del hover, que es donde alguien lo va a ir a buscar cuando lo
+  /// necesite.
   case resultado(ResultadoDelNotch)
 
   /// Si el micrófono está abierto en este estado.
@@ -55,13 +64,17 @@ enum EstadoDelNotch: Equatable, Sendable {
     }
   }
 
-  /// Si la forma recibe el mouse. Reposo, para abrir el menú; resultado, para
-  /// copiar. Mientras se dicta no: el clic es del documento en el que estás
+  /// Si la forma recibe el mouse. Sólo reposo: ahí un clic abre el menú de
+  /// acciones, o copia lo último dictado con el panel del hover abierto.
+  ///
+  /// Mientras hay una sesión no, y el resultado dejó de ser una excepción: lo
+  /// que queda en ese estado son errores y avisos, que no tienen ninguna
+  /// acción que ofrecer. El clic es del documento en el que estás
   /// escribiendo, no del HUD.
   var tomaElMouse: Bool {
     switch self {
-    case .reposo, .resultado: true
-    case .preparando, .dictando, .procesando: false
+    case .reposo: true
+    case .preparando, .dictando, .procesando, .resultado: false
     }
   }
 
@@ -94,7 +107,8 @@ enum EstadoDelNotch: Equatable, Sendable {
     // Sin nombrar el modo: si hay uno, el chip ya lo dice, y repetirlo en
     // dos líneas es la mitad de la forma diciendo lo mismo.
     case .procesando: String(localized: "Procesando…")
-    case let .resultado(resultado): resultado.texto
+    // El acuse no lleva palabras: el check las dice todas.
+    case let .resultado(resultado): resultado.esAcuse ? nil : resultado.texto
     }
   }
 }
@@ -118,8 +132,13 @@ enum FaltaDelNotch: Equatable, Sendable {
   }
 }
 
-/// Con qué termina una sesión. Los dos primeros ofrecen Copiar; un aviso no
-/// —no hay nada que copiar en «No se pudo pegar el texto»—.
+/// Con qué termina una sesión.
+///
+/// **Uno se acusa y los otros dos se dicen.** El camino feliz —`listo`— no
+/// tiene nada que informar: un check donde estaba la onda, menos de un
+/// segundo, y a reposo. Los otros dos son el camino del error, y ahí sí hay
+/// palabras, porque el contrato del notch prohíbe perder las palabras en
+/// silencio.
 enum ResultadoDelNotch: Equatable, Sendable {
   /// Las palabras aterrizaron donde tenían que aterrizar.
   case listo
@@ -137,12 +156,13 @@ enum ResultadoDelNotch: Equatable, Sendable {
     }
   }
 
-  /// Si este resultado tiene texto que copiar.
-  var ofreceCopiar: Bool {
-    switch self {
-    case .listo, .copiado: true
-    case .aviso: false
-    }
+  /// Si esto es un acuse y no un mensaje: el check, sin palabras.
+  var esAcuse: Bool { self == .listo }
+
+  /// Cuánto se queda en pantalla. El acuse es un parpadeo; un error hay que
+  /// alcanzar a leerlo.
+  var duracion: Duration {
+    esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
   }
 }
 
@@ -152,10 +172,10 @@ enum ResultadoDelNotch: Equatable, Sendable {
 /// mueve el estado y devuelve lo que hay que hacer con el tiempo. Quién
 /// duerme y con qué reloj es problema de `ControlDelNotch`.
 struct MaquinaDelNotch: Equatable, Sendable {
-  /// Cuánto se queda el resultado antes de volver a reposo. Dos segundos y
-  /// medio: alcanza para leer «Copiado al portapapeles» y para alcanzar a
-  /// hacer clic en Copiar, y no tanto como para que la forma abierta se
-  /// vuelva parte del escritorio.
+  /// Cuánto se queda un resultado con palabras antes de volver a reposo. Dos
+  /// segundos y medio: alcanza para leer «Copiado al portapapeles» o el
+  /// motivo de un error, y no tanto como para que la forma abierta se vuelva
+  /// parte del escritorio.
   static let duracionDelResultado = Duration.milliseconds(2_500)
 
   enum Evento: Equatable, Sendable {
@@ -177,6 +197,11 @@ struct MaquinaDelNotch: Equatable, Sendable {
     /// Olvidar el temporizador armado, si había.
     case cancelarVuelta
   }
+
+  /// Cuánto dura el acuse del camino feliz: el check donde estaba la onda.
+  /// Menos de un segundo — más que eso deja de ser un acuse y empieza a ser
+  /// un estado que alguien tiene que esperar.
+  static let duracionDelAcuse = Duration.milliseconds(700)
 
   private(set) var estado = EstadoDelNotch.reposo
   /// Cuántos resultados se han mostrado. Es el turno que viaja en el
@@ -202,9 +227,13 @@ struct MaquinaDelNotch: Equatable, Sendable {
       return [.cancelarVuelta]
 
     case let .entregar(resultado):
+      // Cada resultado se queda lo suyo: el acuse es un parpadeo y un error
+      // hay que alcanzar a leerlo. Una sola duración para los dos dejaba el
+      // «Listo» dos segundos y medio en pantalla, que es la mitad de lo que
+      // Alfonso rechazó el 2026-09-22.
       estado = .resultado(resultado)
       turnoDelResultado += 1
-      return [.programarVueltaAReposo(Self.duracionDelResultado, turno: turnoDelResultado)]
+      return [.programarVueltaAReposo(resultado.duracion, turno: turnoDelResultado)]
 
     case .cancelar:
       estado = .reposo

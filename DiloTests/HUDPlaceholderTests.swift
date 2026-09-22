@@ -3,12 +3,21 @@ import Testing
 
 @testable import Dilo
 
-/// Compact and Edge Glow + Draft are built around the live draft, so they
-/// open with nothing. Three separate paths write the placeholder — opening,
-/// latching, and coming back from a model download — and fixing only the
-/// first left "Te escucho (trabado)" still appearing.
+/// La muesca no escribe palabras que nadie dijo.
+///
+/// Era «Te escucho…», y «Te escucho (trabado)» con el gatillo trabado.
+/// Veredicto del 2026-09-22: «encuentro que es una tontera, sácaselo, y así
+/// podemos achicar un poco el tamaño del notch cuando está activado». La onda
+/// ya dice que el micrófono está abierto, y una frase de estado obliga a la
+/// muesca a medir lo que mida esa frase en el idioma más largo.
+///
+/// Esta suite existía para perseguir esa frase por los cuatro caminos que
+/// escriben el borrador —abrir, trabar, volver de una descarga de modelo y la
+/// fase de transformación—, porque arreglar uno solo dejaba los otros tres
+/// escribiéndola. Ahora lo que se afirma es que ninguno de los cuatro escribe
+/// nada.
 @MainActor
-@Suite("HUD placeholder text")
+@Suite("El borrador de la muesca")
 struct HUDPlaceholderTests {
   private func controller(_ visual: HUDVoiceVisualStyle) -> DictationHUDController {
     let store = AppSettings.previewStore()
@@ -30,102 +39,68 @@ struct HUDPlaceholderTests {
     )
   }
 
-  @Test(arguments: [HUDVoiceVisualStyle.compact, .glowDraft])
-  func aDraftVisualOpensWithNoText(visual: HUDVoiceVisualStyle) {
+  /// Los cuatro caminos, con los cuatro visuales, y ninguno escribe nada.
+  @Test(arguments: [
+    HUDVoiceVisualStyle.compact, .glowDraft, .waveform, .glow,
+  ])
+  func ningunCaminoEscribeLoQueNadieDijo(visual: HUDVoiceVisualStyle) {
     let store = AppSettings.previewStore()
     store.voiceVisual = visual
     let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
 
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    #expect(hud.textForTesting.isEmpty)
+    #expect(hud.textForTesting.isEmpty, "abrir")
 
     hud.showLatched()
-    #expect(hud.textForTesting.isEmpty)
+    #expect(hud.textForTesting.isEmpty, "trabar")
 
     hud.showModelDownload(nil)
-    #expect(hud.textForTesting.isEmpty)
+    #expect(hud.textForTesting.isEmpty, "volver de una descarga")
+
+    hud.showShaping(with: "Tighten grammar")
+    #expect(hud.textForTesting.isEmpty, "transformar")
   }
 
-  /// A latched draft visual still says nothing, which is the case that was
-  /// reported after the opening text was already handled.
-  @Test(arguments: [HUDVoiceVisualStyle.compact, .glowDraft])
-  func aDraftVisualLatchesWithNoText(visual: HUDVoiceVisualStyle) {
-    let store = AppSettings.previewStore()
-    store.voiceVisual = visual
-    let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
-
-    hud.showListening(on: CGDirectDisplayID?.none, isLatched: true, settings: session(store))
-    #expect(hud.textForTesting.isEmpty)
-  }
-
-  /// The other visuals replace the draft while listening, so their band is the
-  /// only place a session can say what it is doing.
+  /// Trabado tampoco se dice con palabras: lo dice la onda, que sigue viva sin
+  /// que nadie sostenga nada.
   @Test(arguments: [HUDVoiceVisualStyle.waveform, .glow])
-  func theOtherVisualsStillSayWhatTheyAreDoing(visual: HUDVoiceVisualStyle) {
+  func trabarNoEscribeNada(visual: HUDVoiceVisualStyle) {
     let store = AppSettings.previewStore()
     store.voiceVisual = visual
     let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
 
-    hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    #expect(hud.textForTesting == "Te escucho…")
-
-    hud.showLatched()
-    #expect(hud.textForTesting == "Te escucho (trabado)")
-  }
-
-  /// The shaping phase is the fourth path, and the one that clears rather
-  /// than writes: the caption under it says what is happening, so a
-  /// placeholder above it claims a session is still listening when it has
-  /// already stopped.
-  @Test(arguments: [true, false])
-  func theShapingPhaseClearsTheListeningPlaceholder(isLatched: Bool) {
-    let store = AppSettings.previewStore()
-    store.voiceVisual = .waveform
-    let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
-
-    hud.showListening(on: CGDirectDisplayID?.none, isLatched: isLatched, settings: session(store))
-    if isLatched { hud.showLatched() }
-    #expect(!hud.textForTesting.isEmpty)
-
-    hud.showShaping(with: "Tighten grammar")
-    #expect(hud.textForTesting.isEmpty)
-  }
-
-  /// The clear in showShaping only beats the writers that ran before it. A
-  /// model download finishing mid-session reports nil, which restored the
-  /// placeholder under the shaping caption — and the same hole is open to
-  /// every other path that asks for one.
-  @Test func nothingRestoresThePlaceholderAfterSpeechEnds() {
-    let store = AppSettings.previewStore()
-    store.voiceVisual = .waveform
-    let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
-
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: true, settings: session(store))
-    hud.showLatched()
-    #expect(hud.textForTesting == "Te escucho (trabado)")
-
-    hud.showFinalizing()
-    hud.showShaping(with: "Tighten grammar")
     #expect(hud.textForTesting.isEmpty)
+    hud.showLatched()
+    #expect(hud.textForTesting.isEmpty)
+  }
+
+  /// Lo que sí se dice sigue diciéndose: esperar un modelo no es escuchar, y
+  /// la línea nombra lo que falta.
+  @Test func esperarUnModeloSiSeDice() {
+    let store = AppSettings.previewStore()
+    store.voiceVisual = .waveform
+    let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
+
+    hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
+    hud.showModelDownload("Cargando el modelo…")
+    #expect(hud.textForTesting == "Cargando el modelo…")
 
     hud.showModelDownload(nil)
-    #expect(hud.textForTesting.isEmpty, "the placeholder came back after the session stopped listening")
+    #expect(hud.textForTesting.isEmpty)
   }
 
-  /// The next session opens with one again, so the rule above cannot leak
-  /// into it.
-  @Test func theNextSessionStillOpensWithAPlaceholder() {
+  /// Y las palabras dichas de verdad se quedan mientras se entregan.
+  @Test func loDichoSeQuedaMientrasSeEntrega() {
     let store = AppSettings.previewStore()
     store.voiceVisual = .waveform
     let hud = DictationHUDController(stage: HUDStage(settings: store), settings: store)
 
     hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    hud.showFinalizing()
-    hud.showShaping(with: "Tighten grammar")
-    #expect(hud.textForTesting.isEmpty)
-
-    hud.showListening(on: CGDirectDisplayID?.none, isLatched: false, settings: session(store))
-    #expect(hud.textForTesting == "Te escucho…")
+    hud.showLiveText("quedamos el martes")
+    #expect(hud.textForTesting == "quedamos el martes")
+    hud.showShaping(with: "Correo")
+    #expect(hud.textForTesting == "quedamos el martes")
   }
 
   /// A Bluetooth headset costs about 1.4 seconds before its first buffer,

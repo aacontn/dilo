@@ -17,6 +17,10 @@ struct HUDMarcaDeReposo: View {
   /// El contexto que el hover reveló: el modo activo o lo último dictado.
   /// Nil mientras el puntero está en otra parte.
   var contexto: String?
+  /// Si con ese contexto hay algo que copiar. Lo que convierte el panel del
+  /// hover en una acción: desde el 2026-09-22 «copiar el último dictado» vive
+  /// acá y en el menú de la barra, y no en un estado Resultado de 400×50.
+  var puedeCopiar = false
   /// El nombre del modo activo, o nil —que es lo de fábrica—. El único dato
   /// que la muesca dice sin que nadie se acerque, y sólo si se pidió
   /// (`AppSettings.hudModoEnReposo`).
@@ -37,12 +41,20 @@ struct HUDMarcaDeReposo: View {
       // la vez no caben en una silueta del alto de la barra, y apilarlos
       // volvería a hacer de la muesca una etiqueta.
       if let contexto {
-        Text(contexto)
-          .font(.system(size: 10 * scale, weight: .medium, design: .rounded))
-          .foregroundStyle(.white.opacity(0.78))
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .padding(.horizontal, 12 * scale)
+        HStack(spacing: 8 * scale) {
+          Text(contexto)
+            .font(.system(size: 10 * scale, weight: .medium, design: .rounded))
+            .foregroundStyle(.white.opacity(0.78))
+            .lineLimit(1)
+            .truncationMode(.tail)
+          if puedeCopiar {
+            Text("Copiar")
+              .font(.system(size: 10 * scale, weight: .semibold, design: .rounded))
+              .foregroundStyle(DiloBrand.mango)
+              .lineLimit(1)
+          }
+        }
+        .padding(.horizontal, 12 * scale)
       } else if let modo, !modo.isEmpty {
         Text(modo)
           .font(.system(size: 9 * scale, weight: .medium, design: .rounded))

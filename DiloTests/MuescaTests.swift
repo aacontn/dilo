@@ -523,20 +523,43 @@ struct MuescaTests {
     afirmar(forma, mide: CGSize(width: 184, height: 26), en: simulada, "dictando")
   }
 
-  /// El resultado se encoge: sin onda y sin chip queda la cabecera y la línea.
+  /// El final no crece: el acuse es la misma muesca de 184×26 con un check
+  /// donde estaba la onda.
+  ///
+  /// Eran 400×50 con «Listo» y «Copiar» al lado. Veredicto del 2026-09-22:
+  /// «al finalizar de dictar me sale Listo y Copiar al lado, porque también
+  /// es innecesario; podría reemplazarse la onda por un check o algo así como
+  /// lo hacíamos en el Tauri».
   @MainActor
-  @Test func elResultadoSeEncogeALaCabeceraYLaLinea() throws {
+  @Test func elAcuseMideLoMismoQueDictando() throws {
     let simulada = pantalla(barra: 24)
     let content = DictationHUDContent()
     content.estado = .resultado(.listo)
     content.isRevealed = true
-    content.text = "Listo"
+    // Las palabras dictadas siguen puestas: el acuse no las dibuja igual.
+    content.text = "quedamos el martes a las diez en la oficina"
     let forma = try formaDibujada(
       en: simulada,
       content: content,
       settings: AppSettings.previewStore().sessionSettings
     )
-    afirmar(forma, mide: CGSize(width: 400, height: 50), en: simulada, "resultado")
+    afirmar(forma, mide: HUDNotchGeometry.tamañoDictando(for: simulada), en: simulada, "acuse")
+  }
+
+  /// Y un error tampoco: la misma muesca, con la línea que dice qué pasó.
+  @MainActor
+  @Test func elErrorMideLoMismoYSiDicePalabras() throws {
+    let simulada = pantalla(barra: 24)
+    let content = DictationHUDContent()
+    content.estado = .resultado(.aviso("No se pudo pegar el texto"))
+    content.isRevealed = true
+    content.text = "No se pudo pegar el texto"
+    let forma = try formaDibujada(
+      en: simulada,
+      content: content,
+      settings: AppSettings.previewStore().sessionSettings
+    )
+    afirmar(forma, mide: HUDNotchGeometry.tamañoDictando(for: simulada), en: simulada, "error")
   }
 
   /// La línea que deja el escenario en el log del sistema, para diagnosticar

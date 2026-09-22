@@ -294,6 +294,7 @@ struct DictationHUDShellView: View {
       HUDMarcaDeReposo(
         dibujaMarca: sinCarcasa,
         contexto: content.contextoVisible,
+        puedeCopiar: content.puedeCopiar,
         modo: modoEnReposo,
         scale: metrics.scale,
         // El alto de la silueta, medido: la marca lo llena y no lo estira.
@@ -486,24 +487,26 @@ struct DictationHUDShellView: View {
     return resultado
   }
 
-  /// El resultado: qué pasó, y —cuando hay algo que copiar— que un clic lo
-  /// copia. Una sola línea recta, en la misma banda: el resultado dura dos
-  /// segundos y medio y no vale una franja más de alto.
+  /// Cómo terminó, en la misma banda. El camino feliz es un check y nada
+  /// más —«podría reemplazarse la onda por un check o algo así como lo
+  /// hacíamos en el Tauri»—; el del error sí se dice con palabras.
+  ///
+  /// Sin «Copiar» al lado: copiar el último dictado vive en el menú de la
+  /// barra y en el panel del hover, que es donde alguien lo va a ir a buscar
+  /// cuando lo necesite, y no dos segundos y medio después de terminar.
+  @ViewBuilder
   private func lineaDeResultado(_ resultado: ResultadoDelNotch) -> some View {
-    HStack(spacing: 8 * metrics.scale) {
+    if resultado.esAcuse {
+      HUDCheckDeAcuse(lado: 16 * metrics.scale, reduceMotion: reduceMotion)
+        .frame(maxWidth: .infinity)
+    } else {
       Text(content.text.isEmpty ? resultado.texto : content.text)
         .font(.system(size: 13 * metrics.scale, weight: .medium))
         .foregroundStyle(.white)
         .lineLimit(1)
         .truncationMode(.tail)
-      if resultado.ofreceCopiar {
-        Text("Copiar")
-          .font(.system(size: 11 * metrics.scale, weight: .semibold, design: .rounded))
-          .foregroundStyle(DiloBrand.mango)
-          .lineLimit(1)
-      }
+        .frame(maxWidth: .infinity)
     }
-    .frame(maxWidth: .infinity)
   }
 
   /// El texto parcial con el cursor mango pegado al final, mientras el

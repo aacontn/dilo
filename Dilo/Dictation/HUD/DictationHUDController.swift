@@ -12,8 +12,6 @@ import AppKit
 /// en el documento de otra app.
 @MainActor
 final class DictationHUDController {
-  private static let latchedText = "Te escucho (trabado)"
-  private static let listeningText = "Te escucho…"
   /// Levels stopping for this long while listening means the microphone is
   /// dead, which must look different from silence (CONTEXT.md).
   private static let deadMicrophoneAfter = Duration.milliseconds(600)
@@ -97,21 +95,24 @@ final class DictationHUDController {
     stopVoiceVisual()
     stage.recibir(.procesar)
     // Las palabras dichas se quedan mientras se entregan: son lo que la
-    // persona está esperando ver. Sólo se reemplaza el placeholder de
-    // escuchar, que a esta altura es mentira.
-    if content.text.isEmpty || content.text == Self.listeningText
-      || content.text == Self.latchedText {
+    // persona está esperando ver. Si no se alcanzó a decir nada, la línea la
+    // pone el estado.
+    if content.text.isEmpty {
       setDraft(EstadoDelNotch.procesando.texto ?? "")
     }
   }
 
-  /// Lo entregado, por unos segundos, con Copiar a mano. Después vuelve solo
-  /// a reposo.
+  /// Cómo terminó la sesión.
+  ///
+  /// El camino feliz no escribe nada: la muesca acusa con un check donde
+  /// estaba la onda y se va (`ResultadoDelNotch.esAcuse`). Sólo el camino del
+  /// error tiene una línea que poner.
   func showResultado(_ resultado: ResultadoDelNotch) {
     guard isListening else { return }
     stopVoiceVisual()
     content.shapingName = nil
     stage.recibir(.entregar(resultado))
+    guard !resultado.esAcuse else { return }
     setDraft(resultado.texto)
   }
 
@@ -146,22 +147,21 @@ final class DictationHUDController {
   /// Exposed so the placeholder rules can be asserted without a window.
   var textForTesting: String { content.text + content.volatileText }
 
-  /// What the band says before any words arrive.
+  /// Lo que la forma dice mientras escucha y todavía nadie habló: **nada**.
   ///
-  /// Empty for Compact and Edge Glow + Draft: both are built around the live
-  /// draft, so a placeholder there is words nobody spoke. Empty again once
-  /// the session stops listening, because the word is a lie by then.
+  /// Era «Te escucho…», y «Te escucho (trabado)» con el gatillo trabado.
+  /// Veredicto del 2026-09-22: «encuentro que es una tontera, sácaselo, y así
+  /// podemos achicar un poco el tamaño del notch cuando está activado». Tenía
+  /// razón por los dos lados: la onda ya dice que el micrófono está abierto
+  /// —esa es toda su función— y una frase de estado obliga a la muesca a
+  /// medir lo que mida esa frase en el idioma más largo. Que el gatillo esté
+  /// trabado lo dice la misma onda, que sigue viva sin que nadie sostenga
+  /// nada.
   ///
-  /// Every path that would write one asks here, rather than each deciding for
-  /// itself — which is how "Listening (latched)" kept coming back after the
-  /// opening text was handled, and how it came back a second time after the
-  /// shaping phase cleared it: a one-shot clear only beats the writers that
-  /// ran before it.
-  private var placeholder: String {
-    guard !hasStoppedListening else { return "" }
-    guard !sessionSettings.voiceVisual.showsDraftWhileListening else { return "" }
-    return sessionIsLatched ? Self.latchedText : Self.listeningText
-  }
+  /// Queda como propiedad y no se borra la idea entera porque hay cuatro
+  /// caminos que escriben el borrador y todos preguntan acá: es el único
+  /// lugar donde este «nada» no se puede volver a llenar por descuido.
+  private var placeholder: String { "" }
 
   /// A session waiting on its language model. The band says what it is waiting
   /// for instead of sitting on "Listening…" while nothing arrives; passing nil
@@ -209,12 +209,6 @@ final class DictationHUDController {
     // them and the caption names the prompt instead.
     content.shapingChoiceLabel = nil
     content.shapingName = promptName
-    // The placeholder outlived its phase: nothing is listening any more, and
-    // the caption below it says what is actually happening. A draft the user
-    // really spoke stays, because those are the words being rewritten.
-    if content.text == Self.listeningText || content.text == Self.latchedText {
-      setDraft("")
-    }
   }
 
   private func setDraft(_ committed: String, volatile: String = "") {

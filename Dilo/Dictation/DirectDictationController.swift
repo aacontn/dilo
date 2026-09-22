@@ -148,10 +148,10 @@ final class DirectDictationController {
 
   /// El motor está cargando su modelo en la RAM mientras la sesión ya graba.
   ///
-  /// Se dice en la píldora con el mismo estado que una descarga de idioma: la
-  /// banda nombra lo que está esperando en vez de quedarse en "Te escucho…"
-  /// mientras no llega nada. Las palabras no se pierden — al soltar, el buffer
-  /// espera al modelo—, sólo tardan.
+  /// Se dice en la muesca con el mismo estado que una descarga de idioma: la
+  /// línea nombra lo que está esperando en vez de quedarse muda mientras no
+  /// llega nada. Las palabras no se pierden — al soltar, el buffer espera al
+  /// modelo—, sólo tardan.
   private func showModelLoading(_ isLoading: Bool) {
     guard machine.isSessionActive else { return }
     dependencies.showModelDownload(isLoading ? "Cargando el modelo…" : nil)

@@ -39,14 +39,26 @@ struct HUDLineaSobria: View {
     content.estado == .dictando
   }
 
+  /// Si esta línea es el acuse: el check donde estaba la onda, sin palabras.
+  private var acusa: Bool {
+    guard case let .resultado(resultado) = content.estado else { return false }
+    return resultado.esAcuse
+  }
+
   var body: some View {
     HStack(spacing: 6) {
       if muestraOnda {
         HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
           .frame(width: HUDOndaDeBrasas.anchoCompacto)
+      } else if acusa {
+        // El check ocupa **el lugar de la onda**, ni uno más: terminar bien
+        // no agranda la muesca ni la mueve, sólo cambia lo que hay en esa
+        // casilla (`HUDCheckDeAcuse`).
+        HUDCheckDeAcuse(lado: HUDOndaDeBrasas.altoDeLaBandaCompacta, reduceMotion: reduceMotion)
+          .frame(width: HUDOndaDeBrasas.anchoCompacto)
       }
       texto
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: acusa ? .center : .leading)
       if muestraOnda {
         // El cursor mango dice lo que ninguna onda dice: que lo escrito sigue
         // creciendo. Encogido con la línea.
@@ -91,8 +103,11 @@ struct HUDLineaSobria: View {
     return Text(comprometido + conjetura)
   }
 
-  /// La línea recta de los estados que no son dictar.
+  /// La línea recta de los estados que no son dictar. Vacía en el acuse: el
+  /// check lo dice todo, y las palabras que quedaron del dictado no son un
+  /// mensaje —son lo que ya se pegó en otra parte—.
   private var linea: String {
+    guard !acusa else { return "" }
     if !content.text.isEmpty, case .resultado = content.estado { return content.text }
     return content.estado.texto ?? ""
   }
@@ -101,6 +116,11 @@ struct HUDLineaSobria: View {
     if content.estado == .dictando {
       let dicho = content.text + content.volatileText
       return dicho.isEmpty ? String(localized: "Dictando") : dicho
+    }
+    // El acuse no tiene palabras en pantalla, pero sí tiene que tenerlas acá:
+    // un check que VoiceOver no nombra es un acuse que no llegó.
+    if case let .resultado(resultado) = content.estado, resultado.esAcuse {
+      return resultado.texto
     }
     return linea
   }
