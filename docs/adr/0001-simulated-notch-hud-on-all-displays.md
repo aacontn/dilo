@@ -135,3 +135,23 @@ el panel que la muesca había dejado de ser dos veces.
   una inconsistencia: dictando la forma aparece sola encima de la barra
   mientras alguien escribe en otra app, y en el hover el mouse está encima a
   propósito. Ahí van a vivir las acciones que no son el dictado.
+
+## Enmienda 2026-09-23 — sin zona, la ventana sí ignora el mouse
+
+«La ventana no ignora el mouse nunca» dejaba la ventana abierta —488×90 sobre
+el centro de la barra de menús— quedándose con los clics mientras se dicta, que
+es justo cuando la forma no reclama nada. Si el `hitTest` nil pierde el clic o
+lo deja pasar está medido en las dos direcciones en este mismo ADR, así que no
+se apuesta a ninguna: **sin `zonaInteractiva` la ventana pone
+`ignoresMouseEvents = true`**, y con zona vuelve a `false`, que es lo que el
+área de seguimiento del hover necesita. Al volver a tomar el mouse, el
+escenario pregunta una vez dónde está el puntero (`HUDStage.posicionDelPuntero`):
+terminar de dictar con el mouse parado sobre la muesca no manda ningún
+`mouseEntered`.
+
+Y dos cosas del hover que lo hacían parecer roto: la red de seguridad de
+cuatro segundos lo cerraba con el puntero todavía encima —ahora sólo cierra si
+el puntero de verdad se fue—, y un `mouseExited` con el punto todavía dentro de
+la vista, que AppKit puede mandar al rearmar el área cuando la ventana crece,
+ya no cuenta como salida.
+

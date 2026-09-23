@@ -68,7 +68,18 @@ final class HUDHostingView<Content: View>: NSHostingView<Content>, HUDHostingVie
     reportar(event)
   }
 
+  /// Una salida sólo cuenta si el puntero de verdad quedó fuera de la vista.
+  ///
+  /// El hover agranda la ventana, y AppKit rearma el área de seguimiento con
+  /// el puntero adentro: si en ese rearme llega un `mouseExited`, cerrar sin
+  /// mirar dónde está el puntero es exactamente lo que hacía el `onHover` de
+  /// SwiftUI —abría el panel y lo cerraba en el mismo gesto—. Con el punto
+  /// todavía adentro, es un movimiento más y el escenario decide.
   override func mouseExited(with event: NSEvent) {
+    guard !bounds.contains(convert(event.locationInWindow, from: nil)) else {
+      reportar(event)
+      return
+    }
     alSalirElPuntero?()
   }
 

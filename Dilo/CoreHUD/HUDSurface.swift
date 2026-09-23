@@ -14,8 +14,8 @@ import SwiftUI
 /// **La ventana grande no es la forma.** La anfitriona está dimensionada para
 /// el estado más alto y lleva holgura de sombra; la forma mide lo que mide su
 /// estado y el resto de la ventana queda transparente. Lo que rompió eso una
-/// vez fue un hijo goloso de alto, no la geometría — ver el `fixedSize` del
-/// cuerpo.
+/// vez fue un hijo goloso de alto, no la geometría — ver `MarcoDeLaForma`,
+/// que sigue sin ofrecerle al contenido el alto de la ventana.
 struct HUDSurface<Content: View, Overlays: View>: View {
   /// With Reduce Motion every style collapses to a quiet fade.
   static var reducedMotionFade: Animation { .easeOut(duration: 0.12) }
@@ -144,32 +144,44 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   }
 
   var body: some View {
-    contentLayer
-      .frame(width: renderedSize.width)
-      // Cada estado dibuja su forma **a su propio tamaño**, y esto es lo que
-      // lo garantiza. Sin `fixedSize`, el `frame(minHeight:)` de abajo le
-      // ofrece al contenido el alto entero de la ventana anfitriona —que está
-      // dimensionada para el estado más alto de todos— y cualquier hijo que
-      // pida `maxHeight: .infinity` se lo queda, con el fondo negro estirado
-      // detrás. Así se veía la muesca en reposo en un monitor externo sin
-      // carcasa: 160×196 en vez de 160×24. Sigue siendo un mínimo y no un
-      // máximo porque la banda de texto sí puede crecer sobre lo declarado
-      // contra una carcasa real (`HUDLongDraftStyle.growDown`).
-      .fixedSize(horizontal: false, vertical: true)
-      .frame(minHeight: renderedSize.height, alignment: .top)
-      .clipShape(clipsContent ? AnyShape(housingShape) : AnyShape(Rectangle()))
-      .background { housing }
-      .overlay { overlays }
-      .overlay(alignment: .topLeading) { fillet(.leading) }
-      .overlay(alignment: .topTrailing) { fillet(.trailing) }
-      .opacity(revealOpacity)
-      .scaleEffect(x: revealScale.x, y: revealScale.y, anchor: .top)
-      .offset(y: revealOffset)
-      .animation(revealAnimation, value: isRevealed)
-      // La silueta en reposo también cambia de tamaño sin que `isRevealed`
-      // se mueva: el hover la abre para mostrar contexto.
-      .animation(tamañoEnReposo == nil ? nil : revealAnimation, value: renderedSize)
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    MarcoDeLaForma(
+      ancho: renderedSize.width,
+      alto: renderedSize.height,
+      apertura: isCollapsedIntoHousing ? 0 : 1
+    ) {
+      contentLayer
+    }
+    // El recorte es lo que esconde el contenido abierto mientras la forma
+    // todavía no creció hasta él: ya estaba acá, y con el marco animado
+    // pasa a ser lo que hace que la forma se abra en vez de aparecer.
+    .clipShape(clipsContent ? AnyShape(housingShape) : AnyShape(Rectangle()))
+    .background { housing }
+    .overlay { overlays }
+    .overlay(alignment: .topLeading) { fillet(.leading) }
+    .overlay(alignment: .topTrailing) { fillet(.trailing) }
+    .opacity(revealOpacity)
+    .scaleEffect(x: revealScale.x, y: revealScale.y, anchor: .top)
+    .offset(y: revealOffset)
+    .animation(revealAnimation, value: isRevealed)
+    // La silueta en reposo también cambia de tamaño sin que `isRevealed`
+    // se mueva: el hover la abre para mostrar contexto.
+    .animation(animacionDelTamaño, value: renderedSize)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+  }
+
+  /// Con qué curva cambia de tamaño la silueta en reposo, que es lo que hace
+  /// el hover: crecer al posarse y volver al irse.
+  ///
+  /// `revealAnimation` no sirve para esto, porque elige la curva por
+  /// `isRevealed` y el hover no revela nada: el panel se abría con la curva
+  /// de **cierre**, sin carácter y más corta, y por eso se veía como un
+  /// salto y no como la muesca abriéndose. La dirección la dice el tamaño:
+  /// volver a la silueta de fábrica es cerrar, cualquier otro es abrir.
+  private var animacionDelTamaño: Animation? {
+    guard tamañoEnReposo != nil else { return nil }
+    guard !isRevealed, !reduceMotion else { return revealAnimation }
+    let vuelveAlReposo = renderedSize == HUDNotchGeometry.reposoSize(for: screen)
+    return vuelveAlReposo ? revealStyle.cierre : revealStyle.apertura
   }
 
   /// Growing from the housing never parks: there is no transform to hide the
@@ -342,5 +354,74 @@ extension HUDSurface where Overlays == EmptyView {
       content: content,
       overlays: { EmptyView() }
     )
+  }
+}
+
+/// Mide la forma mientras crece o se encoge, interpolando el ancho y el alto
+/// juntos entre la silueta en reposo y la forma abierta.
+///
+/// **Existe porque el alto estaba en manos del contenido.** Antes la forma era
+/// `fixedSize` vertical más un `frame(minHeight:)`: el contenido nuevo entra a
+/// su alto final en el acto —una vista que aparece no anima su tamaño—, y el
+/// mínimo animado nunca le gana a un contenido más alto que él. Al abrir,
+/// entonces, el negro saltaba primero al alto de la forma abierta con el ancho
+/// de la muesca y recién después se ensanchaba: la muesca «trabada» al
+/// agrandarse que Alfonso reportó el 2026-09-23. Al cerrar no pasaba porque
+/// el contenido de reposo es más bajo que el mínimo que se anima.
+///
+/// Acá el alto es `alto + (lo que el contenido pide por encima) × apertura`, y
+/// los tres números se animan. Cerrada (`apertura` 0) la forma mide lo que
+/// declara el estado aunque el contenido pida más —lo que sobra lo recorta
+/// `HUDSurface`—; abierta (`apertura` 1) el contenido puede seguir creciendo
+/// sobre lo declarado, que es lo que la banda de texto hace contra una
+/// carcasa real (`HUDLongDraftStyle.growDown`).
+///
+/// Y sigue proponiendo alto nil, que es lo que hacía `fixedSize`: ofrecerle
+/// al contenido el alto de la ventana anfitriona es lo que una vez estiró la
+/// muesca en reposo a 160×196 en un monitor externo.
+struct MarcoDeLaForma: Layout {
+  var ancho: CGFloat
+  /// El alto que el estado declara: la silueta en reposo o la forma abierta.
+  var alto: CGFloat
+  /// 0 con la forma recogida en la carcasa, 1 abierta.
+  var apertura: CGFloat
+
+  var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, CGFloat> {
+    get { AnimatablePair(AnimatablePair(ancho, alto), apertura) }
+    set {
+      ancho = newValue.first.first
+      alto = newValue.first.second
+      apertura = newValue.second
+    }
+  }
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    CGSize(width: ancho, height: altoDibujado(subviews))
+  }
+
+  func placeSubviews(
+    in bounds: CGRect,
+    proposal: ProposedViewSize,
+    subviews: Subviews,
+    cache: inout ()
+  ) {
+    for subview in subviews {
+      // A su alto pedido y colgando del borde de arriba, aunque la forma
+      // todavía no llegue hasta abajo: lo que se asoma de más no se ve.
+      subview.place(
+        at: CGPoint(x: bounds.midX, y: bounds.minY),
+        anchor: .top,
+        proposal: ProposedViewSize(width: ancho, height: altoPedido(por: subview))
+      )
+    }
+  }
+
+  private func altoPedido(por subview: LayoutSubview) -> CGFloat {
+    subview.sizeThatFits(ProposedViewSize(width: ancho, height: nil)).height
+  }
+
+  private func altoDibujado(_ subviews: Subviews) -> CGFloat {
+    let pedido = subviews.map(altoPedido(por:)).max() ?? 0
+    return alto + max(0, pedido - alto) * apertura
   }
 }

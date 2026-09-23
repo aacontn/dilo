@@ -117,6 +117,12 @@ final class HUDStage {
   /// todavía lo enciende «a mano»: Drop Transcription es un destino y su
   /// superficie tiene que recibir el arrastre entero.
   private var elArrastreTomaElMouse = false
+  /// Dónde está el puntero ahora mismo, en coordenadas de pantalla. Sólo para
+  /// los dos momentos en que el área de seguimiento no puede avisar: cuando
+  /// la ventana vuelve a tomar el mouse y cuando vence la red de seguridad del
+  /// hover. Inyectable por lo mismo que el reloj: un test que lea el mouse de
+  /// verdad afirma dónde quedó el cursor de quien corre los tests.
+  private let posicionDelPuntero: @MainActor () -> CGPoint
   /// El observador de cambio de espacio. Se guarda y no se da de baja: el
   /// escenario vive lo que vive la app, y un `deinit` en un tipo aislado al
   /// actor principal no puede tocar sus propiedades.
@@ -125,10 +131,12 @@ final class HUDStage {
   init(
     settings: AppSettings,
     reloj: DeadlineClock = .continuous,
-    sonidos: any ReproductorDeSonidos = HUDSounds()
+    sonidos: any ReproductorDeSonidos = HUDSounds(),
+    punteroEn: @escaping @MainActor () -> CGPoint = { NSEvent.mouseLocation }
   ) {
     self.settings = settings
     self.reloj = reloj
+    posicionDelPuntero = punteroEn
     sounds = sonidos
     control = ControlDelNotch(reloj: reloj)
     renderedSettings = settings.sessionSettings
@@ -333,11 +341,17 @@ final class HUDStage {
       panel.zonaInteractiva = nil
       return
     }
+    let veniaIgnorandoElMouse = panel.zonaInteractiva == nil
     panel.zonaInteractiva = HUDNotchGeometry.zonaInteractiva(
       for: pantallaActual,
       tamaño: tamañoDeLaSilueta,
       encuadre: encuadre
     )
+    // Mientras no había zona la ventana ignoraba el mouse (`HUDPanel`) y el
+    // área de seguimiento no vio nada: terminar de dictar con el puntero
+    // parado sobre la muesca no manda ningún `mouseEntered` hasta que alguien
+    // lo mueva. Se pregunta una vez dónde está, y eso sí abre el contexto.
+    if veniaIgnorandoElMouse { punteroSeMovio(a: posicionDelPuntero()) }
   }
 
   /// El tamaño de la forma que hay dibujada ahora mismo.
@@ -422,6 +436,13 @@ final class HUDStage {
   ) {
     encuadre = nuevo
     panel.setFrame(HUDNotchGeometry.windowFrame(for: pantalla, encuadre: nuevo), display: true)
+    // La vista se entera del tamaño nuevo **ahora**, fuera de toda animación.
+    // El cambio de estado que viene detrás —el hover, la revelación— sí
+    // anima, y si SwiftUI juntara las dos cosas en una sola pasada tomaría el
+    // corrimiento de la forma dentro de la ventana (9 puntos del borde en
+    // reposo, 164 abierta) como algo que también hay que animar: la muesca
+    // saltaría de costado antes de crecer.
+    hostingView.layoutSubtreeIfNeeded()
     actualizarZonaInteractiva()
   }
 
@@ -429,11 +450,15 @@ final class HUDStage {
   /// un test pueda afirmar que en reposo mide la muesca y no la pantalla.
   var marcoDeLaVentana: CGRect { panel.frame }
 
+  /// Si la ventana entera está dejando pasar el mouse: sólo cuando la forma no
+  /// reclama nada, como mientras se dicta (`HUDPanel.zonaInteractiva`).
+  var ventanaIgnoraElMouse: Bool { panel.ignoresMouseEvents }
+
   /// Si la ventana está dejando pasar el mouse en este punto de pantalla.
   ///
-  /// Ya no se pregunta por `ignoresMouseEvents` —la ventana no lo conmuta
-  /// nunca— sino por lo que `HUDHostingView.hitTest` va a contestar ahí, que
-  /// es lo que de verdad decide quién se queda con el clic.
+  /// Se pregunta por la zona y no por `ignoresMouseEvents`: la zona es lo que
+  /// `HUDHostingView.hitTest` va a contestar ahí, y sin zona la ventana además
+  /// ignora el mouse entero (`HUDPanel.zonaInteractiva`).
   func dejaPasarElMouse(en punto: CGPoint) -> Bool {
     guard let zona = panel.zonaInteractiva else { return true }
     let ventana = panel.frame
@@ -511,12 +536,31 @@ final class HUDStage {
         return
       }
 
-      try? await reloj.sleep(Self.contextoMaximo)
-      guard !Task.isCancelled else { return }
+      // La red de seguridad cierra sólo si el puntero de verdad se fue. Antes
+      // cerraba a los cuatro segundos con el mouse todavía encima, y el panel
+      // se recogía solo mientras alguien lo estaba leyendo: eso también se
+      // lee como un hover que no anda.
+      repeat {
+        try? await reloj.sleep(Self.contextoMaximo)
+        guard !Task.isCancelled else { return }
+      } while punteroSigueEncima()
+      punteroSobreLaSilueta = false
       dictationContent.punteroEncima = false
       actualizarZonaInteractiva()
       ajustarVentana(a: encuadreNecesario)
     }
+  }
+
+  /// Si el puntero está sobre la silueta según dónde está **ahora**, y no
+  /// según el último aviso del área de seguimiento: la red de seguridad del
+  /// hover existe justo para cuando ese aviso se perdió.
+  private func punteroSigueEncima() -> Bool {
+    guard let pantallaActual else { return false }
+    return HUDNotchGeometry.siluetaEnPantalla(
+      for: pantallaActual,
+      tamaño: tamañoDeLaSilueta,
+      encuadre: encuadre
+    ).contains(posicionDelPuntero())
   }
 
   private func cancelarHover() {

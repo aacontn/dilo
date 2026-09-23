@@ -338,8 +338,9 @@ siendo cierto:
   (`HUDRevealStyle.sobrepaso`). Una ventana grande en reposo es pantalla
   muerta: macOS le entrega todos los clics de su rectángulo aunque no dibuje
   nada (ADR-0001, enmienda del 2026-09-22).
-- **La ventana no ignora el mouse nunca, y ésa es la clave del hover.**
-  `HUDPanel` deja `ignoresMouseEvents = false` siempre; quién se queda con un
+- **La ventana no ignora el mouse mientras la forma recibe algo, y ésa es la
+  clave del hover.** `HUDPanel` pone `ignoresMouseEvents = true` sólo cuando
+  no hay `zonaInteractiva` —dictando, por ejemplo—; con zona, quién se queda con un
   clic lo decide `HUDHostingView.hitTest`, que devuelve nil fuera de
   `HUDNotchGeometry.zonaInteractiva` —y un punto que ninguna vista reclama
   sobre un panel transparente deja el clic en la app de abajo—. Es el patrón
@@ -359,6 +360,12 @@ siendo cierto:
   (`DictationHUDContent.contextoVisible`): exigir `contexto`, que sólo existe
   después del primer dictado, dejaba el hover mudo en una app recién
   instalada. Un hover revela contexto y **nunca** arranca una captura.
+- **El alto de la forma no lo impone el contenido.** `HUDSurface` la mide con
+  `MarcoDeLaForma`, un `Layout` que anima ancho, alto y apertura juntos; el
+  contenido abierto entra a su alto final en el acto, y con `fixedSize` +
+  `frame(minHeight:)` el negro saltaba a ese alto antes de ensancharse
+  (2026-09-23, «al agrandar se ve trancado»). El hover se abre con la curva de
+  apertura del estilo, no con la de cierre.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**

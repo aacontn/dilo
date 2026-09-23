@@ -47,13 +47,12 @@ final class HUDPanel: NSPanel {
     hasShadow = false
     isMovable = false
     isMovableByWindowBackground = false
-    // **La ventana nunca ignora el mouse.** Quién recibe un clic lo decide
-    // `HUDHostingView.hitTest`: nil fuera de la silueta, y un punto sin vista
-    // que lo reclame sobre un panel transparente deja el clic en la app de
-    // abajo. Conmutar `ignoresMouseEvents` era el enfoque anterior y es lo
-    // que tenía el hover muerto: una ventana que ignora el mouse tampoco
-    // recibe `mouseEntered`, así que nadie se enteraba de que el puntero
-    // había llegado hasta que un sondeo lo alcanzara — tarde, o nunca.
+    // Mientras la forma tiene una silueta que recibe clics, la ventana no
+    // ignora el mouse: quién se queda con cada clic lo decide
+    // `HUDHostingView.hitTest`, y el hover lo avisa su área de seguimiento,
+    // que en una ventana que ignora el mouse no recibe nada —ni
+    // `mouseEntered`—. Cuando la forma no reclama nada, la ventana entera
+    // deja pasar (`zonaInteractiva`).
     ignoresMouseEvents = false
     // Y los movimientos del puntero llegan aunque la ventana no sea key: es
     // lo que alimenta el `NSTrackingArea` de la vista.
@@ -97,13 +96,22 @@ final class HUDPanel: NSPanel {
   /// clics en los menús de la app de al lado; con esto sólo la silueta lo toma
   /// (`HUDNotchGeometry.zonaInteractiva`).
   ///
-  /// **Es lo único que acota el mouse, y basta.** Nil significa «esta forma
-  /// no recibe nada», y entonces todo el rectángulo de la ventana deja pasar.
-  /// La otra mitad de que no haya pantalla muerta es que la ventana en reposo
-  /// mida lo que mide la muesca (`HUDNotchGeometry.EncuadreDeLaVentana`).
+  /// **Nil apaga el mouse de la ventana entera**, con `ignoresMouseEvents`.
+  /// El `hitTest` nil de `HUDHostingView` acota qué vista recibe un clic,
+  /// pero no garantiza que ese clic siga hasta la ventana de abajo —la
+  /// enmienda de la mañana del 2026-09-22 lo midió perdiéndose—, y mientras
+  /// se dicta la ventana abierta mide 488×90 sobre el centro de la barra de
+  /// menús. Ahí no hay nada que tocar, así que no se queda con nada. Con
+  /// zona, la ventana vuelve a recibir el mouse y el área de seguimiento
+  /// vuelve a ver el hover. La otra mitad de que no haya pantalla muerta es
+  /// que la ventana en reposo mida lo que mide la muesca
+  /// (`HUDNotchGeometry.EncuadreDeLaVentana`).
   var zonaInteractiva: CGRect? {
     get { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva }
-    set { (contentView as? HUDHostingViewProtocol)?.zonaInteractiva = newValue }
+    set {
+      (contentView as? HUDHostingViewProtocol)?.zonaInteractiva = newValue
+      ignoresMouseEvents = newValue == nil
+    }
   }
 
   /// Si la ventana puede volverse key. Sólo las superficies de arrastre lo
