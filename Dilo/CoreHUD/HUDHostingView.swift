@@ -21,8 +21,10 @@ import SwiftUI
 /// forma. Un rect fijo habría que rearmarlo en cada cambio, que es el paso
 /// que se olvida.
 final class HUDHostingView<Content: View>: NSHostingView<Content>, HUDHostingViewProtocol {
-  /// La franja que sí recibe el mouse, en coordenadas de esta vista. Nil
-  /// mientras no hay ninguna, que es lo mismo que no recibir nada.
+  /// La franja que sí recibe el mouse, con origen abajo a la izquierda —como
+  /// la ventana y la pantalla, que es donde la calcula
+  /// `HUDNotchGeometry.zonaInteractiva`—. Nil mientras no hay ninguna, que es
+  /// lo mismo que no recibir nada.
   var zonaInteractiva: CGRect?
 
   /// El puntero está en este punto, en coordenadas de pantalla.
@@ -44,8 +46,20 @@ final class HUDHostingView<Content: View>: NSHostingView<Content>, HUDHostingVie
     // `point` llega en coordenadas de la supervista, que es la vista de marco
     // de la ventana; la zona está en las de esta.
     let local = convert(point, from: superview)
-    guard zonaInteractiva.contains(local) else { return nil }
+    guard zonaEnEstaVista(zonaInteractiva).contains(local) else { return nil }
     return super.hitTest(point)
+  }
+
+  /// La zona en las coordenadas de esta vista.
+  ///
+  /// `NSHostingView` es volteada —su origen está arriba—, y la zona llega con
+  /// el origen abajo. Sin darla vuelta, la franja que recibe el mouse quedaba
+  /// al pie de la ventana: en reposo no se notaba porque la ventana mide lo
+  /// que la silueta, pero con el panel del hover abierto su mitad de arriba
+  /// no tomaba clics y el aire de debajo sí.
+  private func zonaEnEstaVista(_ zona: CGRect) -> CGRect {
+    guard isFlipped else { return zona }
+    return CGRect(x: zona.minX, y: bounds.height - zona.maxY, width: zona.width, height: zona.height)
   }
 
   override func updateTrackingAreas() {

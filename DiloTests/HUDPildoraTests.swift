@@ -113,20 +113,17 @@ struct HUDPildoraTests {
     #expect(HUDNotchGeometry.dibujaPildora(for: sinNotch))
   }
 
-  /// La píldora entera —cabecera, onda y texto parcial, más el chip de
-  /// modo— tiene que caber en la ventana fija, que nunca se redimensiona
-  /// (ADR-0001).
-  @Test func laPildoraCompletaCabeEnLaVentanaFija() {
-    let metrics = HUDMetrics.standard
-    let alto = HUDNotchGeometry.contentSize(
-      for: sinNotch,
-      metrics: metrics,
-      visualBandHeight: metrics.waveBandHeight,
-      includesTextBand: true,
-      shapingBandHeight: metrics.shapingBandHeight
-    ).height
+  /// Lo más alto que la píldora dibuja —dictando es una línea, y el panel del
+  /// hover es lo que más cuelga— cabe en la ventana abierta con su holgura.
+  /// La pila de bandas ya no se dibuja sin carcasa (2026-09-22), así que medir
+  /// la ventana contra ella afirmaba una forma que no existe.
+  @Test func laPildoraCompletaCabeEnLaVentanaAbierta() {
+    let alto = max(
+      HUDNotchGeometry.tamañoDictando(for: sinNotch).height,
+      HUDNotchGeometry.altoDelPanelDeHover(for: sinNotch)
+    )
     let ventana = HUDNotchGeometry.windowFrame(for: sinNotch)
-    #expect(alto <= ventana.height - HUDNotchGeometry.shadowPadding)
+    #expect(alto <= ventana.height - HUDNotchGeometry.holguraDeRevelacion(for: sinNotch))
   }
 
   /// Con carcasa real la cabecera es la carcasa, que es hardware.

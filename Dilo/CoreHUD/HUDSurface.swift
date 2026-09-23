@@ -92,9 +92,15 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// métricas. Con 8 puntos sobre los 25 de alto de la muesca la silueta
   /// seguía leyéndose cuadrada.
   private var cornerRadius: CGFloat {
-    isCollapsedIntoHousing
-      ? HUDNotchGeometry.radioEnReposo(for: screen)
-      : metrics.bottomCornerRadius
+    guard !isCollapsedIntoHousing else { return HUDNotchGeometry.radioEnReposo(for: screen) }
+    // Una forma abierta apenas más alta que la muesca —la sobria dictando,
+    // 184×26— lleva el radio de la muesca. Con los 18 de la forma grande las
+    // esquinas continuas se comían el cuerpo entero y la muesca se leía como
+    // una gota colgando, no como el recorte un poco más grande.
+    guard size.height >= metrics.bottomCornerRadius * 2 else {
+      return HUDNotchGeometry.radioEnReposo(for: screen)
+    }
+    return metrics.bottomCornerRadius
   }
 
   private var isCollapsedIntoHousing: Bool {

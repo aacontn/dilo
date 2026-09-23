@@ -99,9 +99,20 @@ struct NotchEscenarioTests {
       )
       #expect(abierto.height > HUDNotchGeometry.reposoSize(for: pantalla).height)
       #expect(abierto.width <= HUDNotchGeometry.windowSize(for: pantalla).width)
+      // La ventana abierta tiene que contener la forma más alta que esta
+      // pantalla dibuja. Sin carcasa ya no es la pila de bandas —dictando es
+      // la muesca apenas más grande, y lo más alto es el panel del hover—,
+      // así que la pila sólo se afirma contra un notch real.
+      let masAlta = HUDNotchGeometry.hasMeasuredNotch(for: pantalla)
+        ? abierto.height
+        : max(
+          HUDNotchGeometry.tamañoDictando(for: pantalla).height,
+          HUDNotchGeometry.altoDelPanelDeHover(for: pantalla)
+        )
       #expect(
-        abierto.height
-          <= HUDNotchGeometry.windowSize(for: pantalla).height - HUDNotchGeometry.shadowPadding
+        masAlta
+          <= HUDNotchGeometry.windowSize(for: pantalla).height
+          - HUDNotchGeometry.holguraDeRevelacion(for: pantalla)
       )
     }
   }
