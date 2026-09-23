@@ -1,4 +1,5 @@
 import AppKit
+import DiloConsumo
 import DiloEngines
 import DiloModes
 import DiloText
@@ -46,6 +47,9 @@ final class AppSettings {
     static let hudRetardoDeHover = "hudRetardoDeHover"
     static let hudPantalla = "hudPantalla"
     static let hudModoEnReposo = "hudModoEnReposo"
+    static let hudDatoIzquierdo = "hudDatoIzquierdo"
+    static let hudDatoDerecho = "hudDatoDerecho"
+    static let hudPorcentajeDeClaude = "hudPorcentajeDeClaude"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -282,6 +286,31 @@ final class AppSettings {
     didSet { defaults.set(hudModoEnReposo, forKey: Keys.hudModoEnReposo) }
   }
 
+  /// Qué dato vive a cada costado de la muesca en reposo: consumo de Claude o
+  /// de Codex, CPU o RAM, o nada.
+  ///
+  /// **Nada de fábrica**: la muesca quieta es la barra negra que ya estaba
+  /// ahí. Con cualquiera de los dos encendido la muesca se alarga a los dos
+  /// lados por igual, para seguir centrada sobre el notch.
+  var hudDatoIzquierdo: DatoDeLaMuesca {
+    didSet { defaults.set(hudDatoIzquierdo.rawValue, forKey: Keys.hudDatoIzquierdo) }
+  }
+
+  var hudDatoDerecho: DatoDeLaMuesca {
+    didSet { defaults.set(hudDatoDerecho.rawValue, forKey: Keys.hudDatoDerecho) }
+  }
+
+  /// Si el dato de Claude es el porcentaje de tu plan —preguntado a Anthropic
+  /// con la sesión de Claude Code, como hace CodexBar— en vez de los tokens
+  /// del bloque de cinco horas que quedan en disco.
+  ///
+  /// **Apagado de fábrica** porque leer esa sesión es leer una credencial del
+  /// Llavero: macOS lo pregunta la primera vez, y esa pregunta tiene que
+  /// llegar después de que alguien lo pidió, no por sorpresa.
+  var hudPorcentajeDeClaude: Bool {
+    didSet { defaults.set(hudPorcentajeDeClaude, forKey: Keys.hudPorcentajeDeClaude) }
+  }
+
   var readAloudVoiceID: String {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
@@ -498,6 +527,9 @@ final class AppSettings {
       ?? HUDStage.retardoDeHoverDeFabrica
     hudPantalla = defaults.string(forKey: Keys.hudPantalla) ?? ""
     hudModoEnReposo = defaults.bool(forKey: Keys.hudModoEnReposo)
+    hudDatoIzquierdo = Self.stored(in: defaults, key: Keys.hudDatoIzquierdo) ?? .ninguno
+    hudDatoDerecho = Self.stored(in: defaults, key: Keys.hudDatoDerecho) ?? .ninguno
+    hudPorcentajeDeClaude = defaults.bool(forKey: Keys.hudPorcentajeDeClaude)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(

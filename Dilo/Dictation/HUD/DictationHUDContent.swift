@@ -58,6 +58,11 @@ final class DictationHUDContent {
   /// resuelve el modo; la forma sólo lo dibuja.
   var modoActivo: String?
 
+  /// Lo que va a cada costado de la muesca en reposo, o nil. Lo escribe
+  /// `DatosDeLaMuesca` desde el escenario; la forma sólo lo dibuja.
+  var datoIzquierdo: LadoDeLaMuesca?
+  var datoDerecho: LadoDeLaMuesca?
+
   /// Lo que el hover revela: el modo activo, o lo último que se dictó. Lo
   /// escribe quien sabe (el controlador de dictado); la forma sólo lo dibuja.
   var contexto: String?

@@ -48,6 +48,27 @@ struct AnimacionDeLaMuescaTests {
     #expect(mitad.height > 24 && mitad.height < 88)
   }
 
+  // MARK: Los costados
+
+  /// Con datos a los costados la muesca se alarga lo mismo a los dos lados y
+  /// no crece de alto; la ventana en reposo la sigue, y la silueta sigue
+  /// centrada.
+  @Test func losCostadosAlarganLaMuescaSinMoverla() {
+    var conDatos = simulado
+    conDatos.anchoDeLosLados = HUDNotchGeometry.anchoDeUnLado
+    let sin = HUDNotchGeometry.reposoSize(for: simulado)
+    let con = HUDNotchGeometry.reposoSize(for: conDatos)
+    #expect(con.width == sin.width + HUDNotchGeometry.anchoDeUnLado * 2)
+    #expect(con.height == sin.height)
+    #expect(
+      HUDNotchGeometry.windowSize(for: conDatos, encuadre: .reposo).width
+        == HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo).width
+        + HUDNotchGeometry.anchoDeUnLado * 2
+    )
+    let silueta = HUDNotchGeometry.siluetaEnPantalla(for: conDatos, tamaño: con, encuadre: .reposo)
+    #expect(silueta.midX == simulado.frame.midX)
+  }
+
   // MARK: El hover
 
   private let simulado = HUDScreenSnapshot(

@@ -298,7 +298,10 @@ struct DictationHUDShellView: View {
         modo: modoEnReposo,
         scale: metrics.scale,
         // El alto de la silueta, medido: la marca lo llena y no lo estira.
-        alto: tamañoEnReposo.height
+        alto: tamañoEnReposo.height,
+        izquierdo: content.datoIzquierdo,
+        derecho: content.datoDerecho,
+        anchoDeLado: screen.anchoDeLosLados
       )
     } else {
       contenidoAbierto

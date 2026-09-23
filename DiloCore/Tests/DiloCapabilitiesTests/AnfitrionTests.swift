@@ -48,6 +48,7 @@ struct CapacidadesTests {
     #expect(!sandbox.admite(.relecturaDelFoco))
     #expect(!sandbox.admite(.tituloDeVentanaActiva))
     #expect(!sandbox.admite(.arrastreDeArchivosAlNotch))
+    #expect(!sandbox.admite(.consumoDeIADeOtrasApps))
   }
 }
 

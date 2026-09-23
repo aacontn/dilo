@@ -33,8 +33,65 @@ struct HUDMarcaDeReposo: View {
   /// (`HUDNotchGeometry.reposoSize`), y un segundo lugar que lo calcule es un
   /// lugar del que se va a desviar.
   let alto: CGFloat
+  /// Los datos de cada costado (`DatosDeLaMuesca`), y cuánto mide cada
+  /// costado. Con el panel del hover abierto no se dibujan: ahí manda el
+  /// contexto, a lo ancho.
+  var izquierdo: LadoDeLaMuesca?
+  var derecho: LadoDeLaMuesca?
+  var anchoDeLado: CGFloat = 0
 
   var body: some View {
+    HStack(spacing: 0) {
+      if contexto == nil, anchoDeLado > 0 {
+        costado(izquierdo)
+      }
+      centro
+      if contexto == nil, anchoDeLado > 0 {
+        costado(derecho)
+      }
+    }
+    .frame(height: alto)
+    .accessibilityElement()
+    .accessibilityLabel(Text("Dilo"))
+    .accessibilityValue(Text(paraVoiceOver))
+  }
+
+  private var paraVoiceOver: String {
+    let base = contexto ?? modo ?? String(localized: "En reposo")
+    let datos = [izquierdo, derecho].compactMap { $0 }.map { "\($0.etiqueta) \($0.valor)" }
+    return ([base] + datos).joined(separator: ", ")
+  }
+
+  /// Un dato a un costado: la etiqueta apagada y el valor claro, centrados en
+  /// el alto de la barra. Cifras de ancho fijo para que el número no baile
+  /// cada vez que cambia, y el valor se entibia cerca del límite: mango desde
+  /// el 75 %, rojo desde el 90 %.
+  @ViewBuilder
+  private func costado(_ lado: LadoDeLaMuesca?) -> some View {
+    HStack(spacing: 3 * scale) {
+      if let lado {
+        Text(lado.etiqueta)
+          .font(.system(size: 9 * scale, weight: .medium, design: .rounded))
+          .foregroundStyle(.white.opacity(0.5))
+        Text(lado.valor)
+          .font(.system(size: 10.5 * scale, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+          .foregroundStyle(Self.color(para: lado.nivel))
+      }
+    }
+    .lineLimit(1)
+    .frame(width: anchoDeLado, height: alto)
+  }
+
+  static func color(para nivel: Double?) -> Color {
+    guard let nivel else { return .white.opacity(0.85) }
+    if nivel >= 90 { return Color(red: 1, green: 0.38, blue: 0.32) }
+    if nivel >= 75 { return DiloBrand.mango }
+    return .white.opacity(0.85)
+  }
+
+  /// Lo de siempre: el contexto del hover, el modo, o el punto.
+  private var centro: some View {
     VStack(spacing: 2 * scale) {
       // Uno solo, y en este orden: lo que el hover reveló manda sobre el modo,
       // y el punto es lo que queda cuando no hay nada que decir. Dos datos a
@@ -76,9 +133,6 @@ struct HUDMarcaDeReposo: View {
     // mango abajo del todo. El aire de abajo va adentro del alto, no sumado
     // encima, o la silueta mide cinco puntos de más.
     .frame(height: alto, alignment: .bottom)
-    .accessibilityElement()
-    .accessibilityLabel(Text("Dilo"))
-    .accessibilityValue(Text(contexto ?? modo ?? String(localized: "En reposo")))
   }
 
   /// Un punto mango de tres puntos, abajo y al centro. Lo único que la muesca

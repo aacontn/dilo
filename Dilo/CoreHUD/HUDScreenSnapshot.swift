@@ -33,4 +33,12 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// donde se eligen las pantallas (`HUDPlacement`), que es puro y no conoce
   /// `NSScreen`.
   var nombre: String = ""
+  /// Cuánto se alarga la muesca en reposo **a cada lado** para llevar los
+  /// datos que se eligieron en Ajustes (`AppSettings.hudDatoIzquierdo`). Cero
+  /// sin datos, que es lo de fábrica.
+  ///
+  /// Viaja con la pantalla por lo mismo que `estiloSinNotch`: la ventana, la
+  /// zona que recibe el mouse y la silueta dibujada leen el mismo
+  /// `reposoSize`, y un número suelto se olvidaría en uno de los tres.
+  var anchoDeLosLados: CGFloat = 0
 }

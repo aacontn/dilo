@@ -167,8 +167,15 @@ enum HUDNotchGeometry {
   /// píldora descansa más chica: cuelga sobre el escritorio de la persona y
   /// no sobre una franja que el sistema ya tenía reservada.
   static func reposoSize(for screen: HUDScreenSnapshot) -> CGSize {
-    dibujaPildora(for: screen) ? reposoDeLaPildora : closedSize(for: screen)
+    let base = dibujaPildora(for: screen) ? reposoDeLaPildora : closedSize(for: screen)
+    return CGSize(width: base.width + screen.anchoDeLosLados * 2, height: base.height)
   }
+
+  /// Lo que se alarga la muesca a cada lado cuando lleva un dato: una
+  /// etiqueta corta y un número («Codex 35%», «Claude 1,7M») en once puntos,
+  /// con aire contra el borde. Igual a los dos lados aunque sólo uno tenga
+  /// dato, para que la muesca siga centrada sobre el notch.
+  static let anchoDeUnLado: CGFloat = 72
 
   /// La píldora en reposo: lo justo para una marca centrada.
   static let reposoDeLaPildora = CGSize(width: 96, height: 20)

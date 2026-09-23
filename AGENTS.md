@@ -366,6 +366,12 @@ siendo cierto:
   `frame(minHeight:)` el negro saltaba a ese alto antes de ensancharse
   (2026-09-23, «al agrandar se ve trancado»). El hover se abre con la curva de
   apertura del estilo, no con la de cierre.
+- **Los costados de la muesca llevan datos elegidos en Ajustes** (consumo de
+  Claude y Codex, CPU, RAM; `docs/design/datos-en-la-muesca.md`). Los
+  lectores viven en `DiloCore/Sources/DiloConsumo` y se prueban con
+  `swift test`. Si un proveedor pide la sesión del usuario, es opcional,
+  apagado de fábrica, se lee en cada consulta sin guardarse ni registrarse, y
+  nunca se renueva un token ajeno.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**

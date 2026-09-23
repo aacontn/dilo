@@ -1,4 +1,5 @@
 import AppKit
+import DiloConsumo
 import SwiftUI
 
 /// The one shape, and who is holding it.
@@ -186,6 +187,47 @@ final class HUDStage {
     hostingView.alSalirElPuntero = { [weak self] in
       self?.punteroSalio()
     }
+    datos.alCambiar = { [weak self] izquierdo, derecho in
+      self?.dictationContent.datoIzquierdo = izquierdo
+      self?.dictationContent.datoDerecho = derecho
+    }
+  }
+
+  // MARK: Los costados
+
+  /// Quien mantiene al día los datos de los costados de la muesca.
+  private let datos = DatosDeLaMuesca()
+
+  /// Cuánto se alarga la muesca a cada lado: lo de un dato si alguno de los
+  /// dos costados lleva uno, nada si ninguno.
+  private var anchoDeLosLados: CGFloat {
+    datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
+  }
+
+  /// Lleva lo elegido en Ajustes a los datos y, si cambió cuánto se alarga
+  /// la muesca, la vuelve a montar en la misma pantalla con el ancho nuevo.
+  private func aplicarLosLados() {
+    datos.configurar(
+      izquierdo: settings.hudDatoIzquierdo,
+      derecho: settings.hudDatoDerecho,
+      porcentajeDeClaude: settings.hudPorcentajeDeClaude
+    )
+    guard var pantalla = pantallaActual, pantalla.anchoDeLosLados != anchoDeLosLados else { return }
+    pantalla.anchoDeLosLados = anchoDeLosLados
+    mount(on: pantalla)
+  }
+
+  /// Vuelve a aplicar los costados cada vez que cambian en Ajustes: sin esto,
+  /// elegir un dato recién se vería al próximo dictado.
+  private func observarLosLados() {
+    withObservationTracking {
+      _ = (settings.hudDatoIzquierdo, settings.hudDatoDerecho, settings.hudPorcentajeDeClaude)
+    } onChange: { [weak self] in
+      Task { @MainActor in
+        self?.aplicarLosLados()
+        self?.observarLosLados()
+      }
+    }
   }
 
   /// Pone la forma en pantalla en reposo y la deja ahí.
@@ -195,6 +237,10 @@ final class HUDStage {
   /// montada no cuesta: en reposo nada anima (`EstadoDelNotch.anima`), que es
   /// el número que el spec §3 pide cuidar.
   func despertar() {
+    // Los costados antes de elegir pantalla: su ancho es parte de la silueta
+    // que se monta.
+    aplicarLosLados()
+    observarLosLados()
     guard let screen = screen() else { return }
     dictationContent.isRevealed = false
     mount(on: screen)
@@ -657,7 +703,8 @@ final class HUDStage {
         auxiliaryTopRightArea: screen.auxiliaryTopRightArea,
         menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY,
         estiloSinNotch: settings.hudEstiloSinNotch,
-        nombre: screen.localizedName
+        nombre: screen.localizedName,
+        anchoDeLosLados: anchoDeLosLados
       )
     }
     return HUDPlacement.selectDisplay(

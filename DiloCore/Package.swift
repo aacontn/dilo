@@ -12,11 +12,13 @@ import PackageDescription
 // El módulo, su carpeta y sus tests sí son propios; lo único compartido es la
 // línea del producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8—
 // se separa en `.library(name: "DiloModes", targets: ["DiloModes"])`.
+// `DiloConsumo` —los datos que la muesca muestra a sus costados— viaja igual
+// y por lo mismo.
 let package = Package(
   name: "DiloCore",
   platforms: [.macOS(.v26)],
   products: [
-    .library(name: "DiloText", targets: ["DiloText", "DiloModes"]),
+    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo"]),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
     .library(name: "DiloEngines", targets: ["DiloEngines"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
@@ -42,6 +44,7 @@ let package = Package(
   targets: [
     .target(name: "DiloText"),
     .target(name: "DiloModes"),
+    .target(name: "DiloConsumo"),
     .target(name: "DiloCapabilities"),
     .target(
       name: "DiloEngines",
@@ -56,6 +59,7 @@ let package = Package(
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
+    .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),

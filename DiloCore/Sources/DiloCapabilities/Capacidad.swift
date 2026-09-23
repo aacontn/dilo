@@ -31,4 +31,9 @@ public enum Capacidad: String, CaseIterable, Sendable {
   /// un monitor de mouse no otorga: en sandbox se ve el URL y no se puede
   /// abrir. Ahí el archivo entra por el panel de abrir.
   case arrastreDeArchivosAlNotch
+  /// Leer cuánto va gastado en Claude Code y en Codex, de sus propias
+  /// carpetas (`~/.claude`, `~/.codex`). El sandbox sólo deja ver el
+  /// contenedor de la app, así que en App Store esos datos no existen y los
+  /// costados de la muesca ofrecen sólo CPU y RAM.
+  case consumoDeIADeOtrasApps
 }

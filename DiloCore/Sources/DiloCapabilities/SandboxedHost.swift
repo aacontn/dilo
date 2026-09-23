@@ -44,7 +44,7 @@ public struct SandboxedHost: HostCapabilities {
     case .pegadoDirecto, .atajoGlobal, .tapDeAudioDelSistema:
       true
     case .focoAntesDePegar, .relecturaDelFoco, .tituloDeVentanaActiva,
-      .arrastreDeArchivosAlNotch:
+      .arrastreDeArchivosAlNotch, .consumoDeIADeOtrasApps:
       false
     }
   }
