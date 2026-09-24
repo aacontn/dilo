@@ -1902,7 +1902,8 @@ struct DirectDictationControllerTests {
 
     #expect(notas.withLock { $0 } == ["comprar pan"])
     #expect(recorder.insertedTexts.isEmpty, "una nota no se pega")
-    #expect(recorder.messages.contains { $0.contains("Notas") })
+    // Localizado: el runner de CI corre en inglés.
+    #expect(recorder.messages.contains(String(localized: "Nota guardada en Notas, carpeta Dilo.")))
     #expect(controller.sessionStateForTesting == .idle)
     controller.stop()
   }
@@ -1927,7 +1928,10 @@ struct DirectDictationControllerTests {
     await waitUntil("Nunca se avisó") { !recorder.messages.isEmpty }
     #expect(recorder.insertedDestinations == [.clipboardOnly])
     #expect(recorder.insertedTexts == ["comprar pan"])
-    #expect(recorder.messages.last?.contains("permiso") == true)
+    #expect(
+      recorder.messages.last
+        == String(localized: "Dilo no tiene permiso para usar Notas. Te copié la nota: pégala con ⌘V.")
+    )
     controller.stop()
   }
 
