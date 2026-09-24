@@ -122,6 +122,39 @@
         }
       }
     },
+    "5 h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 h"
+          }
+        }
+      }
+    },
+    "A los costados de la muesca puedes tener a la vista cómo va el Mac. Al pasar el mouse, la muesca abre el detalle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On either side of the notch you can keep how your Mac is doing in view. Hover over it and the notch opens the details."
+          }
+        }
+      }
+    },
+    "A los costados de la muesca puedes tener a la vista tu consumo de IA y cómo va el Mac. Al pasar el mouse, la muesca abre el detalle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On either side of the notch you can keep your AI usage and how your Mac is doing in view. Hover over it and the notch opens the details."
+          }
+        }
+      }
+    },
     "AJUSTES": {
       "extractionState": "manual",
       "localizations": {
@@ -331,6 +364,17 @@
         }
       }
     },
+    "Ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
+          }
+        }
+      }
+    },
     "Ajustes de Dilo": {
       "extractionState": "manual",
       "localizations": {
@@ -360,6 +404,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Startup"
+          }
+        }
+      }
+    },
+    "Anthropic pidió esperar. Vuelve a probar en %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic asked to wait. Test again in %@."
+          }
+        }
+      }
+    },
+    "Anthropic respondió algo que Dilo no entiende. Puede que haya cambiado su API.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic answered with something Dilo doesn't understand. Its API may have changed."
+          }
+        }
+      }
+    },
+    "Anthropic respondió con un error (%lld). Vuelve a probar más tarde.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic answered with an error (%lld). Test again later."
           }
         }
       }
@@ -815,6 +892,28 @@
         }
       }
     },
+    "CPU": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CPU"
+          }
+        }
+      }
+    },
+    "Cada costado lleva un dato.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each side holds one source."
+          }
+        }
+      }
+    },
     "Cada modo con su tecla y su IA": {
       "extractionState": "manual",
       "localizations": {
@@ -881,6 +980,17 @@
         }
       }
     },
+    "Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
+          }
+        }
+      }
+    },
     "Clic para copiar · Arrastra para guardar": {
       "extractionState": "manual",
       "localizations": {
@@ -888,6 +998,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Click to copy · Drag to save"
+          }
+        }
+      }
+    },
+    "Codex": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codex"
           }
         }
       }
@@ -925,6 +1046,17 @@
         }
       }
     },
+    "Con valores de ejemplo. Pasa el mouse por encima para ver el detalle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With sample values. Hover over it to see the details."
+          }
+        }
+      }
+    },
     "Conserva su función de siempre salvo que aprietes esa combinación exacta": {
       "extractionState": "manual",
       "localizations": {
@@ -943,6 +1075,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy to the clipboard"
+          }
+        }
+      }
+    },
+    "Costado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Side"
           }
         }
       }
@@ -980,6 +1123,17 @@
         }
       }
     },
+    "Cuánta memoria está ocupando todo el Mac. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much memory your whole Mac is using. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
     "Cuánta pantalla se toma la píldora": {
       "extractionState": "manual",
       "localizations": {
@@ -998,6 +1152,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "How much you dictated, kept only on this Mac"
+          }
+        }
+      }
+    },
+    "Cuánto trabaja el procesador de todo el Mac, como lo mide Monitor de Actividad. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How hard the processor is working across your Mac, measured the way Activity Monitor does. Nothing leaves this Mac."
           }
         }
       }
@@ -1068,6 +1233,17 @@
         }
       }
     },
+    "Datos en la muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notch data"
+          }
+        }
+      }
+    },
     "Deja que Dilo lea con tu propia voz entrenada": {
       "extractionState": "manual",
       "localizations": {
@@ -1086,6 +1262,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stop Reading"
+          }
+        }
+      }
+    },
+    "Derecha": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right"
           }
         }
       }
@@ -1607,6 +1794,17 @@
         }
       }
     },
+    "Enciende un dato abajo y aparece acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on a source below and it shows up here."
+          }
+        }
+      }
+    },
     "Enséñale a Dilo cómo se escriben las palabras que usas. Se quedan sólo acá. Sirven de a varias: «Espacio Digital» se arregla aunque lo dictes en dos.": {
       "extractionState": "manual",
       "localizations": {
@@ -1970,6 +2168,28 @@
         }
       }
     },
+    "Instala Claude Code y úsalo una vez; Dilo lee sus registros locales, sin clave.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install Claude Code and use it once; Dilo reads its local logs, no key needed."
+          }
+        }
+      }
+    },
+    "Instala Codex CLI y úsalo una vez; Dilo lee sus registros locales, sin clave.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install the Codex CLI and use it once; Dilo reads its local logs, no key needed."
+          }
+        }
+      }
+    },
     "Instrucción de cierre": {
       "extractionState": "manual",
       "localizations": {
@@ -1977,6 +2197,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Closing instruction"
+          }
+        }
+      }
+    },
+    "Izquierda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left"
           }
         }
       }
@@ -2076,6 +2307,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Translation not ready"
+          }
+        }
+      }
+    },
+    "La versión de App Store no puede leer las carpetas de otras apps: el sandbox de Apple no lo deja. La versión que se descarga directo sí.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The App Store version can't read other apps' folders: Apple's sandbox doesn't allow it. The version you download directly can."
           }
         }
       }
@@ -2197,6 +2439,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Done"
+          }
+        }
+      }
+    },
+    "Listo para usar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to use"
+          }
+        }
+      }
+    },
+    "Listo: vas en %@ de tus cinco horas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: you're at %@ of your five hours."
+          }
+        }
+      }
+    },
+    "Listo: vas en %@ de tus cinco horas. Se reinicia en %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: you're at %@ of your five hours. It resets in %@."
           }
         }
       }
@@ -2432,6 +2707,17 @@
         }
       }
     },
+    "Memoria": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory"
+          }
+        }
+      }
+    },
     "Menos": {
       "extractionState": "manual",
       "localizations": {
@@ -2505,6 +2791,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mono"
+          }
+        }
+      }
+    },
+    "Mostrar en la muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in the notch"
           }
         }
       }
@@ -2586,6 +2883,83 @@
         }
       }
     },
+    "No cabe: a la derecha ya va %@ y la izquierda también está ocupada. Apaga uno de los dos para ver este.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doesn't fit: %@ is already on the right and the left side is taken too. Turn one of them off to see this one."
+          }
+        }
+      }
+    },
+    "No cabe: a la derecha ya va %@. Elige la izquierda o apaga %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doesn't fit: %@ is already on the right. Pick the left side or turn %@ off."
+          }
+        }
+      }
+    },
+    "No cabe: a la izquierda ya va %@ y la derecha también está ocupada. Apaga uno de los dos para ver este.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doesn't fit: %@ is already on the left and the right side is taken too. Turn one of them off to see this one."
+          }
+        }
+      }
+    },
+    "No cabe: a la izquierda ya va %@. Elige la derecha o apaga %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doesn't fit: %@ is already on the left. Pick the right side or turn %@ off."
+          }
+        }
+      }
+    },
+    "No disponible en esta versión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not available in this version"
+          }
+        }
+      }
+    },
+    "No encontrado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not found"
+          }
+        }
+      }
+    },
+    "No encontré tu sesión de Claude Code en el Llavero, o no diste permiso para leerla. Inicia sesión en Claude Code y vuelve a probar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find your Claude Code session in the Keychain, or access to it wasn't allowed. Sign in to Claude Code and test again."
+          }
+        }
+      }
+    },
     "No encontré voz ahí": {
       "extractionState": "manual",
       "localizations": {
@@ -2637,6 +3011,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Could not transcribe that file"
+          }
+        }
+      }
+    },
+    "No se pudo llegar a api.anthropic.com. Revisa tu conexión y vuelve a probar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reach api.anthropic.com. Check your connection and test again."
           }
         }
       }
@@ -2850,6 +3235,17 @@
         }
       }
     },
+    "Plan, 5 h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan, 5 h"
+          }
+        }
+      }
+    },
     "Plata": {
       "extractionState": "manual",
       "localizations": {
@@ -2868,6 +3264,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Weighted by the time you actually spoke"
+          }
+        }
+      }
+    },
+    "Porcentaje de tu plan (opcional)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your plan's percentage (optional)"
+          }
+        }
+      }
+    },
+    "Preguntando a Anthropic…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asking Anthropic…"
           }
         }
       }
@@ -2901,6 +3319,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Try"
+          }
+        }
+      }
+    },
+    "Probar ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test now"
           }
         }
       }
@@ -2989,6 +3418,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "You can keep using your other language meanwhile."
+          }
+        }
+      }
+    },
+    "Puedes tener cómo va el Mac a la vista en la muesca: Ajustes → Datos en la muesca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can keep how your Mac is doing in view in the notch: Settings → Notch data."
+          }
+        }
+      }
+    },
+    "Puedes tener tu consumo de IA a la vista en la muesca: Ajustes → Datos en la muesca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can keep your AI usage in view in the notch: Settings → Notch data."
           }
         }
       }
@@ -3088,6 +3539,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "While listening"
+          }
+        }
+      }
+    },
+    "Qué se ve a los costados de la muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What shows on either side of the notch"
           }
         }
       }
@@ -3323,6 +3785,17 @@
         }
       }
     },
+    "Se reinicia en %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resets in %@"
+          }
+        }
+      }
+    },
     "Segundo idioma": {
       "extractionState": "manual",
       "localizations": {
@@ -3330,6 +3803,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Second language"
+          }
+        }
+      }
+    },
+    "Semana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Week"
           }
         }
       }
@@ -3374,6 +3858,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Previous week unavailable"
+          }
+        }
+      }
+    },
+    "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto, Dilo lee la sesión de Claude Code que guarda el Llavero y le pregunta tu porcentaje a api.anthropic.com. No la guarda, no la renueva y no la manda a nadie más. macOS te va a pedir permiso del Llavero una vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without this, Claude shows the tokens from the last five hours, counted from its files. With it, Dilo reads the Claude Code session stored in the Keychain and asks api.anthropic.com for your percentage. It never stores it, never renews it and never sends it anywhere else. macOS will ask for Keychain access once."
           }
         }
       }
@@ -3620,6 +4115,17 @@
         }
       }
     },
+    "Todavía sin datos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data yet"
+          }
+        }
+      }
+    },
     "Todavía sin instrucciones": {
       "extractionState": "manual",
       "localizations": {
@@ -3649,6 +4155,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "It all happens here"
+          }
+        }
+      }
+    },
+    "Tokens, 5 h": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokens, 5 h"
           }
         }
       }
@@ -3829,6 +4346,28 @@
         }
       }
     },
+    "Tu sesión de Claude Code venció. Abre Claude Code para que renueve su sesión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Claude Code session expired. Open Claude Code so it can renew its session."
+          }
+        }
+      }
+    },
+    "Tu último dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your last dictation"
+          }
+        }
+      }
+    },
     "Tus modos": {
       "extractionState": "manual",
       "localizations": {
@@ -3864,6 +4403,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your words and the fillers"
+          }
+        }
+      }
+    },
+    "Tus registros de Claude Code en este Mac: los tokens de tus últimas cinco horas. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Claude Code logs on this Mac: the tokens from your last five hours. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Tus registros de Codex en este Mac: cuánto llevas de tu límite de cinco horas y del semanal. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Codex logs on this Mac: how much of your five-hour and weekly limits you have used. Nothing leaves this Mac."
           }
         }
       }
