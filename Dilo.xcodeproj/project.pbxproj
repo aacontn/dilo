@@ -447,6 +447,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -487,6 +488,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -574,6 +576,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
@@ -615,6 +618,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";

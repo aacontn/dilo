@@ -240,12 +240,23 @@ enum HUDNotchGeometry {
   /// Con datos a los costados crece además `altoDelDetalleDeDatos`: el panel
   /// es donde se lee el detalle de cada uno —la semanal, los reinicios— que
   /// en el costado no cabe.
-  static func altoDelPanelDeHover(for screen: HUDScreenSnapshot) -> CGFloat {
-    let detalle = screen.anchoDeLosLados > 0 ? altoDelDetalleDeDatos : 0
-    return min(
-      reposoSize(for: screen).height + altoDelContextoEnReposo + detalle,
-      altoMaximoDelHover
-    )
+  ///
+  /// Y desde el 2026-09-24 el panel tiene secciones (`HUDPanelDelHover`): los
+  /// recientes en lugar de la línea de contexto, la próxima reunión y los
+  /// modos. Cada una suma un alto fijo, y sólo si tiene algo que mostrar.
+  static func altoDelPanelDeHover(
+    for screen: HUDScreenSnapshot,
+    secciones: SeccionesDelPanel? = nil
+  ) -> CGFloat {
+    let secciones = secciones ?? SeccionesDelPanel(datos: screen.anchoDeLosLados > 0)
+    let primera = secciones.recientes > 0
+      ? CGFloat(secciones.recientes) * altoDeUnReciente
+      : altoDelContextoEnReposo
+    let resto = (secciones.datos ? altoDelDetalleDeDatos : 0)
+      + (secciones.reunion ? altoDeLaReunion : 0)
+      + (secciones.modos ? altoDeLosModos : 0)
+      + (secciones.llevaAire ? aireAlPieDelPanel : 0)
+    return min(reposoSize(for: screen).height + primera + resto, altoMaximoDelHover)
   }
 
   /// Lo que el detalle de los datos le suma al panel del hover: el nombre de
@@ -452,7 +463,12 @@ enum HUDNotchGeometry {
   /// El techo del panel que abre el hover. No es un tamaño, es un límite:
   /// pasar el mouse revela contexto, y algo que ocupa media pantalla sin que
   /// nadie lo haya pedido dejó de ser contexto.
-  static let altoMaximoDelHover: CGFloat = 110
+  ///
+  /// Era 110 mientras el panel era una línea y el detalle de los datos. Con
+  /// las secciones del 2026-09-24 —tres recientes, la reunión y los modos—
+  /// todo encendido suma 181 en un 1080p; 190 es ese número con aire, y sigue
+  /// siendo un panel que cuelga de la barra y no una ventana.
+  static let altoMaximoDelHover: CGFloat = 190
 
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
   /// que mide cero.
@@ -562,7 +578,12 @@ enum HUDNotchGeometry {
   /// dictando apenas crece (`tamañoDictando`) y el panel sí tiene contenido.
   static func altoDeLaFormaMasAlta(for screen: HUDScreenSnapshot) -> CGFloat {
     guard hasMeasuredNotch(for: screen) else {
-      return max(tamañoDictando(for: screen).height, altoDelPanelDeHover(for: screen))
+      var posibles = screen.seccionesPosibles
+      posibles.datos = posibles.datos || screen.anchoDeLosLados > 0
+      return max(
+        tamañoDictando(for: screen).height,
+        altoDelPanelDeHover(for: screen, secciones: posibles)
+      )
     }
     let metrics = HUDMetrics.standard
     // The shaping band rides outside the max: it can sit under either
@@ -572,3 +593,46 @@ enum HUDNotchGeometry {
       + metrics.shapingBandHeight
   }
 }
+
+/// Qué secciones lleva el panel del hover ahora mismo, que es lo que decide
+/// su alto (`HUDNotchGeometry.altoDelPanelDeHover`). Se calcula del contenido
+/// y no se guarda aparte: la forma, la zona que recibe el mouse y la ventana
+/// leen el mismo número.
+struct SeccionesDelPanel: Equatable, Sendable {
+  var recientes = 0
+  var datos = false
+  var reunion = false
+  var modos = false
+
+  /// Si el panel lleva aire al pie: con cualquier sección nueva. El panel de
+  /// una línea y el detalle de los datos ya traían el suyo.
+  var llevaAire: Bool { recientes > 0 || reunion || modos }
+
+  /// Todas encendidas y llenas: lo más alto que el panel puede llegar a
+  /// medir.
+  static let todas = SeccionesDelPanel(
+    recientes: HUDNotchGeometry.recientesEnElPanel,
+    datos: true,
+    reunion: true,
+    modos: true
+  )
+
+  init(recientes: Int = 0, datos: Bool = false, reunion: Bool = false, modos: Bool = false) {
+    self.recientes = recientes
+    self.datos = datos
+    self.reunion = reunion
+    self.modos = modos
+  }
+}
+
+extension HUDNotchGeometry {
+  /// Cuántos recientes muestra el panel. Tres: más ya es una lista para leer,
+  /// y el panel es para agarrar algo al paso.
+  static let recientesEnElPanel = 3
+  static let altoDeUnReciente: CGFloat = 19
+  static let altoDeLaReunion: CGFloat = 26
+  static let altoDeLosModos: CGFloat = 28
+  /// El aire bajo la última sección, dentro de la forma.
+  static let aireAlPieDelPanel: CGFloat = 6
+}
+

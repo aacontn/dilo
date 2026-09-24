@@ -5220,6 +5220,171 @@
           }
         }
       }
+    },
+    "Copiado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        }
+      }
+    },
+    "Unirse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join"
+          }
+        }
+      }
+    },
+    "Normal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normal"
+          }
+        }
+      }
+    },
+    "ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "now"
+          }
+        }
+      }
+    },
+    "en %lld min": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in %lld min"
+          }
+        }
+      }
+    },
+    "a las %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "at %@"
+          }
+        }
+      }
+    },
+    "Reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting"
+          }
+        }
+      }
+    },
+    "Al pasar el mouse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On hover"
+          }
+        }
+      }
+    },
+    "Lo último que copias": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you last copied"
+          }
+        }
+      }
+    },
+    "Junto a tus dictados, lo último que copiaste, para volver a copiarlo con un clic. Lo que un gestor de contraseñas marca como secreto no entra, y nada se guarda al cerrar Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next to your dictations, what you last copied, so you can copy it again with one click. Anything a password manager marks as secret stays out, and nothing is kept when you quit Dilo."
+          }
+        }
+      }
+    },
+    "Próxima reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next meeting"
+          }
+        }
+      }
+    },
+    "La próxima reunión de tu calendario, y «Unirse» si trae un enlace de Zoom, Meet o Teams. Dilo te va a pedir permiso para leer el calendario.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next meeting on your calendar, with “Join” when it has a Zoom, Meet or Teams link. Dilo will ask for permission to read your calendar."
+          }
+        }
+      }
+    },
+    "Sin permiso para leer el calendario.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No permission to read your calendar."
+          }
+        }
+      }
+    },
+    "Cambiar de modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch mode"
+          }
+        }
+      }
+    },
+    "Tus modos, para elegir con un clic cuál usa el atajo de siempre. «Normal» es el dictado limpio, sin IA.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your modes, to choose with one click which one your usual shortcut uses. “Normal” is plain dictation, no AI."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

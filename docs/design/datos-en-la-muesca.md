@@ -184,3 +184,33 @@ del hover (`IconoDelDato`).
   dicta: si la muesca está ocupada, el aviso espera la vuelta siguiente.
   Interruptor en Ajustes, encendido de fábrica.
 
+## El panel del hover (2026-09-24)
+
+De la lista de lo que hacen otras apps de notch, Alfonso eligió el 3 (próxima
+reunión), el 6 (portapapeles junto a los dictados) y los modos. Viven en el
+panel que abre el hover (`HUDPanelDelHover`), en este orden y cada sección
+sólo si tiene algo:
+
+1. **Recientes** — hasta tres: tus dictados y lo que copias, lo más nuevo
+   arriba, con «Copiar» por fila. Reemplaza la línea de contexto. En memoria
+   y nada más: se pierde al cerrar Dilo. Lo que un gestor de contraseñas marca
+   como oculto, transitorio o autogenerado (convención de nspasteboard.org) no
+   entra (`VigiaDelPortapapeles`). El mismo texto no se repite: Dilo pega sus
+   dictados por el portapapeles.
+2. **Datos** — el detalle de lo que va a los costados.
+3. **Próxima reunión** — la primera que no terminó en las próximas 12 horas,
+   sin eventos de todo el día, con «Unirse» si el evento trae un enlace de
+   Zoom, Meet, Teams, Webex o Whereby (`LectorDelCalendario`). Apagada de
+   fábrica; encenderla pide el permiso de calendario, que necesita el
+   entitlement `com.apple.security.personal-information.calendars` en los dos
+   targets y `NSCalendarsFullAccessUsageDescription`.
+4. **Modos** — «Normal» y los de la biblioteca. Elegir uno guarda
+   `hudModoDelAtajoGeneral`: desde ahí el atajo de siempre dicta con ese modo;
+   los modos con tecla propia siguen con la suya.
+
+El alto es la suma de altos fijos por sección
+(`HUDNotchGeometry.altoDelPanelDeHover`), con techo de 190. La ventana abierta
+se dimensiona por lo **encendido** en Ajustes (`HUDScreenSnapshot.seccionesPosibles`),
+no por todo lo posible: una ventana más grande de lo necesario es pantalla que
+no deja pasar clics mientras el hover está abierto.
+

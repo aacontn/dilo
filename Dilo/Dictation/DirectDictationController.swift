@@ -614,6 +614,9 @@ final class DirectDictationController {
       // final. Congelado acá y no leído después: cambiar Ajustes a mitad de
       // dictado aplica al siguiente (ADR-0004).
       sessionModo = session.modos.modo(activeSlot.modoID)
+        // El atajo general usa el modo que se eligió en el panel del hover,
+        // si se eligió uno; sin elección sigue siendo el dictado limpio.
+        ?? (activeSlot == .primary ? session.modos.modo(session.modoDelAtajoGeneralID) : nil)
       modoElegidoAMano = sessionModo != nil
       dependencies.showListening(
         focusedTarget?.displayID,

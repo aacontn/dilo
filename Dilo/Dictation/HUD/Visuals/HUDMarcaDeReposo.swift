@@ -15,13 +15,6 @@ import SwiftUI
 struct HUDMarcaDeReposo: View {
   /// False contra hardware real, donde el recorte físico es la presencia.
   let dibujaMarca: Bool
-  /// El contexto que el hover reveló: el modo activo o lo último dictado.
-  /// Nil mientras el puntero está en otra parte.
-  var contexto: String?
-  /// Si con ese contexto hay algo que copiar. Lo que convierte el panel del
-  /// hover en una acción: desde el 2026-09-22 «copiar el último dictado» vive
-  /// acá y en el menú de la barra, y no en un estado Resultado de 400×50.
-  var puedeCopiar = false
   /// El nombre del modo activo, o nil —que es lo de fábrica—. El único dato
   /// que la muesca dice sin que nadie se acerque, y sólo si se pidió
   /// (`AppSettings.hudModoEnReposo`).
@@ -44,11 +37,11 @@ struct HUDMarcaDeReposo: View {
 
   var body: some View {
     HStack(spacing: 0) {
-      if contexto == nil, anchoDeLado > 0 {
+      if anchoDeLado > 0 {
         costado(izquierdo)
       }
       centro
-      if contexto == nil, anchoDeLado > 0 {
+      if anchoDeLado > 0 {
         costado(derecho)
       }
     }
@@ -59,20 +52,13 @@ struct HUDMarcaDeReposo: View {
   }
 
   private var paraVoiceOver: String {
-    let base = contexto ?? modo ?? String(localized: "En reposo")
+    let base = modo ?? String(localized: "En reposo")
     let datos = ladosConDato.map { "\($0.etiqueta) \($0.valor)" }
     return ([base] + datos).joined(separator: ", ")
   }
 
   private var ladosConDato: [LadoDeLaMuesca] {
     anchoDeLado > 0 ? [izquierdo, derecho].compactMap { $0 } : []
-  }
-
-  /// Si el panel del hover lleva el detalle de los datos: abierto, y con
-  /// algún dato elegido. El alto ya lo sumó la forma
-  /// (`HUDNotchGeometry.altoDelPanelDeHover`).
-  private var muestraDetalle: Bool {
-    contexto != nil && !ladosConDato.isEmpty
   }
 
   /// Un dato a un costado: su ícono y el valor, con una barrita debajo que se
@@ -122,35 +108,14 @@ struct HUDMarcaDeReposo: View {
     return .white.opacity(0.85)
   }
 
-  /// Lo de siempre: el contexto del hover, el modo, o el punto.
+  /// Lo de siempre: el modo, o el punto.
   private var centro: some View {
     VStack(spacing: 2 * scale) {
-      // Uno solo, y en este orden: lo que el hover reveló manda sobre el modo,
-      // y el punto es lo que queda cuando no hay nada que decir. Dos datos a
-      // la vez no caben en una silueta del alto de la barra, y apilarlos
-      // volvería a hacer de la muesca una etiqueta.
-      if let contexto {
-        HStack(spacing: 8 * scale) {
-          Text(contexto)
-            .font(.system(size: 10 * scale, weight: .medium, design: .rounded))
-            .foregroundStyle(.white.opacity(0.78))
-            .lineLimit(1)
-            .truncationMode(.tail)
-          if puedeCopiar {
-            Text("Copiar")
-              .font(.system(size: 10 * scale, weight: .semibold, design: .rounded))
-              .foregroundStyle(DiloBrand.mango)
-              .lineLimit(1)
-          }
-        }
-        .padding(.horizontal, 12 * scale)
-        if muestraDetalle {
-          HUDDetalleDeLosDatos(lados: ladosConDato)
-            .padding(.top, 6)
-            .padding(.horizontal, 16 * scale)
-            .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
-        }
-      } else if let modo, !modo.isEmpty {
+      // Uno solo: el modo si se pidió, y si no el punto. Dos datos a la vez
+      // no caben en una silueta del alto de la barra, y apilarlos volvería a
+      // hacer de la muesca una etiqueta. Lo que el hover revela ya no pasa
+      // por acá: es el panel (`HUDPanelDelHover`).
+      if let modo, !modo.isEmpty {
         Text(modo)
           .font(.system(size: 9 * scale, weight: .medium, design: .rounded))
           .foregroundStyle(.white.opacity(0.45))

@@ -1,4 +1,5 @@
 import DiloCapabilities
+import AppKit
 import DiloConsumo
 import SwiftUI
 
@@ -78,6 +79,8 @@ struct DatosDeLaMuescaSettingsView: View {
           }
         }
       }
+
+      PanelDelHoverSettings(settings: settings)
     }
     .task(id: estadosFijos == nil) {
       guard estadosFijos == nil else { return }
@@ -522,5 +525,79 @@ enum DatosDeLaMuescaCopy {
         texto = String(localized: "No se pudo llegar a api.anthropic.com. Revisa tu conexión y vuelve a probar.")
       }
     }
+  }
+}
+
+
+// MARK: - El panel del hover
+
+/// Qué más abre el hover, además del detalle de los datos: lo último que
+/// copiaste, la próxima reunión y los modos (2026-09-24).
+private struct PanelDelHoverSettings: View {
+  @Bindable var settings: AppSettings
+  @State private var sinPermisoDeCalendario = LectorDelCalendario.permisoNegado
+
+  var body: some View {
+    SettingsCard(title: "Al pasar el mouse") {
+      SettingsRow(
+        title: "Lo último que copias",
+        description: "Junto a tus dictados, lo último que copiaste, para volver a copiarlo con un clic. Lo que un gestor de contraseñas marca como secreto no entra, y nada se guarda al cerrar Dilo."
+      ) {
+        Toggle("", isOn: $settings.hudRecientesDelPortapapeles)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
+
+      SettingsRow(
+        title: "Próxima reunión",
+        description: "La próxima reunión de tu calendario, y «Unirse» si trae un enlace de Zoom, Meet o Teams. Dilo te va a pedir permiso para leer el calendario."
+      ) {
+        Toggle("", isOn: reunion)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
+      if sinPermisoDeCalendario {
+        HStack(spacing: 8) {
+          Text("Sin permiso para leer el calendario.")
+            .font(.system(size: 12))
+            .foregroundStyle(DiloBrand.mango)
+          Button("Abrir Ajustes del Sistema") {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars") {
+              NSWorkspace.shared.open(url)
+            }
+          }
+          .buttonStyle(.link)
+          .font(.system(size: 12))
+        }
+      }
+
+      SettingsRow(
+        title: "Cambiar de modo",
+        description: "Tus modos, para elegir con un clic cuál usa el atajo de siempre. «Normal» es el dictado limpio, sin IA."
+      ) {
+        Toggle("", isOn: $settings.hudModosEnElPanel)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
+    }
+  }
+
+  /// Encender la reunión es lo que pide el permiso: la pregunta de macOS
+  /// llega cuando alguien la pidió, no al abrir Dilo.
+  private var reunion: Binding<Bool> {
+    Binding(
+      get: { settings.hudProximaReunion },
+      set: { encender in
+        guard encender else {
+          settings.hudProximaReunion = false
+          return
+        }
+        Task { @MainActor in
+          let concedido = LectorDelCalendario.tienePermiso ? true : await LectorDelCalendario().pedirPermiso()
+          settings.hudProximaReunion = concedido
+          sinPermisoDeCalendario = !concedido
+        }
+      }
+    )
   }
 }
