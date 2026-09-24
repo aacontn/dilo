@@ -182,8 +182,9 @@ struct MuescaTests {
     #expect(alto > HUDNotchGeometry.tamañoDictando(for: simulada).height)
     #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
     // Era 110 con una línea y el detalle de los datos; con las secciones del
-    // 2026-09-24 el techo es 190, y sigue siendo un panel y no una ventana.
-    #expect(HUDNotchGeometry.altoMaximoDelHover <= 190)
+    // 2026-09-24, ordenadas, el techo es 220, y sigue siendo un panel y no
+    // una ventana.
+    #expect(HUDNotchGeometry.altoMaximoDelHover <= 220)
     // El ancho es el del contenido elegido en Ajustes, no uno medido del
     // texto ni el de la muesca dictando.
     #expect(HUDMetrics.standard.contentWidth == 400)

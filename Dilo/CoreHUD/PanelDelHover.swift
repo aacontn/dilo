@@ -91,10 +91,29 @@ struct HUDPanelDelHover: View {
     content.seccionesDelPanel(conDatos: !lados.isEmpty)
   }
 
+  /// En este orden, de lo más urgente a lo más a mano:
+  ///
+  /// 1. **La próxima reunión**, como tarjeta: es lo único del panel que tiene
+  ///    hora, y cuando falta poco se tiñe de mango.
+  /// 2. **Recientes**, con su encabezado —o la línea de contexto si todavía no
+  ///    hay nada—.
+  /// 3. **El detalle de los datos**, detrás de un separador.
+  /// 4. **La barra de acciones** al pie: los modos y «Nota».
+  ///
+  /// Cada sección lleva un alto exacto, el mismo que suma
+  /// `HUDNotchGeometry.altoDelPanelDeHover`: si la vista y la geometría no
+  /// coincidieran, la forma cortaría el contenido o sobraría negro abajo.
   var body: some View {
     VStack(alignment: .leading, spacing: 0) {
+      if secciones.reunion, let reunion = content.proximaReunion {
+        tarjetaDeLaReunion(reunion)
+          .frame(height: HUDNotchGeometry.altoDeLaReunion, alignment: .top)
+      }
       if secciones.recientes > 0 {
-        recientes
+        VStack(alignment: .leading, spacing: 0) {
+          encabezado("Recientes")
+          recientes
+        }
       } else {
         Text(verbatim: contexto)
           .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -104,19 +123,43 @@ struct HUDPanelDelHover: View {
           .frame(height: HUDNotchGeometry.altoDelContextoEnReposo)
       }
       if secciones.datos {
-        HUDDetalleDeLosDatos(lados: lados, ahora: ahora)
-          .padding(.top, 6)
-          .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
-      }
-      if secciones.reunion, let reunion = content.proximaReunion {
-        filaDeLaReunion(reunion)
+        VStack(spacing: 0) {
+          separador
+          HUDDetalleDeLosDatos(lados: lados, ahora: ahora)
+            .padding(.top, 2)
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
       }
       if secciones.modos {
-        modos
+        VStack(spacing: 0) {
+          separador
+          modos
+        }
+        .frame(height: HUDNotchGeometry.altoDeLosModos, alignment: .top)
       }
     }
     .padding(.horizontal, 16)
     .padding(.bottom, secciones.llevaAire ? HUDNotchGeometry.aireAlPieDelPanel : 0)
+  }
+
+  /// Una línea finita entre secciones, con su aire.
+  private var separador: some View {
+    Rectangle()
+      .fill(.white.opacity(0.08))
+      .frame(height: 1)
+      .frame(height: HUDNotchGeometry.altoDelSeparador)
+  }
+
+  /// El nombre de una sección, en chico y apagado: ordena sin competir con lo
+  /// que hay debajo.
+  private func encabezado(_ titulo: LocalizedStringKey) -> some View {
+    Text(titulo)
+      .textCase(.uppercase)
+      .font(.system(size: 8, weight: .semibold, design: .rounded))
+      .tracking(0.6)
+      .foregroundStyle(.white.opacity(0.42))
+      .frame(height: HUDNotchGeometry.altoDelEncabezadoDeSeccion, alignment: .bottom)
   }
 
   // MARK: Recientes
@@ -147,9 +190,12 @@ struct HUDPanelDelHover: View {
           .font(.system(size: 9.5, weight: .semibold, design: .rounded))
           .foregroundStyle(DiloBrand.menta)
       } else {
-        Text("Copiar")
-          .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-          .foregroundStyle(DiloBrand.mango)
+        // Un ícono apagado y no la palabra en mango: con tres filas, tres
+        // «Copiar» en color eran lo más fuerte del panel sin ser lo más
+        // importante. El color queda para cuando pasó algo: «Copiado».
+        Image(systemName: "doc.on.doc")
+          .font(.system(size: 9, weight: .semibold))
+          .foregroundStyle(.white.opacity(0.38))
       }
     }
     .frame(height: HUDNotchGeometry.altoDeUnReciente)
@@ -163,15 +209,17 @@ struct HUDPanelDelHover: View {
 
   // MARK: La reunión
 
-  private func filaDeLaReunion(_ reunion: ProximaReunion) -> some View {
-    HStack(spacing: 7) {
+  /// La reunión como tarjeta: el título, cuándo, y «Unirse» si hay enlace.
+  /// Mango cuando faltan diez minutos o menos, que es cuando importa.
+  private func tarjetaDeLaReunion(_ reunion: ProximaReunion) -> some View {
+    let pronto = Self.esPronto(reunion, ahora: ahora)
+    return HStack(spacing: 7) {
       Image(systemName: "calendar")
-        .font(.system(size: 9, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.45))
-        .frame(width: 12)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(pronto ? DiloBrand.mango : .white.opacity(0.55))
       Text(verbatim: reunion.titulo)
-        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-        .foregroundStyle(.white.opacity(0.85))
+        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+        .foregroundStyle(.white.opacity(0.9))
         .lineLimit(1)
       Text(verbatim: Self.cuando(reunion, ahora: ahora))
         .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -182,14 +230,27 @@ struct HUDPanelDelHover: View {
       Spacer(minLength: 6)
       if reunion.enlace != nil {
         Text("Unirse")
-          .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-          .foregroundStyle(DiloBrand.mango)
+          .font(.system(size: 9.5, weight: .bold, design: .rounded))
+          .foregroundStyle(.black)
+          .padding(.horizontal, 9)
+          .padding(.vertical, 3)
+          .background(Capsule(style: .continuous).fill(DiloBrand.mango))
       }
     }
-    .frame(height: HUDNotchGeometry.altoDeLaReunion)
-    .contentShape(Rectangle())
+    .padding(.horizontal, 9)
+    .frame(height: 26)
+    .background(
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(pronto ? DiloBrand.mango.opacity(0.14) : .white.opacity(0.06))
+    )
+    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     .onTapGesture { content.alAbrirReunion?() }
     .accessibilityElement(children: .combine)
+    .accessibilityAddTraits(.isButton)
+  }
+
+  static func esPronto(_ reunion: ProximaReunion, ahora: Date) -> Bool {
+    reunion.empieza.timeIntervalSince(ahora) <= 10 * 60
   }
 
   /// «en 12 min», «ahora», «a las 16:30».
@@ -203,7 +264,7 @@ struct HUDPanelDelHover: View {
 
   /// Mango cuando falta poco o ya empezó: es lo que dice «ahora sí».
   static func color(_ reunion: ProximaReunion, ahora: Date) -> Color {
-    reunion.empieza.timeIntervalSince(ahora) <= 10 * 60 ? DiloBrand.mango : .white.opacity(0.5)
+    esPronto(reunion, ahora: ahora) ? DiloBrand.mango : .white.opacity(0.5)
   }
 
   // MARK: Los modos
@@ -227,20 +288,24 @@ struct HUDPanelDelHover: View {
         botonDeNota
       }
     }
-    .frame(height: HUDNotchGeometry.altoDeLosModos)
+    // El alto de la sección menos su separador, que va arriba.
+    .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
   }
 
   /// Dictar una nota que termina en Apple Notas. Es un clic, no el hover:
   /// posarse encima nunca abre el micrófono (contrato del notch).
   private var botonDeNota: some View {
-    Label("Nota", systemImage: "note.text.badge.plus")
-      .labelStyle(.titleAndIcon)
-      .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-      .foregroundStyle(DiloBrand.mango)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 3)
-      .background(Capsule(style: .continuous).strokeBorder(DiloBrand.mango.opacity(0.55), lineWidth: 1))
-      .contentShape(Capsule())
+    HStack(spacing: 4) {
+      Image(systemName: "square.and.pencil")
+        .font(.system(size: 9, weight: .bold))
+      Text("Nota")
+        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+    }
+    .foregroundStyle(DiloBrand.mango)
+    .padding(.horizontal, 9)
+    .padding(.vertical, 3)
+    .background(Capsule(style: .continuous).fill(DiloBrand.mango.opacity(0.16)))
+    .contentShape(Capsule())
       .onTapGesture { content.alDictarNota?() }
       .accessibilityAddTraits(.isButton)
       .accessibilityLabel(Text("Dictar una nota"))

@@ -70,22 +70,9 @@ struct HUDMarcaDeReposo: View {
   /// en general». El nombre sigue estando para VoiceOver.
   @ViewBuilder
   private func costado(_ lado: LadoDeLaMuesca?) -> some View {
-    HStack(spacing: 4 * scale) {
-      if let lado {
-        IconoDelDato(dato: lado.dato, lado: 12 * scale)
-          .foregroundStyle(.white.opacity(0.62))
-        VStack(alignment: .leading, spacing: 2 * scale) {
-          Text(lado.valor)
-            .font(.system(size: 10.5 * scale, weight: .semibold, design: .rounded))
-            .monospacedDigit()
-            .foregroundStyle(Self.color(para: lado.nivel))
-          if let nivel = lado.nivel {
-            Self.barrita(nivel: nivel, ancho: 26 * scale, alto: 2 * scale)
-          }
-        }
-      }
+    Group {
+      if let lado { HUDValorDeDato(lado: lado, scale: scale) }
     }
-    .lineLimit(1)
     .frame(width: anchoDeLado, height: alto)
   }
 
@@ -150,6 +137,33 @@ struct HUDMarcaDeReposo: View {
     Circle()
       .fill(DiloBrand.mango.opacity(0.9))
       .frame(width: 3 * scale, height: 3 * scale)
+  }
+}
+
+/// Un dato tal como va en un costado: su ícono, el valor y la barrita.
+///
+/// Lo comparten la muesca en reposo y la franja de arriba del panel del
+/// hover: al abrirse el panel los datos no desaparecen, se quedan donde
+/// estaban mirando.
+struct HUDValorDeDato: View {
+  let lado: LadoDeLaMuesca
+  var scale: CGFloat = 1
+
+  var body: some View {
+    HStack(spacing: 4 * scale) {
+      IconoDelDato(dato: lado.dato, lado: 12 * scale)
+        .foregroundStyle(.white.opacity(0.62))
+      VStack(alignment: .leading, spacing: 2 * scale) {
+        Text(lado.valor)
+          .font(.system(size: 10.5 * scale, weight: .semibold, design: .rounded))
+          .monospacedDigit()
+          .foregroundStyle(HUDMarcaDeReposo.color(para: lado.nivel))
+        if let nivel = lado.nivel {
+          HUDMarcaDeReposo.barrita(nivel: nivel, ancho: 26 * scale, alto: 2 * scale)
+        }
+      }
+    }
+    .lineLimit(1)
   }
 }
 
