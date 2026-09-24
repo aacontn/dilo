@@ -28,6 +28,16 @@ public struct ClienteDeUsoDeClaude: Sendable {
     case esperar(hasta: Date)
     case respuesta(codigo: Int)
     case formato
+    /// No se llegó a Anthropic: sin red, o la red no deja pasar.
+    case sinRed
+
+    /// Cualquier error de una consulta, dicho como una de estas fallas. Es lo
+    /// que Ajustes traduce a palabras en «Probar ahora».
+    public static func de(_ error: Error) -> Falla {
+      if let falla = error as? Falla { return falla }
+      if error is URLError { return .sinRed }
+      return .respuesta(codigo: 0)
+    }
   }
 
   static let servicioDelLlavero = "Claude Code-credentials"
@@ -48,7 +58,13 @@ public struct ClienteDeUsoDeClaude: Sendable {
     pedido.setValue("application/json", forHTTPHeaderField: "Accept")
     pedido.setValue(Self.cabeceraBeta, forHTTPHeaderField: "anthropic-beta")
     pedido.setValue(agente, forHTTPHeaderField: "User-Agent")
-    let (datos, respuesta) = try await URLSession.shared.data(for: pedido)
+    let datos: Data
+    let respuesta: URLResponse
+    do {
+      (datos, respuesta) = try await URLSession.shared.data(for: pedido)
+    } catch {
+      throw Falla.de(error)
+    }
     let codigo = (respuesta as? HTTPURLResponse)?.statusCode ?? 0
     switch codigo {
     case 200:

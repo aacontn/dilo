@@ -3,7 +3,8 @@
 /// Nace del pedido del 2026-09-23: «mostrar cosas más entretenidas de forma
 /// permanente, alargar un poquito el notch y poner stats, como los consumos de
 /// IA o los stats del computador […] y que todo sea personalizable». Cada
-/// costado elige uno, o ninguno; los dos en `ninguno` es la muesca de siempre.
+/// fuente se enciende en su tarjeta de Ajustes y elige costado
+/// (`DisposicionDeLaMuesca`); sin ninguna encendida es la muesca de siempre.
 ///
 /// El `rawValue` es lo que se guarda en Ajustes: no se renombra.
 public enum DatoDeLaMuesca: String, CaseIterable, Sendable {
@@ -16,6 +17,12 @@ public enum DatoDeLaMuesca: String, CaseIterable, Sendable {
   case cpu
   /// La memoria ocupada de todo el sistema.
   case ram
+
+  /// Las fuentes de verdad, en el orden de sus tarjetas en Ajustes: sin
+  /// `ninguno`, que es la ausencia de dato y no una fuente.
+  public static var fuentes: [DatoDeLaMuesca] {
+    allCases.filter { $0 != .ninguno }
+  }
 
   /// Si el dato sale de los archivos de otra app. El sandbox de App Store no
   /// deja leerlos, y ahí estas opciones se esconden en vez de mostrar un
