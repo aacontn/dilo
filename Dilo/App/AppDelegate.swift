@@ -115,6 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     self.statusItemController = statusItemController
     statusItemController.dictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
+    stage.dictationContent.alTerminarNota = { dictationController.dictarNota() }
 
     // El notch como escenario permanente: la forma se pone en pantalla acá y
     // no se va más; lo que cambia después es su tamaño y su estado

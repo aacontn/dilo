@@ -184,15 +184,15 @@ struct HUDPanelDelHover: View {
         .lineLimit(1)
         .truncationMode(.tail)
       Spacer(minLength: 6)
+      // Íconos y no palabras (2026-09-24: «pon el ícono de copiar, no me
+      // gusta que salga copiar»): el de copiar apagado, y un ✓ en menta
+      // cuando se copió, que es cuando pasó algo.
       if content.recienteCopiadoID == elemento.id {
-        Label("Copiado", systemImage: "checkmark")
-          .labelStyle(.titleAndIcon)
-          .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+        Image(systemName: "checkmark")
+          .font(.system(size: 9.5, weight: .bold))
           .foregroundStyle(DiloBrand.menta)
+          .accessibilityLabel(Text("Copiado"))
       } else {
-        // Un ícono apagado y no la palabra en mango: con tres filas, tres
-        // «Copiar» en color eran lo más fuerte del panel sin ser lo más
-        // importante. El color queda para cuando pasó algo: «Copiado».
         Image(systemName: "doc.on.doc")
           .font(.system(size: 9, weight: .semibold))
           .foregroundStyle(.white.opacity(0.38))

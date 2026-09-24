@@ -749,6 +749,47 @@ final class HUDStage {
   /// hover tenga el panel abierto con algo que copiar: ahí «copiar el último
   /// dictado» es la acción del panel, que es donde quedó al salir el estado
   /// Resultado.
+  // MARK: Terminar una nota con un clic
+
+  /// Quien mira los clics mientras hay una nota abierta.
+  private var monitorDeLaNota: Any?
+
+  /// Una nota se abre con un clic y tiene que poder cerrarse con otro, en la
+  /// muesca misma: antes quedaba escuchando sin nada que dijera cómo pararla
+  /// (reporte del 2026-09-24).
+  ///
+  /// **Con un monitor global y no tomando el mouse.** Mientras se dicta, la
+  /// ventana deja pasar todos los clics; hacer que los tomara para esto
+  /// convertiría su rectángulo —dimensionado para el panel del hover, hasta
+  /// 488×262 sobre el centro de la barra— en pantalla muerta durante toda la
+  /// nota. El monitor ve el clic que va a la app de abajo y, si cayó sobre la
+  /// silueta, termina la nota. Debajo de la muesca simulada sólo está el
+  /// centro vacío de la barra de menús, así que ese clic no hace nada más.
+  /// Los monitores globales de mouse no piden permiso.
+  func vigilarElClicDeLaNota(_ encendido: Bool) {
+    if let monitorDeLaNota { NSEvent.removeMonitor(monitorDeLaNota) }
+    monitorDeLaNota = nil
+    guard encendido else { return }
+    monitorDeLaNota = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self, self.dictationContent.notaEnCurso else { return }
+        self.clicDuranteLaNota(en: self.posicionDelPuntero())
+      }
+    }
+  }
+
+  /// Un clic con la nota abierta: si cayó en la silueta, la termina.
+  func clicDuranteLaNota(en punto: CGPoint) {
+    guard dictationContent.notaEnCurso, let pantallaActual else { return }
+    let silueta = HUDNotchGeometry.siluetaEnPantalla(
+      for: pantallaActual,
+      tamaño: tamañoDeLaSilueta,
+      encuadre: encuadre
+    )
+    guard silueta.contains(punto) else { return }
+    dictationContent.alTerminarNota?()
+  }
+
   private func clicEnLaSilueta() {
     guard estado == .reposo else { return }
     if dictationContent.contextoVisible != nil, dictationContent.puedeCopiar {

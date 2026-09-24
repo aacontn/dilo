@@ -194,4 +194,32 @@ struct PanelDelHoverTests {
     #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
     #expect(HUDNotchGeometry.altoDelPanelDeHover(for: pantalla, secciones: .todas) == alto)
   }
+
+  // MARK: Terminar la nota
+
+  /// Con una nota abierta, un clic en la muesca la termina; fuera de la
+  /// muesca, o en un dictado que no es nota, no hace nada.
+  @Test func unClicEnLaMuescaTerminaLaNota() {
+    let stage = HUDStage(
+      settings: AppSettings.previewStore(),
+      reloj: DrivenClock().deadlineClock,
+      punteroEn: { CGPoint(x: -10_000, y: -10_000) }
+    )
+    stage.colocar(en: pantalla)
+    var terminadas = 0
+    stage.dictationContent.alTerminarNota = { terminadas += 1 }
+    stage.claim(.dictation, on: pantalla)
+    stage.recibir(.escuchar)
+    let centro = CGPoint(x: pantalla.frame.midX, y: pantalla.frame.maxY - 10)
+
+    stage.clicDuranteLaNota(en: centro)
+    #expect(terminadas == 0, "un dictado normal no se termina con un clic")
+
+    stage.dictationContent.esNota = true
+    stage.clicDuranteLaNota(en: CGPoint(x: 100, y: 500))
+    #expect(terminadas == 0, "fuera de la muesca")
+    stage.clicDuranteLaNota(en: centro)
+    #expect(terminadas == 1)
+  }
 }
+

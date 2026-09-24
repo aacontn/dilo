@@ -234,6 +234,9 @@ final class DictationHUDController {
   /// Si la sesión en curso es una nota rápida: la línea lo dice con un ícono.
   func mostrarQueEsNota(_ esNota: Bool) {
     content.esNota = esNota
+    // Un clic en la muesca termina la nota: el escenario lo vigila mientras
+    // dura, y deja de mirar en cuanto la sesión no es una nota.
+    stage.vigilarElClicDeLaNota(esNota)
   }
 
   func hide() {
