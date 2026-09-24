@@ -51,8 +51,10 @@ extension DictationHUDContent {
       recientes: min(recientes.count, HUDNotchGeometry.recientesEnElPanel),
       datos: conDatos,
       reunion: proximaReunion != nil,
-      // Con un solo modo ya hay elección: ése o «Normal».
-      modos: !modosDelPanel.isEmpty
+      // Con un solo modo ya hay elección: ése o «Normal». La fila también
+      // lleva «Nota», así que con la nota rápida encendida va aunque no haya
+      // modos.
+      modos: !modosDelPanel.isEmpty || ofreceNota
     )
   }
 
@@ -206,16 +208,42 @@ struct HUDPanelDelHover: View {
 
   // MARK: Los modos
 
+  /// La fila de abajo: los modos a la izquierda y «Nota» a la derecha.
   private var modos: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 5) {
-        chip(nombre: String(localized: "Normal"), id: nil)
-        ForEach(content.modosDelPanel) { modo in
-          chip(nombre: modo.nombre, id: modo.id)
+    HStack(spacing: 8) {
+      if !content.modosDelPanel.isEmpty {
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 5) {
+            chip(nombre: String(localized: "Normal"), id: nil)
+            ForEach(content.modosDelPanel) { modo in
+              chip(nombre: modo.nombre, id: modo.id)
+            }
+          }
         }
+      } else {
+        Spacer(minLength: 0)
+      }
+      if content.ofreceNota {
+        botonDeNota
       }
     }
     .frame(height: HUDNotchGeometry.altoDeLosModos)
+  }
+
+  /// Dictar una nota que termina en Apple Notas. Es un clic, no el hover:
+  /// posarse encima nunca abre el micrófono (contrato del notch).
+  private var botonDeNota: some View {
+    Label("Nota", systemImage: "note.text.badge.plus")
+      .labelStyle(.titleAndIcon)
+      .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+      .foregroundStyle(DiloBrand.mango)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 3)
+      .background(Capsule(style: .continuous).strokeBorder(DiloBrand.mango.opacity(0.55), lineWidth: 1))
+      .contentShape(Capsule())
+      .onTapGesture { content.alDictarNota?() }
+      .accessibilityAddTraits(.isButton)
+      .accessibilityLabel(Text("Dictar una nota"))
   }
 
   private func chip(nombre: String, id: String?) -> some View {

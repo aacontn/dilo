@@ -19,6 +19,9 @@ final class StatusItemController: NSObject {
   private let copiarItem: NSMenuItem
   private let copiarOriginalItem: NSMenuItem
   private var ultimoDictado: UltimoDictado?
+  /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
+  /// `AppDelegate`; sin él el ítem no hace nada.
+  var dictarNota: (() -> Void)?
   /// Deja un texto en el portapapeles. Es una costura para poder afirmar en
   /// un test qué se copió sin tocar el portapapeles de verdad.
   var copiarAlPortapapeles: (String) -> Void = { texto in
@@ -72,6 +75,17 @@ final class StatusItemController: NSObject {
     dictationItem.action = #selector(toggleDictationItem)
     dictationItem.target = self
     menu.addItem(dictationItem)
+
+    // La nota rápida, al lado de dictar: es un dictado que termina en Notas.
+    if Anfitrion.actual.admite(.notasDeApple) {
+      let notaItem = NSMenuItem(
+        title: String(localized: "Dictar una nota"),
+        action: #selector(dictarNotaItem),
+        keyEquivalent: ""
+      )
+      notaItem.target = self
+      menu.addItem(notaItem)
+    }
 
     readAloudItem.action = #selector(toggleReadAloudItem)
     readAloudItem.target = self
@@ -353,6 +367,10 @@ final class StatusItemController: NSObject {
 
   @objc private func toggleDictationItem() {
     toggleDictation()
+  }
+
+  @objc private func dictarNotaItem() {
+    dictarNota?()
   }
 
   @objc private func toggleReadAloudItem() {

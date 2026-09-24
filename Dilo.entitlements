@@ -11,11 +11,11 @@
 	     nunca: el prompt aparece y el switch no hace nada.
 
 	     **Nada más.** En particular:
-	     - `com.apple.security.automation.apple-events` NO va: el único
-	       osascript del repo está en DiloCore/Sources/DiloMetrics/, que es
-	       taller y no se enlaza a ningún target. El día que la app misma
-	       hable con otra app por Apple Events, este entitlement entra junto
-	       con su NSAppleEventsUsageDescription, y no antes.
+	     - `com.apple.security.automation.apple-events` entró el 2026-09-24,
+	       con su NSAppleEventsUsageDescription: la nota rápida guarda lo
+	       dictado en Apple Notas, y Notas sólo se maneja por Apple Events
+	       (`NotasDeApple`). Es el único destino: la app no le habla a
+	       ninguna otra.
 	     - `com.apple.security.cs.disable-library-validation` tampoco: los
 	       helpers de Sparkle se refirman con el mismo Team en
 	       scripts/release.sh, así que la validación de librerías pasa sola.
@@ -28,6 +28,8 @@
 	     permiso de calendario no se puede conceder nunca, igual que el
 	     micrófono. Sólo se pide si la persona enciende «Próxima reunión». -->
 	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+	<key>com.apple.security.automation.apple-events</key>
 	<true/>
 </dict>
 </plist>

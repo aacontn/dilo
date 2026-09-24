@@ -214,3 +214,27 @@ se dimensiona por lo **encendido** en Ajustes (`HUDScreenSnapshot.seccionesPosib
 no por todo lo posible: una ventana más grande de lo necesario es pantalla que
 no deja pasar clics mientras el hover está abierto.
 
+## La nota rápida (2026-09-24)
+
+El 7 de la lista: dictar una nota sin abrir ninguna app, y que quede en Apple
+Notas —carpeta «Dilo», que llega al iPhone por iCloud—.
+
+- **Cómo se abre**: el botón «Nota» al final de la fila de los modos del panel
+  del hover, o «Dictar una nota» en el menú de la barra. Es un clic y no el
+  hover: posarse encima nunca abre el micrófono.
+- **Qué sesión es**: una sesión trabada del atajo de siempre, marcada como nota
+  (`DirectDictationController.dictarNota`). Así se termina con la tecla de
+  dictado que ya conoces —o con otro clic—, y Esc la cancela. No pasa por el
+  modo del atajo general ni por «Dilo decide»: una nota sale como se dijo.
+- **Adónde va**: `NotasDeApple` corre `osascript` con el título y el cuerpo
+  como argumentos —nunca pegados dentro del script—. El título es la fecha
+  («Nota · 24 sep, 14:32»). Pide el entitlement
+  `com.apple.security.automation.apple-events` y
+  `NSAppleEventsUsageDescription`; la primera nota muestra el diálogo «Dilo
+  quiere controlar Notas».
+- **Si no se puede**: sin permiso o con Notas fallando, la nota va al
+  portapapeles y la muesca dice por qué. El historial ya la guardó antes.
+- **App Store**: el sandbox sólo deja Apple Events con una excepción que Apple
+  revisa a mano, así que ahí la nota rápida se esconde
+  (`Capacidad.notasDeApple`).
+

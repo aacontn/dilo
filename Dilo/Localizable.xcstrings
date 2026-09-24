@@ -5385,6 +5385,105 @@
           }
         }
       }
+    },
+    "Nota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note"
+          }
+        }
+      }
+    },
+    "Dictar una nota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate a note"
+          }
+        }
+      }
+    },
+    "Nota · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note · %@"
+          }
+        }
+      }
+    },
+    "Nota guardada en Notas, carpeta Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note saved in Notes, in the Dilo folder."
+          }
+        }
+      }
+    },
+    "No pude guardar la nota en Notas ni copiarla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't save the note in Notes or copy it."
+          }
+        }
+      }
+    },
+    "Dilo no tiene permiso para usar Notas. Te copié la nota: pégala con ⌘V.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo isn't allowed to use Notes. I copied the note for you: paste it with ⌘V."
+          }
+        }
+      }
+    },
+    "No pude guardar la nota en Notas. Te la copié: pégala con ⌘V.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't save the note in Notes. I copied it for you: paste it with ⌘V."
+          }
+        }
+      }
+    },
+    "Nota rápida": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick note"
+          }
+        }
+      }
+    },
+    "Un botón «Nota»: dictas y queda en Apple Notas, en la carpeta «Dilo», sin abrir ninguna app. Termínala con tu tecla de dictado. La primera vez macOS te pide permiso para que Dilo use Notas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A “Note” button: you dictate and it lands in Apple Notes, in the “Dilo” folder, without opening any app. Finish it with your dictation key. The first time, macOS asks for permission for Dilo to use Notes."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

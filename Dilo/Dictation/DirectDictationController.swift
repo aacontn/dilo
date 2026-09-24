@@ -295,6 +295,9 @@ final class DirectDictationController {
   /// press while refusing the one they can.
   private func claimSession(for slot: GlobalKeyEventMonitor.TriggerSlot) {
     activeSlot = slot
+    // Una sesión nueva no es nota salvo que `dictarNota` diga lo contrario
+    // justo después.
+    sesionEsNota = false
     if let rol = slot.bindingRole {
       activeBinding = settings.binding(for: rol)
     } else {
@@ -382,6 +385,29 @@ final class DirectDictationController {
       await dependencies.shutDownRecognition()
       await translation.shutDown()
     }
+  }
+
+  /// Si la sesión en curso es una nota rápida: termina en Apple Notas y no
+  /// pegada donde estaba el cursor.
+  private(set) var sesionEsNota = false
+
+  /// Empieza una nota rápida (el 7 de la lista del 2026-09-24): una sesión
+  /// trabada del atajo de siempre, como la del menú, que al terminar guarda
+  /// lo dicho en Apple Notas. Trabada porque la abre un clic y no una tecla
+  /// sostenida; se termina con la tecla de dictado o con otro clic, y Esc la
+  /// cancela, igual que cualquier otra.
+  ///
+  /// Del atajo de siempre y no una ranura propia: así la tecla que ya
+  /// conoces la termina, sin aprender otra.
+  func dictarNota() {
+    guard !machine.isSessionActive else {
+      // Un segundo clic con la nota abierta la termina.
+      if sesionEsNota { send(.menuToggled(now: .now)) }
+      return
+    }
+    claimSession(for: .primary)
+    sesionEsNota = true
+    send(.menuToggled(now: .now))
   }
 
   func toggleFromMenu() {
@@ -616,8 +642,13 @@ final class DirectDictationController {
       sessionModo = session.modos.modo(activeSlot.modoID)
         // El atajo general usa el modo que se eligió en el panel del hover,
         // si se eligió uno; sin elección sigue siendo el dictado limpio.
-        ?? (activeSlot == .primary ? session.modos.modo(session.modoDelAtajoGeneralID) : nil)
-      modoElegidoAMano = sessionModo != nil
+        ?? (activeSlot == .primary && !sesionEsNota
+          ? session.modos.modo(session.modoDelAtajoGeneralID) : nil)
+      // Una nota sale como se dijo: ni el modo del atajo general —una nota no
+      // es un correo— ni «Dilo decide», que opinaría por la app al frente,
+      // que no es donde va a terminar.
+      modoElegidoAMano = sessionModo != nil || sesionEsNota
+      dependencies.mostrarQueEsNota(sesionEsNota)
       dependencies.showListening(
         focusedTarget?.displayID,
         latched,
@@ -884,6 +915,7 @@ final class DirectDictationController {
     let modoDeLaTecla = sessionModo
     let elegidoAMano = modoElegidoAMano
     let appAlFrente = focusedTarget?.applicationName
+    let esNota = sesionEsNota
     finishTask = Task { [weak self] in
       guard let self else { return }
       defer { finishTask = nil }
@@ -998,6 +1030,11 @@ final class DirectDictationController {
           modo: Self.paraElHistorial(eleccion), session: session
         )
 
+        if esNota {
+          await guardarNota(text, spoken: spoken, speakingDuration: speakingDuration)
+          return
+        }
+
         let outcome = await dependencies.insertText(
           text, focusedTarget, session.insertionDestination
         )
@@ -1040,6 +1077,32 @@ final class DirectDictationController {
       }
       finishTask = nil
     }
+  }
+
+  /// El final de una nota rápida: a Apple Notas, y si no se puede, al
+  /// portapapeles con el porqué. Las palabras nunca se pierden: el historial
+  /// ya las guardó antes de llegar acá (ADR-0007).
+  private func guardarNota(_ texto: String, spoken: String, speakingDuration: TimeInterval) async {
+    let resultado = await dependencies.guardarNota(texto)
+    if resultado == .guardada {
+      dependencies.playPasteSound()
+      send(.sessionEnded)
+      dependencies.showMessage(String(localized: "Nota guardada en Notas, carpeta Dilo."), nil)
+      await dependencies.recordSession(UsageMetrics.wordCount(in: spoken), speakingDuration)
+      return
+    }
+    let rescate = await dependencies.insertText(texto, nil, .clipboardOnly)
+    send(.sessionEnded)
+    let mensaje: String
+    switch (resultado, rescate) {
+    case (_, .unavailable):
+      mensaje = String(localized: "No pude guardar la nota en Notas ni copiarla.")
+    case (.sinPermiso, _):
+      mensaje = String(localized: "Dilo no tiene permiso para usar Notas. Te copié la nota: pégala con ⌘V.")
+    default:
+      mensaje = String(localized: "No pude guardar la nota en Notas. Te la copié: pégala con ⌘V.")
+    }
+    dependencies.showMessage(mensaje, nil)
   }
 
   /// A failure path always ends with the message shown after the reset —

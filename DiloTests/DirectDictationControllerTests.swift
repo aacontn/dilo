@@ -91,7 +91,9 @@ struct DirectDictationControllerTests {
     transformar: @escaping @Sendable (
       String, Modo, ResolucionDeProveedor.DeSesion
     ) async -> TransformacionDeModo.Resultado = { texto, _, _ in .transformado(texto) },
-    insertOutcome: TextInsertionService.InsertionOutcome = .inserted
+    insertOutcome: TextInsertionService.InsertionOutcome = .inserted,
+    notas: OSAllocatedUnfairLock<[String]> = .init(initialState: []),
+    resultadoDeLaNota: ResultadoDeLaNota = .guardada
   ) -> DirectDictationController.Dependencies {
     DirectDictationController.Dependencies(
       setDownloadHandler: { _ in },
@@ -192,6 +194,10 @@ struct DirectDictationControllerTests {
       // controlador lo pregunta y lo pasa al historial, no cuál contesta el
       // router.
       motorDelDictado: { "Parakeet v3" },
+      guardarNota: { texto in
+        notas.withLock { $0.append(texto) }
+        return resultadoDeLaNota
+      },
       transformar: transformar
     )
   }
@@ -1869,5 +1875,99 @@ struct DirectDictationControllerTests {
       settings: settings, sessionSlot: nil, sessionBinding: nil
     )
     #expect(conDos.modos.map(\.id) == ["limpio", settings.modos[1].id])
+  }
+
+  // MARK: Nota rápida (2026-09-24)
+
+  /// Una nota se abre con un clic, se cierra con otro, y termina en Apple
+  /// Notas: no se pega donde está el cursor.
+  @Test func laNotaTerminaEnNotasYNoSePega() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let notas = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder, prewarmed: prewarmed,
+        finishRecognition: { "comprar pan" }, notas: notas
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    controller.dictarNota()
+    await waitUntil("La nota nunca empezó a grabar") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    #expect(controller.sesionEsNota)
+    controller.dictarNota()
+    await waitUntil("La nota nunca terminó") { recorder.recordedSessions.count == 1 }
+
+    #expect(notas.withLock { $0 } == ["comprar pan"])
+    #expect(recorder.insertedTexts.isEmpty, "una nota no se pega")
+    #expect(recorder.messages.contains { $0.contains("Notas") })
+    #expect(controller.sessionStateForTesting == .idle)
+    controller.stop()
+  }
+
+  /// Sin permiso para usar Notas, la nota queda en el portapapeles y la
+  /// muesca dice por qué.
+  @Test func sinPermisoLaNotaQuedaEnElPortapapeles() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder, prewarmed: prewarmed,
+        finishRecognition: { "comprar pan" }, resultadoDeLaNota: .sinPermiso
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    controller.dictarNota()
+    await waitUntil("La nota nunca empezó a grabar") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.dictarNota()
+    await waitUntil("Nunca se avisó") { !recorder.messages.isEmpty }
+    #expect(recorder.insertedDestinations == [.clipboardOnly])
+    #expect(recorder.insertedTexts == ["comprar pan"])
+    #expect(recorder.messages.last?.contains("permiso") == true)
+    controller.stop()
+  }
+
+  /// El modo elegido en el panel lo usa el atajo general, pero una nota sale
+  /// como se dijo.
+  @Test func elModoDelAtajoGeneralNoTocaLasNotas() async {
+    let settings = AppSettings(defaults: freshDefaults())
+    let modo = try? #require(settings.modos.first)
+    settings.hudModoDelAtajoGeneral = modo?.id
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let notas = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder, prewarmed: prewarmed,
+        finishRecognition: { "hola" },
+        transformar: { texto, _, _ in .transformado("MODO: \(texto)") },
+        notas: notas
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    // El atajo de siempre, con el modo del panel.
+    controller.toggleFromMenu()
+    await waitUntil("La sesión nunca empezó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.toggleFromMenu()
+    await waitUntil("La sesión nunca terminó") { recorder.recordedSessions.count == 1 }
+    #expect(recorder.insertedTexts == ["MODO: hola"])
+
+    // La nota, sin él.
+    controller.dictarNota()
+    await waitUntil("La nota nunca empezó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.dictarNota()
+    await waitUntil("La nota nunca terminó") { recorder.recordedSessions.count == 2 }
+    #expect(notas.withLock { $0 } == ["hola"])
+    controller.stop()
   }
 }

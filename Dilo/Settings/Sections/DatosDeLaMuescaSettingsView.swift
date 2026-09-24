@@ -571,6 +571,17 @@ private struct PanelDelHoverSettings: View {
         }
       }
 
+      if Anfitrion.actual.admite(.notasDeApple) {
+        SettingsRow(
+          title: "Nota rápida",
+          description: "Un botón «Nota»: dictas y queda en Apple Notas, en la carpeta «Dilo», sin abrir ninguna app. Termínala con tu tecla de dictado. La primera vez macOS te pide permiso para que Dilo use Notas."
+        ) {
+          Toggle("", isOn: $settings.hudNotaRapida)
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
+      }
+
       SettingsRow(
         title: "Cambiar de modo",
         description: "Tus modos, para elegir con un clic cuál usa el atajo de siempre. «Normal» es el dictado limpio, sin IA."

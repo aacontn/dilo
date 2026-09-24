@@ -49,6 +49,7 @@ struct CapacidadesTests {
     #expect(!sandbox.admite(.tituloDeVentanaActiva))
     #expect(!sandbox.admite(.arrastreDeArchivosAlNotch))
     #expect(!sandbox.admite(.consumoDeIADeOtrasApps))
+    #expect(!sandbox.admite(.notasDeApple))
   }
 }
 
