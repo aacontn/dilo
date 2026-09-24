@@ -56,13 +56,17 @@ struct HUDLineaSobria: View {
           .frame(maxWidth: .infinity)
       } else {
         HStack(spacing: 6) {
-          // Una nota lo dice antes que nada: estas palabras van a Notas, no
-          // a donde está el cursor.
-          if content.esNota, content.estado == .dictando {
-            Image(systemName: "note.text")
-              .font(.system(size: 10, weight: .semibold))
-              .foregroundStyle(DiloBrand.mango)
-              .accessibilityLabel(Text("Nota"))
+          // Una nota lo dice antes que nada, con palabra y no sólo con ícono:
+          // estas palabras van a Notas, no a donde está el cursor.
+          if esNota {
+            HStack(spacing: 3) {
+              Image(systemName: "note.text")
+                .font(.system(size: 9.5, weight: .semibold))
+              Text("Nota")
+                .font(.system(size: 9.5, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(DiloBrand.mango)
+            .fixedSize()
           }
           if muestraOnda {
             HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
@@ -70,7 +74,9 @@ struct HUDLineaSobria: View {
           }
           texto
             .frame(maxWidth: .infinity, alignment: .leading)
-          if muestraOnda {
+          if esNota {
+            botonDeGuardar
+          } else if muestraOnda {
             // El cursor mango dice lo que ninguna onda dice: que lo escrito
             // sigue creciendo. Encogido con la línea.
             HUDCursorDeDictado(scale: Self.cuerpo / 15, reduceMotion: reduceMotion)
@@ -83,6 +89,23 @@ struct HUDLineaSobria: View {
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Text("Dilo"))
     .accessibilityValue(Text(paraVoiceOver))
+  }
+
+  /// Si se está dictando una nota: lleva su etiqueta y el botón de guardar.
+  private var esNota: Bool { content.notaEnCurso }
+
+  /// Cómo se termina una nota, a la vista: un ✓ en mango al final de la
+  /// línea. Antes no había nada que dijera cómo pararla —se abría con un clic
+  /// y quedaba escuchando sin salida visible (reporte del 2026-09-24)—. El
+  /// clic lo recibe la muesca entera (`HUDStage.clicDuranteLaNota`); el botón
+  /// es lo que dice dónde tocar.
+  private var botonDeGuardar: some View {
+    Image(systemName: "checkmark")
+      .font(.system(size: 8, weight: .heavy))
+      .foregroundStyle(.black)
+      .frame(width: 15, height: 15)
+      .background(Circle().fill(DiloBrand.mango))
+      .accessibilityLabel(Text("Guardar la nota"))
   }
 
   /// Dictando, el parcial en cursiva; en los demás estados, lo que el estado

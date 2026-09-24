@@ -5484,6 +5484,28 @@
           }
         }
       }
+    },
+    "Guardar la nota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save the note"
+          }
+        }
+      }
+    },
+    "Copiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

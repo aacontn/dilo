@@ -61,6 +61,13 @@ final class DictationHUDContent {
   /// Si la sesión en curso es una nota rápida (`DirectDictationController.dictarNota`).
   var esNota = false
 
+  /// Si ahora mismo se está dictando una nota: la línea lleva su etiqueta y
+  /// el ✓ para guardarla, y un clic en la muesca la termina
+  /// (`HUDStage.vigilarElClicDeLaNota`).
+  var notaEnCurso: Bool { esNota && estado == .dictando }
+  /// Un clic en la muesca con una nota en curso: la termina y la guarda.
+  @ObservationIgnored var alTerminarNota: (() -> Void)?
+
   /// Lo que va a cada costado de la muesca en reposo, o nil. Lo escribe
   /// `DatosDeLaMuesca` desde el escenario; la forma sólo lo dibuja.
   var datoIzquierdo: LadoDeLaMuesca?

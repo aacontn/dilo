@@ -69,10 +69,21 @@ struct HistorialSettingsView: View {
       description: "\(sello)"
     ) {
       HStack(spacing: 8) {
-        Button(copiada == entrada.id ? "Copiado" : "Copiar") { copiar(entrada) }
-          .buttonStyle(SettingsButtonStyle())
-        Button("Borrar") { borrar(entrada) }
-          .buttonStyle(SettingsButtonStyle())
+        // Íconos y no palabras, como en el notch (2026-09-24): el nombre va en
+        // la ayuda y para VoiceOver.
+        Button { copiar(entrada) } label: {
+          Image(systemName: copiada == entrada.id ? "checkmark" : "doc.on.doc")
+            .foregroundStyle(copiada == entrada.id ? DiloBrand.menta : .primary)
+        }
+        .buttonStyle(SettingsButtonStyle())
+        .help(copiada == entrada.id ? "Copiado" : "Copiar")
+        .accessibilityLabel(Text(copiada == entrada.id ? "Copiado" : "Copiar"))
+        Button { borrar(entrada) } label: {
+          Image(systemName: "trash")
+        }
+        .buttonStyle(SettingsButtonStyle())
+        .help("Borrar")
+        .accessibilityLabel(Text("Borrar"))
       }
     }
   }
