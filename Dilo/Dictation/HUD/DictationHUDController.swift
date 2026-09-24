@@ -231,6 +231,11 @@ final class DictationHUDController {
     content.shapingChoiceLabel = label
   }
 
+  /// Si la sesión en curso es una nota rápida: la línea lo dice con un ícono.
+  func mostrarQueEsNota(_ esNota: Bool) {
+    content.esNota = esNota
+  }
+
   func hide() {
     // The shape retracts exactly as it stands. The visual stops reacting so a
     // glow can play its drain, but the bands are pinned and the text is left

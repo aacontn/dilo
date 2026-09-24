@@ -107,6 +107,11 @@ extension DirectDictationController {
     /// dependencias a mano sigan compilando: una entrada sin motor es
     /// exactamente lo que ya sabe leer el historial viejo.
     var motorDelDictado: @Sendable () async -> String? = { nil }
+    /// Guarda una nota rápida en Apple Notas. Con valor por defecto para que
+    /// los tests que no la usan no tengan que armarla.
+    var guardarNota: @Sendable (String) async -> ResultadoDeLaNota = { _ in .fallo }
+    /// Si el notch dice que la sesión en curso es una nota.
+    var mostrarQueEsNota: @MainActor (Bool) -> Void = { _ in }
 
     /// Las palabras propias que se le pasan al motor como contexto antes de
     /// reconocer. Trae un valor por defecto que no hace nada para que los
@@ -235,6 +240,8 @@ extension DirectDictationController {
           )
         },
         motorDelDictado: { await motores.motorDeLaUltimaSesion()?.title },
+        guardarNota: { await NotasDeApple.guardar($0) },
+        mostrarQueEsNota: { hudController.mostrarQueEsNota($0) },
         setPalabrasPropias: { await speechService.setPalabrasPropias($0) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)

@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import DiloConsumo
 import DiloModes
 import SwiftUI
@@ -238,8 +239,14 @@ final class HUDStage {
       recientes: HUDNotchGeometry.recientesEnElPanel,
       datos: false,
       reunion: settings.hudProximaReunion,
-      modos: settings.hudModosEnElPanel && !settings.modos.isEmpty
+      modos: (settings.hudModosEnElPanel && !settings.modos.isEmpty) || notaDisponible
     )
+  }
+
+  /// Si el panel ofrece la nota rápida: encendida en Ajustes y posible en
+  /// este anfitrión (en App Store no hay Apple Events hacia Notas).
+  private var notaDisponible: Bool {
+    settings.hudNotaRapida && Anfitrion.actual.admite(.notasDeApple)
   }
 
   /// Deja un texto en el portapapeles. Una costura, para que un test afirme
@@ -270,6 +277,7 @@ final class HUDStage {
       ? settings.modos.map { ModoDelPanel(id: $0.id, nombre: $0.nombre) }
       : []
     dictationContent.modosDelPanel = modos
+    dictationContent.ofreceNota = notaDisponible
     let elegido = settings.hudModoDelAtajoGeneral
     dictationContent.modoDelPanelID = modos.contains { $0.id == elegido } ? elegido : nil
   }
@@ -328,6 +336,7 @@ final class HUDStage {
       _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude, settings.hudAvisosDeLimite)
       _ = (settings.hudRecientesDelPortapapeles, settings.hudModosEnElPanel)
       _ = (settings.hudModoDelAtajoGeneral, settings.modos, settings.hudProximaReunion)
+      _ = settings.hudNotaRapida
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.aplicarLosLados()

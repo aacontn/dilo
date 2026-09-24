@@ -56,6 +56,14 @@ struct HUDLineaSobria: View {
           .frame(maxWidth: .infinity)
       } else {
         HStack(spacing: 6) {
+          // Una nota lo dice antes que nada: estas palabras van a Notas, no
+          // a donde está el cursor.
+          if content.esNota, content.estado == .dictando {
+            Image(systemName: "note.text")
+              .font(.system(size: 10, weight: .semibold))
+              .foregroundStyle(DiloBrand.mango)
+              .accessibilityLabel(Text("Nota"))
+          }
           if muestraOnda {
             HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
               .frame(width: HUDOndaDeBrasas.anchoCompacto)

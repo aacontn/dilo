@@ -58,6 +58,7 @@ final class AppSettings {
     static let hudModosEnElPanel = "hudModosEnElPanel"
     static let hudModoDelAtajoGeneral = "hudModoDelAtajoGeneral"
     static let hudProximaReunion = "hudProximaReunion"
+    static let hudNotaRapida = "hudNotaRapida"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -352,6 +353,13 @@ final class AppSettings {
     didSet { defaults.set(hudProximaReunion, forKey: Keys.hudProximaReunion) }
   }
 
+  /// Si el panel del hover ofrece «Nota»: dictar algo que termina en Apple
+  /// Notas, carpeta «Dilo». Encendida de fábrica —es un botón, no hace nada
+  /// sin un clic—; la primera nota pide permiso para usar Notas.
+  var hudNotaRapida: Bool {
+    didSet { defaults.set(hudNotaRapida, forKey: Keys.hudNotaRapida) }
+  }
+
   var readAloudVoiceID: String {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
@@ -580,6 +588,7 @@ final class AppSettings {
     hudModosEnElPanel = defaults.object(forKey: Keys.hudModosEnElPanel) as? Bool ?? true
     hudModoDelAtajoGeneral = defaults.string(forKey: Keys.hudModoDelAtajoGeneral)
     hudProximaReunion = defaults.bool(forKey: Keys.hudProximaReunion)
+    hudNotaRapida = defaults.object(forKey: Keys.hudNotaRapida) as? Bool ?? true
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(

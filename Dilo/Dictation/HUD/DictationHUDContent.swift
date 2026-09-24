@@ -58,6 +58,9 @@ final class DictationHUDContent {
   /// resuelve el modo; la forma sólo lo dibuja.
   var modoActivo: String?
 
+  /// Si la sesión en curso es una nota rápida (`DirectDictationController.dictarNota`).
+  var esNota = false
+
   /// Lo que va a cada costado de la muesca en reposo, o nil. Lo escribe
   /// `DatosDeLaMuesca` desde el escenario; la forma sólo lo dibuja.
   var datoIzquierdo: LadoDeLaMuesca?
@@ -78,6 +81,9 @@ final class DictationHUDContent {
   @ObservationIgnored var alCopiarReciente: ((ElementoReciente) -> Void)?
   @ObservationIgnored var alElegirModo: ((String?) -> Void)?
   @ObservationIgnored var alAbrirReunion: (() -> Void)?
+  /// Si el panel ofrece «Nota» al final de la fila de los modos, y qué hace.
+  var ofreceNota = false
+  @ObservationIgnored var alDictarNota: (() -> Void)?
 
   /// Lo que el hover revela: el modo activo, o lo último que se dictó. Lo
   /// escribe quien sabe (el controlador de dictado); la forma sólo lo dibuja.

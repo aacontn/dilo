@@ -122,6 +122,7 @@ enum RenderDatos {
       ModoDelPanel(id: "notas", nombre: "Notas"),
     ]
     panel.modoDelPanelID = "correo"
+    panel.ofreceNota = true
     for oscuro in [true, false] {
       try escribir(
         escritorio(pantalla: conPanel, oscuro: oscuro, alto: 240) {
@@ -132,6 +133,23 @@ enum RenderDatos {
         como: "hover-panel-completo-\(oscuro ? "oscuro" : "claro")"
       )
     }
+
+    // Dictando una nota rápida: la línea lleva el ícono de nota adelante.
+    let nota = DictationHUDContent()
+    nota.estado = .dictando
+    nota.isRevealed = true
+    nota.showsVoiceVisual = true
+    nota.esNota = true
+    nota.text = "Comprar pan, leche y "
+    nota.volatileText = "café"
+    try escribir(
+      escritorio(pantalla: pantallaSimulada, oscuro: true) {
+        DictationHUDShellView(screen: pantallaSimulada, settings: settings.sessionSettings, content: nota)
+      },
+      tamaño: CGSize(width: 640, height: 150),
+      oscuro: true,
+      como: "dictando-nota"
+    )
 
     // CPU y RAM, que tienen una sola fila.
     var pantalla = pantallaSimulada

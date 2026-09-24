@@ -36,4 +36,8 @@ public enum Capacidad: String, CaseIterable, Sendable {
   /// contenedor de la app, así que en App Store esos datos no existen y los
   /// costados de la muesca ofrecen sólo CPU y RAM.
   case consumoDeIADeOtrasApps
+  /// Guardar una nota rápida en Apple Notas, por Apple Events. El sandbox de
+  /// App Store sólo los deja con una excepción que Apple revisa a mano; ahí
+  /// la nota rápida se esconde.
+  case notasDeApple
 }
