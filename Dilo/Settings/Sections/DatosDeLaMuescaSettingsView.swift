@@ -65,6 +65,19 @@ struct DatosDeLaMuescaSettingsView: View {
           settings: settings
         )
       }
+
+      if admiteIA {
+        SettingsCard(title: "Avisos") {
+          SettingsRow(
+            title: "Avisar cerca del límite",
+            description: "Cuando Codex o el plan de Claude pasan el 80 % y el 95 % de una ventana, la muesca se abre un momento a decírtelo. Una vez por umbral, y nunca mientras dictas."
+          ) {
+            Toggle("", isOn: $settings.hudAvisosDeLimite)
+              .labelsHidden()
+              .toggleStyle(.switch)
+          }
+        }
+      }
     }
     .task(id: estadosFijos == nil) {
       guard estadosFijos == nil else { return }
@@ -162,7 +175,6 @@ struct VistaPreviaDeLosDatos: View {
 
   /// Un valor creíble para cada dato, con su detalle.
   static func ejemplo(_ dato: DatoDeLaMuesca, conPlan: Bool, ahora: Date) -> LadoDeLaMuesca? {
-    let etiqueta = TextoDelDato.etiqueta(dato)
     func ventana(_ porcentaje: Double? = nil, tokens: Int? = nil, en minutos: Double, horas: Double = 5) -> VentanaDeUso {
       VentanaDeUso(
         porcentaje: porcentaje,
@@ -179,7 +191,7 @@ struct VistaPreviaDeLosDatos: View {
       let plan = conPlan ? ConsumoDeIA(ventanaCorta: ventana(42, en: 131)) : nil
       let visible = (plan ?? tokens).ventanaCorta
       return LadoDeLaMuesca(
-        etiqueta: etiqueta,
+        dato: dato,
         valor: TextoDelDato.valor(visible) ?? "–",
         nivel: visible.porcentaje,
         detalle: DetalleDelDato.claude(tokens: tokens, plan: plan, ahora: ahora)
@@ -190,15 +202,23 @@ struct VistaPreviaDeLosDatos: View {
         ventanaSemanal: ventana(12, en: 4 * 24 * 60 + 260, horas: 168)
       )
       return LadoDeLaMuesca(
-        etiqueta: etiqueta,
+        dato: dato,
         valor: "35%",
         nivel: 35,
         detalle: DetalleDelDato.codex(consumo, ahora: ahora)
       )
     case .cpu:
-      return LadoDeLaMuesca(etiqueta: etiqueta, valor: "23%", nivel: 23, detalle: DetalleDelDato.sistema(23))
+      return LadoDeLaMuesca(dato: dato, valor: "23%", nivel: 23, detalle: DetalleDelDato.sistema(23))
     case .ram:
-      return LadoDeLaMuesca(etiqueta: etiqueta, valor: "64%", nivel: 64, detalle: DetalleDelDato.sistema(64))
+      return LadoDeLaMuesca(dato: dato, valor: "64%", nivel: 64, detalle: DetalleDelDato.sistema(64))
+    case .gpu:
+      return LadoDeLaMuesca(dato: dato, valor: "18%", nivel: 18, detalle: DetalleDelDato.sistema(18))
+    case .red:
+      let red = VelocidadDeRed(baja: 1_240_000, sube: 86_000)
+      return LadoDeLaMuesca(dato: dato, valor: "1,2M", nivel: nil, detalle: DetalleDelDato.red(red))
+    case .disco:
+      let disco = EspacioEnDisco(ocupado: 71, libre: 142_000_000_000)
+      return LadoDeLaMuesca(dato: dato, valor: "71%", nivel: 71, detalle: DetalleDelDato.disco(disco))
     }
   }
 }
@@ -408,6 +428,9 @@ enum DatosDeLaMuescaCopy {
     case .codex: "Codex"
     case .cpu: "CPU"
     case .ram: "Memoria"
+    case .gpu: "GPU"
+    case .red: "Red"
+    case .disco: "Disco"
     case .ninguno: ""
     }
   }
@@ -419,6 +442,9 @@ enum DatosDeLaMuescaCopy {
     case .codex: "Tus registros de Codex en este Mac: cuánto llevas de tu límite de cinco horas y del semanal. Nada sale de acá."
     case .cpu: "Cuánto trabaja el procesador de todo el Mac, como lo mide Monitor de Actividad. Nada sale de acá."
     case .ram: "Cuánta memoria está ocupando todo el Mac. Nada sale de acá."
+    case .gpu: "Cuánto trabaja la tarjeta gráfica, como lo mide Monitor de Actividad. Nada sale de acá."
+    case .red: "Cuánto está bajando tu conexión ahora; al pasar el mouse, también lo que sube. Nada sale de acá."
+    case .disco: "Cuánto del disco de arranque está ocupado y cuánto queda libre. Nada sale de acá."
     case .ninguno: ""
     }
   }
@@ -437,7 +463,7 @@ enum DatosDeLaMuescaCopy {
       String(localized: "Instala Claude Code y úsalo una vez; Dilo lee sus registros locales, sin clave.")
     case .codex:
       String(localized: "Instala Codex CLI y úsalo una vez; Dilo lee sus registros locales, sin clave.")
-    case .cpu, .ram, .ninguno:
+    case .cpu, .ram, .gpu, .red, .disco, .ninguno:
       ""
     }
   }

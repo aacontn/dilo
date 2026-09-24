@@ -157,7 +157,7 @@ struct SeccionDeLaMuescaTests {
     #expect(DeteccionDeFuentes.carpeta(de: .claude, en: casa)?.path == "/Users/prueba/.claude/projects")
     #expect(DeteccionDeFuentes.carpeta(de: .codex, en: casa)?.path == "/Users/prueba/.codex/sessions")
     #expect(DeteccionDeFuentes.carpeta(de: .cpu, en: casa) == nil)
-    #expect(DatoDeLaMuesca.fuentes == [.claude, .codex, .cpu, .ram])
+    #expect(DatoDeLaMuesca.fuentes == [.claude, .codex, .cpu, .ram, .gpu, .red, .disco])
   }
 
   // MARK: Detalle del hover

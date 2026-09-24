@@ -67,7 +67,7 @@ public struct DeteccionDeFuentes: Sendable {
     switch dato {
     case .claude: inicio.appending(path: ".claude/projects")
     case .codex: inicio.appending(path: ".codex/sessions")
-    case .ninguno, .cpu, .ram: nil
+    case .ninguno, .cpu, .ram, .gpu, .red, .disco: nil
     }
   }
 
@@ -78,7 +78,7 @@ public struct DeteccionDeFuentes: Sendable {
     switch dato {
     case .claude: 2
     case .codex: 4
-    case .ninguno, .cpu, .ram: 0
+    case .ninguno, .cpu, .ram, .gpu, .red, .disco: 0
     }
   }
 

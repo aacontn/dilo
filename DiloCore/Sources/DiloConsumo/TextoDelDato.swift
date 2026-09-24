@@ -11,7 +11,31 @@ public enum TextoDelDato {
     case .codex: "Codex"
     case .cpu: "CPU"
     case .ram: "RAM"
+    case .gpu: "GPU"
+    case .red: "Red"
+    case .disco: "Disco"
     }
+  }
+
+  /// Una velocidad de red, corta: 850 B/s → «850B», 12 400 → «12K»,
+  /// 3 400 000 → «3,4M». El «por segundo» lo dice el ícono.
+  public static func velocidad(_ bytesPorSegundo: Double) -> String {
+    let valor = max(0, bytesPorSegundo)
+    switch valor {
+    case ..<1_000: return "\(Int(valor.rounded()))B"
+    case ..<1_000_000: return "\(Int((valor / 1_000).rounded()))K"
+    default:
+      let mega = valor / 1_000_000
+      let texto = mega < 10
+        ? String(format: "%.1f", mega).replacingOccurrences(of: ".", with: ",")
+        : "\(Int(mega.rounded()))"
+      return "\(texto)M"
+    }
+  }
+
+  /// Un tamaño de disco, en gigas enteros: «312 GB».
+  public static func gigas(_ bytes: Int64) -> String {
+    "\(Int((Double(bytes) / 1_000_000_000).rounded())) GB"
   }
 
   /// Un porcentaje entero: «34 %» se lee de un vistazo, «34,2 %» no.

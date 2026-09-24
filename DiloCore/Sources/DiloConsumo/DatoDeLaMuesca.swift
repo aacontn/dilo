@@ -17,6 +17,12 @@ public enum DatoDeLaMuesca: String, CaseIterable, Sendable {
   case cpu
   /// La memoria ocupada de todo el sistema.
   case ram
+  /// Cuánto trabaja la GPU.
+  case gpu
+  /// Cuánto está bajando la red, en bytes por segundo.
+  case red
+  /// Cuánto del disco de arranque está ocupado.
+  case disco
 
   /// Las fuentes de verdad, en el orden de sus tarjetas en Ajustes: sin
   /// `ninguno`, que es la ausencia de dato y no una fuente.
@@ -30,7 +36,7 @@ public enum DatoDeLaMuesca: String, CaseIterable, Sendable {
   public var leeArchivosDeOtraApp: Bool {
     switch self {
     case .claude, .codex: true
-    case .ninguno, .cpu, .ram: false
+    case .ninguno, .cpu, .ram, .gpu, .red, .disco: false
     }
   }
 }

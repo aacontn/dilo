@@ -9,7 +9,24 @@ import Foundation
 /// así que la primera muestra no tiene CPU y las siguientes sí.
 public final class MuestraDelSistema: @unchecked Sendable {
   private var ticksAnteriores: (ocupados: UInt64, total: UInt64)?
+  private var redAnterior: (entrada: UInt64, salida: UInt64, cuando: Date)?
   private let candado = NSLock()
+
+  /// Guarda la lectura nueva de la red y devuelve la velocidad contra la
+  /// anterior. Un contador que retrocede —una interfaz que se fue— no da una
+  /// velocidad negativa: esa vuelta se salta.
+  func intercambiarRed(_ nueva: (entrada: UInt64, salida: UInt64, cuando: Date)) -> VelocidadDeRed? {
+    candado.lock()
+    defer { candado.unlock() }
+    defer { redAnterior = nueva }
+    guard let antes = redAnterior else { return nil }
+    let segundos = nueva.cuando.timeIntervalSince(antes.cuando)
+    guard segundos > 0, nueva.entrada >= antes.entrada, nueva.salida >= antes.salida else { return nil }
+    return VelocidadDeRed(
+      baja: Double(nueva.entrada - antes.entrada) / segundos,
+      sube: Double(nueva.salida - antes.salida) / segundos
+    )
+  }
 
   public init() {}
 

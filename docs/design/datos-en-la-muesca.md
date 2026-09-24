@@ -158,3 +158,29 @@ Mistral, DeepSeek, Kimi, z.ai, Factory, Amp, Warp, Kiro, Vertex AI, Bedrock.
   72 puntos por lado. Subirlo es subir `HUDNotchGeometry.anchoDeUnLado` y
   mirar el render en un 1080p.
 - Gemini y el resto de los candidatos de arriba.
+
+## Íconos, barrita y avisos (2026-09-24)
+
+«Pondría el ícono de la IA más que el nombre; se ve más bonito si usamos
+íconos en general.» Cada costado lleva ahora el ícono del dato y el número, con
+una barrita debajo que se llena con el nivel (sólo si el dato es un
+porcentaje). El nombre queda para VoiceOver y para el encabezado del detalle
+del hover (`IconoDelDato`).
+
+- **Logos de Claude y Codex**: SVG de un color traídos de CodexBar (MIT), en
+  el catálogo como plantilla (`LogoClaude`, `LogoCodex`). Los diseños son de
+  Anthropic y de OpenAI y se usan para decir de qué herramienta es el número.
+  En la versión de App Store hay que pedir permiso o cambiarlos por un SF
+  Symbol (guía 5.2.1 de Apple).
+- **Sistema**: SF Symbols — `cpu`, `memorychip`, `square.stack.3d.up.fill`
+  (GPU), `arrow.down` (red: lo que baja) e `internaldrive`.
+- **Fuentes nuevas**: GPU (`PerformanceStatistics` de IOKit), red
+  (`NET_RT_IFLIST2`, contadores de 64 bits) y disco (propiedades del volumen
+  de arranque). La temperatura queda fuera: en Apple Silicon sólo se lee por
+  el SMC, sin API pública.
+- **Avisos de límite** (`VigiaDeLimites`): al cruzar el 80 % y el 95 % de una
+  ventana con porcentaje —Codex, y el plan de Claude si se pidió—, la muesca
+  se abre un momento. Una vez por umbral y por ventana; nunca mientras se
+  dicta: si la muesca está ocupada, el aviso espera la vuelta siguiente.
+  Interruptor en Ajustes, encendido de fábrica.
+

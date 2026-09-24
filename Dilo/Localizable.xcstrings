@@ -5055,6 +5055,171 @@
           }
         }
       }
+    },
+    "GPU": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GPU"
+          }
+        }
+      }
+    },
+    "Red": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network"
+          }
+        }
+      }
+    },
+    "Disco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disk"
+          }
+        }
+      }
+    },
+    "Cuánto trabaja la tarjeta gráfica, como lo mide Monitor de Actividad. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How hard the graphics card is working, as Activity Monitor measures it. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Cuánto está bajando tu conexión ahora; al pasar el mouse, también lo que sube. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How fast your connection is downloading right now; hover to also see upload. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Cuánto del disco de arranque está ocupado y cuánto queda libre. Nada sale de acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How full your startup disk is and how much is left. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Avisos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alerts"
+          }
+        }
+      }
+    },
+    "Avisar cerca del límite": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warn near the limit"
+          }
+        }
+      }
+    },
+    "Cuando Codex o el plan de Claude pasan el 80 % y el 95 % de una ventana, la muesca se abre un momento a decírtelo. Una vez por umbral, y nunca mientras dictas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When Codex or your Claude plan passes 80% and 95% of a window, the notch opens for a moment to tell you. Once per threshold, and never while you're dictating."
+          }
+        }
+      }
+    },
+    "Sube": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up"
+          }
+        }
+      }
+    },
+    "Libre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free"
+          }
+        }
+      }
+    },
+    "%@: %@ de la semana · se reinicia en %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ of the week · resets in %3$@"
+          }
+        }
+      }
+    },
+    "%@: %@ de la semana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ of the week"
+          }
+        }
+      }
+    },
+    "%@ al %@ · se reinicia en %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ at %2$@ · resets in %3$@"
+          }
+        }
+      }
+    },
+    "%@ al %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ at %2$@"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
