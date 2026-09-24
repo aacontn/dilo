@@ -3,13 +3,16 @@ import DiloConsumo
 import Foundation
 
 /// Lo que un costado de la muesca dibuja: una etiqueta, un valor, y cuán
-/// lleno está, para el color.
+/// lleno está, para el color. Y el detalle que se abre con el hover.
 struct LadoDeLaMuesca: Equatable, Sendable {
   let etiqueta: String
   let valor: String
   /// Del 0 al 100 cuando el dato es un porcentaje, o nil. Es lo que pinta el
   /// valor de mango cerca del límite y de rojo encima.
   let nivel: Double?
+  /// Las filas del panel del hover: cada ventana con su reinicio
+  /// (`DetalleDelDato`). Vacío mientras no hay nada leído.
+  var detalle: [FilaDelDetalle] = []
 }
 
 /// Quien mantiene al día los dos costados de la muesca.
@@ -58,17 +61,25 @@ final class DatosDeLaMuesca {
   static let vigenciaDelPlan: TimeInterval = 10 * 60
 
   init(inicio: URL = URL(filePath: NSHomeDirectory())) {
-    codex = LectorDeCodex(sesiones: inicio.appending(path: ".codex/sessions"))
-    claudeLocal = LectorDeClaude(proyectos: inicio.appending(path: ".claude/projects"))
+    // Las carpetas las dice la detección, que es la que Ajustes usa para
+    // contar si hay de dónde leer: un solo lugar sabe dónde vive cada cosa.
+    codex = LectorDeCodex(sesiones: DeteccionDeFuentes.carpeta(de: .codex, en: inicio)!)
+    claudeLocal = LectorDeClaude(proyectos: DeteccionDeFuentes.carpeta(de: .claude, en: inicio)!)
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     claudePlan = ClienteDeUsoDeClaude(agente: "Dilo/\(version)")
   }
 
+  /// Si este anfitrión puede leer un dato. En App Store el sandbox no deja
+  /// entrar a las carpetas de Claude Code ni de Codex: ahí esos datos no
+  /// ocupan costado y su tarjeta de Ajustes dice por qué.
+  nonisolated static func disponible(_ dato: DatoDeLaMuesca) -> Bool {
+    !dato.leeArchivosDeOtraApp || Anfitrion.actual.admite(.consumoDeIADeOtrasApps)
+  }
+
   /// Toma lo elegido en Ajustes y arranca, reinicia o apaga la tarea.
   func configurar(izquierdo: DatoDeLaMuesca, derecho: DatoDeLaMuesca, porcentajeDeClaude: Bool) {
-    let admiteIA = Anfitrion.actual.admite(.consumoDeIADeOtrasApps)
-    self.izquierdo = izquierdo.leeArchivosDeOtraApp && !admiteIA ? .ninguno : izquierdo
-    self.derecho = derecho.leeArchivosDeOtraApp && !admiteIA ? .ninguno : derecho
+    self.izquierdo = Self.disponible(izquierdo) ? izquierdo : .ninguno
+    self.derecho = Self.disponible(derecho) ? derecho : .ninguno
     self.porcentajeDeClaude = porcentajeDeClaude
     tarea?.cancel()
     tarea = nil
@@ -137,28 +148,59 @@ final class DatosDeLaMuesca {
     case .ninguno:
       return nil
     case .cpu:
-      return LadoDeLaMuesca(etiqueta: etiqueta, valor: cpu.map(TextoDelDato.porcentaje) ?? "–", nivel: cpu)
+      return LadoDeLaMuesca(
+        etiqueta: etiqueta,
+        valor: cpu.map(TextoDelDato.porcentaje) ?? "–",
+        nivel: cpu,
+        detalle: DetalleDelDato.sistema(cpu)
+      )
     case .ram:
-      return LadoDeLaMuesca(etiqueta: etiqueta, valor: ram.map(TextoDelDato.porcentaje) ?? "–", nivel: ram)
+      return LadoDeLaMuesca(
+        etiqueta: etiqueta,
+        valor: ram.map(TextoDelDato.porcentaje) ?? "–",
+        nivel: ram,
+        detalle: DetalleDelDato.sistema(ram)
+      )
     case .codex:
-      return ladoDeIA(etiqueta, consumoDeCodex, ahora: ahora)
+      return ladoDeIA(
+        etiqueta,
+        consumoDeCodex,
+        detalle: DetalleDelDato.codex(consumoDeCodex, ahora: ahora),
+        ahora: ahora
+      )
     case .claude:
-      if porcentajeDeClaude, let plan = planDeClaude,
-        ahora.timeIntervalSince(plan.leido) < Self.vigenciaDelPlan {
-        return ladoDeIA(etiqueta, plan.consumo, ahora: ahora)
-      }
-      return ladoDeIA(etiqueta, tokensDeClaude, ahora: ahora)
+      let plan = planVigente(ahora: ahora)
+      return ladoDeIA(
+        etiqueta,
+        plan ?? tokensDeClaude,
+        detalle: DetalleDelDato.claude(tokens: tokensDeClaude, plan: plan, ahora: ahora),
+        ahora: ahora
+      )
     }
   }
 
-  private func ladoDeIA(_ etiqueta: String, _ consumo: ConsumoDeIA?, ahora: Date) -> LadoDeLaMuesca {
+  /// El porcentaje del plan de Claude, si se pidió y es de hace poco.
+  private func planVigente(ahora: Date) -> ConsumoDeIA? {
+    guard porcentajeDeClaude, let plan = planDeClaude,
+      ahora.timeIntervalSince(plan.leido) < Self.vigenciaDelPlan
+    else { return nil }
+    return plan.consumo
+  }
+
+  private func ladoDeIA(
+    _ etiqueta: String,
+    _ consumo: ConsumoDeIA?,
+    detalle: [FilaDelDetalle],
+    ahora: Date
+  ) -> LadoDeLaMuesca {
     guard let ventana = consumo?.ventanaCorta.vigente(en: ahora) else {
       return LadoDeLaMuesca(etiqueta: etiqueta, valor: "–", nivel: nil)
     }
     return LadoDeLaMuesca(
       etiqueta: etiqueta,
       valor: TextoDelDato.valor(ventana) ?? "–",
-      nivel: ventana.porcentaje
+      nivel: ventana.porcentaje,
+      detalle: detalle
     )
   }
 }

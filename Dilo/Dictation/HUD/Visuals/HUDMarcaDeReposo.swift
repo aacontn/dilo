@@ -1,3 +1,4 @@
+import DiloConsumo
 import SwiftUI
 
 /// Lo que se ve cuando nadie está dictando: la presencia discreta y
@@ -34,8 +35,9 @@ struct HUDMarcaDeReposo: View {
   /// lugar del que se va a desviar.
   let alto: CGFloat
   /// Los datos de cada costado (`DatosDeLaMuesca`), y cuánto mide cada
-  /// costado. Con el panel del hover abierto no se dibujan: ahí manda el
-  /// contexto, a lo ancho.
+  /// costado. Con el panel del hover abierto no van a los costados: van
+  /// debajo del contexto, con su detalle —cada ventana y cuándo se
+  /// reinicia—, que en el costado no cabe.
   var izquierdo: LadoDeLaMuesca?
   var derecho: LadoDeLaMuesca?
   var anchoDeLado: CGFloat = 0
@@ -58,8 +60,19 @@ struct HUDMarcaDeReposo: View {
 
   private var paraVoiceOver: String {
     let base = contexto ?? modo ?? String(localized: "En reposo")
-    let datos = [izquierdo, derecho].compactMap { $0 }.map { "\($0.etiqueta) \($0.valor)" }
+    let datos = ladosConDato.map { "\($0.etiqueta) \($0.valor)" }
     return ([base] + datos).joined(separator: ", ")
+  }
+
+  private var ladosConDato: [LadoDeLaMuesca] {
+    anchoDeLado > 0 ? [izquierdo, derecho].compactMap { $0 } : []
+  }
+
+  /// Si el panel del hover lleva el detalle de los datos: abierto, y con
+  /// algún dato elegido. El alto ya lo sumó la forma
+  /// (`HUDNotchGeometry.altoDelPanelDeHover`).
+  private var muestraDetalle: Bool {
+    contexto != nil && !ladosConDato.isEmpty
   }
 
   /// Un dato a un costado: la etiqueta apagada y el valor claro, centrados en
@@ -112,6 +125,12 @@ struct HUDMarcaDeReposo: View {
           }
         }
         .padding(.horizontal, 12 * scale)
+        if muestraDetalle {
+          HUDDetalleDeLosDatos(lados: ladosConDato)
+            .padding(.top, 6)
+            .padding(.horizontal, 16 * scale)
+            .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
+        }
       } else if let modo, !modo.isEmpty {
         Text(modo)
           .font(.system(size: 9 * scale, weight: .medium, design: .rounded))
@@ -147,6 +166,87 @@ struct HUDMarcaDeReposo: View {
     Circle()
       .fill(DiloBrand.mango.opacity(0.9))
       .frame(width: 3 * scale, height: 3 * scale)
+  }
+}
+
+/// El detalle de los datos en el panel del hover: una columna por dato, con
+/// su nombre y hasta dos filas —la ventana, cuánto va y en cuánto se
+/// reinicia—.
+///
+/// **Letra fija, no escalada.** El panel del hover crece de alto una
+/// cantidad fija para esto (`HUDNotchGeometry.altoDelDetalleDeDatos`): una
+/// letra que creciera con el tamaño elegido en Ajustes se saldría por abajo.
+/// Tampoco anima: el tiempo que falta se calcula al dibujar, y el panel se
+/// vuelve a dibujar cada vez que un dato cambia.
+struct HUDDetalleDeLosDatos: View {
+  let lados: [LadoDeLaMuesca]
+  var ahora = Date()
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 18) {
+      ForEach(lados, id: \.etiqueta) { lado in
+        columna(lado)
+      }
+    }
+  }
+
+  private func columna(_ lado: LadoDeLaMuesca) -> some View {
+    VStack(alignment: .leading, spacing: 1) {
+      Text(verbatim: lado.etiqueta.uppercased())
+        .font(.system(size: 8, weight: .semibold, design: .rounded))
+        .tracking(0.6)
+        .foregroundStyle(.white.opacity(0.42))
+      if lado.detalle.isEmpty {
+        Text("Todavía sin datos")
+          .font(.system(size: 10, weight: .medium, design: .rounded))
+          .foregroundStyle(.white.opacity(0.45))
+      }
+      ForEach(Array(lado.detalle.enumerated()), id: \.offset) { _, fila in
+        filaDelDetalle(fila)
+      }
+    }
+    .lineLimit(1)
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  private func filaDelDetalle(_ fila: FilaDelDetalle) -> some View {
+    HStack(spacing: 5) {
+      Text(Self.nombre(fila.cual))
+        .font(.system(size: 10, weight: .medium, design: .rounded))
+        .foregroundStyle(.white.opacity(0.55))
+      Text(verbatim: fila.valor)
+        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .foregroundStyle(HUDMarcaDeReposo.color(para: fila.nivel))
+      Spacer(minLength: 4)
+      if let reinicio = fila.seReiniciaEn {
+        HStack(spacing: 2) {
+          Image(systemName: "arrow.clockwise")
+            .font(.system(size: 7, weight: .semibold))
+          Text(verbatim: TextoDelDato.faltaPara(reinicio, desde: ahora))
+            .font(.system(size: 9.5, weight: .medium, design: .rounded))
+            .monospacedDigit()
+        }
+        .foregroundStyle(.white.opacity(0.45))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.seReinicia(en: TextoDelDato.faltaPara(reinicio, desde: ahora)))
+      }
+    }
+  }
+
+  /// El nombre de cada fila. Corto: al lado va la cifra y el reinicio.
+  static func nombre(_ cual: FilaDelDetalle.Cual) -> String {
+    switch cual {
+    case .cincoHoras: String(localized: "5 h")
+    case .semana: String(localized: "Semana")
+    case .tokensDelBloque: String(localized: "Tokens, 5 h")
+    case .planCincoHoras: String(localized: "Plan, 5 h")
+    case .ahora: String(localized: "Ahora")
+    }
+  }
+
+  static func seReinicia(en falta: String) -> String {
+    String(localized: "Se reinicia en \(falta)")
   }
 }
 

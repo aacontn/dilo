@@ -236,9 +236,22 @@ enum HUDNotchGeometry {
   /// van a vivir las acciones que no son el dictado —reuniones, el último
   /// dictado, modos, ajustes— y ahí el mouse está encima a propósito, así que
   /// puede ser más alto que la muesca de dictado sin tapar nada de paso.
+  ///
+  /// Con datos a los costados crece además `altoDelDetalleDeDatos`: el panel
+  /// es donde se lee el detalle de cada uno —la semanal, los reinicios— que
+  /// en el costado no cabe.
   static func altoDelPanelDeHover(for screen: HUDScreenSnapshot) -> CGFloat {
-    min(reposoSize(for: screen).height + altoDelContextoEnReposo, altoMaximoDelHover)
+    let detalle = screen.anchoDeLosLados > 0 ? altoDelDetalleDeDatos : 0
+    return min(
+      reposoSize(for: screen).height + altoDelContextoEnReposo + detalle,
+      altoMaximoDelHover
+    )
   }
+
+  /// Lo que el detalle de los datos le suma al panel del hover: el nombre de
+  /// cada dato y hasta dos filas —la ventana de cinco horas y la semanal de
+  /// Codex; los tokens y el plan de Claude—, en letra de once puntos.
+  static let altoDelDetalleDeDatos: CGFloat = 40
 
   /// The HUD shape's size: the header band, whatever voice-visual band the
   /// selected visual uses, the text band unless the visual replaces it, and
