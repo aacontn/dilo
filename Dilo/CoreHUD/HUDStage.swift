@@ -187,6 +187,9 @@ final class HUDStage {
     hostingView.alSalirElPuntero = { [weak self] in
       self?.punteroSalio()
     }
+    datos.alAvisar = { [weak self] aviso in
+      self?.avisar(aviso) ?? false
+    }
     datos.alCambiar = { [weak self] izquierdo, derecho in
       self?.dictationContent.datoIzquierdo = izquierdo
       self?.dictationContent.datoDerecho = derecho
@@ -204,6 +207,35 @@ final class HUDStage {
     datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
   }
 
+  /// Abre la muesca un momento con un aviso de límite, si está libre.
+  ///
+  /// Sólo en reposo y sin nadie en el escenario: un aviso de Claude que
+  /// interrumpe un dictado le tapa a alguien lo que está diciendo. Si no
+  /// entra, contesta que no, y `DatosDeLaMuesca` lo vuelve a ofrecer en la
+  /// vuelta siguiente.
+  private func avisar(_ aviso: AvisoDeLimite) -> Bool {
+    guard estado == .reposo, occupant == .none else { return false }
+    showMessage(Self.texto(de: aviso), on: pantallaActual?.id)
+    return true
+  }
+
+  /// «Claude al 95 % · se reinicia en 20 min», o la semana si es la semanal.
+  static func texto(de aviso: AvisoDeLimite, ahora: Date = Date()) -> String {
+    let nombre = TextoDelDato.etiqueta(aviso.dato)
+    let valor = TextoDelDato.porcentaje(aviso.porcentaje)
+    let falta = aviso.seReiniciaEn.map { TextoDelDato.faltaPara($0, desde: ahora) }
+    switch (aviso.cual, falta) {
+    case (.semana, let falta?):
+      return String(localized: "\(nombre): \(valor) de la semana · se reinicia en \(falta)")
+    case (.semana, nil):
+      return String(localized: "\(nombre): \(valor) de la semana")
+    case (_, let falta?):
+      return String(localized: "\(nombre) al \(valor) · se reinicia en \(falta)")
+    case (_, nil):
+      return String(localized: "\(nombre) al \(valor)")
+    }
+  }
+
   /// Lleva lo elegido en Ajustes a los datos y, si cambió cuánto se alarga
   /// la muesca, la vuelve a montar en la misma pantalla con el ancho nuevo.
   private func aplicarLosLados() {
@@ -211,7 +243,8 @@ final class HUDStage {
     datos.configurar(
       izquierdo: disposicion.dato(en: .izquierdo, disponible: DatosDeLaMuesca.disponible),
       derecho: disposicion.dato(en: .derecho, disponible: DatosDeLaMuesca.disponible),
-      porcentajeDeClaude: settings.hudPorcentajeDeClaude
+      porcentajeDeClaude: settings.hudPorcentajeDeClaude,
+      avisaLimites: settings.hudAvisosDeLimite
     )
     guard var pantalla = pantallaActual, pantalla.anchoDeLosLados != anchoDeLosLados else { return }
     pantalla.anchoDeLosLados = anchoDeLosLados
@@ -222,7 +255,7 @@ final class HUDStage {
   /// elegir un dato recién se vería al próximo dictado.
   private func observarLosLados() {
     withObservationTracking {
-      _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude)
+      _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude, settings.hudAvisosDeLimite)
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.aplicarLosLados()

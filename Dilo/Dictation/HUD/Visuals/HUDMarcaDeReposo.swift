@@ -75,25 +75,44 @@ struct HUDMarcaDeReposo: View {
     contexto != nil && !ladosConDato.isEmpty
   }
 
-  /// Un dato a un costado: la etiqueta apagada y el valor claro, centrados en
-  /// el alto de la barra. Cifras de ancho fijo para que el número no baile
-  /// cada vez que cambia, y el valor se entibia cerca del límite: mango desde
-  /// el 75 %, rojo desde el 90 %.
+  /// Un dato a un costado: su ícono y el valor, con una barrita debajo que se
+  /// llena con el nivel. Cifras de ancho fijo para que el número no baile
+  /// cada vez que cambia, y el valor y la barrita se entibian cerca del
+  /// límite: mango desde el 75 %, rojo desde el 90 %.
+  ///
+  /// El ícono y no el nombre (2026-09-24): «se ve más bonito si usamos íconos
+  /// en general». El nombre sigue estando para VoiceOver.
   @ViewBuilder
   private func costado(_ lado: LadoDeLaMuesca?) -> some View {
-    HStack(spacing: 3 * scale) {
+    HStack(spacing: 4 * scale) {
       if let lado {
-        Text(lado.etiqueta)
-          .font(.system(size: 9 * scale, weight: .medium, design: .rounded))
-          .foregroundStyle(.white.opacity(0.5))
-        Text(lado.valor)
-          .font(.system(size: 10.5 * scale, weight: .semibold, design: .rounded))
-          .monospacedDigit()
-          .foregroundStyle(Self.color(para: lado.nivel))
+        IconoDelDato(dato: lado.dato, lado: 12 * scale)
+          .foregroundStyle(.white.opacity(0.62))
+        VStack(alignment: .leading, spacing: 2 * scale) {
+          Text(lado.valor)
+            .font(.system(size: 10.5 * scale, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Self.color(para: lado.nivel))
+          if let nivel = lado.nivel {
+            Self.barrita(nivel: nivel, ancho: 26 * scale, alto: 2 * scale)
+          }
+        }
       }
     }
     .lineLimit(1)
     .frame(width: anchoDeLado, height: alto)
+  }
+
+  /// Una barra finita que se llena con el nivel, del color del valor.
+  static func barrita(nivel: Double, ancho: CGFloat, alto: CGFloat) -> some View {
+    Capsule()
+      .fill(.white.opacity(0.14))
+      .frame(width: ancho, height: alto)
+      .overlay(alignment: .leading) {
+        Capsule()
+          .fill(color(para: nivel))
+          .frame(width: max(alto, ancho * min(1, max(0, nivel / 100))), height: alto)
+      }
   }
 
   static func color(para nivel: Double?) -> Color {
@@ -192,10 +211,13 @@ struct HUDDetalleDeLosDatos: View {
 
   private func columna(_ lado: LadoDeLaMuesca) -> some View {
     VStack(alignment: .leading, spacing: 1) {
-      Text(verbatim: lado.etiqueta.uppercased())
-        .font(.system(size: 8, weight: .semibold, design: .rounded))
-        .tracking(0.6)
-        .foregroundStyle(.white.opacity(0.42))
+      HStack(spacing: 4) {
+        IconoDelDato(dato: lado.dato, lado: 9)
+        Text(verbatim: lado.etiqueta.uppercased())
+          .font(.system(size: 8, weight: .semibold, design: .rounded))
+          .tracking(0.6)
+      }
+      .foregroundStyle(.white.opacity(0.42))
       if lado.detalle.isEmpty {
         Text("Todavía sin datos")
           .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -242,6 +264,9 @@ struct HUDDetalleDeLosDatos: View {
     case .tokensDelBloque: String(localized: "Tokens, 5 h")
     case .planCincoHoras: String(localized: "Plan, 5 h")
     case .ahora: String(localized: "Ahora")
+    case .baja: String(localized: "Baja")
+    case .sube: String(localized: "Sube")
+    case .libre: String(localized: "Libre")
     }
   }
 

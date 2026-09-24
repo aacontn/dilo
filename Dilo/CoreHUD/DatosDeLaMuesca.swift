@@ -2,10 +2,11 @@ import DiloCapabilities
 import DiloConsumo
 import Foundation
 
-/// Lo que un costado de la muesca dibuja: una etiqueta, un valor, y cuán
-/// lleno está, para el color. Y el detalle que se abre con el hover.
+/// Lo que un costado de la muesca dibuja: de qué es —su ícono—, un valor, y
+/// cuán lleno está, para el color y la barrita. Y el detalle que se abre con
+/// el hover.
 struct LadoDeLaMuesca: Equatable, Sendable {
-  let etiqueta: String
+  let dato: DatoDeLaMuesca
   let valor: String
   /// Del 0 al 100 cuando el dato es un porcentaje, o nil. Es lo que pinta el
   /// valor de mango cerca del límite y de rojo encima.
@@ -13,6 +14,10 @@ struct LadoDeLaMuesca: Equatable, Sendable {
   /// Las filas del panel del hover: cada ventana con su reinicio
   /// (`DetalleDelDato`). Vacío mientras no hay nada leído.
   var detalle: [FilaDelDetalle] = []
+
+  /// El nombre, para VoiceOver y para el encabezado del detalle: en el
+  /// costado va el ícono.
+  var etiqueta: String { TextoDelDato.etiqueta(dato) }
 }
 
 /// Quien mantiene al día los dos costados de la muesca.
@@ -21,8 +26,9 @@ struct LadoDeLaMuesca: Equatable, Sendable {
 /// «ninguno» no hay ninguna tarea viva, y el reposo sigue costando lo que
 /// cuesta una ventana quieta (spec §3). Encendido, lee a tres ritmos:
 ///
-/// - **CPU y RAM cada tres segundos**, que es lo que tarda en cambiar algo que
-///   valga la pena mirar. Dos llamadas de Mach, microsegundos.
+/// - **CPU, RAM, GPU, red y disco cada tres segundos**, que es lo que tarda en
+///   cambiar algo que valga la pena mirar. Llamadas de Mach, IOKit y `sysctl`,
+///   microsegundos.
 /// - **Los archivos de Claude Code y de Codex cada treinta.** La lectura es
 ///   incremental (`LectorDeClaude`) y la de Codex lee sólo la cola del último
 ///   archivo: medido el 2026-09-23 en la máquina de Alfonso, 3 ms y 12 ms.
@@ -32,6 +38,10 @@ struct LadoDeLaMuesca: Equatable, Sendable {
 final class DatosDeLaMuesca {
   /// Se llama con los dos costados cada vez que cambia algo que se ve.
   var alCambiar: ((LadoDeLaMuesca?, LadoDeLaMuesca?) -> Void)?
+  /// Se llama cuando una IA cruza el 80 % o el 95 % de una ventana. Devuelve
+  /// si el aviso se pudo mostrar: si la muesca estaba ocupada dictando, el
+  /// aviso espera a la vuelta siguiente en vez de perderse.
+  var alAvisar: ((AvisoDeLimite) -> Bool)?
 
   private let muestra = MuestraDelSistema()
   private let codex: LectorDeCodex
@@ -41,10 +51,15 @@ final class DatosDeLaMuesca {
   private var izquierdo = DatoDeLaMuesca.ninguno
   private var derecho = DatoDeLaMuesca.ninguno
   private var porcentajeDeClaude = false
+  private var avisaLimites = true
+  private var vigia = VigiaDeLimites()
   private var tarea: Task<Void, Never>?
 
   private var cpu: Double?
   private var ram: Double?
+  private var gpu: Double?
+  private var red: VelocidadDeRed?
+  private var disco: EspacioEnDisco?
   private var consumoDeCodex: ConsumoDeIA?
   private var tokensDeClaude: ConsumoDeIA?
   private var planDeClaude: (consumo: ConsumoDeIA, leido: Date)?
@@ -77,10 +92,16 @@ final class DatosDeLaMuesca {
   }
 
   /// Toma lo elegido en Ajustes y arranca, reinicia o apaga la tarea.
-  func configurar(izquierdo: DatoDeLaMuesca, derecho: DatoDeLaMuesca, porcentajeDeClaude: Bool) {
+  func configurar(
+    izquierdo: DatoDeLaMuesca,
+    derecho: DatoDeLaMuesca,
+    porcentajeDeClaude: Bool,
+    avisaLimites: Bool = true
+  ) {
     self.izquierdo = Self.disponible(izquierdo) ? izquierdo : .ninguno
     self.derecho = Self.disponible(derecho) ? derecho : .ninguno
     self.porcentajeDeClaude = porcentajeDeClaude
+    self.avisaLimites = avisaLimites
     tarea?.cancel()
     tarea = nil
     ultimaLecturaDeArchivos = .distantPast
@@ -94,6 +115,7 @@ final class DatosDeLaMuesca {
         guard let self else { return }
         await self.refrescar()
         self.publicar()
+        self.avisarSiToca()
         try? await Task.sleep(for: self.usaElSistema ? Self.cadenciaDelSistema : .seconds(Self.cadenciaDeLosArchivos))
       }
     }
@@ -104,12 +126,15 @@ final class DatosDeLaMuesca {
   var llevaDatos: Bool { izquierdo != .ninguno || derecho != .ninguno }
 
   private var elegidos: Set<DatoDeLaMuesca> { [izquierdo, derecho] }
-  private var usaElSistema: Bool { !elegidos.isDisjoint(with: [.cpu, .ram]) }
+  private var usaElSistema: Bool { !elegidos.isDisjoint(with: [.cpu, .ram, .gpu, .red, .disco]) }
 
   private func refrescar() async {
     let ahora = Date()
     if elegidos.contains(.cpu) { cpu = muestra.cpu() ?? cpu }
     if elegidos.contains(.ram) { ram = muestra.ram() }
+    if elegidos.contains(.gpu) { gpu = muestra.gpu() }
+    if elegidos.contains(.red) { red = muestra.red(ahora: ahora) ?? red }
+    if elegidos.contains(.disco) { disco = muestra.disco() }
 
     if ahora.timeIntervalSince(ultimaLecturaDeArchivos) >= Self.cadenciaDeLosArchivos {
       ultimaLecturaDeArchivos = ahora
@@ -142,28 +167,35 @@ final class DatosDeLaMuesca {
   }
 
   private func lado(_ dato: DatoDeLaMuesca) -> LadoDeLaMuesca? {
-    let etiqueta = TextoDelDato.etiqueta(dato)
     let ahora = Date()
     switch dato {
     case .ninguno:
       return nil
     case .cpu:
-      return LadoDeLaMuesca(
-        etiqueta: etiqueta,
-        valor: cpu.map(TextoDelDato.porcentaje) ?? "–",
-        nivel: cpu,
-        detalle: DetalleDelDato.sistema(cpu)
-      )
+      return ladoDelSistema(.cpu, cpu)
     case .ram:
+      return ladoDelSistema(.ram, ram)
+    case .gpu:
+      return ladoDelSistema(.gpu, gpu)
+    case .disco:
       return LadoDeLaMuesca(
-        etiqueta: etiqueta,
-        valor: ram.map(TextoDelDato.porcentaje) ?? "–",
-        nivel: ram,
-        detalle: DetalleDelDato.sistema(ram)
+        dato: .disco,
+        valor: disco.map { TextoDelDato.porcentaje($0.ocupado) } ?? "–",
+        nivel: disco?.ocupado,
+        detalle: DetalleDelDato.disco(disco)
+      )
+    case .red:
+      // Lo que baja, que es lo que alguien mira cuando la red «anda lenta». Sin
+      // nivel: una velocidad no tiene techo, y una barrita inventada mentiría.
+      return LadoDeLaMuesca(
+        dato: .red,
+        valor: red.map { TextoDelDato.velocidad($0.baja) } ?? "–",
+        nivel: nil,
+        detalle: DetalleDelDato.red(red)
       )
     case .codex:
       return ladoDeIA(
-        etiqueta,
+        .codex,
         consumoDeCodex,
         detalle: DetalleDelDato.codex(consumoDeCodex, ahora: ahora),
         ahora: ahora
@@ -171,11 +203,50 @@ final class DatosDeLaMuesca {
     case .claude:
       let plan = planVigente(ahora: ahora)
       return ladoDeIA(
-        etiqueta,
+        .claude,
         plan ?? tokensDeClaude,
         detalle: DetalleDelDato.claude(tokens: tokensDeClaude, plan: plan, ahora: ahora),
         ahora: ahora
       )
+    }
+  }
+
+  private func ladoDelSistema(_ dato: DatoDeLaMuesca, _ valor: Double?) -> LadoDeLaMuesca {
+    LadoDeLaMuesca(
+      dato: dato,
+      valor: valor.map(TextoDelDato.porcentaje) ?? "–",
+      nivel: valor,
+      detalle: DetalleDelDato.sistema(valor)
+    )
+  }
+
+  // MARK: Avisos
+
+  /// Las ventanas con porcentaje de las IAs que se están mirando: la de cinco
+  /// horas y la semanal de Codex, y la del plan de Claude si se pidió. Los
+  /// tokens de Claude no avisan (`VigiaDeLimites`).
+  private func ventanasVigiladas(ahora: Date) -> [(DatoDeLaMuesca, FilaDelDetalle.Cual, VentanaDeUso)] {
+    var ventanas: [(DatoDeLaMuesca, FilaDelDetalle.Cual, VentanaDeUso)] = []
+    if elegidos.contains(.codex), let codex = consumoDeCodex {
+      ventanas.append((.codex, .cincoHoras, codex.ventanaCorta))
+      if let semanal = codex.ventanaSemanal { ventanas.append((.codex, .semana, semanal)) }
+    }
+    if elegidos.contains(.claude), let plan = planVigente(ahora: ahora) {
+      ventanas.append((.claude, .cincoHoras, plan.ventanaCorta))
+      if let semanal = plan.ventanaSemanal { ventanas.append((.claude, .semana, semanal)) }
+    }
+    return ventanas
+  }
+
+  /// Da como mucho un aviso por vuelta —dos a la vez se pisarían en la misma
+  /// muesca— y lo marca sólo si se mostró.
+  private func avisarSiToca() {
+    guard avisaLimites, let alAvisar else { return }
+    let ahora = Date()
+    for (dato, cual, ventana) in ventanasVigiladas(ahora: ahora) {
+      guard let aviso = vigia.revisar(dato, cual, ventana, ahora: ahora) else { continue }
+      if alAvisar(aviso) { vigia.marcar(aviso) }
+      return
     }
   }
 
@@ -188,16 +259,16 @@ final class DatosDeLaMuesca {
   }
 
   private func ladoDeIA(
-    _ etiqueta: String,
+    _ dato: DatoDeLaMuesca,
     _ consumo: ConsumoDeIA?,
     detalle: [FilaDelDetalle],
     ahora: Date
   ) -> LadoDeLaMuesca {
     guard let ventana = consumo?.ventanaCorta.vigente(en: ahora) else {
-      return LadoDeLaMuesca(etiqueta: etiqueta, valor: "–", nivel: nil)
+      return LadoDeLaMuesca(dato: dato, valor: "–", nivel: nil)
     }
     return LadoDeLaMuesca(
-      etiqueta: etiqueta,
+      dato: dato,
       valor: TextoDelDato.valor(ventana) ?? "–",
       nivel: ventana.porcentaje,
       detalle: detalle

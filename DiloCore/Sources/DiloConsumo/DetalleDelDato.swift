@@ -20,8 +20,14 @@ public struct FilaDelDetalle: Equatable, Sendable {
     case tokensDelBloque
     /// El porcentaje del plan en la ventana de cinco horas (Claude, opcional).
     case planCincoHoras
-    /// Lo que marca ahora mismo (CPU, RAM).
+    /// Lo que marca ahora mismo (CPU, RAM, GPU).
     case ahora
+    /// Lo que baja la red.
+    case baja
+    /// Lo que sube la red.
+    case sube
+    /// Lo que queda libre en el disco.
+    case libre
   }
 
   public var cual: Cual
@@ -64,6 +70,25 @@ public enum DetalleDelDato {
   public static func sistema(_ valor: Double?) -> [FilaDelDetalle] {
     guard let valor else { return [] }
     return [FilaDelDetalle(cual: .ahora, valor: TextoDelDato.porcentaje(valor), nivel: valor)]
+  }
+
+  /// La red: lo que baja y lo que sube. Sin nivel: una velocidad no tiene
+  /// techo contra el que medirse.
+  public static func red(_ velocidad: VelocidadDeRed?) -> [FilaDelDetalle] {
+    guard let velocidad else { return [] }
+    return [
+      FilaDelDetalle(cual: .baja, valor: TextoDelDato.velocidad(velocidad.baja) + "/s"),
+      FilaDelDetalle(cual: .sube, valor: TextoDelDato.velocidad(velocidad.sube) + "/s"),
+    ]
+  }
+
+  /// El disco: cuánto está ocupado y cuánto queda.
+  public static func disco(_ espacio: EspacioEnDisco?) -> [FilaDelDetalle] {
+    guard let espacio else { return [] }
+    return [
+      FilaDelDetalle(cual: .ahora, valor: TextoDelDato.porcentaje(espacio.ocupado), nivel: espacio.ocupado),
+      FilaDelDetalle(cual: .libre, valor: TextoDelDato.gigas(espacio.libre)),
+    ]
   }
 
   static func fila(_ cual: FilaDelDetalle.Cual, _ ventana: VentanaDeUso, ahora: Date) -> FilaDelDetalle? {

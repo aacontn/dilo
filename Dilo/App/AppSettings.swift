@@ -53,6 +53,7 @@ final class AppSettings {
     static let hudDatoIzquierdo = "hudDatoIzquierdo"
     static let hudDatoDerecho = "hudDatoDerecho"
     static let hudPorcentajeDeClaude = "hudPorcentajeDeClaude"
+    static let hudAvisosDeLimite = "hudAvisosDeLimite"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -311,6 +312,14 @@ final class AppSettings {
     didSet { defaults.set(hudPorcentajeDeClaude, forKey: Keys.hudPorcentajeDeClaude) }
   }
 
+  /// Si la muesca se abre un momento a avisar cuando una IA cruza el 80 % o el
+  /// 95 % de una ventana (`VigiaDeLimites`). **Encendido de fábrica**: sólo
+  /// avisa de lo que alguien eligió mirar, y enterarse antes de chocar con el
+  /// límite es justo para lo que se eligió.
+  var hudAvisosDeLimite: Bool {
+    didSet { defaults.set(hudAvisosDeLimite, forKey: Keys.hudAvisosDeLimite) }
+  }
+
   var readAloudVoiceID: String {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
@@ -534,6 +543,7 @@ final class AppSettings {
         derecho: Self.stored(in: defaults, key: Keys.hudDatoDerecho) ?? .ninguno
       )
     hudPorcentajeDeClaude = defaults.bool(forKey: Keys.hudPorcentajeDeClaude)
+    hudAvisosDeLimite = defaults.object(forKey: Keys.hudAvisosDeLimite) as? Bool ?? true
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(
