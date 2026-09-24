@@ -38,6 +38,14 @@ struct ProximaReunion: Equatable, Sendable {
   let enlace: URL?
 }
 
+/// Cómo ofrece el panel la traducción.
+enum TraduccionDelPanel: Equatable, Sendable {
+  /// Lista: traduce al idioma de este código («EN»).
+  case hacia(String)
+  /// Todavía no hay idioma elegido: el botón lleva a Ajustes.
+  case sinDestino
+}
+
 /// Un modo tal como el panel lo ofrece: su id y su nombre.
 struct ModoDelPanel: Identifiable, Equatable, Sendable {
   let id: String
@@ -54,7 +62,7 @@ extension DictationHUDContent {
       // Con un solo modo ya hay elección: ése o «Normal». La fila también
       // lleva «Nota», así que con la nota rápida encendida va aunque no haya
       // modos.
-      modos: !modosDelPanel.isEmpty || ofreceNota
+      modos: !modosDelPanel.isEmpty || ofreceNota || traduccionDelPanel != nil
     )
   }
 
@@ -284,12 +292,46 @@ struct HUDPanelDelHover: View {
       } else {
         Spacer(minLength: 0)
       }
+      if let traduccion = content.traduccionDelPanel {
+        botonDeTraducir(traduccion)
+      }
       if content.ofreceNota {
         botonDeNota
       }
     }
     // El alto de la sección menos su separador, que va arriba.
     .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
+  }
+
+  /// Dictar traduciendo, al idioma elegido en Ajustes. Sin idioma todavía,
+  /// el botón va apagado y lleva a elegirlo: un «Traducir» que no hace nada
+  /// se lee como roto.
+  private func botonDeTraducir(_ traduccion: TraduccionDelPanel) -> some View {
+    let listo: String? = if case let .hacia(destino) = traduccion { destino } else { nil }
+    return HStack(spacing: 4) {
+      Image(systemName: "globe")
+        .font(.system(size: 9, weight: .bold))
+      Text(verbatim: listo.map { "→ \($0)" } ?? String(localized: "Traducir"))
+        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+    }
+    .foregroundStyle(listo == nil ? .white.opacity(0.55) : DiloBrand.mango)
+    .padding(.horizontal, 9)
+    .padding(.vertical, 3)
+    .background(
+      Capsule(style: .continuous)
+        .fill(listo == nil ? .white.opacity(0.08) : DiloBrand.mango.opacity(0.16))
+    )
+    .contentShape(Capsule())
+    .onTapGesture {
+      if listo == nil {
+        content.alElegirIdiomaDeTraduccion?()
+      } else {
+        content.alDictarTraduciendo?()
+      }
+    }
+    .accessibilityAddTraits(.isButton)
+    .accessibilityLabel(Text(listo == nil ? "Elegir el idioma para traducir" : "Dictar traduciendo"))
+    .help(listo == nil ? "Elige a qué idioma traducir" : "Dicta y se pega traducido")
   }
 
   /// Dictar una nota que termina en Apple Notas. Es un clic, no el hover:

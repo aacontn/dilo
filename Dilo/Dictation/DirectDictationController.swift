@@ -410,6 +410,27 @@ final class DirectDictationController {
     send(.menuToggled(now: .now))
   }
 
+  /// Empieza a dictar traduciendo, desde el panel del hover (2026-09-24): la
+  /// misma sesión que la tecla de traducir, pero trabada, porque la abre un
+  /// clic. Se termina con la tecla, con un clic en la muesca o con otro clic
+  /// en el botón; Esc la cancela.
+  func dictarTraduciendo() {
+    guard !machine.isSessionActive else {
+      terminarSesionTrabada()
+      return
+    }
+    guard settings.isTranslationEnabled else { return }
+    claimSession(for: .translate)
+    send(.menuToggled(now: .now))
+  }
+
+  /// Termina el dictado trabado en curso, como volver a tocar su tecla. Lo
+  /// usa el clic en la muesca (`HUDStage.clicDuranteLaSesionTrabada`).
+  func terminarSesionTrabada() {
+    guard machine.isSessionActive else { return }
+    send(.menuToggled(now: .now))
+  }
+
   func toggleFromMenu() {
     // The menu item has no language of its own, so it dictates in the first.
     if !machine.isSessionActive {

@@ -61,12 +61,22 @@ final class DictationHUDContent {
   /// Si la sesión en curso es una nota rápida (`DirectDictationController.dictarNota`).
   var esNota = false
 
-  /// Si ahora mismo se está dictando una nota: la línea lleva su etiqueta y
-  /// el ✓ para guardarla, y un clic en la muesca la termina
-  /// (`HUDStage.vigilarElClicDeLaNota`).
+  /// Si ahora mismo se está dictando una nota: la línea lleva su etiqueta.
   var notaEnCurso: Bool { esNota && estado == .dictando }
-  /// Un clic en la muesca con una nota en curso: la termina y la guarda.
-  @ObservationIgnored var alTerminarNota: (() -> Void)?
+
+  /// Si el dictado en curso está trabado: se abrió sin tecla sostenida —con
+  /// un clic en «Nota» o en «Traducir», desde el menú, o con el doble toque—
+  /// y sigue escuchando hasta que alguien lo cierre.
+  var trabada = false
+
+  /// Si hay un dictado trabado escuchando ahora mismo. La línea lleva un ✓ al
+  /// final y un clic en la muesca lo termina
+  /// (`HUDStage.vigilarElClicDeLaSesionTrabada`): lo que se abrió sin tecla
+  /// tiene que poder cerrarse sin tecla. Empezó con la nota —«aprieto Nota y
+  /// se queda andando» (2026-09-24)— y vale para todos.
+  var sesionTrabadaEnCurso: Bool { trabada && estado == .dictando }
+  /// Un clic en la muesca con un dictado trabado: lo termina.
+  @ObservationIgnored var alTerminarSesionTrabada: (() -> Void)?
 
   /// Lo que va a cada costado de la muesca en reposo, o nil. Lo escribe
   /// `DatosDeLaMuesca` desde el escenario; la forma sólo lo dibuja.
@@ -88,6 +98,12 @@ final class DictationHUDContent {
   @ObservationIgnored var alCopiarReciente: ((ElementoReciente) -> Void)?
   @ObservationIgnored var alElegirModo: ((String?) -> Void)?
   @ObservationIgnored var alAbrirReunion: (() -> Void)?
+  /// Si el panel ofrece «Traducir», y a qué idioma: nil lo esconde,
+  /// `sinDestino` lo muestra apagado y lleva a elegir el idioma en Ajustes.
+  var traduccionDelPanel: TraduccionDelPanel?
+  @ObservationIgnored var alDictarTraduciendo: (() -> Void)?
+  @ObservationIgnored var alElegirIdiomaDeTraduccion: (() -> Void)?
+
   /// Si el panel ofrece «Nota» al final de la fila de los modos, y qué hace.
   var ofreceNota = false
   @ObservationIgnored var alDictarNota: (() -> Void)?
