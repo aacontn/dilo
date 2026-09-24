@@ -63,6 +63,22 @@ final class DictationHUDContent {
   var datoIzquierdo: LadoDeLaMuesca?
   var datoDerecho: LadoDeLaMuesca?
 
+  // MARK: El panel del hover
+
+  /// Lo reciente que se puede volver a copiar, lo más nuevo primero
+  /// (`agregarReciente`).
+  var recientes: [ElementoReciente] = []
+  /// La reunión que viene, si se pidió leer el calendario y hay una pronto.
+  var proximaReunion: ProximaReunion?
+  /// Los modos de la biblioteca, y el que usa el atajo general.
+  var modosDelPanel: [ModoDelPanel] = []
+  var modoDelPanelID: String?
+  /// El reciente que se acaba de copiar: su fila dice «Copiado» un momento.
+  var recienteCopiadoID: UUID?
+  @ObservationIgnored var alCopiarReciente: ((ElementoReciente) -> Void)?
+  @ObservationIgnored var alElegirModo: ((String?) -> Void)?
+  @ObservationIgnored var alAbrirReunion: (() -> Void)?
+
   /// Lo que el hover revela: el modo activo, o lo último que se dictó. Lo
   /// escribe quien sabe (el controlador de dictado); la forma sólo lo dibuja.
   var contexto: String?

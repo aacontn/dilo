@@ -159,6 +159,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       // Lo que el hover sobre el notch en reposo revela: lo último que
       // dictaste, que es lo que alguien va a buscar ahí.
       stage?.dictationContent.contexto = dictado?.vistazo(.entregado)
+      // Y a los recientes del panel, donde se puede volver a copiar.
+      if let dictado {
+        stage?.dictationContent.agregarReciente(dictado.texto(.entregado), origen: .dictado)
+      }
     }
     dictationController.onLanguageDownloadChange = {
       [weak settingsRuntimeState] identifier, fraction in

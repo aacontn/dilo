@@ -211,8 +211,16 @@ struct DictationHUDShellView: View {
     // para que nunca se vuelva una ventana.
     return CGSize(
       width: anchoDelPanelDeHover,
-      height: HUDNotchGeometry.altoDelPanelDeHover(for: screen)
+      height: HUDNotchGeometry.altoDelPanelDeHover(
+        for: screen,
+        secciones: content.seccionesDelPanel(conDatos: !ladosConDato.isEmpty)
+      )
     )
+  }
+
+  /// Los datos de los costados que hay para el detalle del panel.
+  private var ladosConDato: [LadoDeLaMuesca] {
+    screen.anchoDeLosLados > 0 ? [content.datoIzquierdo, content.datoDerecho].compactMap { $0 } : []
   }
 
   /// El ancho del panel que abre el hover, acotado a la ventana.
@@ -290,11 +298,17 @@ struct DictationHUDShellView: View {
   /// segundo para siempre (spec §3).
   @ViewBuilder
   private var cuerpo: some View {
-    if content.estado.esCompacto {
+    if content.estado.esCompacto, let contexto = content.contextoVisible {
+      // El panel del hover cuelga de la cabecera, que es la silueta en
+      // reposo: arriba queda la franja de la muesca y debajo, las secciones.
+      VStack(spacing: 0) {
+        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: screen))
+        HUDPanelDelHover(content: content, contexto: contexto, lados: ladosConDato)
+      }
+      .frame(height: tamañoEnReposo.height, alignment: .top)
+    } else if content.estado.esCompacto {
       HUDMarcaDeReposo(
         dibujaMarca: sinCarcasa,
-        contexto: content.contextoVisible,
-        puedeCopiar: content.puedeCopiar,
         modo: modoEnReposo,
         scale: metrics.scale,
         // El alto de la silueta, medido: la marca lo llena y no lo estira.

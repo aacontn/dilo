@@ -99,6 +99,40 @@ enum RenderDatos {
         }
       }
     }
+    // El panel del hover completo (2026-09-24): recientes, datos, la próxima
+    // reunión con enlace y los modos, con uno elegido.
+    var conPanel = pantallaSimulada
+    conPanel.anchoDeLosLados = HUDNotchGeometry.anchoDeUnLado
+    conPanel.seccionesPosibles = .todas
+    let panel = DictationHUDContent()
+    VistaPreviaDeLosDatos.posar(panel, izquierdo: .claude, derecho: .codex, conPlan: true, encima: true, ahora: ahora)
+    panel.agregarReciente("Quedamos el martes a las diez en la oficina de Carla", origen: .dictado, cuando: ahora)
+    panel.agregarReciente("https://github.com/aacontn/dilo/pull/8", origen: .copiado, cuando: ahora)
+    panel.agregarReciente("Mándale el informe a Carla antes del viernes", origen: .dictado, cuando: ahora)
+    panel.recienteCopiadoID = panel.recientes[1].id
+    panel.proximaReunion = ProximaReunion(
+      titulo: "Revisión semanal con Espacio Digital",
+      empieza: ahora.addingTimeInterval(8 * 60),
+      termina: ahora.addingTimeInterval(38 * 60),
+      enlace: URL(string: "https://meet.google.com/abc-defg-hij")
+    )
+    panel.modosDelPanel = [
+      ModoDelPanel(id: "correo", nombre: "Correo"),
+      ModoDelPanel(id: "mensaje", nombre: "Mensaje"),
+      ModoDelPanel(id: "notas", nombre: "Notas"),
+    ]
+    panel.modoDelPanelID = "correo"
+    for oscuro in [true, false] {
+      try escribir(
+        escritorio(pantalla: conPanel, oscuro: oscuro, alto: 240) {
+          DictationHUDShellView(screen: conPanel, settings: settings.sessionSettings, content: panel)
+        },
+        tamaño: CGSize(width: 640, height: 240),
+        oscuro: oscuro,
+        como: "hover-panel-completo-\(oscuro ? "oscuro" : "claro")"
+      )
+    }
+
     // CPU y RAM, que tienen una sola fila.
     var pantalla = pantallaSimulada
     pantalla.anchoDeLosLados = HUDNotchGeometry.anchoDeUnLado
@@ -158,6 +192,7 @@ enum RenderDatos {
   static func escritorio<C: View>(
     pantalla: HUDScreenSnapshot,
     oscuro: Bool,
+    alto: CGFloat = 150,
     @ViewBuilder hud: () -> C
   ) -> some View {
     ZStack(alignment: .top) {
@@ -166,7 +201,7 @@ enum RenderDatos {
         .fill(oscuro ? Color.black.opacity(0.35) : Color.white.opacity(0.6))
         .frame(height: max(pantalla.menuBarHeight, 24))
       hud()
-        .frame(width: 640, height: 150, alignment: .top)
+        .frame(width: 640, height: alto, alignment: .top)
     }
   }
 

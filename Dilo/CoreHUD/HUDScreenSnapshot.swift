@@ -41,4 +41,12 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// zona que recibe el mouse y la silueta dibujada leen el mismo
   /// `reposoSize`, y un número suelto se olvidaría en uno de los tres.
   var anchoDeLosLados: CGFloat = 0
+  /// Las secciones que el panel del hover **puede** llegar a llevar con lo
+  /// encendido en Ajustes: con eso se dimensiona la ventana abierta. Lo de
+  /// fábrica es ninguna, que es el panel de una línea.
+  ///
+  /// Por lo encendido y no por todas: una ventana abierta dimensionada para
+  /// secciones que nadie pidió es pantalla que no deja pasar clics mientras
+  /// el hover está abierto (ADR-0001, enmienda del 2026-09-22).
+  var seccionesPosibles = SeccionesDelPanel()
 }

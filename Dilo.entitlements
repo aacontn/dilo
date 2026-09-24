@@ -5,7 +5,7 @@
 	<!-- El target de venta directa: sin App Sandbox, porque el tap de CGEvent
 	     del gatillo y la inserción por Accesibilidad viven fuera de él.
 
-	     Lo único que pide es el micrófono. Bajo Hardened Runtime —que se
+	     Lo que pide es el micrófono y, desde el 2026-09-24, el calendario. Bajo Hardened Runtime —que se
 	     enciende junto con el Developer ID, ver docs/ProjectSettings.md— una
 	     app sin este entitlement no puede recibir el permiso de micrófono
 	     nunca: el prompt aparece y el switch no hace nada.
@@ -22,6 +22,12 @@
 	       Apagarla sería publicar un permiso amplio para tapar un refirmado
 	       que ya está hecho. -->
 	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<!-- El calendario, desde el 2026-09-24: la próxima reunión en el panel
+	     del hover (`LectorDelCalendario`). Bajo Hardened Runtime, sin esto el
+	     permiso de calendario no se puede conceder nunca, igual que el
+	     micrófono. Sólo se pide si la persona enciende «Próxima reunión». -->
+	<key>com.apple.security.personal-information.calendars</key>
 	<true/>
 </dict>
 </plist>

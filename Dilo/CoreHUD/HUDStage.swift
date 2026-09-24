@@ -1,5 +1,6 @@
 import AppKit
 import DiloConsumo
+import DiloModes
 import SwiftUI
 
 /// The one shape, and who is holding it.
@@ -187,6 +188,21 @@ final class HUDStage {
     hostingView.alSalirElPuntero = { [weak self] in
       self?.punteroSalio()
     }
+    portapapeles.alCopiar = { [weak self] texto in
+      self?.dictationContent.agregarReciente(texto, origen: .copiado)
+    }
+    dictationContent.alCopiarReciente = { [weak self] elemento in
+      self?.copiarReciente(elemento)
+    }
+    calendario.alCambiar = { [weak self] reunion in
+      self?.dictationContent.proximaReunion = reunion
+    }
+    dictationContent.alAbrirReunion = { [weak self] in
+      LectorDelCalendario.abrir(self?.dictationContent.proximaReunion)
+    }
+    dictationContent.alElegirModo = { [weak self] id in
+      self?.settings.hudModoDelAtajoGeneral = id
+    }
     datos.alAvisar = { [weak self] aviso in
       self?.avisar(aviso) ?? false
     }
@@ -205,6 +221,57 @@ final class HUDStage {
   /// dos costados lleva uno, nada si ninguno.
   private var anchoDeLosLados: CGFloat {
     datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
+  }
+
+  // MARK: El panel del hover
+
+  /// Quien suma lo copiado a los recientes del panel.
+  private let portapapeles = VigiaDelPortapapeles()
+  /// Quien trae la próxima reunión del calendario. Lo usa también Ajustes
+  /// para pedir el permiso.
+  let calendario = LectorDelCalendario()
+
+  /// Lo más que el panel del hover puede llevar con lo encendido en Ajustes.
+  /// Los recientes siempre caben: cualquier dictado es uno.
+  private var seccionesPosibles: SeccionesDelPanel {
+    SeccionesDelPanel(
+      recientes: HUDNotchGeometry.recientesEnElPanel,
+      datos: false,
+      reunion: settings.hudProximaReunion,
+      modos: settings.hudModosEnElPanel && !settings.modos.isEmpty
+    )
+  }
+
+  /// Deja un texto en el portapapeles. Una costura, para que un test afirme
+  /// qué se copió sin tocar el portapapeles de quien lo corre.
+  var copiarAlPortapapeles: (String) -> Void = { texto in
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(texto, forType: .string)
+  }
+
+  /// Copia un reciente y lo dice en su propia fila un momento.
+  private func copiarReciente(_ elemento: ElementoReciente) {
+    copiarAlPortapapeles(elemento.texto)
+    dictationContent.recienteCopiadoID = elemento.id
+    Task { [weak self, reloj] in
+      try? await reloj.sleep(.milliseconds(1_200))
+      guard let self, self.dictationContent.recienteCopiadoID == elemento.id else { return }
+      self.dictationContent.recienteCopiadoID = nil
+    }
+  }
+
+  /// Lleva al panel lo elegido en Ajustes: si mira el portapapeles, qué modos
+  /// ofrece y cuál usa el atajo general. Un modo borrado de la biblioteca
+  /// deja de estar elegido en vez de quedar apuntando a nada.
+  private func aplicarElPanel() {
+    portapapeles.encender(settings.hudRecientesDelPortapapeles)
+    calendario.encender(settings.hudProximaReunion)
+    let modos = settings.hudModosEnElPanel
+      ? settings.modos.map { ModoDelPanel(id: $0.id, nombre: $0.nombre) }
+      : []
+    dictationContent.modosDelPanel = modos
+    let elegido = settings.hudModoDelAtajoGeneral
+    dictationContent.modoDelPanelID = modos.contains { $0.id == elegido } ? elegido : nil
   }
 
   /// Abre la muesca un momento con un aviso de límite, si está libre.
@@ -246,8 +313,11 @@ final class HUDStage {
       porcentajeDeClaude: settings.hudPorcentajeDeClaude,
       avisaLimites: settings.hudAvisosDeLimite
     )
-    guard var pantalla = pantallaActual, pantalla.anchoDeLosLados != anchoDeLosLados else { return }
+    guard var pantalla = pantallaActual,
+      pantalla.anchoDeLosLados != anchoDeLosLados || pantalla.seccionesPosibles != seccionesPosibles
+    else { return }
     pantalla.anchoDeLosLados = anchoDeLosLados
+    pantalla.seccionesPosibles = seccionesPosibles
     mount(on: pantalla)
   }
 
@@ -256,9 +326,12 @@ final class HUDStage {
   private func observarLosLados() {
     withObservationTracking {
       _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude, settings.hudAvisosDeLimite)
+      _ = (settings.hudRecientesDelPortapapeles, settings.hudModosEnElPanel)
+      _ = (settings.hudModoDelAtajoGeneral, settings.modos, settings.hudProximaReunion)
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.aplicarLosLados()
+        self?.aplicarElPanel()
         self?.observarLosLados()
       }
     }
@@ -274,6 +347,7 @@ final class HUDStage {
     // Los costados antes de elegir pantalla: su ancho es parte de la silueta
     // que se monta.
     aplicarLosLados()
+    aplicarElPanel()
     observarLosLados()
     guard let screen = screen() else { return }
     dictationContent.isRevealed = false
@@ -461,9 +535,14 @@ final class HUDStage {
     // abierta; la zona crece con ella y no más, que es lo que evita que la
     // muesca se coma clics de media barra de menús.
     guard dictationContent.contextoVisible != nil else { return reposo }
+    let conDatos = pantallaActual.anchoDeLosLados > 0
+      && (dictationContent.datoIzquierdo != nil || dictationContent.datoDerecho != nil)
     return CGSize(
       width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),
-      height: HUDNotchGeometry.altoDelPanelDeHover(for: pantallaActual)
+      height: HUDNotchGeometry.altoDelPanelDeHover(
+        for: pantallaActual,
+        secciones: dictationContent.seccionesDelPanel(conDatos: conDatos)
+      )
     )
   }
 
@@ -738,7 +817,8 @@ final class HUDStage {
         menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY,
         estiloSinNotch: settings.hudEstiloSinNotch,
         nombre: screen.localizedName,
-        anchoDeLosLados: anchoDeLosLados
+        anchoDeLosLados: anchoDeLosLados,
+        seccionesPosibles: seccionesPosibles
       )
     }
     return HUDPlacement.selectDisplay(

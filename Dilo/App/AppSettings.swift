@@ -54,6 +54,10 @@ final class AppSettings {
     static let hudDatoDerecho = "hudDatoDerecho"
     static let hudPorcentajeDeClaude = "hudPorcentajeDeClaude"
     static let hudAvisosDeLimite = "hudAvisosDeLimite"
+    static let hudRecientesDelPortapapeles = "hudRecientesDelPortapapeles"
+    static let hudModosEnElPanel = "hudModosEnElPanel"
+    static let hudModoDelAtajoGeneral = "hudModoDelAtajoGeneral"
+    static let hudProximaReunion = "hudProximaReunion"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -320,6 +324,34 @@ final class AppSettings {
     didSet { defaults.set(hudAvisosDeLimite, forKey: Keys.hudAvisosDeLimite) }
   }
 
+  // MARK: El panel del hover
+
+  /// Si los recientes del panel del hover suman lo que copias, además de tus
+  /// dictados. Encendido de fábrica: es lo que se pidió (2026-09-24). Lo
+  /// marcado como secreto por un gestor de contraseñas no entra nunca, y
+  /// nada se guarda en disco (`VigiaDelPortapapeles`).
+  var hudRecientesDelPortapapeles: Bool {
+    didSet { defaults.set(hudRecientesDelPortapapeles, forKey: Keys.hudRecientesDelPortapapeles) }
+  }
+
+  /// Si el panel del hover ofrece los modos para elegir el del atajo general.
+  var hudModosEnElPanel: Bool {
+    didSet { defaults.set(hudModosEnElPanel, forKey: Keys.hudModosEnElPanel) }
+  }
+
+  /// El modo que usa el atajo general, elegido desde el panel del hover. Nil
+  /// es el dictado normal, que no pasa por ninguna IA —lo de siempre—. Los
+  /// modos con tecla propia siguen usando la suya.
+  var hudModoDelAtajoGeneral: String? {
+    didSet { defaults.set(hudModoDelAtajoGeneral, forKey: Keys.hudModoDelAtajoGeneral) }
+  }
+
+  /// Si el panel del hover muestra la próxima reunión del calendario. Apagado
+  /// de fábrica: encenderlo pide permiso para leer el calendario.
+  var hudProximaReunion: Bool {
+    didSet { defaults.set(hudProximaReunion, forKey: Keys.hudProximaReunion) }
+  }
+
   var readAloudVoiceID: String {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
@@ -544,6 +576,10 @@ final class AppSettings {
       )
     hudPorcentajeDeClaude = defaults.bool(forKey: Keys.hudPorcentajeDeClaude)
     hudAvisosDeLimite = defaults.object(forKey: Keys.hudAvisosDeLimite) as? Bool ?? true
+    hudRecientesDelPortapapeles = defaults.object(forKey: Keys.hudRecientesDelPortapapeles) as? Bool ?? true
+    hudModosEnElPanel = defaults.object(forKey: Keys.hudModosEnElPanel) as? Bool ?? true
+    hudModoDelAtajoGeneral = defaults.string(forKey: Keys.hudModoDelAtajoGeneral)
+    hudProximaReunion = defaults.bool(forKey: Keys.hudProximaReunion)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(
@@ -754,6 +790,8 @@ struct DictationSessionSettings: Equatable {
   /// sesión como todo lo demás que la forma dibuja, aunque el reposo no sea
   /// una sesión: es el escenario el que lo lee, y lee un solo objeto.
   let muestraElModoEnReposo: Bool
+  /// El modo que usa el atajo general, elegido en el panel del hover, o nil.
+  let modoDelAtajoGeneralID: String?
 
   /// The colour a Drop Transcription wears — on the HUD's target and card, and
   /// on the status ghost while a file job fills it. Edge Glow and Edge Glow +
@@ -842,6 +880,7 @@ struct DictationSessionSettings: Equatable {
     glowCenter = settings.glowCenter
     hudMetrics = HUDMetrics(scale: CGFloat(settings.hudScale))
     muestraElModoEnReposo = settings.hudModoEnReposo
+    modoDelAtajoGeneralID = settings.hudModoDelAtajoGeneral
   }
 }
 

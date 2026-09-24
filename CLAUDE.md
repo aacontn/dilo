@@ -383,6 +383,12 @@ siendo cierto:
   `Dilo.debug.dylib` con `@testable import Dilo`, sin lanzar la app. Dibuja con
   `NSHostingView` y no con `ImageRenderer`, que cambia los interruptores y
   selectores de AppKit por un cartel amarillo.
+- **El panel del hover tiene secciones** (`HUDPanelDelHover`): recientes
+  —dictados y portapapeles, sólo en memoria, sin lo que un gestor de
+  contraseñas marca como secreto—, el detalle de los datos, la próxima
+  reunión del calendario (apagada de fábrica; pide permiso al encenderla) y
+  los modos para el atajo general. Alto fijo por sección; la ventana abierta
+  se dimensiona por lo encendido, no por todo lo posible.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**
