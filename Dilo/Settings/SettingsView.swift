@@ -251,6 +251,8 @@ private struct SettingsContent: View {
           DisclosureGroup("Sonidos") {
             SoundsSettingsView(settings: settings, sounds: sounds).padding(.top, 12)
           }
+        case .datosDeLaMuesca:
+          DatosDeLaMuescaSettingsView(settings: settings)
         case .sounds:
           SoundsSettingsView(settings: settings, sounds: sounds)
         case .motor:

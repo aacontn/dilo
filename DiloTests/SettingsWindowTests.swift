@@ -30,7 +30,7 @@ struct SettingsWindowTests {
 
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
-      .general, .appearance, .sounds, .motor, .dictation, .modos, .palabras,
+      .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .dictation, .modos, .palabras,
       .historial, .dropTranscription, .readAloud, .language,
       .shortcuts, .updates, .novedades, .insights, .about,
     ]
@@ -40,7 +40,7 @@ struct SettingsWindowTests {
     let navegables = SettingsSectionGroup.allCases.flatMap(\.sections)
     let principales: [SettingsSection] = [
       .dictation, .modos, .palabras, .historial, .dropTranscription,
-      .motor, .shortcuts, .appearance, .general, .novedades, .about,
+      .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general, .novedades, .about,
     ]
     #expect(navegables == principales.filter(\.isAvailable))
     #expect(Set(navegables).count == navegables.count)

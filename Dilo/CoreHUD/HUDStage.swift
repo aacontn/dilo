@@ -207,9 +207,10 @@ final class HUDStage {
   /// Lleva lo elegido en Ajustes a los datos y, si cambió cuánto se alarga
   /// la muesca, la vuelve a montar en la misma pantalla con el ancho nuevo.
   private func aplicarLosLados() {
+    let disposicion = settings.hudDisposicion
     datos.configurar(
-      izquierdo: settings.hudDatoIzquierdo,
-      derecho: settings.hudDatoDerecho,
+      izquierdo: disposicion.dato(en: .izquierdo, disponible: DatosDeLaMuesca.disponible),
+      derecho: disposicion.dato(en: .derecho, disponible: DatosDeLaMuesca.disponible),
       porcentajeDeClaude: settings.hudPorcentajeDeClaude
     )
     guard var pantalla = pantallaActual, pantalla.anchoDeLosLados != anchoDeLosLados else { return }
@@ -221,7 +222,7 @@ final class HUDStage {
   /// elegir un dato recién se vería al próximo dictado.
   private func observarLosLados() {
     withObservationTracking {
-      _ = (settings.hudDatoIzquierdo, settings.hudDatoDerecho, settings.hudPorcentajeDeClaude)
+      _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude)
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.aplicarLosLados()

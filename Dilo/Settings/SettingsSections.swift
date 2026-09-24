@@ -24,7 +24,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
     let orden: [SettingsSection]
     switch self {
     case .voz: orden = [.dictation, .modos, .palabras, .historial, .dropTranscription]
-    case .settings: orden = [.motor, .shortcuts, .appearance, .general]
+    case .settings: orden = [.motor, .shortcuts, .appearance, .datosDeLaMuesca, .general]
     case .dilo: orden = [.novedades, .about]
     }
     return orden.filter(\.isAvailable)
@@ -34,6 +34,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
 enum SettingsSection: String, CaseIterable, Identifiable {
   case general
   case appearance
+  case datosDeLaMuesca
   case sounds
   case motor
   case dictation
@@ -53,7 +54,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var group: SettingsSectionGroup {
     switch self {
     case .dictation, .modos, .palabras, .historial, .dropTranscription, .insights: .voz
-    case .general, .appearance, .sounds, .motor, .readAloud, .language, .shortcuts: .settings
+    case .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .readAloud, .language,
+      .shortcuts: .settings
     case .updates, .novedades, .about: .dilo
     }
   }
@@ -82,6 +84,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     switch self {
     case .general: String(localized: "General")
     case .appearance: String(localized: "Apariencia")
+    case .datosDeLaMuesca: String(localized: "Datos en la muesca")
     case .sounds: String(localized: "Sonidos")
     case .motor: String(localized: "Motor de voz")
     case .dictation: String(localized: "Dictado")
@@ -103,6 +106,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     switch self {
     case .general: String(localized: "Cómo arranca Dilo")
     case .appearance: String(localized: "Cómo se ve la píldora mientras dictas")
+    case .datosDeLaMuesca: String(localized: "Qué se ve a los costados de la muesca")
     case .sounds: String(localized: "Los sonidos de empezar y terminar")
     case .motor: String(localized: "Quién convierte tu voz en texto")
     case .dictation: String(localized: "Dónde aterriza lo que dictaste")
@@ -124,6 +128,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     switch self {
     case .general: "gearshape"
     case .appearance: "sparkles"
+    case .datosDeLaMuesca: "gauge.with.dots.needle.33percent"
     case .sounds: "waveform"
     case .motor: "cpu"
     case .dictation: "text.cursor"

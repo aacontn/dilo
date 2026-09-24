@@ -357,6 +357,14 @@ private struct PasoDePrueba: View {
             color: DiloBrand.menta,
             texto: "Listo, Dilo funciona. Eso que dijiste lo transcribió y lo pegó él."
           )
+          // Una línea y sólo cuando ya funcionó: antes compite con la ayuda
+          // de los permisos, que es lo único que importa si nada aparece.
+          (Anfitrion.actual.admite(.consumoDeIADeOtrasApps)
+            ? Text("Puedes tener tu consumo de IA a la vista en la muesca: Ajustes → Datos en la muesca.")
+            : Text("Puedes tener cómo va el Mac a la vista en la muesca: Ajustes → Datos en la muesca."))
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.42))
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
       .onAppear { enfocado = true }

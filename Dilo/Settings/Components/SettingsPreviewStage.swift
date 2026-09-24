@@ -14,6 +14,13 @@ struct SettingsPreviewStage<HUD: View>: View {
 
   let title: LocalizedStringKey
   let subtitle: LocalizedStringKey
+  /// A qué escala se dibuja el HUD. Las formas abiertas se muestran a menos
+  /// de la mitad para que quepan; la muesca en reposo de «Datos en la
+  /// muesca» va a tamaño real, porque lo que se viene a mirar son cifras de
+  /// diez puntos.
+  var escala: CGFloat = 0.48
+  /// El alto de la pantalla simulada.
+  var altoDeLaPantalla: CGFloat = 118
   @ViewBuilder let hud: HUD
 
   var body: some View {
@@ -43,11 +50,15 @@ struct SettingsPreviewStage<HUD: View>: View {
         simulatedMenuBar
 
         hud
-          .scaleEffect(0.48, anchor: .top)
-          .frame(width: 300, height: 105, alignment: .top)
+          .scaleEffect(escala, anchor: .top)
+          .frame(
+            width: min(300 / 0.48 * escala, 520),
+            height: altoDeLaPantalla - 13,
+            alignment: .top
+          )
           .clipped()
       }
-      .frame(height: 118)
+      .frame(height: altoDeLaPantalla)
       .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
       .overlay {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -62,6 +73,12 @@ struct SettingsPreviewStage<HUD: View>: View {
     }
   }
 
+  /// La letra de la barra simulada: la de siempre a la escala de siempre, y
+  /// la de una barra de verdad cuando el HUD va a tamaño real.
+  private var letraDeLaBarra: CGFloat {
+    max(8.5, 12.5 * escala)
+  }
+
   /// A simulated menu bar strip so the shape reads as a notch at the top
   /// of a display: matches the housing strip's scaled height, with the
   /// Dilo ghost among the status items. The shell's black housing
@@ -70,9 +87,9 @@ struct SettingsPreviewStage<HUD: View>: View {
     HStack(spacing: 0) {
       HStack(spacing: 7) {
         Image(systemName: "apple.logo")
-          .font(.system(size: 8))
+          .font(.system(size: letraDeLaBarra - 0.5))
         Text(verbatim: "Finder")
-          .font(.system(size: 8.5, weight: .semibold))
+          .font(.system(size: letraDeLaBarra, weight: .semibold))
       }
       Spacer()
       HStack(spacing: 8) {
@@ -80,16 +97,16 @@ struct SettingsPreviewStage<HUD: View>: View {
           .renderingMode(.template)
           .resizable()
           .scaledToFit()
-          .frame(height: 8.5)
+          .frame(height: letraDeLaBarra)
         Image(systemName: "wifi")
-          .font(.system(size: 8))
+          .font(.system(size: letraDeLaBarra - 0.5))
         Text(verbatim: "11:41")
-          .font(.system(size: 8.5, weight: .medium))
+          .font(.system(size: letraDeLaBarra, weight: .medium))
       }
     }
     .foregroundStyle(.white.opacity(0.55))
     .padding(.horizontal, 10)
-    .frame(height: 15.4)
+    .frame(height: 32 * escala)
     .background(.white.opacity(0.05))
   }
 }

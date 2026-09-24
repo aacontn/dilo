@@ -1,5 +1,3 @@
-import DiloCapabilities
-import DiloConsumo
 import SwiftUI
 
 /// The Appearance section: the live preview first, then the Voice visual
@@ -8,24 +6,6 @@ import SwiftUI
 /// persisted.
 struct AppearanceSettingsView: View {
   @Bindable var settings: AppSettings
-
-  /// Los datos que este anfitrión puede mostrar. En App Store el sandbox no
-  /// deja leer las carpetas de Claude Code ni de Codex, así que ahí sólo
-  /// aparecen CPU y RAM: lo que no se puede, se esconde.
-  static var datosDisponibles: [DatoDeLaMuesca] {
-    let admiteIA = Anfitrion.actual.admite(.consumoDeIADeOtrasApps)
-    return DatoDeLaMuesca.allCases.filter { admiteIA || !$0.leeArchivosDeOtraApp }
-  }
-
-  static func nombreDelDato(_ dato: DatoDeLaMuesca) -> String {
-    switch dato {
-    case .ninguno: String(localized: "Nada")
-    case .claude: String(localized: "Claude · últimas 5 h")
-    case .codex: String(localized: "Codex · últimas 5 h")
-    case .cpu: String(localized: "CPU")
-    case .ram: String(localized: "Memoria")
-    }
-  }
 
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -125,34 +105,6 @@ struct AppearanceSettingsView: View {
             optionLabel: { $0.title },
             selection: $settings.glowCenter
           )
-        }
-      }
-
-      SettingsCard(title: "A los costados de la muesca") {
-        SettingsPickerRow(
-          title: "Izquierda",
-          description: "Un dato que se queda a la vista, sin pasar el mouse. Con cualquiera de los dos, la muesca se alarga un poco a ambos lados.",
-          options: Self.datosDisponibles,
-          optionLabel: Self.nombreDelDato,
-          selection: $settings.hudDatoIzquierdo
-        )
-
-        SettingsPickerRow(
-          title: "Derecha",
-          options: Self.datosDisponibles,
-          optionLabel: Self.nombreDelDato,
-          selection: $settings.hudDatoDerecho
-        )
-
-        if settings.hudDatoIzquierdo == .claude || settings.hudDatoDerecho == .claude {
-          SettingsRow(
-            title: "Porcentaje de tu plan de Claude",
-            description: "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto pregunta el porcentaje a Anthropic usando tu sesión de Claude Code: macOS te va a pedir permiso para leerla del Llavero. Dilo no la guarda ni la manda a nadie más."
-          ) {
-            Toggle("", isOn: $settings.hudPorcentajeDeClaude)
-              .labelsHidden()
-              .toggleStyle(.switch)
-          }
         }
       }
 

@@ -47,6 +47,9 @@ final class AppSettings {
     static let hudRetardoDeHover = "hudRetardoDeHover"
     static let hudPantalla = "hudPantalla"
     static let hudModoEnReposo = "hudModoEnReposo"
+    static let hudDatosDeLaMuesca = "hudDatosDeLaMuesca"
+    // Las dos claves de antes de la sección propia: un picker por costado.
+    // Sólo se leen, una vez, para migrar (`DisposicionDeLaMuesca.migrada`).
     static let hudDatoIzquierdo = "hudDatoIzquierdo"
     static let hudDatoDerecho = "hudDatoDerecho"
     static let hudPorcentajeDeClaude = "hudPorcentajeDeClaude"
@@ -286,18 +289,15 @@ final class AppSettings {
     didSet { defaults.set(hudModoEnReposo, forKey: Keys.hudModoEnReposo) }
   }
 
-  /// Qué dato vive a cada costado de la muesca en reposo: consumo de Claude o
-  /// de Codex, CPU o RAM, o nada.
+  /// Qué fuentes van a los costados de la muesca en reposo —consumo de
+  /// Claude o de Codex, CPU, RAM— y a cuál va cada una. Se elige en la
+  /// sección «Datos en la muesca».
   ///
   /// **Nada de fábrica**: la muesca quieta es la barra negra que ya estaba
-  /// ahí. Con cualquiera de los dos encendido la muesca se alarga a los dos
-  /// lados por igual, para seguir centrada sobre el notch.
-  var hudDatoIzquierdo: DatoDeLaMuesca {
-    didSet { defaults.set(hudDatoIzquierdo.rawValue, forKey: Keys.hudDatoIzquierdo) }
-  }
-
-  var hudDatoDerecho: DatoDeLaMuesca {
-    didSet { defaults.set(hudDatoDerecho.rawValue, forKey: Keys.hudDatoDerecho) }
+  /// ahí. Con cualquier dato encendido la muesca se alarga a los dos lados por
+  /// igual, para seguir centrada sobre el notch.
+  var hudDisposicion: DisposicionDeLaMuesca {
+    didSet { defaults.set(hudDisposicion.guardado, forKey: Keys.hudDatosDeLaMuesca) }
   }
 
   /// Si el dato de Claude es el porcentaje de tu plan —preguntado a Anthropic
@@ -527,8 +527,12 @@ final class AppSettings {
       ?? HUDStage.retardoDeHoverDeFabrica
     hudPantalla = defaults.string(forKey: Keys.hudPantalla) ?? ""
     hudModoEnReposo = defaults.bool(forKey: Keys.hudModoEnReposo)
-    hudDatoIzquierdo = Self.stored(in: defaults, key: Keys.hudDatoIzquierdo) ?? .ninguno
-    hudDatoDerecho = Self.stored(in: defaults, key: Keys.hudDatoDerecho) ?? .ninguno
+    hudDisposicion = defaults.string(forKey: Keys.hudDatosDeLaMuesca)
+      .map(DisposicionDeLaMuesca.init(guardado:))
+      ?? .migrada(
+        izquierdo: Self.stored(in: defaults, key: Keys.hudDatoIzquierdo) ?? .ninguno,
+        derecho: Self.stored(in: defaults, key: Keys.hudDatoDerecho) ?? .ninguno
+      )
     hudPorcentajeDeClaude = defaults.bool(forKey: Keys.hudPorcentajeDeClaude)
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
