@@ -145,7 +145,11 @@ struct PanelDelHoverTests {
     let conRecientes = HUDNotchGeometry.altoDelPanelDeHover(
       for: pantalla, secciones: SeccionesDelPanel(recientes: 2)
     )
-    #expect(conRecientes == 24 + 2 * HUDNotchGeometry.altoDeUnReciente + HUDNotchGeometry.aireAlPieDelPanel)
+    #expect(
+      conRecientes
+        == 24 + HUDNotchGeometry.altoDelEncabezadoDeSeccion + 2 * HUDNotchGeometry.altoDeUnReciente
+        + HUDNotchGeometry.aireAlPieDelPanel
+    )
     let todo = HUDNotchGeometry.altoDelPanelDeHover(for: pantalla, secciones: .todas)
     #expect(todo <= HUDNotchGeometry.altoMaximoDelHover)
     #expect(todo > conRecientes)
@@ -175,5 +179,19 @@ struct PanelDelHoverTests {
     #expect(settings.sessionSettings.modoDelAtajoGeneralID == id)
     stage.dictationContent.alElegirModo?(nil)
     #expect(settings.hudModoDelAtajoGeneral == nil)
+  }
+
+  /// Todo encendido cabe bajo el techo: si una sección crece y el techo no,
+  /// la forma corta lo de abajo —la barra de acciones— sin avisar.
+  @Test func todoEncendidoCabeBajoElTecho() {
+    let alto = 24
+      + HUDNotchGeometry.altoDeLaReunion
+      + HUDNotchGeometry.altoDelEncabezadoDeSeccion
+      + CGFloat(HUDNotchGeometry.recientesEnElPanel) * HUDNotchGeometry.altoDeUnReciente
+      + HUDNotchGeometry.altoDelDetalleDeDatos
+      + HUDNotchGeometry.altoDeLosModos
+      + HUDNotchGeometry.aireAlPieDelPanel
+    #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
+    #expect(HUDNotchGeometry.altoDelPanelDeHover(for: pantalla, secciones: .todas) == alto)
   }
 }

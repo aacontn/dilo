@@ -125,10 +125,10 @@ enum RenderDatos {
     panel.ofreceNota = true
     for oscuro in [true, false] {
       try escribir(
-        escritorio(pantalla: conPanel, oscuro: oscuro, alto: 240) {
+        escritorio(pantalla: conPanel, oscuro: oscuro, alto: 280) {
           DictationHUDShellView(screen: conPanel, settings: settings.sessionSettings, content: panel)
         },
-        tamaño: CGSize(width: 640, height: 240),
+        tamaño: CGSize(width: 640, height: 280),
         oscuro: oscuro,
         como: "hover-panel-completo-\(oscuro ? "oscuro" : "claro")"
       )

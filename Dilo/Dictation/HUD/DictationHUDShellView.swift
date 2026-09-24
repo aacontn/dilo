@@ -302,7 +302,19 @@ struct DictationHUDShellView: View {
       // El panel del hover cuelga de la cabecera, que es la silueta en
       // reposo: arriba queda la franja de la muesca y debajo, las secciones.
       VStack(spacing: 0) {
-        Color.clear.frame(height: HUDNotchGeometry.alturaDeCabecera(for: screen))
+        // La franja de la muesca sigue diciendo los datos de los costados:
+        // abrir el panel no los hace desaparecer.
+        HStack(spacing: 0) {
+          if screen.anchoDeLosLados > 0, let izquierdo = content.datoIzquierdo {
+            HUDValorDeDato(lado: izquierdo)
+          }
+          Spacer(minLength: 0)
+          if screen.anchoDeLosLados > 0, let derecho = content.datoDerecho {
+            HUDValorDeDato(lado: derecho)
+          }
+        }
+        .padding(.horizontal, 16)
+        .frame(height: HUDNotchGeometry.alturaDeCabecera(for: screen))
         HUDPanelDelHover(content: content, contexto: contexto, lados: ladosConDato)
       }
       .frame(height: tamañoEnReposo.height, alignment: .top)

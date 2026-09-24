@@ -250,7 +250,7 @@ enum HUDNotchGeometry {
   ) -> CGFloat {
     let secciones = secciones ?? SeccionesDelPanel(datos: screen.anchoDeLosLados > 0)
     let primera = secciones.recientes > 0
-      ? CGFloat(secciones.recientes) * altoDeUnReciente
+      ? altoDelEncabezadoDeSeccion + CGFloat(secciones.recientes) * altoDeUnReciente
       : altoDelContextoEnReposo
     let resto = (secciones.datos ? altoDelDetalleDeDatos : 0)
       + (secciones.reunion ? altoDeLaReunion : 0)
@@ -259,10 +259,11 @@ enum HUDNotchGeometry {
     return min(reposoSize(for: screen).height + primera + resto, altoMaximoDelHover)
   }
 
-  /// Lo que el detalle de los datos le suma al panel del hover: el nombre de
-  /// cada dato y hasta dos filas —la ventana de cinco horas y la semanal de
-  /// Codex; los tokens y el plan de Claude—, en letra de once puntos.
-  static let altoDelDetalleDeDatos: CGFloat = 40
+  /// Lo que el detalle de los datos le suma al panel del hover: su separador,
+  /// el nombre de cada dato y hasta dos filas —la ventana de cinco horas y la
+  /// semanal de Codex; los tokens y el plan de Claude—, en letra de once
+  /// puntos.
+  static let altoDelDetalleDeDatos: CGFloat = 48
 
   /// The HUD shape's size: the header band, whatever voice-visual band the
   /// selected visual uses, the text band unless the visual replaces it, and
@@ -466,9 +467,11 @@ enum HUDNotchGeometry {
   ///
   /// Era 110 mientras el panel era una línea y el detalle de los datos. Con
   /// las secciones del 2026-09-24 —tres recientes, la reunión y los modos—
-  /// todo encendido suma 181 en un 1080p; 190 es ese número con aire, y sigue
-  /// siendo un panel que cuelga de la barra y no una ventana.
-  static let altoMaximoDelHover: CGFloat = 190
+  /// todo encendido sumaba 181 en un 1080p. Ordenado —la reunión como
+  /// tarjeta, encabezado sobre los recientes y un separador entre secciones—
+  /// suma 218; 220 es ese número, y sigue siendo un panel que cuelga de la
+  /// barra y no una ventana.
+  static let altoMaximoDelHover: CGFloat = 220
 
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
   /// que mide cero.
@@ -630,8 +633,15 @@ extension HUDNotchGeometry {
   /// y el panel es para agarrar algo al paso.
   static let recientesEnElPanel = 3
   static let altoDeUnReciente: CGFloat = 19
-  static let altoDeLaReunion: CGFloat = 26
-  static let altoDeLosModos: CGFloat = 28
+  /// El encabezado chico de una sección («RECIENTES»).
+  static let altoDelEncabezadoDeSeccion: CGFloat = 15
+  /// La tarjeta de la reunión y el aire que la separa de lo que sigue.
+  static let altoDeLaReunion: CGFloat = 32
+  /// La barra de acciones —modos y «Nota»— con su separador arriba.
+  static let altoDeLosModos: CGFloat = 36
+  /// Lo que mide un separador entre secciones, con su aire: va incluido en el
+  /// alto de la sección que lo lleva arriba.
+  static let altoDelSeparador: CGFloat = 8
   /// El aire bajo la última sección, dentro de la forma.
   static let aireAlPieDelPanel: CGFloat = 6
 }
