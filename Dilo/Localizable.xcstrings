@@ -5506,6 +5506,72 @@
           }
         }
       }
+    },
+    "Terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish"
+          }
+        }
+      }
+    },
+    "Elegir el idioma para traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the language to translate into"
+          }
+        }
+      }
+    },
+    "Dictar traduciendo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate and translate"
+          }
+        }
+      }
+    },
+    "Elige a qué idioma traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which language to translate into"
+          }
+        }
+      }
+    },
+    "Dicta y se pega traducido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate and it's pasted translated"
+          }
+        }
+      }
+    },
+    "Un botón para dictar y que se pegue traducido al idioma que elegiste en Dictado. Si todavía no elegiste uno, el botón te lleva a elegirlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A button to dictate and have it pasted translated into the language you chose in Dictation. If you haven't chosen one yet, the button takes you there."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

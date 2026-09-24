@@ -129,6 +129,7 @@ final class DictationHUDController {
     content.shapingName = nil
     content.shapingChoiceLabel = nil
     sessionIsLatched = isLatched
+    marcarTrabada(isLatched)
     // Dictation outranks a file job for the shape: the user is speaking now,
     // and the transcription keeps running with the status item carrying it.
     stage.claim(.dictation, on: screen, rendering: settings)
@@ -141,6 +142,7 @@ final class DictationHUDController {
   func showLatched() {
     guard isListening else { return }
     sessionIsLatched = true
+    marcarTrabada(true)
     setDraft(placeholder)
   }
 
@@ -231,12 +233,16 @@ final class DictationHUDController {
     content.shapingChoiceLabel = label
   }
 
+  /// Lo trabado llega a la forma, y el escenario vigila el clic que lo
+  /// termina mientras dure; deja de mirar en cuanto la sesión no lo está.
+  private func marcarTrabada(_ trabada: Bool) {
+    content.trabada = trabada
+    stage.vigilarElClicDeLaSesionTrabada(trabada)
+  }
+
   /// Si la sesión en curso es una nota rápida: la línea lo dice con un ícono.
   func mostrarQueEsNota(_ esNota: Bool) {
     content.esNota = esNota
-    // Un clic en la muesca termina la nota: el escenario lo vigila mientras
-    // dura, y deja de mirar en cuanto la sesión no es una nota.
-    stage.vigilarElClicDeLaNota(esNota)
   }
 
   func hide() {

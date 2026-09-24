@@ -1974,4 +1974,45 @@ struct DirectDictationControllerTests {
     #expect(notas.withLock { $0 } == ["hola"])
     controller.stop()
   }
+
+  // MARK: Traducir desde la muesca (2026-09-24)
+
+  /// «Traducir» en el panel abre la misma sesión que la tecla de traducir,
+  /// trabada; el clic en la muesca la termina y se pega traducido.
+  @Test func traducirDesdeElPanelPegaLaTraduccion() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "es"
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder, prewarmed: prewarmed, finishRecognition: { "spoken words" }
+      )
+    )
+    await prepareWithTranslation(controller, prewarmed: prewarmed)
+
+    controller.dictarTraduciendo()
+    await waitUntil("La sesión nunca empezó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.terminarSesionTrabada()
+    await waitUntil("Nunca se entregó") { !recorder.insertedTexts.isEmpty }
+    #expect(recorder.insertedTexts == ["translated: spoken words"])
+    controller.stop()
+  }
+
+  /// Sin idioma de destino no hay qué traducir: el botón no abre nada.
+  @Test func sinDestinoTraducirNoAbreNada() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(
+      dependencies: makeDependencies(recorder: recorder, prewarmed: prewarmed)
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    controller.dictarTraduciendo()
+    #expect(controller.sessionStateForTesting == .idle)
+    controller.stop()
+  }
 }
+

@@ -59,6 +59,7 @@ final class AppSettings {
     static let hudModoDelAtajoGeneral = "hudModoDelAtajoGeneral"
     static let hudProximaReunion = "hudProximaReunion"
     static let hudNotaRapida = "hudNotaRapida"
+    static let hudTraducirEnElPanel = "hudTraducirEnElPanel"
     static let historyEnabled = "dictationHistoryEnabled"
     static let historyFolder = "dictationHistoryFolder"
     // Las tres claves de "Transformar", el sistema heredado del árbol de origen. Ya no
@@ -360,6 +361,13 @@ final class AppSettings {
     didSet { defaults.set(hudNotaRapida, forKey: Keys.hudNotaRapida) }
   }
 
+  /// Si el panel del hover ofrece «Traducir»: dictar y que se pegue en el
+  /// idioma elegido. Encendido de fábrica; sin idioma elegido el botón lleva
+  /// a elegirlo.
+  var hudTraducirEnElPanel: Bool {
+    didSet { defaults.set(hudTraducirEnElPanel, forKey: Keys.hudTraducirEnElPanel) }
+  }
+
   var readAloudVoiceID: String {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
@@ -589,6 +597,7 @@ final class AppSettings {
     hudModoDelAtajoGeneral = defaults.string(forKey: Keys.hudModoDelAtajoGeneral)
     hudProximaReunion = defaults.bool(forKey: Keys.hudProximaReunion)
     hudNotaRapida = defaults.object(forKey: Keys.hudNotaRapida) as? Bool ?? true
+    hudTraducirEnElPanel = defaults.object(forKey: Keys.hudTraducirEnElPanel) as? Bool ?? true
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
     dictationTriggerBinding = Self.storedBinding(

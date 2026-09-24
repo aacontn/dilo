@@ -240,7 +240,18 @@ final class HUDStage {
       datos: false,
       reunion: settings.hudProximaReunion,
       modos: (settings.hudModosEnElPanel && !settings.modos.isEmpty) || notaDisponible
+        || settings.hudTraducirEnElPanel
     )
+  }
+
+  /// Cómo ofrece el panel la traducción: nil si se apagó en Ajustes.
+  private var traduccionDelPanel: TraduccionDelPanel? {
+    guard settings.hudTraducirEnElPanel else { return nil }
+    guard settings.isTranslationEnabled,
+      let codigo = Locale.Language(identifier: settings.translationTargetIdentifier)
+        .languageCode?.identifier
+    else { return .sinDestino }
+    return .hacia(codigo.uppercased())
   }
 
   /// Si el panel ofrece la nota rápida: encendida en Ajustes y posible en
@@ -278,6 +289,7 @@ final class HUDStage {
       : []
     dictationContent.modosDelPanel = modos
     dictationContent.ofreceNota = notaDisponible
+    dictationContent.traduccionDelPanel = traduccionDelPanel
     let elegido = settings.hudModoDelAtajoGeneral
     dictationContent.modoDelPanelID = modos.contains { $0.id == elegido } ? elegido : nil
   }
@@ -336,7 +348,7 @@ final class HUDStage {
       _ = (settings.hudDisposicion, settings.hudPorcentajeDeClaude, settings.hudAvisosDeLimite)
       _ = (settings.hudRecientesDelPortapapeles, settings.hudModosEnElPanel)
       _ = (settings.hudModoDelAtajoGeneral, settings.modos, settings.hudProximaReunion)
-      _ = settings.hudNotaRapida
+      _ = (settings.hudNotaRapida, settings.hudTraducirEnElPanel, settings.translationTargetIdentifier)
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.aplicarLosLados()
@@ -749,45 +761,47 @@ final class HUDStage {
   /// hover tenga el panel abierto con algo que copiar: ahí «copiar el último
   /// dictado» es la acción del panel, que es donde quedó al salir el estado
   /// Resultado.
-  // MARK: Terminar una nota con un clic
+  // MARK: Terminar un dictado trabado con un clic
 
-  /// Quien mira los clics mientras hay una nota abierta.
-  private var monitorDeLaNota: Any?
+  /// Quien mira los clics mientras hay un dictado trabado.
+  private var monitorDeLaSesionTrabada: Any?
 
-  /// Una nota se abre con un clic y tiene que poder cerrarse con otro, en la
-  /// muesca misma: antes quedaba escuchando sin nada que dijera cómo pararla
+  /// Lo que se abre sin tecla sostenida —una nota, una traducción desde el
+  /// panel, el doble toque— tiene que poder cerrarse con un clic en la muesca
+  /// misma: la nota quedaba escuchando sin nada que dijera cómo pararla
   /// (reporte del 2026-09-24).
   ///
   /// **Con un monitor global y no tomando el mouse.** Mientras se dicta, la
   /// ventana deja pasar todos los clics; hacer que los tomara para esto
   /// convertiría su rectángulo —dimensionado para el panel del hover, hasta
   /// 488×262 sobre el centro de la barra— en pantalla muerta durante toda la
-  /// nota. El monitor ve el clic que va a la app de abajo y, si cayó sobre la
-  /// silueta, termina la nota. Debajo de la muesca simulada sólo está el
+  /// sesión. El monitor ve el clic que va a la app de abajo y, si cayó sobre la
+  /// silueta, la termina. Debajo de la muesca simulada sólo está el
   /// centro vacío de la barra de menús, así que ese clic no hace nada más.
   /// Los monitores globales de mouse no piden permiso.
-  func vigilarElClicDeLaNota(_ encendido: Bool) {
-    if let monitorDeLaNota { NSEvent.removeMonitor(monitorDeLaNota) }
-    monitorDeLaNota = nil
+  func vigilarElClicDeLaSesionTrabada(_ encendido: Bool) {
+    if let monitorDeLaSesionTrabada { NSEvent.removeMonitor(monitorDeLaSesionTrabada) }
+    monitorDeLaSesionTrabada = nil
     guard encendido else { return }
-    monitorDeLaNota = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
+    monitorDeLaSesionTrabada = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) {
+      [weak self] _ in
       MainActor.assumeIsolated {
-        guard let self, self.dictationContent.notaEnCurso else { return }
-        self.clicDuranteLaNota(en: self.posicionDelPuntero())
+        guard let self, self.dictationContent.sesionTrabadaEnCurso else { return }
+        self.clicDuranteLaSesionTrabada(en: self.posicionDelPuntero())
       }
     }
   }
 
-  /// Un clic con la nota abierta: si cayó en la silueta, la termina.
-  func clicDuranteLaNota(en punto: CGPoint) {
-    guard dictationContent.notaEnCurso, let pantallaActual else { return }
+  /// Un clic con un dictado trabado: si cayó en la silueta, lo termina.
+  func clicDuranteLaSesionTrabada(en punto: CGPoint) {
+    guard dictationContent.sesionTrabadaEnCurso, let pantallaActual else { return }
     let silueta = HUDNotchGeometry.siluetaEnPantalla(
       for: pantallaActual,
       tamaño: tamañoDeLaSilueta,
       encuadre: encuadre
     )
     guard silueta.contains(punto) else { return }
-    dictationContent.alTerminarNota?()
+    dictationContent.alTerminarSesionTrabada?()
   }
 
   private func clicEnLaSilueta() {
