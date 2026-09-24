@@ -21,16 +21,20 @@ entra en el `LICENSE` antes que el código.
 | CPU | `host_statistics(HOST_CPU_LOAD_INFO)`, diferencia entre dos lecturas | % de todo el sistema | Ninguno |
 | RAM | `host_statistics64(HOST_VM_INFO64)`: activa + fija + comprimida | % de la memoria física | Ninguno |
 
-En App Store el sandbox no deja leer `~/.claude` ni `~/.codex`: esas opciones
-se esconden (`Capacidad.consumoDeIADeOtrasApps`) y quedan CPU y RAM.
+En App Store el sandbox no deja leer `~/.claude` ni `~/.codex`
+(`Capacidad.consumoDeIADeOtrasApps`): sus tarjetas dicen «No disponible en
+esta versión» con el porqué, y quedan CPU y RAM.
 
 ## Cómo está armado
 
 - **`DiloCore/Sources/DiloConsumo`** — lo que no sabe nada de la app y se
   prueba con `swift test`: `DatoDeLaMuesca` (qué se puede elegir),
+  `DisposicionDeLaMuesca` (qué está encendido y a qué costado va),
+  `DeteccionDeFuentes` (si hay de dónde leer, con el disco inyectado),
   `VentanaDeUso` y `ConsumoDeIA` (qué se sabe de un proveedor), un lector por
   fuente (`LectorDeCodex`, `LectorDeClaude`, `ClienteDeUsoDeClaude`,
-  `MuestraDelSistema`) y `TextoDelDato` (cómo se escribe).
+  `MuestraDelSistema`), `TextoDelDato` (cómo se escribe) y `DetalleDelDato`
+  (las filas del hover).
 - **`Dilo/CoreHUD/DatosDeLaMuesca.swift`** — la tarea que refresca: CPU y RAM
   cada 3 s, archivos cada 30 s, el plan de Claude cada 2 min. Sin datos
   elegidos no corre nada.
@@ -39,6 +43,59 @@ se esconden (`Capacidad.consumoDeIADeOtrasApps`) y quedan CPU y RAM.
   y con eso la ventana, la zona del mouse y la silueta quedan de acuerdo.
 - **La vista** — `HUDMarcaDeReposo` dibuja cada costado: etiqueta apagada,
   valor claro, mango desde el 75 % y rojo desde el 90 %.
+- **El hover** — con datos, el panel del hover crece
+  `HUDNotchGeometry.altoDelDetalleDeDatos` (40 puntos; sigue bajo
+  `altoMaximoDelHover`) y `HUDDetalleDeLosDatos` pone debajo del contexto una
+  columna por dato: Codex con su ventana de 5 h y la semanal, Claude con los
+  tokens del bloque y, si se pidió, el % del plan; cada una con cuánto falta
+  para que se reinicie. CPU y RAM, su valor. Letra fija: el alto es fijo.
+
+## Ajustes: la sección «Datos en la muesca»
+
+Pedido de Alfonso, 2026-09-23: «hay que poner en las configuraciones cómo
+configurar y activar». Los datos se elegían con dos pickers en Apariencia que
+no decían nada; ahora tienen sección propia en el grupo Ajustes, justo después
+de Apariencia (`SettingsSection.datosDeLaMuesca`,
+`DatosDeLaMuescaSettingsView`). Se llama «Datos en la muesca» y no «La
+muesca» porque lo visual de la muesca —tamaño, pantalla, retardo del hover—
+sigue en Apariencia.
+
+- **Arriba**: una frase de qué es y una vista previa a tamaño real con la
+  muesca de verdad (`DictationHUDShellView`) y valores de ejemplo en los
+  costados elegidos. Con el mouse encima abre el panel del hover con el
+  detalle.
+- **Una tarjeta por fuente** (Claude Code, Codex, CPU, Memoria), cada una con:
+  - el **estado detectado en vivo** (`DeteccionDeFuentes`, cada 4 s mientras
+    la sección está abierta): *Listo para usar* si hay al menos una sesión
+    —`~/.claude/projects/<proyecto>/*.jsonl`,
+    `~/.codex/sessions/AAAA/MM/DD/*.jsonl`—, *No encontrado* con el cómo
+    («Instala Claude Code y úsalo una vez; Dilo lee sus registros locales, sin
+    clave»), o *No disponible en esta versión* en App Store, con el porqué.
+    CPU y RAM siempre están listos. La detección corta en el primer `.jsonl`
+    que encuentra y mira a lo más 300 carpetas;
+  - el **interruptor** y el **costado**. Cabe un dato por costado
+    (`DisposicionDeLaMuesca.porCostado`). Lo encendido se guarda en orden
+    (`hudDatosDeLaMuesca`, «claude:izquierdo,cpu:derecho»): el que llegó
+    primero a un costado se queda, y el que llega después **dice en su
+    tarjeta que no cabe**, quién le ocupa el lugar y qué hacer. Si el primero
+    se apaga, el que esperaba se ve solo;
+  - **qué se lee y de dónde**, en una línea y sin jerga;
+  - en Claude, **el % del plan** como sub-opción apagada de fábrica, con la
+    regla de las credenciales dicha entera y un botón **Probar ahora** que
+    hace una consulta y dice el resultado o la falla en palabras
+    (`DatosDeLaMuescaCopy.Prueba`; sesión vencida → «Abre Claude Code para
+    que renueve su sesión»).
+- **Gemini no tiene tarjeta.** Una tarjeta «Próximamente» es un panel que no
+  puede hacer nada, y en Ajustes lo que no se puede hacer se esconde
+  (`SettingsSection.isAvailable`). Entra cuando tenga lector (abajo).
+- **La elección de antes se migra**: quien tenía algo en los pickers de
+  Apariencia (`hudDatoIzquierdo`, `hudDatoDerecho`) lo sigue teniendo en el
+  mismo costado.
+- **Primeros pasos** dice, en una línea al final y sólo cuando el dictado de
+  prueba funcionó, que esto existe y dónde está.
+
+La sección y el hover se revisan en PNG con
+`scripts/render-datos-de-la-muesca.sh`, sin lanzar la app.
 
 ## La regla de las credenciales
 
@@ -57,14 +114,24 @@ usuario. Cuando Dilo la usa:
 ## Cómo se suma un proveedor
 
 1. Un caso nuevo en `DatoDeLaMuesca` (el `rawValue` es lo que se guarda: no
-   se renombra después) y su `leeArchivosDeOtraApp`.
+   se renombra después) y su `leeArchivosDeOtraApp`. Con eso aparece solo en
+   `DatoDeLaMuesca.fuentes`, que es la lista de tarjetas.
 2. Un lector en `DiloConsumo` que devuelva `ConsumoDeIA`, con tests armados
    con la forma exacta del archivo o la respuesta. Nada de red ni de carpetas
    de verdad en los tests.
-3. Su rama en `DatosDeLaMuesca.lado(_:)` y en `refrescar()`, con una cadencia
-   que respete el reposo.
-4. Su nombre en `AppearanceSettingsView.nombreDelDato`.
-5. Si pide credencial, la regla de arriba entera.
+3. Dónde deja sus registros y a qué profundidad, en
+   `DeteccionDeFuentes.carpeta(de:en:)` y `niveles(de:)`, con su test contra
+   el disco de mentira. Los lectores arrancan de esa misma carpeta.
+4. Sus filas del hover en `DetalleDelDato`, y su rama en
+   `DatosDeLaMuesca.lado(_:)` y en `refrescar()`, con una cadencia que respete
+   el reposo.
+5. Su tarjeta en `DatosDeLaMuescaCopy`: título, qué se lee y de dónde
+   (`queSeLee`), cómo conseguirlo si no se encuentra (`comoConseguirlo`), y un
+   valor de ejemplo para la vista previa (`VistaPreviaDeLosDatos.ejemplo`).
+   Todo con su inglés en `Localizable.xcstrings`.
+6. Si pide credencial, la regla de arriba entera: la sub-opción apagada de
+   fábrica en su tarjeta, con el texto de qué se lee y a quién se le pregunta,
+   y «Probar ahora».
 
 ## Candidatos, por orden de cuánto se usan
 
@@ -85,8 +152,9 @@ Lo que dice «según CodexBar» está leído de su documentación
 Otros que CodexBar cubre y quedan para después: Perplexity, Grok (xAI),
 Mistral, DeepSeek, Kimi, z.ai, Factory, Amp, Warp, Kiro, Vertex AI, Bedrock.
 
-## Lo que falta en v1
+## Lo que falta
 
-- El **detalle en el hover**: cuándo se reinicia cada ventana y la semanal.
-  Los datos ya están en `ConsumoDeIA`; falta darle lugar en el panel.
-- Las **traducciones al inglés** de los textos nuevos de Ajustes.
+- Más de un dato por costado: `porCostado` es 1 porque la muesca se alarga
+  72 puntos por lado. Subirlo es subir `HUDNotchGeometry.anchoDeUnLado` y
+  mirar el render en un 1080p.
+- Gemini y el resto de los candidatos de arriba.

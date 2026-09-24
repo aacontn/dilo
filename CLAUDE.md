@@ -367,11 +367,22 @@ siendo cierto:
   (2026-09-23, «al agrandar se ve trancado»). El hover se abre con la curva de
   apertura del estilo, no con la de cierre.
 - **Los costados de la muesca llevan datos elegidos en Ajustes** (consumo de
-  Claude y Codex, CPU, RAM; `docs/design/datos-en-la-muesca.md`). Los
-  lectores viven en `DiloCore/Sources/DiloConsumo` y se prueban con
-  `swift test`. Si un proveedor pide la sesión del usuario, es opcional,
-  apagado de fábrica, se lee en cada consulta sin guardarse ni registrarse, y
-  nunca se renueva un token ajeno.
+  Claude y Codex, CPU, RAM; `docs/design/datos-en-la-muesca.md`). Se eligen
+  en su propia sección, **Datos en la muesca**, con una tarjeta por fuente:
+  estado detectado en vivo, interruptor, costado, qué se lee y de dónde.
+  Apariencia se queda sólo con lo visual. Lo que la sección calcula —qué va
+  en cada costado y qué no cabe (`DisposicionDeLaMuesca`), si hay de dónde
+  leer (`DeteccionDeFuentes`, con el disco inyectado), el detalle del hover
+  (`DetalleDelDato`)— vive en `DiloCore/Sources/DiloConsumo` con los lectores
+  y se prueba con `swift test`. **Lo que no cabe se dice en la tarjeta, no se
+  recorta en silencio.** Si un proveedor pide la sesión del usuario, es
+  opcional, apagado de fábrica, se lee en cada consulta sin guardarse ni
+  registrarse, y nunca se renueva un token ajeno.
+- **Ajustes también se revisa en PNG.** `scripts/render-datos-de-la-muesca.sh`
+  compila con `build-for-testing` y enlaza un render contra el
+  `Dilo.debug.dylib` con `@testable import Dilo`, sin lanzar la app. Dibuja con
+  `NSHostingView` y no con `ImageRenderer`, que cambia los interruptores y
+  selectores de AppKit por un cartel amarillo.
 - El rebote de la revelación vive sólo en la escala anclada arriba, nunca en
   la posición: un exceso de posición abre una rendija contra el borde.
 - **Los sonidos de empezar y terminar son de la transición, no del micrófono.**
