@@ -193,7 +193,7 @@ private func mouseEvent(
 }
 
 /// Records what the monitor emitted, from whichever thread emitted it.
-private final class EventLog: @unchecked Sendable {
+final class EventLog: @unchecked Sendable {
   private let lock = NSLock()
   private var stored: [GlobalKeyEventMonitor.Event] = []
 

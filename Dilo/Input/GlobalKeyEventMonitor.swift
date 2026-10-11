@@ -267,6 +267,13 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
       return Unmanaged.passUnretained(event)
     }
 
+    // El ⌘V o ⌘C que Dilo simula para pegar o copiar pasa por este mismo
+    // tap. No es la persona apretando nada: con ⌘ sola como gatillo, pegar un
+    // dictado arrancaría otro.
+    if AtajoSimulado.esDeDilo(event) {
+      return Unmanaged.passUnretained(event)
+    }
+
     // A bound button is swallowed only while its exact combination is
     // pressed, exactly as a bound key is: someone who binds ⌥ + Middle did so
     // to keep plain middle click, and taking that away globally would be the

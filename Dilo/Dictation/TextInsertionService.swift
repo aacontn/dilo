@@ -344,18 +344,26 @@ final class TextInsertionService {
     postShortcut(virtualKey: 9)
   }
 
-  private static func postShortcut(virtualKey: CGKeyCode) -> Bool {
-    guard let source = CGEventSource(stateID: .combinedSessionState),
-       let keyDown = CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: true),
-       let keyUp = CGEvent(keyboardEventSource: source, virtualKey: virtualKey, keyDown: false) else {
-      return false
+  /// Aprieta ⌘ + la tecla con la secuencia entera de `AtajoSimulado`.
+  ///
+  /// `apretadas`, `crear` y `publicar` son la costura de los tests: con ellas
+  /// la secuencia se captura en vez de llegarle al sistema. Sin `crear`, los
+  /// eventos salen de la fuente del teclado físico.
+  static func postShortcut(
+    virtualKey: CGKeyCode,
+    apretadas: AtajoSimulado.TeclasApretadas = .delTeclado(),
+    crear: ((AtajoSimulado.Pulsacion) -> CGEvent?)? = nil,
+    publicar: (CGEvent) -> Void = { $0.post(tap: .cghidEventTap) }
+  ) -> Bool {
+    let crear = crear ?? { [fuente = CGEventSource(stateID: .hidSystemState)] pulsacion in
+      guard let fuente else { return nil }
+      return AtajoSimulado.evento(pulsacion, fuente: fuente)
     }
-
-    keyDown.flags = .maskCommand
-    keyUp.flags = .maskCommand
-    keyDown.post(tap: .cghidEventTap)
-    keyUp.post(tap: .cghidEventTap)
-    return true
+    return AtajoSimulado.publicar(
+      AtajoSimulado.pulsaciones(de: virtualKey, con: apretadas),
+      crear: crear,
+      publicar: publicar
+    )
   }
 }
 

@@ -85,6 +85,13 @@ Distingue propuesta, implementación y deuda pendiente.
   nunca vacío. AppKit manda las teclas de función como caracteres del área de
   uso privado (`U+F700`–`U+F8FF`) que no dibujan nada: una fila de ajustes en
   blanco es lo que hace creer que el atajo no se guardó.
+- **Toda tecla que Dilo aprieta por la persona pasa por `AtajoSimulado`.**
+  ⌘ baja y sube como evento propio, con el bit de su lado, desde la fuente
+  del teclado físico, y el último evento deja exactamente los modificadores
+  que la persona sostiene. Mandar sólo la V con el flag de ⌘ dejaba ⌘
+  colgada y el siguiente espacio abría Spotlight; un ⌘ sin bit de lado se lee
+  como ⌘ derecha, el gatillo de fábrica de traducir. Los eventos llevan una
+  marca para que el tap de Dilo no los tome por un gatillo.
 - **Dos trozos de dictado se pegan en un solo lugar: `DiloText.Union`.**
   Ningún motor, ni el HUD, ni el controlador juntan texto con `+`. Cada trozo
   llega recortado y sin saber qué vino antes, así que el espacio lo pone quien
