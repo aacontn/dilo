@@ -1,4 +1,5 @@
 import DiloModes
+import DiloText
 import Foundation
 import os
 import Testing
@@ -92,6 +93,40 @@ struct TransformacionDeModoTests {
     }
     #expect(aviso.contains("Correo"))
     #expect(aviso.contains("OpenAI"))
+  }
+
+  /// Ninguna respuesta se pega sin pasar por el validador: si cambia un
+  /// número, no es una reescritura sino otra cosa, y vuelve la propuesta.
+  @Test func unaRespuestaQueCambiaUnNumeroSeRechaza() async {
+    let resultado = await servicio { _, _, _ in "Estimado Juan: le transfiero 50.000 pesos." }
+      .correr("transfiérele quince mil pesos a Juan", con: modo, deSesion: .corre(enElChip))
+    #expect(
+      resultado == .rechazado(
+        propuesta: "Estimado Juan: le transfiero 50.000 pesos.", motivo: .cambioUnNumero
+      )
+    )
+  }
+
+  /// Cada modo se juzga con su vara: lo que Correo puede hacer, Limpio no.
+  @Test func elCuidadoDelModoEsLaVara() {
+    let dictado = "dile a Martina que la reunión es el jueves a las 3"
+    let correo = "Hola, Martina: te confirmo que la reunión es el jueves a las 3. Saludos."
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(TransformacionDeModo.juzgar(correo, contra: dictado, modo: modo) == .transformado(correo))
+    #expect(
+      TransformacionDeModo.juzgar(correo, contra: dictado, modo: limpio)
+        == .rechazado(propuesta: correo, motivo: .palabrasNuevas)
+    )
+  }
+
+  /// Lo que se acepta se pega lavado: sin el sobre ni las comillas que el
+  /// modelo puso alrededor de todo.
+  @Test func loAceptadoSePegaLavado() {
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(
+      TransformacionDeModo.juzgar(#"{"texto": "Nos vemos el viernes."}"#, contra: "nos vemos el viernes", modo: limpio)
+        == .transformado("Nos vemos el viernes.")
+    )
   }
 
   @Test func unaRespuestaVaciaCuentaComoFalla() async {

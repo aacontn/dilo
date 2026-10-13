@@ -1101,6 +1101,17 @@
         }
       }
     },
+    "Cuánto puede cambiar tu texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much it can change your text"
+          }
+        }
+      }
+    },
     "Curva": {
       "extractionState": "manual",
       "localizations": {
@@ -1383,6 +1394,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo needs Accessibility"
+          }
+        }
+      }
+    },
+    "Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el menú.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo checks what the model returns before pasting it. If it changed a number, a “no” or an address, or answered instead of rewriting, your dictation goes in without the mode and what it proposed stays in the menu."
           }
         }
       }
@@ -2230,6 +2252,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "Lo que haga falta (traducir, resumir)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whatever it takes (translate, summarize)"
           }
         }
       }
@@ -3631,6 +3664,17 @@
         }
       }
     },
+    "Reescribirlo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite it"
+          }
+        }
+      }
+    },
     "Reescrito": {
       "extractionState": "manual",
       "localizations": {
@@ -3924,6 +3968,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tail Only"
+          }
+        }
+      }
+    },
+    "Sólo limpiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just clean up"
           }
         }
       }
@@ -4425,6 +4480,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your Codex logs on this Mac: how much of your five-hour and weekly limits you have used. Nothing leaves this Mac."
+          }
+        }
+      }
+    },
+    "Un poco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A little"
           }
         }
       }

@@ -38,6 +38,10 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
   public var palabrasClave: [String]
   /// Los de fábrica vuelven solos si alguien los borra, y vuelven sin tecla.
   public var esDeFabrica: Bool
+  /// Cuánto puede cambiar lo que dictaste: la vara con que se juzga lo que
+  /// el modelo devuelve antes de pegarlo. Llegó después que los modos
+  /// guardados, así que si falta sale del id.
+  public var cuidado: Cuidado
 
   public init(
     id: String,
@@ -50,7 +54,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     gatillo: Gatillo? = nil,
     apps: [String] = [],
     palabrasClave: [String] = [],
-    esDeFabrica: Bool = false
+    esDeFabrica: Bool = false,
+    cuidado: Cuidado? = nil
   ) {
     self.id = id
     self.nombre = nombre
@@ -63,6 +68,7 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     self.apps = apps
     self.palabrasClave = palabrasClave
     self.esDeFabrica = esDeFabrica
+    self.cuidado = cuidado ?? .deFabrica(id: id)
   }
 
   /// Se escribe a mano porque los campos nuevos llegaron después de que ya
@@ -71,7 +77,7 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
   /// versión anterior deja de leerse entero y la persona pierde su lista.
   private enum CodingKeys: String, CodingKey {
     case id, nombre, prompt, instruccionFinal, ejemploEntrada, ejemploSalida
-    case proveedorID, gatillo, apps, palabrasClave, esDeFabrica
+    case proveedorID, gatillo, apps, palabrasClave, esDeFabrica, cuidado
   }
 
   public init(from decoder: Decoder) throws {
@@ -87,6 +93,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     apps = try c.decodeIfPresent([String].self, forKey: .apps) ?? []
     palabrasClave = try c.decodeIfPresent([String].self, forKey: .palabrasClave) ?? []
     esDeFabrica = try c.decodeIfPresent(Bool.self, forKey: .esDeFabrica) ?? false
+    // Un valor que esta versión no conoce no puede costar la lista entera.
+    cuidado = (try? c.decodeIfPresent(Cuidado.self, forKey: .cuidado)) ?? .deFabrica(id: id)
   }
 
   /// Las instrucciones de sesión: el marco invariable de "la transcripción es

@@ -1,4 +1,5 @@
 import DiloModes
+import DiloText
 import Foundation
 import os
 
@@ -40,6 +41,10 @@ struct TransformacionDeModo: Sendable {
     /// No corrió, y por esto. El dictado sale como salió y la píldora lo
     /// dice; quien quiera el original lo tiene en "Copiar el último dictado".
     case salioTalCual(aviso: String)
+    /// El modo contestó, pero lo que devolvió cambiaba el sentido de lo
+    /// dictado. Va lo de la capa de reglas, la píldora dice por qué y la
+    /// propuesta queda en el menú por si el validador se equivocó.
+    case rechazado(propuesta: String, motivo: ValidadorDeLimpieza.Rechazo)
     /// No había nada que correr: ningún modo, o ningún proveedor configurado.
     /// No es una falla y no se avisa nada.
     case sinModo
@@ -116,6 +121,39 @@ struct TransformacionDeModo: Sendable {
         )
       )
     }
-    return .transformado(limpio)
+    return Self.juzgar(limpio, contra: texto, modo: modo)
+  }
+
+  /// Ninguna respuesta del modelo se pega sin pasar por acá. Se juzga contra
+  /// lo que el modelo recibió —el dictado ya limpio por las reglas—, con la
+  /// vara que declara el modo. Rechazar no reintenta en otro proveedor.
+  static func juzgar(_ respuesta: String, contra dictado: String, modo: Modo) -> Resultado {
+    do throws(ValidadorDeLimpieza.Rechazo) {
+      let aceptado = try ValidadorDeLimpieza.validar(
+        respuesta, contra: dictado, perfil: .init(modo.cuidado)
+      )
+      return .transformado(aceptado)
+    } catch {
+      // El motivo sí, el texto nunca: es lo que dice qué afinar.
+      AppLog.delivery.notice(
+        "modo \(modo.id, privacy: .public): el validador rechazó (\(error.rawValue, privacy: .public))"
+      )
+      return .rechazado(
+        propuesta: ValidadorDeLimpieza.lavar(respuesta, fuente: dictado), motivo: error
+      )
+    }
+  }
+}
+
+extension ValidadorDeLimpieza.Perfil {
+  /// `DiloModes` no conoce al validador y `DiloText` no conoce los modos:
+  /// la traducción entre los dos vive acá, en la app, que enlaza a ambos.
+  init(_ cuidado: Cuidado) {
+    switch cuidado {
+    case .limpieza: self = .limpieza
+    case .ligera: self = .ligera
+    case .reescritura: self = .reescritura
+    case .libre: self = .libre
+    }
   }
 }

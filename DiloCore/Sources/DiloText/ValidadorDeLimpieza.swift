@@ -123,7 +123,7 @@ public enum ValidadorDeLimpieza {
 
   /// Quita lo que el modelo agrega alrededor sin que sea texto: razonamiento,
   /// marcas, rótulos, comillas que envuelven todo, el sobre JSON.
-  static func lavar(_ texto: String, fuente: String) -> String {
+  public static func lavar(_ texto: String, fuente: String) -> String {
     var t = texto
     if let datos = t.data(using: .utf8),
       let obj = try? JSONSerialization.jsonObject(with: datos) as? [String: Any],

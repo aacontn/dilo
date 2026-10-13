@@ -17,6 +17,9 @@ final class StatusItemController: NSObject {
   /// "Copiar el último dictado". Escondido mientras no hay nada que copiar:
   /// un ítem apagado que nunca se prendió no explica nada.
   private let copiarItem: NSMenuItem
+  /// Lo que el modo propuso y el validador no dejó pegar. Es la salida de
+  /// emergencia de un falso rechazo; sin rechazo no aparece.
+  private let copiarPropuestaItem: NSMenuItem
   private let copiarOriginalItem: NSMenuItem
   private var ultimoDictado: UltimoDictado?
   /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
@@ -65,6 +68,9 @@ final class StatusItemController: NSObject {
     copiarOriginalItem = NSMenuItem(
       title: "Copiar lo que dijiste, sin el modo", action: nil, keyEquivalent: ""
     )
+    copiarPropuestaItem = NSMenuItem(
+      title: "Copiar lo que propuso el modo", action: nil, keyEquivalent: ""
+    )
     super.init()
 
     statusItem.button?.image = templateIcon
@@ -111,6 +117,11 @@ final class StatusItemController: NSObject {
     copiarItem.target = self
     copiarItem.isHidden = true
     menu.addItem(copiarItem)
+
+    copiarPropuestaItem.action = #selector(copiarPropuestaDelUltimoDictado)
+    copiarPropuestaItem.target = self
+    copiarPropuestaItem.isHidden = true
+    menu.addItem(copiarPropuestaItem)
 
     copiarOriginalItem.action = #selector(copiarOriginalDelUltimoDictado)
     copiarOriginalItem.target = self
@@ -341,6 +352,11 @@ final class StatusItemController: NSObject {
   /// entradas que copian el mismo texto es ruido en un menú de ocho líneas.
   func setUltimoDictado(_ dictado: UltimoDictado?) {
     ultimoDictado = dictado
+    let conPropuesta = dictado?.tienePropuesta == true ? dictado : nil
+    copiarPropuestaItem.isHidden = conPropuesta == nil
+    copiarPropuestaItem.badge = conPropuesta.map {
+      NSMenuItemBadge(string: $0.vistazo(.propuesta))
+    }
     guard let dictado, !dictado.texto(.entregado).isEmpty else {
       copiarItem.isHidden = true
       copiarOriginalItem.isHidden = true
@@ -363,6 +379,11 @@ final class StatusItemController: NSObject {
   @objc private func copiarOriginalDelUltimoDictado() {
     guard let ultimoDictado else { return }
     copiarAlPortapapeles(ultimoDictado.texto(.original))
+  }
+
+  @objc private func copiarPropuestaDelUltimoDictado() {
+    guard let ultimoDictado, ultimoDictado.tienePropuesta else { return }
+    copiarAlPortapapeles(ultimoDictado.texto(.propuesta))
   }
 
   @objc private func toggleDictationItem() {
