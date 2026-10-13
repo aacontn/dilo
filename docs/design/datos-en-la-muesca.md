@@ -238,3 +238,17 @@ Notas —carpeta «Dilo», que llega al iPhone por iCloud—.
   revisa a mano, así que ahí la nota rápida se esconde
   (`Capacidad.notasDeApple`).
 
+## Traducir desde la muesca, y terminar lo trabado con un clic (2026-09-24)
+
+- **«Traducir» en la barra de acciones** del panel (`→ EN`): abre la misma
+  sesión que la tecla de traducir, trabada, porque la abre un clic
+  (`DirectDictationController.dictarTraduciendo`). Sin idioma de destino el
+  botón va apagado y lleva a Ajustes → Dictado, donde se elige.
+- **Mientras se dicta traduciendo** la línea de la muesca dice el par
+  («ES → EN»), y en el segundo idioma, el idioma: es lo único que no se puede
+  revisar en otra parte antes de hablar.
+- **Todo dictado trabado lleva un ✓ y se termina con un clic en la muesca**,
+  no sólo la nota: traducir, el menú y el doble toque también. Un monitor
+  global mira el clic (`HUDStage.vigilarElClicDeLaSesionTrabada`); la ventana
+  sigue dejando pasar el mouse mientras se dicta.
+

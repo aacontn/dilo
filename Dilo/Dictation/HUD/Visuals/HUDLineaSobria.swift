@@ -59,14 +59,12 @@ struct HUDLineaSobria: View {
           // Una nota lo dice antes que nada, con palabra y no sólo con ícono:
           // estas palabras van a Notas, no a donde está el cursor.
           if esNota {
-            HStack(spacing: 3) {
-              Image(systemName: "note.text")
-                .font(.system(size: 9.5, weight: .semibold))
-              Text("Nota")
-                .font(.system(size: 9.5, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(DiloBrand.mango)
-            .fixedSize()
+            etiqueta(icono: "note.text", texto: String(localized: "Nota"))
+          } else if let idiomas = idiomasVisibles {
+            // Traduciendo o en el segundo idioma, el par se dice: es lo único
+            // que no se puede revisar en otra parte antes de hablar, y un
+            // destino equivocado recién se nota cuando el texto ya aterrizó.
+            etiqueta(icono: "globe", texto: idiomas)
           }
           if muestraOnda {
             HUDOndaDeBrasas(content: content, reduceMotion: reduceMotion, compacta: true)
@@ -74,7 +72,7 @@ struct HUDLineaSobria: View {
           }
           texto
             .frame(maxWidth: .infinity, alignment: .leading)
-          if esNota {
+          if content.sesionTrabadaEnCurso {
             botonDeGuardar
           } else if muestraOnda {
             // El cursor mango dice lo que ninguna onda dice: que lo escrito
@@ -91,13 +89,34 @@ struct HUDLineaSobria: View {
     .accessibilityValue(Text(paraVoiceOver))
   }
 
-  /// Si se está dictando una nota: lleva su etiqueta y el botón de guardar.
+  /// Si se está dictando una nota: lleva su etiqueta.
   private var esNota: Bool { content.notaEnCurso }
 
-  /// Cómo se termina una nota, a la vista: un ✓ en mango al final de la
-  /// línea. Antes no había nada que dijera cómo pararla —se abría con un clic
-  /// y quedaba escuchando sin salida visible (reporte del 2026-09-24)—. El
-  /// clic lo recibe la muesca entera (`HUDStage.clicDuranteLaNota`); el botón
+  /// El par de idiomas mientras se dicta, si la sesión tiene uno que decir
+  /// («ES → EN» traduciendo, «EN» en el segundo idioma).
+  private var idiomasVisibles: String? {
+    guard content.estado == .dictando, let tag = content.languageTag, !tag.isEmpty else { return nil }
+    return tag
+  }
+
+  /// Una etiqueta chica en mango al principio de la línea: qué clase de
+  /// dictado es este.
+  private func etiqueta(icono: String, texto: String) -> some View {
+    HStack(spacing: 3) {
+      Image(systemName: icono)
+        .font(.system(size: 9.5, weight: .semibold))
+      Text(verbatim: texto)
+        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+    }
+    .foregroundStyle(DiloBrand.mango)
+    .fixedSize()
+  }
+
+  /// Cómo se termina un dictado trabado, a la vista: un ✓ en mango al final
+  /// de la línea. La nota no tenía nada que dijera cómo pararla —se abría con
+  /// un clic y quedaba escuchando sin salida visible (reporte del
+  /// 2026-09-24)—. El clic lo recibe la muesca entera
+  /// (`HUDStage.clicDuranteLaSesionTrabada`); el botón
   /// es lo que dice dónde tocar.
   private var botonDeGuardar: some View {
     Image(systemName: "checkmark")
@@ -105,7 +124,7 @@ struct HUDLineaSobria: View {
       .foregroundStyle(.black)
       .frame(width: 15, height: 15)
       .background(Circle().fill(DiloBrand.mango))
-      .accessibilityLabel(Text("Guardar la nota"))
+      .accessibilityLabel(Text(esNota ? "Guardar la nota" : "Terminar"))
   }
 
   /// Dictando, el parcial en cursiva; en los demás estados, lo que el estado
