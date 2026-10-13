@@ -35,6 +35,13 @@ public enum ValidadorDeLimpieza {
     case vacia, basura, respondio, cambioUnLiteral, cambioUnNumero
     case cambioUnaNegacion, perdioLaPregunta, largoFueraDeRango
     case palabrasNuevas, desordeno, perdioUnNombre
+    /// Sacó la marca de una autocorrección («perdón», «digo») y dejó lo
+    /// corregido y lo que lo reemplaza: «a Josefa, a Martina» ya no dice
+    /// que era una sola persona.
+    case corrigioAMedias
+    /// Una palabra con contenido desapareció sin que nadie se corrigiera:
+    /// «no subas el build todavía» no es «no subas el build».
+    case perdioUnaPalabra
 
     /// Lo que dice la muesca. Corto, porque la persona está mirando su texto,
     /// y con dónde quedó lo que el modo propuso: el validador también se
@@ -46,6 +53,8 @@ public enum ValidadorDeLimpieza {
       case .cambioUnLiteral: "tocó una dirección o un código"
       case .respondio, .perdioLaPregunta: "contestó en vez de reescribir"
       case .vacia, .basura: "devolvió algo que no era texto"
+      case .corrigioAMedias: "dejó a medias una corrección"
+      case .perdioUnaPalabra: "sacó una palabra que dijiste"
       default: "cambió demasiado tu texto"
       }
       return "\(modo) \(que): va tu dictado sin el modo, y lo que propuso "
@@ -62,6 +71,7 @@ public enum ValidadorDeLimpieza {
       CharacterSet.controlCharacters.contains($0) && $0 != "\n" && $0 != "\t"
     }), !salida.contains("<think") else { throw .basura }
     if pareceAsistente(salida, fuente: fuente, perfil: perfil) { throw .respondio }
+    if gritaMasQue(fuente, salida) { throw .basura }
     if perfil == .libre { return salida }
 
     let literalesF = literales(fuente), literalesS = literales(salida)
@@ -79,6 +89,7 @@ public enum ValidadorDeLimpieza {
 
     // Las viñetas de una lista («1.», «-») no son palabras ni números dichos.
     let sinVinetas = salida.replacing(/(?m)^[ \t]*(?:\d+[.)]|[-*•])[ \t]+/, with: "")
+    let conLista = sinVinetas != salida
     let f = fichas(fuenteRecortada), s = fichas(sinVinetas)
     let corrigio = huboAutocorreccion(f)
 
@@ -113,7 +124,7 @@ public enum ValidadorDeLimpieza {
       for desdeLaDerecha in [false, true] {
         guard let mapa = alinear(f, s, desdeLaDerecha: desdeLaDerecha) else { continue }
         do throws(Rechazo) {
-          try revisarAlineado(f, s, mapa: mapa, corrigio: corrigio)
+          try revisarAlineado(f, s, mapa: mapa, corrigio: corrigio, conLista: conLista)
           return salida
         } catch { ultimo = error }
       }
@@ -363,20 +374,38 @@ public enum ValidadorDeLimpieza {
 
   /// Una reparación ortográfica chica: un cambio, una letra de más o de
   /// menos, o dos letras vecinas cambiadas de lugar.
+  ///
+  /// Nunca en las dos últimas letras: en español ahí va la conjugación y el
+  /// número, y «abre» → «abro», «revisa» → «reviso» o «caja» → «cajas»
+  /// cambian quién hace qué, no la ortografía. El chip lo hizo en la prueba
+  /// en vivo y el validador lo dejaba pasar.
   static func reparacionChica(_ a: String, _ b: String) -> Bool {
     let x = Array(a), y = Array(b)
     guard x.count >= 4, y.count >= 4, abs(x.count - y.count) <= 1 else { return false }
     if x.count == y.count {
       let difs = x.indices.filter { x[$0] != y[$0] }
-      return difs.count <= 1
+      guard let ultima = difs.last else { return true }
+      guard ultima < x.count - 2 else { return false }
+      return difs.count == 1
         || (difs.count == 2 && difs[1] == difs[0] + 1 && x[difs[0]] == y[difs[1]] && x[difs[1]] == y[difs[0]])
     }
     let (corta, larga) = x.count < y.count ? (x, y) : (y, x)
-    var i = 0, j = 0, salto = false
+    var i = 0, j = 0
+    var salto: Int?
     while i < corta.count, j < larga.count {
-      if corta[i] == larga[j] { i += 1; j += 1 } else if salto { return false } else { salto = true; j += 1 }
+      if corta[i] == larga[j] {
+        i += 1
+        j += 1
+      } else if salto != nil {
+        return false
+      } else {
+        salto = j
+        j += 1
+      }
     }
-    return true
+    // La letra de más es la del final si nunca se saltó ninguna.
+    let donde = salto ?? larga.count - 1
+    return donde < larga.count - 2
   }
 
   static func calza(_ fuente: Ficha, _ salida: Ficha) -> Bool {
@@ -424,9 +453,10 @@ public enum ValidadorDeLimpieza {
   }
 
   static func revisarAlineado(
-    _ f: [Ficha], _ s: [Ficha], mapa: [Int: Int], corrigio: Bool
+    _ f: [Ficha], _ s: [Ficha], mapa: [Int: Int], corrigio: Bool, conLista: Bool = false
   ) throws(Rechazo) {
     let retenidas = Set(mapa.values)
+    try revisarMarcas(f, retenidas: retenidas)
     for i in f.indices where (f[i].esNumero || f[i].protegida) && !retenidas.contains(i) {
       // Tartamudeo: «2 2 cajas» → «2 cajas».
       if i > 0, f[i - 1].clave == f[i].clave, retenidas.contains(i - 1) { continue }
@@ -453,9 +483,58 @@ public enum ValidadorDeLimpieza {
     guard firma(anclasF) == firma(anclas(s) { mapa[$0] }) else { throw .cambioUnaNegacion }
 
     let contenidoF = f.indices.filter { esContenido(f[$0]) }
-    if contenidoF.count >= 3 {
-      let retencion = Double(retenidas.count) / Double(contenidoF.count)
-      guard retencion >= (corrigio ? 0.25 : 0.55) else { throw .largoFueraDeRango }
+    if corrigio {
+      // Lo corregido se va, y no hay cómo saber palabra por palabra qué
+      // era: basta con que quede una parte razonable.
+      if contenidoF.count >= 3 {
+        let retencion = Double(retenidas.count) / Double(contenidoF.count)
+        guard retencion >= 0.25 else { throw .largoFueraDeRango }
+      }
+      return
     }
+    // Sin autocorrección, Limpio no saca palabras con contenido: arregla.
+    // Lo que el chip devolvió en la prueba en vivo —«todavía» que se cae,
+    // «primero, segundo» que se pierden sin lista— cambia lo que se dijo.
+    for i in contenidoF where !retenidas.contains(i) {
+      if i > 0, f[i - 1].clave == f[i].clave { continue }
+      if i + 1 < f.count, f[i + 1].clave == f[i].clave { continue }
+      if conLista, ordinalesDeLista.contains(f[i].clave) { continue }
+      throw .perdioUnaPalabra
+    }
+  }
+
+  /// «primero, segundo, tercero» dichos para enumerar: si la salida armó la
+  /// lista, las viñetas los reemplazan.
+  static let ordinalesDeLista: Set<String> = [
+    "primero", "primera", "segundo", "segunda", "tercero", "tercera", "cuarto", "cuarta",
+    "quinto", "quinta", "luego", "despues", "finalmente", "ultimo", "ultima",
+  ]
+
+  /// Una autocorrección se aplica entera o no se aplica: si la marca
+  /// («perdón», «digo», «mejor dicho») desapareció, lo corregido tiene que
+  /// haberse ido con ella. El «no» que corrige no se mira acá: no es una
+  /// palabra con contenido y su regla está en las negaciones.
+  static func revisarMarcas(_ f: [Ficha], retenidas: Set<Int>) throws(Rechazo) {
+    for j in f.indices where esMarcador(f, j) && f[j].clave != "no" && esContenido(f[j]) {
+      guard !retenidas.contains(j) else { continue }
+      let antes = (0 ..< j).reversed().first {
+        esContenido(f[$0]) && !esMarcador(f, $0) && f[$0].clave != "mejor"
+      }
+      let despues = (j + 1 ..< f.count).first { esContenido(f[$0]) && f[$0].clave != "dicho" && f[$0].clave != "decir" }
+      if let antes, let despues, retenidas.contains(antes), retenidas.contains(despues) {
+        throw .corrigioAMedias
+      }
+    }
+  }
+
+  /// Más palabras enteras en mayúsculas que las que se dictaron: «ESTÁ LISTO
+  /// EL INFORME». Las siglas sueltas (PR, API) no cuentan; tres o más sí.
+  static func gritaMasQue(_ fuente: String, _ salida: String) -> Bool {
+    func gritadas(_ t: String) -> Int {
+      t.split(whereSeparator: { !$0.isLetter }).filter { p in
+        p.count >= 2 && p.allSatisfy(\.isUppercase)
+      }.count
+    }
+    return gritadas(salida) >= 3 && gritadas(salida) > gritadas(fuente) + 1
   }
 }
