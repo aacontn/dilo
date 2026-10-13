@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import DiloModes
 import DiloText
 import os
@@ -1014,7 +1015,7 @@ final class DirectDictationController {
             // lease. Reporting only the translation would promise words that
             // are not anywhere the user can reach (CONTEXT.md).
             dependencies.showMessage(
-              rescue == .unavailable ? "No se pudo traducir ni copiar" : "No se pudo traducir",
+              rescue != .copiado ? "No se pudo traducir ni copiar" : "No se pudo traducir",
               nil
             )
             return
@@ -1035,39 +1036,28 @@ final class DirectDictationController {
           return
         }
 
-        let outcome = await dependencies.insertText(
+        let entrega = await dependencies.insertText(
           text, focusedTarget, session.insertionDestination
         )
         AppLog.delivery.info(
-          "session ended: \(String(describing: outcome), privacy: .public), \(UsageMetrics.wordCount(in: spoken), privacy: .public) words in \(speakingDuration, format: .fixed(precision: 1), privacy: .public)s"
+          "session ended: \(entrega.nombreEnElLog, privacy: .public), \(UsageMetrics.wordCount(in: spoken), privacy: .public) words in \(speakingDuration, format: .fixed(precision: 1), privacy: .public)s"
         )
-        switch outcome {
-        case .inserted, .copiedToClipboard:
-          dependencies.playPasteSound()
-          send(.sessionEnded)
-          dependencies.showResultado(outcome == .inserted ? .listo : .copiado)
-          // Lo que la píldora todavía tiene que decir. El pegado que se cayó
-          // al portapapeles ya lo hacía el camino heredado, pero callado:
-          // las palabras estaban en otra parte y nadie lo decía. El modo que
-          // no corrió es la otra mitad de lo mismo.
-          let avisos = [
-            outcome == .copiedToClipboard
-              ? String(localized: "No pude pegarlo ahí, así que te lo copié. Pégalo con ⌘V.")
-              : nil,
-            avisoDelModo,
-          ].compactMap(\.self)
-          if !avisos.isEmpty {
-            dependencies.showMessage("\(avisos.joined(separator: " "))", nil)
-          }
+        if entrega.llego { dependencies.playPasteSound() }
+        send(.sessionEnded)
+        // Qué se acusa y qué se dice lo decide `ResultadoDelNotch.tras`. Lo
+        // que no se pegó manda sobre el aviso del modo: las palabras sin
+        // destino son lo que no se puede perder en silencio.
+        let resultado = ResultadoDelNotch.tras(entrega, texto: text)
+        dependencies.showResultado(resultado)
+        if resultado.esAcuse || resultado == .copiado, let avisoDelModo {
+          dependencies.showMessage("\(avisoDelModo)", nil)
+        }
+        if entrega.llego {
           // The words that were spoken, not the words inserted. Speaking
           // duration is measured on the source side, so counting a
           // translation's words against it would divide one language's count
           // by another's minutes.
-          let wordCount = UsageMetrics.wordCount(in: spoken)
-          await dependencies.recordSession(wordCount, speakingDuration)
-        case .unavailable:
-          send(.sessionEnded)
-          dependencies.showMessage("No se pudo pegar el texto", nil)
+          await dependencies.recordSession(UsageMetrics.wordCount(in: spoken), speakingDuration)
         }
       } catch {
         AppLog.delivery.error(
@@ -1095,7 +1085,7 @@ final class DirectDictationController {
     send(.sessionEnded)
     let mensaje: String
     switch (resultado, rescate) {
-    case (_, .unavailable):
+    case (_, .retenido):
       mensaje = String(localized: "No pude guardar la nota en Notas ni copiarla.")
     case (.sinPermiso, _):
       mensaje = String(localized: "Dilo no tiene permiso para usar Notas. Te copié la nota: pégala con ⌘V.")

@@ -5,16 +5,6 @@ import os
 
 @MainActor
 final class TextInsertionService {
-  /// The terminal delivery state of one finalized Direct Dictation result.
-  enum InsertionOutcome: Equatable, Sendable {
-    /// The text was staged and pasted, or empty input completed as a no-op.
-    case inserted
-    /// Target delivery was unavailable, so the text was left for manual paste.
-    case copiedToClipboard
-    /// Neither target insertion nor a safe clipboard fallback was possible.
-    case unavailable
-  }
-
   /// Runs the sole leased pasteboard read away from the main actor.
   ///
   /// Apple documents no thread-safety contract for `NSPasteboard`. Background
@@ -81,7 +71,6 @@ final class TextInsertionService {
     var teclado: LecturasDelTeclado = .delSistema
     /// Aprieta ⌘V por el canal que dice la política del destino.
     let postPasteShortcut: @MainActor (CanalDelAtajo) -> Bool
-    let waitForPasteRead: @MainActor () async -> Void
     /// Presses Copy in the focused application, for reading a selection
     /// Accessibility will not answer for.
     ///
@@ -119,7 +108,7 @@ final class TextInsertionService {
       return Self(
         pasteboard: pasteboard,
         readClipboardItems: {
-          TextInsertionService.snapshot(of: backgroundPasteboard)
+          TextInsertionService.foto(de: backgroundPasteboard).items
         },
         snapshotTimeout: .milliseconds(600),
         focusedElement: TextInsertionService.focusedElement,
@@ -135,9 +124,6 @@ final class TextInsertionService {
         isTargetFocused: TextInsertionService.isStillFocused,
         teclado: .delSistema,
         postPasteShortcut: TextInsertionService.postPasteShortcut,
-        waitForPasteRead: {
-          try? await Task.sleep(for: .milliseconds(500))
-        },
         postCopyShortcut: TextInsertionService.postCopyShortcut,
         copyTimeout: .milliseconds(400),
         clock: .continuous
@@ -146,6 +132,12 @@ final class TextInsertionService {
   }
 
   let dependencies: Dependencies
+  /// El dictado que está en el portapapeles esperando volver. Uno a la vez:
+  /// el siguiente lo hereda.
+  var pegadoPendiente: PegadoPendiente?
+  /// La devolución del portapapeles, que sigue corriendo después de que
+  /// `entregar` ya contestó.
+  var tareaDeDevolucion: Task<Void, Never>?
 
   init(dependencies: Dependencies = .live) {
     self.dependencies = dependencies
@@ -177,47 +169,6 @@ final class TextInsertionService {
       applicationName: application.localizedName,
       bundleID: application.bundleIdentifier
     )
-  }
-
-  /// Delivers finalized text to its captured target, the clipboard, or both.
-  ///
-  /// - Parameters:
-  ///   - text: The finalized text to deliver.
-  ///   - target: The focus boundary captured when Direct Dictation began.
-  ///   - destination: Where the session's settings say the text goes.
-  /// - Returns: The terminal delivery outcome used by the session controller.
-  func insert(
-    _ text: String,
-    into target: Target?,
-    destination: InsertionDestination = .insert
-  ) async -> InsertionOutcome {
-    guard !text.isEmpty else { return .inserted }
-    guard destination != .clipboardOnly else {
-      return copyToClipboard(text)
-    }
-    guard let target else {
-      return copyToClipboard(text)
-    }
-
-    guard dependencies.isProcessRunning(target.processIdentifier) else {
-      return copyToClipboard(text)
-    }
-
-    guard dependencies.isTargetFocused(target) else {
-      return copyToClipboard(text)
-    }
-    // Antes de tocar el portapapeles: si no se va a pegar, no hay nada que
-    // fotografiar ni que devolver.
-    guard await dependencies.teclado.esperarTecladoLibre(
-      ahora: dependencies.clock.now,
-      dormir: dependencies.clock.sleep
-    ) == nil else {
-      return copyToClipboard(text)
-    }
-    if destination == .both {
-      return await pasteLeavingClipboard(text, into: target)
-    }
-    return await pasteAndRestoreClipboard(text, into: target)
   }
 
   /// Un atributo de Accesibilidad leído como elemento. Lo contesta el
@@ -275,48 +226,6 @@ final class TextInsertionService {
     )
   }
 
-  /// Stages, pastes, and conditionally restores one finalized result.
-  ///
-  /// - Parameters:
-  ///   - text: The finalized text to insert.
-  ///   - target: The validated focus boundary that should receive the paste.
-  /// - Returns: The terminal delivery outcome after all safe fallbacks.
-  private func pasteAndRestoreClipboard(
-    _ text: String,
-    into target: Target
-  ) async -> InsertionOutcome {
-    let acquisition = await snapshotClipboardItems()
-    let savedItems: [ClipboardItemSnapshot]
-    let acceptedChangeCount: Int
-
-    switch acquisition {
-    case let .accepted(items, changeCount):
-      savedItems = items
-      acceptedChangeCount = changeCount
-    case .failed:
-      return copyToClipboard(text)
-    case .timedOut, .unstable, .busy:
-      return .unavailable
-    }
-
-    guard dependencies.isTargetFocused(target) else {
-      return copyToClipboard(text)
-    }
-    guard let insertedChangeCount = stageClipboardText(
-      text,
-      ifUnchangedSince: acceptedChangeCount,
-      isTransient: true
-    ) else { return .unavailable }
-
-    guard dependencies.postPasteShortcut(canal(para: target)) else {
-      restoreClipboard(savedItems, ifUnchangedSince: insertedChangeCount)
-      return .unavailable
-    }
-    await dependencies.waitForPasteRead()
-    restoreClipboard(savedItems, ifUnchangedSince: insertedChangeCount)
-    return .inserted
-  }
-
   /// Copies the focused application's selection and hands it back, leaving
   /// the clipboard as it was.
   ///
@@ -329,6 +238,9 @@ final class TextInsertionService {
   ///   is known rather than guessed: a copy that found nothing leaves the
   ///   pasteboard's change count where it was.
   func copySelection() async -> String? {
+    // Un dictado todavía prometido no se fotografía: leerlo dispararía la
+    // promesa, y guardarlo lo haría pasar por lo de la persona.
+    devolverElPendienteAhora()
     // The snapshot comes first because it is the permission to proceed: a
     // clipboard that cannot be captured cannot be put back, and taking
     // someone's clipboard to read a tweet is not a trade to make.

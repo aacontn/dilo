@@ -55,15 +55,14 @@ struct CompuertasDelPegadoEnElServicioTests {
     var dependencias = TextInsertionService.Dependencies(
       pasteboard: pasteboard,
       readClipboardItems: { TextInsertionService.snapshot(of: deFondo) },
-      snapshotTimeout: .milliseconds(100),
+      snapshotTimeout: RelojQueAvanzaAlDormir.plazoQueNoVence,
       focusedElement: { nil },
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
       teclado: teclado,
       postPasteShortcut: canales,
-      waitForPasteRead: {},
-      clock: DrivenClock().deadlineClock
+      clock: RelojQueAvanzaAlDormir().deadlineClock
     )
     if let politica { dependencias.politica = politica }
     return TextInsertionService(dependencies: dependencias)
@@ -83,7 +82,7 @@ struct CompuertasDelPegadoEnElServicioTests {
   @Test func elAtajoVaAlProcesoDelDestino() async {
     var canales: [CanalDelAtajo] = []
     let servicio = servicio(portapapeles(), teclado: .libre, canales: { canales.append($0); return true })
-    _ = await servicio.insert("hola", into: destino())
+    _ = await servicio.entregar("hola", a: destino())
     #expect(canales == [.alProceso(42)])
   }
 
@@ -94,7 +93,7 @@ struct CompuertasDelPegadoEnElServicioTests {
       canales: { canales.append($0); return true },
       politica: { _ in .para(.escritorioRemoto) }
     )
-    _ = await servicio.insert("hola", into: destino())
+    _ = await servicio.entregar("hola", a: destino())
     #expect(canales == [.alSistema])
   }
 
@@ -104,8 +103,8 @@ struct CompuertasDelPegadoEnElServicioTests {
     var pegados = 0
     let segura = LecturasDelTeclado(entradaSegura: { true }, modificadores: { [] })
     let servicio = servicio(portapapeles(), teclado: segura, canales: { _ in pegados += 1; return true })
-    let resultado = await servicio.insert("hola", into: destino())
+    let resultado = await servicio.entregar("hola", a: destino())
     #expect(pegados == 0)
-    #expect(resultado != .inserted)
+    #expect(resultado == .retenido(.entradaSegura))
   }
 }

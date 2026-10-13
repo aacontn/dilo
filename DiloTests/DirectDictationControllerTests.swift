@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloModes
 import Foundation
 import os
@@ -91,7 +92,7 @@ struct DirectDictationControllerTests {
     transformar: @escaping @Sendable (
       String, Modo, ResolucionDeProveedor.DeSesion
     ) async -> TransformacionDeModo.Resultado = { texto, _, _ in .transformado(texto) },
-    insertOutcome: TextInsertionService.InsertionOutcome = .inserted,
+    insertOutcome: ResultadoDeEntrega = .pegado(.lectura),
     notas: OSAllocatedUnfairLock<[String]> = .init(initialState: []),
     resultadoDeLaNota: ResultadoDeLaNota = .guardada
   ) -> DirectDictationController.Dependencies {
@@ -397,7 +398,7 @@ struct DirectDictationControllerTests {
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "hello world" },
-        insertOutcome: .copiedToClipboard
+        insertOutcome: .copiado
       )
     )
     await prepare(controller, prewarmed: prewarmed)
@@ -424,7 +425,7 @@ struct DirectDictationControllerTests {
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "hello world" },
-        insertOutcome: .unavailable
+        insertOutcome: .retenido(.sinRespaldo)
       )
     )
     await prepare(controller, prewarmed: prewarmed)
@@ -434,8 +435,8 @@ struct DirectDictationControllerTests {
     }
 
     controller.toggleFromMenu()
-    await waitUntil("Insertion failure message never shown") {
-      recorder.messages.contains("No se pudo pegar el texto")
+    await waitUntil("Insertion failure never shown") {
+      recorder.resultados.contains { !$0.esAcuse && $0 != .copiado }
     }
 
     #expect(controller.sessionStateForTesting == .idle)
@@ -678,7 +679,7 @@ struct DirectDictationControllerTests {
         prewarmed: prewarmed,
         finishRecognition: { "spoken words" },
         historyEntries: historyEntries,
-        insertOutcome: .unavailable
+        insertOutcome: .retenido(.sinRespaldo)
       )
     )
     await prepare(controller, prewarmed: prewarmed)
@@ -995,7 +996,7 @@ struct DirectDictationControllerTests {
         prewarmed: prewarmed,
         finishRecognition: { "spoken words" },
         translateBody: { _ in throw TranslationFailure.timedOut },
-        insertOutcome: .unavailable
+        insertOutcome: .retenido(.sinRespaldo)
       )
     )
     await prepareWithTranslation(controller, prewarmed: prewarmed)
@@ -1332,7 +1333,7 @@ struct DirectDictationControllerTests {
         captureFocusedTarget: { Self.makeTarget(applicationName: "Ghostty") },
         finishRecognition: { "spoken words" },
         historyEntries: historyEntries,
-        insertOutcome: .copiedToClipboard
+        insertOutcome: .copiado
       )
     )
     await prepare(controller, prewarmed: prewarmed)
@@ -1622,9 +1623,10 @@ struct DirectDictationControllerTests {
     controller.stop()
   }
 
-  /// El pegado que se cae al portapapeles ya lo hacía el camino heredado,
-  /// pero callado: las palabras quedaban en otra parte y nadie lo decía.
-  @Test func unPegadoQueSeCaeAlPortapapelesLoDiceEnLaPildora() async {
+  /// Un pegado que no entró se dice en la muesca: las palabras no pueden
+  /// quedar en otra parte sin que nadie lo diga. Y no suena ni cuenta como
+  /// un dictado entregado.
+  @Test func unPegadoQueNoEntroLoDiceEnLaMuesca() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)
     let controller = makeController(
@@ -1632,7 +1634,7 @@ struct DirectDictationControllerTests {
         recorder: recorder,
         prewarmed: prewarmed,
         finishRecognition: { "raw words" },
-        insertOutcome: .copiedToClipboard
+        insertOutcome: .retenido(.focoCambio)
       )
     )
     await prepare(controller, prewarmed: prewarmed)
@@ -1642,9 +1644,11 @@ struct DirectDictationControllerTests {
       controller.sessionStateForTesting == .recording(.latched)
     }
     controller.toggleFromMenu()
-    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+    await waitUntil("El final nunca entregó") { !recorder.resultados.isEmpty }
 
-    #expect(recorder.messages.last?.contains("te lo copié") == true)
+    #expect(recorder.resultados.last.map { !$0.esAcuse && $0 != .copiado } == true)
+    #expect(recorder.count(of: "playPasteSound") == 0)
+    #expect(recorder.recordedSessions.isEmpty)
     controller.stop()
   }
 

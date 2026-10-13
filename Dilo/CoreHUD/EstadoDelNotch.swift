@@ -1,3 +1,4 @@
+import DiloCapabilities
 import Foundation
 
 /// Los cinco estados del contrato del notch
@@ -163,6 +164,22 @@ enum ResultadoDelNotch: Equatable, Sendable {
   /// alcanzar a leerlo.
   var duracion: Duration {
     esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
+  }
+}
+
+extension ResultadoDelNotch {
+  /// Lo que la muesca dice de una entrega. Vive acá y no en el controlador
+  /// de dictado para que el contrato de qué se acusa y qué se dice esté en un
+  /// solo lugar, y se pruebe sin una sesión.
+  static func tras(_ entrega: ResultadoDeEntrega, texto: String) -> ResultadoDelNotch {
+    switch entrega {
+    case .pegado, .pegadoSinConfirmar, .nadaQueEntregar: .listo
+    case .copiado: .copiado
+    case .retenido(.sinRespaldo), .retenido(.portapapelesAjeno):
+      .aviso(String(localized: "No pude pegarlo. Cópialo desde el menú de Dilo."))
+    case .retenido:
+      .aviso(String(localized: "No pude pegarlo ahí. Pulsa ⌘V donde lo quieras."))
+    }
   }
 }
 
