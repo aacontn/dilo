@@ -56,6 +56,14 @@ extension TextInsertionService {
     let reloj = dependencies.clock
     let politica = dependencies.politica(destino)
     let tiempos = politica.tiempos
+    // El cursor y el campo sólo se miran donde sirven: en una terminal el
+    // cursor se mueve con cada línea que imprime y el valor es el historial.
+    let ancla = politica.verificarElCampo ? destino.ancla : nil
+    // Cómo estaba el campo, leído fuera del actor principal mientras se
+    // fotografía el portapapeles: así no suma a lo que tarda el pegado.
+    let fotoDeAntes = ancla.map { ancla in
+      Task { [fotoDelCampo = dependencies.fotoDelCampo] in await fotoDelCampo(ancla) }
+    }
 
     // 1. La foto: heredada si el dictado anterior sigue esperando volver.
     //    En «Pegar y copiar» lo heredado se suelta igual: lo que la persona
@@ -81,16 +89,19 @@ extension TextInsertionService {
       conteoAceptado = pasteboard.changeCount
     }
 
-    // 2. El teclado libre y el foco donde estaba.
+    // 2. El teclado libre, y el foco y el cursor donde estaban.
     if let motivo = await dependencies.teclado.esperarTecladoLibre(
       ahora: reloj.now,
       dormir: reloj.sleep
     ) {
       return dejar(texto, foto: foto, conteo: conteoAceptado, porque: motivo, tiempos: tiempos)
     }
-    guard dependencies.isTargetFocused(destino) else {
+    guard sigueAhi(destino, ancla: ancla) else {
       return dejar(texto, foto: foto, conteo: conteoAceptado, porque: .focoCambio, tiempos: tiempos)
     }
+    let antes = await fotoDeAntes?.value
+    let campo = ancla.flatMap { ancla in antes.map { (ancla: ancla, antes: $0) } }
+      .flatMap { $0.antes.esLegible ? $0 : nil }
 
     // 3. La promesa, sólo si nadie tocó el portapapeles desde la foto.
     guard !isClipboardReadActive(), pasteboard.changeCount == conteoAceptado,
@@ -100,59 +111,112 @@ extension TextInsertionService {
 
     // 4. Última verificación y ⌘V, sin ningún `await` entre medio: lo que
     //    cambie después de mirar tiene que ser lo que se pegue.
-    guard dependencies.isTargetFocused(destino) else {
+    guard sigueAhi(destino, ancla: ancla) else {
       return quedarseParaPegarAMano(pendiente, porque: .focoCambio, tiempos: tiempos)
     }
+    let canal = canal(para: destino)
     pendiente.promesa.marcarDespachado()
-    guard dependencies.postPasteShortcut(canal(para: destino)) else {
+    guard dependencies.postPasteShortcut(canal) else {
       return quedarseParaPegarAMano(pendiente, porque: .sinAtajo, tiempos: tiempos)
     }
     let inicio = reloj.now()
 
     // 5. Esperar la señal y decidir.
-    let senal = await vigilar(pendiente, tiempos: tiempos, desde: inicio)
-    switch DecisionTrasLaSenal.para(
-      senal, ahora: reloj.now(), tiempos: tiempos, puedeTeclear: false
-    ) {
-    case let .terminar(resultado, plan):
-      if let plan {
-        programarDevolucion(pendiente, segun: plan, tiempos: tiempos)
-      } else if pegadoPendiente?.marca == pendiente.marca {
-        // Ya no es de Dilo: un dictado nuevo pudo dejar el suyo.
-        pegadoPendiente = nil
-      }
-      return resultado
-    case .reintentarTecleando:
-      programarDevolucion(
-        pendiente,
-        segun: PlanDeDevolucion(limite: reloj.now() + tiempos.esperaSinSenal, motivo: .trasEsperar),
-        tiempos: tiempos
-      )
-      return .retenido(.noEntro)
+    let senal = await vigilar(pendiente, campo: campo, texto: texto, tiempos: tiempos, desde: inicio)
+    let decision = DecisionTrasLaSenal.para(
+      senal,
+      ahora: reloj.now(),
+      tiempos: tiempos,
+      puedeTeclear: politica.reintentarTecleando && campo != nil
+    )
+    if case .reintentarTecleando = decision, let campo {
+      return await reintentarTecleando(
+        texto, pendiente: pendiente, en: destino, campo: campo, canal: canal, tiempos: tiempos)
     }
+    return terminar(pendiente, con: decision, tiempos: tiempos)
   }
 
-  /// Espera la primera señal del pegado: el acuse o nada.
+  /// Si el foco sigue en el destino y, con ancla, el cursor donde estaba. Un
+  /// cursor que se movió no es un pegado en otro lado: es la tarjeta.
+  private func sigueAhi(_ destino: Target, ancla: AnclaDelFoco?) -> Bool {
+    dependencies.isTargetFocused(destino) && (ancla.map(dependencies.anclaSigueIgual) ?? true)
+  }
+
+  /// Aplica una decisión que ya no pide teclear.
+  private func terminar(
+    _ pendiente: PegadoPendiente,
+    con decision: DecisionTrasLaSenal,
+    tiempos: TiemposDePegado
+  ) -> ResultadoDeEntrega {
+    guard case let .terminar(resultado, plan) = decision else {
+      // Teclear se decide antes de llegar acá; si llega, se trata como «no
+      // entró»: el dictado queda para pegarlo a mano.
+      return quedarseParaPegarAMano(pendiente, porque: .noEntro, tiempos: tiempos)
+    }
+    if let plan {
+      programarDevolucion(pendiente, segun: plan, tiempos: tiempos)
+    } else if pegadoPendiente?.marca == pendiente.marca {
+      // Ya no es de Dilo: un dictado nuevo pudo dejar el suyo.
+      pegadoPendiente = nil
+    }
+    return resultado
+  }
+
+  /// El ⌘V no movió el campo: se teclea una vez y se vuelve a mirar. Nunca
+  /// dos: si tampoco entra, el dictado queda en la tarjeta y en el
+  /// portapapeles.
+  private func reintentarTecleando(
+    _ texto: String,
+    pendiente: PegadoPendiente,
+    en destino: Target,
+    campo: (ancla: AnclaDelFoco, antes: FotoDelCampo),
+    canal: CanalDelAtajo,
+    tiempos: TiemposDePegado
+  ) async -> ResultadoDeEntrega {
+    let reloj = dependencies.clock
+    // Sin ningún `await` entre esta mirada y el primer evento.
+    guard dependencies.teclado.sePuedeTeclear, sigueAhi(destino, ancla: campo.ancla) else {
+      return quedarseParaPegarAMano(pendiente, porque: .noEntro, tiempos: tiempos)
+    }
+    guard await dependencies.teclear(TecleoDelDictado.pedazos(de: texto), canal) else {
+      return quedarseParaPegarAMano(pendiente, porque: .noEntro, tiempos: tiempos)
+    }
+    try? await reloj.sleep(tiempos.lecturaTrasTeclear)
+    let despues = await dependencies.fotoDelCampo(campo.ancla)
+    let veredicto = VeredictoDelCampo.comparar(antes: campo.antes, despues: despues, texto: texto)
+    AppLog.delivery.info("tecleado: \(String(describing: veredicto), privacy: .public)")
+    return terminar(
+      pendiente,
+      con: .trasTeclear(veredicto, ahora: reloj.now(), tiempos: tiempos),
+      tiempos: tiempos
+    )
+  }
+
+  /// Espera la primera señal del pegado: el acuse, el campo o nada.
   func vigilar(
     _ pendiente: PegadoPendiente,
+    campo: (ancla: AnclaDelFoco, antes: FotoDelCampo)?,
+    texto: String,
     tiempos: TiemposDePegado,
     desde inicio: Duration
   ) async -> SenalDeEntrega {
     let reloj = dependencies.clock
     let pasteboard = dependencies.pasteboard
-    var vigia = VigiaDelPegado(inicio: inicio, tiempos: tiempos, verificaElCampo: false)
+    var vigia = VigiaDelPegado(inicio: inicio, tiempos: tiempos, verificaElCampo: campo != nil)
     while true {
       let paso = vigia.siguiente(
         ahora: reloj.now(),
         esDeDilo: Self.esDeDilo(pendiente, en: pasteboard),
         lectura: pendiente.promesa.lecturaValida,
-        huboEntradaDeLaPersona: { true }
+        huboEntradaDeLaPersona: { dependencies.huboEntradaDeLaPersona(reloj.now() - inicio) }
       )
       switch paso {
       case let .terminar(senal):
         return senal
       case .leerElCampo:
-        continue
+        guard let campo else { continue }
+        let despues = await dependencies.fotoDelCampo(campo.ancla)
+        vigia.anotar(VeredictoDelCampo.comparar(antes: campo.antes, despues: despues, texto: texto))
       case let .esperar(duracion):
         do { try await reloj.sleep(duracion) } catch { return .cancelado }
       }

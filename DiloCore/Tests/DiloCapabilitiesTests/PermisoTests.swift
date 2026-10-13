@@ -21,6 +21,9 @@ private struct AnfitrionDeMentira: HostCapabilities {
   func sigueSiendoElFoco(elemento: AXUIElement?, pid: pid_t) -> Bool { false }
   func focoParaLeer() -> FocoLegible? { nil }
   func tituloDeVentanaActiva() -> String? { nil }
+  func anclaDelFoco(en pid: pid_t) -> AnclaDelFoco? { nil }
+  func anclaSigueIgual(_ ancla: AnclaDelFoco) -> Bool { false }
+  func fotoDelCampo(_ ancla: AnclaDelFoco) -> FotoDelCampo { FotoDelCampo() }
 }
 
 struct PermisosDelOnboardingTests {

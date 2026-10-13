@@ -34,6 +34,9 @@ final class TextInsertionService {
     /// Para elegir la `PoliticaDeEntrega`: una terminal no se teclea y un
     /// escritorio remoto recibe el ⌘V por el HID.
     let bundleID: String?
+    /// El campo y el cursor al empezar, sin leer el texto. Nil en el sandbox,
+    /// sin campo editable o sin un cursor quieto.
+    let ancla: AnclaDelFoco?
 
     init(
       element: AXUIElement?,
@@ -41,7 +44,8 @@ final class TextInsertionService {
       isSecure: Bool,
       displayID: CGDirectDisplayID?,
       applicationName: String? = nil,
-      bundleID: String? = nil
+      bundleID: String? = nil,
+      ancla: AnclaDelFoco? = nil
     ) {
       self.element = element
       self.processIdentifier = processIdentifier
@@ -49,6 +53,7 @@ final class TextInsertionService {
       self.displayID = displayID
       self.applicationName = applicationName
       self.bundleID = bundleID
+      self.ancla = ancla
     }
   }
 
@@ -89,6 +94,27 @@ final class TextInsertionService {
         ClaseDeDestino.de(bundleID: destino.bundleID),
         alProcesoSePuede: Anfitrion.actual.admite(.atajoAlProceso)
       )
+    }
+    /// El campo con el foco en esa app y su cursor, al empezar el dictado.
+    var anclaDelFoco: @MainActor (pid_t) -> AnclaDelFoco? = { Anfitrion.actual.anclaDelFoco(en: $0) }
+    /// Si el foco y el cursor siguen donde dice el ancla.
+    var anclaSigueIgual: @MainActor (AnclaDelFoco) -> Bool = { Anfitrion.actual.anclaSigueIgual($0) }
+    /// Lo que se lee del campo, fuera del actor principal: una app lenta en
+    /// contestar no traba la muesca.
+    var fotoDelCampo: @Sendable (AnclaDelFoco) async -> FotoDelCampo = { ancla in
+      await Task.detached { Anfitrion.actual.fotoDelCampo(ancla) }.value
+    }
+    /// Teclea el dictado, para el reintento cuando el ⌘V no entró.
+    var teclear: @MainActor ([TecleoDelDictado.Pedazo], CanalDelAtajo) async -> Bool = {
+      await TecleoSimulado.teclear($0, por: $1)
+    }
+    /// Si la persona tecleó o hizo clic en los últimos `hace`: entonces un
+    /// campo que no cambió puede ser obra suya y no prueba nada.
+    var huboEntradaDeLaPersona: @MainActor (_ hace: Duration) -> Bool = { hace in
+      let segundos = Double(hace.components.seconds) + Double(hace.components.attoseconds) / 1e18
+      let tecla = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .keyDown)
+      let clic = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .leftMouseDown)
+      return min(tecla, clic) < segundos
     }
     /// The time source behind the snapshot and copy deadlines. Injectable so
     /// a test drives time instead of betting the runner beats a real
@@ -154,7 +180,8 @@ final class TextInsertionService {
         isSecure: isSecureTextField(element),
         displayID: displayID(for: element),
         applicationName: application?.localizedName,
-        bundleID: application?.bundleIdentifier
+        bundleID: application?.bundleIdentifier,
+        ancla: dependencies.anclaDelFoco(processIdentifier)
       )
     }
 

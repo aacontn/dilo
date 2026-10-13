@@ -76,6 +76,18 @@ public protocol HostCapabilities: Sendable {
 
   /// El título de la ventana al frente, o nil si no se puede leer.
   func tituloDeVentanaActiva() -> String?
+
+  /// Dónde está el cursor en la app `pid`: el campo editable con foco y su
+  /// selección, sin leer el texto. Nil sin campo editable, sin cursor quieto
+  /// o cuando este anfitrión no puede mirar dentro de otra app.
+  func anclaDelFoco(en pid: pid_t) -> AnclaDelFoco?
+
+  /// Si el foco y el cursor siguen donde dice el ancla.
+  func anclaSigueIgual(_ ancla: AnclaDelFoco) -> Bool
+
+  /// Lo que se puede leer del campo del ancla para saber si un pegado
+  /// entró. Vacía (`esLegible == false`) donde no se puede leer.
+  func fotoDelCampo(_ ancla: AnclaDelFoco) -> FotoDelCampo
 }
 
 /// El anfitrión de esta ejecución, resuelto una vez.

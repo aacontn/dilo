@@ -106,6 +106,18 @@ public struct FullHost: HostCapabilities {
     return lector.atributo(ventana, kAXTitleAttribute as String) as? String
   }
 
+  public func anclaDelFoco(en pid: pid_t) -> AnclaDelFoco? {
+    LecturaDelCampo(lector: lector).ancla(en: pid)
+  }
+
+  public func anclaSigueIgual(_ ancla: AnclaDelFoco) -> Bool {
+    LecturaDelCampo(lector: lector).sigueIgual(ancla)
+  }
+
+  public func fotoDelCampo(_ ancla: AnclaDelFoco) -> FotoDelCampo {
+    LecturaDelCampo(lector: lector).foto(de: ancla)
+  }
+
   /// El foco se le pregunta primero a la app al frente y sólo después al
   /// elemento del sistema. Medido en macOS 26, el elemento del sistema no
   /// contesta por ninguna app —ni con texto claramente seleccionado— y el de

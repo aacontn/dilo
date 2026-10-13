@@ -181,6 +181,9 @@ final class HUDStage {
     dictationContent.alHacerClic = { [weak self] in
       self?.clicEnLaSilueta()
     }
+    dictationContent.alTocarLaTarjeta = { [weak self] tarjeta in
+      self?.copiarLaTarjeta(tarjeta)
+    }
     // El puntero entra por el área de seguimiento de la vista y por ningún
     // otro lado: la ventana ya no ignora el mouse, así que ve entrar el
     // puntero en el momento en que entra.
@@ -255,6 +258,16 @@ final class HUDStage {
   var copiarAlPortapapeles: (String) -> Void = { texto in
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(texto, forType: .string)
+  }
+
+  /// La tarjeta de un dictado que no se pegó, copiada con un clic. La forma
+  /// pasa a decir que quedó copiado: es lo que la persona fue a buscar.
+  private func copiarLaTarjeta(_ tarjeta: TarjetaDeRespaldo) {
+    guard estado == .resultado(.retenido(tarjeta)) else { return }
+    copiarAlPortapapeles(tarjeta.texto)
+    recibir(.entregar(.copiado))
+    dictationContent.text = ResultadoDelNotch.copiado.texto
+    dictationContent.volatileText = ""
   }
 
   /// Copia un reciente y lo dice en su propia fila un momento.

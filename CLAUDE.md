@@ -91,7 +91,17 @@ Distingue propuesta, implementación y deuda pendiente.
   que la persona sostiene. Mandar sólo la V con el flag de ⌘ dejaba ⌘
   colgada y el siguiente espacio abría Spotlight; un ⌘ sin bit de lado se lee
   como ⌘ derecha, el gatillo de fábrica de traducir. Los eventos llevan una
-  marca para que el tap de Dilo no los tome por un gatillo.
+  marca para que el tap de Dilo no los tome por un gatillo. El tecleo del
+  reintento también: ⇧ baja y sube como tecla propia en cada salto de línea.
+- **El pegado sabe si entró, y lo que no entró no se pierde.** El dictado se
+  promete en el portapapeles (`TextoPrometido`, marca propia por pegado,
+  `.currentHostOnly`) y la lectura de la app de destino es el acuse; con
+  Accesibilidad además se mira el campo y, si el ⌘V no lo movió, se teclea
+  **una** vez —nunca en una terminal—. Lo que no se confirma vuelve como
+  `ResultadoDeEntrega.retenido` y termina en la tarjeta del notch. Los
+  tiempos y las decisiones viven puros en `DiloCapabilities`
+  (`PoliticaDeEntrega`, `VigiaDelPegado`, `DecisionTrasLaSenal`): un
+  número nuevo se cambia ahí y se prueba con `swift test`.
 - **Dos trozos de dictado se pegan en un solo lugar: `DiloText.Union`.**
   Ningún motor, ni el HUD, ni el controlador juntan texto con `+`. Cada trozo
   llega recortado y sin saber qué vino antes, así que el espacio lo pone quien
@@ -299,6 +309,13 @@ siendo cierto:
   y eso sí se dice con palabras porque perder un dictado en silencio está
   prohibido. «Copiar el último dictado» vive en el menú de la barra y en el
   panel del hover, no en una franja de 400×50 que dura dos segundos y medio.
+- **La tarjeta de un dictado que no se pegó es la única excepción a «el
+  resultado no toma el mouse»** (`ResultadoDelNotch.retenido`,
+  `TarjetaDeRespaldo`). Dice en una línea qué pasó, un clic copia el texto y
+  arrastrarla lo lleva a donde iba; dura lo que el dictado se queda en el
+  portapapeles (8 s) para que ⌘V también sirva. No bloquea el dictado
+  siguiente: lo que empieza la tapa, y el texto sigue en «Copiar el último
+  dictado».
 - **Tres cosas del escenario son ajustes, no constantes** (Apariencia): el
   retardo del hover (`hudRetardoDeHover`, medio segundo de fábrica), en qué
   pantalla vive la muesca (`hudPantalla`, vacío = automática) y si dice el

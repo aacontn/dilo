@@ -120,6 +120,13 @@ struct HUDLineaSobria: View {
         // Por la izquierda: lo último dicho es lo que se está revisando, así
         // que el final de la frase no se puede perder nunca.
         .truncationMode(.head)
+    } else if case let .resultado(.retenido(tarjeta)) = content.estado {
+      HUDTarjetaDeRespaldo(
+        tarjeta: tarjeta,
+        fuente: .system(size: Self.cuerpo, weight: .medium),
+        alineacion: .leading,
+        alTocar: { content.alTocarLaTarjeta?(tarjeta) }
+      )
     } else {
       Text(linea)
         .font(.system(size: Self.cuerpo, weight: .regular))

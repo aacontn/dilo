@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 /// The card's two gestures: drag it out as a file, or click it to take the
-/// transcript as text.
+/// transcript as text. Sin archivo —la tarjeta de un dictado que no se
+/// pegó— se arrastra sólo el texto.
 ///
 /// SwiftUI's `draggable` cannot say whether a drag was accepted, and that answer
 /// decides where the transcript is saved — a drag a destination takes is the
@@ -10,7 +11,7 @@ import SwiftUI
 /// card exactly as it was. So the drag starts from an `NSDraggingSource`, which
 /// reports the operation the receiver performed.
 struct TranscriptDragView: NSViewRepresentable {
-  let url: URL
+  let url: URL?
   let text: String
   /// Built when the drag starts rather than on every card update: the card
   /// redraws while its dismissal hairline drains, and rendering an image twenty
@@ -94,7 +95,7 @@ final class TranscriptDragSourceView: NSView, NSDraggingSource {
   }
 
   override func mouseDragged(with event: NSEvent) {
-    guard let url, let origin = pressOrigin else { return }
+    guard let origin = pressOrigin else { return }
     let travelled = hypot(
       event.locationInWindow.x - origin.x,
       event.locationInWindow.y - origin.y
@@ -107,7 +108,7 @@ final class TranscriptDragSourceView: NSView, NSDraggingSource {
     // question only that receiver can answer, so both are offered and neither
     // is chosen here (docs/design/FEATURE.md).
     let contents = NSPasteboardItem()
-    contents.setString(url.absoluteString, forType: .fileURL)
+    if let url { contents.setString(url.absoluteString, forType: .fileURL) }
     contents.setString(text, forType: .string)
     let item = NSDraggingItem(pasteboardWriter: contents)
     let image = makeDragImage?()

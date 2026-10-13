@@ -3026,17 +3026,6 @@
         }
       }
     },
-    "No se pudo pegar el texto": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't insert text"
-          }
-        }
-      }
-    },
     "No se pudo traducir": {
       "extractionState": "manual",
       "localizations": {
@@ -5503,6 +5492,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy"
+          }
+        }
+      }
+    },
+    "¿No se pegó? Pulsa ⌘V": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didn't paste? Press ⌘V"
+          }
+        }
+      }
+    },
+    "Cambiaste de lugar: pulsa ⌘V": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You moved: press ⌘V"
+          }
+        }
+      }
+    },
+    "Es una contraseña: no lo pegué": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's a password: not pasted"
+          }
+        }
+      }
+    },
+    "Teclas apretadas: pulsa ⌘V": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keys were held: press ⌘V"
+          }
+        }
+      }
+    },
+    "No lo pegué: clic para copiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not pasted: click to copy"
+          }
+        }
+      }
+    },
+    "No pude pegarlo: pulsa ⌘V": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't paste it: press ⌘V"
+          }
+        }
+      }
+    },
+    "No entró: pulsa ⌘V": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It didn't go in: press ⌘V"
+          }
+        }
+      }
+    },
+    "Clic para copiar · o arrástralo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to copy · or drag it"
           }
         }
       }
