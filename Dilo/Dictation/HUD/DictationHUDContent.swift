@@ -139,4 +139,8 @@ final class DictationHUDContent {
   /// Un clic en la silueta: con el panel del hover abierto y algo que copiar,
   /// copia; si no, abre el menú de acciones. Lo cablea `HUDStage`.
   @ObservationIgnored var alHacerClic: (() -> Void)?
+
+  /// Un clic en la tarjeta de un dictado que no se pegó: lo copia. Lo cablea
+  /// `HUDStage`.
+  @ObservationIgnored var alTocarLaTarjeta: ((TarjetaDeRespaldo) -> Void)?
 }

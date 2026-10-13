@@ -18,6 +18,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var onboardingWindowController: OnboardingWindowController?
   private var estadoDePermisos: EstadoDePermisos?
   private var usageTracker: UsageTracker?
+  /// Guardado para el cierre: un dictado prometido en el portapapeles muere
+  /// con Dilo si nadie lo vuelve texto antes.
+  private var textInsertionService: TextInsertionService?
   private let settingsRuntimeState = SettingsRuntimeState()
   private let updaterService = SparkleUpdaterService()
   private let launchAtLoginService = LaunchAtLoginService()
@@ -72,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // instance, so a second one would let a dictation insertion and a Read
     // Aloud copy work the pasteboard at the same time.
     let textInsertionService = TextInsertionService()
+    self.textInsertionService = textInsertionService
     let dictationController = DirectDictationController(
       settings: settings,
       hudController: hudController,
@@ -287,6 +291,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationWillTerminate(_ notification: Notification) {
     dictationController?.stop()
+    textInsertionService?.alCerrar()
     // A transcript the HUD is still offering only exists in its staging folder,
     // so quitting writes it out rather than losing it.
     dropTranscriptionController?.commitOfferedTranscript()

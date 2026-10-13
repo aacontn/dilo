@@ -1,4 +1,5 @@
 import CoreGraphics
+import DiloCapabilities
 
 /// Un ⌘ + tecla que Dilo aprieta por la persona —⌘V para pegar lo dictado,
 /// ⌘C para leer lo seleccionado—, contado entero: ⌘ baja, la tecla baja, la
@@ -78,6 +79,35 @@ enum AtajoSimulado {
     let abajo: Bool
     /// Los bits de modificador que lleva el evento, compartidos y de lado.
     let modificadores: CGEventFlags
+    /// Lo que el evento escribe, cuando Dilo teclea un dictado en vez de
+    /// apretar un atajo. La tecla es entonces sólo el envoltorio.
+    var texto: String? = nil
+  }
+
+  /// ⇧ izquierda y ↩, para teclear un salto de línea.
+  static let mayuscula: CGKeyCode = 56
+  static let intro: CGKeyCode = 36
+
+  /// La secuencia que teclea un pedazo de dictado. Va sin modificadores: se
+  /// teclea sólo con el teclado libre, ⌘ incluida, porque una «h» con ⌘
+  /// abajo es ⌘H. El salto de línea es ⇧↩ con ⇧ bajando y subiendo como
+  /// tecla propia, por la misma razón que ⌘ en un pegado.
+  static func pulsaciones(deTecleo pedazo: TecleoDelDictado.Pedazo) -> [Pulsacion] {
+    switch pedazo {
+    case let .texto(texto):
+      return [
+        Pulsacion(tecla: 0, abajo: true, modificadores: [], texto: texto),
+        Pulsacion(tecla: 0, abajo: false, modificadores: [], texto: texto),
+      ]
+    case .saltoDeLinea:
+      let conMayuscula = bits(de: mayuscula)
+      return [
+        Pulsacion(tecla: mayuscula, abajo: true, modificadores: conMayuscula),
+        Pulsacion(tecla: intro, abajo: true, modificadores: conMayuscula),
+        Pulsacion(tecla: intro, abajo: false, modificadores: conMayuscula),
+        Pulsacion(tecla: mayuscula, abajo: false, modificadores: []),
+      ]
+    }
   }
 
   /// La secuencia de ⌘ + `tecla`, respetando lo que la persona ya sostiene.
@@ -146,6 +176,10 @@ enum AtajoSimulado {
       .subtracting(bitsDeModificador)
       .union(pulsacion.modificadores)
     evento.setIntegerValueField(.eventSourceUserData, value: marca)
+    if let texto = pulsacion.texto {
+      let unidades = Array(texto.utf16)
+      evento.keyboardSetUnicodeString(stringLength: unidades.count, unicodeString: unidades)
+    }
     return evento
   }
 

@@ -23,6 +23,19 @@ public protocol LectorDeAccesibilidad: Sendable {
   var estaAutorizado: Bool { get }
   /// Pide Accesibilidad mostrando el diálogo del sistema.
   func pedirAutorizacion() -> Bool
+  /// Cuánto se espera a que una app conteste por este elemento. Una app
+  /// trabada no puede colgar a Dilo: sin esto cada pregunta espera seis
+  /// segundos.
+  func fijarEspera(_ elemento: AXUIElement, segundos: Float)
+  /// Si el atributo se puede escribir, o nil si la app no lo sabe decir.
+  func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool?
+}
+
+extension LectorDeAccesibilidad {
+  /// Un doble de pruebas no espera a nadie.
+  public func fijarEspera(_ elemento: AXUIElement, segundos: Float) {}
+
+  public func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool? { nil }
 }
 
 /// El lector de verdad: la API de Accesibilidad tal cual.
@@ -61,5 +74,17 @@ public struct AccesibilidadDelSistema: LectorDeAccesibilidad {
 
   public func pedirAutorizacion() -> Bool {
     AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+  }
+
+  public func fijarEspera(_ elemento: AXUIElement, segundos: Float) {
+    AXUIElementSetMessagingTimeout(elemento, segundos)
+  }
+
+  public func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool? {
+    var seEscribe = DarwinBoolean(false)
+    switch AXUIElementIsAttributeSettable(elemento, nombre as CFString, &seEscribe) {
+    case .success: return seEscribe.boolValue
+    default: return nil
+    }
   }
 }

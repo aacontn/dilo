@@ -528,6 +528,12 @@ struct DictationHUDShellView: View {
     if resultado.esAcuse {
       HUDCheckDeAcuse(lado: 16 * metrics.scale, reduceMotion: reduceMotion)
         .frame(maxWidth: .infinity)
+    } else if let tarjeta = resultado.tarjeta {
+      HUDTarjetaDeRespaldo(
+        tarjeta: tarjeta,
+        fuente: .system(size: 13 * metrics.scale, weight: .medium),
+        alTocar: { content.alTocarLaTarjeta?(tarjeta) }
+      )
     } else {
       Text(content.text.isEmpty ? resultado.texto : content.text)
         .font(.system(size: 13 * metrics.scale, weight: .medium))

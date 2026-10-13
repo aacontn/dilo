@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import DiloEngines
 import DiloModes
 
@@ -38,7 +39,7 @@ extension DirectDictationController {
     let captureFocusedTarget: @MainActor () -> TextInsertionService.Target?
     let insertText: @MainActor (
       String, TextInsertionService.Target?, InsertionDestination
-    ) async -> TextInsertionService.InsertionOutcome
+    ) async -> ResultadoDeEntrega
 
     // Permissions and the dialogs that explain them.
     let requestMicrophoneAccess: @Sendable () async -> Bool
@@ -220,7 +221,7 @@ extension DirectDictationController {
           service: TranslationService(client: .live)
         ),
         captureFocusedTarget: { textInsertionService.captureFocusedTarget() },
-        insertText: { await textInsertionService.insert($0, into: $1, destination: $2) },
+        insertText: { await textInsertionService.entregar($0, a: $1, segun: $2) },
         requestMicrophoneAccess: { await PermissionService.requestMicrophoneAccess() },
         requestSpeechAccess: { await PermissionService.requestSpeechAccess() },
         requestAccessibilityAccess: { PermissionService.requestAccessibilityAccess() },

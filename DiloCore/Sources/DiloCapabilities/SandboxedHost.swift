@@ -44,7 +44,8 @@ public struct SandboxedHost: HostCapabilities {
     case .pegadoDirecto, .atajoGlobal, .tapDeAudioDelSistema:
       true
     case .focoAntesDePegar, .relecturaDelFoco, .tituloDeVentanaActiva,
-      .arrastreDeArchivosAlNotch, .consumoDeIADeOtrasApps, .notasDeApple:
+      .arrastreDeArchivosAlNotch, .consumoDeIADeOtrasApps, .notasDeApple,
+      .atajoAlProceso:
       false
     }
   }
@@ -83,4 +84,14 @@ public struct SandboxedHost: HostCapabilities {
   public func focoParaLeer() -> FocoLegible? { nil }
 
   public func tituloDeVentanaActiva() -> String? { nil }
+
+  /// Sin ancla no hay cursor que comparar ni campo que releer: el pegado
+  /// confía en el acuse del portapapeles, que sí funciona acá.
+  public func anclaDelFoco(en pid: pid_t) -> AnclaDelFoco? { nil }
+
+  /// Nunca se llega a preguntar —sin ancla no hay qué comparar—, y si
+  /// alguien pregunta, la respuesta prudente es que no.
+  public func anclaSigueIgual(_ ancla: AnclaDelFoco) -> Bool { false }
+
+  public func fotoDelCampo(_ ancla: AnclaDelFoco) -> FotoDelCampo { FotoDelCampo() }
 }

@@ -23,6 +23,7 @@ final class LectorEspia: LectorDeAccesibilidad {
   private struct Estado {
     var llamadas: [String] = []
     var atributos: [String: String] = [:]
+    var booleanos: [String: Bool] = [:]
     var atributosDeElemento: Set<String> = []
     var autorizado = false
   }
@@ -33,11 +34,13 @@ final class LectorEspia: LectorDeAccesibilidad {
   ///     propio, que es el único que se puede fabricar sin permisos.
   init(
     atributos: [String: String] = [:],
+    booleanos: [String: Bool] = [:],
     atributosDeElemento: Set<String> = [],
     autorizado: Bool = false
   ) {
     estado.withLock {
       $0.atributos = atributos
+      $0.booleanos = booleanos
       $0.atributosDeElemento = atributosDeElemento
       $0.autorizado = autorizado
     }
@@ -64,7 +67,19 @@ final class LectorEspia: LectorDeAccesibilidad {
     if estado.withLock({ $0.atributosDeElemento.contains(nombre) }) {
       return Self.elementoPropio
     }
+    if let booleano = estado.withLock({ $0.booleanos[nombre] }) {
+      return NSNumber(value: booleano)
+    }
     return estado.withLock { $0.atributos[nombre] } as CFTypeRef?
+  }
+
+  func fijarEspera(_ elemento: AXUIElement, segundos: Float) {
+    anotar("fijarEspera")
+  }
+
+  func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool? {
+    anotar("seEscribe:\(nombre)")
+    return nil
   }
 
   func pid(de elemento: AXUIElement) -> pid_t {

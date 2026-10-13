@@ -1,3 +1,4 @@
+import DiloCapabilities
 import Foundation
 import Testing
 
@@ -43,9 +44,39 @@ struct EstadoDelNotchTests {
     #expect(EstadoDelNotch.reposo.tomaElMouse)
     #expect(!EstadoDelNotch.resultado(.copiado).tomaElMouse)
     #expect(!EstadoDelNotch.resultado(.listo).tomaElMouse)
+    #expect(!EstadoDelNotch.resultado(.aviso("Falta un permiso")).tomaElMouse)
     #expect(!EstadoDelNotch.dictando.tomaElMouse)
     #expect(!EstadoDelNotch.procesando.tomaElMouse)
     #expect(!EstadoDelNotch.preparando(.permisoDeMicrofono).tomaElMouse)
+  }
+
+  /// La excepción: la tarjeta de un dictado que no se pegó ofrece el texto,
+  /// y eso sólo se toma con el mouse. Dura lo que el dictado se queda en el
+  /// portapapeles, no los dos segundos y medio de un aviso.
+  @Test func laTarjetaDeUnDictadoSinPegarTomaElMouseYDura() {
+    let tarjeta = ResultadoDelNotch.retenido(
+      TarjetaDeRespaldo(texto: "hola", porque: .noSePego(.focoCambio)))
+    #expect(EstadoDelNotch.resultado(tarjeta).tomaElMouse)
+    #expect(!tarjeta.esAcuse)
+    #expect(tarjeta.duracion == TiemposDePegado.deFabrica.esperaSinSenal)
+    #expect(tarjeta.duracion > ResultadoDelNotch.aviso("x").duracion)
+    #expect(tarjeta.tarjeta?.texto == "hola")
+  }
+
+  /// Lo que entró se acusa; lo que no entró, o no se sabe, es la tarjeta con
+  /// el texto entero. Nada se calla.
+  @Test func cadaEntregaTieneSuResultado() {
+    #expect(ResultadoDelNotch.tras(.pegado(.lectura), texto: "a") == .listo)
+    #expect(ResultadoDelNotch.tras(.pegado(.tecleo), texto: "a") == .listo)
+    #expect(ResultadoDelNotch.tras(.nadaQueEntregar, texto: "") == .listo)
+    #expect(ResultadoDelNotch.tras(.copiado, texto: "a") == .copiado)
+    #expect(ResultadoDelNotch.tras(.pegadoSinConfirmar, texto: "a")
+      == .retenido(TarjetaDeRespaldo(texto: "a", porque: .sinConfirmar)))
+    for motivo in MotivoParaNoPegar.allCases {
+      let resultado = ResultadoDelNotch.tras(.retenido(motivo), texto: "dictado")
+      #expect(resultado.tarjeta?.texto == "dictado")
+      #expect(resultado.tarjeta?.titulo.isEmpty == false)
+    }
   }
 
   /// Preparando dice qué falta, con palabras; procesando y resultado también.

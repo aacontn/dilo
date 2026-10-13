@@ -19,6 +19,11 @@ public enum Capacidad: String, CaseIterable, Sendable {
   /// Es legal en sandbox (precedente TypeMeIt); cuelga de Accesibilidad
   /// concedida, que es un estado de TCC y no de esta capa.
   case pegadoDirecto
+  /// Mandar el ⌘V al proceso del destino (`CGEvent.postToPid`) en vez de al
+  /// HID: no pasa por el estado global de modificadores y ningún otro tap lo
+  /// ve. En sandbox no está medido; ahí el ⌘V sigue yendo al HID, que sí lo
+  /// está (spike del 2026-09-20).
+  case atajoAlProceso
   /// El tap de teclado que escucha el gatillo con otra app al frente.
   /// Legal en los dos anfitriones; cuelga de Input Monitoring.
   case atajoGlobal

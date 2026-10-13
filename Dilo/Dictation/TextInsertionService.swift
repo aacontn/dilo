@@ -5,16 +5,6 @@ import os
 
 @MainActor
 final class TextInsertionService {
-  /// The terminal delivery state of one finalized Direct Dictation result.
-  enum InsertionOutcome: Equatable, Sendable {
-    /// The text was staged and pasted, or empty input completed as a no-op.
-    case inserted
-    /// Target delivery was unavailable, so the text was left for manual paste.
-    case copiedToClipboard
-    /// Neither target insertion nor a safe clipboard fallback was possible.
-    case unavailable
-  }
-
   /// Runs the sole leased pasteboard read away from the main actor.
   ///
   /// Apple documents no thread-safety contract for `NSPasteboard`. Background
@@ -33,7 +23,7 @@ final class TextInsertionService {
 
   struct Target {
     fileprivate let element: AXUIElement?
-    fileprivate let processIdentifier: pid_t
+    let processIdentifier: pid_t
 
     let isSecure: Bool
     let displayID: CGDirectDisplayID?
@@ -41,19 +31,29 @@ final class TextInsertionService {
     /// history entry to name. Resolved at capture time rather than at write
     /// time, because by then the application may be gone.
     let applicationName: String?
+    /// Para elegir la `PoliticaDeEntrega`: una terminal no se teclea y un
+    /// escritorio remoto recibe el ⌘V por el HID.
+    let bundleID: String?
+    /// El campo y el cursor al empezar, sin leer el texto. Nil en el sandbox,
+    /// sin campo editable o sin un cursor quieto.
+    let ancla: AnclaDelFoco?
 
     init(
       element: AXUIElement?,
       processIdentifier: pid_t,
       isSecure: Bool,
       displayID: CGDirectDisplayID?,
-      applicationName: String? = nil
+      applicationName: String? = nil,
+      bundleID: String? = nil,
+      ancla: AnclaDelFoco? = nil
     ) {
       self.element = element
       self.processIdentifier = processIdentifier
       self.isSecure = isSecure
       self.displayID = displayID
       self.applicationName = applicationName
+      self.bundleID = bundleID
+      self.ancla = ancla
     }
   }
 
@@ -71,8 +71,11 @@ final class TextInsertionService {
     let frontmostApplication: @MainActor () -> NSRunningApplication?
     let isProcessRunning: @MainActor (pid_t) -> Bool
     let isTargetFocused: @MainActor (Target) -> Bool
-    let postPasteShortcut: @MainActor () -> Bool
-    let waitForPasteRead: @MainActor () async -> Void
+    /// Lo que se mira del teclado antes de pegar: entrada segura y teclas
+    /// sostenidas. Va antes del atajo para que los tests lo pongan junto a él.
+    var teclado: LecturasDelTeclado = .delSistema
+    /// Aprieta ⌘V por el canal que dice la política del destino.
+    let postPasteShortcut: @MainActor (CanalDelAtajo) -> Bool
     /// Presses Copy in the focused application, for reading a selection
     /// Accessibility will not answer for.
     ///
@@ -83,6 +86,36 @@ final class TextInsertionService {
     /// How long a copy is given to reach the pasteboard. Long enough for a
     /// browser to answer, short enough that a key press does not feel stuck.
     var copyTimeout: Duration = .milliseconds(400)
+    /// Cómo se entrega a este destino. Con valor por defecto porque sale del
+    /// destino mismo y del anfitrión: un test sólo lo cambia para fingir otra
+    /// clase de app.
+    var politica: @MainActor (Target) -> PoliticaDeEntrega = { destino in
+      PoliticaDeEntrega.para(
+        ClaseDeDestino.de(bundleID: destino.bundleID),
+        alProcesoSePuede: Anfitrion.actual.admite(.atajoAlProceso)
+      )
+    }
+    /// El campo con el foco en esa app y su cursor, al empezar el dictado.
+    var anclaDelFoco: @MainActor (pid_t) -> AnclaDelFoco? = { Anfitrion.actual.anclaDelFoco(en: $0) }
+    /// Si el foco y el cursor siguen donde dice el ancla.
+    var anclaSigueIgual: @MainActor (AnclaDelFoco) -> Bool = { Anfitrion.actual.anclaSigueIgual($0) }
+    /// Lo que se lee del campo, fuera del actor principal: una app lenta en
+    /// contestar no traba la muesca.
+    var fotoDelCampo: @Sendable (AnclaDelFoco) async -> FotoDelCampo = { ancla in
+      await Task.detached { Anfitrion.actual.fotoDelCampo(ancla) }.value
+    }
+    /// Teclea el dictado, para el reintento cuando el ⌘V no entró.
+    var teclear: @MainActor ([TecleoDelDictado.Pedazo], CanalDelAtajo) async -> Bool = {
+      await TecleoSimulado.teclear($0, por: $1)
+    }
+    /// Si la persona tecleó o hizo clic en los últimos `hace`: entonces un
+    /// campo que no cambió puede ser obra suya y no prueba nada.
+    var huboEntradaDeLaPersona: @MainActor (_ hace: Duration) -> Bool = { hace in
+      let segundos = Double(hace.components.seconds) + Double(hace.components.attoseconds) / 1e18
+      let tecla = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .keyDown)
+      let clic = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .leftMouseDown)
+      return min(tecla, clic) < segundos
+    }
     /// The time source behind the snapshot and copy deadlines. Injectable so
     /// a test drives time instead of betting the runner beats a real
     /// deadline, which is the bet that flaked on loaded CI machines (#82).
@@ -101,7 +134,7 @@ final class TextInsertionService {
       return Self(
         pasteboard: pasteboard,
         readClipboardItems: {
-          TextInsertionService.snapshot(of: backgroundPasteboard)
+          TextInsertionService.foto(de: backgroundPasteboard).items
         },
         snapshotTimeout: .milliseconds(600),
         focusedElement: TextInsertionService.focusedElement,
@@ -115,10 +148,8 @@ final class TextInsertionService {
           return !application.isTerminated
         },
         isTargetFocused: TextInsertionService.isStillFocused,
+        teclado: .delSistema,
         postPasteShortcut: TextInsertionService.postPasteShortcut,
-        waitForPasteRead: {
-          try? await Task.sleep(for: .milliseconds(500))
-        },
         postCopyShortcut: TextInsertionService.postCopyShortcut,
         copyTimeout: .milliseconds(400),
         clock: .continuous
@@ -127,6 +158,12 @@ final class TextInsertionService {
   }
 
   let dependencies: Dependencies
+  /// El dictado que está en el portapapeles esperando volver. Uno a la vez:
+  /// el siguiente lo hereda.
+  var pegadoPendiente: PegadoPendiente?
+  /// La devolución del portapapeles, que sigue corriendo después de que
+  /// `entregar` ya contestó.
+  var tareaDeDevolucion: Task<Void, Never>?
 
   init(dependencies: Dependencies = .live) {
     self.dependencies = dependencies
@@ -136,14 +173,15 @@ final class TextInsertionService {
     if let element = dependencies.focusedElement() {
       let processIdentifier = Anfitrion.actual.pid(de: element)
 
+      let application = NSRunningApplication(processIdentifier: processIdentifier)
       return Target(
         element: element,
         processIdentifier: processIdentifier,
         isSecure: isSecureTextField(element),
         displayID: displayID(for: element),
-        applicationName: NSRunningApplication(
-          processIdentifier: processIdentifier
-        )?.localizedName
+        applicationName: application?.localizedName,
+        bundleID: application?.bundleIdentifier,
+        ancla: dependencies.anclaDelFoco(processIdentifier)
       )
     }
 
@@ -155,41 +193,9 @@ final class TextInsertionService {
       processIdentifier: application.processIdentifier,
       isSecure: false,
       displayID: nil,
-      applicationName: application.localizedName
+      applicationName: application.localizedName,
+      bundleID: application.bundleIdentifier
     )
-  }
-
-  /// Delivers finalized text to its captured target, the clipboard, or both.
-  ///
-  /// - Parameters:
-  ///   - text: The finalized text to deliver.
-  ///   - target: The focus boundary captured when Direct Dictation began.
-  ///   - destination: Where the session's settings say the text goes.
-  /// - Returns: The terminal delivery outcome used by the session controller.
-  func insert(
-    _ text: String,
-    into target: Target?,
-    destination: InsertionDestination = .insert
-  ) async -> InsertionOutcome {
-    guard !text.isEmpty else { return .inserted }
-    guard destination != .clipboardOnly else {
-      return copyToClipboard(text)
-    }
-    guard let target else {
-      return copyToClipboard(text)
-    }
-
-    guard dependencies.isProcessRunning(target.processIdentifier) else {
-      return copyToClipboard(text)
-    }
-
-    guard dependencies.isTargetFocused(target) else {
-      return copyToClipboard(text)
-    }
-    if destination == .both {
-      return await pasteLeavingClipboard(text, into: target)
-    }
-    return await pasteAndRestoreClipboard(text, into: target)
   }
 
   /// Un atributo de Accesibilidad leído como elemento. Lo contesta el
@@ -247,48 +253,6 @@ final class TextInsertionService {
     )
   }
 
-  /// Stages, pastes, and conditionally restores one finalized result.
-  ///
-  /// - Parameters:
-  ///   - text: The finalized text to insert.
-  ///   - target: The validated focus boundary that should receive the paste.
-  /// - Returns: The terminal delivery outcome after all safe fallbacks.
-  private func pasteAndRestoreClipboard(
-    _ text: String,
-    into target: Target
-  ) async -> InsertionOutcome {
-    let acquisition = await snapshotClipboardItems()
-    let savedItems: [ClipboardItemSnapshot]
-    let acceptedChangeCount: Int
-
-    switch acquisition {
-    case let .accepted(items, changeCount):
-      savedItems = items
-      acceptedChangeCount = changeCount
-    case .failed:
-      return copyToClipboard(text)
-    case .timedOut, .unstable, .busy:
-      return .unavailable
-    }
-
-    guard dependencies.isTargetFocused(target) else {
-      return copyToClipboard(text)
-    }
-    guard let insertedChangeCount = stageClipboardText(
-      text,
-      ifUnchangedSince: acceptedChangeCount,
-      isTransient: true
-    ) else { return .unavailable }
-
-    guard dependencies.postPasteShortcut() else {
-      restoreClipboard(savedItems, ifUnchangedSince: insertedChangeCount)
-      return .unavailable
-    }
-    await dependencies.waitForPasteRead()
-    restoreClipboard(savedItems, ifUnchangedSince: insertedChangeCount)
-    return .inserted
-  }
-
   /// Copies the focused application's selection and hands it back, leaving
   /// the clipboard as it was.
   ///
@@ -301,6 +265,9 @@ final class TextInsertionService {
   ///   is known rather than guessed: a copy that found nothing leaves the
   ///   pasteboard's change count where it was.
   func copySelection() async -> String? {
+    // Un dictado todavía prometido no se fotografía: leerlo dispararía la
+    // promesa, y guardarlo lo haría pasar por lo de la persona.
+    devolverElPendienteAhora()
     // The snapshot comes first because it is the permission to proceed: a
     // clipboard that cannot be captured cannot be put back, and taking
     // someone's clipboard to read a tweet is not a trade to make.
@@ -336,12 +303,22 @@ final class TextInsertionService {
     return nil
   }
 
+  /// ⌘C al HID: lo pide Leer en voz alta para la app al frente, sin un
+  /// destino capturado al que mandárselo.
   private static func postCopyShortcut() -> Bool {
-    postShortcut(virtualKey: 8)
+    postShortcut(virtualKey: TeclaDelAtajo.resolver("c"))
   }
 
-  private static func postPasteShortcut() -> Bool {
-    postShortcut(virtualKey: 9)
+  private static func postPasteShortcut(_ canal: CanalDelAtajo) -> Bool {
+    postShortcut(virtualKey: TeclaDelAtajo.resolver("v"), publicar: canal.publicar)
+  }
+
+  /// El canal del ⌘V para este destino, según su política.
+  func canal(para target: Target) -> CanalDelAtajo {
+    CanalDelAtajo.para(
+      pid: target.processIdentifier,
+      alProceso: dependencies.politica(target).alProceso
+    )
   }
 
   /// Aprieta ⌘ + la tecla con la secuencia entera de `AtajoSimulado`.

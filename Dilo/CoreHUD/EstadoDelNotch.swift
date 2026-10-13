@@ -1,3 +1,4 @@
+import DiloCapabilities
 import Foundation
 
 /// Los cinco estados del contrato del notch
@@ -64,16 +65,17 @@ enum EstadoDelNotch: Equatable, Sendable {
     }
   }
 
-  /// Si la forma recibe el mouse. Sólo reposo: ahí un clic abre el menú de
+  /// Si la forma recibe el mouse. Reposo: ahí un clic abre el menú de
   /// acciones, o copia lo último dictado con el panel del hover abierto.
   ///
-  /// Mientras hay una sesión no, y el resultado dejó de ser una excepción: lo
-  /// que queda en ese estado son errores y avisos, que no tienen ninguna
-  /// acción que ofrecer. El clic es del documento en el que estás
-  /// escribiendo, no del HUD.
+  /// Mientras hay una sesión no: el clic es del documento en el que estás
+  /// escribiendo, no del HUD. Los errores y avisos tampoco, porque no tienen
+  /// ninguna acción que ofrecer. La única excepción es la tarjeta de un
+  /// dictado que no se pegó: ofrece el texto para copiarlo o arrastrarlo, y
+  /// eso sólo se hace con el mouse.
   var tomaElMouse: Bool {
     switch self {
-    case .reposo: true
+    case .reposo, .resultado(.retenido): true
     case .preparando, .dictando, .procesando, .resultado: false
     }
   }
@@ -147,12 +149,16 @@ enum ResultadoDelNotch: Equatable, Sendable {
   case copiado
   /// Cualquier otra cosa que el HUD tenga que decir, incluidos los errores.
   case aviso(String)
+  /// El dictado no entró, o no se sabe si entró: la tarjeta lo ofrece para
+  /// copiar o arrastrar mientras siga en pantalla.
+  case retenido(TarjetaDeRespaldo)
 
   var texto: String {
     switch self {
     case .listo: String(localized: "Listo")
     case .copiado: String(localized: "Copiado al portapapeles")
     case let .aviso(texto): texto
+    case let .retenido(tarjeta): tarjeta.titulo
     }
   }
 
@@ -160,9 +166,68 @@ enum ResultadoDelNotch: Equatable, Sendable {
   var esAcuse: Bool { self == .listo }
 
   /// Cuánto se queda en pantalla. El acuse es un parpadeo; un error hay que
-  /// alcanzar a leerlo.
+  /// alcanzar a leerlo; la tarjeta, alcanzar a usarla.
   var duracion: Duration {
-    esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
+    if case .retenido = self { return MaquinaDelNotch.duracionDeLaTarjeta }
+    return esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
+  }
+
+  /// La tarjeta que está a la vista, si es una.
+  var tarjeta: TarjetaDeRespaldo? {
+    if case let .retenido(tarjeta) = self { return tarjeta }
+    return nil
+  }
+}
+
+/// Lo que dice y ofrece la tarjeta de un dictado que no se pegó.
+///
+/// Perder un dictado en silencio está prohibido: lo que no entró se dice con
+/// palabras y se ofrece entero. Un clic lo copia y se puede arrastrar a donde
+/// iba; mientras la tarjeta dura, además, sigue en el portapapeles para ⌘V.
+struct TarjetaDeRespaldo: Equatable, Sendable {
+  enum Porque: Equatable, Sendable {
+    /// Se mandó el ⌘V y nada lo confirmó ni lo desmintió.
+    case sinConfirmar
+    case noSePego(MotivoParaNoPegar)
+  }
+
+  let texto: String
+  let porque: Porque
+
+  /// Una línea que cabe en la muesca. Dice qué pasó y qué hacer; el detalle
+  /// de cómo copiarlo aparece al poner el puntero encima.
+  var titulo: String {
+    switch porque {
+    case .sinConfirmar: String(localized: "¿No se pegó? Pulsa ⌘V")
+    case .noSePego(.focoCambio): String(localized: "Cambiaste de lugar: pulsa ⌘V")
+    case .noSePego(.entradaSegura): String(localized: "Es una contraseña: no lo pegué")
+    case .noSePego(.teclasSostenidas): String(localized: "Teclas apretadas: pulsa ⌘V")
+    case .noSePego(.sinRespaldo), .noSePego(.portapapelesAjeno):
+      String(localized: "No lo pegué: clic para copiar")
+    case .noSePego(.sinAtajo): String(localized: "No pude pegarlo: pulsa ⌘V")
+    case .noSePego(.noEntro): String(localized: "No entró: pulsa ⌘V")
+    }
+  }
+
+  /// Lo que dice con el puntero encima: los dos gestos que no se ven.
+  static var pista: String { String(localized: "Clic para copiar · o arrástralo") }
+}
+
+extension ResultadoDelNotch {
+  /// Lo que la muesca dice de una entrega. Vive acá y no en el controlador
+  /// de dictado para que el contrato de qué se acusa y qué se dice esté en un
+  /// solo lugar, y se pruebe sin una sesión.
+  ///
+  /// Lo que entró se acusa con el check. Lo que no entró, o no se sabe, es
+  /// la tarjeta: un pegado sin confirmar casi siempre es un ⌘V que no llegó,
+  /// y callarlo es perder el dictado en silencio.
+  static func tras(_ entrega: ResultadoDeEntrega, texto: String) -> ResultadoDelNotch {
+    switch entrega {
+    case .pegado, .nadaQueEntregar: .listo
+    case .copiado: .copiado
+    case .pegadoSinConfirmar: .retenido(TarjetaDeRespaldo(texto: texto, porque: .sinConfirmar))
+    case let .retenido(motivo): .retenido(TarjetaDeRespaldo(texto: texto, porque: .noSePego(motivo)))
+    }
   }
 }
 
@@ -202,6 +267,11 @@ struct MaquinaDelNotch: Equatable, Sendable {
   /// Menos de un segundo — más que eso deja de ser un acuse y empieza a ser
   /// un estado que alguien tiene que esperar.
   static let duracionDelAcuse = Duration.milliseconds(700)
+
+  /// Lo que dura la tarjeta de un dictado sin pegar. Es lo mismo que el
+  /// dictado se queda en el portapapeles (`TiemposDePegado.esperaSinSenal`):
+  /// mientras se ve, ⌘V lo pega.
+  static let duracionDeLaTarjeta = TiemposDePegado.deFabrica.esperaSinSenal
 
   private(set) var estado = EstadoDelNotch.reposo
   /// Cuántos resultados se han mostrado. Es el turno que viaja en el
