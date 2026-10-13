@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloEngines
 import DiloModes
 import Foundation
@@ -103,7 +104,7 @@ struct TomaEnRAMEnElControladorTests {
       },
       insertText: { texto, _, destino in
         registro.pegados.append((texto, destino))
-        return .copiedToClipboard
+        return .copiado
       },
       requestMicrophoneAccess: { true },
       requestSpeechAccess: { true },

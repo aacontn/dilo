@@ -1035,7 +1035,7 @@ final class DirectDictationController {
             // lease. Reporting only the translation would promise words that
             // are not anywhere the user can reach (CONTEXT.md).
             dependencies.showMessage(
-              rescue != .copiado ? "No se pudo traducir ni copiar" : "No se pudo traducir",
+              !rescue.llego ? "No se pudo traducir ni copiar" : "No se pudo traducir",
               nil
             )
             return
@@ -1204,7 +1204,7 @@ final class DirectDictationController {
       let copia = await dependencies.insertText(limpio, nil, .clipboardOnly)
       send(.sessionEnded)
       dependencies.showMessage(
-        copia == .unavailable
+        !copia.llego
           ? String(localized: "Salió, pero no pude copiarlo. Está en «Copiar el último dictado».")
           : String(localized: "Listo: te lo copié. Pégalo con ⌘V."),
         nil
