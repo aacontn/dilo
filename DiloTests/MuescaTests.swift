@@ -353,6 +353,21 @@ struct MuescaTests {
     #expect(!AppSettings.previewStore().sessionSettings.muestraElModoEnReposo)
   }
 
+  /// De fábrica la muesca no sale al compartir pantalla: muestra lo que
+  /// dictas y los recientes del portapapeles. El ajuste se fija al crear el
+  /// panel porque dentro de la app `.none` no vuelve atrás.
+  @MainActor
+  @Test func deFabricaLaMuescaNoSaleAlCompartir() {
+    #expect(AppSettings.previewStore().hudOcultarAlCompartir)
+
+    let marco = CGRect(x: 0, y: 0, width: 10, height: 10)
+    #expect(HUDPanel(contentRect: marco, contentView: NSView()).sharingType == .none)
+    #expect(
+      HUDPanel(contentRect: marco, contentView: NSView(), ocultaAlCompartir: false).sharingType
+        == .readOnly
+    )
+  }
+
   /// El retardo se lee en palabras cuando es cero: «al instante» no es medio
   /// segundo redondeado.
   @Test func elRetardoCeroSeDiceConPalabras() {

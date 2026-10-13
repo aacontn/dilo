@@ -47,6 +47,7 @@ final class AppSettings {
     static let hudRetardoDeHover = "hudRetardoDeHover"
     static let hudPantalla = "hudPantalla"
     static let hudModoEnReposo = "hudModoEnReposo"
+    static let hudOcultarAlCompartir = "hudOcultarAlCompartir"
     static let hudDatosDeLaMuesca = "hudDatosDeLaMuesca"
     // Las dos claves de antes de la sección propia: un picker por costado.
     // Sólo se leen, una vez, para migrar (`DisposicionDeLaMuesca.migrada`).
@@ -293,6 +294,17 @@ final class AppSettings {
   /// gris.
   var hudModoEnReposo: Bool {
     didSet { defaults.set(hudModoEnReposo, forKey: Keys.hudModoEnReposo) }
+  }
+
+  /// Si la muesca queda fuera de las capturas y de lo que ve el otro lado al
+  /// compartir pantalla.
+  ///
+  /// **Encendida de fábrica.** La muesca muestra lo que dictas, los recientes
+  /// del portapapeles y la próxima reunión: nada de eso tiene que salir en una
+  /// llamada. Se puede apagar para sacarle una captura a la propia muesca;
+  /// el cambio se aplica al volver a abrir Dilo (`HUDPanel.init`).
+  var hudOcultarAlCompartir: Bool {
+    didSet { defaults.set(hudOcultarAlCompartir, forKey: Keys.hudOcultarAlCompartir) }
   }
 
   /// Qué fuentes van a los costados de la muesca en reposo —consumo de
@@ -576,6 +588,7 @@ final class AppSettings {
       ?? HUDStage.retardoDeHoverDeFabrica
     hudPantalla = defaults.string(forKey: Keys.hudPantalla) ?? ""
     hudModoEnReposo = defaults.bool(forKey: Keys.hudModoEnReposo)
+    hudOcultarAlCompartir = defaults.object(forKey: Keys.hudOcultarAlCompartir) as? Bool ?? true
     hudDisposicion = defaults.string(forKey: Keys.hudDatosDeLaMuesca)
       .map(DisposicionDeLaMuesca.init(guardado:))
       ?? .migrada(

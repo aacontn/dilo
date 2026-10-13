@@ -155,6 +155,15 @@ struct AppearanceSettingsView: View {
             .toggleStyle(.switch)
         }
 
+        SettingsRow(
+          title: "Esconderla al compartir pantalla",
+          description: "La muesca no sale en capturas ni en lo que ve el otro lado de una llamada. Apágalo si quieres sacarle una captura. Se aplica al volver a abrir Dilo."
+        ) {
+          Toggle("", isOn: $settings.hudOcultarAlCompartir)
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
+
         SettingsPickerRow(
           title: "Cómo aparece",
           description: "Cómo entra el contenido cuando el notch se abre a dictar",

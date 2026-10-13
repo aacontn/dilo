@@ -20,7 +20,13 @@ import AppKit
 /// estaba mostrada queda detrás. Por eso `assertOverlayOrder()` y el
 /// observador de cambio de espacio de `HUDStage`.
 final class HUDPanel: NSPanel {
-  init(contentRect: NSRect, contentView: NSView) {
+  /// - Parameter ocultaAlCompartir: Si la ventana queda fuera de las capturas
+  ///   y de compartir pantalla (`AppSettings.hudOcultarAlCompartir`). Se fija
+  ///   acá y no después: dentro de la app, una ventana que ya pasó a `.none`
+  ///   no vuelve a `.readOnly` aunque se le asigne (medido en macOS 26 en la
+  ///   suite; en una herramienta de línea de comandos sí vuelve). Cambiar el
+  ///   ajuste se aplica al volver a abrir Dilo.
+  init(contentRect: NSRect, contentView: NSView, ocultaAlCompartir: Bool = true) {
     super.init(
       contentRect: contentRect,
       styleMask: [.nonactivatingPanel, .borderless],
@@ -60,6 +66,8 @@ final class HUDPanel: NSPanel {
     hidesOnDeactivate = false
     isReleasedWhenClosed = false
     collectionBehavior = Self.overlayCollectionBehavior
+    // `.readOnly` es lo que tiene cualquier ventana de fábrica.
+    sharingType = ocultaAlCompartir ? .none : .readOnly
     self.contentView = contentView
   }
 

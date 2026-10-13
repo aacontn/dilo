@@ -165,7 +165,8 @@ final class HUDStage {
     hostingView.sizingOptions = []
     panel = HUDPanel(
       contentRect: CGRect(origin: .zero, size: CGSize(width: 1, height: 1)),
-      contentView: hostingView
+      contentView: hostingView,
+      ocultaAlCompartir: settings.hudOcultarAlCompartir
     )
     observeSpaceChanges()
     observarCambiosDePantallas()
