@@ -114,6 +114,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.statusItemController = statusItemController
     statusItemController.dictarNota = { dictationController.dictarNota() }
+    statusItemController.tomaFallida.reintentar = { dictationController.reintentarTomaFallida() }
+    statusItemController.tomaFallida.descartar = { dictationController.descartarTomaFallida() }
+    dictationController.onTomaFallidaChange = { [weak statusItemController] duracion in
+      statusItemController?.tomaFallida.mostrar(duracion)
+    }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alTerminarNota = { dictationController.dictarNota() }
 

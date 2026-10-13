@@ -119,6 +119,28 @@ extension DirectDictationController {
     /// enterarse: una costura nueva no tiene por qué costarle a nadie.
     var setPalabrasPropias: @Sendable ([String]) async -> Void = { _ in }
 
+    /// La toma que quedó en RAM cuando el motor no sacó texto al soltar:
+    /// pasarla otra vez, botarla, y enterarse de si hay una (con su
+    /// duración). Con valores por defecto que no hacen nada para que los
+    /// tests que no la usan no tengan que armarla.
+    var reintentarToma: @Sendable () async throws -> String = { throw TomaSinTexto.sinToma }
+    var descartarToma: @Sendable () async -> Void = {}
+    var observarTomaFallida: @Sendable (
+      @escaping @Sendable (TimeInterval?) -> Void
+    ) async -> Void = { _ in }
+    /// Le dice algo a VoiceOver sin mover el foco: la cuenta regresiva del
+    /// tope no se ve si no miras la muesca.
+    var anunciar: @MainActor (String) -> Void = { texto in
+      NSAccessibility.post(
+        element: NSApp as Any,
+        notification: .announcementRequested,
+        userInfo: [.announcement: texto, .priority: NSAccessibilityPriorityLevel.high.rawValue]
+      )
+    }
+    /// El reloj del tope de cinco minutos. Inyectable para que una prueba no
+    /// tenga que esperar cinco minutos de verdad.
+    var relojDelTope: DeadlineClock = .continuous
+
     /// Correr un modo sobre lo dictado, con el proveedor que la sesión
     /// congeló al empezar. El proveedor entra como parámetro y no se lee de
     /// Ajustes acá adentro: eso es lo que hace que cambiar Ajustes a mitad de
@@ -138,12 +160,16 @@ extension DirectDictationController {
       usageTracker: UsageTracker,
       textInsertionService: TextInsertionService
     ) -> Self {
-      let speechService = SpeechRecognitionService()
+      // La copia en RAM de cada dictado, que llenan los dos motores: sin
+      // ella, un motor que se cae al soltar se lleva lo dicho.
+      let grabadora = GrabadoraEnRAM()
+      let speechService = SpeechRecognitionService(grabadora: grabadora)
       let historyStore = DictationHistoryStore()
       // El motor doble. `speechService` sigue siendo el dueño de
       // SpeechAnalyzer, de las reservas de idioma y de las sesiones tibias:
-      // el router sólo elige quién escucha.
-      let motores = DiloSpeechStack.armar(apple: speechService)
+      // el router sólo elige quién escucha. La sesión habla con el respaldo,
+      // que es el mismo contrato con la toma guardada debajo.
+      let (motores, respaldo) = DiloSpeechStack.armar(apple: speechService, grabadora: grabadora)
       // La elección se lee al arrancar cada dictado, no una vez: cambiarla en
       // Ajustes aplica al próximo dictado, como todo lo demás.
       let motorElegido: @Sendable () async -> SpeechEngineKind = {
@@ -167,7 +193,7 @@ extension DirectDictationController {
         startRecognition: { locale, updateHandler, failureHandler, levelHandler, loadingHandler in
           await motores.elegir(await motorElegido())
           await motores.configurarReposo(await reposoElegido())
-          try await motores.start(
+          try await respaldo.start(
             locale: locale,
             handlers: EngineHandlers(
               parcial: { update in
@@ -184,10 +210,10 @@ extension DirectDictationController {
             )
           )
         },
-        finishRecognition: { try await motores.finish() },
-        cancelRecognition: { await motores.cancel() },
+        finishRecognition: { try await respaldo.finish() },
+        cancelRecognition: { await respaldo.cancel() },
         shutDownRecognition: {
-          await motores.cancel()
+          await respaldo.cancel()
           await speechService.shutDown()
         },
         translation: TranslationCoordinator(
@@ -243,6 +269,9 @@ extension DirectDictationController {
         guardarNota: { await NotasDeApple.guardar($0) },
         mostrarQueEsNota: { hudController.mostrarQueEsNota($0) },
         setPalabrasPropias: { await speechService.setPalabrasPropias($0) },
+        reintentarToma: { try await respaldo.reintentar() },
+        descartarToma: { await respaldo.descartarTomaFallida() },
+        observarTomaFallida: { await respaldo.observarTomaFallida($0) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         }

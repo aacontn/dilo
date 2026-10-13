@@ -46,6 +46,11 @@ struct DictationSessionMachine {
     case recognitionFailed(wasCancelled: Bool)
     case updateReceived(hasVisibleText: Bool)
     case noSpeechTimedOut
+    /// La toma llegó al tope de `PoliticaDeGrabacion` (cinco minutos): se
+    /// termina como si la persona hubiera soltado, y lo dicho se pega.
+    case limiteAlcanzado(now: ContinuousClock.Instant)
+    /// «Reintentar» en el menú, con una toma guardada en RAM.
+    case reintentoPedido
     /// The terminal reset after a finish inserted, a cancel completed,
     /// or a failure was shown.
     case sessionEnded
@@ -68,6 +73,9 @@ struct DictationSessionMachine {
     case hideHUD
     case notifyRecording(Bool)
     case triggerReadAloud
+    /// Pasa la toma guardada por los motores otra vez; el final vuelve como
+    /// `sessionEnded`, igual que el de un dictado.
+    case reintentarTomaFallida
   }
 
   /// Releasing the trigger before this counts as a quick tap and latches
@@ -111,6 +119,16 @@ struct DictationSessionMachine {
       return updateReceived(hasVisibleText: hasVisibleText)
     case .noSpeechTimedOut:
       return hasSpeech ? [] : cancel()
+    case let .limiteAlcanzado(now):
+      return finish(now: now)
+    case .reintentoPedido:
+      // Sólo en reposo: un reintento nunca pisa un dictado en curso, y un
+      // dictado nuevo nunca espera a que alguien decida qué hacer con la
+      // toma —ése es el error de imnot que no se copia—. Mientras corre, la
+      // sesión está en `finishing` y el gatillo no arranca otra.
+      guard state == .idle else { return [] }
+      state = .finishing
+      return [.reintentarTomaFallida]
     case .sessionEnded:
       return reset()
     }

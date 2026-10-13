@@ -1,4 +1,5 @@
 import AppKit
+import DiloEngines
 import DiloModes
 import DiloText
 import os
@@ -74,6 +75,18 @@ final class DirectDictationController {
   /// Whether the tap is currently swallowing the bare arrows, so the toggle
   /// fires only on transitions.
   private var isShapingCycleCaptureEnabled = false
+  /// La duración de la toma que quedó en RAM porque el motor no sacó texto,
+  /// o nil si no hay ninguna. Avisa al menú de la barra, que es donde se
+  /// reintenta.
+  private(set) var duracionDeLaTomaFallida: TimeInterval?
+  var onTomaFallidaChange: ((TimeInterval?) -> Void)?
+  /// El reloj del tope de cinco minutos del dictado en curso.
+  private var vigiaDelTope: Task<Void, Never>?
+  /// Los segundos que quedan, mientras la muesca cuenta hacia atrás.
+  private var cuentaRegresiva: Int?
+  /// Lo último que la muesca mostró en vivo, para que la cuenta regresiva
+  /// se escriba al lado sin borrarlo.
+  private var ultimoEnVivo = (firme: "", volatil: "")
 
   convenience init(
     settings: AppSettings,
@@ -113,6 +126,7 @@ final class DirectDictationController {
   func start() {
     applyKeyBindings()
     observeModelDownloads()
+    observarTomasFallidas()
     requestPermissionsAndPrepare()
   }
 
@@ -548,6 +562,7 @@ final class DirectDictationController {
       applyKeyBindings()
     }
     updateShapingCycleCapture()
+    actualizarTope()
   }
 
   /// Arms the bare-arrow capture exactly while the machine is recording a
@@ -660,7 +675,10 @@ final class DirectDictationController {
       dependencies.showLatched()
     case .showLiveText:
       if let pendingLiveText {
-        dependencies.showLiveText(pendingLiveText, pendingVolatileText)
+        ultimoEnVivo = (pendingLiveText, pendingVolatileText)
+        dependencies.showLiveText(
+          pendingLiveText, conCuentaRegresiva(pendingLiveText, pendingVolatileText)
+        )
       }
     case .showFinalizing:
       dependencies.showFinalizing()
@@ -682,6 +700,8 @@ final class DirectDictationController {
       onRecordingStateChange?(isRecording, currentSessionSettings)
     case .triggerReadAloud:
       onReadAloudTriggered?()
+    case .reintentarTomaFallida:
+      ejecutarReintento()
     }
   }
 
@@ -1112,6 +1132,7 @@ final class DirectDictationController {
     // The reduce above bypasses send(), so the capture rule re-derives here:
     // a failure must not leave the arrows swallowed.
     updateShapingCycleCapture()
+    actualizarTope()
     guard !effects.isEmpty else { return }
 
     if effects.contains(.cancelRecognition) {
@@ -1142,6 +1163,129 @@ final class DirectDictationController {
   private func stopNoSpeechTimer() {
     noSpeechTask?.cancel()
     noSpeechTask = nil
+  }
+
+  /// Reintenta la toma que quedó en RAM, desde el menú de la barra. Nunca con
+  /// un dictado andando: la máquina lo rechaza, y un dictado nuevo nunca
+  /// espera por una toma vieja.
+  func reintentarTomaFallida() {
+    send(.reintentoPedido)
+  }
+
+  /// La persona no quiere la toma: se va de la RAM al tiro.
+  func descartarTomaFallida() {
+    Task { [dependencies] in await dependencies.descartarToma() }
+  }
+
+  /// El menú de la barra se entera de si hay una toma guardada, y de cuánto
+  /// dura, cada vez que cambia: al fallar un dictado, al reintentar, al
+  /// descartarla y cuando vence sola a los diez minutos. Lo llama `start()`;
+  /// no es privado para que una prueba lo llame sin levantar el tap.
+  func observarTomasFallidas() {
+    let handler: @Sendable (TimeInterval?) -> Void = { [weak self] duracion in
+      Task { @MainActor [weak self] in
+        self?.duracionDeLaTomaFallida = duracion
+        self?.onTomaFallidaChange?(duracion)
+      }
+    }
+    Task { [dependencies] in await dependencies.observarTomaFallida(handler) }
+  }
+
+  /// El efecto `.reintentarTomaFallida`. El texto va al portapapeles y no a
+  /// donde estaba el cursor: el foco de entonces ya no existe, y pegar en lo
+  /// que sea que esté al frente ahora es pegar donde nadie pidió. Corre como
+  /// `finishTask` para que salir de la app espere a que termine.
+  private func ejecutarReintento() {
+    finishTask = Task { [weak self] in
+      guard let self else { return }
+      defer { finishTask = nil }
+      let session = settings.sessionSettings
+      let crudo: String
+      do {
+        crudo = try await dependencies.reintentarToma()
+      } catch {
+        send(.sessionEnded)
+        dependencies.showMessage(error.localizedDescription, nil)
+        return
+      }
+      let limpio = DiloText.limpiar(crudo, con: session.textoPreferencias)
+      recordar(UltimoDictado(original: crudo, limpio: limpio))
+      await recordHistory(spoken: limpio, delivered: limpio, session: session)
+      let copia = await dependencies.insertText(limpio, nil, .clipboardOnly)
+      send(.sessionEnded)
+      dependencies.showMessage(
+        copia == .unavailable
+          ? String(localized: "Salió, pero no pude copiarlo. Está en «Copiar el último dictado».")
+          : String(localized: "Listo: te lo copié. Pégalo con ⌘V."),
+        nil
+      )
+    }
+  }
+
+  /// Arma el tope de cinco minutos mientras se graba, y lo desarma en
+  /// cualquier otro estado. Se deriva del estado después de cada acción, como
+  /// la captura de las flechas: así ninguna salida —soltar, Esc, una falla—
+  /// puede dejar un reloj corriendo que termine el dictado siguiente.
+  private func actualizarTope() {
+    if case .recording = machine.state {
+      if vigiaDelTope == nil { armarTope() }
+      return
+    }
+    vigiaDelTope?.cancel()
+    vigiaDelTope = nil
+    cuentaRegresiva = nil
+    ultimoEnVivo = ("", "")
+  }
+
+  /// Una sola tarea que duerme hasta quince segundos antes del tope y desde
+  /// ahí late una vez por segundo: en un dictado normal no cuesta nada. El
+  /// tope existe porque la toma vive en RAM (`PoliticaDeGrabacion`), y al
+  /// llegar termina como si la persona hubiera soltado: lo dicho se pega.
+  private func armarTope() {
+    let reloj = dependencies.relojDelTope
+    let inicio = reloj.now()
+    vigiaDelTope = Task { [weak self] in
+      do {
+        try await reloj.sleep(PoliticaDeGrabacion.duracionMaxima - PoliticaDeGrabacion.avisoAntesDelTope)
+        while true {
+          guard let self else { return }
+          switch PoliticaDeGrabacion.fase(transcurrido: reloj.now() - inicio) {
+          case .normal:
+            break
+          case let .terminaEn(segundos):
+            mostrarCuentaRegresiva(segundos)
+          case .tope:
+            send(.limiteAlcanzado(now: .now))
+            return
+          }
+          try await reloj.sleep(.seconds(1))
+        }
+      } catch {
+        // Cancelado: el dictado terminó antes del tope.
+      }
+    }
+  }
+
+  /// La cuenta regresiva va en la misma línea del dictado, al final —que es
+  /// lo que la muesca nunca recorta—, y VoiceOver la anuncia una sola vez.
+  private func mostrarCuentaRegresiva(_ segundos: Int) {
+    if cuentaRegresiva == nil {
+      dependencies.anunciar(
+        String(localized: "Quedan \(segundos) segundos. El dictado termina solo y se pega.")
+      )
+    }
+    cuentaRegresiva = segundos
+    dependencies.showLiveText(
+      ultimoEnVivo.firme, conCuentaRegresiva(ultimoEnVivo.firme, ultimoEnVivo.volatil)
+    )
+  }
+
+  /// Lo volátil con la cuenta pegada al final. El espacio lo pone `Union`,
+  /// como en cualquier otra costura del dictado.
+  private func conCuentaRegresiva(_ firme: String, _ volatil: String) -> String {
+    guard let cuentaRegresiva else { return volatil }
+    let cola = Union.unir(volatil, String(localized: "· termino en \(cuentaRegresiva) s"))
+    return Union.colaDe(firme, cola)
   }
 
   private func installTriggerMonitor() {

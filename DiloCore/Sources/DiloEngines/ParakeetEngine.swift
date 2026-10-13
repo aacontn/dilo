@@ -276,6 +276,24 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     return try await modelo.transcribir(audio).trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
+  /// Transcribe audio que ya está en RAM, sin sesión ni micrófono: el
+  /// reintento de una toma que no sacó texto, y la segunda opinión cuando
+  /// escuchó Apple.
+  ///
+  /// Pasa por el mismo recorte de bordes que la pasada final y carga el
+  /// modelo si hace falta, con su reposo después, igual que un dictado.
+  public func transcribirSinSesion(_ muestras: [Float]) async throws -> String {
+    guard cargador.disponible else { throw EngineError.modeloNoDescargado }
+    var audio = muestras
+    guard let tramo = RecorteDeBordes.preparar(&audio) else { return "" }
+    if tramo.count < audio.count { audio = Array(audio[tramo]) }
+    descarga?.cancel()
+    descarga = nil
+    let modelo = try await cargarModelo()
+    defer { armarDescargaPorReposo() }
+    return try await modelo.transcribir(audio).trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
   public func cancel() async {
     guard activa else { return }
     activa = false

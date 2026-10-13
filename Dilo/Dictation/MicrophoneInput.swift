@@ -1,5 +1,6 @@
 import AVFAudio
 import Accelerate
+import DiloEngines
 import Speech
 import os
 
@@ -104,6 +105,10 @@ final class MicrophoneInput: @unchecked Sendable {
   /// Normalized microphone level (0–1) per tap buffer, for the HUD's
   /// voice-reactive visual. Called on the audio thread.
   private let levelHandler: (@Sendable (Float) -> Void)?
+  /// La copia en RAM de lo que se oye, a 16 kHz mono, para reintentar un
+  /// dictado cuyo motor se cayó sin volver a hablar. Nil donde nadie la
+  /// pide (transcribir un archivo).
+  private let grabadora: GrabadoraEnRAM?
   private let stateLock = NSLock()
 
   private var running = false
@@ -119,18 +124,21 @@ final class MicrophoneInput: @unchecked Sendable {
     sink: @escaping @Sendable (AVAudioPCMBuffer) -> Bool,
     onEnd: @escaping @Sendable () -> Void,
     failureHandler: @escaping @Sendable (InputError) -> Void,
-    levelHandler: (@Sendable (Float) -> Void)? = nil
+    levelHandler: (@Sendable (Float) -> Void)? = nil,
+    grabadora: GrabadoraEnRAM? = nil
   ) {
     self.sink = sink
     self.onEnd = onEnd
     self.failureHandler = failureHandler
     self.levelHandler = levelHandler
+    self.grabadora = grabadora
   }
 
   convenience init(
     analyzerContinuation: AsyncStream<AnalyzerInput>.Continuation,
     failureHandler: @escaping @Sendable (InputError) -> Void,
-    levelHandler: (@Sendable (Float) -> Void)? = nil
+    levelHandler: (@Sendable (Float) -> Void)? = nil,
+    grabadora: GrabadoraEnRAM? = nil
   ) {
     self.init(
       sink: { buffer in
@@ -141,7 +149,8 @@ final class MicrophoneInput: @unchecked Sendable {
       },
       onEnd: { analyzerContinuation.finish() },
       failureHandler: failureHandler,
-      levelHandler: levelHandler
+      levelHandler: levelHandler,
+      grabadora: grabadora
     )
   }
 
@@ -149,10 +158,17 @@ final class MicrophoneInput: @unchecked Sendable {
 #if DEBUG
     if let ruta = ProcessInfo.processInfo.environment[EntradaWAVDeMetricas.variable],
       !ruta.isEmpty {
+      // El WAV también pasa por la grabadora: la medición de soltar→texto
+      // tiene que pagar lo mismo que un dictado de verdad.
+      let copia = copiaBox(para: outputFormat)
+      let sink = self.sink
       let entrada = try EntradaWAVDeMetricas(
         ruta: ruta,
         formatoDelAnalizador: outputFormat,
-        sink: sink,
+        sink: { [weak self] buffer in
+          self?.guardarEnRAM(buffer, copiaBox: copia)
+          return sink(buffer)
+        },
         nivel: levelHandler
       )
       stateLock.withLock {
@@ -196,8 +212,9 @@ final class MicrophoneInput: @unchecked Sendable {
     inputNode.removeTap(onBus: 0)
 
     let converterBox = ConverterBox(outputFormat: outputFormat)
+    let copia = copiaBox(para: outputFormat)
     inputNode.installTap(onBus: 0, bufferSize: 1_024, format: nil) { [weak self] buffer, _ in
-      self?.receive(buffer, converterBox: converterBox)
+      self?.receive(buffer, converterBox: converterBox, copiaBox: copia)
     }
 
     engine.prepare()
@@ -325,10 +342,11 @@ final class MicrophoneInput: @unchecked Sendable {
     engine.inputNode.removeTap(onBus: 0)
   }
 
-  private func receive(_ buffer: AVAudioPCMBuffer, converterBox: ConverterBox) {
+  private func receive(_ buffer: AVAudioPCMBuffer, converterBox: ConverterBox, copiaBox: ConverterBox?) {
     publishLevel(of: buffer)
     do {
       let convertedBuffer = try convert(buffer, using: converterBox)
+      guardarEnRAM(convertedBuffer, copiaBox: copiaBox)
       if !sink(convertedBuffer) {
         reportFailure(.analyzerBackpressure)
       }
@@ -372,6 +390,42 @@ final class MicrophoneInput: @unchecked Sendable {
     }
 
     return outputBuffer
+  }
+
+  /// El formato de la copia en RAM: el que piden los dos motores cuando
+  /// transcriben desde memoria.
+  static let formatoDeLaCopia = AVAudioFormat(
+    commonFormat: .pcmFormatFloat32,
+    sampleRate: PoliticaDeGrabacion.tasa,
+    channels: 1,
+    interleaved: false
+  )
+
+  /// El conversor de la copia, o nil cuando no hace falta ninguno: sin
+  /// grabadora no hay copia, y con Parakeet lo que va al motor ya es 16 kHz
+  /// mono Float32 y se guarda tal cual. Con Apple el formato lo elige
+  /// `SpeechAnalyzer`, y la copia sale de lo ya convertido —sin volver a
+  /// remuestrear desde el hardware—.
+  private func copiaBox(para outputFormat: AVAudioFormat) -> ConverterBox? {
+    guard grabadora != nil, let formato = Self.formatoDeLaCopia, outputFormat != formato else {
+      return nil
+    }
+    return ConverterBox(outputFormat: formato)
+  }
+
+  /// La copia en RAM. Una copia que falla no tumba el dictado: el motor
+  /// sigue escuchando, y lo único que se pierde es poder reintentar.
+  private func guardarEnRAM(_ convertido: AVAudioPCMBuffer, copiaBox: ConverterBox?) {
+    guard let grabadora else { return }
+    let copia: AVAudioPCMBuffer
+    if let copiaBox {
+      guard let convertida = try? convert(convertido, using: copiaBox) else { return }
+      copia = convertida
+    } else {
+      copia = convertido
+    }
+    guard let canal = copia.floatChannelData?[0], copia.frameLength > 0 else { return }
+    grabadora.agregar(UnsafeBufferPointer(start: canal, count: Int(copia.frameLength)))
   }
 
   /// RMS of the first channel (vDSP, so the audio thread barely notices)

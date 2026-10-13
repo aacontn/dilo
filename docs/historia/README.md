@@ -27,5 +27,22 @@ publicados ahí, y tener una copia congelada sólo garantizaba que envejeciera
 mal. El `CONTEXT.md` de la raíz dice lo que de todo aquello sigue siendo cierto
 para Dilo.
 
+## Piezas adaptadas de otros proyectos
+
+Además del árbol de origen, hay código chico adaptado de dos proyectos MIT,
+con su copyright en `LICENSE` y su nombre en Acerca de:
+
+- **imnotpayingforwisprflow**, de Yosef Shammout (MIT): el recorte de
+  silencio en los bordes de una toma (`DiloEngines/RecorteDeBordes.swift`,
+  portado de `Native/audio-activity.h`) y los números del tope de cinco
+  minutos (`DiloEngines/GrabacionEnRAM.swift`, de `RecordingPolicy.swift`).
+- **Muesli**, de Pranav Hari (MIT): las expresiones que reconocen los tokens
+  de control de un motor de voz (`DiloText/FiltroDeArtefactos.swift`, de
+  `TranscriptionEngineArtifactsFilter.swift`).
+
+Cada archivo lleva una línea de origen sobre el bloque adaptado. De otras apps
+que se estudiaron sin licencia abierta sólo se tomó la técnica, nunca el
+código.
+
 El remote `upstream` sigue apuntando al repo de origen: un remote no es un
 archivo del proyecto, y sirve para ir a mirar qué cambió allá.

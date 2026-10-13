@@ -1,4 +1,5 @@
 import AVFAudio
+import DiloEngines
 import DiloText
 import Foundation
 import Speech
@@ -131,6 +132,17 @@ actor SpeechRecognitionService {
   /// protected from eviction: the whole point of keeping them reserved is that
   /// their key answers instantly.
   private var boundLocales: Set<Locale> = []
+  /// Donde el micrófono deja la copia en RAM de cada dictado, para poder
+  /// reintentarlo sin volver a hablar (`MotorConRespaldo`).
+  private let grabadora: GrabadoraEnRAM?
+
+  init(grabadora: GrabadoraEnRAM? = nil) {
+    self.grabadora = grabadora
+  }
+
+  /// Tus palabras tal como se le dan al motor, para que una transcripción
+  /// desde RAM las use igual que el dictado en vivo.
+  func terminosPropios() -> [String] { palabrasPropias }
 
   /// Reports language model downloads, so a wait that can take minutes is
   /// visible instead of looking like a stall.
@@ -251,7 +263,8 @@ actor SpeechRecognitionService {
       failureHandler: { error in
         failureHandler(error.localizedDescription)
       },
-      levelHandler: levelHandler
+      levelHandler: levelHandler,
+      grabadora: grabadora
     )
 
     activeSession = ActiveSession(

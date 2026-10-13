@@ -19,6 +19,9 @@ final class StatusItemController: NSObject {
   private let copiarItem: NSMenuItem
   private let copiarOriginalItem: NSMenuItem
   private var ultimoDictado: UltimoDictado?
+  /// Reintentar o botar la toma que quedó en RAM cuando un dictado no sacó
+  /// texto. Las cablea `AppDelegate`.
+  let tomaFallida = EntradasDeTomaFallida()
   /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
   /// `AppDelegate`; sin él el ítem no hace nada.
   var dictarNota: (() -> Void)?
@@ -116,6 +119,10 @@ final class StatusItemController: NSObject {
     copiarOriginalItem.target = self
     copiarOriginalItem.isHidden = true
     menu.addItem(copiarOriginalItem)
+
+    // Al lado de copiar, porque es lo mismo un paso antes: lo que dijiste,
+    // cuando todavía no hay texto que copiar.
+    tomaFallida.agregar(a: menu)
 
     menu.addItem(.separator())
 

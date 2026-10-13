@@ -3994,24 +3994,24 @@
         }
       }
     },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0).": {
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT).": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0)."
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT)."
           }
         }
       }
     },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · Sparkle, de Andy Matuschak y otros (MIT).": {
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT).": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · Sparkle, by Andy Matuschak and others (MIT)."
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · Sparkle, by Andy Matuschak and others (MIT)."
           }
         }
       }
@@ -5426,6 +5426,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Note saved in Notes, in the Dilo folder."
+          }
+        }
+      }
+    },
+    "Reintentar el dictado que no salió": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry the dictation that didn't come through"
+          }
+        }
+      }
+    },
+    "Descartar la grabación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard the recording"
+          }
+        }
+      }
+    },
+    "Listo: te lo copié. Pégalo con ⌘V.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: I copied it. Paste it with ⌘V."
+          }
+        }
+      }
+    },
+    "Salió, pero no pude copiarlo. Está en «Copiar el último dictado».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It came through, but I couldn't copy it. It's in “Copy the last dictation”."
+          }
+        }
+      }
+    },
+    "Quedan %lld segundos. El dictado termina solo y se pega.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld seconds left. The dictation will end on its own and paste."
+          }
+        }
+      }
+    },
+    "· termino en %lld s": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· ending in %lld s"
           }
         }
       }

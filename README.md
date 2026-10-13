@@ -130,6 +130,11 @@ Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
 - **[Handy](https://github.com/cjpais/Handy)**, de CJ Pais (MIT) — demostró
   que un dictado local, abierto y sin cuenta podía ser mejor que uno de pago.
   De ahí vienen los specs de producto que esta app reescribió en Swift.
+- **imnotpayingforwisprflow**, de Yosef Shammout (MIT), y
+  **[Muesli](https://github.com/Muesli-HQ/muesli)**, de Pranav Hari (MIT) — de
+  ahí salieron el recorte de silencio antes de Parakeet, el tope de cinco
+  minutos de una toma y el filtro de lo que un motor escribe cuando no oyó
+  palabras.
 - **[FluidAudio](https://github.com/FluidInference/FluidAudio)** (Apache 2.0)
   y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
   dependencias.

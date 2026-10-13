@@ -16,6 +16,15 @@ public enum SpeechEngineKind: String, CaseIterable, Sendable {
   /// más que tocar.
   public static let porDefecto: SpeechEngineKind = .parakeet
 
+  /// El otro motor: a quien se le pide una segunda opinión sobre el mismo
+  /// audio cuando éste no sacó texto.
+  public var otro: SpeechEngineKind {
+    switch self {
+    case .parakeet: .apple
+    case .apple: .parakeet
+    }
+  }
+
   public var title: String {
     switch self {
     case .parakeet: "Parakeet v3"
