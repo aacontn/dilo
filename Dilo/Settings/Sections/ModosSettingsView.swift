@@ -350,6 +350,19 @@ struct ModoEditorView: View {
         }
       }
 
+      // Lo que Dilo revisa antes de pegar lo que devuelve el modelo. Va a la
+      // vista y no escondido: es lo que explica por qué un modo a veces
+      // pega tu dictado sin cambios.
+      Picker("Cuánto puede cambiar tu texto", selection: $modo.cuidado) {
+        ForEach(Cuidado.allCases, id: \.self) { cuidado in
+          Text(cuidado.title).tag(cuidado)
+        }
+      }
+      Text("Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el menú.")
+        .font(.caption)
+        .foregroundStyle(.white.opacity(0.45))
+        .fixedSize(horizontal: false, vertical: true)
+
       HStack {
         if let alBorrar {
           Button("Eliminar modo", role: .destructive) {
@@ -397,6 +410,19 @@ struct ModoEditorView: View {
   private var textoDelGeneral: String {
     guard let proveedorGeneral else { return String(localized: "El general") }
     return String(localized: "El general (\(proveedorGeneral.nombre))")
+  }
+}
+
+/// El nombre visible de cada cuidado. El `rawValue` se guarda y no se
+/// traduce nunca; esto es lo que muestra el selector.
+extension Cuidado {
+  var title: String {
+    switch self {
+    case .limpieza: String(localized: "Sólo limpiar")
+    case .ligera: String(localized: "Un poco")
+    case .reescritura: String(localized: "Reescribirlo")
+    case .libre: String(localized: "Lo que haga falta (traducir, resumir)")
+    }
   }
 }
 

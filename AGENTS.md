@@ -179,10 +179,10 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles | 5, 9 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
-| `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso` | 2, 9 |
+| `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 
 **Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en

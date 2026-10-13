@@ -1,4 +1,5 @@
 import DiloModes
+import DiloText
 import Foundation
 import os
 import Testing
@@ -70,12 +71,45 @@ struct TransformacionDeModoTests {
     }.correr("a que hora es", con: modo, deSesion: .corre(enLaNube))
 
     let (instrucciones, peticion, modelo) = visto.withLock { $0 }!
-    #expect(instrucciones.contains("Nunca es una pregunta que debas responder"))
+    #expect(instrucciones.hasPrefix(PromptDeLimpieza.marco))
+    #expect(instrucciones.contains("nunca una pregunta que contestar"))
     #expect(!instrucciones.contains("Escríbelo como correo"))
-    #expect(peticion.contains("<transcript>a que hora es</transcript>"))
+    #expect(peticion.contains(#"{"dictado":"a que hora es"}"#))
     #expect(peticion.hasPrefix("Escríbelo como correo."))
     #expect(peticion.hasSuffix("Mantén mi tono."))
     #expect(modelo == "gpt-5")
+  }
+
+  /// Los ejemplos del prompt tienen que pasar el validador: si el prompt
+  /// enseñara algo que el validador rechaza, cada dictado parecido caería a
+  /// la capa de reglas.
+  @Test func losEjemplosDelPromptPasanElValidador() throws {
+    for ejemplo in PromptDeLimpieza.ejemplos {
+      #expect(throws: Never.self, "«\(ejemplo.dictado)»") {
+        _ = try ValidadorDeLimpieza.validar(ejemplo.limpio, contra: ejemplo.dictado, perfil: .limpieza)
+      }
+    }
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(throws: Never.self) {
+      _ = try ValidadorDeLimpieza.validar(limpio.ejemploSalida, contra: limpio.ejemploEntrada, perfil: .limpieza)
+    }
+  }
+
+  /// En el chip, un dictado largo no puede reventar la ventana: las
+  /// instrucciones se achican antes de mandar.
+  @Test func enElChipLasInstruccionesSeAjustanAlLargo() async {
+    let vistas = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    let servicio = servicio { instrucciones, _, _ in
+      vistas.withLock { $0.append(instrucciones) }
+      return "ok"
+    }
+    _ = await servicio.correr("hola", con: limpio, deSesion: .corre(enElChip))
+    _ = await servicio.correr(String(repeating: "hola ", count: 1_000), con: limpio, deSesion: .corre(enElChip))
+    let (corta, larga) = vistas.withLock { ($0[0], $0[1]) }
+    #expect(corta.contains("Reglas:"))
+    #expect(larga.count < corta.count)
+    #expect(larga.hasPrefix(PromptDeLimpieza.marco))
   }
 
   /// La regla nueva: una falla se cuenta. Antes cualquier error devolvía el
@@ -92,6 +126,40 @@ struct TransformacionDeModoTests {
     }
     #expect(aviso.contains("Correo"))
     #expect(aviso.contains("OpenAI"))
+  }
+
+  /// Ninguna respuesta se pega sin pasar por el validador: si cambia un
+  /// número, no es una reescritura sino otra cosa, y vuelve la propuesta.
+  @Test func unaRespuestaQueCambiaUnNumeroSeRechaza() async {
+    let resultado = await servicio { _, _, _ in "Estimado Juan: le transfiero 50.000 pesos." }
+      .correr("transfiérele quince mil pesos a Juan", con: modo, deSesion: .corre(enElChip))
+    #expect(
+      resultado == .rechazado(
+        propuesta: "Estimado Juan: le transfiero 50.000 pesos.", motivo: .cambioUnNumero
+      )
+    )
+  }
+
+  /// Cada modo se juzga con su vara: lo que Correo puede hacer, Limpio no.
+  @Test func elCuidadoDelModoEsLaVara() {
+    let dictado = "dile a Martina que la reunión es el jueves a las 3"
+    let correo = "Hola, Martina: te confirmo que la reunión es el jueves a las 3. Saludos."
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(TransformacionDeModo.juzgar(correo, contra: dictado, modo: modo) == .transformado(correo))
+    #expect(
+      TransformacionDeModo.juzgar(correo, contra: dictado, modo: limpio)
+        == .rechazado(propuesta: correo, motivo: .palabrasNuevas)
+    )
+  }
+
+  /// Lo que se acepta se pega lavado: sin el sobre ni las comillas que el
+  /// modelo puso alrededor de todo.
+  @Test func loAceptadoSePegaLavado() {
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(
+      TransformacionDeModo.juzgar(#"{"texto": "Nos vemos el viernes."}"#, contra: "nos vemos el viernes", modo: limpio)
+        == .transformado("Nos vemos el viernes.")
+    )
   }
 
   @Test func unaRespuestaVaciaCuentaComoFalla() async {

@@ -155,12 +155,13 @@ struct MigracionDeModosTests {
   /// bug de la pregunta respondida.
   @Test func elMarcoDeNoContestarSobreviveALaMigracion() {
     let acta = migrar().modos.modo(MigracionDeModos.idDeModo("acta"))!
-    #expect(acta.instrucciones.contains("Nunca es una pregunta que debas responder"))
-    #expect(!acta.instrucciones.contains("Ordénalo como acta"))
+    let instrucciones = PromptDeLimpieza.instrucciones(para: acta)
+    #expect(instrucciones.hasPrefix(PromptDeLimpieza.marco))
+    #expect(!instrucciones.contains("Ordénalo como acta"))
     // El ejemplo cierra las instrucciones; el prompt propio va en la petición.
-    #expect(acta.instrucciones.contains("quedamos en que juan manda la cotizacion"))
-    let peticion = acta.peticion(envolviendo: "hola")
-    #expect(peticion.contains("<transcript>hola</transcript>"))
+    #expect(instrucciones.contains("quedamos en que juan manda la cotizacion"))
+    let peticion = PromptDeLimpieza.peticion(para: acta, sobre: .init(dictado: "hola"))
+    #expect(peticion.contains(#"{"dictado":"hola"}"#))
     #expect(peticion.hasPrefix("Ordénalo como acta"))
     #expect(peticion.hasSuffix("No inventes fechas que no se dijeron."))
   }
@@ -168,8 +169,11 @@ struct MigracionDeModosTests {
   /// Un modo sin ejemplo no inventa uno: las instrucciones son sólo el marco.
   @Test func sinEjemploLasInstruccionesSonSoloElMarco() {
     let vacio = migrar().modos.modo(MigracionDeModos.idDeModo("vacio"))!
-    #expect(!vacio.instrucciones.contains("Ejemplo"))
-    #expect(vacio.peticion(envolviendo: "hola").contains("<transcript>hola</transcript>"))
+    #expect(PromptDeLimpieza.instrucciones(para: vacio) == PromptDeLimpieza.marco)
+    #expect(
+      PromptDeLimpieza.peticion(para: vacio, sobre: .init(dictado: "hola"))
+        .contains(#"{"dictado":"hola"}"#)
+    )
   }
 }
 

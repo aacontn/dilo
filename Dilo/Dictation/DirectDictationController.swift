@@ -983,6 +983,7 @@ final class DirectDictationController {
         var text = spoken
         var transformado: String?
         var avisoDelModo: String?
+        var propuestaRechazada: String?
         // El modo primero, la traducción después. Un prompt está escrito en
         // un idioma, con su ejemplo en ese idioma, así que darle una
         // traducción es pedirle trabajar en uno para el que no se escribió.
@@ -997,6 +998,12 @@ final class DirectDictationController {
             // Nunca un segundo proveedor. Se dice qué pasó y las palabras
             // quedan enteras en "Copiar el último dictado".
             avisoDelModo = aviso
+          case let .rechazado(propuesta, motivo):
+            // Lo que devolvió cambiaba el sentido: va la capa de reglas,
+            // que es lo que se pega sin modo, y la propuesta queda en el
+            // menú por si el validador se equivocó.
+            avisoDelModo = motivo.aviso(modo: modo.nombre)
+            propuestaRechazada = propuesta
           case .sinModo:
             break
           }
@@ -1010,7 +1017,8 @@ final class DirectDictationController {
             original: crudo,
             limpio: spoken,
             transformado: transformado,
-            modo: transformado == nil ? nil : modo?.nombre
+            modo: transformado == nil ? nil : modo?.nombre,
+            propuestaRechazada: propuestaRechazada
           )
         )
 

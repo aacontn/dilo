@@ -8,6 +8,23 @@ public protocol ClienteDeProveedor: Sendable {
   func responder(
     instrucciones: String, peticion: String, modelo: String
   ) async throws -> String
+
+  /// Lo mismo, pidiendo la salida con forma (`{"texto": …}`) y sin azar. Es
+  /// lo que usan los modos: un «Claro, aquí tienes:» queda fuera del campo,
+  /// y el mismo dictado da la misma limpieza dos veces.
+  func reescribir(
+    instrucciones: String, peticion: String, modelo: String
+  ) async throws -> String
+}
+
+public extension ClienteDeProveedor {
+  func reescribir(
+    instrucciones: String, peticion: String, modelo: String
+  ) async throws -> String {
+    SalidaConForma.desarmar(
+      try await responder(instrucciones: instrucciones, peticion: peticion, modelo: modelo)
+    )
+  }
 }
 
 public enum FallaDelProveedor: Error, Equatable {
@@ -46,9 +63,29 @@ public struct ClienteHTTP: ClienteDeProveedor {
   public func responder(
     instrucciones: String, peticion: String, modelo: String
   ) async throws -> String {
-    let request = try armar(
-      instrucciones: instrucciones, peticion: peticion, modelo: modelo
-    )
+    try await enviar(armar(instrucciones: instrucciones, peticion: peticion, modelo: modelo))
+  }
+
+  public func reescribir(
+    instrucciones: String, peticion: String, modelo: String
+  ) async throws -> String {
+    do {
+      return SalidaConForma.desarmar(
+        try await enviar(
+          armar(instrucciones: instrucciones, peticion: peticion, modelo: modelo, conForma: true)
+        )
+      )
+    } catch let FallaDelProveedor.respondioMal(codigo) where codigo == 400 {
+      // Un compatible viejo que no conoce el esquema, o un modelo de
+      // razonamiento que sólo acepta su propia temperatura, contesta 400. Se
+      // repite una vez sin las opciones y al mismo proveedor: nunca a otro.
+      return SalidaConForma.desarmar(
+        try await responder(instrucciones: instrucciones, peticion: peticion, modelo: modelo)
+      )
+    }
+  }
+
+  func enviar(_ request: URLRequest) async throws -> String {
     let (datos, respuesta) = try await transporte(request)
     if let http = respuesta as? HTTPURLResponse, !(200 ..< 300).contains(http.statusCode) {
       throw FallaDelProveedor.respondioMal(codigo: http.statusCode)
@@ -59,8 +96,12 @@ public struct ClienteHTTP: ClienteDeProveedor {
     return limpio
   }
 
+  /// - Parameter conForma: temperatura 0 y la salida `{"texto": …}`, con
+  ///   el esquema en el dialecto de cada uno. Anthropic no tiene esquema
+  ///   nativo: ahí lo pide el marco del prompt y la respuesta se desarma
+  ///   igual.
   func armar(
-    instrucciones: String, peticion: String, modelo: String
+    instrucciones: String, peticion: String, modelo: String, conForma: Bool = false
   ) throws -> URLRequest {
     guard let base = proveedor.urlBase else { throw FallaDelProveedor.faltaLaURLBase }
     if proveedor.necesitaClave, clave?.isEmpty ?? true {
@@ -115,6 +156,33 @@ public struct ClienteHTTP: ClienteDeProveedor {
         "system": instrucciones,
         "messages": [["role": "user", "content": peticion]],
       ]
+    }
+
+    if conForma {
+      switch proveedor.dialecto {
+      case .compatibleOpenAI:
+        cuerpo["temperature"] = 0
+        cuerpo["response_format"] = [
+          "type": "json_schema",
+          "json_schema": [
+            "name": "dictado_reescrito", "strict": true, "schema": SalidaConForma.esquema,
+          ],
+        ]
+      case .gemini:
+        cuerpo["generationConfig"] = [
+          "temperature": 0,
+          "responseMimeType": "application/json",
+          "responseSchema": [
+            "type": "OBJECT",
+            "properties": ["texto": ["type": "STRING"]],
+            "required": ["texto"],
+          ],
+        ]
+      case .anthropic:
+        cuerpo["temperature"] = 0
+      case .enElChip:
+        break
+      }
     }
 
     request.httpMethod = "POST"

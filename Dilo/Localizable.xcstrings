@@ -892,6 +892,28 @@
         }
       }
     },
+    "Comandos al dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commands while dictating"
+          }
+        }
+      }
+    },
+    "Corto y común: va a cambiar en todas partes donde lo digas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short and common: it will change everywhere you say it."
+          }
+        }
+      }
+    },
     "CPU": {
       "extractionState": "manual",
       "localizations": {
@@ -1097,6 +1119,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Grow Down"
+          }
+        }
+      }
+    },
+    "Cuando digo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When I say"
+          }
+        }
+      }
+    },
+    "Cuando digo…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When I say…"
+          }
+        }
+      }
+    },
+    "Cuánto puede cambiar tu texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How much it can change your text"
           }
         }
       }
@@ -1383,6 +1438,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo needs Accessibility"
+          }
+        }
+      }
+    },
+    "Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el menú.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo checks what the model returns before pasting it. If it changed a number, a “no” or an address, or answered instead of rewriting, your dictation goes in without the mode and what it proposed stays in the menu."
           }
         }
       }
@@ -1860,6 +1926,17 @@
         }
       }
     },
+    "Escríbelo así": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write it like this"
+          }
+        }
+      }
+    },
     "Escuchar": {
       "extractionState": "manual",
       "localizations": {
@@ -2230,6 +2307,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "Lo que haga falta (traducir, resumir)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whatever it takes (translate, summarize)"
           }
         }
       }
@@ -3147,6 +3235,17 @@
         }
       }
     },
+    "Para lo que Tus palabras no alcanza por parecido: «chat ge pe te» se escribe «ChatGPT». Las tildes no importan al comparar; la ñ sí.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For what Your words can't catch by sound: “chat ge pe te” is written “ChatGPT”. Accents don't matter when matching; ñ does."
+          }
+        }
+      }
+    },
     "Parar": {
       "extractionState": "manual",
       "localizations": {
@@ -3444,6 +3543,17 @@
         }
       }
     },
+    "Puntuar y editar hablando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punctuate and edit by voice"
+          }
+        }
+      }
+    },
     "Que Dilo elija el modo": {
       "extractionState": "manual",
       "localizations": {
@@ -3616,6 +3726,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rewrite what you dictate, on this Mac"
+          }
+        }
+      }
+    },
+    "Reescribirlo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rewrite it"
           }
         }
       }
@@ -3913,6 +4034,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tail Only"
+          }
+        }
+      }
+    },
+    "Sólo limpiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just clean up"
           }
         }
       }
@@ -4418,6 +4550,17 @@
         }
       }
     },
+    "Un poco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A little"
+          }
+        }
+      }
+    },
     "URL base": {
       "extractionState": "manual",
       "localizations": {
@@ -4711,6 +4854,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "still needs its model"
+          }
+        }
+      }
+    },
+    "«Coma», «punto» al final, «nueva línea», «nuevo párrafo», «signo de interrogación», «borra eso». Corre acá mismo y sin modelo. Para escribir la palabra en vez del signo, di «literal» antes: «literal nueva línea».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say “coma”, “punto” at the end, “nueva línea”, “nuevo párrafo”, “signo de interrogación” or “borra eso”. It runs right here, with no model. To write the word instead of the sign, say “literal” first: “literal nueva línea”."
           }
         }
       }

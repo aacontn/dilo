@@ -57,6 +57,65 @@ struct ClienteHTTPTests {
     #expect(cuerpo(request)["system"] as? String == "reescribe")
   }
 
+  /// Con forma: temperatura 0 y la salida `{"texto": …}` en el dialecto de
+  /// cada uno. Sin forma, el request de siempre.
+  @Test func conFormaPideTemperaturaCeroYElEsquemaDeCadaUno() throws {
+    let openai = try ClienteHTTP(
+      proveedor: proveedor(.compatibleOpenAI, "https://api.openai.com/v1"), clave: "k"
+    ).armar(instrucciones: "a", peticion: "b", modelo: "m", conForma: true)
+    #expect(cuerpo(openai)["temperature"] as? Int == 0)
+    let formato = try #require(cuerpo(openai)["response_format"] as? [String: Any])
+    #expect(formato["type"] as? String == "json_schema")
+
+    let gemini = try ClienteHTTP(
+      proveedor: proveedor(.gemini, "https://generativelanguage.googleapis.com/v1beta"), clave: "secreta"
+    ).armar(instrucciones: "a", peticion: "b", modelo: "m", conForma: true)
+    let config = try #require(cuerpo(gemini)["generationConfig"] as? [String: Any])
+    #expect(config["responseMimeType"] as? String == "application/json")
+    #expect(!(gemini.url?.absoluteString.contains("secreta") ?? true))
+
+    let anthropic = try ClienteHTTP(
+      proveedor: proveedor(.anthropic, "https://api.anthropic.com/v1"), clave: "k"
+    ).armar(instrucciones: "a", peticion: "b", modelo: "m", conForma: true)
+    #expect(cuerpo(anthropic)["temperature"] as? Int == 0)
+
+    let sinForma = try ClienteHTTP(
+      proveedor: proveedor(.compatibleOpenAI, "https://api.openai.com/v1"), clave: "k"
+    ).armar(instrucciones: "a", peticion: "b", modelo: "m")
+    #expect(cuerpo(sinForma)["response_format"] == nil)
+    #expect(cuerpo(sinForma)["temperature"] == nil)
+  }
+
+  /// La respuesta con forma se desarma; un 400 por las opciones se repite
+  /// una vez sin ellas, al mismo proveedor.
+  @Test func reescribirDesarmaLaFormaYReintentaSinOpcionesAnteUn400() async throws {
+    let pedidos = Pedidos()
+    let cliente = ClienteHTTP(
+      proveedor: proveedor(.compatibleOpenAI, "https://x/v1"), clave: "k",
+      transporte: { request in
+        let conFormato = await pedidos.anotar(request)
+        let codigo = conFormato ? 400 : 200
+        let cuerpo = #"{"choices":[{"message":{"content":"{\"texto\":\"Hola.\"}"}}]}"#
+        return (
+          Data(cuerpo.utf8),
+          HTTPURLResponse(url: request.url!, statusCode: codigo, httpVersion: nil, headerFields: nil)!
+        )
+      }
+    )
+    #expect(try await cliente.reescribir(instrucciones: "a", peticion: "b", modelo: "m") == "Hola.")
+    #expect(await pedidos.conFormato == [true, false])
+  }
+
+  private actor Pedidos {
+    var conFormato: [Bool] = []
+    func anotar(_ request: URLRequest) -> Bool {
+      let cuerpo = (try? JSONSerialization.jsonObject(with: request.httpBody ?? Data())) as? [String: Any]
+      let lleva = cuerpo?["response_format"] != nil
+      conFormato.append(lleva)
+      return lleva
+    }
+  }
+
   @Test func sinClaveNiSiquieraArmaElRequest() {
     let cliente = ClienteHTTP(
       proveedor: proveedor(.compatibleOpenAI, "https://api.openai.com/v1"), clave: nil

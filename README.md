@@ -133,8 +133,9 @@ Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
 - **imnotpayingforwisprflow**, de Yosef Shammout (MIT), y
   **[Muesli](https://github.com/Muesli-HQ/muesli)**, de Pranav Hari (MIT) — de
   ahí salieron el recorte de silencio antes de Parakeet, el tope de cinco
-  minutos de una toma y el filtro de lo que un motor escribe cuando no oyó
-  palabras.
+  minutos de una toma, el filtro de lo que un motor escribe cuando no oyó
+  palabras, y las reglas y umbrales del validador que revisa lo que devuelve
+  el modelo de texto antes de pegarlo.
 - **[FluidAudio](https://github.com/FluidInference/FluidAudio)** (Apache 2.0)
   y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
   dependencias.

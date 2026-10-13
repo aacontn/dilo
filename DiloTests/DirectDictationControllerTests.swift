@@ -1,5 +1,6 @@
 import DiloCapabilities
 import DiloModes
+import DiloText
 import Foundation
 import os
 import Testing
@@ -939,6 +940,40 @@ struct DirectDictationControllerTests {
     #expect(shapedInput.withLock { $0 } == "um so ship it thursday")
     #expect(translatedInput.withLock { $0 } == "Ship it on Thursday")
     #expect(recorder.insertedTexts == ["envíalo el jueves"])
+    controller.stop()
+  }
+
+  /// Cuando el validador rechaza lo que propuso el modo, se pega lo de la
+  /// capa de reglas —lo mismo que sin modo—, la píldora dice por qué y la
+  /// propuesta queda recuperable en el último dictado.
+  @Test func unRechazoDelValidadorPegaLaCapaDeReglasYGuardaLaPropuesta() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "eh transfiere quince mil pesos" },
+        transformar: { _, _, _ in
+          .rechazado(propuesta: "Transfiere 50.000 pesos.", motivo: .cambioUnNumero)
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    toque(controller, .modo("limpio"))
+    await waitUntil("La sesión nunca se trabó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.modo("limpio")))
+    await waitUntil("El final nunca entregó") { !recorder.insertedTexts.isEmpty }
+
+    #expect(recorder.insertedTexts == ["transfiere quince mil pesos"])
+    #expect(recorder.messages.contains { $0.contains("Limpio cambió un número") })
+    let ultimo = controller.ultimoDictado
+    #expect(ultimo?.texto(.entregado) == "transfiere quince mil pesos")
+    #expect(ultimo?.texto(.propuesta) == "Transfiere 50.000 pesos.")
+    #expect(ultimo?.modo == nil)
     controller.stop()
   }
 

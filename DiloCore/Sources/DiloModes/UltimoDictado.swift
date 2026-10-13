@@ -22,6 +22,10 @@ public struct UltimoDictado: Equatable, Sendable {
   public var transformado: String?
   /// El modo que corrió, por nombre. Nil cuando el dictado salió limpio.
   public var modo: String?
+  /// Lo que el modo propuso y el validador no dejó pegar. Queda porque el
+  /// validador también se equivoca, y un falso rechazo no puede costar la
+  /// limpieza entera. Nil cuando no hubo rechazo.
+  public var propuestaRechazada: String?
   public var cuando: Date
 
   public init(
@@ -29,12 +33,14 @@ public struct UltimoDictado: Equatable, Sendable {
     limpio: String,
     transformado: String? = nil,
     modo: String? = nil,
+    propuestaRechazada: String? = nil,
     cuando: Date = .now
   ) {
     self.original = original
     self.limpio = limpio
     self.transformado = transformado
     self.modo = modo
+    self.propuestaRechazada = propuestaRechazada
     self.cuando = cuando
   }
 
@@ -44,13 +50,21 @@ public struct UltimoDictado: Equatable, Sendable {
     case entregado
     /// Lo que se dijo, tal cual salió del motor.
     case original
+    /// Lo que el modo propuso y el validador rechazó. Vacío si no hubo.
+    case propuesta
   }
 
   public func texto(_ mitad: Mitad) -> String {
     switch mitad {
     case .entregado: transformado ?? limpio
     case .original: original
+    case .propuesta: propuestaRechazada ?? ""
     }
+  }
+
+  /// Si hay una propuesta rechazada que ofrecer.
+  public var tienePropuesta: Bool {
+    !(propuestaRechazada ?? "").isEmpty
   }
 
   /// Si vale la pena ofrecer las dos mitades por separado. Cuando el modo no
