@@ -253,6 +253,11 @@ struct MuescaTests {
   /// El retardo del hover es un ajuste, no una constante: dónde está la línea
   /// entre «me acerqué a mirar» y «pasé camino al menú» depende de cómo mueve
   /// el mouse cada persona. De fábrica, medio segundo.
+  ///
+  /// Desde la intención del puntero (`IntencionDelPuntero`), quieto encima
+  /// abre antes del retardo, pero el ajuste sigue mandando: con 1,2 s la
+  /// permanencia crece en proporción y lo que de fábrica abre a los 160 ms
+  /// acá todavía no abre.
   @MainActor
   @Test func elRetardoDelHoverLoMandaElAjuste() async {
     #expect(AppSettings.previewStore().hudRetardoDeHover == HUDStage.retardoDeHoverDeFabrica)
@@ -273,15 +278,18 @@ struct MuescaTests {
     )
     stage.punteroSeMovio(a: CGPoint(x: silueta.midX, y: silueta.midY))
 
-    await reloj.waitForSleeper()
-    reloj.advance(by: .milliseconds(500))
-    await Task.yield()
-    #expect(!stage.dictationContent.punteroEncima, "medio segundo no alcanza con 1,2 s")
-
-    while !stage.dictationContent.punteroEncima {
-      reloj.advance(by: .milliseconds(700))
+    // En pasos de 10 ms: cada plazo se arma en su propia tarea.
+    while reloj.deadlineClock.now() < .milliseconds(300) {
+      reloj.advance(by: .milliseconds(10))
       await Task.yield()
     }
+    #expect(!stage.dictationContent.punteroEncima, "lo que de fábrica ya abrió, con 1,2 s todavía no")
+
+    while !stage.dictationContent.punteroEncima {
+      reloj.advance(by: .milliseconds(10))
+      await Task.yield()
+    }
+    #expect(reloj.deadlineClock.now() < .milliseconds(1_200), "quieto encima abre antes del retardo entero")
     #expect(stage.dictationContent.contextoVisible == "Correo")
     #expect(!stage.estado.captura, "un hover jamás abre el micrófono")
   }

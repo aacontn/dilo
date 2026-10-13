@@ -602,13 +602,16 @@ final class HUDStage {
     dictationContent.estado = estado
     if !estado.tomaElMouse {
       cancelarHover()
+      intencion.reiniciar()
+      redDeSeguridadTask?.cancel()
+      redDeSeguridadTask = nil
       dictationContent.punteroEncima = false
-    } else if punteroSobreLaSilueta {
+    } else if punteroSobreLaSilueta, !dictationContent.punteroEncima {
       // El puntero ya estaba encima cuando el estado cambió: terminar de
       // dictar con el mouse parado sobre la muesca tiene que volver a abrir
       // el contexto, y el área de seguimiento no manda nada mientras nadie
-      // mueve el mouse.
-      punteroEncima(true)
+      // mueve el mouse. Quieto encima es frenado: abre sin el retardo entero.
+      decidir(conLaMuestra: ultimoPunto ?? posicionDelPuntero(), dentro: true)
     }
     // Un arrastre en curso manda: la superficie de Drop Transcription pide el
     // mouse por su cuenta y no se lo quita un cambio de estado del dictado.
@@ -892,71 +895,109 @@ final class HUDStage {
       tamaño: tamañoDeLaSilueta,
       encuadre: encuadre
     )
-    punteroDentro(silueta.contains(punto))
+    let dentro = silueta.contains(punto)
+    punteroSobreLaSilueta = dentro
+    ultimoPunto = punto
+    guard estado.tomaElMouse else { return }
+    decidir(conLaMuestra: punto, dentro: dentro)
   }
 
   /// El puntero se fue de la ventana entera. El área de seguimiento lo avisa
   /// aunque el último movimiento no haya caído en la silueta.
   func punteroSalio() {
     guard !enMuestra else { return }
-    punteroDentro(false)
+    punteroSobreLaSilueta = false
+    guard estado.tomaElMouse else { return }
+    decidir(conLaMuestra: ultimoPunto ?? posicionDelPuntero(), dentro: false)
   }
 
-  private func punteroDentro(_ dentro: Bool) {
-    guard dentro != punteroSobreLaSilueta else { return }
-    punteroSobreLaSilueta = dentro
-    if estado.tomaElMouse { punteroEncima(dentro) }
-  }
+  /// Dónde estuvo el puntero la última vez que el área de seguimiento avisó.
+  private var ultimoPunto: CGPoint?
 
-  /// El puntero entró o salió de la silueta. La tolerancia va acá y no en la
-  /// vista porque es tiempo, y el tiempo del escenario lo lleva el escenario.
+  /// Si el puntero vino a mirar la muesca o va de paso
+  /// (`IntencionDelPuntero`). El tiempo lo lleva el escenario, con su reloj:
+  /// la intención sólo dice cuándo volver a preguntarle.
+  private var intencion = IntencionDelPuntero()
+
+  /// La red de seguridad del panel abierto (`contextoMaximo`).
+  private var redDeSeguridadTask: Task<Void, Never>?
+
+  /// Una muestra más para la intención, con el retardo que hoy dice Ajustes.
   ///
-  /// Lo llama sólo `punteroDentro`, es decir el área de seguimiento. La vista
+  /// La llama sólo el área de seguimiento (por `punteroSeMovio` y
+  /// `punteroSalio`) o un cambio de estado con el puntero ya encima. La vista
   /// de SwiftUI no opina con su `onHover`: mandaba una salida falsa cada vez
   /// que la ventana cambiaba de tamaño, que es justo lo que el hover hace al
   /// abrirse.
-  private func punteroEncima(_ dentro: Bool) {
-    // La escena `hover` abre el panel sola; el mouse de verdad no lo cierra.
-    guard !enMuestra else { return }
-    hoverTask?.cancel()
-    let retardo = Duration.milliseconds(
+  private func decidir(conLaMuestra punto: CGPoint, dentro: Bool) {
+    intencion.ajustes.retardo = .milliseconds(
       Int((max(0, settings.hudRetardoDeHover) * 1000).rounded())
     )
-    hoverTask = Task { [weak self, reloj] in
-      try? await reloj.sleep(retardo)
-      guard !Task.isCancelled, let self else { return }
-      // Un hover jamás arranca una captura: lo único que toca es qué se
-      // dibuja (contrato del notch).
-      //
-      // **Ya no exige `contexto`.** Pedirlo era la otra mitad del hover
-      // muerto: sólo se escribe al terminar el primer dictado, así que en una
-      // app recién instalada la condición era falsa siempre y el puntero
-      // encima no abría nada. Qué se dice con el panel abierto lo resuelve
-      // `DictationHUDContent.contextoVisible`, que nunca se queda sin algo.
-      let abre = dentro && estado.tomaElMouse
-      // La ventana primero, el contexto después: el panel del hover también
-      // es la silueta creciendo, y crece con la misma curva.
-      if abre { ajustarVentana(a: .abierta) }
-      dictationContent.punteroEncima = dentro && estado.tomaElMouse
-      actualizarZonaInteractiva()
-      guard dictationContent.punteroEncima else {
-        ajustarVentana(a: encuadreNecesario)
-        return
-      }
+    decidir(intencion.muestra(punto, dentro: dentro, t: reloj.now()))
+  }
 
-      // La red de seguridad cierra sólo si el puntero de verdad se fue. Antes
-      // cerraba a los cuatro segundos con el mouse todavía encima, y el panel
-      // se recogía solo mientras alguien lo estaba leyendo: eso también se
-      // lee como un hover que no anda.
+  private func decidir(_ decision: IntencionDelPuntero.Decision) {
+    // La escena `hover` del arnés abre el panel sola; el mouse de verdad no
+    // lo abre ni lo cierra.
+    guard !enMuestra else { return }
+    switch decision {
+    case .nada:
+      break
+    case .abrir:
+      cancelarHover()
+      abrirElPanel()
+    case .cerrar:
+      cancelarHover()
+      cerrarElPanel()
+    case let .revisarEn(plazo):
+      hoverTask?.cancel()
+      hoverTask = Task { [weak self, reloj] in
+        try? await reloj.sleep(plazo)
+        guard !Task.isCancelled, let self else { return }
+        hoverTask = nil
+        guard estado.tomaElMouse else { return }
+        decidir(intencion.revisar(t: reloj.now()))
+      }
+    }
+  }
+
+  /// Abre el panel del hover.
+  ///
+  /// Un hover jamás arranca una captura: lo único que toca es qué se dibuja
+  /// (contrato del notch). Y no exige `contexto`, que sólo existe después del
+  /// primer dictado: qué se dice con el panel abierto lo resuelve
+  /// `DictationHUDContent.contextoVisible`, que nunca se queda sin algo.
+  private func abrirElPanel() {
+    guard estado.tomaElMouse else { return }
+    // La ventana primero, el contexto después: el panel del hover también
+    // es la silueta creciendo, y crece con la misma curva.
+    ajustarVentana(a: .abierta)
+    dictationContent.punteroEncima = true
+    actualizarZonaInteractiva()
+
+    // La red de seguridad cierra sólo si el puntero de verdad se fue. Antes
+    // cerraba a los cuatro segundos con el mouse todavía encima, y el panel
+    // se recogía solo mientras alguien lo estaba leyendo: eso también se
+    // lee como un hover que no anda.
+    redDeSeguridadTask?.cancel()
+    redDeSeguridadTask = Task { [weak self, reloj] in
       repeat {
         try? await reloj.sleep(Self.contextoMaximo)
         guard !Task.isCancelled else { return }
-      } while punteroSigueEncima()
+      } while self?.punteroSigueEncima() == true
+      guard let self else { return }
       punteroSobreLaSilueta = false
-      dictationContent.punteroEncima = false
-      actualizarZonaInteractiva()
-      ajustarVentana(a: encuadreNecesario)
+      intencion.reiniciar()
+      cerrarElPanel()
     }
+  }
+
+  private func cerrarElPanel() {
+    redDeSeguridadTask?.cancel()
+    redDeSeguridadTask = nil
+    dictationContent.punteroEncima = false
+    actualizarZonaInteractiva()
+    ajustarVentana(a: encuadreNecesario)
   }
 
   /// Si el puntero está sobre la silueta según dónde está **ahora**, y no

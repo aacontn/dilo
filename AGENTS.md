@@ -419,6 +419,15 @@ siendo cierto:
   (`DictationHUDContent.contextoVisible`): exigir `contexto`, que sólo existe
   después del primer dictado, dejaba el hover mudo en una app recién
   instalada. Un hover revela contexto y **nunca** arranca una captura.
+- **Cuándo se abre lo decide `IntencionDelPuntero`, no un retardo fijo**
+  (2026-10-13). Quién avisa sigue siendo el área de seguimiento; la
+  intención recibe cada muestra con su instante y devuelve abrir, cerrar o
+  cuándo volver a preguntarle, y `HUDStage` programa ese plazo con su reloj.
+  Quieto (o lento) encima abre a los 160 ms; subiendo rápido hacia la barra
+  no cuenta como frenarse; al salir cierra tras una gracia de 250 ms y no
+  tras el retardo entero. El retardo de Ajustes sigue mandando: subirlo
+  alarga la permanencia en proporción. Los umbrales son de partida, sin medir
+  con Alfonso. La red de seguridad de 4 s se queda.
 - **El alto de la forma no lo impone el contenido.** `HUDSurface` la mide con
   `MarcoDeLaForma`, un `Layout` que anima ancho, alto y apertura juntos; el
   contenido abierto entra a su alto final en el acto, y con `fixedSize` +
