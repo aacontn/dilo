@@ -29,3 +29,15 @@ para Dilo.
 
 El remote `upstream` sigue apuntando al repo de origen: un remote no es un
 archivo del proyecto, y sirve para ir a mirar qué cambió allá.
+
+## El validador de la limpieza
+
+`DiloCore/Sources/DiloText/ValidadorDeLimpieza.swift` adapta reglas y umbrales
+de **imnotpayingforwisprflow**, de Yosef Shammout (MIT,
+`Sources/LocalDictation/CleanupClient.swift`), y de **Muesli**, de Pranav Hari
+(MIT, `Qwen3PostProcessor.swift`), reescritos con listas del español de Chile.
+Su copyright está en `LICENSE` y su nombre en Acerca de. Los umbrales de
+palabras de BetterWispr se tomaron como dato, sin copiar texto de su archivo,
+que es GPL. El prompt de limpieza, los comandos de formato y los reemplazos son
+código propio: de otras apps se tomó sólo la técnica, y cada archivo dice de
+dónde.

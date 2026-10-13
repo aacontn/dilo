@@ -134,4 +134,9 @@ Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
   y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
   dependencias.
 
+El validador que revisa lo que devuelve el modelo de texto antes de pegarlo
+adapta reglas y umbrales de **imnotpayingforwisprflow**, de Yosef Shammout, y
+de **[Muesli](https://github.com/Muesli-HQ/muesli)**, de Pranav Hari (los dos
+MIT).
+
 Cómo llegó cada cosa acá está en [`docs/historia/`](docs/historia/README.md).
