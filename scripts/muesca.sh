@@ -35,7 +35,7 @@ fi
 if [[ "$1" == "lista" ]]; then
   # Las escenas salen del enum y no de una copia acá: una lista escrita dos
   # veces es la que se desincroniza.
-  sed -n '/^enum EscenaDeMuestra/,/^  \/\/\//p' "$raiz/Dilo/CoreHUD/EscenaDeMuestra.swift" \
+  sed -n '/^enum EscenaDeMuestra/,/var textoDeMuestra/p' "$raiz/Dilo/CoreHUD/EscenaDeMuestra.swift" \
     | sed -n 's/^  case \([a-zA-Z]*\)\( = "\([^"]*\)"\)\{0,1\}$/\1 \3/p' \
     | awk '{ print ($2 != "" ? $2 : $1) }'
   echo "todas"
