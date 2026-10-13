@@ -24,6 +24,7 @@ struct MuestraEnCurso {
   fileprivate let modosDelPanel: [ModoDelPanel]
   fileprivate let modoDelPanelID: String?
   fileprivate let ofreceNota: Bool
+  fileprivate let traduccionDelPanel: TraduccionDelPanel?
   fileprivate let contexto: String?
   fileprivate let datoIzquierdo: LadoDeLaMuesca?
   fileprivate let datoDerecho: LadoDeLaMuesca?
@@ -32,10 +33,12 @@ struct MuestraEnCurso {
   fileprivate let botones: Botones
 
   /// Los cierres que los botones de la forma llaman. Mientras dura la muestra
-  /// quedan en nil: «Nota» no abre un dictado, un reciente no se copia, un
-  /// modo no se elige (los botones apagados del arnés).
+  /// quedan en nil: «Nota» y «Traducir» no abren un dictado, un reciente no se
+  /// copia, un modo no se elige (los botones apagados del arnés).
   fileprivate struct Botones {
-    var alTerminarNota: (() -> Void)?
+    var alTerminarSesionTrabada: (() -> Void)?
+    var alDictarTraduciendo: (() -> Void)?
+    var alElegirIdiomaDeTraduccion: (() -> Void)?
     var alCopiarReciente: ((ElementoReciente) -> Void)?
     var alElegirModo: ((String?) -> Void)?
     var alAbrirReunion: (() -> Void)?
@@ -46,7 +49,9 @@ struct MuestraEnCurso {
 
     @MainActor
     init(de content: DictationHUDContent) {
-      alTerminarNota = content.alTerminarNota
+      alTerminarSesionTrabada = content.alTerminarSesionTrabada
+      alDictarTraduciendo = content.alDictarTraduciendo
+      alElegirIdiomaDeTraduccion = content.alElegirIdiomaDeTraduccion
       alCopiarReciente = content.alCopiarReciente
       alElegirModo = content.alElegirModo
       alAbrirReunion = content.alAbrirReunion
@@ -58,7 +63,9 @@ struct MuestraEnCurso {
 
     @MainActor
     func poner(en content: DictationHUDContent) {
-      content.alTerminarNota = alTerminarNota
+      content.alTerminarSesionTrabada = alTerminarSesionTrabada
+      content.alDictarTraduciendo = alDictarTraduciendo
+      content.alElegirIdiomaDeTraduccion = alElegirIdiomaDeTraduccion
       content.alCopiarReciente = alCopiarReciente
       content.alElegirModo = alElegirModo
       content.alAbrirReunion = alAbrirReunion
@@ -87,6 +94,7 @@ struct MuestraEnCurso {
     modosDelPanel = content.modosDelPanel
     modoDelPanelID = content.modoDelPanelID
     ofreceNota = content.ofreceNota
+    traduccionDelPanel = content.traduccionDelPanel
     contexto = content.contexto
     datoIzquierdo = content.datoIzquierdo
     datoDerecho = content.datoDerecho
@@ -103,6 +111,7 @@ struct MuestraEnCurso {
     content.modosDelPanel = modosDelPanel
     content.modoDelPanelID = modoDelPanelID
     content.ofreceNota = ofreceNota
+    content.traduccionDelPanel = traduccionDelPanel
     content.contexto = contexto
     content.datoIzquierdo = datoIzquierdo
     content.datoDerecho = datoDerecho
@@ -273,6 +282,7 @@ extension HUDStage {
     ]
     dictationContent.modoDelPanelID = "correo"
     dictationContent.ofreceNota = true
+    dictationContent.traduccionDelPanel = .hacia("EN")
   }
 }
 #endif

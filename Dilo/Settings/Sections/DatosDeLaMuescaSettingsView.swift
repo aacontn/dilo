@@ -583,6 +583,15 @@ private struct PanelDelHoverSettings: View {
       }
 
       SettingsRow(
+        title: "Traducir",
+        description: "Un botón para dictar y que se pegue traducido al idioma que elegiste en Dictado. Si todavía no elegiste uno, el botón te lleva a elegirlo."
+      ) {
+        Toggle("", isOn: $settings.hudTraducirEnElPanel)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
+
+      SettingsRow(
         title: "Cambiar de modo",
         description: "Tus modos, para elegir con un clic cuál usa el atajo de siempre. «Normal» es el dictado limpio, sin IA."
       ) {

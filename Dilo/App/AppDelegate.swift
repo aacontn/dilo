@@ -133,7 +133,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     stage.alPedirReintento = { dictationController.reintentarTomaFallida() }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
-    stage.dictationContent.alTerminarNota = { dictationController.dictarNota() }
+    stage.dictationContent.alTerminarSesionTrabada = { dictationController.terminarSesionTrabada() }
+    stage.dictationContent.alDictarTraduciendo = { dictationController.dictarTraduciendo() }
+    stage.dictationContent.alElegirIdiomaDeTraduccion = { [weak self] in
+      self?.showSettings(seccion: .dictation, reclamandoElFoco: true)
+    }
 
     // El notch como escenario permanente: la forma se pone en pantalla acá y
     // no se va más; lo que cambia después es su tamaño y su estado

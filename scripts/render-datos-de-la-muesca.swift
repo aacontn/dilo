@@ -123,6 +123,7 @@ enum RenderDatos {
     ]
     panel.modoDelPanelID = "correo"
     panel.ofreceNota = true
+    panel.traduccionDelPanel = .hacia("EN")
     for oscuro in [true, false] {
       try escribir(
         escritorio(pantalla: conPanel, oscuro: oscuro, alto: 280) {
@@ -140,6 +141,7 @@ enum RenderDatos {
     nota.isRevealed = true
     nota.showsVoiceVisual = true
     nota.esNota = true
+    nota.trabada = true
     nota.text = "Comprar pan, leche y "
     nota.volatileText = "café"
     try escribir(
@@ -149,6 +151,24 @@ enum RenderDatos {
       tamaño: CGSize(width: 640, height: 150),
       oscuro: true,
       como: "dictando-nota"
+    )
+
+    // Traduciendo, trabado: el par de idiomas adelante y el ✓ al final.
+    let traduciendo = DictationHUDContent()
+    traduciendo.estado = .dictando
+    traduciendo.isRevealed = true
+    traduciendo.showsVoiceVisual = true
+    traduciendo.trabada = true
+    traduciendo.languageTag = "ES → EN"
+    traduciendo.text = "Nos vemos el lunes en la "
+    traduciendo.volatileText = "oficina"
+    try escribir(
+      escritorio(pantalla: pantallaSimulada, oscuro: true) {
+        DictationHUDShellView(screen: pantallaSimulada, settings: settings.sessionSettings, content: traduciendo)
+      },
+      tamaño: CGSize(width: 640, height: 150),
+      oscuro: true,
+      como: "dictando-traduciendo"
     )
 
     // CPU y RAM, que tienen una sola fila.
