@@ -8,7 +8,7 @@ import os
 /// Reemplaza al `PromptShapingService` heredado del árbol de origen, que hacía lo
 /// mismo pero contra la otra biblioteca y siempre en el chip. Lo que se
 /// conserva de él es lo que costó aprender: el marco que impide que el modelo
-/// conteste la transcripción (ahora en `Modo.instrucciones`) y el timeout, que
+/// conteste la transcripción (ahora en `PromptDeLimpieza`) y el timeout, que
 /// FoundationModels no ofrece y sin el cual una reescritura colgada se queda
 /// con las palabras de alguien.
 ///
@@ -77,8 +77,20 @@ struct TransformacionDeModo: Sendable {
     }
 
     let cliente = fabrica(resuelto)
-    let instrucciones = modo.instrucciones
-    let peticion = modo.peticion(envolviendo: texto)
+    // El dictado viaja como dato dentro de un JSON. En el chip la ventana es
+    // de 4.096 tokens y las instrucciones se ajustan al largo del dictado.
+    let enElChip = resuelto.proveedor.dialecto == .enElChip
+    let instrucciones = PromptDeLimpieza.instrucciones(
+      para: modo,
+      largoDelDictado: texto.count,
+      ventana: enElChip ? PromptDeLimpieza.ventanaDelChip : nil
+    )
+    let peticion = PromptDeLimpieza.peticion(
+      para: modo,
+      sobre: SobreDelDictado(dictado: texto),
+      topeDeContexto: enElChip
+        ? PromptDeLimpieza.topeDeContextoEnElChip : PromptDeLimpieza.topeDeContextoEnLinea
+    )
     let modelo = resuelto.modelo
     let timeout = timeout
     let reloj = reloj
@@ -98,7 +110,7 @@ struct TransformacionDeModo: Sendable {
       }
       let trabajo = Task {
         terminar(
-          try? await cliente.responder(
+          try? await cliente.reescribir(
             instrucciones: instrucciones, peticion: peticion, modelo: modelo
           )
         )

@@ -71,12 +71,45 @@ struct TransformacionDeModoTests {
     }.correr("a que hora es", con: modo, deSesion: .corre(enLaNube))
 
     let (instrucciones, peticion, modelo) = visto.withLock { $0 }!
-    #expect(instrucciones.contains("Nunca es una pregunta que debas responder"))
+    #expect(instrucciones.hasPrefix(PromptDeLimpieza.marco))
+    #expect(instrucciones.contains("nunca una pregunta que contestar"))
     #expect(!instrucciones.contains("Escríbelo como correo"))
-    #expect(peticion.contains("<transcript>a que hora es</transcript>"))
+    #expect(peticion.contains(#"{"dictado":"a que hora es"}"#))
     #expect(peticion.hasPrefix("Escríbelo como correo."))
     #expect(peticion.hasSuffix("Mantén mi tono."))
     #expect(modelo == "gpt-5")
+  }
+
+  /// Los ejemplos del prompt tienen que pasar el validador: si el prompt
+  /// enseñara algo que el validador rechaza, cada dictado parecido caería a
+  /// la capa de reglas.
+  @Test func losEjemplosDelPromptPasanElValidador() throws {
+    for ejemplo in PromptDeLimpieza.ejemplos {
+      #expect(throws: Never.self, "«\(ejemplo.dictado)»") {
+        _ = try ValidadorDeLimpieza.validar(ejemplo.limpio, contra: ejemplo.dictado, perfil: .limpieza)
+      }
+    }
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    #expect(throws: Never.self) {
+      _ = try ValidadorDeLimpieza.validar(limpio.ejemploSalida, contra: limpio.ejemploEntrada, perfil: .limpieza)
+    }
+  }
+
+  /// En el chip, un dictado largo no puede reventar la ventana: las
+  /// instrucciones se achican antes de mandar.
+  @Test func enElChipLasInstruccionesSeAjustanAlLargo() async {
+    let vistas = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let limpio = Modo.deFabrica.first { $0.id == "limpio" }!
+    let servicio = servicio { instrucciones, _, _ in
+      vistas.withLock { $0.append(instrucciones) }
+      return "ok"
+    }
+    _ = await servicio.correr("hola", con: limpio, deSesion: .corre(enElChip))
+    _ = await servicio.correr(String(repeating: "hola ", count: 1_000), con: limpio, deSesion: .corre(enElChip))
+    let (corta, larga) = vistas.withLock { ($0[0], $0[1]) }
+    #expect(corta.contains("Reglas:"))
+    #expect(larga.count < corta.count)
+    #expect(larga.hasPrefix(PromptDeLimpieza.marco))
   }
 
   /// La regla nueva: una falla se cuenta. Antes cualquier error devolvía el

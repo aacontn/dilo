@@ -49,7 +49,37 @@ public struct ClienteEnElChip: ClienteDeProveedor {
       throw FallaDelProveedor.respondioMal(codigo: -1)
     #endif
   }
+
+  /// Con generación guiada: el decodificador del framework sólo deja
+  /// escribir el campo `texto`, así que un preámbulo de asistente no tiene
+  /// dónde ir. Codicioso, para que el mismo dictado dé la misma limpieza.
+  public func reescribir(
+    instrucciones: String, peticion: String, modelo _: String
+  ) async throws -> String {
+    #if canImport(FoundationModels)
+      let sesion = LanguageModelSession(instructions: instrucciones)
+      let respuesta = try await sesion.respond(
+        to: peticion,
+        generating: DictadoReescrito.self,
+        options: GenerationOptions(samplingMode: .greedy)
+      )
+      let texto = respuesta.content.texto.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !texto.isEmpty else { throw FallaDelProveedor.respuestaVacia }
+      return texto
+    #else
+      throw FallaDelProveedor.respondioMal(codigo: -1)
+    #endif
+  }
 }
+
+#if canImport(FoundationModels)
+  /// La forma de la salida en el chip: un campo y nada más.
+  @Generable
+  struct DictadoReescrito {
+    @Guide(description: "El dictado reescrito. Nunca una respuesta ni un comentario.")
+    var texto: String
+  }
+#endif
 
 /// El cliente que corresponde a un proveedor ya resuelto.
 public enum FabricaDeClientes {
