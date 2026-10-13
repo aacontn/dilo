@@ -99,4 +99,24 @@ struct RevisionDeTomaTests {
     #expect(await MotorConRespaldo.conPlazo(.seconds(5), reloj: RelojFalso()) { "a tiempo" } == "a tiempo")
     #expect(await MotorConRespaldo.conPlazo(.seconds(5), reloj: RelojFalso()) { throw EngineError.sinMicrofono } == nil)
   }
+
+  /// Lo que la revisión le suma a soltar→texto cuando todo sale bien: pasar
+  /// la toma a Float, medirla y depurar el texto. Un minuto de dictado, en
+  /// Debug, tiene que quedar lejos de los 300 ms del spec.
+  @Test func elCaminoFelizCuestaPoco() async {
+    let toma = TomaDeAudio(
+      muestras: (0..<960_000).map { Int16(truncatingIfNeeded: ($0 * 7_919) % 6_000 - 3_000) })
+    let texto = String(
+      repeating: "Mañana te mando el informe del proyecto, sin falta, antes de la reunión. ", count: 14)
+    let reloj = ContinuousClock()
+    var veredicto: RevisionDeToma.Veredicto?
+    let duro = await reloj.measure {
+      let muestras = toma.comoFloat()
+      let medida = MedidaDeToma.medir(muestras)
+      veredicto = await RevisionDeToma.revisar(crudo: texto, medida: medida, otroMotor: nil)
+    }
+    print("Revisión de una toma de 60 s con \(texto.count) caracteres: \(duro)")
+    #expect(veredicto != nil)
+    #expect(duro < .milliseconds(50))
+  }
 }
