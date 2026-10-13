@@ -76,6 +76,8 @@ final class AppSettings {
     static let palabrasPropias = "diloPalabrasPropias"
     static let limpiarMuletillas = "diloLimpiarMuletillas"
     static let muletillasPropias = "diloMuletillasPropias"
+    static let comandosDeFormato = "diloComandosDeFormato"
+    static let reemplazos = "diloReemplazos"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -207,11 +209,29 @@ final class AppSettings {
     didSet { defaults.set(muletillasPropias, forKey: Keys.muletillasPropias) }
   }
 
+  /// Si «coma», «punto», «nueva línea» y «borra eso» se convierten en lo
+  /// que dicen. Prendido de fábrica: corre sin modelo y sin internet.
+  var comandosDeFormato: Bool {
+    didSet { defaults.set(comandosDeFormato, forKey: Keys.comandosDeFormato) }
+  }
+
+  /// «Cuando digo… / Escríbelo así». Se guarda como JSON; una lista que no
+  /// se puede leer vuelve vacía en vez de tumbar los ajustes.
+  var reemplazos: [Reemplazo] {
+    didSet {
+      if let datos = try? JSONEncoder().encode(reemplazos) {
+        defaults.set(datos, forKey: Keys.reemplazos)
+      }
+    }
+  }
+
   /// Lo que `DiloText` necesita saber, armado en un solo lugar.
   var preferenciasDeTexto: DiloText.Preferencias {
     DiloText.Preferencias(
       muletillasPropias: limpiarMuletillas ? (muletillasPropias.isEmpty ? nil : muletillasPropias) : [],
-      palabrasPropias: palabrasPropias
+      palabrasPropias: palabrasPropias,
+      comandosDeFormato: comandosDeFormato,
+      reemplazos: reemplazos
     )
   }
 
@@ -560,6 +580,9 @@ final class AppSettings {
     palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
     limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true
     muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
+    comandosDeFormato = defaults.object(forKey: Keys.comandosDeFormato) as? Bool ?? true
+    reemplazos = defaults.data(forKey: Keys.reemplazos)
+      .flatMap { try? JSONDecoder().decode([Reemplazo].self, from: $0) } ?? []
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas

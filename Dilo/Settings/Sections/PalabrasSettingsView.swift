@@ -14,6 +14,8 @@ struct PalabrasSettingsView: View {
   @Environment(\.colorSchemeContrast) private var contrast
   @State private var palabraNueva = ""
   @State private var muletillaNueva = ""
+  @State private var diceNuevo = ""
+  @State private var escribeNuevo = ""
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -37,6 +39,47 @@ struct PalabrasSettingsView: View {
             Button("Quitar") { settings.palabrasPropias.removeAll { $0 == palabra } }
               .buttonStyle(SettingsButtonStyle())
           }
+        }
+      }
+
+      SettingsCard(title: "Cuando digo…") {
+        SettingsRow(
+          title: "Escríbelo así",
+          description: "Para lo que Tus palabras no alcanza por parecido: «chat ge pe te» se escribe «ChatGPT». Las tildes no importan al comparar; la ñ sí."
+        ) {
+          HStack(spacing: 8) {
+            TextField("Cuando digo", text: $diceNuevo)
+              .frame(width: 110)
+            TextField("Escríbelo así", text: $escribeNuevo)
+              .frame(width: 110)
+              .onSubmit { agregarReemplazo() }
+            Button("Agregar") { agregarReemplazo() }
+              .buttonStyle(SettingsButtonStyle())
+              .disabled(!reemplazoNuevoSirve)
+          }
+        }
+
+        ForEach(settings.reemplazos, id: \.self) { reemplazo in
+          SettingsRow(
+            title: "\(reemplazo.dice) → \(reemplazo.escribe)",
+            description: reemplazo.dice.count < 4
+              ? "Corto y común: va a cambiar en todas partes donde lo digas."
+              : ""
+          ) {
+            Button("Quitar") { settings.reemplazos.removeAll { $0 == reemplazo } }
+              .buttonStyle(SettingsButtonStyle())
+          }
+        }
+      }
+
+      SettingsCard(title: "Comandos al dictar") {
+        SettingsRow(
+          title: "Puntuar y editar hablando",
+          description: "«Coma», «punto» al final, «nueva línea», «nuevo párrafo», «signo de interrogación», «borra eso». Corre acá mismo y sin modelo. Para escribir la palabra en vez del signo, di «literal» antes: «literal nueva línea»."
+        ) {
+          Toggle("Puntuar y editar hablando", isOn: $settings.comandosDeFormato)
+            .labelsHidden()
+            .toggleStyle(.switch)
         }
       }
 
@@ -94,6 +137,26 @@ struct PalabrasSettingsView: View {
       settings.palabrasPropias + [limpia]
     )
     palabraNueva = ""
+  }
+
+  private var reemplazoNuevoSirve: Bool {
+    !diceNuevo.trimmingCharacters(in: .whitespaces).isEmpty
+      && !escribeNuevo.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  /// Uno por frase: si ya había uno para lo mismo, el nuevo lo reemplaza.
+  private func agregarReemplazo() {
+    guard reemplazoNuevoSirve else { return }
+    let nuevo = Reemplazo(
+      dice: diceNuevo.trimmingCharacters(in: .whitespacesAndNewlines),
+      escribe: escribeNuevo.trimmingCharacters(in: .whitespacesAndNewlines)
+    )
+    settings.reemplazos.removeAll {
+      $0.dice.localizedCaseInsensitiveCompare(nuevo.dice) == .orderedSame
+    }
+    settings.reemplazos.append(nuevo)
+    diceNuevo = ""
+    escribeNuevo = ""
   }
 
   private func agregarMuletilla() {

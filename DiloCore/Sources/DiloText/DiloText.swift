@@ -3,10 +3,14 @@ import Foundation
 /// La costura de español de Dilo: todo lo que el motor reconoce pasa por acá
 /// antes de que nadie más lo toque.
 ///
-/// Tres pasos, en este orden: espacios, muletillas, tus palabras. Las
-/// muletillas van antes del diccionario porque borrar un "eh" del medio deja
-/// juntas dos palabras que eran una sola ("Charge eh B"), y el diccionario
-/// las puede unir; al revés, no.
+/// Cinco pasos, en este orden: espacios, comandos de formato, muletillas,
+/// reemplazos y tus palabras. Los comandos van antes de las muletillas
+/// porque «o sea coma» tiene que quedar «o sea,» para que la regla de la
+/// pausa lo reconozca. Las muletillas van antes del diccionario porque borrar
+/// un "eh" del medio deja juntas dos palabras que eran una sola ("Charge eh
+/// B"), y el diccionario las puede unir; al revés, no. Los reemplazos van
+/// antes de tus palabras para que «chat ge pe te» llegue como «ChatGPT» y no
+/// como una corrección por parecido a medias.
 public enum DiloText {
   /// Lo que la persona configuró. Se captura con el resto de los ajustes de
   /// la sesión: cambiar una palabra a mitad de dictado aplica al siguiente.
@@ -16,15 +20,24 @@ public enum DiloText {
     public var muletillasPropias: [String]?
     public var palabrasPropias: [String]
     public var umbral: Double
+    /// «Coma», «punto», «nueva línea», «borra eso». Prendido de fábrica:
+    /// sin él, un salto de línea dictado sin modo no tiene cómo llegar.
+    public var comandosDeFormato: Bool
+    /// «Cuando digo… / Escríbelo así».
+    public var reemplazos: [Reemplazo]
 
     public init(
       muletillasPropias: [String]? = nil,
       palabrasPropias: [String] = [],
-      umbral: Double = DiccionarioPersonal.umbralDeFabrica
+      umbral: Double = DiccionarioPersonal.umbralDeFabrica,
+      comandosDeFormato: Bool = true,
+      reemplazos: [Reemplazo] = []
     ) {
       self.muletillasPropias = muletillasPropias
       self.palabrasPropias = palabrasPropias
       self.umbral = umbral
+      self.comandosDeFormato = comandosDeFormato
+      self.reemplazos = reemplazos
     }
 
     public static let deFabrica = Preferencias()
@@ -34,11 +47,14 @@ public enum DiloText {
     _ texto: String, con preferencias: Preferencias = .deFabrica
   ) -> String {
     let sinEspaciosDeMas = limpiarEspacios(texto)
+    let conSignos = preferencias.comandosDeFormato
+      ? ComandosDeFormato.aplicar(sinEspaciosDeMas) : sinEspaciosDeMas
     let sinMuletillas = Muletillas.limpiar(
-      sinEspaciosDeMas, propias: preferencias.muletillasPropias
+      conSignos, propias: preferencias.muletillasPropias
     )
+    let reemplazado = Reemplazos.aplicar(preferencias.reemplazos, a: sinMuletillas)
     return DiccionarioPersonal.aplicar(
-      sinMuletillas,
+      reemplazado,
       palabras: preferencias.palabrasPropias,
       umbral: preferencias.umbral
     )

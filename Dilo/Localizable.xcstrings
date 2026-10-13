@@ -892,6 +892,28 @@
         }
       }
     },
+    "Comandos al dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commands while dictating"
+          }
+        }
+      }
+    },
+    "Corto y común: va a cambiar en todas partes donde lo digas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short and common: it will change everywhere you say it."
+          }
+        }
+      }
+    },
     "CPU": {
       "extractionState": "manual",
       "localizations": {
@@ -1097,6 +1119,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Grow Down"
+          }
+        }
+      }
+    },
+    "Cuando digo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When I say"
+          }
+        }
+      }
+    },
+    "Cuando digo…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When I say…"
           }
         }
       }
@@ -1878,6 +1922,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ already uses that key. Pick another, or take it away from that one first: two modes on one key is a dead shortcut."
+          }
+        }
+      }
+    },
+    "Escríbelo así": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write it like this"
           }
         }
       }
@@ -3191,6 +3246,17 @@
         }
       }
     },
+    "Para lo que Tus palabras no alcanza por parecido: «chat ge pe te» se escribe «ChatGPT». Las tildes no importan al comparar; la ñ sí.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For what Your words can't catch by sound: “chat ge pe te” is written “ChatGPT”. Accents don't matter when matching; ñ does."
+          }
+        }
+      }
+    },
     "Parar": {
       "extractionState": "manual",
       "localizations": {
@@ -3484,6 +3550,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dots"
+          }
+        }
+      }
+    },
+    "Puntuar y editar hablando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punctuate and edit by voice"
           }
         }
       }
@@ -4788,6 +4865,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "still needs its model"
+          }
+        }
+      }
+    },
+    "«Coma», «punto» al final, «nueva línea», «nuevo párrafo», «signo de interrogación», «borra eso». Corre acá mismo y sin modelo. Para escribir la palabra en vez del signo, di «literal» antes: «literal nueva línea».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say “coma”, “punto” at the end, “nueva línea”, “nuevo párrafo”, “signo de interrogación” or “borra eso”. It runs right here, with no model. To write the word instead of the sign, say “literal” first: “literal nueva línea”."
           }
         }
       }
