@@ -255,13 +255,18 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     captura.detener()
     handlers = nil
 
-    let audio = muestras
+    var audio = muestras
     muestras.removeAll(keepingCapacity: false)
-    // Un apretón sin voz no vale una pasada por el modelo.
-    guard audio.count > Int(Self.sampleRate * 0.2) else {
+    // Un apretón sin voz no vale una pasada por el modelo. Antes la regla era
+    // «más de 0,2 s de audio», hubiera voz o no; ahora decide el recorte de
+    // bordes, que además le saca al modelo el silencio de las puntas: menos
+    // audio que transcribir al soltar, y nada de silencio sobre el que
+    // inventar.
+    guard let tramo = RecorteDeBordes.preparar(&audio) else {
       armarDescargaPorReposo()
       return ""
     }
+    if tramo.count < audio.count { audio = Array(audio[tramo]) }
 
     // Acá se espera al modelo si todavía viene en camino. Las palabras ya
     // están grabadas: perderlas por llegar antes que Core ML sería la peor
