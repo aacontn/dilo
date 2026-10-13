@@ -10,7 +10,7 @@ import SwiftUI
 /// captura de pantalla.
 ///
 /// Compila con la **geometría de verdad** (`HUDNotchGeometry`,
-/// `NotchFilletShape`), no con una copia: si la silueta cambia en la app,
+/// `SiluetaDeLaMuesca`), no con una copia: si la silueta cambia en la app,
 /// cambia acá. Lo que sí es de mentira es el contenido —la onda, el texto
 /// parcial, el chip—, porque arrastrar la vista de dictado entera traería la
 /// app completa y estos PNG son para aprobar la **forma**.
@@ -142,32 +142,16 @@ enum RenderDeLaMuesca {
       .fixedSize(horizontal: false, vertical: true)
       .frame(minHeight: tamaño.height, alignment: .top)
       .background {
-        UnevenRoundedRectangle(
-          topLeadingRadius: 0,
-          bottomLeadingRadius: radio,
-          bottomTrailingRadius: radio,
-          topTrailingRadius: 0,
-          style: .continuous
-        )
-        .fill(Color.black)
-        .shadow(
-          color: .black.opacity(sombra ? 0.35 : 0),
-          radius: sombra ? HUDMetrics.standard.shadowRadius : 0,
-          y: sombra ? HUDMetrics.standard.shadowOffsetY : 0
-        )
+        // La silueta de la app, en una pieza, con sus alas fuera del marco
+        // (`SiluetaDeLaMuesca`): la misma que dibuja `HUDSurface`.
+        SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: fillet, radioInferior: radio)
+          .fill(Color.black)
+          .shadow(
+            color: .black.opacity(sombra ? 0.35 : 0),
+            radius: sombra ? HUDMetrics.standard.shadowRadius : 0,
+            y: sombra ? HUDMetrics.standard.shadowOffsetY : 0
+          )
       }
-      .overlay(alignment: .topLeading) { ala(.leading, fillet) }
-      .overlay(alignment: .topTrailing) { ala(.trailing, fillet) }
-  }
-
-  @ViewBuilder
-  static func ala(_ lado: HorizontalEdge, _ fillet: CGFloat) -> some View {
-    if fillet > 0 {
-      Color.black
-        .frame(width: fillet, height: fillet)
-        .clipShape(NotchFilletShape(side: lado))
-        .offset(x: lado == .leading ? -fillet : fillet)
-    }
   }
 
   /// La ventana anfitriona: del tamaño real y anclando la forma arriba y al

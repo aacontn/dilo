@@ -29,6 +29,7 @@ swiftc -O \
   "$raiz/Dilo/CoreHUD/HUDNotchGeometry.swift" \
   "$raiz/Dilo/CoreHUD/HUDRevealStyle.swift" \
   "$raiz/Dilo/CoreHUD/NotchFilletShape.swift" \
+  "$raiz/Dilo/CoreHUD/SiluetaDeLaMuesca.swift" \
   "$raiz/Dilo/Dictation/HUD/Visuals/HUDVoiceVisualStyle.swift" \
   "$raiz/Dilo/CoreHUD/HUDMetrics.swift" \
   "$raiz/scripts/render-muesca.swift" \

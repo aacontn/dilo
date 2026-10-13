@@ -22,7 +22,11 @@ struct HUDRippleModifier: ViewModifier {
         .float(6),      // decay
         .float(1200)    // speed, pt/s — crosses the shape in ~0.45s
       ),
-      maxSampleOffset: CGSize(width: 4, height: 4),
+      // A lo ancho, lo que cuelgan las alas de la silueta: desde que la
+      // forma es una sola pieza (`SiluetaDeLaMuesca`) se dibujan fuera del
+      // marco del cuerpo, y la capa de la onda se rasteriza con el marco más
+      // este margen. Con 4 las alas saldrían recortadas mientras dura la onda.
+      maxSampleOffset: CGSize(width: 12, height: 4),
       isEnabled: isEnabled && elapsedTime > 0 && elapsedTime < Self.duration
     )
   }

@@ -61,30 +61,21 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   @ViewBuilder let content: Content
   @ViewBuilder let overlays: Overlays
 
-  private var filletSize: CGFloat {
-    HUDNotchGeometry.filletSize(for: screen)
-  }
-
-  /// La forma negra. Contra una carcasa real —y contra el notch simulado, que
-  /// también nace del borde de la pantalla— las esquinas de arriba son
-  /// rectas: la forma comparte ese borde. La píldora de Dilo flota separada
-  /// de la barra de menús, así que se cierra por los cuatro lados — una
+  /// La forma negra, en una sola pieza (`SiluetaDeLaMuesca`). Contra una
+  /// carcasa real —y contra el notch simulado, que también nace del borde de
+  /// la pantalla— el tope es recto y lleva las dos curvas cóncavas que la
+  /// funden con el borde: con carcasa imitan el bisel físico, y en la muesca
+  /// simulada hacen el mismo trabajo contra la barra de menús
+  /// (`HUDNotchGeometry.filletSize`). La píldora de Dilo flota separada de la
+  /// barra, así que se cierra por los cuatro lados y no lleva curvas — una
   /// píldora con el tope recto se lee como algo que se asoma desde arriba,
   /// que es justo lo que no es.
-  private var housingShape: UnevenRoundedRectangle {
-    UnevenRoundedRectangle(
-      topLeadingRadius: topCornerRadius,
-      bottomLeadingRadius: cornerRadius,
-      bottomTrailingRadius: cornerRadius,
-      topTrailingRadius: topCornerRadius,
-      style: .continuous
-    )
-  }
-
-  private var topCornerRadius: CGFloat {
-    // `cornerRadius` y no el de la geometría: el de acá se achica al colapsar
-    // contra la carcasa, y esa transición es de la superficie.
-    HUDNotchGeometry.closesAtTop(for: screen) ? cornerRadius : 0
+  ///
+  /// El radio de abajo es `cornerRadius` y no el de la geometría: el de acá
+  /// se achica al colapsar contra la carcasa, y esa transición es de la
+  /// superficie.
+  private var silueta: SiluetaDeLaMuesca {
+    SiluetaDeLaMuesca.para(screen, radioInferior: cornerRadius)
   }
 
   /// Descansando manda la silueta en reposo, que depende de la forma que esta
@@ -160,11 +151,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     // El recorte es lo que esconde el contenido abierto mientras la forma
     // todavía no creció hasta él: ya estaba acá, y con el marco animado
     // pasa a ser lo que hace que la forma se abra en vez de aparecer.
-    .clipShape(clipsContent ? AnyShape(housingShape) : AnyShape(Rectangle()))
+    .clipShape(clipsContent ? AnyShape(silueta.sinHombros) : AnyShape(Rectangle()))
     .background { housing }
     .overlay { overlays }
-    .overlay(alignment: .topLeading) { fillet(.leading) }
-    .overlay(alignment: .topTrailing) { fillet(.trailing) }
     .opacity(revealOpacity)
     .scaleEffect(x: revealScale.x, y: revealScale.y, anchor: .top)
     .offset(y: revealOffset)
@@ -292,8 +281,10 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     // tiene dónde alojarla: los dos números van a cero juntos o uno de los
     // dos recorta al otro.
     let sombra = proyectaSombra
-    return Color.black
-      .clipShape(housingShape)
+    // Las alas se dibujan fuera del marco del cuerpo: un `Shape` no se
+    // recorta a su marco, y nada de lo que viene después lo recorta.
+    return silueta
+      .fill(Color.black)
       .keyframeAnimator(
         initialValue: 0.0,
         trigger: rippleTrigger
@@ -320,21 +311,6 @@ struct HUDSurface<Content: View, Overlays: View>: View {
         radius: sombra ? metrics.shadowRadius : 0,
         y: sombra ? metrics.shadowOffsetY : 0
       )
-  }
-
-  /// Sits alongside the body rather than inside it. Las dos curvas cóncavas
-  /// de arriba son lo que funde la silueta con el borde de la pantalla: con
-  /// carcasa imitan el bisel físico, y en la muesca simulada hacen el mismo
-  /// trabajo contra la barra de menús (`HUDNotchGeometry.filletSize`). La
-  /// píldora no las lleva: flota separada y no toca ningún borde.
-  @ViewBuilder
-  private func fillet(_ side: HorizontalEdge) -> some View {
-    if filletSize > 0 {
-      Color.black
-        .frame(width: filletSize, height: filletSize)
-        .clipShape(NotchFilletShape(side: side))
-        .offset(x: side == .leading ? -filletSize : filletSize)
-    }
   }
 }
 

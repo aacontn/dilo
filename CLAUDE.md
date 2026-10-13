@@ -250,9 +250,18 @@ siendo cierto:
   daban «un cuadrado terrible feo» en un 1080p sin carcasa: un bloque apoyado
   encima de la barra en vez de un recorte del borde.
 - **Las dos curvas cóncavas de arriba también van en la muesca simulada**
-  (`HUDNotchGeometry.filletSize`, `NotchFilletShape`). Son lo que funde la
-  silueta con el borde de la pantalla; sin ellas queda un rectángulo. La
-  píldora sigue sin llevarlas: flota separada y no toca ningún borde.
+  (`HUDNotchGeometry.filletSize`). Son lo que funde la silueta con el borde de
+  la pantalla; sin ellas queda un rectángulo. La píldora sigue sin llevarlas:
+  flota separada y no toca ningún borde.
+- **La silueta es una sola pieza** (`SiluetaDeLaMuesca`, 2026-10-13): cuerpo,
+  alas y esquinas en un `Shape`, la misma para notch real, simulado
+  (`.muesca`) y píldora (`.isla`), con los dos radios animables. Las alas se
+  dibujan **fuera** del marco del cuerpo, como antes, así que el layout y la
+  ventana en reposo no cambian; son las piezas exactas de antes
+  (`NotchFilletShape`) sumadas a la trayectoria, no unidas: la unión
+  booleana de `Path` corre el antialias del borde. El render de la muesca
+  usa la misma silueta; cambiarla y no comparar los PNG con los de antes es
+  cambiarla a ciegas.
 - **En una pantalla sin notch hay dos formas, y las elige la persona**
   (`HUDEstiloSinNotch`, guardado en `hudEstiloSinNotch`): *Notch simulado*
   —el default—, que se pega a `y = 0` centrado, con el tope recto entre sus

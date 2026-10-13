@@ -173,15 +173,10 @@ struct DictationHUDShellView: View {
     HUDNotchGeometry.filletSize(for: screen)
   }
 
-  private var housingShape: UnevenRoundedRectangle {
-    let top = HUDNotchGeometry.topCornerRadius(for: screen, metrics: metrics)
-    return UnevenRoundedRectangle(
-      topLeadingRadius: top,
-      bottomLeadingRadius: metrics.bottomCornerRadius,
-      bottomTrailingRadius: metrics.bottomCornerRadius,
-      topTrailingRadius: top,
-      style: .continuous
-    )
+  /// El cuerpo de la silueta abierta, sin alas: lo que recorta la nube de
+  /// partículas para que ninguna se escape del negro.
+  private var housingShape: SiluetaDeLaMuesca {
+    SiluetaDeLaMuesca.para(screen, radioInferior: metrics.bottomCornerRadius).sinHombros
   }
 
   var body: some View {
