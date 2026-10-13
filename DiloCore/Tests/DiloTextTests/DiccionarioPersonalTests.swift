@@ -25,6 +25,18 @@ struct DiccionarioPersonalTests {
     #expect(!resultado.contains("Charge B"))
   }
 
+  /// Un «nueva línea» dictado deja un `\n` pegado a la palabra siguiente; sin
+  /// partir por líneas, esa palabra no se corregía nunca.
+  @Test func corrigeLaPalabraPegadaAUnSaltoDeLinea() {
+    let resultado = aplicar("el cobro lo hace\nCharge B, todos los meses", ["ChargeBee"])
+    #expect(resultado == "el cobro lo hace\nChargeBee, todos los meses")
+  }
+
+  @Test func unGrupoNoCruzaUnSaltoDeLinea() {
+    #expect(aplicar("hay que hablar con Charge\nB es la letra", ["ChargeBee"])
+      == "hay que hablar con Charge\nB es la letra")
+  }
+
   @Test func juntaHastaTresPalabras() {
     #expect(aplicar("usa Chat G P T para esto", ["ChatGPT"]).contains("ChatGPT"))
   }

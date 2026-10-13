@@ -42,7 +42,20 @@ public enum DiccionarioPersonal {
     let llaves = propias.enumerated().flatMap { indice, palabra in
       llavesDeComparacion(palabra, indice: indice)
     }
-    let tokens = texto.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+    // Se corrige línea por línea. Partiendo sólo por espacios, la palabra
+    // pegada a un salto («línea\nDecamerón») quedaba en el mismo token que la
+    // de la otra línea, su llave mezclaba las dos y no calzaba con nada; y un
+    // grupo de dos o tres palabras no puede cruzar un salto que la persona
+    // dictó.
+    return texto.components(separatedBy: "\n")
+      .map { aplicarEnLinea($0, propias: propias, llaves: llaves, umbral: umbral) }
+      .joined(separator: "\n")
+  }
+
+  private static func aplicarEnLinea(
+    _ linea: String, propias: [String], llaves: [Llave], umbral: Double
+  ) -> String {
+    let tokens = linea.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
     var resultado: [String] = []
     var i = 0
 
