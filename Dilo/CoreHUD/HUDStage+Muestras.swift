@@ -27,6 +27,8 @@ struct MuestraEnCurso {
   fileprivate let contexto: String?
   fileprivate let datoIzquierdo: LadoDeLaMuesca?
   fileprivate let datoDerecho: LadoDeLaMuesca?
+  fileprivate let tomaGuardada: TimeInterval?
+  fileprivate let retenidoEnPildora: TarjetaDeRespaldo?
   fileprivate let botones: Botones
 
   /// Los cierres que los botones de la forma llaman. Mientras dura la muestra
@@ -40,6 +42,7 @@ struct MuestraEnCurso {
     var alDictarNota: (() -> Void)?
     var alHacerClic: (() -> Void)?
     var alTocarLaTarjeta: ((TarjetaDeRespaldo) -> Void)?
+    var alTocarPildora: ((String) -> Void)?
 
     @MainActor
     init(de content: DictationHUDContent) {
@@ -50,6 +53,7 @@ struct MuestraEnCurso {
       alDictarNota = content.alDictarNota
       alHacerClic = content.alHacerClic
       alTocarLaTarjeta = content.alTocarLaTarjeta
+      alTocarPildora = content.alTocarPildora
     }
 
     @MainActor
@@ -61,6 +65,7 @@ struct MuestraEnCurso {
       content.alDictarNota = alDictarNota
       content.alHacerClic = alHacerClic
       content.alTocarLaTarjeta = alTocarLaTarjeta
+      content.alTocarPildora = alTocarPildora
     }
 
     @MainActor
@@ -72,8 +77,11 @@ struct MuestraEnCurso {
   }
 
   @MainActor
-  fileprivate init(escena: EscenaDeMuestra, de content: DictationHUDContent) {
+  fileprivate init(escena: EscenaDeMuestra, de stage: HUDStage) {
+    let content = stage.dictationContent
     self.escena = escena
+    tomaGuardada = stage.tomaGuardada
+    retenidoEnPildora = stage.retenidoEnPildora
     recientes = content.recientes
     proximaReunion = content.proximaReunion
     modosDelPanel = content.modosDelPanel
@@ -86,7 +94,10 @@ struct MuestraEnCurso {
   }
 
   @MainActor
-  fileprivate func devolver(a content: DictationHUDContent) {
+  fileprivate func devolver(a stage: HUDStage) {
+    let content = stage.dictationContent
+    stage.mostrarTomaGuardada(tomaGuardada)
+    stage.ponerRetenidoEnPildora(retenidoEnPildora)
     content.recientes = recientes
     content.proximaReunion = proximaReunion
     content.modosDelPanel = modosDelPanel
@@ -109,7 +120,7 @@ extension HUDStage {
   func mostrarMuestra(_ escena: EscenaDeMuestra, texto: String?) {
     guard let pantalla = pantallaMontada ?? screen() else { return }
     if muestra == nil {
-      muestra = MuestraEnCurso(escena: escena, de: dictationContent)
+      muestra = MuestraEnCurso(escena: escena, de: self)
       MuestraEnCurso.Botones.apagar(en: dictationContent)
       control.congelado = true
     }
@@ -125,6 +136,11 @@ extension HUDStage {
       remontarConLosLadosActuales()
     }
     prepararLosDatos(conDatos)
+    let pildoras = escena.pildoras
+    mostrarTomaGuardada(pildoras.toma ? 12 : nil)
+    ponerRetenidoEnPildora(
+      pildoras.retenido ? TarjetaDeRespaldo(texto: texto ?? escena.textoDeMuestra ?? "", porque: .sinConfirmar) : nil
+    )
 
     // Cada escena parte del reposo: lo que dejó la anterior —un panel
     // abierto, una onda montada— no se mezcla con lo que viene.
@@ -134,7 +150,7 @@ extension HUDStage {
 
     let linea = texto ?? escena.textoDeMuestra ?? ""
     switch escena {
-    case .reposo, .reposoConDatos:
+    case .reposo, .reposoConDatos, .pildoraToma, .pildoraRetenido, .dosPildoras:
       reaplicarElEstado()
 
     case .hover, .hoverCompleto:
@@ -150,7 +166,7 @@ extension HUDStage {
       decir(falta.texto)
       revealDictation()
 
-    case .dictando, .dictandoLargo:
+    case .dictando, .dictandoLargo, .dictandoConPildoras:
       claim(.dictation, on: pantalla)
       recibir(.escuchar)
       escucharDeMentira()
@@ -208,7 +224,7 @@ extension HUDStage {
     self.muestra = nil
     control.congelado = false
     dictationContent.punteroEncima = false
-    prestado.devolver(a: dictationContent)
+    prestado.devolver(a: self)
   }
 
   private func decir(_ texto: String) {

@@ -35,17 +35,25 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case retenido
   case hover
   case hoverCompleto = "hover-completo"
+  /// Las píldoras de los asientos (`AsientosDeLaMuesca`): la toma guardada a
+  /// la derecha, el retenido a la izquierda, las dos, y las dos al costado
+  /// de la muesca dictando.
+  case pildoraToma = "pildora-toma"
+  case pildoraRetenido = "pildora-retenido"
+  case dosPildoras = "dos-pildoras"
+  case dictandoConPildoras = "dictando-pildoras"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
   var textoDeMuestra: String? {
     switch self {
-    case .dictando: "Aprieta, habla, suelta"
+    case .dictando, .dictandoConPildoras: "Aprieta, habla, suelta"
     case .dictandoLargo:
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
     case .procesando: "quedamos el martes a las diez"
     case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
-    case .retenido: "quedamos el martes a las diez en la oficina de Providencia"
+    case .retenido, .pildoraRetenido, .dosPildoras:
+      "quedamos el martes a las diez en la oficina de Providencia"
     case .hover, .hoverCompleto: "Listo · «quedamos el martes a las diez»"
     default: nil
     }
@@ -56,14 +64,26 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   var estado: EstadoDelNotch {
     switch self {
     case .reposo, .reposoConDatos, .hover, .hoverCompleto: .reposo
+    case .pildoraToma, .pildoraRetenido, .dosPildoras: .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
-    case .dictando, .dictandoLargo: .dictando
+    case .dictando, .dictandoLargo, .dictandoConPildoras: .dictando
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
     case .avisoLargo: .resultado(.aviso(textoDeMuestra ?? ""))
     case .retenido: .resultado(.retenido(Self.tarjetaDeMuestra))
+    }
+  }
+
+  /// Qué píldoras pone la escena. Las demás escenas no ponen ninguna, para
+  /// que lo que se mira sea siempre lo mismo.
+  var pildoras: (toma: Bool, retenido: Bool) {
+    switch self {
+    case .pildoraToma: (true, false)
+    case .pildoraRetenido: (false, true)
+    case .dosPildoras, .dictandoConPildoras: (true, true)
+    default: (false, false)
     }
   }
 

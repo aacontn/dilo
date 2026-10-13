@@ -237,6 +237,7 @@ struct DictationHUDShellView: View {
       overlays: {
         particleCloud
         edgeGlow
+        pildorasAlCostado
       }
     )
     // Sólo la silueta toma el mouse, y sólo en los estados que hacen algo con
@@ -792,8 +793,23 @@ struct DictationHUDShellView: View {
     }
   }
 
-  /// Sits alongside the body rather than inside it. Absent on a display with
-  /// no notch: the flare exists to meet a housing (ADR-0001).
+  /// Las píldoras de los asientos, a los costados de la forma.
+  ///
+  /// Se esconden mientras el panel del hover está abierto: el panel mide 400
+  /// y la ventana abierta no tiene lugar para él y para ellas, y lo que el
+  /// mouse vino a mirar es el panel. Vuelven al cerrarse.
+  @ViewBuilder
+  private var pildorasAlCostado: some View {
+    if HUDNotchGeometry.lugaresParaPildoras(for: screen) > 0, content.contextoVisible == nil {
+      HUDPildorasAlCostado(
+        izquierda: content.pildoraIzquierda,
+        derecha: content.pildoraDerecha,
+        screen: screen,
+        acento: DiloBrand.mango,
+        alTocar: { id in content.alTocarPildora?(id) }
+      )
+    }
+  }
 }
 
 // Live previews in-file so edits to the shell re-render in place; the

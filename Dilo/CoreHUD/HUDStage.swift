@@ -195,6 +195,7 @@ final class HUDStage {
       guard let self else { return }
       aplicar(estado)
       sonarPor(anterior, a: estado)
+      seguirLaSesion(de: anterior, a: estado)
       // La vuelta a reposo puede venir del temporizador del resultado, y
       // entonces nadie más soltó la forma.
       if estado == .reposo { retract() }
@@ -204,6 +205,9 @@ final class HUDStage {
     }
     dictationContent.alTocarLaTarjeta = { [weak self] tarjeta in
       self?.copiarLaTarjeta(tarjeta)
+    }
+    dictationContent.alTocarPildora = { [weak self] id in
+      self?.tocarPildora(id)
     }
     // El puntero entra por el área de seguimiento de la vista y por ningún
     // otro lado: la ventana ya no ignora el mouse, así que ve entrar el
@@ -250,6 +254,160 @@ final class HUDStage {
       if muestra?.conDatos == true { return HUDNotchGeometry.anchoDeUnLado }
     #endif
     return datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
+  }
+
+  /// Quién se sienta dónde (`AsientosDeLaMuesca`): la forma y las dos
+  /// píldoras de los costados. La sesión del contrato entra y sale sola con
+  /// el estado; la toma guardada y el retenido, cuando existen.
+  private(set) var asientos = AsientosDeLaMuesca()
+  /// La tarjeta que otra sesión tapó, mientras viva en su píldora.
+  private(set) var retenidoEnPildora: TarjetaDeRespaldo?
+  private var vencimientoDelRetenido: Task<Void, Never>?
+  /// Cuánto dura la toma que quedó en RAM, o nil sin toma.
+  private(set) var tomaGuardada: TimeInterval?
+  /// Los lados donde hay una píldora sentada ahora.
+  private(set) var ladosConPildora: Set<LadoDePildora> = []
+  /// Si la ventana está montada con lugar para píldoras. Va detrás de
+  /// `ladosConPildora` al encogerse: la última píldora se va animando y la
+  /// ventana se achica cuando ya se fue, como con el panel del hover.
+  private(set) var ventanaConPildoras = false
+  private var encogerPildorasTask: Task<Void, Never>?
+
+  /// Un clic en la píldora de la toma: reintentarla. Lo cablea `AppDelegate`
+  /// hacia el controlador de dictado, que es quien tiene la toma.
+  var alPedirReintento: (() -> Void)?
+
+  /// La toma que quedó en RAM cambió: aparece, se reintentó o venció. Llega
+  /// del mismo aviso que esconde o muestra sus entradas en el menú de la
+  /// barra (`DirectDictationController.onTomaFallidaChange`).
+  func mostrarTomaGuardada(_ duracion: TimeInterval?) {
+    tomaGuardada = duracion
+    sentar(duracion == nil ? .retirar(id: ActividadDeLaMuesca.tomaGuardada.id) : .publicar(.tomaGuardada))
+  }
+
+  /// Pone (o saca) la píldora de una tarjeta tapada. La pone el propio
+  /// escenario cuando una sesión tapa una tarjeta; interna para el arnés y
+  /// los tests.
+  func ponerRetenidoEnPildora(_ tarjeta: TarjetaDeRespaldo?) {
+    retenidoEnPildora = tarjeta
+    vencimientoDelRetenido?.cancel()
+    vencimientoDelRetenido = nil
+    guard tarjeta != nil else {
+      sentar(.retirar(id: ActividadDeLaMuesca.retenido.id))
+      return
+    }
+    sentar(.publicar(.retenido))
+    if estado == .reposo { programarVencimientoDelRetenido() }
+  }
+
+  /// La sesión del contrato está en los asientos mientras la máquina no
+  /// descansa, y una tarjeta que otra sesión tapa se corre a una píldora
+  /// (`TarjetaDeRespaldo.tapada`).
+  private func seguirLaSesion(de anterior: EstadoDelNotch, a nuevo: EstadoDelNotch) {
+    if !enMuestra, let tapada = TarjetaDeRespaldo.tapada(de: anterior, a: nuevo) {
+      ponerRetenidoEnPildora(tapada)
+    }
+    guard nuevo != .reposo else {
+      sentar(.retirar(id: ActividadDeLaMuesca.sesion(escuchando: false).id))
+      programarVencimientoDelRetenido()
+      return
+    }
+    // Mientras dura una sesión la píldora del retenido no vence: lo que se
+    // quiere es poder recogerlo cuando la sesión termine.
+    vencimientoDelRetenido?.cancel()
+    vencimientoDelRetenido = nil
+    sentar(.publicar(.sesion(escuchando: nuevo.captura)))
+  }
+
+  private func programarVencimientoDelRetenido() {
+    vencimientoDelRetenido?.cancel()
+    vencimientoDelRetenido = nil
+    guard retenidoEnPildora != nil else { return }
+    vencimientoDelRetenido = Task { [weak self, reloj] in
+      try? await reloj.sleep(TarjetaDeRespaldo.duracionEnPildora)
+      guard !Task.isCancelled, let self, estado == .reposo else { return }
+      ponerRetenidoEnPildora(nil)
+    }
+  }
+
+  /// Un clic en una píldora. Mientras se dicta la ventana no toma el mouse,
+  /// así que esto sólo llega en reposo o con una tarjeta a la vista.
+  func tocarPildora(_ id: String) {
+    switch id {
+    case ActividadDeLaMuesca.tomaGuardada.id:
+      alPedirReintento?()
+    case ActividadDeLaMuesca.retenido.id:
+      guard let tarjeta = retenidoEnPildora else { return }
+      copiarAlPortapapeles(tarjeta.texto)
+      ponerRetenidoEnPildora(nil)
+      // Lo dice la forma, como cuando se copia la tarjeta misma; con otra
+      // tarjeta a la vista no la tapa.
+      guard estado == .reposo, let pantallaActual else { return }
+      decir(.copiado, texto: ResultadoDelNotch.copiado.texto, en: pantallaActual)
+    default:
+      break
+    }
+  }
+
+  /// Mueve los asientos y lleva el resultado a las píldoras.
+  private func sentar(_ evento: AsientosDeLaMuesca.Evento) {
+    asientos.recibir(evento)
+    aplicarPildoras()
+  }
+
+  /// Qué dice la píldora de cada actividad que hoy puede tener una.
+  private func contenido(de actividad: ActividadDeLaMuesca?) -> ContenidoDePildora? {
+    switch actividad?.id {
+    case ActividadDeLaMuesca.tomaGuardada.id: .toma
+    case ActividadDeLaMuesca.retenido.id: .retenido
+    default: nil
+    }
+  }
+
+  /// Lleva los asientos a la forma: el contenido de cada píldora, la ventana
+  /// y la zona que recibe el mouse.
+  ///
+  /// La ventana sigue la regla de siempre: crece **antes** de que la píldora
+  /// empiece a entrar y se encoge **después** de que la última terminó de
+  /// irse (`dismissDuration`), o la animación sale recortada.
+  private func aplicarPildoras() {
+    let izquierda = contenido(de: asientos.pildora(.izquierda))
+    let derecha = contenido(de: asientos.pildora(.derecha))
+    var lados: Set<LadoDePildora> = []
+    if izquierda != nil { lados.insert(.izquierda) }
+    if derecha != nil { lados.insert(.derecha) }
+    ladosConPildora = lados
+    if !lados.isEmpty {
+      encogerPildorasTask?.cancel()
+      encogerPildorasTask = nil
+      if !ventanaConPildoras {
+        ventanaConPildoras = true
+        remontarConLosLadosActuales()
+      }
+    } else if ventanaConPildoras, encogerPildorasTask == nil {
+      encogerPildorasTask = Task { [weak self, reloj] in
+        try? await reloj.sleep(Self.dismissDuration)
+        guard !Task.isCancelled, let self else { return }
+        encogerPildorasTask = nil
+        guard ladosConPildora.isEmpty else { return }
+        ventanaConPildoras = false
+        remontarConLosLadosActuales()
+      }
+    }
+    if dictationContent.pildoraIzquierda != izquierda { dictationContent.pildoraIzquierda = izquierda }
+    if dictationContent.pildoraDerecha != derecha { dictationContent.pildoraDerecha = derecha }
+    actualizarZonaInteractiva()
+  }
+
+  /// Cuántas píldoras caben y si la pantalla está en pantalla completa, cada
+  /// vez que la forma se monta: cambia con la pantalla y con el espacio.
+  private func actualizarLosLugares(de pantalla: HUDScreenSnapshot) {
+    let lugares = HUDNotchGeometry.lugaresParaPildoras(for: pantalla)
+    let suprimida = HUDNotchGeometry.reposoSeEsconde(for: pantalla)
+    guard lugares != asientos.lugares || suprimida != asientos.suprimida else { return }
+    asientos.recibir(.lugaresParaPildoras(lugares))
+    asientos.recibir(.suprimir(suprimida))
+    aplicarPildoras()
   }
 
   // MARK: El panel del hover
@@ -551,7 +709,10 @@ final class HUDStage {
     panel.zonaInteractiva = HUDNotchGeometry.zonaInteractiva(
       for: pantallaActual,
       tamaño: tamañoDeLaSilueta,
-      encuadre: encuadre
+      encuadre: encuadre,
+      // Las píldoras se esconden con el panel del hover abierto, y lo que
+      // no se ve no toma clics.
+      pildoras: dictationContent.contextoVisible == nil ? ladosConPildora : []
     )
     // Mientras no había zona la ventana ignoraba el mouse (`HUDPanel`) y el
     // área de seguimiento no vio nada: terminar de dictar con el puntero
@@ -687,6 +848,7 @@ final class HUDStage {
     guard var pantalla = pantallaActual else { return }
     pantalla.anchoDeLosLados = anchoDeLosLados
     pantalla.seccionesPosibles = seccionesPosibles
+    pantalla.llevaPildoras = ventanaConPildoras
     mount(on: pantalla)
   }
 
@@ -934,7 +1096,8 @@ final class HUDStage {
         estiloSinNotch: settings.hudEstiloSinNotch,
         nombre: screen.localizedName,
         anchoDeLosLados: anchoDeLosLados,
-        seccionesPosibles: seccionesPosibles
+        seccionesPosibles: seccionesPosibles,
+        llevaPildoras: ventanaConPildoras
       )
     }
     return HUDPlacement.selectDisplay(
@@ -1029,8 +1192,14 @@ final class HUDStage {
   /// sobre la misma forma terminan uno tapando al otro.
   func showMessage(_ text: String, on displayID: CGDirectDisplayID? = nil) {
     guard let screen = screen(preferring: displayID) else { return }
+    decir(.aviso(text), texto: text, en: screen)
+  }
+
+  /// Un resultado que no es de ninguna sesión —un aviso, una copia hecha
+  /// desde una píldora— en la forma, con la pantalla ya elegida.
+  private func decir(_ resultado: ResultadoDelNotch, texto text: String, en screen: HUDScreenSnapshot) {
     claim(.message, on: screen)
-    recibir(.entregar(.aviso(text)))
+    recibir(.entregar(resultado))
     // hide() pins these for the retract, and claim() cancels that order-out.
     // A message is a new occupant and must not inherit them.
     dictationContent.isDismissing = false
@@ -1105,6 +1274,9 @@ final class HUDStage {
     panel.assertOverlayOrder()
     actualizarPresencia()
     actualizarZonaInteractiva()
+    // Al final: si cambian los lugares, las píldoras pueden pedir otra
+    // ventana, y ese montaje tiene que encontrar éste terminado.
+    actualizarLosLugares(de: screen)
   }
 
   private func evictDrop() {

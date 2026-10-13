@@ -213,6 +213,35 @@ struct TarjetaDeRespaldo: Equatable, Sendable {
   static var pista: String { String(localized: "Clic para copiar · o arrástralo") }
 }
 
+extension TarjetaDeRespaldo {
+  /// La tarjeta que un cambio de estado deja tapada, si alguno.
+  ///
+  /// Antes, lo que empezaba encima de la tarjeta la tapaba y el texto sólo
+  /// seguía en «Copiar el último dictado» —que el dictado siguiente pisa—.
+  /// Ahora una tarjeta tapada se corre a una píldora al costado
+  /// (`ActividadDeLaMuesca.retenido`) y se puede copiar con un clic cuando lo
+  /// que la tapó termina.
+  ///
+  /// No cuenta como tapada si volvió a reposo (venció, o se canceló), si se
+  /// copió con el clic de la propia tarjeta (`.copiado`) ni si otra tarjeta
+  /// la reemplazó: en los tres casos no queda nada pendiente de ella.
+  static func tapada(de anterior: EstadoDelNotch, a nuevo: EstadoDelNotch) -> TarjetaDeRespaldo? {
+    guard case let .resultado(.retenido(tarjeta)) = anterior else { return nil }
+    switch nuevo {
+    case .reposo, .resultado(.copiado), .resultado(.retenido):
+      return nil
+    case .preparando, .dictando, .procesando, .resultado:
+      return tarjeta
+    }
+  }
+
+  /// Cuánto se queda la píldora de una tarjeta tapada, contado desde que la
+  /// muesca vuelve a reposo; mientras dura otra sesión no corre. Un minuto:
+  /// lo que tarda alguien en darse cuenta de que el dictado de antes no
+  /// llegó. Después el texto sigue en los recientes del panel del hover.
+  static let duracionEnPildora = Duration.seconds(60)
+}
+
 extension ResultadoDelNotch {
   /// Lo que la muesca dice de una entrega. Vive acá y no en el controlador
   /// de dictado para que el contrato de qué se acusa y qué se dice esté en un

@@ -73,6 +73,14 @@ final class DictationHUDContent {
   var datoIzquierdo: LadoDeLaMuesca?
   var datoDerecho: LadoDeLaMuesca?
 
+  /// Lo que va en cada píldora al costado de la muesca, o nil. Lo escribe
+  /// `HUDStage` desde los asientos (`AsientosDeLaMuesca`); la forma sólo lo
+  /// dibuja.
+  var pildoraIzquierda: ContenidoDePildora?
+  var pildoraDerecha: ContenidoDePildora?
+  /// Un clic en una píldora, con el id de su actividad. Lo cablea `HUDStage`.
+  @ObservationIgnored var alTocarPildora: ((String) -> Void)?
+
   // MARK: El panel del hover
 
   /// Lo reciente que se puede volver a copiar, lo más nuevo primero

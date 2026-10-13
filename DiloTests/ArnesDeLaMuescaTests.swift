@@ -115,7 +115,7 @@ struct ArnesDeLaMuescaTests {
     #expect(stage.estado == escena.estado)
     #expect(stage.enMuestra)
     #expect(sonidos.tocados == 0, "una escena no es una sesión")
-    #expect(!stage.estado.captura || escena == .dictando || escena == .dictandoLargo)
+    #expect(!stage.estado.captura || escena.estado == .dictando, "sólo las escenas de dictar dicen que escuchan")
   }
 
   @MainActor

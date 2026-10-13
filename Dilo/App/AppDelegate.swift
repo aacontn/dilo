@@ -125,9 +125,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusItemController.dictarNota = { dictationController.dictarNota() }
     statusItemController.tomaFallida.reintentar = { dictationController.reintentarTomaFallida() }
     statusItemController.tomaFallida.descartar = { dictationController.descartarTomaFallida() }
-    dictationController.onTomaFallidaChange = { [weak statusItemController] duracion in
+    dictationController.onTomaFallidaChange = { [weak statusItemController, weak stage] duracion in
       statusItemController?.tomaFallida.mostrar(duracion)
+      // Y en una píldora al costado de la muesca, que es donde se mira
+      // cuando un dictado no salió; un clic la reintenta, como el menú.
+      stage?.mostrarTomaGuardada(duracion)
     }
+    stage.alPedirReintento = { dictationController.reintentarTomaFallida() }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alTerminarNota = { dictationController.dictarNota() }
 

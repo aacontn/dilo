@@ -66,6 +66,20 @@ enum RenderDeLaMuesca {
     try escribir(lienzo(claro: true) { dictando }, en: destino, como: "dictando")
     try escribir(lienzo(claro: true) { acuse }, en: destino, como: "check")
     try escribir(comparacion, en: destino, como: "comparacion")
+    // Los asientos: una píldora, dos, y las dos al costado de la muesca
+    // dictando. Lo que se juzga es que nazcan del borde de la forma y no de
+    // la ventana, centradas en la barra y con la ventana justa.
+    let unaPildora = enLaVentana(tamaño: reposo, radio: radio, encuadre: .reposo, pildoras: (nil, .toma)) {
+      marcaDeReposo(alto: reposo.height)
+    }
+    let dosPildoras = enLaVentana(
+      tamaño: reposo, radio: radio, encuadre: .reposo, pildoras: (.retenido, .toma)
+    ) { marcaDeReposo(alto: reposo.height) }
+    try escribir(lienzo(claro: true) { unaPildora }, en: destino, como: "pildora-una")
+    try escribir(lienzo(claro: true) { dosPildoras }, en: destino, como: "pildora-dos")
+    try escribir(lienzo(claro: false) { dosPildoras }, en: destino, como: "pildora-dos-oscuro")
+    try escribir(lienzo(claro: true) { dictandoConPildoras }, en: destino, como: "pildora-dictando")
+    medir("pildora-dos", dosPildoras)
     // Tres cortes y no cuatro: la muesca sobria crece tan poco que un cuarto
     // era el mismo PNG.
     for (i, avance) in [0.0, 0.5, 1.0].enumerated() {
@@ -160,8 +174,11 @@ enum RenderDeLaMuesca {
     tamaño: CGSize,
     radio: CGFloat,
     encuadre: HUDNotchGeometry.EncuadreDeLaVentana = .abierta,
+    pildoras: (izquierda: ContenidoDePildora?, derecha: ContenidoDePildora?) = (nil, nil),
     @ViewBuilder contenido: () -> some View
   ) -> some View {
+    var pantalla = pantalla
+    pantalla.llevaPildoras = pildoras.izquierda != nil || pildoras.derecha != nil
     // La ventana mide lo que mide el estado: en reposo **es** la muesca —sin
     // sombra que alojar, sólo lo que las alas cuelgan a los lados— y sólo
     // crece con la forma abierta. El marco punteado del PNG es lo que deja ver
@@ -173,6 +190,14 @@ enum RenderDeLaMuesca {
     return ZStack(alignment: .top) {
       marcoDeLaVentana
       silueta(tamaño: tamaño, radio: radio, sombra: encuadre == .abierta, contenido: contenido)
+        // Las píldoras como en la app: capa de la forma, colgadas a sus
+        // costados (`HUDPildorasAlCostado`), con la vista de verdad.
+        .overlay {
+          HUDPildorasAlCostado(
+            izquierda: pildoras.izquierda, derecha: pildoras.derecha,
+            screen: pantalla, acento: mango, alTocar: { _ in }
+          )
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     .frame(width: ventana.width, height: ventana.height)
@@ -222,6 +247,22 @@ enum RenderDeLaMuesca {
   /// (`HUDLineaSobria`). Sin chip de modo: no cabe sin comerse las palabras.
   static var dictando: some View {
     enLaVentana(tamaño: tamañoAbierto, radio: radioDictando) {
+      lineaSobria {
+        ondaCompacta
+        Text("…el martes a las diez")
+          .font(.system(size: 11, weight: .regular).italic())
+          .foregroundStyle(.white.opacity(0.9))
+          .lineLimit(1)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        cursor
+      }
+    }
+  }
+
+  /// Dictando con las dos píldoras al costado: se corren con la muesca que
+  /// crece, y la ventana abierta las aloja.
+  static var dictandoConPildoras: some View {
+    enLaVentana(tamaño: tamañoAbierto, radio: radioDictando, pildoras: (.retenido, .toma)) {
       lineaSobria {
         ondaCompacta
         Text("…el martes a las diez")

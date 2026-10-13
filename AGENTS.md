@@ -253,6 +253,23 @@ siendo cierto:
   (`HUDNotchGeometry.filletSize`). Son lo que funde la silueta con el borde de
   la pantalla; sin ellas queda un rectángulo. La píldora sigue sin llevarlas:
   flota separada y no toca ningún borde.
+- **La muesca tiene asientos: una forma y hasta dos píldoras al costado**
+  (`AsientosDeLaMuesca`, reductor puro con sus reglas y motivos de cesión;
+  2026-10-13). `MaquinaDelNotch` no cambia: la sesión del contrato entra a
+  los asientos mientras no hay reposo y exige la forma, así que **dictando la
+  principal es siempre el dictado**. Las ocupantes de hoy son dos cosas que
+  ya existían: la toma guardada para reintentar (derecha, en mango; un clic
+  la reintenta, como el menú de la barra) y una tarjeta de un dictado sin
+  pegar que otra sesión tapó (`TarjetaDeRespaldo.tapada`, izquierda; un clic
+  la copia; no vence mientras dura una sesión y se va un minuto después de
+  volver a reposo). Sólo el notch simulado tiene lugar
+  (`HUDNotchGeometry.lugaresParaPildoras`): al lado de una carcasa real hay
+  menús y status items. Las píldoras son capa **de la forma** y cuelgan
+  fuera de su marco como las alas, así que siguen solas a la muesca que
+  crece; la ventana en reposo pasa a ser «la silueta más sus píldoras»
+  (`HUDScreenSnapshot.llevaPildoras`), crece antes de que entren y se encoge
+  después de que se van. Con el panel del hover abierto se esconden.
+  Reuniones, agentes y datos de los costados todavía no son actividades.
 - **La silueta es una sola pieza** (`SiluetaDeLaMuesca`, 2026-10-13): cuerpo,
   alas y esquinas en un `Shape`, la misma para notch real, simulado
   (`.muesca`) y píldora (`.isla`), con los dos radios animables. Las alas se

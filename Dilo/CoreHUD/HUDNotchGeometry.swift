@@ -298,20 +298,30 @@ enum HUDNotchGeometry {
   /// la sombra—, y desde que el escenario vive siempre en pantalla, dejarla
   /// entera sensible al mouse se tragaría clics en media barra de menús. Sólo
   /// la silueta toma el mouse; el resto pasa de largo (`HUDHostingView`).
+  ///
+  /// Con píldoras a la vista la franja se estira hasta ellas por su lado: un
+  /// solo rectángulo, así que los pocos puntos entre el ala y la píldora
+  /// también toman el clic mientras hay una.
   static func zonaInteractiva(
     for screen: HUDScreenSnapshot,
     tamaño: CGSize,
-    encuadre: EncuadreDeLaVentana = .abierta
+    encuadre: EncuadreDeLaVentana = .abierta,
+    pildoras: Set<LadoDePildora> = []
   ) -> CGRect {
     let ventana = windowSize(for: screen, encuadre: encuadre)
     let ancho = min(tamaño.width, ventana.width)
     let alto = min(tamaño.height, ventana.height)
-    return CGRect(
+    let silueta = CGRect(
       x: (ventana.width - ancho) / 2,
       y: ventana.height - alto,
       width: ancho,
       height: alto
     )
+    guard !pildoras.isEmpty else { return silueta }
+    let alcance = alcanceDePildoras(for: screen)
+    let minX = pildoras.contains(.izquierda) ? max(0, silueta.minX - alcance) : silueta.minX
+    let maxX = pildoras.contains(.derecha) ? min(ventana.width, silueta.maxX + alcance) : silueta.maxX
+    return CGRect(x: minX, y: silueta.minY, width: maxX - minX, height: silueta.height)
   }
 
   /// La misma franja, pero en coordenadas de pantalla (origen abajo a la
@@ -556,7 +566,12 @@ enum HUDNotchGeometry {
     switch encuadre {
     case .reposo:
       let silueta = reposoSize(for: screen)
-      let holgura = holguraEnReposo(for: screen)
+      // Con píldoras, la ventana en reposo es la silueta más lo que ellas
+      // ocupan a cada lado, y nada más: es la misma regla de «la ventana es
+      // la muesca», con las píldoras como parte de ella.
+      let holgura = screen.llevaPildoras
+        ? max(holguraEnReposo(for: screen), alcanceDePildoras(for: screen))
+        : holguraEnReposo(for: screen)
       return CGSize(
         width: min(silueta.width + holgura * 2, screen.frame.width),
         // Exactamente la silueta: **nada** debajo. Las alas cuelgan a los
@@ -567,8 +582,13 @@ enum HUDNotchGeometry {
       )
     case .abierta:
       let holgura = holguraDeRevelacion(for: screen)
+      // Dictando, las píldoras siguen al costado de la muesca apenas más
+      // grande; con datos a los costados eso puede pasar del ancho del panel.
+      let conPildoras = screen.llevaPildoras
+        ? tamañoDictando(for: screen).width + alcanceDePildoras(for: screen) * 2
+        : 0
       return CGSize(
-        width: min(HUDMetrics.standard.contentWidth + holgura * 2, screen.frame.width),
+        width: min(max(HUDMetrics.standard.contentWidth + holgura * 2, conPildoras), screen.frame.width),
         height: altoDeLaFormaMasAlta(for: screen) + holgura
       )
     }
@@ -629,6 +649,42 @@ struct SeccionesDelPanel: Equatable, Sendable {
 }
 
 extension HUDNotchGeometry {
+  /// Cuántas píldoras caben al costado de la muesca en esta pantalla.
+  ///
+  /// **Dos en el notch simulado, ninguna en las demás**, de fábrica. Al lado
+  /// del simulado está el centro de la barra de menús, que macOS deja vacío;
+  /// al lado de una carcasa real están los menús de la app y los status
+  /// items, y una píldora encima tapa algo que la persona usa. La píldora
+  /// bajo la barra flota sobre el escritorio y no tiene costados de los que
+  /// colgar nada.
+  static func lugaresParaPildoras(for screen: HUDScreenSnapshot) -> Int {
+    simulatesNotch(for: screen) ? AsientosDeLaMuesca.maximoDePildoras : 0
+  }
+
+  /// El ancho de una píldora: un ícono y una palabra en diez puntos
+  /// («Reintentar», «No se pegó»), con aire. Fijo para que la ventana se
+  /// dimensione antes de dibujar, como el panel del hover.
+  static let anchoDePildora: CGFloat = 88
+
+  /// El aire entre el final del ala y la píldora: lo justo para que se lea
+  /// como algo que salió de la muesca y no como parte de ella.
+  static let separacionDePildora: CGFloat = 4
+
+  /// Lo que una píldora ocupa a su lado, medido desde el borde del cuerpo:
+  /// el ala, el aire y la píldora.
+  static func alcanceDePildoras(for screen: HUDScreenSnapshot) -> CGFloat {
+    filletSize(for: screen) + separacionDePildora + anchoDePildora
+  }
+
+  /// El alto de una píldora: el de la silueta en reposo menos dos puntos
+  /// arriba y abajo, centrada en la barra. Más alta tocaría el borde de la
+  /// pantalla y se leería como otra muesca.
+  static func altoDePildora(for screen: HUDScreenSnapshot) -> CGFloat {
+    max(0, reposoSize(for: screen).height - margenDePildora * 2)
+  }
+
+  static let margenDePildora: CGFloat = 2
+
   /// Cuántos recientes muestra el panel. Tres: más ya es una lista para leer,
   /// y el panel es para agarrar algo al paso.
   static let recientesEnElPanel = 3

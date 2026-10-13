@@ -1090,6 +1090,17 @@
         }
       }
     },
+    "Copiar el dictado que no se pegó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the dictation that didn't paste"
+          }
+        }
+      }
+    },
     "Copiar al portapapeles": {
       "extractionState": "manual",
       "localizations": {
@@ -3099,6 +3110,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Could not transcribe that file"
+          }
+        }
+      }
+    },
+    "No se pegó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didn't paste"
           }
         }
       }
