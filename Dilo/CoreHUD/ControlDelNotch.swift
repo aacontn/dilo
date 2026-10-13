@@ -29,6 +29,14 @@ final class ControlDelNotch {
 
   var estado: EstadoDelNotch { maquina.estado }
 
+  #if DEBUG
+    /// Mientras el arnés muestra una escena, un resultado no vence: el acuse
+    /// dura 700 ms y una escena, ocho segundos, y lo que se viene a mirar es
+    /// el estado y no la vuelta a reposo. Sólo en Debug (`EscenaDeMuestra`);
+    /// la máquina no se entera, sigue siendo pura.
+    var congelado = false
+  #endif
+
   init(reloj: DeadlineClock = .continuous) {
     self.reloj = reloj
   }
@@ -52,6 +60,12 @@ final class ControlDelNotch {
 
     case let .programarVueltaAReposo(duracion, turno):
       vuelta?.cancel()
+      #if DEBUG
+        if congelado {
+          vuelta = nil
+          return
+        }
+      #endif
       vuelta = Task { [weak self, reloj] in
         try? await reloj.sleep(duracion)
         guard !Task.isCancelled else { return }

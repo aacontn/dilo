@@ -24,6 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let settingsRuntimeState = SettingsRuntimeState()
   private let updaterService = SparkleUpdaterService()
   private let launchAtLoginService = LaunchAtLoginService()
+  #if DEBUG
+    /// El arnés de la muesca: dibuja cada estado a pedido, sin dictar
+    /// (`EscenaDeMuestra`, `scripts/muesca.sh`). No existe en Release.
+    private let receptorDeMuestras = ReceptorDeMuestras()
+  #endif
 
   static func main() {
     let application = NSApplication.shared
@@ -137,6 +142,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     stage.alPedirCopiar = { [weak statusItemController] in
       statusItemController?.copiarLoUltimo()
     }
+    #if DEBUG
+      receptorDeMuestras.alDibujar = { [weak stage] escena, texto in
+        stage?.mostrarMuestra(escena, texto: texto)
+      }
+      receptorDeMuestras.alSoltar = { [weak stage] in stage?.soltarMuestra() }
+      stage.alInterrumpirLaMuestra = { [weak receptorDeMuestras] in receptorDeMuestras?.olvidar() }
+      receptorDeMuestras.escuchar()
+    #endif
 
     dictationController.onRecordingStateChange = {
       [weak statusItemController, weak settingsRuntimeState] isRecording, session in

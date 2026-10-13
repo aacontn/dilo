@@ -411,6 +411,17 @@ siendo cierto:
   recorta en silencio.** Si un proveedor pide la sesión del usuario, es
   opcional, apagado de fábrica, se lee en cada consulta sin guardarse ni
   registrarse, y nunca se renueva un token ajeno.
+- **En un Debug abierto, cada estado se pide por su nombre**
+  (`EscenaDeMuestra`, `scripts/muesca.sh mostrar todas --segundos 4`,
+  `scripts/muesca.sh lista`). Dibuja en la ventana real y en la pantalla real,
+  que es lo que ni el PNG ni el canvas muestran, y llega por una notificación
+  distribuida con el bundle id de la copia (`DILO_ID=…prueba` para la de
+  prueba). Mueve la forma con las mismas puertas que una sesión —`claim`,
+  `recibir(_:)`— y nunca toca el dictado: no suena, los botones quedan
+  apagados, un resultado no vence (`ControlDelNotch.congelado`) y un dictado
+  de verdad le gana en su `claim`. En Release no existe. Una escena nueva de
+  la muesca entra al enum y a su test (`ArnesDeLaMuescaTests`), no a una
+  lista aparte.
 - **Ajustes también se revisa en PNG.** `scripts/render-datos-de-la-muesca.sh`
   compila con `build-for-testing` y enlaza un render contra el
   `Dilo.debug.dylib` con `@testable import Dilo`, sin lanzar la app. Dibuja con

@@ -1,0 +1,299 @@
+#if DEBUG
+import Foundation
+import os
+
+/// Cada cosa que la muesca sabe dibujar, con un nombre que un agente puede
+/// pedir. Sólo existe para mirar: ninguna escena abre el micrófono, pega,
+/// copia, suena ni lee el calendario.
+///
+/// Existe porque la muesca se aprueba mirándola y casi ningún estado se puede
+/// mirar a pedido: para ver la tarjeta de un dictado que no se pegó había que
+/// hacer fallar un pegado, y para ver el aviso largo, esperar un error. Con
+/// esto cada estado se pide por su nombre y se dibuja **en la ventana real y
+/// en la pantalla real**, que es lo único que ni el PNG ni el canvas de Xcode
+/// muestran.
+///
+/// Técnica observada en el arnés de otra isla de notch (un documento de
+/// previsualización de su build de desarrollo: «show every HUD, eight seconds
+/// each», nombres registrados, argumentos acotados, pedidos que vencen a los
+/// diez segundos, botones apagados, sólo en DEBUG); la implementación es
+/// propia y el pedido llega por una notificación distribuida.
+///
+/// Sólo en Debug, el archivo entero: en Release no existe, igual que el
+/// gancho `DILO_METRICS_WAV`.
+enum EscenaDeMuestra: String, CaseIterable, Sendable {
+  case reposo
+  case reposoConDatos = "reposo-datos"
+  case cargandoModelo = "cargando-modelo"
+  case faltaMicrofono = "falta-microfono"
+  case dictando
+  case dictandoLargo = "dictando-largo"
+  case procesando
+  case acuse
+  case copiado
+  case avisoLargo = "aviso-largo"
+  case retenido
+  case hover
+  case hoverCompleto = "hover-completo"
+
+  /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
+  /// las escenas que tienen que probar el recorte por la izquierda.
+  var textoDeMuestra: String? {
+    switch self {
+    case .dictando: "Aprieta, habla, suelta"
+    case .dictandoLargo:
+      "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
+    case .procesando: "quedamos el martes a las diez"
+    case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
+    case .retenido: "quedamos el martes a las diez en la oficina de Providencia"
+    case .hover, .hoverCompleto: "Listo · «quedamos el martes a las diez»"
+    default: nil
+    }
+  }
+
+  /// En qué estado del contrato queda la muesca con esta escena. Es lo que
+  /// un test recorre para afirmar que cada nombre dibuja lo que dice.
+  var estado: EstadoDelNotch {
+    switch self {
+    case .reposo, .reposoConDatos, .hover, .hoverCompleto: .reposo
+    case .cargandoModelo: .preparando(.cargandoModelo)
+    case .faltaMicrofono: .preparando(.permisoDeMicrofono)
+    case .dictando, .dictandoLargo: .dictando
+    case .procesando: .procesando
+    case .acuse: .resultado(.listo)
+    case .copiado: .resultado(.copiado)
+    case .avisoLargo: .resultado(.aviso(textoDeMuestra ?? ""))
+    case .retenido: .resultado(.retenido(Self.tarjetaDeMuestra))
+    }
+  }
+
+  static let tarjetaDeMuestra = TarjetaDeRespaldo(
+    texto: EscenaDeMuestra.retenido.textoDeMuestra ?? "",
+    porque: .sinConfirmar
+  )
+}
+
+/// Un pedido del arnés, ya validado. Llega como una línea de texto
+/// (`mostrar dictando procesando --segundos 5`) para que el lado que pide sea
+/// una línea de `osascript` y no un binario que compilar.
+struct PedidoDeMuestras: Equatable, Sendable {
+  enum Orden: Equatable, Sendable {
+    case mostrar([EscenaDeMuestra], cada: Duration, mantener: Bool, texto: String?)
+    case siguiente
+    case cerrar
+  }
+
+  let orden: Orden
+  let emitido: Date
+
+  /// Un pedido que llega tarde no se obedece: una notificación distribuida
+  /// puede quedar en cola mientras la app está suspendida, y una muesca que
+  /// se pone a mostrar escenas sola un minuto después no la pidió nadie.
+  static let vigencia: TimeInterval = 10
+  static let segundos: ClosedRange<Int> = 1...30
+  static let segundosDeFabrica = 8
+  static let largoMaximoDelTexto = 200
+
+  enum Rechazo: Error, Equatable {
+    case vacio
+    case ordenDesconocida(String)
+    case escenaDesconocida(String)
+    case segundosFueraDeRango
+    case textoMuyLargo
+    case vencido
+  }
+
+  /// `ahora` entra por parámetro para probar el vencimiento sin dormir.
+  static func leer(_ linea: String, emitido: Date, ahora: Date) throws(Rechazo) -> PedidoDeMuestras {
+    guard ahora.timeIntervalSince(emitido) <= vigencia else { throw .vencido }
+    var palabras = linea.split(separator: " ").map(String.init)
+    guard !palabras.isEmpty else { throw .vacio }
+    let verbo = palabras.removeFirst()
+    switch verbo {
+    case "siguiente": return PedidoDeMuestras(orden: .siguiente, emitido: emitido)
+    case "cerrar": return PedidoDeMuestras(orden: .cerrar, emitido: emitido)
+    case "mostrar": break
+    default: throw .ordenDesconocida(verbo)
+    }
+
+    var escenas: [EscenaDeMuestra] = []
+    var cada = segundosDeFabrica
+    var mantener = false
+    var texto: String?
+    var i = 0
+    while i < palabras.count {
+      let palabra = palabras[i]
+      switch palabra {
+      case "--segundos":
+        guard i + 1 < palabras.count, let n = Int(palabras[i + 1]), segundos.contains(n) else {
+          throw .segundosFueraDeRango
+        }
+        cada = n
+        i += 1
+      case "--mantener":
+        mantener = true
+      case "--texto":
+        // El resto de la línea es el texto: así un texto con espacios no
+        // necesita comillas que sobrevivan a tres capas de shell.
+        let resto = palabras[(i + 1)...].joined(separator: " ")
+        guard resto.count <= largoMaximoDelTexto else { throw .textoMuyLargo }
+        texto = resto.isEmpty ? nil : resto
+        i = palabras.count
+      case "todas":
+        escenas.append(contentsOf: EscenaDeMuestra.allCases)
+      default:
+        guard let escena = EscenaDeMuestra(rawValue: palabra) else { throw .escenaDesconocida(palabra) }
+        escenas.append(escena)
+      }
+      i += 1
+    }
+    guard !escenas.isEmpty else { throw .vacio }
+    return PedidoDeMuestras(
+      orden: .mostrar(escenas, cada: .seconds(cada), mantener: mantener, texto: texto),
+      emitido: emitido
+    )
+  }
+}
+
+/// Qué escena va ahora. Reductor puro con turno, como `MaquinaDelNotch`: un
+/// plazo viejo no avanza un guion nuevo.
+struct GuionDeMuestras: Equatable, Sendable {
+  private(set) var cola: [EscenaDeMuestra] = []
+  private(set) var actual: EscenaDeMuestra?
+  private(set) var turno = 0
+  private var cada: Duration = .seconds(PedidoDeMuestras.segundosDeFabrica)
+  private var mantener = false
+
+  enum Efecto: Equatable, Sendable {
+    case dibujar(EscenaDeMuestra)
+    case programarSiguiente(Duration, turno: Int)
+    /// Volver al estado real del escenario.
+    case soltar
+  }
+
+  mutating func recibir(_ orden: PedidoDeMuestras.Orden) -> [Efecto] {
+    switch orden {
+    case let .mostrar(escenas, cada, mantener, _):
+      cola = escenas
+      self.cada = cada
+      self.mantener = mantener
+      return avanzar()
+    case .siguiente:
+      return avanzar()
+    case .cerrar:
+      return olvidar()
+    }
+  }
+
+  mutating func vencio(turno vencido: Int) -> [Efecto] {
+    guard vencido == turno, !mantener else { return [] }
+    return avanzar()
+  }
+
+  /// Deja el guion sin nada, como `cerrar`. Lo usa el escenario cuando un
+  /// dictado de verdad le gana a la muestra.
+  mutating func olvidar() -> [Efecto] {
+    let habia = actual != nil
+    cola = []
+    actual = nil
+    turno += 1
+    return habia ? [.soltar] : []
+  }
+
+  private mutating func avanzar() -> [Efecto] {
+    turno += 1
+    guard !cola.isEmpty else {
+      let habia = actual != nil
+      actual = nil
+      return habia ? [.soltar] : []
+    }
+    let escena = cola.removeFirst()
+    actual = escena
+    return mantener ? [.dibujar(escena)] : [.dibujar(escena), .programarSiguiente(cada, turno: turno)]
+  }
+}
+
+/// Escucha los pedidos del arnés.
+///
+/// El nombre de la notificación lleva el bundle id de esta copia
+/// (`cl.espaciodigital.dilo.debug.muesca`, `….prueba.debug.muesca`): con dos
+/// builds de Debug abiertos —la de prueba de Alfonso y la de un agente— un
+/// pedido sin destinatario los movería a los dos. Del lado que pide basta una
+/// línea, que es lo que envuelve `scripts/muesca.sh`:
+///
+///     osascript -l JavaScript -e 'function run(a) { ObjC.import("Foundation");
+///       $.NSDistributedNotificationCenter.defaultCenter
+///       .postNotificationNameObjectUserInfoDeliverImmediately(
+///       a[0], a[1], null, true) }' cl.espaciodigital.dilo.debug.muesca "mostrar todas --segundos 4"
+@MainActor
+final class ReceptorDeMuestras {
+  nonisolated static func nombre(paraElBundle id: String?) -> Notification.Name {
+    Notification.Name("\(id ?? "cl.espaciodigital.dilo").debug.muesca")
+  }
+
+  private static let log = Logger(subsystem: "cl.espaciodigital.dilo", category: "muesca")
+
+  private var guion = GuionDeMuestras()
+  private var plazo: Task<Void, Never>?
+  private var observador: (any NSObjectProtocol)?
+  private var textoPedido: String?
+
+  /// Lo que `HUDStage` hace con cada efecto: dibujar la escena con contenido
+  /// de muestra y botones apagados, o devolver la forma a su estado real.
+  var alDibujar: ((EscenaDeMuestra, String?) -> Void)?
+  var alSoltar: (() -> Void)?
+
+  func escuchar(bundle: String? = Bundle.main.bundleIdentifier) {
+    let nombre = Self.nombre(paraElBundle: bundle)
+    observador = DistributedNotificationCenter.default().addObserver(
+      forName: nombre, object: nil, queue: .main
+    ) { [weak self] aviso in
+      let linea = aviso.object as? String ?? ""
+      MainActor.assumeIsolated { self?.recibir(linea) }
+    }
+    Self.log.notice("Arnés de la muesca escuchando en \(nombre.rawValue, privacy: .public)")
+  }
+
+  /// Una línea del arnés. Interna para que un test la mande sin pasar por la
+  /// notificación distribuida, que no se puede esperar desde la suite.
+  func recibir(_ linea: String, ahora: Date = Date()) {
+    let pedido: PedidoDeMuestras
+    do {
+      pedido = try PedidoDeMuestras.leer(linea, emitido: ahora, ahora: ahora)
+    } catch {
+      Self.log.notice("Arnés: pedido rechazado (\(String(describing: error), privacy: .public)): \(linea, privacy: .public)")
+      return
+    }
+    if case let .mostrar(_, _, _, texto) = pedido.orden { textoPedido = texto }
+    aplicar(guion.recibir(pedido.orden))
+  }
+
+  /// Un dictado de verdad empezó encima de la muestra: el guion se olvida
+  /// sin volver a soltar la forma, que ya es de la sesión real.
+  func olvidar() {
+    plazo?.cancel()
+    _ = guion.olvidar()
+  }
+
+  private func aplicar(_ efectos: [GuionDeMuestras.Efecto]) {
+    for efecto in efectos {
+      switch efecto {
+      case let .dibujar(escena):
+        Self.log.notice("Arnés: \(escena.rawValue, privacy: .public)")
+        alDibujar?(escena, textoPedido ?? escena.textoDeMuestra)
+      case .soltar:
+        plazo?.cancel()
+        textoPedido = nil
+        alSoltar?()
+      case let .programarSiguiente(duracion, turno):
+        plazo?.cancel()
+        plazo = Task { [weak self] in
+          try? await Task.sleep(for: duracion)
+          guard !Task.isCancelled, let self else { return }
+          self.aplicar(self.guion.vencio(turno: turno))
+        }
+      }
+    }
+  }
+}
+#endif

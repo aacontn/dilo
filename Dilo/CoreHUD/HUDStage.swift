@@ -131,6 +131,27 @@ final class HUDStage {
   /// actor principal no puede tocar sus propiedades.
   private var spaceObserver: (any NSObjectProtocol)?
 
+  #if DEBUG
+    /// La escena del arnés que está en pantalla, o nil (`EscenaDeMuestra`).
+    var muestra: MuestraEnCurso?
+    /// Verdadero mientras el propio arnés llama a `claim`: un dictado de
+    /// verdad también lo llama, y es lo que tiene que soltar la muestra.
+    var dibujandoMuestra = false
+    /// Avisa al arnés que un dictado de verdad le ganó la forma.
+    var alInterrumpirLaMuestra: (() -> Void)?
+  #endif
+
+  /// Si el arnés de Debug tiene la forma. Mientras la tiene no suena nada,
+  /// el puntero no abre ni cierra el panel y ningún botón hace nada real.
+  /// Siempre falso en Release, donde el arnés no existe.
+  var enMuestra: Bool {
+    #if DEBUG
+      muestra != nil
+    #else
+      false
+    #endif
+  }
+
   init(
     settings: AppSettings,
     reloj: DeadlineClock = .continuous,
@@ -225,7 +246,10 @@ final class HUDStage {
   /// Cuánto se alarga la muesca a cada lado: lo de un dato si alguno de los
   /// dos costados lleva uno, nada si ninguno.
   private var anchoDeLosLados: CGFloat {
-    datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
+    #if DEBUG
+      if muestra?.conDatos == true { return HUDNotchGeometry.anchoDeUnLado }
+    #endif
+    return datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
   }
 
   // MARK: El panel del hover
@@ -239,7 +263,10 @@ final class HUDStage {
   /// Lo más que el panel del hover puede llevar con lo encendido en Ajustes.
   /// Los recientes siempre caben: cualquier dictado es uno.
   private var seccionesPosibles: SeccionesDelPanel {
-    SeccionesDelPanel(
+    #if DEBUG
+      if muestra?.panelCompleto == true { return .todas }
+    #endif
+    return SeccionesDelPanel(
       recientes: HUDNotchGeometry.recientesEnElPanel,
       datos: false,
       reunion: settings.hudProximaReunion,
@@ -303,7 +330,7 @@ final class HUDStage {
   /// entra, contesta que no, y `DatosDeLaMuesca` lo vuelve a ofrecer en la
   /// vuelta siguiente.
   private func avisar(_ aviso: AvisoDeLimite) -> Bool {
-    guard estado == .reposo, occupant == .none else { return false }
+    guard estado == .reposo, occupant == .none, !enMuestra else { return false }
     showMessage(Self.texto(de: aviso), on: pantallaActual?.id)
     return true
   }
@@ -437,6 +464,8 @@ final class HUDStage {
   /// dictando» ocurre más de una vez por sesión. La sesión termina al volver a
   /// reposo, que es donde las dos se reinician.
   private func sonarPor(_ anterior: EstadoDelNotch, a nuevo: EstadoDelNotch) {
+    // Una escena del arnés no es una sesión: mostrar «dictando» no suena.
+    guard !enMuestra else { return }
     let ajustes = renderedSettings.sounds
     guard nuevo != .reposo else {
       // Un dictado cancelado no pasa por procesando ni por resultado, y
@@ -648,6 +677,26 @@ final class HUDStage {
     return !zona.contains(local)
   }
 
+  /// La pantalla donde está montada la forma ahora.
+  var pantallaMontada: HUDScreenSnapshot? { pantallaActual }
+
+  /// Vuelve a montar en la misma pantalla con lo que hoy piden los costados y
+  /// el panel del hover. Es lo que hace `aplicarLosLados` cuando cambia un
+  /// ajuste, sin mirar si cambió.
+  func remontarConLosLadosActuales() {
+    guard var pantalla = pantallaActual else { return }
+    pantalla.anchoDeLosLados = anchoDeLosLados
+    pantalla.seccionesPosibles = seccionesPosibles
+    mount(on: pantalla)
+  }
+
+  /// Vuelve a aplicar el estado del contrato que ya está puesto: el encuadre
+  /// de la ventana, la zona que recibe el mouse. Para cuando lo que cambió no
+  /// fue el estado sino lo que la forma muestra en él (el panel del hover).
+  func reaplicarElEstado() {
+    aplicar(estado)
+  }
+
   /// Pone la forma en esta pantalla sin que nadie ocupe el escenario. Es lo
   /// que `despertar()` hace con la pantalla que elige, expuesto para que un
   /// test no dependa de los monitores que tenga la máquina que corre.
@@ -663,7 +712,7 @@ final class HUDStage {
   /// que arma `zonaInteractiva`, así que «responde al clic» y «cuenta como
   /// hover» no pueden desviarse.
   func punteroSeMovio(a punto: CGPoint) {
-    guard let pantallaActual else { return }
+    guard let pantallaActual, !enMuestra else { return }
     let silueta = HUDNotchGeometry.siluetaEnPantalla(
       for: pantallaActual,
       tamaño: tamañoDeLaSilueta,
@@ -675,6 +724,7 @@ final class HUDStage {
   /// El puntero se fue de la ventana entera. El área de seguimiento lo avisa
   /// aunque el último movimiento no haya caído en la silueta.
   func punteroSalio() {
+    guard !enMuestra else { return }
     punteroDentro(false)
   }
 
@@ -692,6 +742,8 @@ final class HUDStage {
   /// que la ventana cambiaba de tamaño, que es justo lo que el hover hace al
   /// abrirse.
   private func punteroEncima(_ dentro: Bool) {
+    // La escena `hover` abre el panel sola; el mouse de verdad no lo cierra.
+    guard !enMuestra else { return }
     hoverTask?.cancel()
     let retardo = Duration.milliseconds(
       Int((max(0, settings.hudRetardoDeHover) * 1000).rounded())
@@ -907,6 +959,11 @@ final class HUDStage {
     // Un estado que todavía no dibuja nada no abre el escenario: una forma
     // negra vacía se lee como un cuelgue (`HUDSessionKind.isDrawn`).
     guard kind.isDrawn else { return }
+    #if DEBUG
+      // Un dictado de verdad le gana a la muestra: la escena se suelta y la
+      // forma es de la sesión desde este mismo `claim`.
+      if muestra != nil, !dibujandoMuestra { interrumpirMuestra() }
+    #endif
     orderOutTask?.cancel()
     if occupant != .message { cancelMessageDismiss() }
     if occupant != .drop { evictDrop() }
