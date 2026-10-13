@@ -277,7 +277,7 @@ extension TextInsertionService {
       ifUnchangedSince: dependencies.pasteboard.changeCount
     ) != nil else { return .unavailable }
 
-    guard dependencies.postPasteShortcut() else {
+    guard dependencies.postPasteShortcut(canal(para: target)) else {
       // The paste never fired, but the text is already on the clipboard,
       // which is exactly the manual-paste fallback.
       return .copiedToClipboard

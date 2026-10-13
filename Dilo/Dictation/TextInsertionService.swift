@@ -33,7 +33,7 @@ final class TextInsertionService {
 
   struct Target {
     fileprivate let element: AXUIElement?
-    fileprivate let processIdentifier: pid_t
+    let processIdentifier: pid_t
 
     let isSecure: Bool
     let displayID: CGDirectDisplayID?
@@ -41,19 +41,24 @@ final class TextInsertionService {
     /// history entry to name. Resolved at capture time rather than at write
     /// time, because by then the application may be gone.
     let applicationName: String?
+    /// Para elegir la `PoliticaDeEntrega`: una terminal no se teclea y un
+    /// escritorio remoto recibe el ⌘V por el HID.
+    let bundleID: String?
 
     init(
       element: AXUIElement?,
       processIdentifier: pid_t,
       isSecure: Bool,
       displayID: CGDirectDisplayID?,
-      applicationName: String? = nil
+      applicationName: String? = nil,
+      bundleID: String? = nil
     ) {
       self.element = element
       self.processIdentifier = processIdentifier
       self.isSecure = isSecure
       self.displayID = displayID
       self.applicationName = applicationName
+      self.bundleID = bundleID
     }
   }
 
@@ -71,7 +76,11 @@ final class TextInsertionService {
     let frontmostApplication: @MainActor () -> NSRunningApplication?
     let isProcessRunning: @MainActor (pid_t) -> Bool
     let isTargetFocused: @MainActor (Target) -> Bool
-    let postPasteShortcut: @MainActor () -> Bool
+    /// Lo que se mira del teclado antes de pegar: entrada segura y teclas
+    /// sostenidas. Va antes del atajo para que los tests lo pongan junto a él.
+    var teclado: LecturasDelTeclado = .delSistema
+    /// Aprieta ⌘V por el canal que dice la política del destino.
+    let postPasteShortcut: @MainActor (CanalDelAtajo) -> Bool
     let waitForPasteRead: @MainActor () async -> Void
     /// Presses Copy in the focused application, for reading a selection
     /// Accessibility will not answer for.
@@ -83,6 +92,15 @@ final class TextInsertionService {
     /// How long a copy is given to reach the pasteboard. Long enough for a
     /// browser to answer, short enough that a key press does not feel stuck.
     var copyTimeout: Duration = .milliseconds(400)
+    /// Cómo se entrega a este destino. Con valor por defecto porque sale del
+    /// destino mismo y del anfitrión: un test sólo lo cambia para fingir otra
+    /// clase de app.
+    var politica: @MainActor (Target) -> PoliticaDeEntrega = { destino in
+      PoliticaDeEntrega.para(
+        ClaseDeDestino.de(bundleID: destino.bundleID),
+        alProcesoSePuede: Anfitrion.actual.admite(.atajoAlProceso)
+      )
+    }
     /// The time source behind the snapshot and copy deadlines. Injectable so
     /// a test drives time instead of betting the runner beats a real
     /// deadline, which is the bet that flaked on loaded CI machines (#82).
@@ -115,6 +133,7 @@ final class TextInsertionService {
           return !application.isTerminated
         },
         isTargetFocused: TextInsertionService.isStillFocused,
+        teclado: .delSistema,
         postPasteShortcut: TextInsertionService.postPasteShortcut,
         waitForPasteRead: {
           try? await Task.sleep(for: .milliseconds(500))
@@ -136,14 +155,14 @@ final class TextInsertionService {
     if let element = dependencies.focusedElement() {
       let processIdentifier = Anfitrion.actual.pid(de: element)
 
+      let application = NSRunningApplication(processIdentifier: processIdentifier)
       return Target(
         element: element,
         processIdentifier: processIdentifier,
         isSecure: isSecureTextField(element),
         displayID: displayID(for: element),
-        applicationName: NSRunningApplication(
-          processIdentifier: processIdentifier
-        )?.localizedName
+        applicationName: application?.localizedName,
+        bundleID: application?.bundleIdentifier
       )
     }
 
@@ -155,7 +174,8 @@ final class TextInsertionService {
       processIdentifier: application.processIdentifier,
       isSecure: false,
       displayID: nil,
-      applicationName: application.localizedName
+      applicationName: application.localizedName,
+      bundleID: application.bundleIdentifier
     )
   }
 
@@ -184,6 +204,14 @@ final class TextInsertionService {
     }
 
     guard dependencies.isTargetFocused(target) else {
+      return copyToClipboard(text)
+    }
+    // Antes de tocar el portapapeles: si no se va a pegar, no hay nada que
+    // fotografiar ni que devolver.
+    guard await dependencies.teclado.esperarTecladoLibre(
+      ahora: dependencies.clock.now,
+      dormir: dependencies.clock.sleep
+    ) == nil else {
       return copyToClipboard(text)
     }
     if destination == .both {
@@ -280,7 +308,7 @@ final class TextInsertionService {
       isTransient: true
     ) else { return .unavailable }
 
-    guard dependencies.postPasteShortcut() else {
+    guard dependencies.postPasteShortcut(canal(para: target)) else {
       restoreClipboard(savedItems, ifUnchangedSince: insertedChangeCount)
       return .unavailable
     }
@@ -336,12 +364,22 @@ final class TextInsertionService {
     return nil
   }
 
+  /// ⌘C al HID: lo pide Leer en voz alta para la app al frente, sin un
+  /// destino capturado al que mandárselo.
   private static func postCopyShortcut() -> Bool {
-    postShortcut(virtualKey: 8)
+    postShortcut(virtualKey: TeclaDelAtajo.resolver("c"))
   }
 
-  private static func postPasteShortcut() -> Bool {
-    postShortcut(virtualKey: 9)
+  private static func postPasteShortcut(_ canal: CanalDelAtajo) -> Bool {
+    postShortcut(virtualKey: TeclaDelAtajo.resolver("v"), publicar: canal.publicar)
+  }
+
+  /// El canal del ⌘V para este destino, según su política.
+  func canal(para target: Target) -> CanalDelAtajo {
+    CanalDelAtajo.para(
+      pid: target.processIdentifier,
+      alProceso: dependencies.politica(target).alProceso
+    )
   }
 
   /// Aprieta ⌘ + la tecla con la secuencia entera de `AtajoSimulado`.

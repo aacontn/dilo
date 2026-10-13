@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import DiloCapabilities
 import os
 import Testing
 @testable import Dilo
@@ -21,7 +22,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {
         textAvailableWhileTargetReads = pasteboard.string(forType: .string)
       },
@@ -59,7 +61,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -96,7 +99,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -130,7 +134,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -168,7 +173,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -197,7 +203,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {
         pasteboard.clearContents()
         pasteboard.setString("new clipboard", forType: .string)
@@ -245,7 +252,8 @@ struct TextInsertionServiceTests {
         frontmostApplication: { nil },
         isProcessRunning: { _ in true },
         isTargetFocused: { _ in true },
-        postPasteShortcut: { true },
+        teclado: .libre,
+        postPasteShortcut: { _ in true },
         waitForPasteRead: {
           pastedText.withLock { $0 = observedPasteboard.string(forType: .string) }
         },
@@ -294,7 +302,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {
         pastedText = pasteboard.string(forType: .string)
       },
@@ -338,7 +347,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -377,7 +387,8 @@ struct TextInsertionServiceTests {
         }
         return true
       },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -410,7 +421,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         attemptedPaste = true
         stagedTextAtPasteAttempt = pasteboard.string(forType: .string)
         return false
@@ -441,7 +453,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in false },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -470,7 +483,8 @@ struct TextInsertionServiceTests {
         focusCheckCount += 1
         return focusCheckCount == 1
       },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -501,7 +515,8 @@ struct TextInsertionServiceTests {
         return false
       },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {}
     ))
 
@@ -595,7 +610,8 @@ struct TextInsertionServiceTests {
           }
           return true
         },
-        postPasteShortcut: {
+        teclado: .libre,
+        postPasteShortcut: { _ in
           postedPaste.withLock { $0 = true }
           return true
         },
@@ -712,7 +728,8 @@ struct TextInsertionServiceTests {
         frontmostApplication: { nil },
         isProcessRunning: { _ in true },
         isTargetFocused: { _ in true },
-        postPasteShortcut: {
+        teclado: .libre,
+        postPasteShortcut: { _ in
           postedPasteCount.withLock { $0 += 1 }
           return true
         },
@@ -817,7 +834,8 @@ struct TextInsertionServiceTests {
         frontmostApplication: { nil },
         isProcessRunning: { _ in true },
         isTargetFocused: { _ in true },
-        postPasteShortcut: {
+        teclado: .libre,
+        postPasteShortcut: { _ in
           postedPaste.withLock { $0 = true }
           return true
         },
@@ -854,7 +872,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -884,7 +903,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in false },
       isTargetFocused: { _ in false },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {}
     ))
     let outcome = await service.insert(
@@ -910,7 +930,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {}
     ))
     let outcome = await service.insert(
@@ -939,7 +960,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPasteCount += 1
         return true
       },
@@ -973,7 +995,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in false },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -1005,7 +1028,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { false },
+      teclado: .libre,
+      postPasteShortcut: { _ in false },
       waitForPasteRead: {
         waitedForPasteRead = true
       }
@@ -1036,7 +1060,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         postedPaste = true
         return true
       },
@@ -1070,7 +1095,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {
         textAvailableWhileTargetReads = pasteboard.string(forType: .string)
       },
@@ -1101,7 +1127,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {}
     ))
     let outcome = await service.insert(
@@ -1131,7 +1158,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: {
+      teclado: .libre,
+      postPasteShortcut: { _ in
         // Read while Dilo's text is on the pasteboard, which is the only
         // moment a clipboard manager would see it.
         typesWhileStaged = pasteboard.types?.map(\.rawValue) ?? []
@@ -1167,7 +1195,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {}
     ))
 
@@ -1198,7 +1227,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {},
       // What Copy does in the focused application, which here is the selection
       // arriving on the pasteboard.
@@ -1234,7 +1264,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {},
       // Copy fired and nothing came of it, exactly as an empty selection does.
       postCopyShortcut: {
@@ -1278,7 +1309,8 @@ struct TextInsertionServiceTests {
       frontmostApplication: { nil },
       isProcessRunning: { _ in true },
       isTargetFocused: { _ in true },
-      postPasteShortcut: { true },
+      teclado: .libre,
+      postPasteShortcut: { _ in true },
       waitForPasteRead: {},
       postCopyShortcut: {
         didCopy.withLock { $0 = true }
