@@ -48,7 +48,9 @@ linea="$*"
 osascript -l JavaScript - "$nombre" "$linea" <<'JXA'
 function run(argv) {
   ObjC.import("Foundation");
+  // `$()` y no `null`: con `null` en userInfo el puente de JXA no manda nada
+  // y tampoco falla (medido el 2026-10-13); `$()` es el nil de Objective-C.
   $.NSDistributedNotificationCenter.defaultCenter
-    .postNotificationNameObjectUserInfoDeliverImmediately(argv[0], argv[1], null, true);
+    .postNotificationNameObjectUserInfoDeliverImmediately($(argv[0]), $(argv[1]), $(), true);
 }
 JXA
