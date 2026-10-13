@@ -107,6 +107,68 @@ struct PegadoEnSandboxTests {
   }
 }
 
+/// En macOS 26 el elemento del sistema no contesta por el foco (−25204), así
+/// que el pegado tiene que preguntarle a la app al frente. Antes el pegado le
+/// preguntaba sólo al sistema y nunca tenía elemento.
+struct FocoDelPegadoTests {
+  private let foco = kAXFocusedUIElementAttribute as String
+
+  @Test func elFocoSeLePreguntaPrimeroALaApp() {
+    let espia = LectorEspia(atributosDeElemento: [foco])
+    let completo = FullHost(lector: espia, pidAlFrente: { 501 })
+
+    #expect(completo.elementoEnfocado() != nil)
+    #expect(espia.llamadas.contains("elementoDeLaApp"))
+    #expect(!espia.llamadas.contains("elementoDelSistema"))
+  }
+
+  @Test func siLaAppNoContestaSeLePreguntaAlSistema() {
+    let espia = LectorEspia()
+    let completo = FullHost(lector: espia, pidAlFrente: { 501 })
+
+    _ = completo.elementoEnfocado()
+
+    let llamadas = espia.llamadas
+    let app = llamadas.firstIndex(of: "elementoDeLaApp")
+    let sistema = llamadas.firstIndex(of: "elementoDelSistema")
+    #expect(app != nil && sistema != nil)
+    if let app, let sistema { #expect(app < sistema) }
+  }
+
+  @Test func elMismoElementoEnLaMismaAppSigueSiendoElFoco() {
+    let completo = FullHost(
+      lector: LectorEspia(atributosDeElemento: [foco]),
+      pidAlFrente: { 501 }
+    )
+
+    #expect(completo.sigueSiendoElFoco(elemento: LectorEspia.elementoPropio, pid: 501))
+  }
+
+  /// El elemento de una app recuerda su foco también cuando la app quedó
+  /// atrás: sin mirar el pid se pegaría en una ventana que ya no se ve.
+  @Test func conOtraAppAlFrenteYaNoEsElFoco() {
+    let completo = FullHost(
+      lector: LectorEspia(atributosDeElemento: [foco]),
+      pidAlFrente: { 777 }
+    )
+
+    #expect(!completo.sigueSiendoElFoco(elemento: LectorEspia.elementoPropio, pid: 501))
+    #expect(!completo.sigueSiendoElFoco(elemento: nil, pid: 501))
+  }
+
+  @Test func sinElementoBastaConQueLaAppSigaAlFrente() {
+    let completo = FullHost(lector: LectorEspia(), pidAlFrente: { 501 })
+
+    #expect(completo.sigueSiendoElFoco(elemento: nil, pid: 501))
+  }
+
+  @Test func siNadieContestaElFocoNoSeDaPorBueno() {
+    let completo = FullHost(lector: LectorEspia(), pidAlFrente: { 501 })
+
+    #expect(!completo.sigueSiendoElFoco(elemento: LectorEspia.elementoPropio, pid: 501))
+  }
+}
+
 struct RelecturaDelFocoTests {
   @Test func enSandboxNoHayNadaQueReleer() {
     let espia = LectorEspia(atributos: [

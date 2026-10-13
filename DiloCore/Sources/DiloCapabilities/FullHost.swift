@@ -10,9 +10,19 @@ import Foundation
 /// del contrato para que exista el otro lado.
 public struct FullHost: HostCapabilities {
   private let lector: any LectorDeAccesibilidad
+  private let pidAlFrente: @Sendable () -> pid_t
 
-  public init(lector: any LectorDeAccesibilidad = AccesibilidadDelSistema()) {
+  /// - Parameter pidAlFrente: Qué proceso está al frente. Entra por acá para
+  ///   que un test diga cuál es en vez de depender de la app que tenga el foco
+  ///   la máquina que corre la suite.
+  public init(
+    lector: any LectorDeAccesibilidad = AccesibilidadDelSistema(),
+    pidAlFrente: @escaping @Sendable () -> pid_t = {
+      NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+    }
+  ) {
     self.lector = lector
+    self.pidAlFrente = pidAlFrente
   }
 
   public var nombre: String { "completo" }
@@ -24,8 +34,14 @@ public struct FullHost: HostCapabilities {
   @discardableResult
   public func pedirAccesibilidad() -> Bool { lector.pedirAutorizacion() }
 
+  /// Pregunta primero a la app al frente, igual que `focoParaLeer`: en macOS
+  /// 26 el elemento del sistema contesta `kAXErrorCannotComplete` (−25204)
+  /// para el foco aunque Accesibilidad esté concedida (medido el 2026-10-13).
+  /// Preguntándole sólo a él, el pegado nunca tenía elemento: caía siempre a
+  /// «la app al frente», el chequeo de campo de contraseña no saltaba nunca y
+  /// `sigueSiendoElFoco` comparaba sólo el pid.
   public func elementoEnfocado() -> AXUIElement? {
-    elemento(lector.elementoDelSistema(), atributo: kAXFocusedUIElementAttribute as String)
+    elementoEnfocadoDeLaAppAlFrente()
   }
 
   public func elemento(_ duenno: AXUIElement, atributo: String) -> AXUIElement? {
@@ -60,12 +76,16 @@ public struct FullHost: HostCapabilities {
     return CGRect(origin: origen, size: medida)
   }
 
+  /// Con elemento, tienen que coincidir las dos cosas: que la app siga al
+  /// frente y que su foco sea el mismo elemento. La primera la cubría antes el
+  /// elemento del sistema, que sólo conoce el foco de la app activa; el de la
+  /// app recuerda su foco también desde atrás, así que sin el chequeo del pid
+  /// se pegaría en una ventana que ya no está a la vista.
   public func sigueSiendoElFoco(elemento: AXUIElement?, pid: pid_t) -> Bool {
-    guard let elemento else { return Self.pidAlFrente() == pid }
-    guard let actual = lector.atributo(
-      lector.elementoDelSistema(),
-      kAXFocusedUIElementAttribute as String
-    ) else { return false }
+    guard pidAlFrente() == pid else { return false }
+    guard let elemento else { return true }
+    guard let actual = elementoEnfocado(de: pid) ?? elementoEnfocadoDelSistema()
+    else { return false }
     return CFEqual(actual, elemento)
   }
 
@@ -93,18 +113,18 @@ public struct FullHost: HostCapabilities {
   /// queda como respaldo porque cuesta una llamada y este comportamiento es
   /// de los que vuelven.
   private func elementoEnfocadoDeLaAppAlFrente() -> AXUIElement? {
-    let pid = Self.pidAlFrente()
-    if pid != 0,
-      let enfocado = elemento(
-        lector.elementoDeLaApp(pid),
-        atributo: kAXFocusedUIElementAttribute as String
-      ) {
-      return enfocado
-    }
-    return elementoEnfocado()
+    elementoEnfocado(de: pidAlFrente()) ?? elementoEnfocadoDelSistema()
   }
 
-  private static func pidAlFrente() -> pid_t {
-    NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+  private func elementoEnfocado(de pid: pid_t) -> AXUIElement? {
+    guard pid != 0 else { return nil }
+    return elemento(
+      lector.elementoDeLaApp(pid),
+      atributo: kAXFocusedUIElementAttribute as String
+    )
+  }
+
+  private func elementoEnfocadoDelSistema() -> AXUIElement? {
+    elemento(lector.elementoDelSistema(), atributo: kAXFocusedUIElementAttribute as String)
   }
 }
