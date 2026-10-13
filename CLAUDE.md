@@ -100,6 +100,15 @@ Distingue propuesta, implementación y deuda pendiente.
   no inventa puntos ni cambia mayúsculas. La costura de las ventanas de
   Parakeet se corta antes, en `CosturaDeTrozos`, con los tiempos de cada
   token como evidencia — nunca partiendo una palabra por su forma.
+- **Lo dicho vive en RAM hasta que hay texto, y nunca en disco.** El
+  micrófono deja una copia a 16 kHz en `GrabadoraEnRAM` y la sesión habla con
+  `MotorConRespaldo`, que envuelve al router sin cambiarle el contrato: lo
+  que sale de un motor pasa por `RevisionDeToma` (tokens, firma de Amara,
+  fantasmas sobre silencio, bucles), y si no queda texto con voz en la toma,
+  el otro motor transcribe el mismo audio. Si tampoco sale, queda **una**
+  toma en RAM diez minutos, se dice en la muesca y se reintenta desde el menú
+  de la barra. Los umbrales son de Ocelli e imnot, sin medir todavía en
+  español: son constantes con nombre, y se calibran ahí.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
@@ -160,8 +169,8 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión | 5, 9 |
-| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio) | 3 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles | 5, 9 |
+| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso` | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |

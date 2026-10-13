@@ -116,16 +116,20 @@ struct MotorConRespaldoTests {
   }
 
   @Test func elReintentoPruebaElElegidoYDespuesElOtro() async throws {
-    let transcriptor = TranscriptorFalso([.parakeet: .success("  "), .apple: .success("lo que dije")])
+    let transcriptor = TranscriptorFalso()
     let avisos = AvisosDeToma()
     let (motor, grabadora) = armar(transcriptor: transcriptor)
     await motor.observarTomaFallida { avisos.agregar($0) }
     try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
     hablar(grabadora, segundos: 2)
     _ = try? await motor.finish()
+    // Al soltar, Apple tampoco pudo (todavía no tenía el idioma, digamos).
+    #expect(transcriptor.aQuienes == [.apple])
 
+    transcriptor.contestar(.parakeet, .success("  "))
+    transcriptor.contestar(.apple, .success("lo que dije"))
     #expect(try await motor.reintentar() == "lo que dije")
-    #expect(transcriptor.aQuienes == [.parakeet, .apple])
+    #expect(transcriptor.aQuienes == [.apple, .parakeet, .apple])
     // Salió: la toma se va de la RAM y el menú se entera.
     #expect(await motor.duracionDeLaTomaFallida() == nil)
     #expect(avisos.todos.last == .some(nil))
@@ -168,8 +172,11 @@ struct MotorConRespaldoTests {
     hablar(grabadora, segundos: 2)
     _ = try? await motor.finish()
 
-    await reloj.hastaQueAlguienEspere()
-    #expect(await reloj.esperas == [PoliticaDeGrabacion.vidaDeLaTomaFallida])
+    // El mismo reloj cuenta el plazo de la segunda opinión que se intentó al
+    // soltar; lo que importa es que la vida de la toma esté corriendo.
+    try await esperarA("que la toma arme su vencimiento") {
+      await reloj.esperas.contains(PoliticaDeGrabacion.vidaDeLaTomaFallida)
+    }
     await reloj.avanzar()
     try await esperarA("que la toma venza") { await motor.duracionDeLaTomaFallida() == nil }
   }
@@ -185,5 +192,65 @@ struct MotorConRespaldoTests {
     await motor.descartarTomaFallida()
     #expect(await motor.duracionDeLaTomaFallida() == nil)
     #expect(avisos.todos == [nil, 3, nil])
+  }
+
+  /// El motor escuchó voz y no sacó nada: el otro motor transcribe el mismo
+  /// audio y el dictado sale igual, sin que nadie tenga que reintentar.
+  @Test func elOtroMotorRescataUnaTomaVacia() async throws {
+    let transcriptor = TranscriptorFalso([.apple: .success("Te mando el informe mañana.")])
+    let (motor, grabadora) = armar(parakeet: MotorFalso(texto: ""), transcriptor: transcriptor)
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    hablar(grabadora, segundos: 3)
+
+    #expect(try await motor.finish() == "Te mando el informe mañana.")
+    #expect(transcriptor.aQuienes == [.apple])
+    #expect(await motor.duracionDeLaTomaFallida() == nil)
+  }
+
+  @Test func siElMotorSeCaeElOtroRescata() async throws {
+    let transcriptor = TranscriptorFalso([.apple: .success("Lo que dije.")])
+    let (motor, grabadora) = armar(transcriptor: transcriptor)
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    hablar(grabadora, segundos: 2)
+
+    #expect(try await motor.finish() == "Lo que dije.")
+    #expect(await motor.duracionDeLaTomaFallida() == nil)
+  }
+
+  /// Un «gracias» sobre una sala callada lo inventó el motor: no se pega, y
+  /// la muesca dice que no escuchó en vez de acusar un dictado que no hubo.
+  @Test func unFantasmaSobreSilencioNoSePega() async throws {
+    let (motor, grabadora) = armar(parakeet: MotorFalso(texto: "¡Gracias por ver!"))
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    AudioDePrueba.ruido(segundos: 3, amplitud: 0.000_3).withUnsafeBufferPointer { _ = grabadora.agregar($0) }
+
+    await #expect(throws: TomaSinTexto.nadieHablo) { try await motor.finish() }
+    #expect(await motor.duracionDeLaTomaFallida() == nil)
+  }
+
+  /// El mismo «gracias», dicho de verdad, se pega.
+  @Test func unGraciasConVozSePega() async throws {
+    let (motor, grabadora) = armar(parakeet: MotorFalso(texto: "Gracias."))
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    hablar(grabadora, segundos: 0.8)
+    #expect(try await motor.finish() == "Gracias.")
+  }
+
+  /// Sin audio medido —la grabadora no vio la toma— nadie puede decir que
+  /// nadie habló: sale vacío, como salía siempre.
+  @Test func sinAudioMedidoSaleVacioComoSiempre() async throws {
+    let (motor, _) = armar(parakeet: MotorFalso(texto: ""))
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    #expect(try await motor.finish() == "")
+  }
+
+  /// La firma de Amara pegada al final de un dictado real se va, y lo
+  /// dictado queda.
+  @Test func laFirmaDeAmaraSeVaDeUnDictadoReal() async throws {
+    let (motor, grabadora) = armar(
+      parakeet: MotorFalso(texto: "Nos vemos el lunes en la oficina. Subtítulos realizados por la comunidad de Amara.org"))
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    hablar(grabadora, segundos: 2)
+    #expect(try await motor.finish() == "Nos vemos el lunes en la oficina.")
   }
 }

@@ -69,4 +69,34 @@ struct RecorteConParakeetTests {
     var sala = AudioDePrueba.ruido(segundos: 4, amplitud: 0.000_8)
     #expect(RecorteDeBordes.preparar(&sala) == nil)
   }
+
+  /// El rescate entero con el modelo de verdad: escuchó Apple, Apple no sacó
+  /// nada, y Parakeet transcribe el mismo audio desde la RAM.
+  @Test func parakeetRescataUnaTomaDesdeLaRAM() async throws {
+    let voz = try AudioDePrueba.voz("Te mando el informe del proyecto mañana temprano.")
+    let toma = AudioDePrueba.ruido(segundos: 0.8, amplitud: 0.000_3) + voz
+      + AudioDePrueba.ruido(segundos: 0.8, amplitud: 0.000_3, semilla: 9)
+
+    let parakeet = ParakeetEngine(captura: CapturaFalsa())
+    let grabadora = GrabadoraEnRAM()
+    let router = SpeechEngineRouter(
+      apple: MotorFalso(texto: ""), parakeet: parakeet, elegido: .apple, parakeetDescargado: { true })
+    let respaldo = MotorConRespaldo(
+      motores: router, grabadora: grabadora,
+      transcribir: { motor, muestras, _ in
+        guard motor == .parakeet else { throw EngineError.sinMicrofono }
+        return try await parakeet.transcribirSinSesion(muestras)
+      })
+
+    try await respaldo.start(locale: Locale(identifier: "es-CL"), handlers: EngineHandlers { _ in })
+    toma.withUnsafeBufferPointer { _ = grabadora.agregar($0) }
+    let reloj = ContinuousClock()
+    var texto = ""
+    let duro = try await reloj.measure { texto = try await respaldo.finish() }
+    print("Rescate con Parakeet desde RAM (con carga del modelo): \(duro) → «\(texto)»")
+    for palabra in ["informe", "proyecto", "mañana"] {
+      #expect(texto.lowercased().contains(palabra), "se perdió «\(palabra)»")
+    }
+    await parakeet.descargarDeMemoria()
+  }
 }
