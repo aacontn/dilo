@@ -24,7 +24,7 @@ struct DropHUDStyle {
     accent = Color(nsColor: settings.dropAccent)
     accentStroke = settings.voiceVisual.usesEdgeGlow
       ? settings.glowPalette.stroke
-      : AnyShapeStyle(SettingsTheme.accent)
+      : AnyShapeStyle(PaletaDeDilo.actual.acentoDeLaBarra.color)
   }
 
   /// The corner every inner panel shares — the well, the card.

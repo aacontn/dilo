@@ -187,9 +187,19 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 **Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
 `DiloBrand` (`Dilo/Settings/Components/SettingsTheme.swift`), una sola vez
-para SwiftUI y para los `NSImage`. El acento de la app es **mango**. Los
-activos están en `brand/`; el `.icns` se regenera con `rsvg-convert` +
-`iconutil` desde `brand/dilo-icon.svg` y queda en `brand/generado/`.
+para SwiftUI y para los `NSImage`. Los activos están en `brand/`; el `.icns`
+se regenera con `rsvg-convert` + `iconutil` desde `brand/dilo-icon.svg` y
+queda en `brand/generado/`.
+
+**Los colores de la interfaz salen de `PaletaDeDilo`** (2026-10-14), no de
+`DiloBrand`: la muesca y Ajustes piden `PaletaDeDilo.actual` y el token de
+lo que dibujan —`cursor`, `acuse`, `puntoDeReposo`, `acentoDeAjustes`…—, y
+qué color es cada uno vive en una sola tabla. Una vista nueva no escribe
+`DiloBrand.mango` ni un `Color(red:…)`: pide el token, o lo agrega a la
+paleta. De fábrica es `mango`, la de siempre número por número; `grafito`,
+`glaciar` y `menta` son la exploración sin naranja, elegibles con el ajuste
+oculto `diloPaleta`, el selector de Debug en Apariencia o `--paleta` en el
+arnés. Fuera de la paleta, a propósito: las del Edge Glow y el ícono.
 
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.

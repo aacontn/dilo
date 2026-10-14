@@ -185,6 +185,30 @@ struct AppearanceSettingsView: View {
           )
         }
       }
+
+      #if DEBUG
+        tarjetaDeDebug
+      #endif
     }
   }
+
+  #if DEBUG
+    /// Lo que todavía se está eligiendo y no tiene lugar en Ajustes: la
+    /// paleta sin naranja (`PaletaDeDilo`). Sólo en Debug, y con el texto
+    /// fuera del catálogo: no es copy que vaya a traducirse.
+    private var tarjetaDeDebug: some View {
+      let titulo = "Debug · makeover"
+      let paleta = "Paleta"
+      let detalle = "Mango es la de fábrica. Se guarda en diloPaleta."
+      return SettingsCard(title: "\(titulo)") {
+        SettingsPickerRow(
+          title: "\(paleta)",
+          description: "\(detalle)",
+          options: PaletaDeDilo.Nombre.allCases,
+          optionLabel: { $0.titulo },
+          selection: $settings.paleta
+        )
+      }
+    }
+  #endif
 }

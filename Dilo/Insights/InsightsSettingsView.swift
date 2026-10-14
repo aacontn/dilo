@@ -63,9 +63,9 @@ struct InsightsSettingsView: View {
 
 /// Per-metric tints, one hue per metric across the whole section.
 private enum InsightsPalette {
-  static let words = SettingsTheme.accent
-  static let sessions = Color(red: 0.20, green: 0.82, blue: 0.58)
-  static let time = Color(red: 0.62, green: 0.50, blue: 0.98)
+  static var words: Color { SettingsTheme.accent }
+  static var sessions: Color { PaletaDeDilo.actual.categorias.sesiones.color }
+  static var time: Color { PaletaDeDilo.actual.categorias.tiempo.color }
 }
 
 private struct InsightSummaryCard: View {

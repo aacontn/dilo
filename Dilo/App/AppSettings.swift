@@ -44,6 +44,7 @@ final class AppSettings {
     /// vez para no borrarle la elección a quien ya la había cambiado.
     static let hudClearsMenuBar = "hudClearsMenuBar"
     static let hudEstiloSinNotch = "hudEstiloSinNotch"
+    static let paleta = "diloPaleta"
     static let hudRetardoDeHover = "hudRetardoDeHover"
     static let hudPantalla = "hudPantalla"
     static let hudModoEnReposo = "hudModoEnReposo"
@@ -282,6 +283,19 @@ final class AppSettings {
   /// que cuelga debajo de la barra de menús. Con notch real no se mira.
   var hudEstiloSinNotch: HUDEstiloSinNotch {
     didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
+  }
+
+  /// Con qué colores se dibujan la muesca y Ajustes (`PaletaDeDilo`).
+  ///
+  /// **Ajuste oculto** mientras Alfonso elige entre las paletas sin naranja
+  /// (2026-10-14): no tiene fila en Ajustes salvo en un Debug. Se cambia con
+  /// `defaults write cl.espaciodigital.dilo diloPaleta glaciar` y se aplica
+  /// en vivo cuando lo cambia el selector de Debug. De fábrica, `mango`.
+  var paleta: PaletaDeDilo.Nombre {
+    didSet {
+      defaults.set(paleta.rawValue, forKey: Keys.paleta)
+      PaletaActiva.compartida.elegir(paleta)
+    }
   }
 
   /// Cuánto tiene que quedarse el puntero encima de la muesca antes de que se
@@ -613,6 +627,9 @@ final class AppSettings {
     // quería la forma donde iría el notch, que es el default de hoy.
     hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
       ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == true ? .pildora : .notchSimulado)
+    // Leerla no la aplica: la paleta activa es una por proceso, y un
+    // `AppSettings` de un test no puede pintar la app. La aplica `AppDelegate`.
+    paleta = Self.stored(in: defaults, key: Keys.paleta) ?? .mango
     // `double(forKey:)` lee una clave ausente como cero, que dejaría el hover
     // instantáneo para todo el mundo; la ausencia se pregunta directo.
     hudRetardoDeHover = defaults.object(forKey: Keys.hudRetardoDeHover) as? Double

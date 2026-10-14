@@ -198,7 +198,7 @@ struct HUDPanelDelHover: View {
       if content.recienteCopiadoID == elemento.id {
         Image(systemName: "checkmark")
           .font(.system(size: 9.5, weight: .bold))
-          .foregroundStyle(DiloBrand.menta)
+          .foregroundStyle(PaletaDeDilo.actual.acuse.color)
           .accessibilityLabel(Text("Copiado"))
       } else {
         Image(systemName: "doc.on.doc")
@@ -224,7 +224,7 @@ struct HUDPanelDelHover: View {
     return HStack(spacing: 7) {
       Image(systemName: "calendar")
         .font(.system(size: 10, weight: .semibold))
-        .foregroundStyle(pronto ? DiloBrand.mango : .white.opacity(0.55))
+        .foregroundStyle(pronto ? PaletaDeDilo.actual.acento.color : .white.opacity(0.55))
       Text(verbatim: reunion.titulo)
         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
         .foregroundStyle(.white.opacity(0.9))
@@ -242,14 +242,14 @@ struct HUDPanelDelHover: View {
           .foregroundStyle(.black)
           .padding(.horizontal, 9)
           .padding(.vertical, 3)
-          .background(Capsule(style: .continuous).fill(DiloBrand.mango))
+          .background(Capsule(style: .continuous).fill(PaletaDeDilo.actual.acento.color))
       }
     }
     .padding(.horizontal, 9)
     .frame(height: 26)
     .background(
       RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .fill(pronto ? DiloBrand.mango.opacity(0.14) : .white.opacity(0.06))
+        .fill(pronto ? PaletaDeDilo.actual.acento.color.opacity(0.14) : .white.opacity(0.06))
     )
     .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     .onTapGesture { content.alAbrirReunion?() }
@@ -272,7 +272,7 @@ struct HUDPanelDelHover: View {
 
   /// Mango cuando falta poco o ya empezó: es lo que dice «ahora sí».
   static func color(_ reunion: ProximaReunion, ahora: Date) -> Color {
-    esPronto(reunion, ahora: ahora) ? DiloBrand.mango : .white.opacity(0.5)
+    esPronto(reunion, ahora: ahora) ? PaletaDeDilo.actual.acento.color : .white.opacity(0.5)
   }
 
   // MARK: Los modos
@@ -314,12 +314,12 @@ struct HUDPanelDelHover: View {
       Text(verbatim: listo.map { "→ \($0)" } ?? String(localized: "Traducir"))
         .font(.system(size: 9.5, weight: .semibold, design: .rounded))
     }
-    .foregroundStyle(listo == nil ? .white.opacity(0.55) : DiloBrand.mango)
+    .foregroundStyle(listo == nil ? .white.opacity(0.55) : PaletaDeDilo.actual.acento.color)
     .padding(.horizontal, 9)
     .padding(.vertical, 3)
     .background(
       Capsule(style: .continuous)
-        .fill(listo == nil ? .white.opacity(0.08) : DiloBrand.mango.opacity(0.16))
+        .fill(listo == nil ? .white.opacity(0.08) : PaletaDeDilo.actual.acento.color.opacity(0.16))
     )
     .contentShape(Capsule())
     .onTapGesture {
@@ -343,10 +343,10 @@ struct HUDPanelDelHover: View {
       Text("Nota")
         .font(.system(size: 9.5, weight: .semibold, design: .rounded))
     }
-    .foregroundStyle(DiloBrand.mango)
+    .foregroundStyle(PaletaDeDilo.actual.acento.color)
     .padding(.horizontal, 9)
     .padding(.vertical, 3)
-    .background(Capsule(style: .continuous).fill(DiloBrand.mango.opacity(0.16)))
+    .background(Capsule(style: .continuous).fill(PaletaDeDilo.actual.acento.color.opacity(0.16)))
     .contentShape(Capsule())
       .onTapGesture { content.alDictarNota?() }
       .accessibilityAddTraits(.isButton)
@@ -362,7 +362,7 @@ struct HUDPanelDelHover: View {
       .padding(.horizontal, 8)
       .padding(.vertical, 3)
       .background(
-        Capsule(style: .continuous).fill(elegido ? DiloBrand.mango : .white.opacity(0.12))
+        Capsule(style: .continuous).fill(elegido ? PaletaDeDilo.actual.acento.color : .white.opacity(0.12))
       )
       .contentShape(Capsule())
       .onTapGesture { content.alElegirModo?(id) }

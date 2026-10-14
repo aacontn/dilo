@@ -5,6 +5,7 @@
 #   ./scripts/muesca.sh mostrar todas --segundos 4
 #   ./scripts/muesca.sh mostrar dictando-largo --mantener --texto un texto larguísimo…
 #   ./scripts/muesca.sh mostrar hover reposo-datos
+#   ./scripts/muesca.sh mostrar dictando acuse --paleta glaciar
 #   ./scripts/muesca.sh siguiente
 #   ./scripts/muesca.sh cerrar
 #   ./scripts/muesca.sh lista
@@ -12,8 +13,9 @@
 # Cada escena se dibuja en la ventana real y en la pantalla real, sin dictar,
 # sin pegar y sin sonar (`Dilo/CoreHUD/EscenaDeMuestra.swift`). Ocho segundos
 # cada una salvo `--segundos N` (1–30); `--mantener` deja la primera hasta
-# `siguiente` o `cerrar`. Un pedido que llega más de diez segundos tarde no
-# se obedece.
+# `siguiente` o `cerrar`. `--paleta mango|grafito|glaciar|menta` dibuja con
+# esa paleta mientras dura la muestra, sin guardarla. Un pedido que llega más
+# de diez segundos tarde no se obedece.
 #
 # El pedido va a la copia cuyo bundle id diga `DILO_ID` (de fábrica
 # `cl.espaciodigital.dilo`): con dos Debug abiertos —la de prueba de Alfonso es

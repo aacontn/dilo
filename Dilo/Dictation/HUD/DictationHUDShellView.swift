@@ -813,7 +813,7 @@ struct DictationHUDShellView: View {
         derecho: content.segmentoDerechoVisible,
         conPalabra: content.segmentosConPalabra,
         costados: costados,
-        acento: DiloBrand.mango,
+        acento: PaletaDeDilo.actual.segmento.color,
         alTocar: { id in content.alTocarSegmento?(id) }
       )
     }

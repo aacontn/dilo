@@ -16,7 +16,7 @@ struct HUDLevelMeterView: View {
           // se lee como Dilo y no como una barra del sistema.
           .fill(
             content.isAudioAlive
-              ? DiloBrand.menta.opacity(0.9)
+              ? PaletaDeDilo.actual.ondaCuerpo.color.opacity(0.9)
               : HUDVisualTokens.deadMicAmber.opacity(0.6)
           )
           .frame(width: max(6, proxy.size.width * CGFloat(content.audioLevel)))

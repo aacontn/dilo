@@ -41,7 +41,7 @@ struct HUDChipDeModo: View {
       .tracking(0.6 * scale)
       .lineLimit(1)
       .minimumScaleFactor(0.6)
-      .foregroundStyle(DiloBrand.mango)
+      .foregroundStyle(PaletaDeDilo.actual.acento.color)
       .opacity(opacidad)
       .frame(maxWidth: .infinity)
       .padding(.horizontal, 12 * scale)

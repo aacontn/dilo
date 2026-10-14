@@ -108,7 +108,7 @@ struct ChartLineWaveView: View {
       } else {
         shape
           .stroke(
-            Color.orange.opacity(0.55),
+            HUDVisualTokens.deadMicAmber.opacity(0.55),
             style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
           )
           .offset(y: -10)

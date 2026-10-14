@@ -299,7 +299,7 @@ private struct TarjetaDeFuente: View {
               ocupa: ocupa,
               elOtroLleno: settings.hudDisposicion.dato(en: costado.wrappedValue.otro, disponible: disponible) != .ninguno
             ),
-            color: DiloBrand.mango
+            color: PaletaDeDilo.actual.acentoDeAjustes.color
           )
         }
 
@@ -337,7 +337,7 @@ private struct PorcentajeDelPlanDeClaude: View {
         if let resultado {
           Text(resultado.texto)
             .font(.caption)
-            .foregroundStyle(resultado.salioBien ? DiloBrand.menta : .white.opacity(0.72))
+            .foregroundStyle(resultado.salioBien ? PaletaDeDilo.actual.exito.color : .white.opacity(0.72))
             .fixedSize(horizontal: false, vertical: true)
         }
         Spacer(minLength: 0)
@@ -386,8 +386,8 @@ private struct EtiquetaDeEstado: View {
 
   private var color: Color {
     switch estado {
-    case .listo: DiloBrand.menta
-    case .noEncontrado: DiloBrand.mango
+    case .listo: PaletaDeDilo.actual.exito.color
+    case .noEncontrado: PaletaDeDilo.actual.acentoDeAjustes.color
     case .noDisponibleEnEstaVersion: .white.opacity(0.35)
     }
   }
@@ -560,7 +560,7 @@ private struct PanelDelHoverSettings: View {
         HStack(spacing: 8) {
           Text("Sin permiso para leer el calendario.")
             .font(.system(size: 12))
-            .foregroundStyle(DiloBrand.mango)
+            .foregroundStyle(PaletaDeDilo.actual.acentoDeAjustes.color)
           Button("Abrir Ajustes del Sistema") {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars") {
               NSWorkspace.shared.open(url)
