@@ -1171,8 +1171,9 @@ final class HUDStage {
   private func clicEnLaSilueta() {
     if case let .resultado(.accionable(aviso)) = estado {
       alPedirAccion?(aviso.accion)
-      // Hecho lo que ofrecía, el aviso no tiene más que decir.
-      retract()
+      // Hecho lo que ofrecía, el aviso no tiene más que decir. Deshacer no:
+      // ahí la forma sigue con la entrega, y la mueve el dictado.
+      if aviso.accion != .deshacerCancelacion { retract() }
       return
     }
     guard estado == .reposo else { return }

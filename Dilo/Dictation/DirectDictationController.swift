@@ -52,6 +52,9 @@ final class DirectDictationController {
   private var descargaDelModelo: (locale: Locale, fraccion: Double)?
   /// Los hitos de la sesión en curso (`DirectDictationController+Latencia`).
   var relojDeFases = RelojDeFases()
+  /// Lo dicho antes de un Esc, mientras se puede deshacer.
+  private var retenida: CancelacionRetenida?
+  private var vigiaDeLaRetencion: Task<Void, Never>?
   private var currentSessionSettings: DictationSessionSettings?
   /// The languages behind the two trigger keys, resolved to locales Apple
   /// Speech supports. `secondary` is nil unless a second language is chosen.
@@ -537,6 +540,8 @@ final class DirectDictationController {
   /// The machine's current state, so tests can pin transitions the
   /// controller's effects produce.
   var sessionStateForTesting: DictationSessionMachine.State { machine.state }
+  /// Si hay un Esc esperando su «Deshacer».
+  var hayRetenidoForTesting: Bool { machine.hayRetenido }
   /// Whether preparation has finished, so a test can wait for the state it
   /// needs rather than for a duration. Preparation grew a translation tail,
   /// and a fixed sleep long enough on an idle machine is not long enough on a
@@ -584,6 +589,14 @@ final class DirectDictationController {
 
   private func send(_ action: DictationSessionMachine.Action) {
     let wasActive = machine.isSessionActive
+    // El gesto de la sesión que viene, leído en reposo: con una sesión en
+    // curso la máquina lo ignora y la sesión sigue con el suyo.
+    if !wasActive {
+      machine.fijarGesto(
+        umbral: .milliseconds(settings.umbralDeToqueMs),
+        conDeshacer: settings.deshacerCancelacion
+      )
+    }
     let effects = machine.reduce(action)
     anotarLatencia(action, efectos: effects)
     perform(effects)
@@ -736,7 +749,94 @@ final class DirectDictationController {
       onReadAloudTriggered?()
     case .reintentarTomaFallida:
       ejecutarReintento()
+    case .retenerParaDeshacer:
+      retenerParaDeshacer()
+    case .entregarLoRetenido:
+      entregarLoRetenido()
+    case .descartarLoRetenido:
+      retenida = nil
+      vigiaDeLaRetencion?.cancel()
+      vigiaDeLaRetencion = nil
     }
+  }
+
+  /// «Deshacer» en la muesca, después de un Esc.
+  func deshacerCancelacion() {
+    send(.deshacerCancelacion)
+  }
+
+  /// El Esc de una sesión con voz: el reconocimiento termina en silencio y
+  /// lo dicho queda en RAM la ventana para deshacer, sin pegarse ni ir al
+  /// historial. La muesca lo ofrece con un clic.
+  private func retenerParaDeshacer() {
+    let segundosDeVoz = relojDeFases.instante(de: .microfonoAbierto)
+      .map { Double(RelojDeFases.milisegundos($0.duration(to: .now))) / 1_000 } ?? 0
+    // Todo lo que la entrega lee de la sesión, ahora: el reset que viene
+    // detrás lo borra.
+    var porRetener = CancelacionRetenida(
+      crudo: "",
+      destino: focusedTarget,
+      sesion: currentSessionSettings ?? settings.sessionSettings,
+      modo: sessionModo,
+      modoElegidoAMano: modoElegidoAMano,
+      esNota: sesionEsNota,
+      ranura: activeSlot,
+      tecla: activeBinding,
+      segundosDeVoz: segundosDeVoz
+    )
+    dependencies.showResultado(
+      .accionable(AvisoConAccion(
+        texto: String(localized: "Cancelado · clic para deshacer"),
+        accion: .deshacerCancelacion
+      ))
+    )
+    vigiaDeLaRetencion?.cancel()
+    let reloj = dependencies.relojDeLaRetencion
+    vigiaDeLaRetencion = Task { [weak self] in
+      do { try await reloj.sleep(GestoDelGatillo.ventanaParaDeshacer) } catch { return }
+      self?.send(.retencionVencida)
+    }
+    Task { [weak self, dependencies] in
+      var crudo = ""
+      do {
+        crudo = try await dependencies.finishRecognition()
+      } catch TomaSinTexto.guardada {
+        // El motor no sacó texto y guardó la toma para reintentar. Para un
+        // Esc eso es ruido: la persona canceló, no hay nada que rescatar.
+        await dependencies.descartarToma()
+      } catch {}
+      guard let self else { return }
+      if crudo.isEmpty || !machine.hayRetenido {
+        // Nada que deshacer: el aviso no puede ofrecer lo que no hay.
+        send(.retencionVencida)
+        dependencies.hideHUD()
+      } else {
+        porRetener.crudo = crudo
+        retenida = porRetener
+      }
+      send(.sessionEnded)
+    }
+  }
+
+  /// «Deshacer»: la entrega de siempre con lo retenido, como si se hubiera
+  /// soltado en vez de apretar Esc.
+  private func entregarLoRetenido() {
+    vigiaDeLaRetencion?.cancel()
+    vigiaDeLaRetencion = nil
+    guard let lo = retenida else {
+      send(.sessionEnded)
+      return
+    }
+    retenida = nil
+    focusedTarget = lo.destino
+    currentSessionSettings = lo.sesion
+    sessionModo = lo.modo
+    modoElegidoAMano = lo.modoElegidoAMano
+    sesionEsNota = lo.esNota
+    activeSlot = lo.ranura
+    activeBinding = lo.tecla
+    dependencies.showProcesando()
+    finishRecognition(speakingDuration: lo.segundosDeVoz, crudoRetenido: lo.crudo)
   }
 
   /// The text carried alongside the current `updateReceived` action; the
@@ -1012,7 +1112,7 @@ final class DirectDictationController {
   /// Finishes recognition and routes the insertion outcome to its terminal UI.
   ///
   /// - Parameter speakingDuration: The completed session's measured speech time.
-  private func finishRecognition(speakingDuration: TimeInterval) {
+  private func finishRecognition(speakingDuration: TimeInterval, crudoRetenido: String? = nil) {
     // Lo que la persona eligió en el momento en que soltó, no lo que Ajustes
     // diga después. Se lee antes de la tarea para que el sembrado de la
     // sesión siguiente no le gane la carrera a este final.
@@ -1029,8 +1129,14 @@ final class DirectDictationController {
         let session = currentSessionSettings ?? settings.sessionSettings
         // El crudo se guarda antes de tocarlo: es lo único de todo esto que
         // no se puede reconstruir (punto 4 del encargo).
-        let crudo = try await dependencies.finishRecognition()
-        anotarRevisado(revision: await dependencies.duracionDeLaRevision())
+        // Lo retenido de un Esc deshecho ya pasó por el motor y la revisión.
+        let crudo: String
+        if let crudoRetenido {
+          crudo = crudoRetenido
+        } else {
+          crudo = try await dependencies.finishRecognition()
+          anotarRevisado(revision: await dependencies.duracionDeLaRevision())
+        }
         // La costura de español de Dilo: todo lo reconocido pasa por DiloText
         // antes de que nadie más lo toque — espacios, muletillas y tus
         // palabras, en ese orden. Las preferencias son las que la sesión

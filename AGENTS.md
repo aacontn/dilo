@@ -93,6 +93,15 @@ Distingue propuesta, implementación y deuda pendiente.
   como ⌘ derecha, el gatillo de fábrica de traducir. Los eventos llevan una
   marca para que el tap de Dilo no los tome por un gatillo. El tecleo del
   reintento también: ⇧ baja y sube como tecla propia en cada salto de línea.
+- **Un atajo, dos gestos, y el Esc entero** (2026-10-14). Mantener es
+  hablar y un toque corto traba; el umbral vive con nombre, origen y rango
+  en `GestoDelGatillo` y se fija en reposo (`fijarGesto`): cambiarlo a media
+  sesión aplica a la siguiente. El Esc que cancela se traga entero en el tap
+  —keyDown, autorrepetición y keyUp, aunque la captura se apague entre
+  medio—. Con voz, el Esc no tira lo dicho: `DictationSessionMachine`
+  retiene (`retenerParaDeshacer`) y la muesca ofrece «Deshacer» 5 s; lo
+  retenido vive en RAM (`CancelacionRetenida`), nunca en el historial, y
+  apretar el gatillo otra vez lo suelta.
 - **El pegado sabe si entró, y lo que no entró no se pierde.** El dictado se
   promete en el portapapeles (`TextoPrometido`, marca propia por pegado,
   `.currentHostOnly`) y la lectura de la app de destino es el acuse; con

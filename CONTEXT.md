@@ -125,7 +125,11 @@ No se registra una sección vacía ni deshabilitada.
   suelto que escriba símbolos en teclado latino**, y nunca ⌥ derecha.
 - Soltar un **Gatillo** sostenido termina el **Dictado** e inserta el texto.
 - Soltar antes de 250 ms cuenta como toque corto y deja el **Dictado**
-  trabado hasta el siguiente apretón.
+  trabado hasta el siguiente apretón. Los 250 son el de fábrica
+  (`GestoDelGatillo`); la persona lo mueve entre 150 y 600 en Atajos.
+- Esc cancela el **Dictado** y la tecla no llega a la app, ni al apretar ni
+  al soltar. Si hubo voz, lo dicho se puede deshacer durante 5 s con un clic
+  en la muesca; vive en RAM ese rato y nunca va al historial.
 - El texto que se inserta son los resultados finalizados más el último
   parcial si el reconocimiento terminó sin finalizarlo.
 - El **Segundo idioma** viene **apagado** por defecto, y su gatillo nunca es

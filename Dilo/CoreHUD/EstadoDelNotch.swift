@@ -173,7 +173,7 @@ enum ResultadoDelNotch: Equatable, Sendable {
   /// alcanzar a leerlo; la tarjeta, alcanzar a usarla.
   var duracion: Duration {
     if case .retenido = self { return MaquinaDelNotch.duracionDeLaTarjeta }
-    if case .accionable = self { return AvisoConAccion.duracion }
+    if case let .accionable(aviso) = self { return aviso.duracion }
     return esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
   }
 
@@ -326,7 +326,8 @@ struct MaquinaDelNotch: Equatable, Sendable {
       // Sólo se procesa lo que se grabó. Desde reposo o desde un resultado
       // esto es un evento perdido de una sesión que ya terminó, y moverlo
       // dejaría la forma abierta diciendo que trabaja sin nada que hacer.
-      guard estado == .dictando || esPreparando else { return [] }
+      // Un Esc deshecho también: lo retenido se entrega desde su aviso.
+      guard estado == .dictando || esPreparando || esDeshacer else { return [] }
       estado = .procesando
       return [.cancelarVuelta]
 
@@ -354,6 +355,11 @@ struct MaquinaDelNotch: Equatable, Sendable {
 
   private var esPreparando: Bool {
     if case .preparando = estado { return true }
+    return false
+  }
+
+  private var esDeshacer: Bool {
+    if case let .resultado(.accionable(aviso)) = estado { return aviso.accion == .deshacerCancelacion }
     return false
   }
 }

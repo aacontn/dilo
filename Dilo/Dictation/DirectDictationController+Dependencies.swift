@@ -161,6 +161,10 @@ extension DirectDictationController {
     var instanteDelAtajo: @MainActor () -> ContinuousClock.Instant? = { nil }
     var registrarLatencia: @Sendable (MedicionDeSesion) async -> Void = { _ in }
 
+    /// El reloj de la ventana para deshacer un Esc. Inyectable para que una
+    /// prueba no espere cinco segundos de verdad.
+    var relojDeLaRetencion: DeadlineClock = .continuous
+
     /// Correr un modo sobre lo dictado, con el proveedor que la sesión
     /// congeló al empezar. El proveedor entra como parámetro y no se lee de
     /// Ajustes acá adentro: eso es lo que hace que cambiar Ajustes a mitad de

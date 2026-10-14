@@ -154,6 +154,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       switch accion {
       case let .abrirAjustes(panel):
         if let url = URL(string: panel) { NSWorkspace.shared.open(url) }
+      case .deshacerCancelacion:
+        dictationController.deshacerCancelacion()
       }
     }
     #if DEBUG

@@ -68,6 +68,13 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
   /// leaves the app under the pointer believing the button is still down.
   private var capturedMouseButtons: Set<Int64> = []
   private var captureEscape = false
+  /// El Esc cuyo keyDown se tragó sigue apretado. Su autorrepetición y su
+  /// keyUp también se tragan, aunque la sesión ya haya apagado la captura
+  /// entre medio: el Esc que cancela un dictado no puede llegar a la app ni
+  /// al apretar ni al soltar. Antes el keyUp se escapaba, y una app que
+  /// actúa al soltar Esc —cerrar un diálogo, salir de pantalla completa— lo
+  /// recibía.
+  private var escapeTragado = false
   /// True only while a recording session can cycle its shaping pick; the
   /// bare arrows pass through untouched the rest of the time.
   private var captureShapingCycle = false
@@ -160,6 +167,7 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
       heldSlot = nil
       capturedMouseButtons.removeAll()
       captureEscape = false
+      escapeTragado = false
       captureShapingCycle = false
     }
   }
@@ -376,12 +384,13 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
 
     if type == .keyDown {
       let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-      let (readAloud, shouldCapture, shouldCaptureCycle, plainTrigger) = stateLock.withLock {
+      let (readAloud, shouldCapture, shouldCaptureCycle, plainTrigger, escapeSigueTragado) = stateLock.withLock {
         (
           readAloudBinding,
           captureEscape,
           captureShapingCycle,
-          plainKeyTrigger(forKeyCode: keyCode, flags: event.flags)
+          plainKeyTrigger(forKeyCode: keyCode, flags: event.flags),
+          escapeTragado
         )
       }
 
@@ -409,10 +418,19 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
         return nil
       }
 
-      // Plain Escape stays the dictation cancel, captured mid-session.
+      // Plain Escape stays the dictation cancel, captured mid-session. Se
+      // anota que se tragó, para tragar también su keyUp.
       if keyCode == 53, shouldCapture {
+        stateLock.withLock { escapeTragado = true }
         handler(.cancelPressed)
         return nil
+      }
+      // La autorrepetición de ese mismo Esc, sostenido después de cancelar.
+      // Un Esc nuevo, en cambio, es de la app: si el keyUp del anterior se
+      // perdió —el tap se apagó entre medio—, no puede quedar tragándolos.
+      if keyCode == 53, escapeSigueTragado {
+        if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { return nil }
+        stateLock.withLock { escapeTragado = false }
       }
 
       // The bare arrows cycle the recording session's shaping pick,
@@ -448,6 +466,14 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
       if let output {
         handler(output)
         return nil
+      }
+      // El keyUp del Esc que canceló: se traga una vez y se olvida.
+      if keyCode == 53 {
+        let eraTragado = stateLock.withLock {
+          defer { escapeTragado = false }
+          return escapeTragado
+        }
+        if eraTragado { return nil }
       }
       return Unmanaged.passUnretained(event)
     }

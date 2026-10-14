@@ -54,6 +54,11 @@ struct DictationSessionMachine {
     /// The terminal reset after a finish inserted, a cancel completed,
     /// or a failure was shown.
     case sessionEnded
+    /// La persona tocó «Deshacer» en la muesca dentro de la ventana
+    /// (`GestoDelGatillo.ventanaParaDeshacer`).
+    case deshacerCancelacion
+    /// Venció la ventana, o lo retenido salió vacío: se suelta de la RAM.
+    case retencionVencida
   }
 
   enum Effect: Equatable {
@@ -76,13 +81,33 @@ struct DictationSessionMachine {
     /// Pasa la toma guardada por los motores otra vez; el final vuelve como
     /// `sessionEnded`, igual que el de un dictado.
     case reintentarTomaFallida
+    /// En vez de tirar la sesión: terminar el reconocimiento en silencio y
+    /// guardar el texto crudo en RAM, sin pegar ni ir al historial. El final
+    /// vuelve como `sessionEnded`, con `retencionVencida` antes si no quedó
+    /// nada que retener.
+    case retenerParaDeshacer
+    /// Correr la entrega de siempre con lo retenido.
+    case entregarLoRetenido
+    case descartarLoRetenido
   }
 
   /// Releasing the trigger before this counts as a quick tap and latches
-  /// the session (CONTEXT.md).
-  static let tapThreshold = Duration.milliseconds(250)
+  /// the session (CONTEXT.md). Es el de fábrica: el de cada sesión lo fija
+  /// `fijarGesto` desde Ajustes.
+  static let tapThreshold = Duration.milliseconds(GestoDelGatillo.umbralDeFabricaMs)
 
   private(set) var state = State.idle
+  /// El umbral del toque corto y si un Esc se puede deshacer, de la sesión
+  /// en curso. Se fijan en reposo y se quedan así hasta que termina: cambiar
+  /// Ajustes a media sesión aplica a la siguiente (ADR-0004).
+  private(set) var umbralDeToque = Self.tapThreshold
+  private(set) var conDeshacer = false
+  /// Hay un dictado cancelado esperando un «Deshacer». Sobrevive al reset de
+  /// la sesión cancelada, que llega justo después de retener.
+  private(set) var hayRetenido = false
+  /// Pidieron deshacer mientras lo retenido todavía se estaba terminando de
+  /// reconocer: se entrega en cuanto llegue.
+  private var deshacerAlTerminar = false
 
   private var pendingGesture: Gesture?
   private var hasSpeech = false
@@ -92,6 +117,14 @@ struct DictationSessionMachine {
 
   var isSessionActive: Bool {
     state != .idle
+  }
+
+  /// Fija el gesto de la sesión que viene. Sólo en reposo: con una sesión en
+  /// curso no cambia nada.
+  mutating func fijarGesto(umbral: Duration, conDeshacer: Bool) {
+    guard state == .idle else { return }
+    umbralDeToque = umbral
+    self.conDeshacer = conDeshacer
   }
 
   mutating func reduce(_ action: Action) -> [Effect] {
@@ -130,15 +163,49 @@ struct DictationSessionMachine {
       state = .finishing
       return [.reintentarTomaFallida]
     case .sessionEnded:
-      return reset()
+      var efectos = reset()
+      if deshacerAlTerminar, hayRetenido {
+        efectos += deshacer()
+      }
+      return efectos
+    case .deshacerCancelacion:
+      guard hayRetenido else { return [] }
+      // Todavía reconociendo lo retenido: se entrega al terminar.
+      if state == .cancelling {
+        deshacerAlTerminar = true
+        return []
+      }
+      guard state == .idle else { return [] }
+      return deshacer()
+    case .retencionVencida:
+      guard hayRetenido else { return [] }
+      hayRetenido = false
+      deshacerAlTerminar = false
+      return [.descartarLoRetenido]
     }
+  }
+
+  private mutating func deshacer() -> [Effect] {
+    hayRetenido = false
+    deshacerAlTerminar = false
+    state = .finishing
+    return [.entregarLoRetenido]
+  }
+
+  /// Empezar otro dictado es la respuesta a «¿lo recupero?»: no. Lo retenido
+  /// se suelta antes de que nada nuevo empiece.
+  private mutating func soltarLoRetenido() -> [Effect] {
+    guard hayRetenido else { return [] }
+    hayRetenido = false
+    deshacerAlTerminar = false
+    return [.descartarLoRetenido]
   }
 
   private mutating func triggerPressed(now: ContinuousClock.Instant) -> [Effect] {
     switch state {
     case .idle:
       pendingGesture = .held(startedAt: now)
-      return [.checkAndBegin]
+      return soltarLoRetenido() + [.checkAndBegin]
     case .starting(.latched):
       finishWhenStarted = true
       return []
@@ -152,14 +219,14 @@ struct DictationSessionMachine {
   private mutating func triggerReleased(now: ContinuousClock.Instant) -> [Effect] {
     switch state {
     case let .starting(.held(startedAt)):
-      if startedAt.duration(to: now) < Self.tapThreshold {
+      if startedAt.duration(to: now) < umbralDeToque {
         state = .starting(.latched)
         return [.showLatched]
       }
       finishWhenStarted = true
       return []
     case let .recording(.held(startedAt)):
-      if startedAt.duration(to: now) < Self.tapThreshold {
+      if startedAt.duration(to: now) < umbralDeToque {
         state = .recording(.latched)
         return [.showLatched]
       }
@@ -173,7 +240,7 @@ struct DictationSessionMachine {
     switch state {
     case .idle:
       pendingGesture = .latched
-      return [.checkAndBegin]
+      return soltarLoRetenido() + [.checkAndBegin]
     case .starting:
       finishWhenStarted = true
       return []
@@ -278,7 +345,12 @@ struct DictationSessionMachine {
       return [.cancelStartTask, .stopNoSpeechTimer, .setEscapeCapture(false), .hideHUD]
     case .recording:
       state = .cancelling
-      return [.stopNoSpeechTimer, .setEscapeCapture(false), .hideHUD, .cancelRecognition]
+      // Sin voz no hay nada que recuperar: se cancela como siempre.
+      guard conDeshacer, hasSpeech else {
+        return [.stopNoSpeechTimer, .setEscapeCapture(false), .hideHUD, .cancelRecognition]
+      }
+      hayRetenido = true
+      return [.stopNoSpeechTimer, .setEscapeCapture(false), .retenerParaDeshacer]
     }
   }
 

@@ -442,6 +442,17 @@ final class AppSettings {
     didSet { PreferenciaDeReposo.guardar(descargarModeloTras, in: defaults) }
   }
 
+  /// Cuánto es un toque corto del gatillo, en milisegundos. La clave, el
+  /// rango y el default viven en `GestoDelGatillo`.
+  var umbralDeToqueMs: Int {
+    didSet { defaults.set(umbralDeToqueMs, forKey: GestoDelGatillo.claveDelUmbral) }
+  }
+
+  /// Si un Esc se puede deshacer con un clic en la muesca.
+  var deshacerCancelacion: Bool {
+    didSet { defaults.set(deshacerCancelacion, forKey: GestoDelGatillo.claveDeDeshacer) }
+  }
+
   var recognitionLocaleIdentifier: String {
     didSet {
       defaults.set(recognitionLocaleIdentifier, forKey: Keys.recognitionLocale)
@@ -650,6 +661,8 @@ final class AppSettings {
     versionVista = defaults.string(forKey: Keys.versionVista) ?? ""
     motorDeVoz = EnginePreference.leer(defaults)
     descargarModeloTras = PreferenciaDeReposo.leer(defaults)
+    umbralDeToqueMs = GestoDelGatillo.umbralMs(en: defaults)
+    deshacerCancelacion = GestoDelGatillo.deshacer(en: defaults)
     recognitionLocaleIdentifier = defaults.string(forKey: Keys.recognitionLocale) ?? ""
     secondaryRecognitionLocaleIdentifier =
       defaults.string(forKey: Keys.secondaryRecognitionLocale) ?? ""

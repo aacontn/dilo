@@ -98,7 +98,8 @@ struct DirectDictationControllerTests {
     insertOutcome: ResultadoDeEntrega = .pegado(.lectura),
     notas: OSAllocatedUnfairLock<[String]> = .init(initialState: []),
     resultadoDeLaNota: ResultadoDeLaNota = .guardada,
-    requestMicrophoneAccess: @escaping @Sendable () async -> Bool = { true }
+    requestMicrophoneAccess: @escaping @Sendable () async -> Bool = { true },
+    parcialAlEmpezar: String? = nil
   ) -> DirectDictationController.Dependencies {
     DirectDictationController.Dependencies(
       setDownloadHandler: { _ in },
@@ -106,9 +107,14 @@ struct DirectDictationControllerTests {
       supportedLocale: { _ in nil },
       retainOnly: { _ in },
       prewarm: { _ in prewarmed.withLock { $0 = true } },
-      startRecognition: { locale, _, _, _, _ in
+      startRecognition: { locale, updateHandler, _, _, _ in
         startEntries.withLock { $0 += 1 }
         try await startRecognitionBody?(locale)
+        // Lo que el motor «oyó» apenas abrió: es lo que hace que la sesión
+        // tenga voz, y un Esc con voz se puede deshacer.
+        if let parcialAlEmpezar {
+          updateHandler(.init(finalizedText: parcialAlEmpezar, volatileText: ""))
+        }
       },
       finishRecognition: finishRecognition,
       cancelRecognition: { cancelCount.withLock { $0 += 1 } },
@@ -696,6 +702,142 @@ struct DirectDictationControllerTests {
     #expect(cancelCount.withLock { $0 } >= 1)
     #expect(recorder.count(of: "hideHUD") == 1)
     #expect(recorder.insertedTexts.isEmpty)
+    controller.stop()
+  }
+
+  /// Un Esc con voz no tira lo dicho: lo retiene, no pega nada, y
+  /// «Deshacer» en la muesca lo entrega como si se hubiera soltado.
+  @Test func unEscConVozSeDeshaceYSePega() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let historial = OSAllocatedUnfairLock<[HistoryEntry]>(initialState: [])
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.dictationHistoryEnabled = true
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "hola mundo" },
+        historyEntries: historial,
+        parcialAlEmpezar: "hola"
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+
+    controller.handle(.cancelPressed)
+    await waitUntil("El Esc no volvió a reposo") { controller.sessionStateForTesting == .idle }
+
+    // Nada se pegó, nada fue al historial, y la muesca ofrece deshacer.
+    #expect(recorder.insertedTexts.isEmpty)
+    #expect(historial.withLock { $0.isEmpty })
+    #expect(recorder.count(of: "hideHUD") == 0)
+    #expect(recorder.resultados.last.map {
+      if case let .accionable(aviso) = $0 { aviso.accion == .deshacerCancelacion } else { false }
+    } == true)
+
+    controller.deshacerCancelacion()
+    await waitUntil("Deshacer no pegó lo retenido") { recorder.insertedTexts == ["hola mundo"] }
+    await waitUntil("La entrega deshecha no volvió a reposo") {
+      controller.sessionStateForTesting == .idle
+    }
+    #expect(recorder.resultados.last == .listo)
+    #expect(historial.withLock { $0.map(\.text) } == ["hola mundo"])
+    controller.stop()
+  }
+
+  /// Pasada la ventana, lo retenido se suelta: deshacer ya no pega nada.
+  @Test func loRetenidoVenceALosCincoSegundos() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let reloj = DrivenClock()
+    var dependencies = makeDependencies(
+      recorder: recorder,
+      prewarmed: prewarmed,
+      finishRecognition: { "hola mundo" },
+      parcialAlEmpezar: "hola"
+    )
+    dependencies.relojDeLaRetencion = reloj.deadlineClock
+    let controller = makeController(dependencies: dependencies)
+    await prepare(controller, prewarmed: prewarmed)
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.cancelPressed)
+    await waitUntil("El Esc no volvió a reposo") { controller.sessionStateForTesting == .idle }
+
+    #expect(controller.hayRetenidoForTesting)
+
+    await reloj.waitForSleeper()
+    reloj.advance(by: GestoDelGatillo.ventanaParaDeshacer)
+    await waitUntil("Lo retenido no venció") { !controller.hayRetenidoForTesting }
+
+    // Deshacer ya no tiene qué entregar: la sesión ni se mueve.
+    controller.deshacerCancelacion()
+    #expect(controller.sessionStateForTesting == .idle)
+    #expect(recorder.insertedTexts.isEmpty)
+    controller.stop()
+  }
+
+  /// Con «Deshacer un Esc» apagado, un Esc con voz es el de siempre.
+  @Test func sinDeshacerUnEscConVozSeCancelaComoSiempre() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let cancelCount = OSAllocatedUnfairLock(initialState: 0)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.deshacerCancelacion = false
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        cancelCount: cancelCount,
+        finishRecognition: { "hola mundo" },
+        parcialAlEmpezar: "hola"
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.cancelPressed)
+    await waitUntil("El Esc no volvió a reposo") { controller.sessionStateForTesting == .idle }
+
+    #expect(cancelCount.withLock { $0 } >= 1)
+    #expect(recorder.count(of: "hideHUD") == 1)
+    controller.deshacerCancelacion()
+    #expect(recorder.insertedTexts.isEmpty)
+    controller.stop()
+  }
+
+  /// El umbral del toque sale de Ajustes: con 400 ms, soltar a los 300 traba
+  /// la sesión en vez de terminarla.
+  @Test func elUmbralDelToqueSaleDeAjustes() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.umbralDeToqueMs = 400
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(recorder: recorder, prewarmed: prewarmed)
+    )
+    await prepare(controller, prewarmed: prewarmed)
+
+    let inicio = ContinuousClock.now
+    controller.handle(.triggerPressed(.primary), at: inicio)
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.held(startedAt: inicio))
+    }
+    controller.handle(.triggerReleased(.primary), at: inicio + .milliseconds(300))
+    #expect(controller.sessionStateForTesting == .recording(.latched))
+    controller.handle(.cancelPressed)
+    await waitUntil("El Esc no volvió a reposo") { controller.sessionStateForTesting == .idle }
     controller.stop()
   }
 

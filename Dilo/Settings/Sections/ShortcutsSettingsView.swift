@@ -35,6 +35,7 @@ struct ShortcutsSettingsView: View {
     VStack(spacing: 16) {
       keyboardPanel
       keysCard
+      GestoDelGatilloCard(settings: settings)
       if let reparo {
         Text(reparo)
           .font(.caption)

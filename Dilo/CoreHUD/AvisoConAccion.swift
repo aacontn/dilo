@@ -11,6 +11,9 @@ struct AvisoConAccion: Equatable, Sendable {
   enum Accion: Equatable, Sendable {
     /// Abre un panel de Ajustes del Sistema (`Permiso.panelDeAjustes`).
     case abrirAjustes(String)
+    /// Recupera el dictado que un Esc canceló y lo entrega
+    /// (`GestoDelGatillo.ventanaParaDeshacer`).
+    case deshacerCancelacion
   }
 
   /// Una línea que cabe en la muesca: qué falta y que el clic lo arregla.
@@ -20,5 +23,14 @@ struct AvisoConAccion: Equatable, Sendable {
   /// Más que un aviso, que dura lo que tarda en leerse: éste además hay que
   /// alcanzar a llevarle el puntero. Menos que la tarjeta, que guarda un
   /// dictado; acá no se pierde nada si vence, se vuelve a decir al apretar.
-  static let duracion = Duration.seconds(6)
+  static let duracionDeUnArreglo = Duration.seconds(6)
+
+  /// Lo que se queda en pantalla. Deshacer dura exactamente su ventana: un
+  /// clic después de que lo retenido se soltó no tendría nada que entregar.
+  var duracion: Duration {
+    switch accion {
+    case .abrirAjustes: Self.duracionDeUnArreglo
+    case .deshacerCancelacion: GestoDelGatillo.ventanaParaDeshacer
+    }
+  }
 }

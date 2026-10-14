@@ -936,6 +936,17 @@
         }
       }
     },
+    "Cancelado · clic para deshacer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canceled · click to undo"
+          }
+        }
+      }
+    },
     "Comandos al dictar": {
       "extractionState": "manual",
       "localizations": {
@@ -1244,6 +1255,17 @@
         }
       }
     },
+    "Cuánto es un toque, en ms": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long a tap is, in ms"
+          }
+        }
+      }
+    },
     "Cuánto puede cambiar tu texto": {
       "extractionState": "manual",
       "localizations": {
@@ -1427,6 +1449,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Right"
+          }
+        }
+      }
+    },
+    "Deshacer un Esc": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo an Esc"
           }
         }
       }
@@ -2021,6 +2054,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ already uses that key. Pick another, or take it away from that one first: two modes on one key is a dead shortcut."
+          }
+        }
+      }
+    },
+    "Esc cancela el dictado sin que la tecla llegue a tu app. Durante 5 segundos, un clic en la muesca lo recupera y lo pega.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esc cancels dictation without the key reaching your app. For 5 seconds, a click on the notch brings it back and pastes it."
           }
         }
       }
@@ -2894,6 +2938,17 @@
         }
       }
     },
+    "Mantener y tocar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold and tap"
+          }
+        }
+      }
+    },
     "Mantenla para dictar en %@, o tócala para empezar y tócala de nuevo para terminar": {
       "extractionState": "manual",
       "localizations": {
@@ -2956,6 +3011,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keep Dilo current"
+          }
+        }
+      }
+    },
+    "Mantén la tecla para hablar y suéltala para pegar. Si la sueltas antes de esto, el dictado queda abierto hasta que la vuelvas a tocar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold the key to talk and release it to paste. Release it sooner than this and dictation stays open until you tap it again."
           }
         }
       }
