@@ -200,6 +200,8 @@ struct AppearanceSettingsView: View {
       let titulo = "Debug · makeover"
       let paleta = "Paleta"
       let detalle = "Mango es la de fábrica. Se guarda en diloPaleta."
+      let vidrio = "Panel del hover con vidrio"
+      let detalleDelVidrio = "Negro en la muesca que se funde en vidrio. Se ve al próximo hover."
       return SettingsCard(title: "\(titulo)") {
         SettingsPickerRow(
           title: "\(paleta)",
@@ -208,6 +210,11 @@ struct AppearanceSettingsView: View {
           optionLabel: { $0.titulo },
           selection: $settings.paleta
         )
+        SettingsRow(title: "\(vidrio)", description: "\(detalleDelVidrio)") {
+          Toggle("", isOn: $settings.hudPanelDeVidrio)
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
       }
     }
   #endif

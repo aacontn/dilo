@@ -268,10 +268,22 @@ SwiftUI.
 
 **Qué no cabía:**
 
-- **El vidrio.** El overlay flotaba sobre el escritorio y se vendía con tinte
-  translúcido, hairline y highlight superior. La muesca **es** el borde negro
-  de la pantalla: una tarjeta de vidrio adentro se lee como un segundo objeto
-  pegado, que es el mismo error que la corona mango que ya se sacó.
+- **El vidrio, dentro de la muesca.** El overlay flotaba sobre el escritorio
+  y se vendía con tinte translúcido, hairline y highlight superior. La muesca
+  **es** el borde negro de la pantalla: una tarjeta de vidrio adentro se lee
+  como un segundo objeto pegado, que es el mismo error que la corona mango que
+  ya se sacó.
+
+  > **Enmienda del 2026-10-14 (Alfonso): el vidrio está permitido fuera del
+  > núcleo negro del notch.** Lo de arriba fue una decisión de una sesión de
+  > trabajo, no suya, y no se lee como prohibición. Lo que sigue en pie es el
+  > núcleo: la cabecera —la silueta en reposo, la carcasa, la franja de la
+  > barra— es negra siempre, y la muesca en reposo y dictando no lleva
+  > vidrio. Lo que cuelga hacia el escritorio sí puede: el panel del hover
+  > negro en la muesca que se funde en vidrio (`PanelDeVidrio`, apagado de
+  > fábrica detrás de `hudPanelDeVidrio`), y lo que venga después con la
+  > misma regla. El vidrio no sale en PNG: se juzga en la pantalla con
+  > `scripts/muesca.sh mostrar hover-vidrio hover-completo-vidrio`.
 - **El botón de cancelar y el cronómetro.** Mientras se dicta la forma no toma
   el mouse (contrato del notch: el clic es del documento en el que estás
   escribiendo), así que un botón ahí es un botón que no se puede apretar. Esc

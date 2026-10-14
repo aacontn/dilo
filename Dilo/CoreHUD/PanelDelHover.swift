@@ -93,6 +93,12 @@ struct HUDPanelDelHover: View {
   /// Lo que se dibuja si no hay ningún reciente: el modo o el nombre.
   let contexto: String
   let lados: [LadoDeLaMuesca]
+  /// Las secciones como tarjetas sobre el vidrio (`PanelDeVidrio`), en vez
+  /// de separadas por una línea sobre el negro. Los altos no cambian: la
+  /// tarjeta usa el aire que antes ocupaba el separador.
+  var enTarjetas = false
+  /// El radio de abajo del panel, para que la última tarjeta lo siga.
+  var radioDelPanel: CGFloat = 0
   var ahora = Date()
 
   private var secciones: SeccionesDelPanel {
@@ -122,6 +128,7 @@ struct HUDPanelDelHover: View {
           encabezado("Recientes")
           recientes
         }
+        .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: ultima == .primera))
       } else {
         Text(verbatim: contexto)
           .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -136,6 +143,7 @@ struct HUDPanelDelHover: View {
           HUDDetalleDeLosDatos(lados: lados, ahora: ahora)
             .padding(.top, 2)
             .frame(maxHeight: .infinity, alignment: .top)
+            .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: ultima == .datos))
         }
         .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
       }
@@ -143,18 +151,33 @@ struct HUDPanelDelHover: View {
         VStack(spacing: 0) {
           separador
           modos
+            .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: true))
         }
         .frame(height: HUDNotchGeometry.altoDeLosModos, alignment: .top)
       }
     }
-    .padding(.horizontal, 16)
+    .padding(.horizontal, enTarjetas ? PanelDeVidrio.aireLateral : 16)
     .padding(.bottom, secciones.llevaAire ? HUDNotchGeometry.aireAlPieDelPanel : 0)
   }
 
-  /// Una línea finita entre secciones, con su aire.
+  /// Cuál sección va al pie: la que lleva el radio concéntrico con el panel.
+  private enum Seccion { case primera, datos, modos }
+
+  private var ultima: Seccion {
+    secciones.modos ? .modos : secciones.datos ? .datos : .primera
+  }
+
+  private func radioDeTarjeta(esLaUltima: Bool) -> CGFloat {
+    esLaUltima
+      ? PanelDeVidrio.radioDeLaUltimaTarjeta(radioDelPanel: radioDelPanel)
+      : PanelDeVidrio.radioDeTarjeta
+  }
+
+  /// Una línea finita entre secciones, con su aire. Con tarjetas, sólo el
+  /// aire: la tarjeta ya separa.
   private var separador: some View {
     Rectangle()
-      .fill(.white.opacity(0.08))
+      .fill(.white.opacity(enTarjetas ? 0 : 0.08))
       .frame(height: 1)
       .frame(height: HUDNotchGeometry.altoDelSeparador)
   }

@@ -234,6 +234,7 @@ struct DictationHUDShellView: View {
       rippleEnabled: settings.voiceVisual.usesEdgeGlow,
       tamañoEnReposo: tamañoEnReposo,
       costados: costados,
+      vidrio: content.panelDeVidrio,
       content: { cuerpo },
       overlays: {
         particleCloud
@@ -312,7 +313,15 @@ struct DictationHUDShellView: View {
         }
         .padding(.horizontal, 16)
         .frame(height: HUDNotchGeometry.alturaDeCabecera(for: screen))
-        HUDPanelDelHover(content: content, contexto: contexto, lados: ladosConDato)
+        HUDPanelDelHover(
+          content: content,
+          contexto: contexto,
+          lados: ladosConDato,
+          enTarjetas: content.panelDeVidrio,
+          radioDelPanel: PanelDeVidrio.radio(
+            para: tamañoEnReposo, cabecera: HUDNotchGeometry.alturaDeCabecera(for: screen)
+          )
+        )
       }
       .frame(height: tamañoEnReposo.height, alignment: .top)
     } else if content.estado.esCompacto {

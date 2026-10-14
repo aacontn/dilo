@@ -347,9 +347,18 @@ siendo cierto:
   fábrica), la cursiva de quince puntos del transcript y el cursor mango que
   parpadea mientras el micrófono está abierto (`HUDCursorDeDictado`). Los
   números salen de `src/overlay/RecordingOverlay.css` del repo congelado y
-  están anotados ahí donde se usan. Lo que **no** se trajo —el vidrio, el botón
-  de cancelar, el cronómetro, las cuatro anchuras— y por qué está en
-  `docs/design/2026-09-21-experiencia-dilo.md`.
+  están anotados ahí donde se usan. Lo que **no** se trajo —el vidrio dentro
+  de la muesca, el botón de cancelar, el cronómetro, las cuatro anchuras— y
+  por qué está en `docs/design/2026-09-21-experiencia-dilo.md`.
+- **El vidrio está permitido fuera del núcleo negro** (Alfonso, 2026-10-14;
+  no lo trates como prohibido). La cabecera —la silueta en reposo— es negra
+  siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
+  el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
+  `FondoDeLaMuesca`): negro en la muesca que se funde en `glassEffect`, con
+  los radios y resortes observados en Droppy y las secciones en tarjetas.
+  Apagado de fábrica (`hudPanelDeVidrio`, oculto; interruptor en Debug), sin
+  vidrio montado en reposo. No sale en PNG: escenas `hover-vidrio` y
+  `hover-completo-vidrio` del arnés.
 - **Y dictar apenas la agranda: 184×26 donde la barra mide 24**
   (`HUDNotchGeometry.tamañoDictando` — el alto de la barra más un décimo, un
   15 % más de ancho que el reposo). Todo lo que dice comparte **una línea**:
