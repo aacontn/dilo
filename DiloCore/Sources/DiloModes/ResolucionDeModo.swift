@@ -28,10 +28,22 @@ public enum ResolucionDeModo {
   public struct Eleccion: Equatable, Sendable {
     public var modo: Modo?
     public var razon: Razon
+    /// Qué señal eligió el modo cuando no lo eligió una tecla. Es lo que la
+    /// muesca dice al lado del nombre (`EleccionAutomatica.enLaMuesca`).
+    public var senal: EleccionAutomatica.Senal?
 
-    public init(modo: Modo?, razon: Razon) {
+    public init(modo: Modo?, razon: Razon, senal: EleccionAutomatica.Senal? = nil) {
       self.modo = modo
       self.razon = razon
+      self.senal = senal
+    }
+
+    /// El nombre del modo y, si lo eligió Dilo, por qué: «Correo · lo
+    /// dijiste». Nil sin modo.
+    public var enLaMuesca: String? {
+      guard let modo else { return nil }
+      guard let senal else { return modo.nombre }
+      return "\(modo.nombre) · \(EleccionAutomatica.enLaMuesca(senal))"
     }
   }
 
@@ -88,5 +100,72 @@ public enum ResolucionDeModo {
       texto: texto, contexto: contexto, modos: modos,
       decider: decider, umbral: umbral
     )
+  }
+
+  /// Lo que la persona eligió para este dictado, si eligió algo.
+  public enum ALaMano: Equatable, Sendable {
+    /// Nadie eligió: deciden las señales.
+    case nadie
+    /// La tecla de un modo, las flechas o una nota: gana siempre, y nil es
+    /// «sin modo» dicho a propósito.
+    case eligio(Modo?)
+  }
+
+  /// El camino completo al terminar un dictado, en el orden de la fase 4:
+  /// tecla o flechas > **palabra disparadora** > modo del atajo general (el
+  /// del panel del hover) > **sitio** > **app** > palabras clave.
+  ///
+  /// La disparadora va por encima del hover porque se dijo para este
+  /// dictado; el hover es una preferencia que queda. Funciona aunque «Dilo
+  /// decide» esté apagado: es explícita. Sitio, app y palabras clave sólo con
+  /// «Dilo decide» prendido, como siempre.
+  ///
+  /// - Returns: la elección y el texto que sigue, sin la disparadora si la
+  ///   hubo.
+  public static func alTerminar(
+    texto: String,
+    aLaMano: ALaMano,
+    delAtajoGeneral: Modo?,
+    contexto: ContextoDeDecision,
+    modos: [Modo],
+    unAtajoDiloDecide: Bool,
+    decider: some Decider,
+    umbral: Double = 0.5
+  ) async -> (eleccion: Eleccion, texto: String) {
+    if case let .eligio(modo) = aLaMano {
+      return (Eleccion(modo: modo, razon: modo == nil ? .ninguna : .atajo), texto)
+    }
+    if let hallazgo = PalabraDisparadora.buscar(en: texto, modos: modos),
+      let modo = modos.modo(hallazgo.modoID) {
+      let eleccion = Eleccion(
+        modo: modo,
+        razon: .reglas(probabilidad: 1, porQue: "dijiste «\(hallazgo.disparadora)»"),
+        senal: .palabra(hallazgo.disparadora)
+      )
+      return (eleccion, hallazgo.textoSinElla)
+    }
+    if let delAtajoGeneral {
+      return (Eleccion(modo: delAtajoGeneral, razon: .atajo), texto)
+    }
+    guard unAtajoDiloDecide, !modos.isEmpty else {
+      return (Eleccion(modo: nil, razon: .ninguna), texto)
+    }
+    if let sitio = contexto.sitio, let modo = EleccionAutomatica.porSitio(sitio, modos: modos) {
+      let eleccion = Eleccion(
+        modo: modo,
+        razon: .reglas(probabilidad: 0.95, porQue: "estabas en \(sitio)"),
+        senal: .sitio(sitio)
+      )
+      return (eleccion, texto)
+    }
+    var eleccion = await porReglas(
+      texto: texto, contexto: contexto, modos: modos, decider: decider, umbral: umbral
+    )
+    if eleccion.modo != nil, case let .reglas(probabilidad, _) = eleccion.razon {
+      // 0,95 es la app; lo demás, las palabras clave (`DeciderPorReglas`).
+      eleccion.senal = probabilidad >= 0.95
+        ? .app(contexto.appAlFrente ?? contexto.bundleID ?? "") : .palabrasClave
+    }
+    return (eleccion, texto)
   }
 }

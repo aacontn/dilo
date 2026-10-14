@@ -66,8 +66,14 @@ public struct DeciderPorReglas: Decider {
 
     let candidatas = reglas.filter { opciones.contains($0.opcion) }
     let app = Self.normalizar(contexto.appAlFrente ?? "")
-    let porApp = app.isEmpty ? [] : candidatas.filter { regla in
-      regla.apps.contains { !$0.isEmpty && app.contains(Self.normalizar($0)) }
+    let bundle = (contexto.bundleID ?? "").lowercased()
+    let porApp = candidatas.filter { regla in
+      regla.apps.contains { patron in
+        guard !patron.isEmpty else { return false }
+        // Un bundle id calza exacto; un nombre, como siempre, por subcadena.
+        if Self.esBundleID(patron) { return !bundle.isEmpty && patron.lowercased() == bundle }
+        return !app.isEmpty && app.contains(Self.normalizar(patron))
+      }
     }
 
     // La app al frente decide. Es la señal que mide 100 % y no cuesta nada.
@@ -75,7 +81,7 @@ public struct DeciderPorReglas: Decider {
       return RespuestaTipada(
         valor: porApp[0].opcion,
         probabilidad: 0.95,
-        porQue: "la app al frente era \(contexto.appAlFrente ?? "")"
+        porQue: "la app al frente era \(contexto.appAlFrente ?? contexto.bundleID ?? "")"
       )
     }
 
@@ -110,6 +116,11 @@ public struct DeciderPorReglas: Decider {
     return RespuestaTipada(
       valor: opciones[0], probabilidad: 1.0 / Double(opciones.count)
     )
+  }
+
+  /// `com.apple.mail` y no «mail»: con un punto y sin espacios.
+  static func esBundleID(_ patron: String) -> Bool {
+    patron.contains(".") && !patron.contains(" ")
   }
 
   /// Minúsculas y sin tildes: "Código" y "codigo" son la misma señal, y el

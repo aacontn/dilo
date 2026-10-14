@@ -66,6 +66,10 @@ final class DirectDictationController {
   /// las flechas—. Es lo que impide que "un atajo, Dilo decide" contradiga
   /// una elección explícita, que es la regla de `ResolucionDeModo`.
   private var modoElegidoAMano = false
+  /// El modo que se eligió en el panel del hover para el atajo general, si
+  /// esta sesión lo usa. Aparte de la tecla porque una frase disparadora le
+  /// gana (`ResolucionDeModo.alTerminar`).
+  private var modoDelAtajoGeneral: Modo?
   /// Lo último que se dictó, entero y en sus dos mitades. En memoria y nada
   /// más: el historial viene apagado de fábrica y encenderlo para poder
   /// recuperar un dictado sería cambiar la privacidad por un rescate.
@@ -543,6 +547,9 @@ final class DirectDictationController {
   /// The resolved pair. Preparation no longer waits for translation, so a test
   /// about a translate press has to wait for this rather than for isPrepared.
   var translationPairForTesting: TranslationPair? { translation.pair }
+  /// Lo que la captura de contexto leyó hasta ahora, sin soltarlo: un test
+  /// espera a que llegue antes de soltar, como lo haría quien habla.
+  var contextoLeidoForTesting: ContextoCapturado { contextoDelDictado.leidoHastaAhora }
 
   /// Atiende un evento del monitor. `instante` es cuándo ocurrió, no cuándo
   /// se lo atiende: el umbral del toque corto se mide entre los dos eventos
@@ -679,15 +686,17 @@ final class DirectDictationController {
       // limpio y no pasa por ninguna IA, salvo que "Dilo decide" opine al
       // final. Congelado acá y no leído después: cambiar Ajustes a mitad de
       // dictado aplica al siguiente (ADR-0004).
-      sessionModo = session.modos.modo(activeSlot.modoID)
-        // El atajo general usa el modo que se eligió en el panel del hover,
-        // si se eligió uno; sin elección sigue siendo el dictado limpio.
-        ?? (activeSlot == .primary && !sesionEsNota
-          ? session.modos.modo(session.modoDelAtajoGeneralID) : nil)
+      let deLaTecla = session.modos.modo(activeSlot.modoID)
+      // El atajo general usa el modo que se eligió en el panel del hover,
+      // si se eligió uno; sin elección sigue siendo el dictado limpio.
+      modoDelAtajoGeneral = activeSlot == .primary && !sesionEsNota
+        ? session.modos.modo(session.modoDelAtajoGeneralID) : nil
+      sessionModo = deLaTecla ?? modoDelAtajoGeneral
       // Una nota sale como se dijo: ni el modo del atajo general —una nota no
       // es un correo— ni «Dilo decide», que opinaría por la app al frente,
-      // que no es donde va a terminar.
-      modoElegidoAMano = sessionModo != nil || sesionEsNota
+      // que no es donde va a terminar. El del hover no es elegir a mano: una
+      // frase disparadora le gana.
+      modoElegidoAMano = deLaTecla != nil || sesionEsNota
       dependencies.mostrarQueEsNota(sesionEsNota)
       dependencies.showListening(
         focusedTarget?.displayID,
@@ -786,7 +795,10 @@ final class DirectDictationController {
     contextoDelDictado.empezar(
       destino: target,
       fuentes: settings.fuentesDeContexto,
-      sitioParaElegirModo: false,
+      // El sitio también elige modo, pero sólo si nadie apretó la tecla de
+      // uno y algún modo tiene sitios.
+      sitioParaElegirModo: activeSlot.modoID == nil && settings.unAtajoDiloDecide
+        && settings.modos.contains { !$0.sitios.isEmpty },
       lectores: dependencies.lectoresDeContexto
     )
     send(.beginApproved)
@@ -865,31 +877,30 @@ final class DirectDictationController {
     pendingVolatileText = ""
   }
 
-  /// Qué modo aplica a este dictado.
+  /// Qué modo aplica a este dictado, y el texto sin la frase que lo eligió.
   ///
   /// La tecla siempre gana: es lo que la persona dijo explícitamente, y
-  /// ningún decididor tiene derecho a contradecirla. Las reglas sólo opinan
-  /// cuando nadie eligió **y** "un atajo, Dilo decide" está prendido; si no
-  /// se la juegan, el dictado sale como salió (`ResolucionDeModo`, con tests).
+  /// ningún decididor tiene derecho a contradecirla. Después, una frase
+  /// disparadora; después el modo del hover; y sólo con "un atajo, Dilo
+  /// decide" prendido, el sitio, la app y las palabras clave
+  /// (`ResolucionDeModo.alTerminar`, con tests).
   private func resolverModo(
     texto: String,
     delaTecla: Modo?,
     elegidoAMano: Bool,
-    appAlFrente: String?,
+    delAtajoGeneral: Modo?,
+    contexto: ContextoCapturado,
     session: DictationSessionSettings
-  ) async -> ResolucionDeModo.Eleccion {
-    if elegidoAMano {
-      return ResolucionDeModo.Eleccion(
-        modo: delaTecla, razon: delaTecla == nil ? .ninguna : .atajo
-      )
-    }
-    guard session.unAtajoDiloDecide, !session.modos.isEmpty else {
-      return ResolucionDeModo.Eleccion(modo: nil, razon: .ninguna)
-    }
-    return await ResolucionDeModo.porReglas(
+  ) async -> (eleccion: ResolucionDeModo.Eleccion, texto: String) {
+    await ResolucionDeModo.alTerminar(
       texto: texto,
-      contexto: ContextoDeDecision(appAlFrente: appAlFrente),
+      aLaMano: elegidoAMano ? .eligio(delaTecla) : .nadie,
+      delAtajoGeneral: delAtajoGeneral,
+      contexto: ContextoDeDecision(
+        appAlFrente: contexto.nombreDeApp, bundleID: contexto.bundleID, sitio: contexto.sitio
+      ),
       modos: session.modos,
+      unAtajoDiloDecide: session.unAtajoDiloDecide,
       decider: DeciderPorReglas(modos: session.modos)
     )
   }
@@ -980,7 +991,7 @@ final class DirectDictationController {
     // sesión siguiente no le gane la carrera a este final.
     let modoDeLaTecla = sessionModo
     let elegidoAMano = modoElegidoAMano
-    let appAlFrente = focusedTarget?.applicationName
+    let delAtajoGeneral = modoDelAtajoGeneral
     let esNota = sesionEsNota
     let (contexto, fuentes) = contextoDelDictado.recoger()
     finishTask = Task { [weak self] in
@@ -997,15 +1008,17 @@ final class DirectDictationController {
         // antes de que nadie más lo toque — espacios, muletillas y tus
         // palabras, en ese orden. Las preferencias son las que la sesión
         // capturó al empezar.
-        let spoken = DiloText.limpiar(crudo, con: session.textoPreferencias)
+        let limpio = DiloText.limpiar(crudo, con: session.textoPreferencias)
 
         // Qué modo aplica. La tecla siempre gana; las reglas sólo opinan
-        // cuando nadie eligió y la persona lo pidió (spec §7).
-        let eleccion = await resolverModo(
-          texto: spoken,
+        // cuando nadie eligió y la persona lo pidió (spec §7). Una frase
+        // disparadora se va del texto: desde acá lo dicho es sin ella.
+        let (eleccion, spoken) = await resolverModo(
+          texto: limpio,
           delaTecla: modoDeLaTecla,
           elegidoAMano: elegidoAMano,
-          appAlFrente: appAlFrente,
+          delAtajoGeneral: delAtajoGeneral,
+          contexto: contexto,
           session: session
         )
         let modo = eleccion.modo
@@ -1014,7 +1027,8 @@ final class DirectDictationController {
         // session dismisses here exactly as before.
         let willShape = modo != nil && !spoken.isEmpty
         if let modo, willShape {
-          dependencies.showShaping(modo.nombre)
+          // Si lo eligió Dilo, también por qué: «Correo · lo dijiste».
+          dependencies.showShaping(eleccion.enLaMuesca ?? modo.nombre)
         } else {
           // Antes acá se escondía el HUD y el resultado aterrizaba con la
           // forma ya fuera de pantalla. Ahora se queda: procesando primero,

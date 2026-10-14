@@ -36,6 +36,15 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
   public var apps: [String]
   /// Las palabras que desempatan cuando la app no alcanza.
   public var palabrasClave: [String]
+  /// Los sitios donde este modo corresponde, si el navegador está al frente:
+  /// `github.com`, `mail.google.com/mail`. Sin esquema ni `www.`; calzan por
+  /// host y subdominio, y la ruta por segmentos (`CalceDeSitio`). Le ganan a
+  /// la app: en Chrome, la app no dice nada.
+  public var sitios: [String]
+  /// Frases que, dichas al principio o al final, eligen este modo y se van
+  /// del texto: «como correo». Le ganan a todo menos a la tecla, y funcionan
+  /// aunque «Dilo decide» esté apagado: las dijiste para este dictado.
+  public var disparadoras: [String]
   /// Los de fábrica vuelven solos si alguien los borra, y vuelven sin tecla.
   public var esDeFabrica: Bool
   /// Cuánto puede cambiar lo que dictaste: la vara con que se juzga lo que
@@ -54,6 +63,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     gatillo: Gatillo? = nil,
     apps: [String] = [],
     palabrasClave: [String] = [],
+    sitios: [String] = [],
+    disparadoras: [String] = [],
     esDeFabrica: Bool = false,
     cuidado: Cuidado? = nil
   ) {
@@ -67,6 +78,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     self.gatillo = gatillo
     self.apps = apps
     self.palabrasClave = palabrasClave
+    self.sitios = sitios
+    self.disparadoras = disparadoras
     self.esDeFabrica = esDeFabrica
     self.cuidado = cuidado ?? .deFabrica(id: id)
   }
@@ -78,6 +91,7 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
   private enum CodingKeys: String, CodingKey {
     case id, nombre, prompt, instruccionFinal, ejemploEntrada, ejemploSalida
     case proveedorID, gatillo, apps, palabrasClave, esDeFabrica, cuidado
+    case sitios, disparadoras
   }
 
   public init(from decoder: Decoder) throws {
@@ -92,6 +106,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
     gatillo = try c.decodeIfPresent(Gatillo.self, forKey: .gatillo)
     apps = try c.decodeIfPresent([String].self, forKey: .apps) ?? []
     palabrasClave = try c.decodeIfPresent([String].self, forKey: .palabrasClave) ?? []
+    sitios = try c.decodeIfPresent([String].self, forKey: .sitios) ?? []
+    disparadoras = try c.decodeIfPresent([String].self, forKey: .disparadoras) ?? []
     esDeFabrica = try c.decodeIfPresent(Bool.self, forKey: .esDeFabrica) ?? false
     // Un valor que esta versión no conoce no puede costar la lista entera.
     cuidado = (try? c.decodeIfPresent(Cuidado.self, forKey: .cuidado)) ?? .deFabrica(id: id)
@@ -123,6 +139,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
         + "no se haya dicho.",
       apps: ["claude", "chatgpt", "cursor", "zed", "perplexity"],
       palabrasClave: ["prompt", "modelo", "contexto", "instrucción"],
+      sitios: ["claude.ai", "chatgpt.com", "gemini.google.com", "perplexity.ai"],
+      disparadoras: ["como prompt"],
       esDeFabrica: true
     ),
     Modo(
@@ -132,6 +150,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
         + "confianza. Sin fórmulas de correo.",
       apps: ["whatsapp", "telegram", "slack", "discord", "messages", "mensajes"],
       palabrasClave: ["oye", "avísame", "cachái", "dale"],
+      sitios: ["web.whatsapp.com", "app.slack.com", "web.telegram.org", "discord.com"],
+      disparadoras: ["como mensaje"],
       esDeFabrica: true
     ),
     Modo(
@@ -141,6 +161,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
         + "cierre si corresponde. Mantén mi tono.",
       apps: ["mail", "spark", "outlook", "superhuman", "gmail"],
       palabrasClave: ["estimado", "estimada", "saludos", "adjunto", "cotización"],
+      sitios: ["mail.google.com", "outlook.live.com", "outlook.office.com"],
+      disparadoras: ["como correo"],
       esDeFabrica: true
     ),
     Modo(
@@ -150,6 +172,8 @@ public struct Modo: Codable, Equatable, Identifiable, Sendable {
         + "tal cual se dijeron. No traduzcas los términos técnicos.",
       apps: ["terminal", "iterm", "ghostty", "warp", "xcode", "vscode", "code"],
       palabrasClave: ["commit", "branch", "deploy", "endpoint", "build", "merge"],
+      sitios: ["github.com", "gitlab.com", "bitbucket.org"],
+      disparadoras: ["como código"],
       esDeFabrica: true
     ),
   ]

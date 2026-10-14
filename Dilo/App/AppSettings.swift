@@ -80,6 +80,7 @@ final class AppSettings {
     static let comandosDeFormato = "diloComandosDeFormato"
     static let reemplazos = "diloReemplazos"
     static let fuentesDeContexto = "diloFuentesDeContexto"
+    static let migracionDeSenales = "diloMigracionDeSenales"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -597,6 +598,19 @@ final class AppSettings {
       }
       defaults.set(migracion.unAtajoDiloDecide, forKey: Keys.unAtajoDiloDecide)
       defaults.set(migracion.version, forKey: Keys.migracionDeModos)
+    }
+    // Los sitios y las frases de los modos de fábrica, una vez, a quien ya
+    // tenía modos guardados (`MigracionDeModos.sumarSenalesDeFabrica`). La
+    // marca va última, por lo mismo que arriba.
+    if !defaults.bool(forKey: Keys.migracionDeSenales) {
+      let conSenales = MigracionDeModos.sumarSenalesDeFabrica(migracion.modos)
+      if conSenales != migracion.modos {
+        modos = conSenales
+        if let datos = try? JSONEncoder().encode(conSenales) {
+          defaults.set(datos, forKey: Keys.modos)
+        }
+      }
+      defaults.set(true, forKey: Keys.migracionDeSenales)
     }
     palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
     limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true

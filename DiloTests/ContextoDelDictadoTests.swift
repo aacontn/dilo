@@ -132,6 +132,7 @@ final class ArnesDeLaFaseCuatro {
   func dictar(
     _ controlador: DirectDictationController,
     _ slot: GlobalKeyEventMonitor.TriggerSlot = .primary,
+    antesDeSoltar: (@MainActor (ContextoCapturado) -> Bool)? = nil,
     hastaQue condicion: (@MainActor () -> Bool)? = nil
   ) async {
     let pegadosAntes = pegados.count
@@ -139,6 +140,11 @@ final class ArnesDeLaFaseCuatro {
     controlador.handle(.triggerPressed(slot), at: inicio)
     controlador.handle(.triggerReleased(slot), at: inicio + .milliseconds(10))
     await hasta("la sesión no se trabó") { controlador.sessionStateForTesting == .recording(.latched) }
+    // Quien habla tarda más que la lectura del contexto; un runner cargado
+    // no siempre: se espera a que llegue lo que el test necesita.
+    if let antesDeSoltar {
+      await hasta("el contexto no llegó") { antesDeSoltar(controlador.contextoLeidoForTesting) }
+    }
     controlador.handle(.triggerPressed(slot))
     await hasta("el dictado no se entregó") { self.pegados.count > pegadosAntes }
     await hasta("la sesión no terminó") { controlador.sessionStateForTesting == .idle }
@@ -359,6 +365,63 @@ struct ContextoEnElControladorTests {
 
     #expect(arnes.sinContexto == ["correo"])
     #expect(arnes.conContexto.isEmpty)
+    control.stop()
+  }
+}
+
+@MainActor
+struct EleccionAutomaticaEnElControladorTests {
+  /// «…, como correo» al final: el modo Correo, sin la frase, y el porqué en
+  /// la muesca y en el historial.
+  @Test func laFraseEligeElModoYSeVaDelTexto() async {
+    let arnes = ArnesDeLaFaseCuatro()
+    arnes.settings.dictationHistoryEnabled = true
+    let control = arnes.controlador(arnes.dependencias(crudo: "mañana no llego, como correo"))
+    await arnes.preparar(control)
+
+    await arnes.dictar(control)
+
+    #expect(arnes.conContexto.map(\.modo) == ["correo"])
+    #expect(arnes.pegados == ["correo: mañana no llego"])
+    await arnes.hasta("el historial no se escribió") { !arnes.historial.isEmpty }
+    #expect(arnes.historial.first??.contains("dijiste «como correo»") == true)
+    control.stop()
+  }
+
+  /// En Chrome la app no dice nada; el sitio sí, si Dilo decide.
+  @Test func elSitioDelNavegadorEligeElModo() async {
+    let arnes = ArnesDeLaFaseCuatro()
+    arnes.settings.unAtajoDiloDecide = true
+    let chrome = TextInsertionService.Target(
+      element: nil, processIdentifier: 9, isSecure: false, displayID: nil,
+      applicationName: "Google Chrome", bundleID: "com.google.Chrome"
+    )
+    let lectores = LectoresDeContexto(
+      alrededor: { _, _ in TextoAlrededorDelCursor() },
+      sitio: { _, _ in "github.com/aacontn/dilo" }
+    )
+    let control = arnes.controlador(arnes.dependencias(destino: chrome, lectores: lectores))
+    await arnes.preparar(control)
+
+    await arnes.dictar(control, antesDeSoltar: { $0.sitio != nil })
+
+    #expect(arnes.conContexto.map(\.modo) == ["codigo"])
+    // El sitio eligió el modo, pero no viaja al prompt: esa fuente está
+    // apagada de fábrica.
+    #expect(arnes.conContexto.first?.contexto?.sitio == nil)
+    control.stop()
+  }
+
+  /// La tecla de un modo le gana a la frase: lo dicho queda entero.
+  @Test func laTeclaLeGanaALaFrase() async {
+    let arnes = ArnesDeLaFaseCuatro()
+    let control = arnes.controlador(arnes.dependencias(crudo: "mañana no llego, como correo"))
+    await arnes.preparar(control)
+
+    await arnes.dictar(control, .modo("mensaje"))
+
+    #expect(arnes.conContexto.map(\.modo) == ["mensaje"])
+    #expect(arnes.pegados == ["mensaje: mañana no llego, como correo"])
     control.stop()
   }
 }
