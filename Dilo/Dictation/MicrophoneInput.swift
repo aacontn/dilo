@@ -109,6 +109,12 @@ final class MicrophoneInput: @unchecked Sendable {
   /// dictado cuyo motor se cayó sin volver a hablar. Nil donde nadie la
   /// pide (transcribir un archivo).
   private let grabadora: GrabadoraEnRAM?
+  /// Lo que este dictado comparte con quien lo armó: a quién avisarle que el
+  /// micrófono entrega ceros. Nil donde nadie lo pide.
+  private let microfono: MicrofonoDeLaSesion?
+  /// Cuenta los ceros exactos del hardware. Sólo lo toca el hilo de audio
+  /// (y una reapertura arma otro tap que sigue contando con el mismo).
+  private var detector = DetectorDeMicMuerto()
   private let stateLock = NSLock()
 
   private var running = false
@@ -125,20 +131,23 @@ final class MicrophoneInput: @unchecked Sendable {
     onEnd: @escaping @Sendable () -> Void,
     failureHandler: @escaping @Sendable (InputError) -> Void,
     levelHandler: (@Sendable (Float) -> Void)? = nil,
-    grabadora: GrabadoraEnRAM? = nil
+    grabadora: GrabadoraEnRAM? = nil,
+    microfono: MicrofonoDeLaSesion? = nil
   ) {
     self.sink = sink
     self.onEnd = onEnd
     self.failureHandler = failureHandler
     self.levelHandler = levelHandler
     self.grabadora = grabadora
+    self.microfono = microfono
   }
 
   convenience init(
     analyzerContinuation: AsyncStream<AnalyzerInput>.Continuation,
     failureHandler: @escaping @Sendable (InputError) -> Void,
     levelHandler: (@Sendable (Float) -> Void)? = nil,
-    grabadora: GrabadoraEnRAM? = nil
+    grabadora: GrabadoraEnRAM? = nil,
+    microfono: MicrofonoDeLaSesion? = nil
   ) {
     self.init(
       sink: { buffer in
@@ -150,7 +159,8 @@ final class MicrophoneInput: @unchecked Sendable {
       onEnd: { analyzerContinuation.finish() },
       failureHandler: failureHandler,
       levelHandler: levelHandler,
-      grabadora: grabadora
+      grabadora: grabadora,
+      microfono: microfono
     )
   }
 
@@ -312,6 +322,12 @@ final class MicrophoneInput: @unchecked Sendable {
     }
   }
 
+  /// Reabre en caliente, sin cortar la sesión: la misma reconstrucción que
+  /// usa el cambio de ruta, en la misma cola, así que no pelea con ella.
+  private func reabrir() {
+    recoverFromRouteChange()
+  }
+
   static func hasUsableHardwareInput(_ format: AVAudioFormat) -> Bool {
     format.channelCount > 0 && format.sampleRate > 0
   }
@@ -343,7 +359,13 @@ final class MicrophoneInput: @unchecked Sendable {
   }
 
   private func receive(_ buffer: AVAudioPCMBuffer, converterBox: ConverterBox, copiaBox: ConverterBox?) {
-    publishLevel(of: buffer)
+    // Ceros exactos no publican nivel: para el HUD es un micrófono que no
+    // llama, y su watchdog lo pasa a ámbar. Un nivel 0 lo dibujaba igual que
+    // el silencio de una sala, que nunca es cero digital (CONTEXT.md: el
+    // silencio y un micrófono muerto tienen que verse distinto).
+    if vigilar(buffer) {
+      publishLevel(of: buffer)
+    }
     do {
       let convertedBuffer = try convert(buffer, using: converterBox)
       guardarEnRAM(convertedBuffer, copiaBox: copiaBox)
@@ -426,6 +448,22 @@ final class MicrophoneInput: @unchecked Sendable {
     }
     guard let canal = copia.floatChannelData?[0], copia.frameLength > 0 else { return }
     grabadora.agregar(UnsafeBufferPointer(start: canal, count: Int(copia.frameLength)))
+  }
+
+  /// Pasa el búfer del hardware —siempre Float32, antes de convertir nada,
+  /// así que sirve igual para los dos motores— por el detector de ceros.
+  /// Devuelve si el búfer trae sonido.
+  private func vigilar(_ buffer: AVAudioPCMBuffer) -> Bool {
+    guard let canal = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return true }
+    let pico = DetectorDeMicMuerto.pico(UnsafeBufferPointer(start: canal, count: Int(buffer.frameLength)))
+    let evento = stateLock.withLock {
+      detector.procesar(cuadros: Int(buffer.frameLength), tasa: buffer.format.sampleRate, pico: pico)
+    }
+    if let evento {
+      if evento == .reabrir { reabrir() }
+      microfono?.detectorVio(evento)
+    }
+    return pico > 0
   }
 
   /// RMS of the first channel (vDSP, so the audio thread barely notices)

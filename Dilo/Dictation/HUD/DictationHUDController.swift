@@ -1,4 +1,5 @@
 import AppKit
+import DiloEngines
 
 /// What the HUD says during a Direct Dictation session: listening, the live
 /// draft, finalizing.
@@ -178,6 +179,22 @@ final class DictationHUDController {
       stage.recibir(.escuchar)
     }
     setDraft(text ?? placeholder)
+  }
+
+  /// El micrófono entrega ceros exactos (`DetectorDeMicMuerto`). Antes de los
+  /// cinco segundos ya se ve: los ceros no publican nivel y el watchdog pasa
+  /// la onda a ámbar. A los cinco la forma lo dice con palabras, como
+  /// «preparando» —falta algo para poder escuchar, y una onda que no viene de
+  /// nadie no se dibuja—; cuando vuelve el sonido, vuelve a escuchar.
+  func avisarDelMicrofono(_ evento: DetectorDeMicMuerto.Evento) {
+    guard isListening, !hasStoppedListening else { return }
+    if let aviso = AvisoDelMicrofono.texto(para: evento) {
+      stage.recibir(.preparar(.aviso(aviso)))
+      setDraft(aviso)
+    } else if evento == .revivio, case .preparando = stage.estado {
+      stage.recibir(.escuchar)
+      setDraft(placeholder)
+    }
   }
 
   func showLiveText(_ committed: String, volatile: String = "") {

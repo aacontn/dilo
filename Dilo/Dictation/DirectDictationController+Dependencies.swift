@@ -141,6 +141,10 @@ extension DirectDictationController {
     /// El reloj del tope de cinco minutos. Inyectable para que una prueba no
     /// tenga que esperar cinco minutos de verdad.
     var relojDelTope: DeadlineClock = .continuous
+    /// Si el micrófono de este dictado lleva segundos entregando ceros. El
+    /// corte por falta de voz lo pregunta para decir por qué corta. Falso por
+    /// defecto: los tests que no lo usan no tienen micrófono.
+    var microfonoMudo: @Sendable () -> Bool = { false }
 
     /// Correr un modo sobre lo dictado, con el proveedor que la sesión
     /// congeló al empezar. El proveedor entra como parámetro y no se lee de
@@ -164,13 +168,22 @@ extension DirectDictationController {
       // La copia en RAM de cada dictado, que llenan los dos motores: sin
       // ella, un motor que se cae al soltar se lleva lo dicho.
       let grabadora = GrabadoraEnRAM()
-      let speechService = SpeechRecognitionService(grabadora: grabadora)
+      // El micrófono de cada dictado, compartido por las dos capturas: lo que
+      // ve el detector de ceros llega a la muesca sin pasar por el contrato
+      // de los motores.
+      let microfono = MicrofonoDeLaSesion()
+      microfono.alAvisar { evento in
+        Task { @MainActor in hudController.avisarDelMicrofono(evento) }
+      }
+      let speechService = SpeechRecognitionService(grabadora: grabadora, microfono: microfono)
       let historyStore = DictationHistoryStore()
       // El motor doble. `speechService` sigue siendo el dueño de
       // SpeechAnalyzer, de las reservas de idioma y de las sesiones tibias:
       // el router sólo elige quién escucha. La sesión habla con el respaldo,
       // que es el mismo contrato con la toma guardada debajo.
-      let (motores, respaldo) = DiloSpeechStack.armar(apple: speechService, grabadora: grabadora)
+      let (motores, respaldo) = DiloSpeechStack.armar(
+        apple: speechService, grabadora: grabadora, microfono: microfono
+      )
       // La elección se lee al arrancar cada dictado, no una vez: cambiarla en
       // Ajustes aplica al próximo dictado, como todo lo demás.
       let motorElegido: @Sendable () async -> SpeechEngineKind = {
@@ -192,6 +205,7 @@ extension DirectDictationController {
           try await motores.prewarm(locale: locale)
         },
         startRecognition: { locale, updateHandler, failureHandler, levelHandler, loadingHandler in
+          microfono.empezarSesion()
           await motores.elegir(await motorElegido())
           await motores.configurarReposo(await reposoElegido())
           try await respaldo.start(
@@ -273,6 +287,7 @@ extension DirectDictationController {
         reintentarToma: { try await respaldo.reintentar() },
         descartarToma: { await respaldo.descartarTomaFallida() },
         observarTomaFallida: { await respaldo.observarTomaFallida($0) },
+        microfonoMudo: { microfono.estaMudo },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         }

@@ -1629,6 +1629,28 @@
         }
       }
     },
+    "El micrófono no entrega sonido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone isn't giving any sound"
+          }
+        }
+      }
+    },
+    "El micrófono no entregó sonido. Revisa su permiso o elige otro en Ajustes → Dictado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone gave no sound. Check its permission or pick another in Settings → Dictation."
+          }
+        }
+      }
+    },
     "El modelo de Apple corre en esta compu. Sin clave y sin internet.": {
       "extractionState": "manual",
       "localizations": {
@@ -3968,6 +3990,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Text selected in another language is read in the voice's own language. Needs that pair's model already installed."
+          }
+        }
+      }
+    },
+    "Sigue sin sonido: cambia de micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still no sound: switch microphones"
           }
         }
       }
