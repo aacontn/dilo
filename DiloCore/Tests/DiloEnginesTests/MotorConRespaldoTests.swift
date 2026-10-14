@@ -91,6 +91,18 @@ struct MotorConRespaldoTests {
     #expect(grabadora.cuenta == 0)
   }
 
+  /// Lo que tardó la revisión del soltar queda a mano para la latencia por
+  /// fase de la app; antes del primer soltar no hay nada que decir.
+  @Test func laRevisionDelSoltarQuedaMedida() async throws {
+    let (motor, grabadora) = armar(parakeet: MotorFalso(texto: "hola"))
+    #expect(await motor.duracionDeLaUltimaRevision() == nil)
+    try await motor.start(locale: locale, handlers: EngineHandlers { _ in })
+    hablar(grabadora, segundos: 1)
+    _ = try await motor.finish()
+    let revision = try #require(await motor.duracionDeLaUltimaRevision())
+    #expect(revision >= .zero)
+  }
+
   /// El caso que este archivo existe para cubrir: el motor se cae al soltar
   /// y lo dicho queda en RAM, dicho con palabras.
   @Test func siElMotorSeCaeConVozLaTomaSeGuarda() async throws {

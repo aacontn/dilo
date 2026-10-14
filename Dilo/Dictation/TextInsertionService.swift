@@ -164,6 +164,9 @@ final class TextInsertionService {
   /// La devolución del portapapeles, que sigue corriendo después de que
   /// `entregar` ya contestó.
   var tareaDeDevolucion: Task<Void, Never>?
+  /// Cuándo salió el último ⌘V. Lo lee la latencia por fase del dictado para
+  /// partir la entrega en preparar el pegado y esperar el acuse.
+  var ultimoAtajoEnviado: ContinuousClock.Instant?
 
   init(dependencies: Dependencies = .live) {
     self.dependencies = dependencies

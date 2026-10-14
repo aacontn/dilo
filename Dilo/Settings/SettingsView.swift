@@ -270,6 +270,7 @@ private struct SettingsContent: View {
           HistorialSettingsView(settings: settings)
           DisclosureGroup("Actividad de dictado") {
             InsightsSettingsView(tracker: usageTracker).padding(.top, 12)
+            LatenciasSettingsView().padding(.top, 12)
           }
         case .dropTranscription:
           DropTranscriptionSettingsView(settings: settings)
@@ -285,6 +286,7 @@ private struct SettingsContent: View {
           NovedadesSettingsView()
         case .insights:
           InsightsSettingsView(tracker: usageTracker)
+          LatenciasSettingsView()
         case .about:
           AboutSettingsView()
           if SettingsSection.updates.isAvailable {

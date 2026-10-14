@@ -153,6 +153,14 @@ extension DirectDictationController {
     /// mensajes lo siga viendo.
     var mostrarAviso: (@MainActor (AvisoConAccion, CGDirectDisplayID?) -> Void)?
 
+    /// La latencia por fase (`RelojDeFases`): lo que tardó la revisión de la
+    /// toma, cuándo salió el ⌘V y dónde se guarda cada sesión medida. Por
+    /// defecto no se mide nada ni se escribe nada: una prueba que no mira la
+    /// latencia no tiene por qué tocar el disco.
+    var duracionDeLaRevision: @Sendable () async -> Duration? = { nil }
+    var instanteDelAtajo: @MainActor () -> ContinuousClock.Instant? = { nil }
+    var registrarLatencia: @Sendable (MedicionDeSesion) async -> Void = { _ in }
+
     /// Correr un modo sobre lo dictado, con el proveedor que la sesión
     /// congeló al empezar. El proveedor entra como parámetro y no se lee de
     /// Ajustes acá adentro: eso es lo que hace que cambiar Ajustes a mitad de
@@ -177,6 +185,7 @@ extension DirectDictationController {
       let grabadora = GrabadoraEnRAM()
       let speechService = SpeechRecognitionService(grabadora: grabadora)
       let historyStore = DictationHistoryStore()
+      let latencias = AlmacenDeLatencias()
       // El motor doble. `speechService` sigue siendo el dueño de
       // SpeechAnalyzer, de las reservas de idioma y de las sesiones tibias:
       // el router sólo elige quién escucha. La sesión habla con el respaldo,
@@ -286,6 +295,9 @@ extension DirectDictationController {
         observarTomaFallida: { await respaldo.observarTomaFallida($0) },
         leerPermisos: { LecturaParaDictar.leer() },
         mostrarAviso: { hudController.mostrarAviso($0, on: $1) },
+        duracionDeLaRevision: { await respaldo.duracionDeLaUltimaRevision() },
+        instanteDelAtajo: { textInsertionService.ultimoAtajoEnviado },
+        registrarLatencia: { await latencias.agregar($0) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         }

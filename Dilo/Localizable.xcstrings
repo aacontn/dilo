@@ -100,6 +100,28 @@
         }
       }
     },
+    "%lld dictados medidos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld dictations measured"
+          }
+        }
+      }
+    },
+    "%lld ms · p95 %lld ms": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ms · p95 %lld ms"
+          }
+        }
+      }
+    },
     "%lld prompts": {
       "extractionState": "manual",
       "localizations": {
@@ -925,6 +947,17 @@
         }
       }
     },
+    "Con cinco dictados aparece la mediana y el p95 de cada fase.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After five dictations, each phase shows its median and p95."
+          }
+        }
+      }
+    },
     "Contesta el aviso del micrófono": {
       "extractionState": "manual",
       "localizations": {
@@ -932,6 +965,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Answer the microphone prompt"
+          }
+        }
+      }
+    },
+    "Copiado: pégalo en Numbers o en un reporte.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied: paste it into Numbers or a report."
+          }
+        }
+      }
+    },
+    "Copiar CSV": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy CSV"
           }
         }
       }
@@ -2091,6 +2146,17 @@
         }
       }
     },
+    "Exportar latencias…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export latencies…"
+          }
+        }
+      }
+    },
     "Falta el permiso de reconocimiento de voz": {
       "extractionState": "manual",
       "localizations": {
@@ -2124,6 +2190,17 @@
         }
       }
     },
+    "Gatillo → micrófono abierto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trigger → microphone open"
+          }
+        }
+      }
+    },
     "General": {
       "extractionState": "manual",
       "localizations": {
@@ -2131,6 +2208,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "General"
+          }
+        }
+      }
+    },
+    "Guardado en %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to %@."
           }
         }
       }
@@ -2164,6 +2252,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Speak in yours, paste in this one"
+          }
+        }
+      }
+    },
+    "Hablando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaking"
           }
         }
       }
@@ -2351,6 +2450,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "LATENCIA POR FASE": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LATENCY BY PHASE"
+          }
+        }
+      }
+    },
+    "Limpieza": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cleanup"
           }
         }
       }
@@ -2857,6 +2978,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Less"
+          }
+        }
+      }
+    },
+    "Micrófono → primer audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone → first audio"
           }
         }
       }
@@ -3455,6 +3587,28 @@
         }
       }
     },
+    "Preparar el pegado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the paste"
+          }
+        }
+      }
+    },
+    "Primer audio → primer texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First audio → first text"
+          }
+        }
+      }
+    },
     "Probando…": {
       "extractionState": "manual",
       "localizations": {
@@ -3873,6 +4027,17 @@
         }
       }
     },
+    "Revisión de la toma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take review"
+          }
+        }
+      }
+    },
     "Saca el prompt de tu biblioteca. No se puede deshacer.": {
       "extractionState": "manual",
       "localizations": {
@@ -3935,6 +4100,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "It lives in the macOS Keychain. Dilo never writes it to a file and never shows it on screen."
+          }
+        }
+      }
+    },
+    "Se guardan sólo en esta compu, sin texto ni apps: las últimas 500 sesiones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept only on this Mac, with no text or apps: the last 500 sessions."
           }
         }
       }
@@ -4137,6 +4313,28 @@
         }
       }
     },
+    "Soltar → entregado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release → delivered"
+          }
+        }
+      }
+    },
+    "Soltar → texto del motor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release → engine text"
+          }
+        }
+      }
+    },
     "Sólo limpiar": {
       "extractionState": "manual",
       "localizations": {
@@ -4335,6 +4533,17 @@
         }
       }
     },
+    "Todavía no hay suficientes dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough dictations yet"
+          }
+        }
+      }
+    },
     "Todavía sin datos": {
       "extractionState": "manual",
       "localizations": {
@@ -4386,6 +4595,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tokens, 5 h"
+          }
+        }
+      }
+    },
+    "Traducción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation"
           }
         }
       }
@@ -5965,6 +6185,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "A button to dictate and have it pasted translated into the language you chose in Dictation. If you haven't chosen one yet, the button takes you there."
+          }
+        }
+      }
+    },
+    "⌘V → acuse de la app": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘V → app acknowledgment"
           }
         }
       }

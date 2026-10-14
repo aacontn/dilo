@@ -612,6 +612,17 @@ WAV, la sesión escucha ese archivo en vez del micrófono, al ritmo real, y anot
 en `<wav>.soltado` el instante en que el controlador manda a parar. En release
 no existe: el archivo entero está dentro de un `#if DEBUG`.
 
+**Y adentro, cada dictado se mide por fases** (`RelojDeFases`,
+`Dilo/Dictation/LatenciaPorFase.swift`, 2026-10-14): gatillo → micrófono,
+soltar → texto del motor, la revisión de la toma (`MotorConRespaldo` la
+mide), limpieza, modo, traducción, preparar el pegado y ⌘V → acuse. Se
+guardan las últimas 500 sesiones en `Application Support/Dilo/latencias.json`,
+**sin texto ni apps**, y se ven y exportan en Ajustes → Historial →
+Actividad de dictado. El «total» de adentro no incluye el pintado de la app
+de destino: no reemplaza al número de `metrics.sh`, dice dónde se van sus
+milisegundos. Los hitos también salen como `os_signpost` (categoría
+`latencia`) para Instruments.
+
 Los dos `xcodebuild`, `swift test` y la suite de la app tienen que pasar antes
 de devolver el trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
 el terminal.

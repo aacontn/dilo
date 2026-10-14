@@ -64,6 +64,10 @@ public actor MotorConRespaldo: SpeechEngine {
   /// A quién avisarle que hay —o que ya no hay— una toma guardada, con su
   /// duración. Lo escucha el menú de la barra.
   private var avisar: (@Sendable (TimeInterval?) -> Void)?
+  /// Lo que tardó la revisión del último soltar —la segunda opinión incluida,
+  /// si hizo falta—, para la latencia por fase de la app. Nil hasta que un
+  /// soltar llega a revisarse.
+  private var ultimaRevision: Duration?
 
   public init(
     motores: SpeechEngineRouter,
@@ -87,6 +91,12 @@ public actor MotorConRespaldo: SpeechEngine {
     tomaFallida?.audio.duracion
   }
 
+  /// Lo que tardó la revisión del último `finish`, o nil si no llegó a
+  /// revisarse.
+  public func duracionDeLaUltimaRevision() -> Duration? {
+    ultimaRevision
+  }
+
   public func prewarm(locale: Locale) async throws {
     try await motores.prewarm(locale: locale)
   }
@@ -102,12 +112,15 @@ public actor MotorConRespaldo: SpeechEngine {
   }
 
   public func finish() async throws -> String {
+    ultimaRevision = nil
     let resultado: Result<String, any Error>
     do {
       resultado = .success(try await motores.finish())
     } catch {
       resultado = .failure(error)
     }
+    let antesDeRevisar = ContinuousClock.now
+    defer { ultimaRevision = antesDeRevisar.duration(to: .now) }
     // Después del `finish` del motor y no antes: es el que para el micrófono,
     // y lo que se dijo justo al soltar también es parte de la toma.
     let toma = grabadora.tomar()

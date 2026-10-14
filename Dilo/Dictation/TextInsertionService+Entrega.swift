@@ -119,6 +119,7 @@ extension TextInsertionService {
     guard dependencies.postPasteShortcut(canal) else {
       return quedarseParaPegarAMano(pendiente, porque: .sinAtajo, tiempos: tiempos)
     }
+    ultimoAtajoEnviado = .now
     let inicio = reloj.now()
 
     // 5. Esperar la señal y decidir.

@@ -490,6 +490,74 @@ struct DirectDictationControllerTests {
     controller.stop()
   }
 
+  /// Cada sesión deja su medición por fase, sin una palabra de lo dicho: el
+  /// motor que escuchó, cómo terminó y los milisegundos. La revisión que
+  /// mide el motor y el ⌘V del servicio de inserción entran en sus fases.
+  @Test func unaSesionDejaSuLatenciaPorFaseSinTexto() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let mediciones = OSAllocatedUnfairLock<[MedicionDeSesion]>(initialState: [])
+    var dependencies = makeDependencies(
+      recorder: recorder,
+      prewarmed: prewarmed,
+      finishRecognition: { "hola mundo" }
+    )
+    dependencies.duracionDeLaRevision = { .milliseconds(12) }
+    // El ⌘V «salió» justo antes de que la entrega contestara.
+    dependencies.instanteDelAtajo = { .now }
+    dependencies.registrarLatencia = { medicion in mediciones.withLock { $0.append(medicion) } }
+    let controller = makeController(dependencies: dependencies)
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.toggleFromMenu()
+    await waitUntil("La sesión no dejó su medición") {
+      mediciones.withLock { $0.count } == 1
+    }
+
+    let medicion = mediciones.withLock { $0[0] }
+    #expect(medicion.motor == "Parakeet v3")
+    #expect(medicion.resultado == .pegado)
+    #expect(!medicion.conModo && !medicion.traducido)
+    for fase in [Fase.activacion, .habla, .motor, .revision, .limpieza, .pegado, .acuse, .total] {
+      #expect(medicion.ms(fase) != nil, "falta la fase \(fase)")
+    }
+    #expect((medicion.ms(.revision) ?? 0) >= 12)
+    let codificado = String(decoding: (try? JSONEncoder().encode(medicion)) ?? Data(), as: UTF8.self)
+    #expect(!codificado.contains("hola"))
+    controller.stop()
+  }
+
+  /// Un Esc también se mide —cuánto tardó en abrir el micrófono sigue
+  /// valiendo— y queda como cancelado.
+  @Test func unaSesionCanceladaSeMideComoCancelada() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let mediciones = OSAllocatedUnfairLock<[MedicionDeSesion]>(initialState: [])
+    var dependencies = makeDependencies(recorder: recorder, prewarmed: prewarmed)
+    dependencies.registrarLatencia = { medicion in mediciones.withLock { $0.append(medicion) } }
+    let controller = makeController(dependencies: dependencies)
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.cancelPressed)
+    await waitUntil("La sesión cancelada no dejó su medición") {
+      mediciones.withLock { $0.count } == 1
+    }
+
+    let medicion = mediciones.withLock { $0[0] }
+    #expect(medicion.resultado == .cancelado)
+    #expect(medicion.ms(.activacion) != nil)
+    #expect(medicion.ms(.total) == nil)
+    controller.stop()
+  }
+
   @Test func clipboardFallbackStillPlaysPasteSoundAndRecordsUsage() async {
     let recorder = Recorder()
     let prewarmed = OSAllocatedUnfairLock(initialState: false)

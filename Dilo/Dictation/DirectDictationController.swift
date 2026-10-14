@@ -50,6 +50,8 @@ final class DirectDictationController {
   /// El idioma que se está bajando mientras se prepara, y cuánto va, para
   /// decir eso al apretar en vez de un «preparando» mudo.
   private var descargaDelModelo: (locale: Locale, fraccion: Double)?
+  /// Los hitos de la sesión en curso (`DirectDictationController+Latencia`).
+  var relojDeFases = RelojDeFases()
   private var currentSessionSettings: DictationSessionSettings?
   /// The languages behind the two trigger keys, resolved to locales Apple
   /// Speech supports. `secondary` is nil unless a second language is chosen.
@@ -582,7 +584,9 @@ final class DirectDictationController {
 
   private func send(_ action: DictationSessionMachine.Action) {
     let wasActive = machine.isSessionActive
-    perform(machine.reduce(action))
+    let effects = machine.reduce(action)
+    anotarLatencia(action, efectos: effects)
+    perform(effects)
     // A session keeps the key that started it even after Settings turns that
     // language off, so ending one is when the binding has to be given back.
     // Nothing else reapplies them, and a stale slot either swallows its key or
@@ -722,6 +726,7 @@ final class DirectDictationController {
       } else {
         ducking.restore()
         activity.release()
+        registrarLatencia()
         focusedTarget = nil
         sessionStartTask = nil
         currentSessionSettings = nil
@@ -866,6 +871,7 @@ final class DirectDictationController {
           },
           { [weak self] level in
             Task { @MainActor [weak self] in
+              self?.relojDeFases.marcar(.primerAudio)
               self?.dependencies.showAudioLevel(level)
             }
           },
@@ -903,6 +909,7 @@ final class DirectDictationController {
     // que el espacio de la costura viaja con lo volátil: pegarlos a secas
     // dejaba la última palabra firme contra la primera que todavía tiembla.
     pendingVolatileText = Union.colaDe(update.finalizedText, update.volatileText)
+    if hasVisibleText { relojDeFases.marcar(.primerParcial) }
     send(.updateReceived(hasVisibleText: hasVisibleText))
     pendingLiveText = nil
     pendingVolatileText = ""
@@ -1023,11 +1030,13 @@ final class DirectDictationController {
         // El crudo se guarda antes de tocarlo: es lo único de todo esto que
         // no se puede reconstruir (punto 4 del encargo).
         let crudo = try await dependencies.finishRecognition()
+        anotarRevisado(revision: await dependencies.duracionDeLaRevision())
         // La costura de español de Dilo: todo lo reconocido pasa por DiloText
         // antes de que nadie más lo toque — espacios, muletillas y tus
         // palabras, en ese orden. Las preferencias son las que la sesión
         // capturó al empezar.
         let spoken = DiloText.limpiar(crudo, con: session.textoPreferencias)
+        relojDeFases.marcar(.limpio)
 
         // Qué modo aplica. La tecla siempre gana; las reglas sólo opinan
         // cuando nadie eligió y la persona lo pidió (spec §7).
@@ -1083,6 +1092,8 @@ final class DirectDictationController {
           case .sinModo:
             break
           }
+          relojDeFases.marcar(.modo)
+          relojDeFases.conModo = true
         }
         // Shaped or passed through, the phase is over — pero la entrega
         // todavía no, así que la forma pasa a procesando y no a reposo.
@@ -1101,6 +1112,8 @@ final class DirectDictationController {
         if let pair = session.translation, !text.isEmpty {
           do {
             text = try await translation.translate(text, with: pair)
+            relojDeFases.marcar(.traducido)
+            relojDeFases.traducido = true
           } catch {
             // El rescate son las palabras como se dijeron, no como las dejó
             // el modo: el modo es una comodidad y lo crudo es lo que tiene
@@ -1143,6 +1156,7 @@ final class DirectDictationController {
         let entrega = await dependencies.insertText(
           text, focusedTarget, session.insertionDestination
         )
+        anotarEntrega(entrega, atajo: dependencies.instanteDelAtajo())
         AppLog.delivery.info(
           "session ended: \(entrega.nombreEnElLog, privacy: .public), \(UsageMetrics.wordCount(in: spoken), privacy: .public) words in \(speakingDuration, format: .fixed(precision: 1), privacy: .public)s"
         )
@@ -1375,6 +1389,17 @@ final class DirectDictationController {
     guard keyEventMonitor?.start() == true else {
       dependencies.showRelaunchAlert()
       return
+    }
+  }
+
+  /// Guarda lo medido de la sesión que terminó. Fuera del main actor: el
+  /// archivo se escribe en su actor, y el motor que escuchó lo dice el
+  /// router. Nada de esto toca el texto dictado.
+  private func registrarLatencia() {
+    guard let reloj = cerrarLaMedicion() else { return }
+    Task { [dependencies] in
+      let motor = await dependencies.motorDelDictado() ?? "?"
+      await dependencies.registrarLatencia(reloj.medicion(motor: motor))
     }
   }
 
