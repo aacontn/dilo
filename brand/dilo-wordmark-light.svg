@@ -8,5 +8,5 @@
         font-size="150" font-weight="600" letter-spacing="-4"
         textLength="260" lengthAdjust="spacing" fill="#0D1117">dilo</text>
   <!-- Caret ▌ -->
-  <rect x="308" y="43" width="46" height="112" rx="12" fill="#FF9E1B"/>
+  <rect x="308" y="43" width="46" height="112" rx="12" fill="#0A84FF"/>
 </svg>

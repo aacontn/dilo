@@ -1,32 +1,31 @@
 import AppKit
 import SwiftUI
 
-/// Los tokens de marca de Dilo. Tinta, mango y menta salen del ícono maestro
-/// (`brand/dilo-icon.svg`) y de la landing; están acá una sola vez para que la
-/// superficie SwiftUI y los `NSImage` del status item no puedan derivar a dos
-/// naranjas distintos.
+/// Los tokens de marca de Dilo. Tinta, azul y celeste salen del ícono maestro
+/// (`brand/dilo-icon.svg`); están acá una sola vez para que la superficie
+/// SwiftUI y los `NSImage` del status item no puedan derivar a dos azules
+/// distintos.
 ///
 /// Son los colores **de la marca** —el ícono, `brand/`, la landing— y no los
 /// de la interfaz: la muesca y Ajustes dibujan con `PaletaDeDilo.actual`
-/// (Glaciar de fábrica desde el 2026-10-14). Ninguna vista los pide: que una
-/// pidiera `DiloBrand.mango` sería volver a pintar naranja. Quedan hasta que
-/// el ícono se regenere para Glaciar. Las paletas del Edge Glow nunca recolorean el caparazón
-/// (CONTEXT.md).
+/// (Glaciar de fábrica desde el 2026-10-14). El ícono pasó de mango y menta a
+/// Glaciar el mismo día: el caret es celeste y la onda azul. Las paletas del
+/// Edge Glow nunca recolorean el caparazón (CONTEXT.md).
 enum DiloBrand {
   /// Tinta `#0D1117` — el fondo del ícono y la base de toda superficie oscura.
   static let tintaColor = NSColor(red: 0x0D / 255, green: 0x11 / 255, blue: 0x17 / 255, alpha: 1)
-  /// Mango `#FF9E1B` — acciones, el cursor del ícono, la píldora.
-  static let mangoColor = NSColor(red: 0xFF / 255, green: 0x9E / 255, blue: 0x1B / 255, alpha: 1)
-  /// Menta `#2EE6A8` — la onda de audio; confirma, no manda.
-  static let mentaColor = NSColor(red: 0x2E / 255, green: 0xE6 / 255, blue: 0xA8 / 255, alpha: 1)
+  /// Celeste `#64D2FF` — el caret del ícono, el prompt que espera tu voz.
+  static let celesteColor = NSColor(red: 0x64 / 255, green: 0xD2 / 255, blue: 0xFF / 255, alpha: 1)
+  /// Azul `#0A84FF` — la onda de audio del ícono.
+  static let azulColor = NSColor(red: 0x0A / 255, green: 0x84 / 255, blue: 0xFF / 255, alpha: 1)
   /// Rojo `#FF5C5C` — grabando. Es la punta de la onda de brasas y nada más:
   /// en Dilo no es un color de error, es el que dice que el micrófono está
   /// abierto (viene de `--dilo-rojo` del repo Tauri).
   static let rojoColor = NSColor(red: 0xFF / 255, green: 0x5C / 255, blue: 0x5C / 255, alpha: 1)
 
   static let tinta = Color(nsColor: tintaColor)
-  static let mango = Color(nsColor: mangoColor)
-  static let menta = Color(nsColor: mentaColor)
+  static let celeste = Color(nsColor: celesteColor)
+  static let azul = Color(nsColor: azulColor)
   static let rojo = Color(nsColor: rojoColor)
 }
 

@@ -226,15 +226,15 @@ opciones de la interfaz.
 la muesca, Ajustes, los Primeros pasos y el ícono de la barra piden
 `PaletaDeDilo.actual` y el token de lo que dibujan —`cursor`, `acuse`,
 `puntoDeReposo`, `acentoDeAjustes`, `acentoDeLaBarra`…—, y qué color es cada
-uno vive en una sola tabla. Una vista nueva no escribe `DiloBrand.mango` ni
+uno vive en una sola tabla. Una vista nueva no escribe un color de `DiloBrand` ni
 un `Color(red:…)`: pide el token, o lo agrega a la paleta. El `AccentColor`
 del catálogo es el azul de Glaciar. Fuera de la paleta, a propósito: las del
 Edge Glow, que elige la persona.
 
 **Colores de marca** (`DiloBrand`, `Dilo/Settings/Components/SettingsTheme.swift`):
-tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`. Son los del ícono y de
-`brand/`, que **todavía no se regeneraron** para Glaciar; ninguna vista los
-usa. Los activos están en `brand/`; el `.icns` se regenera con
+tinta `#0D1117`, celeste `#64D2FF` (el caret) y azul `#0A84FF` (la onda).
+Son los del ícono y de `brand/`, regenerados para Glaciar el 2026-10-14;
+ninguna vista los usa. Los activos están en `brand/`; el `.icns` se regenera con
 `rsvg-convert` + `iconutil` desde `brand/dilo-icon.svg` y queda en
 `brand/generado/`.
 
