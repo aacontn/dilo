@@ -75,6 +75,13 @@ final class DictationHUDController {
     stage.showMessage(text, on: displayID)
   }
 
+  /// Un aviso que se arregla con un clic: lo mismo que un mensaje, pero la
+  /// forma toma el mouse mientras dura (`AvisoConAccion`).
+  func mostrarAviso(_ aviso: AvisoConAccion, on displayID: CGDirectDisplayID? = nil) {
+    stopVoiceVisual()
+    stage.mostrarAviso(aviso, on: displayID)
+  }
+
   /// La sesión está esperando algo antes de poder escuchar: el modelo, un
   /// permiso. Dice qué falta, sin onda ficticia (contrato del notch).
   func showPreparando(_ falta: FaltaDelNotch, on displayID: CGDirectDisplayID? = nil) {

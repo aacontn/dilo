@@ -63,6 +63,20 @@ struct EstadoDelNotchTests {
     #expect(tarjeta.tarjeta?.texto == "hola")
   }
 
+  /// Un aviso que se arregla con un clic también toma el mouse —tiene algo
+  /// que ofrecer— y dura lo que tarda alguien en llevarle el puntero: más que
+  /// un aviso para leer, menos que la tarjeta que guarda un dictado.
+  @Test func unAvisoAccionableTomaElMouseYDuraLoQueTardaElClic() {
+    let aviso = ResultadoDelNotch.accionable(
+      AvisoConAccion(texto: "Sin micrófono: clic para darlo", accion: .abrirAjustes("x-apple.systempreferences:"))
+    )
+    #expect(EstadoDelNotch.resultado(aviso).tomaElMouse)
+    #expect(!aviso.esAcuse)
+    #expect(aviso.texto == "Sin micrófono: clic para darlo")
+    #expect(aviso.duracion > ResultadoDelNotch.aviso("x").duracion)
+    #expect(aviso.duracion < MaquinaDelNotch.duracionDeLaTarjeta)
+  }
+
   /// Lo que entró se acusa; lo que no entró, o no se sabe, es la tarjeta con
   /// el texto entero. Nada se calla.
   @Test func cadaEntregaTieneSuResultado() {

@@ -142,6 +142,17 @@ extension DirectDictationController {
     /// tenga que esperar cinco minutos de verdad.
     var relojDelTope: DeadlineClock = .continuous
 
+    /// Los permisos y la entrada de audio, leídos al apretar el gatillo para
+    /// decir qué falta antes de abrir el micrófono (`EstadoParaDictar`). Por
+    /// defecto todo concedido: el host de los tests tiene su propio bundle id
+    /// y ningún permiso, y leer el sistema de verdad ahí bloquearía toda la
+    /// suite. `live` lee el sistema.
+    var leerPermisos: @MainActor () -> PermisosLeidos = { .todosConcedidos }
+    /// Un aviso que se arregla con un clic (`AvisoConAccion`). Por defecto
+    /// cae al mensaje de siempre, para que una prueba que sólo mira los
+    /// mensajes lo siga viendo.
+    var mostrarAviso: (@MainActor (AvisoConAccion, CGDirectDisplayID?) -> Void)?
+
     /// Correr un modo sobre lo dictado, con el proveedor que la sesión
     /// congeló al empezar. El proveedor entra como parámetro y no se lee de
     /// Ajustes acá adentro: eso es lo que hace que cambiar Ajustes a mitad de
@@ -273,6 +284,8 @@ extension DirectDictationController {
         reintentarToma: { try await respaldo.reintentar() },
         descartarToma: { await respaldo.descartarTomaFallida() },
         observarTomaFallida: { await respaldo.observarTomaFallida($0) },
+        leerPermisos: { LecturaParaDictar.leer() },
+        mostrarAviso: { hudController.mostrarAviso($0, on: $1) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         }

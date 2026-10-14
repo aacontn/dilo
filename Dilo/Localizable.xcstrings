@@ -705,6 +705,28 @@
         }
       }
     },
+    "Bajando %@…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading %@…"
+          }
+        }
+      }
+    },
+    "Bajando %@… %lld%%": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading %@… %lld%%"
+          }
+        }
+      }
+    },
     "Bajando el modelo de %@": {
       "extractionState": "manual",
       "localizations": {
@@ -899,6 +921,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Commands while dictating"
+          }
+        }
+      }
+    },
+    "Contesta el aviso del micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Answer the microphone prompt"
           }
         }
       }
@@ -3070,6 +3103,17 @@
         }
       }
     },
+    "No hay micrófono conectado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No microphone connected"
+          }
+        }
+      }
+    },
     "No hay nada que configurar": {
       "extractionState": "manual",
       "localizations": {
@@ -3972,6 +4016,17 @@
         }
       }
     },
+    "Sin Accesibilidad: clic para darla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Accessibility: click to allow it"
+          }
+        }
+      }
+    },
     "Sin carpeta elegida: van al Escritorio": {
       "extractionState": "manual",
       "localizations": {
@@ -4005,6 +4060,17 @@
         }
       }
     },
+    "Sin micrófono: clic para darlo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No microphone: click to allow it"
+          }
+        }
+      }
+    },
     "Sin nombre": {
       "extractionState": "manual",
       "localizations": {
@@ -4023,6 +4089,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "No prompt picked, so dictation is pasted unchanged."
+          }
+        }
+      }
+    },
+    "Sin reconocimiento de voz: clic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech recognition: click"
           }
         }
       }

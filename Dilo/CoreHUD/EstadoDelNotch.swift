@@ -70,12 +70,12 @@ enum EstadoDelNotch: Equatable, Sendable {
   ///
   /// Mientras hay una sesión no: el clic es del documento en el que estás
   /// escribiendo, no del HUD. Los errores y avisos tampoco, porque no tienen
-  /// ninguna acción que ofrecer. La única excepción es la tarjeta de un
-  /// dictado que no se pegó: ofrece el texto para copiarlo o arrastrarlo, y
-  /// eso sólo se hace con el mouse.
+  /// ninguna acción que ofrecer. Las excepciones son las que sí ofrecen una:
+  /// la tarjeta de un dictado que no se pegó —el texto, para copiarlo o
+  /// arrastrarlo— y un aviso accionable, que abre lo que lo arregla.
   var tomaElMouse: Bool {
     switch self {
-    case .reposo, .resultado(.retenido): true
+    case .reposo, .resultado(.retenido), .resultado(.accionable): true
     case .preparando, .dictando, .procesando, .resultado: false
     }
   }
@@ -152,6 +152,9 @@ enum ResultadoDelNotch: Equatable, Sendable {
   /// El dictado no entró, o no se sabe si entró: la tarjeta lo ofrece para
   /// copiar o arrastrar mientras siga en pantalla.
   case retenido(TarjetaDeRespaldo)
+  /// Un aviso que se arregla con un clic (`AvisoConAccion`): el único otro
+  /// resultado que toma el mouse.
+  case accionable(AvisoConAccion)
 
   var texto: String {
     switch self {
@@ -159,6 +162,7 @@ enum ResultadoDelNotch: Equatable, Sendable {
     case .copiado: String(localized: "Copiado al portapapeles")
     case let .aviso(texto): texto
     case let .retenido(tarjeta): tarjeta.titulo
+    case let .accionable(aviso): aviso.texto
     }
   }
 
@@ -169,6 +173,7 @@ enum ResultadoDelNotch: Equatable, Sendable {
   /// alcanzar a leerlo; la tarjeta, alcanzar a usarla.
   var duracion: Duration {
     if case .retenido = self { return MaquinaDelNotch.duracionDeLaTarjeta }
+    if case .accionable = self { return AvisoConAccion.duracion }
     return esAcuse ? MaquinaDelNotch.duracionDelAcuse : MaquinaDelNotch.duracionDelResultado
   }
 

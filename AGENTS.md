@@ -370,6 +370,15 @@ siendo cierto:
   portapapeles (8 s) para que ⌘V también sirva. No bloquea el dictado
   siguiente: lo que empieza la tapa, y el texto sigue en «Copiar el último
   dictado».
+- **La otra excepción es un aviso que se arregla con un clic**
+  (`ResultadoDelNotch.accionable`, `AvisoConAccion`, 2026-10-14). Lo que
+  impide dictar se mira **antes** de abrir el micrófono —permisos, entrada de
+  audio, motor, campo, traducción— en `EstadoParaDictar` (puro, en
+  `DiloCapabilities`), y la muesca dice el primer `BloqueoDelDictado` en una
+  línea de unos treinta caracteres. Si el arreglo es una casilla de Ajustes
+  del Sistema, el clic abre su panel exacto (`Permiso.panelDeAjustes`); en
+  la línea no cabe también la ruta. Dar el permiso y volver a apretar basta:
+  la preparación que paró en él vuelve a correr desde el gatillo.
 - **Tres cosas del escenario son ajustes, no constantes** (Apariencia): el
   retardo del hover (`hudRetardoDeHover`, medio segundo de fábrica), en qué
   pantalla vive la muesca (`hudPantalla`, vacío = automática) y si dice el

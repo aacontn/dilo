@@ -39,6 +39,8 @@ struct DirectDictationControllerTests {
     /// Lo que la forma dijo al final de cada sesión (`EstadoDelNotch`).
     var resultados: [ResultadoDelNotch] = []
     var cycleCaptureStates: [Bool] = []
+    /// Los avisos que se arreglan con un clic (`AvisoConAccion`).
+    var avisos: [AvisoConAccion] = []
 
     func count(of event: String) -> Int {
       events.filter { $0 == event }.count
@@ -95,7 +97,8 @@ struct DirectDictationControllerTests {
     ) async -> TransformacionDeModo.Resultado = { texto, _, _ in .transformado(texto) },
     insertOutcome: ResultadoDeEntrega = .pegado(.lectura),
     notas: OSAllocatedUnfairLock<[String]> = .init(initialState: []),
-    resultadoDeLaNota: ResultadoDeLaNota = .guardada
+    resultadoDeLaNota: ResultadoDeLaNota = .guardada,
+    requestMicrophoneAccess: @escaping @Sendable () async -> Bool = { true }
   ) -> DirectDictationController.Dependencies {
     DirectDictationController.Dependencies(
       setDownloadHandler: { _ in },
@@ -137,7 +140,7 @@ struct DirectDictationControllerTests {
         recorder.insertedDestinations.append(destination)
         return insertOutcome
       },
-      requestMicrophoneAccess: { true },
+      requestMicrophoneAccess: requestMicrophoneAccess,
       requestSpeechAccess: { true },
       requestAccessibilityAccess: {},
       hasAccessibilityAccess: hasAccessibilityAccess,
@@ -294,7 +297,7 @@ struct DirectDictationControllerTests {
     controller.handle(.triggerPressed(.primary))
 
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages == ["Preparando el reconocimiento…"])
+    #expect(recorder.messages == [String(localized: "Preparando el reconocimiento…")])
     #expect(startEntries.withLock { $0 } == 0)
   }
 
@@ -332,7 +335,103 @@ struct DirectDictationControllerTests {
     controller.toggleFromMenu()
 
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages == ["Campo protegido"])
+    #expect(recorder.messages == [String(localized: "Campo protegido")])
+    controller.stop()
+  }
+
+  /// Un micrófono denegado se dice antes de abrir nada, con el clic que
+  /// abre su panel; el motor ni se entera.
+  @Test func unMicrofonoDenegadoSeDiceAntesDeAbrirElMicrofono() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let startEntries = OSAllocatedUnfairLock(initialState: 0)
+    var dependencies = makeDependencies(
+      recorder: recorder, prewarmed: prewarmed, startEntries: startEntries
+    )
+    dependencies.leerPermisos = {
+      PermisosLeidos(microfono: .denegada, hayMicrofono: true, reconocimientoDeVoz: .concedida)
+    }
+    dependencies.mostrarAviso = { aviso, _ in recorder.avisos.append(aviso) }
+    let controller = makeController(dependencies: dependencies)
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.primary))
+
+    #expect(controller.sessionStateForTesting == .idle)
+    #expect(startEntries.withLock { $0 } == 0)
+    #expect(recorder.count(of: "showListening") == 0)
+    #expect(recorder.avisos == [
+      AvisoConAccion(
+        texto: BloqueoDelDictado.microfonoDenegado.texto,
+        accion: .abrirAjustes(Permiso.microfono.panelDeAjustes)
+      )
+    ])
+    controller.stop()
+  }
+
+  /// Sin entrada de audio no hay nada que abrir: se dice eso, sin clic,
+  /// porque no hay casilla que marcar.
+  @Test func sinMicrofonoConectadoNoEmpiezaYLoDice() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let startEntries = OSAllocatedUnfairLock(initialState: 0)
+    var dependencies = makeDependencies(
+      recorder: recorder, prewarmed: prewarmed, startEntries: startEntries
+    )
+    dependencies.leerPermisos = {
+      PermisosLeidos(microfono: .concedida, hayMicrofono: false, reconocimientoDeVoz: .concedida)
+    }
+    dependencies.mostrarAviso = { aviso, _ in recorder.avisos.append(aviso) }
+    let controller = makeController(dependencies: dependencies)
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+
+    #expect(controller.sessionStateForTesting == .idle)
+    #expect(startEntries.withLock { $0 } == 0)
+    #expect(recorder.avisos.isEmpty)
+    #expect(recorder.messages == [BloqueoDelDictado.sinMicrofono.texto])
+    controller.stop()
+  }
+
+  /// Dar el permiso y volver a apretar tiene que bastar: la preparación que
+  /// paró en el micrófono vuelve a correr desde el gatillo, sin relanzar.
+  @Test func darElMicrofonoYVolverAApretarVuelveAPreparar() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let concedido = OSAllocatedUnfairLock(initialState: false)
+    let pedidos = OSAllocatedUnfairLock(initialState: 0)
+    var dependencies = makeDependencies(
+      recorder: recorder,
+      prewarmed: prewarmed,
+      requestMicrophoneAccess: {
+        pedidos.withLock { $0 += 1 }
+        return concedido.withLock { $0 }
+      }
+    )
+    dependencies.leerPermisos = {
+      PermisosLeidos(
+        microfono: concedido.withLock { $0 } ? .concedida : .denegada,
+        hayMicrofono: true,
+        reconocimientoDeVoz: .concedida
+      )
+    }
+    dependencies.mostrarAviso = { aviso, _ in recorder.avisos.append(aviso) }
+    let controller = makeController(dependencies: dependencies)
+
+    controller.requestPermissionsAndPrepare()
+    await waitUntil("La preparación no dijo que faltaba el micrófono") {
+      recorder.avisos.count == 1
+    }
+    #expect(!controller.isPreparedForTesting)
+
+    concedido.withLock { $0 = true }
+    controller.handle(.triggerPressed(.primary))
+
+    #expect(controller.sessionStateForTesting == .idle)
+    #expect(recorder.messages.last == BloqueoDelDictado.preparandoMotor.texto)
+    await waitUntil("El gatillo no volvió a preparar") { controller.isPreparedForTesting }
+    #expect(pedidos.withLock { $0 } == 2)
     controller.stop()
   }
 
@@ -1269,7 +1368,7 @@ struct DirectDictationControllerTests {
 
     controller.handle(.triggerPressed(.translate))
     #expect(controller.sessionStateForTesting == .idle)
-    #expect(recorder.messages.contains("La traducción no está lista"))
+    #expect(recorder.messages.contains(String(localized: "La traducción no está lista")))
 
     // And plain dictation still works.
     controller.toggleFromMenu()
@@ -1298,7 +1397,7 @@ struct DirectDictationControllerTests {
     // Prepared with translation off, exactly as a launch with no target.
     await prepare(controller, prewarmed: prewarmed)
     controller.handle(.triggerPressed(.translate))
-    #expect(recorder.messages.contains("Elige un idioma para traducir"))
+    #expect(recorder.messages.contains(String(localized: "Elige un idioma para traducir")))
 
     // Now a target is chosen and the languages are reapplied.
     settings.translationTargetIdentifier = "es"

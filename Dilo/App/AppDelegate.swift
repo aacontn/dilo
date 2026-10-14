@@ -150,6 +150,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     stage.alPedirCopiar = { [weak statusItemController] in
       statusItemController?.copiarLoUltimo()
     }
+    stage.alPedirAccion = { accion in
+      switch accion {
+      case let .abrirAjustes(panel):
+        if let url = URL(string: panel) { NSWorkspace.shared.open(url) }
+      }
+    }
     #if DEBUG
       receptorDeMuestras.alDibujar = { [weak stage] escena, texto in
         stage?.mostrarMuestra(escena, texto: texto)

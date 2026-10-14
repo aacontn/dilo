@@ -93,6 +93,9 @@ final class HUDStage {
   var alPedirAcciones: (() -> Void)?
   /// Un clic en la silueta mostrando un resultado: copia lo último dictado.
   var alPedirCopiar: (() -> Void)?
+  /// Un clic en un aviso accionable: lo que el aviso ofrece. Lo cablea
+  /// `AppDelegate`, que es quien sabe abrir Ajustes del Sistema.
+  var alPedirAccion: ((AvisoConAccion.Accion) -> Void)?
 
   private let settings: AppSettings
   private let panel: HUDPanel
@@ -1166,6 +1169,12 @@ final class HUDStage {
   }
 
   private func clicEnLaSilueta() {
+    if case let .resultado(.accionable(aviso)) = estado {
+      alPedirAccion?(aviso.accion)
+      // Hecho lo que ofrecía, el aviso no tiene más que decir.
+      retract()
+      return
+    }
     guard estado == .reposo else { return }
     if dictationContent.contextoVisible != nil, dictationContent.puedeCopiar {
       alPedirCopiar?()
@@ -1340,6 +1349,14 @@ final class HUDStage {
   func showMessage(_ text: String, on displayID: CGDirectDisplayID? = nil) {
     guard let screen = screen(preferring: displayID) else { return }
     decir(.aviso(text), texto: text, en: screen)
+  }
+
+  /// Un aviso que se arregla con un clic (`AvisoConAccion`). Entra por el
+  /// mismo resultado del contrato que cualquier mensaje; lo distinto es que
+  /// la forma toma el mouse mientras dura.
+  func mostrarAviso(_ aviso: AvisoConAccion, on displayID: CGDirectDisplayID? = nil) {
+    guard let screen = screen(preferring: displayID) else { return }
+    decir(.accionable(aviso), texto: aviso.texto, en: screen)
   }
 
   /// Un resultado que no es de ninguna sesión —un aviso, una copia hecha

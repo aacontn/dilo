@@ -43,7 +43,13 @@ final class DirectDictationController {
   /// Tracked so teardown can wait for it instead of racing it.
   private var finishTask: Task<Void, Never>?
   private var isPrepared = false
-  private var preparationFailureMessage: String?
+  /// Por qué falló la última preparación, o nil si no falló. Tipado y no un
+  /// string: si fue un permiso y la persona ya lo dio, el gatillo siguiente
+  /// vuelve a preparar en vez de repetir que falta.
+  private var fallaDePreparacion: BloqueoDelDictado?
+  /// El idioma que se está bajando mientras se prepara, y cuánto va, para
+  /// decir eso al apretar en vez de un «preparando» mudo.
+  private var descargaDelModelo: (locale: Locale, fraccion: Double)?
   private var currentSessionSettings: DictationSessionSettings?
   /// The languages behind the two trigger keys, resolved to locales Apple
   /// Speech supports. `secondary` is nil unless a second language is chosen.
@@ -147,6 +153,7 @@ final class DirectDictationController {
 
   private func receive(_ download: SpeechRecognitionService.ModelDownload) {
     onLanguageDownloadChange?(download.locale.identifier, download.fraction)
+    descargaDelModelo = download.fraction.map { (download.locale, $0) }
 
     // Only speak up in the HUD for the language this session is waiting on.
     guard machine.isSessionActive, locale(for: activeSlot) == download.locale else { return }
@@ -256,10 +263,10 @@ final class DirectDictationController {
       do {
         try await prepareLanguages(request: request)
         isPrepared = true
-        preparationFailureMessage = nil
+        fallaDePreparacion = nil
       } catch {
         isPrepared = false
-        preparationFailed(message: error.localizedDescription)
+        preparationFailed(.motorFallo(error.localizedDescription))
       }
     }
   }
@@ -457,7 +464,7 @@ final class DirectDictationController {
   func requestPermissionsAndPrepare() {
     permissionTask?.cancel()
     isPrepared = false
-    preparationFailureMessage = nil
+    fallaDePreparacion = nil
     // Synchronously, for the same reason as applyLanguages: the work below is
     // a task, and nothing may translate against a pair it has not resolved.
     let request = translation.invalidate()
@@ -468,14 +475,14 @@ final class DirectDictationController {
       let microphoneGranted = await dependencies.requestMicrophoneAccess()
       guard !Task.isCancelled else { return }
       guard microphoneGranted else {
-        preparationFailed(message: "Falta el permiso del micrófono")
+        preparationFailed(.microfonoDenegado)
         return
       }
 
       let speechGranted = await dependencies.requestSpeechAccess()
       guard !Task.isCancelled else { return }
       guard speechGranted else {
-        preparationFailed(message: "Falta el permiso de reconocimiento de voz")
+        preparationFailed(.reconocimientoDeVozDenegado)
         return
       }
 
@@ -487,7 +494,7 @@ final class DirectDictationController {
         try await prepareLanguages(request: request)
       } catch {
         guard !Task.isCancelled else { return }
-        preparationFailed(message: error.localizedDescription)
+        preparationFailed(.motorFallo(error.localizedDescription))
         return
       }
 
@@ -739,45 +746,93 @@ final class DirectDictationController {
     // effects and nothing downstream would.
     activity.hold()
 
-    guard isPrepared else {
-      dependencies.showMessage(preparationFailureMessage ?? "Preparando el reconocimiento…", nil)
-      activity.release()
-      send(.beginRejected)
+    // Todo lo que impide dictar se mira acá, antes de abrir el micrófono, y
+    // se dice el primero (`EstadoParaDictar`). Antes un micrófono quitado o
+    // un permiso sin contestar se descubría con el micrófono ya abierto y el
+    // motor fallando a media frase.
+    let accesibilidad = dependencies.hasAccessibilityAccess()
+    // El foco sólo se puede leer con Accesibilidad; sin ella no hay campo
+    // que mirar y el bloqueo ya lo dice.
+    let target = accesibilidad ? dependencies.captureFocusedTarget() : nil
+    let permisos = dependencies.leerPermisos()
+    let estado = EstadoParaDictar(
+      permisos: permisos,
+      // La preparación de hoy pide este permiso con los dos motores
+      // (`requestPermissionsAndPrepare`): sin él, tampoco Parakeet dicta.
+      pideReconocimientoDeVoz: true,
+      admitePegadoDirecto: Anfitrion.actual.admite(.pegadoDirecto),
+      accesibilidad: accesibilidad,
+      motor: estadoDelMotor(permisos),
+      campoEsSeguro: target?.isSecure == true,
+      traduccion: estadoDeLaTraduccion
+    )
+
+    guard let bloqueo = estado.primerBloqueo else {
+      focusedTarget = target
+      send(.beginApproved)
       return
     }
-
-    if !dependencies.hasAccessibilityAccess() {
+    AppLog.session.notice("dictado bloqueado: \(bloqueo.nombreEnElLog, privacy: .public)")
+    avisar(bloqueo, en: target?.displayID)
+    switch bloqueo {
+    case .sinAccesibilidad:
       // One dialog that explains it, not the system prompt again on every press.
       dependencies.showAccessibilitySetupAlert()
       startPermissionWatch()
-      activity.release()
-      send(.beginRejected)
-      return
-    }
-
-    let target = dependencies.captureFocusedTarget()
-    if target?.isSecure == true {
-      dependencies.showMessage("Campo protegido", target?.displayID)
-      activity.release()
-      send(.beginRejected)
-      return
-    }
-
-    // Refused before the user speaks, which is much better than letting them
-    // finish a sentence into a rescue path.
-    if activeSlot == .translate, !translation.isReady {
-      dependencies.showMessage(
-        translation.pair == nil ? "Elige un idioma para traducir" : "La traducción no está lista",
-        target?.displayID
-      )
+    case .microfonoSinDecidir:
+      // El aviso de macOS sólo sale cuando alguien lo pide: si la
+      // preparación ya terminó, se vuelve a pedir; si sigue esperando la
+      // respuesta, el aviso ya está en pantalla.
+      if fallaDePreparacion != nil { requestPermissionsAndPrepare() }
+    case .traduccionSinIdioma, .traduccionNoLista:
       translation.retry()
-      activity.release()
-      send(.beginRejected)
-      return
+    default:
+      break
     }
+    activity.release()
+    send(.beginRejected)
+  }
 
-    focusedTarget = target
-    send(.beginApproved)
+  /// En qué está el motor, para `EstadoParaDictar`. Si la preparación paró en
+  /// un permiso que ahora sí está, vuelve a preparar: dar el permiso y volver
+  /// a apretar tiene que bastar, sin relanzar Dilo.
+  private func estadoDelMotor(_ permisos: PermisosLeidos) -> EstadoParaDictar.Motor {
+    if isPrepared { return .listo }
+    switch fallaDePreparacion {
+    case .microfonoDenegado?, .microfonoSinDecidir?, .reconocimientoDeVozDenegado?:
+      guard permisos.microfono == .concedida, permisos.reconocimientoDeVoz == .concedida else {
+        return .esperandoPermiso
+      }
+      requestPermissionsAndPrepare()
+      return .preparando
+    case let .motorFallo(porque)?:
+      return .fallo(porque)
+    default:
+      guard let descargaDelModelo, descargaDelModelo.locale == primaryLocale else {
+        return .preparando
+      }
+      return .bajandoModelo(
+        idioma: SpeechLanguageCatalog.shortName(for: descargaDelModelo.locale),
+        porcentaje: Int(descargaDelModelo.fraccion * 100)
+      )
+    }
+  }
+
+  /// Si la sesión que se va a abrir traduce, y si puede.
+  private var estadoDeLaTraduccion: EstadoParaDictar.Traduccion {
+    guard activeSlot == .translate else { return .noAplica }
+    if translation.isReady { return .lista }
+    return translation.pair == nil ? .sinIdioma : .noLista
+  }
+
+  /// Dice un bloqueo en la muesca: con su clic si se arregla en Ajustes del
+  /// Sistema, como un mensaje si no.
+  private func avisar(_ bloqueo: BloqueoDelDictado, en displayID: CGDirectDisplayID?) {
+    if let aviso = bloqueo.avisoConAccion, let mostrarAviso = dependencies.mostrarAviso {
+      mostrarAviso(aviso, displayID)
+    } else {
+      dependencies.showMessage(bloqueo.texto, displayID)
+    }
   }
 
   private func beginRecognition() {
@@ -1323,8 +1378,8 @@ final class DirectDictationController {
     }
   }
 
-  private func preparationFailed(message: String) {
-    preparationFailureMessage = message
-    dependencies.showMessage(message, nil)
+  private func preparationFailed(_ bloqueo: BloqueoDelDictado) {
+    fallaDePreparacion = bloqueo
+    avisar(bloqueo, en: nil)
   }
 }
