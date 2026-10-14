@@ -135,9 +135,12 @@ actor SpeechRecognitionService {
   /// Donde el micrófono deja la copia en RAM de cada dictado, para poder
   /// reintentarlo sin volver a hablar (`MotorConRespaldo`).
   private let grabadora: GrabadoraEnRAM?
+  /// El micrófono de cada dictado: a quién avisarle que entrega ceros.
+  private let microfono: MicrofonoDeLaSesion?
 
-  init(grabadora: GrabadoraEnRAM? = nil) {
+  init(grabadora: GrabadoraEnRAM? = nil, microfono: MicrofonoDeLaSesion? = nil) {
     self.grabadora = grabadora
+    self.microfono = microfono
   }
 
   /// Tus palabras tal como se le dan al motor, para que una transcripción
@@ -264,7 +267,8 @@ actor SpeechRecognitionService {
         failureHandler(error.localizedDescription)
       },
       levelHandler: levelHandler,
-      grabadora: grabadora
+      grabadora: grabadora,
+      microfono: microfono
     )
 
     activeSession = ActiveSession(

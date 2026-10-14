@@ -1355,8 +1355,16 @@ final class DirectDictationController {
     noSpeechTask?.cancel()
     noSpeechTask = Task { [weak self] in
       try? await Task.sleep(for: Self.noSpeechTimeout)
-      guard !Task.isCancelled else { return }
-      self?.send(.noSpeechTimedOut)
+      guard !Task.isCancelled, let self else { return }
+      // Con el micrófono entregando ceros el corte dice por qué; sin eso la
+      // forma se escondía igual que tras un silencio de verdad. El
+      // temporizador se apaga con la primera palabra, así que acá no hay
+      // dictado que perder.
+      if dependencies.microfonoMudo() {
+        fail(message: AvisoDelMicrofono.cortadoSinSonido, wasCancelled: false)
+      } else {
+        send(.noSpeechTimedOut)
+      }
     }
   }
 

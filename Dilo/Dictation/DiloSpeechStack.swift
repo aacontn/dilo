@@ -16,9 +16,12 @@ enum DiloSpeechStack {
   /// escuchó.
   static func armar(
     apple servicio: SpeechRecognitionService,
-    grabadora: GrabadoraEnRAM
+    grabadora: GrabadoraEnRAM,
+    microfono: MicrofonoDeLaSesion? = nil
   ) -> (motores: SpeechEngineRouter, respaldo: MotorConRespaldo) {
-    let parakeet = ParakeetEngine(captura: MicrophoneCapture(grabadora: grabadora))
+    let parakeet = ParakeetEngine(
+      captura: MicrophoneCapture(grabadora: grabadora, microfono: microfono)
+    )
     let motores = armar(apple: servicio, parakeet: parakeet)
     let respaldo = MotorConRespaldo(
       motores: motores,

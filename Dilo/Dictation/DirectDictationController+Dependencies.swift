@@ -141,6 +141,10 @@ extension DirectDictationController {
     /// El reloj del tope de cinco minutos. Inyectable para que una prueba no
     /// tenga que esperar cinco minutos de verdad.
     var relojDelTope: DeadlineClock = .continuous
+    /// Si el micrófono de este dictado lleva segundos entregando ceros. El
+    /// corte por falta de voz lo pregunta para decir por qué corta. Falso por
+    /// defecto: los tests que no lo usan no tienen micrófono.
+    var microfonoMudo: @Sendable () -> Bool = { false }
 
     /// Los permisos y la entrada de audio, leídos al apretar el gatillo para
     /// decir qué falta antes de abrir el micrófono (`EstadoParaDictar`). Por
@@ -187,14 +191,23 @@ extension DirectDictationController {
       // La copia en RAM de cada dictado, que llenan los dos motores: sin
       // ella, un motor que se cae al soltar se lleva lo dicho.
       let grabadora = GrabadoraEnRAM()
-      let speechService = SpeechRecognitionService(grabadora: grabadora)
+      // El micrófono de cada dictado, compartido por las dos capturas: lo que
+      // ve el detector de ceros llega a la muesca sin pasar por el contrato
+      // de los motores.
+      let microfono = MicrofonoDeLaSesion()
+      microfono.alAvisar { evento in
+        Task { @MainActor in hudController.avisarDelMicrofono(evento) }
+      }
+      let speechService = SpeechRecognitionService(grabadora: grabadora, microfono: microfono)
       let historyStore = DictationHistoryStore()
       let latencias = AlmacenDeLatencias()
       // El motor doble. `speechService` sigue siendo el dueño de
       // SpeechAnalyzer, de las reservas de idioma y de las sesiones tibias:
       // el router sólo elige quién escucha. La sesión habla con el respaldo,
       // que es el mismo contrato con la toma guardada debajo.
-      let (motores, respaldo) = DiloSpeechStack.armar(apple: speechService, grabadora: grabadora)
+      let (motores, respaldo) = DiloSpeechStack.armar(
+        apple: speechService, grabadora: grabadora, microfono: microfono
+      )
       // La elección se lee al arrancar cada dictado, no una vez: cambiarla en
       // Ajustes aplica al próximo dictado, como todo lo demás.
       let motorElegido: @Sendable () async -> SpeechEngineKind = {
@@ -204,6 +217,27 @@ extension DirectDictationController {
       // empezar cada dictado, no una vez al arrancar.
       let reposoElegido: @Sendable () async -> Duration? = {
         await MainActor.run { settings.descargarModeloTras.intervalo }
+      }
+      // Y el micrófono: la elección de Ajustes se lee al empezar, y la HAL se
+      // lee fuera del hilo principal (menos de un milisegundo con la HAL
+      // despierta). Lo decidido se fija sólo en el motor de Dilo.
+      let empezarElMicrofono: @Sendable () async -> Void = {
+        let (eleccion, tibio) = await MainActor.run {
+          (settings.microfonoDeDictado, settings.motorDeAudioTibio)
+        }
+        let entradas = DispositivosDeAudio.entradas()
+        let idDelSistema = DispositivosDeAudio.entradaDelSistema()
+        let plan = PlanDeMicrofono.decidir(
+          eleccion: eleccion,
+          entradas: entradas,
+          entradaDelSistema: idDelSistema,
+          tapaCerrada: Tapa.estaCerrada
+        )
+        microfono.empezarSesion(
+          plan,
+          entradaDelSistema: entradas.first { $0.id == idDelSistema },
+          tibio: tibio
+        )
       }
 
       return Self(
@@ -216,6 +250,7 @@ extension DirectDictationController {
           try await motores.prewarm(locale: locale)
         },
         startRecognition: { locale, updateHandler, failureHandler, levelHandler, loadingHandler in
+          await empezarElMicrofono()
           await motores.elegir(await motorElegido())
           await motores.configurarReposo(await reposoElegido())
           try await respaldo.start(
@@ -297,6 +332,7 @@ extension DirectDictationController {
         reintentarToma: { try await respaldo.reintentar() },
         descartarToma: { await respaldo.descartarTomaFallida() },
         observarTomaFallida: { await respaldo.observarTomaFallida($0) },
+        microfonoMudo: { microfono.estaMudo },
         leerPermisos: { LecturaParaDictar.leer() },
         mostrarAviso: { hudController.mostrarAviso($0, on: $1) },
         duracionDeLaRevision: { await respaldo.duracionDeLaUltimaRevision() },

@@ -31,9 +31,12 @@ final class MicrophoneCapture: AudioCapture {
   /// La copia en RAM de cada dictado: la misma grabadora que usa Apple, así
   /// que reintentar no depende de qué motor escuchó.
   private let grabadora: GrabadoraEnRAM?
+  /// El mismo micrófono de sesión que usa Apple.
+  private let microfono: MicrofonoDeLaSesion?
 
-  init(grabadora: GrabadoraEnRAM? = nil) {
+  init(grabadora: GrabadoraEnRAM? = nil, microfono: MicrofonoDeLaSesion? = nil) {
     self.grabadora = grabadora
+    self.microfono = microfono
   }
 
   func iniciar(
@@ -61,7 +64,8 @@ final class MicrophoneCapture: AudioCapture {
       onEnd: {},
       failureHandler: { falla($0.localizedDescription) },
       levelHandler: nivel,
-      grabadora: grabadora
+      grabadora: grabadora,
+      microfono: microfono
     )
 
     do {

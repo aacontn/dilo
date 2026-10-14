@@ -20,6 +20,9 @@ final class AppSettings {
     static let soundSet = "dictationSoundSet"
     static let soundsEnabled = "dictationSoundsEnabled"
     static let duckOtherAudio = "duckOtherAudioWhileDictating"
+    static let microfonoElegidoUID = "diloMicrofonoElegidoUID"
+    static let microfonoElegidoNombre = "diloMicrofonoElegidoNombre"
+    static let motorDeAudioTibio = "diloMotorDeAudioTibio"
     static let soundVolume = "dictationSoundVolume"
     static let voiceVisual = "hudVoiceVisual"
     static let waveformStyle = "hudWaveformStyle"
@@ -99,6 +102,26 @@ final class AppSettings {
 
   var dictationSoundsEnabled: Bool {
     didSet { defaults.set(dictationSoundsEnabled, forKey: Keys.soundsEnabled) }
+  }
+
+  /// Con qué micrófono escucha el dictado. **Automático de fábrica**: la
+  /// entrada del sistema, salvo que sea Bluetooth y haya uno con cable
+  /// (`PlanDeMicrofono`). Se guarda por UID, con el nombre de respaldo —un USB
+  /// en otro puerto cambia de UID—, nunca por `AudioDeviceID`, que se reparte
+  /// de nuevo al reconectar. Sólo aplica al motor de Dilo: la entrada del
+  /// sistema no se toca.
+  var microfonoDeDictado: EleccionDeMicrofono {
+    didSet {
+      defaults.set(microfonoDeDictado.uidGuardado, forKey: Keys.microfonoElegidoUID)
+      defaults.set(microfonoDeDictado.nombreGuardado, forKey: Keys.microfonoElegidoNombre)
+    }
+  }
+
+  /// Dejar el micrófono preparado entre dictados (`ReservaDeMotorTibio`).
+  /// **Apagado de fábrica**: lo que cuesta en reposo y lo que ahorra en el
+  /// gatillo todavía no se midieron con el permiso de micrófono.
+  var motorDeAudioTibio: Bool {
+    didSet { defaults.set(motorDeAudioTibio, forKey: Keys.motorDeAudioTibio) }
   }
 
   private var storedDictationSoundVolume: Double
@@ -550,6 +573,11 @@ final class AppSettings {
     // Quien ya eligió otro juego lo conserva — el valor guardado manda.
     soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .marimba
     dictationSoundsEnabled = defaults.object(forKey: Keys.soundsEnabled) as? Bool ?? true
+    microfonoDeDictado = EleccionDeMicrofono(
+      uid: defaults.string(forKey: Keys.microfonoElegidoUID) ?? "",
+      nombre: defaults.string(forKey: Keys.microfonoElegidoNombre) ?? ""
+    )
+    motorDeAudioTibio = defaults.bool(forKey: Keys.motorDeAudioTibio)
     // Apagado y sin interruptor. "Duck other audio" baja el volumen de
     // salida del sistema por Core Audio, y macOS muestra su propio HUD de
     // volumen cada vez. Dilo nunca toca el volumen maestro: si algún día

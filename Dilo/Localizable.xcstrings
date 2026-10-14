@@ -6265,6 +6265,116 @@
           }
         }
       }
+    },
+    "%@ (no conectado)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (not connected)"
+          }
+        }
+      }
+    },
+    "Automático usa el del sistema, salvo que sea Bluetooth: ahí usa uno con cable —el del Mac primero— para que tus audífonos no bajen al sonido de llamada mientras dictas. La entrada del sistema no se toca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic uses the system's, unless it's Bluetooth: then it uses a wired one — the Mac's own first — so your headphones don't drop to call-quality sound while you dictate. The system input is left alone."
+          }
+        }
+      }
+    },
+    "Con cuál te escucho": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which one I listen with"
+          }
+        }
+      }
+    },
+    "Deja el micrófono preparado, sin escuchar, hasta media hora después de dictar, para que el próximo dictado abra un poco antes. Sólo con un micrófono con cable o el del Mac. Ocupa algo de memoria mientras espera; viene apagado mientras lo medimos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps the microphone prepared, not listening, for up to half an hour after you dictate, so the next dictation opens a little sooner. Only with a wired microphone or the Mac's own. It uses some memory while it waits; it's off while we measure it."
+          }
+        }
+      }
+    },
+    "Dejarlo listo entre dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep it ready between dictations"
+          }
+        }
+      }
+    },
+    "El del sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system's"
+          }
+        }
+      }
+    },
+    "El micrófono no entrega sonido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone isn't giving any sound"
+          }
+        }
+      }
+    },
+    "El micrófono no entregó sonido. Revisa su permiso o elige otro en Ajustes → Dictado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone gave no sound. Check its permission or pick another in Settings → Dictation."
+          }
+        }
+      }
+    },
+    "Micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone"
+          }
+        }
+      }
+    },
+    "Sigue sin sonido: cambia de micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still no sound: switch microphones"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
