@@ -16,6 +16,7 @@ import os
 final class MicrofonoDeLaSesion: @unchecked Sendable {
   private let candado = NSLock()
   private var mudo = false
+  private var entradaDeLaSesion: EntradaDeAudio?
   private var alAvisar: (@Sendable (DetectorDeMicMuerto.Evento) -> Void)?
 
   /// A quién se le cuenta lo que ve el detector. Lo pone la raíz de
@@ -24,10 +25,28 @@ final class MicrofonoDeLaSesion: @unchecked Sendable {
     candado.withLock { alAvisar = manejador }
   }
 
-  /// Un dictado nuevo empieza sin aviso a cuestas.
-  func empezarSesion() {
-    candado.withLock { mudo = false }
+  /// Un dictado nuevo empieza sin aviso a cuestas, y con el micrófono que
+  /// decidió `PlanDeMicrofono` (sin fijar = seguir la entrada del sistema).
+  func empezarSesion(_ plan: PlanDeMicrofono.Decision = .init(fijarA: nil, motivo: .delSistema)) {
+    candado.withLock {
+      mudo = false
+      entradaDeLaSesion = plan.fijarA
+    }
+    switch plan.motivo {
+    case .delSistema:
+      break
+    case .elegidoAusente:
+      AppLog.audio.notice("el micrófono elegido no está conectado; uso el del sistema")
+    case .elegido, .evitarBluetooth:
+      AppLog.audio.info(
+        "micrófono \(String(describing: plan.motivo), privacy: .public): \(plan.fijarA?.nombre ?? "", privacy: .public)"
+      )
+    }
   }
+
+  /// El micrófono al que se fija el motor de este dictado; nil sigue al
+  /// sistema. Lo lee `MicrophoneInput` al abrirse.
+  var entrada: EntradaDeAudio? { candado.withLock { entradaDeLaSesion } }
 
   /// Si el micrófono de este dictado lleva cinco segundos o más entregando
   /// ceros y no revivió. Lo pregunta el corte por falta de voz, para decir

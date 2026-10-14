@@ -25,6 +25,8 @@ struct DictationSettingsView: View {
         }
       }
 
+      MicrofonoSettingsCard(settings: settings)
+
       SettingsCard(title: "Dónde aterriza") {
         SettingsPickerRow(
           title: "Entregar el texto",

@@ -115,6 +115,9 @@ final class MicrophoneInput: @unchecked Sendable {
   /// Cuenta los ceros exactos del hardware. Sólo lo toca el hilo de audio
   /// (y una reapertura arma otro tap que sigue contando con el mismo).
   private var detector = DetectorDeMicMuerto()
+  /// El micrófono al que quedó fijado el motor, para volver a fijar el que
+  /// arma una reconstrucción. Nil sigue la entrada del sistema.
+  private var entradaFijada: EntradaDeAudio?
   private let stateLock = NSLock()
 
   private var running = false
@@ -189,6 +192,11 @@ final class MicrophoneInput: @unchecked Sendable {
       return
     }
 #endif
+    // El micrófono de este dictado, fijado sólo en el motor de Dilo y antes
+    // de leer el formato del bus: la entrada del sistema no se toca.
+    if let entrada = microfono?.entrada {
+      fijar(audioEngine, a: entrada)
+    }
     let hardwareFormat = audioEngine.inputNode.inputFormat(forBus: 0)
     guard Self.hasUsableHardwareInput(hardwareFormat) else {
       throw InputError.unavailable
@@ -311,6 +319,12 @@ final class MicrophoneInput: @unchecked Sendable {
     previous.inputNode.removeTap(onBus: 0)
 
     let engine = AVAudioEngine()
+    // El motor nuevo vuelve al mismo micrófono. Si ya no está (se
+    // desenchufó), fijarlo falla y el motor sigue al del sistema: el dictado
+    // continúa en vez de morirse.
+    if let entrada = stateLock.withLock({ entradaFijada }) {
+      fijar(engine, a: entrada)
+    }
     stateLock.withLock { audioEngine = engine }
     observeConfigurationChanges(of: engine)
     do {
@@ -319,6 +333,19 @@ final class MicrophoneInput: @unchecked Sendable {
       // Nothing else is coming. Ending the session with a reason beats
       // leaving the shape up in front of a microphone that is not running.
       reportFailure(.unavailable)
+    }
+  }
+
+  private func fijar(_ engine: AVAudioEngine, a entrada: EntradaDeAudio) {
+    do {
+      try engine.fijarEntrada(entrada)
+      stateLock.withLock { entradaFijada = entrada }
+      AppLog.audio.info("micrófono fijado: \(entrada.nombre, privacy: .public)")
+    } catch {
+      stateLock.withLock { entradaFijada = nil }
+      AppLog.audio.notice(
+        "no pude fijar \(entrada.nombre, privacy: .public); sigo la entrada del sistema"
+      )
     }
   }
 

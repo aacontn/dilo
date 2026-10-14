@@ -1,6 +1,17 @@
 {
   "sourceLanguage": "es",
   "strings": {
+    "%@ (no conectado)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (not connected)"
+          }
+        }
+      }
+    },
     "%@ en los últimos 14 días": {
       "extractionState": "manual",
       "localizations": {
@@ -650,6 +661,17 @@
         }
       }
     },
+    "Automático usa el del sistema, salvo que sea Bluetooth: ahí usa uno con cable —el del Mac primero— para que tus audífonos no bajen al sonido de llamada mientras dictas. La entrada del sistema no se toca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic uses the system's, unless it's Bluetooth: then it uses a wired one — the Mac's own first — so your headphones don't drop to call-quality sound while you dictate. The system input is left alone."
+          }
+        }
+      }
+    },
     "Avanzado": {
       "extractionState": "manual",
       "localizations": {
@@ -899,6 +921,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Commands while dictating"
+          }
+        }
+      }
+    },
+    "Con cuál te escucho": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which one I listen with"
           }
         }
       }
@@ -1570,6 +1603,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "The cross-platform Dilo built with Tauri is frozen at 0.3.2 and still available for Intel, Windows and Linux. This is the native Mac version, and it carries the numbering on."
+          }
+        }
+      }
+    },
+    "El del sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system's"
           }
         }
       }
@@ -2846,6 +2890,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Less"
+          }
+        }
+      }
+    },
+    "Micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone"
           }
         }
       }
