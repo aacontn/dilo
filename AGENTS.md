@@ -110,7 +110,12 @@ Distingue propuesta, implementación y deuda pendiente.
   `ResultadoDeEntrega.retenido` y termina en la tarjeta del notch. Los
   tiempos y las decisiones viven puros en `DiloCapabilities`
   (`PoliticaDeEntrega`, `VigiaDelPegado`, `DecisionTrasLaSenal`): un
-  número nuevo se cambia ahí y se prueba con `swift test`.
+  número nuevo se cambia ahí y se prueba con `swift test`. **fn no detiene
+  un ⌘V** (`LecturasDelTeclado`, 2026-10-14): no cambia lo que pega, y su bit
+  queda marcado en el estado del HID después de soltar F13–F20 o una flecha
+  —con el gatillo F19 cada dictado esperaba 2 s y caía en la tarjeta—. Para
+  teclear sí estorba, mirada por su tecla y no por el bit. Cuando la
+  compuerta se rinde, el log de `delivery` dice a nivel notice qué vio.
 - **Dos trozos de dictado se pegan en un solo lugar: `DiloText.Union`.**
   Ningún motor, ni el HUD, ni el controlador juntan texto con `+`. Cada trozo
   llega recortado y sin saber qué vino antes, así que el espacio lo pone quien
@@ -210,7 +215,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos | 5, 9 |
-| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio | 3 |
+| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
@@ -578,6 +583,20 @@ siendo cierto:
   (`AVAudioEngine.fijarEntrada`), antes de leer el formato del bus; una
   reconstrucción por cambio de ruta lo vuelve a fijar, y si ya no está sigue
   con el del sistema.
+- **Fijar y arrancar un motor hace que ese mismo motor avise un cambio de
+  ruta, sin detenerse.** Reconstruir por ese aviso era un bucle cada ~300 ms
+  sin un búfer (la webcam, 0.4.4). Un aviso con el motor corriendo y la misma
+  huella —dispositivo, tasa, canales, tomada antes de `start()`— se ignora
+  (`GuardiaDeReconstruccion`), y más de cuatro reconstrucciones en 5 s sueltan
+  el micrófono fijado y siguen con la entrada del sistema, con una línea en el
+  log de `audio`. Se reproduce sin abrir Dilo con el programa de prueba de
+  `/Volumes/SSD 1/Dilo/taller/pruebas/bucle-del-microfono/` (fuera del repo).
+- **Un Bluetooth tarda en despertar**: el WH-CH720N entrega su primera
+  muestra 1,2–1,6 s después de `start()`, con 0,8–1 s de ceros exactos
+  (medido el 2026-10-14). Lo dicho entonces no existe para nadie, así que una
+  toma sin texto con medio segundo de ceros no dice «No te escuché» sino que
+  el micrófono tardó (`MedidaDeToma.microfonoDormido`), y sin texto basta una
+  décima de voz para pedir la segunda opinión.
 - **Automático, de fábrica:** la entrada del sistema, salvo que sea
   Bluetooth —abrir su micrófono baja los audífonos al perfil de llamada—; ahí,
   el micrófono del Mac (no con la tapa cerrada) y después uno con cable. Un
