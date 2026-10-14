@@ -1,3 +1,4 @@
+import AVFAudio
 import DiloEngines
 import Foundation
 import os
@@ -17,6 +18,10 @@ final class MicrofonoDeLaSesion: @unchecked Sendable {
   private let candado = NSLock()
   private var mudo = false
   private var entradaDeLaSesion: EntradaDeAudio?
+  private var tibio = false
+  /// El motor que espera preparado entre dictados, si el ajuste está
+  /// encendido. Con el ajuste apagado no prepara nada ni escucha nada.
+  private let reserva = ReservaDeMotorTibio()
   private var alAvisar: (@Sendable (DetectorDeMicMuerto.Evento) -> Void)?
 
   /// A quién se le cuenta lo que ve el detector. Lo pone la raíz de
@@ -27,11 +32,20 @@ final class MicrofonoDeLaSesion: @unchecked Sendable {
 
   /// Un dictado nuevo empieza sin aviso a cuestas, y con el micrófono que
   /// decidió `PlanDeMicrofono` (sin fijar = seguir la entrada del sistema).
-  func empezarSesion(_ plan: PlanDeMicrofono.Decision = .init(fijarA: nil, motivo: .delSistema)) {
+  func empezarSesion(
+    _ plan: PlanDeMicrofono.Decision = .init(fijarA: nil, motivo: .delSistema),
+    entradaDelSistema: EntradaDeAudio? = nil,
+    tibio: Bool = false
+  ) {
     candado.withLock {
       mudo = false
-      entradaDeLaSesion = plan.fijarA
+      entradaDeLaSesion = VigenciaDeMotorTibio.entradaDelMotor(
+        plan: plan, entradaDelSistema: entradaDelSistema, tibio: tibio
+      )
+      self.tibio = tibio
     }
+    // Apagaron el ajuste con un motor esperando: se suelta ya.
+    if !tibio { reserva.dispositivosCambiaron() }
     switch plan.motivo {
     case .delSistema:
       break
@@ -47,6 +61,20 @@ final class MicrofonoDeLaSesion: @unchecked Sendable {
   /// El micrófono al que se fija el motor de este dictado; nil sigue al
   /// sistema. Lo lee `MicrophoneInput` al abrirse.
   var entrada: EntradaDeAudio? { candado.withLock { entradaDeLaSesion } }
+
+  /// El motor preparado para este micrófono, si el ajuste está encendido y
+  /// todavía sirve. Lo pide `MicrophoneInput` al abrirse.
+  func motorTibio(para entrada: EntradaDeAudio) -> AVAudioEngine? {
+    guard candado.withLock({ tibio }) else { return nil }
+    return reserva.tomar(para: entrada)
+  }
+
+  /// El dictado soltó el micrófono: con el ajuste encendido, se prepara otro
+  /// motor para el próximo, fuera de este hilo.
+  func sesionTermino(entrada: EntradaDeAudio?) {
+    guard let entrada, candado.withLock({ tibio }) else { return }
+    reserva.precalentar(para: entrada)
+  }
 
   /// Si el micrófono de este dictado lleva cinco segundos o más entregando
   /// ceros y no revivió. Lo pregunta el corte por falta de voz, para decir

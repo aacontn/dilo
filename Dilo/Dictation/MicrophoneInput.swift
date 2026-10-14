@@ -118,6 +118,10 @@ final class MicrophoneInput: @unchecked Sendable {
   /// El micrófono al que quedó fijado el motor, para volver a fijar el que
   /// arma una reconstrucción. Nil sigue la entrada del sistema.
   private var entradaFijada: EntradaDeAudio?
+  /// Para el registro de gatillo → primer búfer, con y sin motor tibio: es
+  /// la medida que decide si el motor tibio se prende de fábrica.
+  private var abiertoEn: ContinuousClock.Instant?
+  private var motorEraTibio = false
   private let stateLock = NSLock()
 
   private var running = false
@@ -195,8 +199,17 @@ final class MicrophoneInput: @unchecked Sendable {
     // El micrófono de este dictado, fijado sólo en el motor de Dilo y antes
     // de leer el formato del bus: la entrada del sistema no se toca.
     if let entrada = microfono?.entrada {
-      fijar(audioEngine, a: entrada)
+      if let tibio = microfono?.motorTibio(para: entrada) {
+        stateLock.withLock {
+          audioEngine = tibio
+          entradaFijada = entrada
+          motorEraTibio = true
+        }
+      } else {
+        fijar(audioEngine, a: entrada)
+      }
     }
+    stateLock.withLock { abiertoEn = .now }
     let hardwareFormat = audioEngine.inputNode.inputFormat(forBus: 0)
     guard Self.hasUsableHardwareInput(hardwareFormat) else {
       throw InputError.unavailable
@@ -380,9 +393,10 @@ final class MicrophoneInput: @unchecked Sendable {
 
     guard shouldStop else { return }
     stopObservingConfigurationChanges()
-    let engine = stateLock.withLock { audioEngine }
+    let (engine, entrada) = stateLock.withLock { (audioEngine, entradaFijada) }
     engine.stop()
     engine.inputNode.removeTap(onBus: 0)
+    microfono?.sesionTermino(entrada: entrada)
   }
 
   private func receive(_ buffer: AVAudioPCMBuffer, converterBox: ConverterBox, copiaBox: ConverterBox?) {
@@ -483,8 +497,17 @@ final class MicrophoneInput: @unchecked Sendable {
   private func vigilar(_ buffer: AVAudioPCMBuffer) -> Bool {
     guard let canal = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return true }
     let pico = DetectorDeMicMuerto.pico(UnsafeBufferPointer(start: canal, count: Int(buffer.frameLength)))
-    let evento = stateLock.withLock {
-      detector.procesar(cuadros: Int(buffer.frameLength), tasa: buffer.format.sampleRate, pico: pico)
+    let (evento, primerBufer) = stateLock.withLock {
+      () -> (DetectorDeMicMuerto.Evento?, (Duration, Bool)?) in
+      defer { abiertoEn = nil }
+      return (
+        detector.procesar(cuadros: Int(buffer.frameLength), tasa: buffer.format.sampleRate, pico: pico),
+        abiertoEn.map { ($0.duration(to: .now), motorEraTibio) }
+      )
+    }
+    if let (espera, tibio) = primerBufer {
+      let ms = espera.components.seconds * 1_000 + espera.components.attoseconds / 1_000_000_000_000_000
+      AppLog.audio.info("primer búfer a \(ms) ms de abrir (motor tibio: \(tibio ? "sí" : "no", privacy: .public))")
     }
     if let evento {
       if evento == .reabrir { reabrir() }

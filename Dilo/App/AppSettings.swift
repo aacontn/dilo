@@ -22,6 +22,7 @@ final class AppSettings {
     static let duckOtherAudio = "duckOtherAudioWhileDictating"
     static let microfonoElegidoUID = "diloMicrofonoElegidoUID"
     static let microfonoElegidoNombre = "diloMicrofonoElegidoNombre"
+    static let motorDeAudioTibio = "diloMotorDeAudioTibio"
     static let soundVolume = "dictationSoundVolume"
     static let voiceVisual = "hudVoiceVisual"
     static let waveformStyle = "hudWaveformStyle"
@@ -114,6 +115,13 @@ final class AppSettings {
       defaults.set(microfonoDeDictado.uidGuardado, forKey: Keys.microfonoElegidoUID)
       defaults.set(microfonoDeDictado.nombreGuardado, forKey: Keys.microfonoElegidoNombre)
     }
+  }
+
+  /// Dejar el micrófono preparado entre dictados (`ReservaDeMotorTibio`).
+  /// **Apagado de fábrica**: lo que cuesta en reposo y lo que ahorra en el
+  /// gatillo todavía no se midieron con el permiso de micrófono.
+  var motorDeAudioTibio: Bool {
+    didSet { defaults.set(motorDeAudioTibio, forKey: Keys.motorDeAudioTibio) }
   }
 
   private var storedDictationSoundVolume: Double
@@ -558,6 +566,7 @@ final class AppSettings {
       uid: defaults.string(forKey: Keys.microfonoElegidoUID) ?? "",
       nombre: defaults.string(forKey: Keys.microfonoElegidoNombre) ?? ""
     )
+    motorDeAudioTibio = defaults.bool(forKey: Keys.motorDeAudioTibio)
     // Apagado y sin interruptor. "Duck other audio" baja el volumen de
     // salida del sistema por Core Audio, y macOS muestra su propio HUD de
     // volumen cada vez. Dilo nunca toca el volumen maestro: si algún día

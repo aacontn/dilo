@@ -22,6 +22,15 @@ struct MicrofonoSettingsCard: View {
         selection: $settings.microfonoDeDictado,
         controlWidth: 210
       )
+
+      SettingsRow(
+        title: "Dejarlo listo entre dictados",
+        description: "Deja el micrófono preparado, sin escuchar, hasta media hora después de dictar, para que el próximo dictado abra un poco antes. Sólo con un micrófono con cable o el del Mac. Ocupa algo de memoria mientras espera; viene apagado mientras lo medimos."
+      ) {
+        Toggle("Dejarlo listo entre dictados", isOn: $settings.motorDeAudioTibio)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
     }
     .onAppear { microfonos.mirar() }
     .onDisappear { microfonos.dejarDeMirar() }

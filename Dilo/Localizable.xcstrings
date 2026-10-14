@@ -1343,6 +1343,17 @@
         }
       }
     },
+    "Deja el micrófono preparado, sin escuchar, hasta media hora después de dictar, para que el próximo dictado abra un poco antes. Sólo con un micrófono con cable o el del Mac. Ocupa algo de memoria mientras espera; viene apagado mientras lo medimos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps the microphone prepared, not listening, for up to half an hour after you dictate, so the next dictation opens a little sooner. Only with a wired microphone or the Mac's own. It uses some memory while it waits; it's off while we measure it."
+          }
+        }
+      }
+    },
     "Deja que Dilo lea con tu propia voz entrenada": {
       "extractionState": "manual",
       "localizations": {
@@ -1361,6 +1372,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stop Reading"
+          }
+        }
+      }
+    },
+    "Dejarlo listo entre dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep it ready between dictations"
           }
         }
       }

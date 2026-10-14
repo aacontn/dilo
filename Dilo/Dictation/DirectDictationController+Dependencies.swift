@@ -197,13 +197,22 @@ extension DirectDictationController {
       // Y el micrófono: la elección de Ajustes se lee al empezar, y la HAL se
       // lee fuera del hilo principal (menos de un milisegundo con la HAL
       // despierta). Lo decidido se fija sólo en el motor de Dilo.
-      let planDelMicrofono: @Sendable () async -> PlanDeMicrofono.Decision = {
-        let eleccion = await MainActor.run { settings.microfonoDeDictado }
-        return PlanDeMicrofono.decidir(
+      let empezarElMicrofono: @Sendable () async -> Void = {
+        let (eleccion, tibio) = await MainActor.run {
+          (settings.microfonoDeDictado, settings.motorDeAudioTibio)
+        }
+        let entradas = DispositivosDeAudio.entradas()
+        let idDelSistema = DispositivosDeAudio.entradaDelSistema()
+        let plan = PlanDeMicrofono.decidir(
           eleccion: eleccion,
-          entradas: DispositivosDeAudio.entradas(),
-          entradaDelSistema: DispositivosDeAudio.entradaDelSistema(),
+          entradas: entradas,
+          entradaDelSistema: idDelSistema,
           tapaCerrada: Tapa.estaCerrada
+        )
+        microfono.empezarSesion(
+          plan,
+          entradaDelSistema: entradas.first { $0.id == idDelSistema },
+          tibio: tibio
         )
       }
 
@@ -217,7 +226,7 @@ extension DirectDictationController {
           try await motores.prewarm(locale: locale)
         },
         startRecognition: { locale, updateHandler, failureHandler, levelHandler, loadingHandler in
-          microfono.empezarSesion(await planDelMicrofono())
+          await empezarElMicrofono()
           await motores.elegir(await motorElegido())
           await motores.configurarReposo(await reposoElegido())
           try await respaldo.start(

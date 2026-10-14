@@ -48,4 +48,44 @@ struct MicrofonoEnAjustesTests {
     microfono.empezarSesion()
     #expect(microfono.entrada == nil)
   }
+
+  /// El motor tibio viene apagado y se guarda bajo su clave.
+  @Test func elMotorTibioVieneApagado() {
+    let defaults = defaultsNuevos()
+    let ajustes = AppSettings(defaults: defaults)
+    #expect(!ajustes.motorDeAudioTibio)
+    ajustes.motorDeAudioTibio = true
+    #expect(defaults.bool(forKey: "diloMotorDeAudioTibio"))
+    #expect(AppSettings(defaults: defaults).motorDeAudioTibio)
+  }
+
+  /// Apagado, seguir al sistema es no fijar nada —como siempre— y no hay
+  /// motor que tomar ni que preparar. Encendido, el motor se fija a la
+  /// entrada del sistema si es con cable, para tener a qué dejarlo tibio.
+  @Test func sinTibioNoSeFijaNiSePreparaNada() {
+    let microfono = MicrofonoDeLaSesion()
+    let interno = EntradaDeAudio(id: 10, uid: "BuiltIn", nombre: "Micrófono del MacBook", transporte: .interno)
+    let delSistema = PlanDeMicrofono.Decision(fijarA: nil, motivo: .delSistema)
+
+    microfono.empezarSesion(delSistema, entradaDelSistema: interno, tibio: false)
+    #expect(microfono.entrada == nil)
+    #expect(microfono.motorTibio(para: interno) == nil)
+
+    microfono.empezarSesion(delSistema, entradaDelSistema: interno, tibio: true)
+    #expect(microfono.entrada == interno)
+    // Nada se preparó todavía: no hay motor que tomar.
+    #expect(microfono.motorTibio(para: interno) == nil)
+  }
+
+  /// Sin hardware: una reserva vacía no entrega nada, y un Bluetooth nunca
+  /// se prepara (no se llega a abrir ningún dispositivo).
+  @Test func laReservaNuncaPreparaUnBluetooth() {
+    let reserva = ReservaDeMotorTibio()
+    let audifonos = EntradaDeAudio(id: 121, uid: "WH", nombre: "WH-CH720N", transporte: .bluetooth)
+    reserva.precalentar(para: audifonos)
+    #expect(!reserva.hayMotor)
+    #expect(reserva.tomar(para: audifonos) == nil)
+    reserva.dispositivosCambiaron()
+    #expect(!reserva.hayMotor)
+  }
 }
