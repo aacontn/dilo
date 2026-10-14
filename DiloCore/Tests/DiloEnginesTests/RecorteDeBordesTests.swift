@@ -70,10 +70,14 @@ struct RecorteDeBordesTests {
   /// (spec §3). Cinco minutos —el tope de una toma— tienen que pasar en una
   /// fracción chica de eso aun en Debug.
   @Test func cincoMinutosSeRecortanEnPocosMilisegundos() {
-    var audio = AudioDePrueba.ruido(segundos: 150, amplitud: 0.000_5)
+    let original = AudioDePrueba.ruido(segundos: 150, amplitud: 0.000_5)
       + AudioDePrueba.tono(segundos: 150)
-    let reloj = ContinuousClock()
-    let duro = reloj.measure { _ = RecorteDeBordes.preparar(&audio) }
+    // Cada pasada recorta una copia: `preparar` cambia el audio que recibe.
+    var audio = original
+    let duro = CostoDeCPU.medir {
+      audio = original
+      _ = RecorteDeBordes.preparar(&audio)
+    }
     print("RecorteDeBordes, 5 min de audio: \(duro)")
     #expect(duro < .milliseconds(40))
   }

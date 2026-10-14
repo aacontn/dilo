@@ -93,7 +93,7 @@ struct GrabadoraEnRAMTests {
   /// Cinco minutos de toma pasan a `Float` en lo que no se nota al soltar.
   @Test func pasarCincoMinutosAFloatEsBarato() {
     let toma = TomaDeAudio(muestras: [Int16](repeating: 1_000, count: PoliticaDeGrabacion.muestrasMaximas))
-    let duro = ContinuousClock().measure { _ = toma.comoFloat() }
+    let duro = CostoDeCPU.medir { _ = toma.comoFloat() }
     print("TomaDeAudio.comoFloat, 5 min: \(duro)")
     #expect(duro < .milliseconds(40))
   }
@@ -163,7 +163,7 @@ struct MedidaDeTomaTests {
 
   @Test func medirCincoMinutosEsBarato() {
     let audio = AudioDePrueba.ruido(segundos: 150, amplitud: 0.000_5) + AudioDePrueba.tono(segundos: 150)
-    let duro = ContinuousClock().measure { _ = MedidaDeToma.medir(audio) }
+    let duro = CostoDeCPU.medir { _ = MedidaDeToma.medir(audio) }
     print("MedidaDeToma, 5 min: \(duro)")
     #expect(duro < .milliseconds(60))
   }

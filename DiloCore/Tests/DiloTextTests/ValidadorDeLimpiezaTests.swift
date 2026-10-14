@@ -240,9 +240,10 @@ struct LimitesDelValidadorTests {
   @Test func unDictadoLargoSeJuzgaRapido() throws {
     let frase = "Esta es la frase número veinte del dictado largo, con algo de texto. "
     let dictado = String(repeating: frase, count: 22)
-    let inicio = ContinuousClock.now
-    _ = try ValidadorDeLimpieza.validar(dictado, contra: dictado.lowercased())
-    #expect(ContinuousClock.now - inicio < .milliseconds(250))
+    let duro = try CostoDeCPU.medir {
+      _ = try ValidadorDeLimpieza.validar(dictado, contra: dictado.lowercased())
+    }
+    #expect(duro < .milliseconds(250))
   }
 }
 

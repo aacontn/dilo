@@ -108,13 +108,16 @@ struct RevisionDeTomaTests {
       muestras: (0..<960_000).map { Int16(truncatingIfNeeded: ($0 * 7_919) % 6_000 - 3_000) })
     let texto = String(
       repeating: "Mañana te mando el informe del proyecto, sin falta, antes de la reunión. ", count: 14)
-    let reloj = ContinuousClock()
-    var veredicto: RevisionDeToma.Veredicto?
-    let duro = await reloj.measure {
-      let muestras = toma.comoFloat()
-      let medida = MedidaDeToma.medir(muestras)
-      veredicto = await RevisionDeToma.revisar(crudo: texto, medida: medida, otroMotor: nil)
+    // Con un solo motor la revisión no espera a nadie: su costo es medir la
+    // toma y depurar el texto, y eso se mide en CPU del hilo. El `await` va
+    // aparte, sólo para afirmar que el camino completo devuelve algo.
+    let duro = CostoDeCPU.medir {
+      let medida = MedidaDeToma.medir(toma.comoFloat())
+      let depurado = RevisionDeToma.depurar(texto, medida)
+      _ = RevisionDeToma.pedirSegundaOpinion(medida, texto: depurado.texto, degenerado: depurado.degenerado)
     }
+    let veredicto: RevisionDeToma.Veredicto? = await RevisionDeToma.revisar(
+      crudo: texto, medida: MedidaDeToma.medir(toma.comoFloat()), otroMotor: nil)
     print("Revisión de una toma de 60 s con \(texto.count) caracteres: \(duro)")
     #expect(veredicto != nil)
     #expect(duro < .milliseconds(50))
