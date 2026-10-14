@@ -38,7 +38,12 @@ con su copyright en `LICENSE` y su nombre en Acerca de:
   minutos (`DiloEngines/GrabacionEnRAM.swift`, de `RecordingPolicy.swift`).
 - **Muesli**, de Pranav Hari (MIT): las expresiones que reconocen los tokens
   de control de un motor de voz (`DiloText/FiltroDeArtefactos.swift`, de
-  `TranscriptionEngineArtifactsFilter.swift`).
+  `TranscriptionEngineArtifactsFilter.swift`), la lectura del texto
+  alrededor del cursor para el contexto de la limpieza
+  (`DiloCapabilities/LecturaDelContexto.swift`, de
+  `ScreenContextCapture.swift`) y el Jaro-Winkler del aprendizaje de
+  correcciones (`DiloText/AprendizajeDeCorrecciones.swift`, de
+  `CustomWordMatcher.swift`).
 
 Cada archivo lleva una línea de origen sobre el bloque adaptado. De otras apps
 que se estudiaron sin licencia abierta sólo se tomó la técnica, nunca el

@@ -119,6 +119,27 @@ Distingue propuesta, implementación y deuda pendiente.
   toma en RAM diez minutos, se dice en la muesca y se reintenta desde el menú
   de la barra. Los umbrales son de Ocelli e imnot, sin medir todavía en
   español: son constantes con nombre, y se calibran ahí.
+- **El contexto de la app es material de consulta, vive en RAM y no sale del
+  Mac sin permiso.** Al empezar un dictado `CapturaDeContexto` lee, en
+  paralelo con el micrófono y sin que nadie lo espere al soltar, la app y su
+  categoría (`CategoriaDeApp`) y —sólo si la persona lo prende en Modos— el
+  texto alrededor del cursor, la selección y el sitio del navegador. Va al
+  modelo dentro del sobre como `contexto_no_confiable`, recortado para que el
+  dictado quepa en los 4.096 tokens del chip
+  (`PromptDeLimpieza.topeDeContexto`), y una salida que copia una frase de
+  ahí se rechaza (`copioElContexto`). Nunca va al historial ni a un log; a un
+  proveedor en línea viaja sólo con su propio interruptor, apagado de
+  fábrica. Lo que lee otra app (`contextoDelCampo`, `sitioDelNavegador`,
+  `vigiaDeCorrecciones`) se esconde en MAS. El OCR de la pantalla no existe
+  todavía.
+- **Dilo nunca aprende solo.** Tras pegar, `VigiaDeCorrecciones` mira el
+  campo hasta 30 s (cada 500 ms, calma de 1,5 s, nunca con entrada segura) y
+  `AprendizajeDeCorrecciones` saca pares «oído → correcto» que sean
+  vocabulario y que el motor haya oído así. La muesca los ofrece en un
+  segmento al costado y con deshacer; aceptar es lo mismo que agregarlos a
+  mano en Tus palabras y en «Cuando digo…» (`Reemplazo.aprendido`), y lo que
+  nadie acepta vence y no se vuelve a ofrecer. El ancla del campo se toma
+  antes del `sessionEnded`, que deja `focusedTarget` en nil.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
