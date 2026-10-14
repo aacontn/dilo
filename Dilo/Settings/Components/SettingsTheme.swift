@@ -6,8 +6,12 @@ import SwiftUI
 /// superficie SwiftUI y los `NSImage` del status item no puedan derivar a dos
 /// naranjas distintos.
 ///
-/// El acento es **mango**: es el color de las acciones y el de la píldora. Las
-/// paletas del Edge Glow nunca recolorean el caparazón (CONTEXT.md).
+/// Son los colores **de la marca** —el ícono, `brand/`, la landing— y no los
+/// de la interfaz: la muesca y Ajustes dibujan con `PaletaDeDilo.actual`
+/// (Glaciar de fábrica desde el 2026-10-14). Ninguna vista los pide: que una
+/// pidiera `DiloBrand.mango` sería volver a pintar naranja. Quedan hasta que
+/// el ícono se regenere para Glaciar. Las paletas del Edge Glow nunca recolorean el caparazón
+/// (CONTEXT.md).
 enum DiloBrand {
   /// Tinta `#0D1117` — el fondo del ícono y la base de toda superficie oscura.
   static let tintaColor = NSColor(red: 0x0D / 255, green: 0x11 / 255, blue: 0x17 / 255, alpha: 1)
@@ -27,13 +31,14 @@ enum DiloBrand {
 }
 
 /// La paleta oscura de la ventana de Ajustes: los tokens de los que dibuja
-/// cada componente y la sección de Actividad.
+/// cada componente y la sección de Actividad. Salen de la paleta activa
+/// (`PaletaDeDilo`); con la de fábrica son los números de siempre.
 enum SettingsTheme {
-  static let background = Color(red: 0.025, green: 0.027, blue: 0.035)
-  static let sidebar = Color(red: 0.035, green: 0.038, blue: 0.049)
-  static let card = Color(red: 0.065, green: 0.069, blue: 0.087)
-  static let accent = DiloBrand.mango
-  /// El mismo mango para lo que se dibuja en un `NSImage` en vez de en
-  /// SwiftUI: los íconos del status item.
-  static let accentColor = DiloBrand.mangoColor
+  static var background: Color { PaletaDeDilo.actual.fondoDeAjustes.color }
+  static var sidebar: Color { PaletaDeDilo.actual.barraLateral.color }
+  static var card: Color { PaletaDeDilo.actual.tarjetaDeAjustes.color }
+  static var accent: Color { PaletaDeDilo.actual.acentoDeAjustes.color }
+  /// El acento de lo que se dibuja en un `NSImage` en vez de en SwiftUI: los
+  /// íconos del status item y las superficies de arrastrar un archivo.
+  static var accentColor: NSColor { PaletaDeDilo.actual.acentoDeLaBarra.nsColor }
 }

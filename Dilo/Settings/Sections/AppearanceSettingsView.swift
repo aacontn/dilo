@@ -68,6 +68,16 @@ struct AppearanceSettingsView: View {
     VStack(alignment: .leading, spacing: 18) {
       SettingsPreviewCard(settings: settings)
 
+      SettingsCard(title: "Color") {
+        SettingsPickerRow(
+          title: "Color",
+          description: "El de la muesca, Ajustes y el ícono de la barra",
+          options: PaletaDeDilo.Nombre.allCases,
+          optionLabel: { $0.titulo },
+          selection: $settings.paleta
+        )
+      }
+
       SettingsCard(title: "Mientras hablas") {
         SettingsPickerRow(
           title: "Qué se ve",
@@ -185,6 +195,29 @@ struct AppearanceSettingsView: View {
           )
         }
       }
+
+      #if DEBUG
+        tarjetaDeDebug
+      #endif
     }
   }
+
+  #if DEBUG
+    /// Lo que todavía no tiene lugar en Ajustes: el panel del hover con
+    /// vidrio (`PanelDeVidrio`), apagado hasta que Alfonso lo vea en
+    /// pantalla. Sólo en Debug, y con el texto fuera del catálogo: no es copy
+    /// que vaya a traducirse.
+    private var tarjetaDeDebug: some View {
+      let titulo = "Debug · makeover"
+      let vidrio = "Panel del hover con vidrio"
+      let detalleDelVidrio = "Negro en la muesca que se funde en vidrio. Se ve al próximo hover."
+      return SettingsCard(title: "\(titulo)") {
+        SettingsRow(title: "\(vidrio)", description: "\(detalleDelVidrio)") {
+          Toggle("", isOn: $settings.hudPanelDeVidrio)
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
+      }
+    }
+  #endif
 }

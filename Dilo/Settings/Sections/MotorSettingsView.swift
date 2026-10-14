@@ -156,10 +156,10 @@ struct MotorCard: View {
               Text("Dictando con este")
                 .font(.system(size: 10, weight: .bold))
                 .tracking(0.4)
-                .foregroundStyle(DiloBrand.menta)
+                .foregroundStyle(PaletaDeDilo.actual.exito.color)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(DiloBrand.menta.opacity(0.14), in: Capsule())
+                .background(PaletaDeDilo.actual.exito.color.opacity(0.14), in: Capsule())
             }
             if motor == .porDefecto {
               Text("Por defecto")
@@ -230,7 +230,7 @@ private struct DetalleLabelStyle: LabelStyle {
 private struct EtiquetaDeOrigen: View {
   let texto: String
 
-  private var color: Color { texto == "LOCAL" ? DiloBrand.menta : DiloBrand.mango }
+  private var color: Color { texto == "LOCAL" ? PaletaDeDilo.actual.exito.color : PaletaDeDilo.actual.acentoDeAjustes.color }
 
   var body: some View {
     Text(texto)

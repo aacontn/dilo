@@ -127,6 +127,11 @@ final class DictationHUDContent {
   /// arranca nunca una captura.
   var punteroEncima = false
 
+  /// El panel del hover al estilo Dynamic Glass (`PanelDeVidrio`): lo pone
+  /// `HUDStage` al abrir el panel, desde `AppSettings.hudPanelDeVidrio`, o
+  /// el arnés con `hover-vidrio`. Sólo cambia algo con el panel abierto.
+  var panelDeVidrio = false
+
   /// Lo que el hover revela cuando todavía no hay nada que contar: el nombre.
   ///
   /// Existe porque sin él el hover no revelaba **nada** en una instalación

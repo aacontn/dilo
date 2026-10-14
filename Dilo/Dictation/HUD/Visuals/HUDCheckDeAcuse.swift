@@ -36,7 +36,7 @@ struct HUDCheckDeAcuse: View {
     TrazoDelCheck()
       .trim(from: 0, to: dibujado || reduceMotion ? 1 : 0)
       .stroke(
-        DiloBrand.menta,
+        PaletaDeDilo.actual.acuse.color,
         style: StrokeStyle(lineWidth: 1.8 * (lado / 15), lineCap: .round, lineJoin: .round)
       )
       .frame(width: lado, height: lado)

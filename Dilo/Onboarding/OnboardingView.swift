@@ -203,7 +203,7 @@ private struct PasoDePermisos: View {
         if permisos.todosConcedidos {
           AvisoDeDilo(
             icono: "checkmark.circle.fill",
-            color: DiloBrand.menta,
+            color: PaletaDeDilo.actual.exito.color,
             texto: "Todo listo. Sigue y elige con qué motor quieres dictar."
           )
         } else {
@@ -238,7 +238,7 @@ private struct FilaDePermiso: View {
         if estado == .concedido {
           Label("Listo", systemImage: "checkmark.circle.fill")
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(DiloBrand.menta)
+            .foregroundStyle(PaletaDeDilo.actual.exito.color)
           Button("Ajustes", action: abrirAjustes)
             .buttonStyle(SettingsButtonStyle())
         } else {
@@ -328,7 +328,7 @@ private struct PasoDePrueba: View {
                 .stroke(
                   texto.isEmpty
                     ? .white.opacity(contrast == .increased ? 0.22 : 0.09)
-                    : DiloBrand.menta.opacity(0.45),
+                    : PaletaDeDilo.actual.exito.color.opacity(0.45),
                   lineWidth: 1
                 )
             }
@@ -354,7 +354,7 @@ private struct PasoDePrueba: View {
         } else {
           AvisoDeDilo(
             icono: "checkmark.circle.fill",
-            color: DiloBrand.menta,
+            color: PaletaDeDilo.actual.exito.color,
             texto: "Listo, Dilo funciona. Eso que dijiste lo transcribió y lo pegó él."
           )
           // Una línea y sólo cuando ya funcionó: antes compite con la ayuda

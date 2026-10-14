@@ -1085,6 +1085,9 @@ final class HUDStage {
     // La ventana primero, el contexto después: el panel del hover también
     // es la silueta creciendo, y crece con la misma curva.
     ajustarVentana(a: .abierta)
+    // Se lee al abrir y no al montar: el ajuste vive fuera de la foto de la
+    // sesión, y cambiarlo tiene que verse en el próximo hover.
+    dictationContent.panelDeVidrio = settings.hudPanelDeVidrio
     dictationContent.punteroEncima = true
     actualizarZonaInteractiva()
 

@@ -61,6 +61,10 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// Cuánto se estira la silueta hacia cada lado por los segmentos de los
   /// asientos (`HUDSegmentosAlCostado`). Cero y cero, lo de siempre.
   var costados = CostadosDeLaSilueta()
+  /// El panel del hover al estilo Dynamic Glass: negro en la cabecera que se
+  /// funde en vidrio, con los radios y resortes de Droppy (`PanelDeVidrio`).
+  /// Apagado de fábrica; sólo cambia algo mientras el hover está abierto.
+  var vidrio = false
   @ViewBuilder let content: Content
   @ViewBuilder let overlays: Overlays
 
@@ -86,6 +90,11 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// métricas. Con 8 puntos sobre los 25 de alto de la muesca la silueta
   /// seguía leyéndose cuadrada.
   private var cornerRadius: CGFloat {
+    if vidrio, panelDelHoverAbierto {
+      return PanelDeVidrio.radio(
+        para: renderedSize, cabecera: HUDNotchGeometry.alturaDeCabecera(for: screen)
+      )
+    }
     guard !isCollapsedIntoHousing else { return HUDNotchGeometry.radioEnReposo(for: screen) }
     // Una forma abierta apenas más alta que la muesca —la sobria dictando,
     // 184×26— lleva el radio de la muesca. Con los 18 de la forma grande las
@@ -95,6 +104,13 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       return HUDNotchGeometry.radioEnReposo(for: screen)
     }
     return metrics.bottomCornerRadius
+  }
+
+  /// Si la silueta en reposo está abierta por el hover: recogida, pero de
+  /// otro tamaño que la de fábrica.
+  private var panelDelHoverAbierto: Bool {
+    isCollapsedIntoHousing && tamañoEnReposo != nil
+      && renderedSize != HUDNotchGeometry.reposoSize(for: screen)
   }
 
   private var isCollapsedIntoHousing: Bool {
@@ -183,6 +199,11 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     guard tamañoEnReposo != nil else { return nil }
     guard !isRevealed, !reduceMotion else { return revealAnimation }
     let vuelveAlReposo = renderedSize == HUDNotchGeometry.reposoSize(for: screen)
+    // Con el vidrio, los resortes de Droppy (0,47/0,76 al abrir, 0,54/0,90 al
+    // cerrar): son parte de cómo se ve el panel, no del estilo elegido.
+    if vidrio {
+      return vuelveAlReposo ? CurvaDeLaMuesca.cierre.animacion : CurvaDeLaMuesca.apertura.animacion
+    }
     return vuelveAlReposo ? revealStyle.cierre : revealStyle.apertura
   }
 
@@ -277,7 +298,27 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// The ripple sits between the clip and the shadow: it displaces the
   /// housing's pixels, and the shadow outside the effect stays still instead of
   /// shimmering with the wave.
+  @ViewBuilder
   private var housing: some View {
+    if vidrio {
+      // Sin la onda del borde: el vidrio sólo vive en reposo y en el hover,
+      // y la onda es del arranque de una sesión, cuando la forma es negra.
+      FondoDeLaMuesca(
+        silueta: silueta,
+        alturaDeCabecera: HUDNotchGeometry.alturaDeCabecera(for: screen),
+        abierto: panelDelHoverAbierto
+      )
+      .shadow(
+        color: .black.opacity(proyectaSombra ? 0.25 : 0),
+        radius: proyectaSombra ? metrics.shadowRadius : 0,
+        y: proyectaSombra ? metrics.shadowOffsetY : 0
+      )
+    } else {
+      housingNegro
+    }
+  }
+
+  private var housingNegro: some View {
     // Plain values for the @Sendable keyframeAnimator content closure.
     let rippleOrigin = CGPoint(
       x: size.width / 2,

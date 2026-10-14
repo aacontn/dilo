@@ -70,6 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let settings = AppSettings()
     self.settings = settings
+    // Antes de que nada se dibuje: la muesca en reposo ya pinta su punto.
+    PaletaActiva.compartida.elegir(settings.paleta)
     // One shape, two features. The stage owns the window and hands it out;
     // each feature's HUD controller only decides what its surface says.
     let stage = HUDStage(settings: settings)

@@ -2,7 +2,11 @@
 #
 # La muesca en PNG, sin abrir una ventana.
 #
-#   ./scripts/render-muesca.sh [carpeta de salida]
+#   ./scripts/render-muesca.sh [carpeta de salida] [--paletas]
+#
+# Con `--paletas` deja sólo las láminas del makeover: `paletas.png` (cada
+# paleta de `PaletaDeDilo` en una columna, estado por estado, sobre barra
+# clara y oscura) y `barra-de-menus.png` (el ícono de la barra con cada una).
 #
 # Compila la geometría de verdad del HUD junto con `render-muesca.swift` y
 # rasteriza con `ImageRenderer` fuera de pantalla. No lanza la app, no abre
@@ -34,7 +38,14 @@ swiftc -O \
   "$raiz/Dilo/CoreHUD/HUDSegmentoAlCostado.swift" \
   "$raiz/Dilo/Dictation/HUD/Visuals/HUDVoiceVisualStyle.swift" \
   "$raiz/Dilo/CoreHUD/HUDMetrics.swift" \
+  "$raiz/Dilo/CoreHUD/VidrioDeLaMuesca.swift" \
+  "$raiz/Dilo/Settings/Components/PaletaDeDilo.swift" \
   "$raiz/scripts/render-muesca.swift" \
+  "$raiz/scripts/render-paletas.swift" \
   -o "$taller/render-muesca"
 
-"$taller/render-muesca" "$salida"
+# Lo que viene después de la carpeta (`--paletas`) pasa tal cual. Con
+# `${1+"$@"}` y no `"${@:2}"`: el bash 3.2 de macOS con `set -u` se queja de
+# una lista vacía.
+[[ $# -gt 0 ]] && shift
+"$taller/render-muesca" "$salida" ${1+"$@"}

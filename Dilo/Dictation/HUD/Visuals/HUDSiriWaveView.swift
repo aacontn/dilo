@@ -15,7 +15,7 @@ struct HUDSiriWaveView: View {
     Color(red: 48 / 255, green: 220 / 255, blue: 155 / 255),
     Color(red: 25 / 255, green: 122 / 255, blue: 255 / 255),
   ]
-  private static let amber = Color.orange.opacity(0.55)
+  private static var amber: Color { HUDVisualTokens.deadMicAmber.opacity(0.55) }
 
   let content: DictationHUDContent
 

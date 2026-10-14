@@ -134,14 +134,14 @@ struct HUDOndaDeBrasas: View {
       )
     }
     return LinearGradient(
-      colors: [DiloBrand.mango, DiloBrand.rojo],
+      colors: [PaletaDeDilo.actual.ondaBase.color, PaletaDeDilo.actual.ondaPunta.color],
       startPoint: .bottom,
       endPoint: .top
     )
   }
 
   private var halo: Color {
-    content.isAudioAlive ? DiloBrand.rojo.opacity(0.5) : .clear
+    content.isAudioAlive ? PaletaDeDilo.actual.halo.color : .clear
   }
 
   /// La altura cruda de una barra, tal cual la calculaba el overlay:

@@ -26,9 +26,11 @@ import SwiftUI
 /// Se corre con `scripts/render-muesca.sh`.
 @main
 enum RenderDeLaMuesca {
-  /// Mango, el acento de Dilo. Repetido acá a propósito: traer `DiloBrand`
-  /// arrastraría el sistema de diseño de Ajustes y con él media app.
-  static let mango = Color(red: 1.0, green: 0.62, blue: 0.106)
+  /// La paleta con que se dibuja: la de la app (`PaletaDeDilo`, compilada
+  /// junto con este archivo), no una copia. La de fábrica; la lámina de
+  /// paletas la cambia entre columna y columna, y como `ImageRenderer`
+  /// rasteriza en el acto, cada columna sale con la suya.
+  nonisolated(unsafe) static var paleta = PaletaDeDilo.Nombre.deFabrica.paleta
 
   /// Uno de los dos 1080p del Mac mini: sin carcasa, con el ajuste de fábrica.
   /// El alto de la barra es lo que reporta una pantalla así; la app lo mide
@@ -52,6 +54,12 @@ enum RenderDeLaMuesca {
     let destino = URL(filePath: CommandLine.arguments.dropFirst().first
       ?? "/Volumes/SSD2/scratch/dilo-mac/muesca")
     try FileManager.default.createDirectory(at: destino, withIntermediateDirectories: true)
+
+    // `--paletas`: sólo las láminas del makeover (`render-paletas.swift`).
+    if CommandLine.arguments.contains("--paletas") {
+      try escribirLasPaletas(en: destino)
+      return
+    }
 
     let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
@@ -210,7 +218,7 @@ enum RenderDeLaMuesca {
         HUDSegmentosAlCostado(
           izquierdo: segmentos.izquierdo, derecho: segmentos.derecho,
           conPalabra: segmentos.conPalabra, costados: costados,
-          acento: mango, alTocar: { _ in }
+          acento: paleta.segmento.color, alTocar: { _ in }
         )
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -235,7 +243,7 @@ enum RenderDeLaMuesca {
   /// `maxHeight: .infinity` acá es justo lo que estiraba la forma.
   static func marcaDeReposo(alto: CGFloat) -> some View {
     Circle()
-      .fill(mango.opacity(0.9))
+      .fill(paleta.puntoDeReposo.color)
       .frame(width: 3, height: 3)
       .padding(.bottom, 5)
       .frame(maxWidth: .infinity, alignment: .bottom)
@@ -422,7 +430,7 @@ enum RenderDeLaMuesca {
         // al salir el estado Resultado del camino feliz.
         Text("Copiar")
           .font(.system(size: 10, weight: .semibold, design: .rounded))
-          .foregroundStyle(mango)
+          .foregroundStyle(paleta.acento.color)
       }
       .padding(.horizontal, 12)
       .padding(.bottom, 6)
@@ -431,9 +439,6 @@ enum RenderDeLaMuesca {
     }
   }
 
-  /// Rojo `#FF5C5C`, la punta de la onda de brasas. Repetido como el mango y
-  /// por lo mismo: traer `DiloBrand` arrastraría media app.
-  static let rojo = Color(red: 1.0, green: 0.361, blue: 0.361)
 
   /// Nueve niveles congelados, con forma de sílaba. No hay micrófono acá.
   static let niveles: [Double] = [0.18, 0.46, 0.72, 0.95, 0.61, 0.33, 0.78, 0.52, 0.24]
@@ -446,17 +451,15 @@ enum RenderDeLaMuesca {
       ForEach(Array(niveles.prefix(5).enumerated()), id: \.offset) { _, v in
         RoundedRectangle(cornerRadius: 1.5, style: .continuous)
           .fill(
-            LinearGradient(colors: [mango, rojo], startPoint: .bottom, endPoint: .top)
+            LinearGradient(colors: [paleta.ondaBase.color, paleta.ondaPunta.color], startPoint: .bottom, endPoint: .top)
           )
           .frame(width: 3, height: min(max(4, (6 + pow(v, 0.7) * 11) * 11 / 16), 11))
-          .shadow(color: rojo.opacity(0.5), radius: 3)
+          .shadow(color: paleta.halo.color, radius: 3)
       }
     }
     .frame(width: 23, height: 13)
   }
 
-  /// Menta, el color de lo que salió bien.
-  static let menta = Color(red: 0.18, green: 0.902, blue: 0.659)
 
   /// El check del acuse: el trazado de `.scheck` del overlay de Tauri sobre
   /// su lienzo de 16×16 (`HUDCheckDeAcuse`), a los 13 puntos de la banda.
@@ -467,7 +470,7 @@ enum RenderDeLaMuesca {
       p.addLine(to: CGPoint(x: 6.5 * k, y: 11.5 * k))
       p.addLine(to: CGPoint(x: 12.5 * k, y: 4.5 * k))
     }
-    .stroke(menta, style: StrokeStyle(lineWidth: 1.8 * 13 / 15, lineCap: .round, lineJoin: .round))
+    .stroke(paleta.acuse.color, style: StrokeStyle(lineWidth: 1.8 * 13 / 15, lineCap: .round, lineJoin: .round))
     .frame(width: 23, height: 13)
   }
 
@@ -483,10 +486,10 @@ enum RenderDeLaMuesca {
       ForEach(Array(niveles.enumerated()), id: \.offset) { _, v in
         RoundedRectangle(cornerRadius: 3, style: .continuous)
           .fill(
-            LinearGradient(colors: [mango, rojo], startPoint: .bottom, endPoint: .top)
+            LinearGradient(colors: [paleta.ondaBase.color, paleta.ondaPunta.color], startPoint: .bottom, endPoint: .top)
           )
           .frame(width: 5, height: min(max(7, 6 + pow(v, 0.7) * 11), 16))
-          .shadow(color: rojo.opacity(0.5), radius: 4)
+          .shadow(color: paleta.halo.color, radius: 4)
       }
     }
     .frame(height: 20)
@@ -496,7 +499,7 @@ enum RenderDeLaMuesca {
   /// y encogido con la línea.
   static var cursor: some View {
     RoundedRectangle(cornerRadius: 1, style: .continuous)
-      .fill(mango)
+      .fill(paleta.cursor.color)
       .frame(width: 2 * 11 / 15, height: 11)
   }
 
@@ -593,7 +596,7 @@ enum RenderDeLaMuesca {
       panelDeComparacion(titulo: "Antes · 185×32, sin curvas") {
         VStack {
           Spacer(minLength: 0)
-          Capsule().fill(mango.opacity(0.85)).frame(width: 18, height: 3)
+          Capsule().fill(paleta.cursor.color.opacity(0.85)).frame(width: 18, height: 3)
           Spacer(minLength: 0)
         }
         .frame(width: 185, height: 32)

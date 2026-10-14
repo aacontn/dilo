@@ -287,9 +287,9 @@ private extension BindingRole {
   var color: Color {
     switch self {
     case .dictation: SettingsTheme.accent
-    case .secondLanguage: Color(red: 0.45, green: 0.82, blue: 0.6)
-    case .translate: Color(red: 0.66, green: 0.55, blue: 0.95)
-    case .readAloud: Color(red: 0.95, green: 0.7, blue: 0.35)
+    case .secondLanguage: PaletaDeDilo.actual.categorias.segundoIdioma.color
+    case .translate: PaletaDeDilo.actual.categorias.traducir.color
+    case .readAloud: PaletaDeDilo.actual.categorias.leerEnVoz.color
     }
   }
 }

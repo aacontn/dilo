@@ -35,6 +35,11 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case retenido
   case hover
   case hoverCompleto = "hover-completo"
+  /// El panel del hover al estilo Dynamic Glass (`PanelDeVidrio`), con el
+  /// ajuste apagado o no: el vidrio no sale en PNG y sólo se juzga en la
+  /// pantalla, sobre un fondo claro y uno oscuro.
+  case hoverVidrio = "hover-vidrio"
+  case hoverCompletoVidrio = "hover-completo-vidrio"
   /// Los segmentos de los asientos (`AsientosDeLaMuesca`): la toma guardada
   /// a la derecha, el retenido a la izquierda, los dos, y los dos estirando
   /// la muesca dictando. Entran con la palabra y a los tres segundos se
@@ -63,7 +68,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
     case .retenido, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra:
       "quedamos el martes a las diez en la oficina de Providencia"
-    case .hover, .hoverCompleto: "Listo · «quedamos el martes a las diez»"
+    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio: "Listo · «quedamos el martes a las diez»"
     default: nil
     }
   }
@@ -72,7 +77,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   /// un test recorre para afirmar que cada nombre dibuja lo que dice.
   var estado: EstadoDelNotch {
     switch self {
-    case .reposo, .reposoConDatos, .hover, .hoverCompleto: .reposo
+    case .reposo, .reposoConDatos, .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio: .reposo
     case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
       .segmentoConDatos:
       .reposo
@@ -115,7 +120,16 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   }
 
   /// Si la escena lleva los datos de los costados encendidos.
-  var conDatos: Bool { self == .reposoConDatos || self == .hoverCompleto || self == .segmentoConDatos }
+  var conDatos: Bool {
+    self == .reposoConDatos || self == .hoverCompleto || self == .hoverCompletoVidrio || self == .segmentoConDatos
+  }
+
+  /// Si la escena abre el panel del hover.
+  var abreElPanel: Bool { [.hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio].contains(self) }
+  /// Si el panel va lleno: recientes, datos, reunión y modos.
+  var panelCompleto: Bool { self == .hoverCompleto || self == .hoverCompletoVidrio }
+  /// Si el panel va con vidrio.
+  var conVidrio: Bool { self == .hoverVidrio || self == .hoverCompletoVidrio }
 
   static let tarjetaDeMuestra = TarjetaDeRespaldo(
     texto: EscenaDeMuestra.retenido.textoDeMuestra ?? "",
@@ -135,6 +149,9 @@ struct PedidoDeMuestras: Equatable, Sendable {
 
   let orden: Orden
   let emitido: Date
+  /// La paleta con que se dibujan las escenas (`--paleta glaciar`), o nil
+  /// para la elegida. Sólo dura lo que dura la muestra.
+  var paleta: PaletaDeDilo.Nombre?
 
   /// Un pedido que llega tarde no se obedece: una notificación distribuida
   /// puede quedar en cola mientras la app está suspendida, y una muesca que
@@ -151,6 +168,7 @@ struct PedidoDeMuestras: Equatable, Sendable {
     case segundosFueraDeRango
     case textoMuyLargo
     case vencido
+    case paletaDesconocida(String)
   }
 
   /// `ahora` entra por parámetro para probar el vencimiento sin dormir.
@@ -170,6 +188,7 @@ struct PedidoDeMuestras: Equatable, Sendable {
     var cada = segundosDeFabrica
     var mantener = false
     var texto: String?
+    var paleta: PaletaDeDilo.Nombre?
     var i = 0
     while i < palabras.count {
       let palabra = palabras[i]
@@ -182,6 +201,13 @@ struct PedidoDeMuestras: Equatable, Sendable {
         i += 1
       case "--mantener":
         mantener = true
+      case "--paleta":
+        guard i + 1 < palabras.count else { throw .paletaDesconocida("") }
+        guard let nombre = PaletaDeDilo.Nombre(rawValue: palabras[i + 1]) else {
+          throw .paletaDesconocida(palabras[i + 1])
+        }
+        paleta = nombre
+        i += 1
       case "--texto":
         // El resto de la línea es el texto: así un texto con espacios no
         // necesita comillas que sobrevivan a tres capas de shell.
@@ -200,7 +226,8 @@ struct PedidoDeMuestras: Equatable, Sendable {
     guard !escenas.isEmpty else { throw .vacio }
     return PedidoDeMuestras(
       orden: .mostrar(escenas, cada: .seconds(cada), mantener: mantener, texto: texto),
-      emitido: emitido
+      emitido: emitido,
+      paleta: paleta
     )
   }
 }
@@ -287,6 +314,7 @@ final class ReceptorDeMuestras {
   private var plazo: Task<Void, Never>?
   private var observador: (any NSObjectProtocol)?
   private var textoPedido: String?
+  private var paletaPedida: PaletaDeDilo.Nombre?
 
   /// Lo que `HUDStage` hace con cada efecto: dibujar la escena con contenido
   /// de muestra y botones apagados, o devolver la forma a su estado real.
@@ -314,7 +342,10 @@ final class ReceptorDeMuestras {
       Self.log.notice("Arnés: pedido rechazado (\(String(describing: error), privacy: .public)): \(linea, privacy: .public)")
       return
     }
-    if case let .mostrar(_, _, _, texto) = pedido.orden { textoPedido = texto }
+    if case let .mostrar(_, _, _, texto) = pedido.orden {
+      textoPedido = texto
+      paletaPedida = pedido.paleta
+    }
     aplicar(guion.recibir(pedido.orden))
   }
 
@@ -323,6 +354,10 @@ final class ReceptorDeMuestras {
   func olvidar() {
     plazo?.cancel()
     _ = guion.olvidar()
+    // Un dictado de verdad se dibuja con la paleta elegida, no con la de la
+    // muestra que interrumpió.
+    paletaPedida = nil
+    PaletaActiva.compartida.mostrarDeMuestra(nil)
   }
 
   private func aplicar(_ efectos: [GuionDeMuestras.Efecto]) {
@@ -330,10 +365,13 @@ final class ReceptorDeMuestras {
       switch efecto {
       case let .dibujar(escena):
         Self.log.notice("Arnés: \(escena.rawValue, privacy: .public)")
+        PaletaActiva.compartida.mostrarDeMuestra(paletaPedida)
         alDibujar?(escena, textoPedido ?? escena.textoDeMuestra)
       case .soltar:
         plazo?.cancel()
         textoPedido = nil
+        paletaPedida = nil
+        PaletaActiva.compartida.mostrarDeMuestra(nil)
         alSoltar?()
       case let .programarSiguiente(duracion, turno):
         plazo?.cancel()

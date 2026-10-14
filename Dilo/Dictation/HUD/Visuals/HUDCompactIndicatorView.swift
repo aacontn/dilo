@@ -23,7 +23,7 @@ struct HUDCompactIndicatorView: View {
       HStack(spacing: 2.5 * scale) {
         ForEach(0..<Self.barCount, id: \.self) { index in
           Capsule()
-            .fill(alive ? Color.white.opacity(0.9) : .orange.opacity(0.6))
+            .fill(alive ? Color.white.opacity(0.9) : HUDVisualTokens.deadMicAmber.opacity(0.6))
             .frame(
               width: 2.5 * scale,
               height: barHeight(

@@ -138,7 +138,7 @@ extension HUDStage {
     defer { dibujandoMuestra = false }
 
     let conDatos = escena.conDatos
-    let panelCompleto = escena == .hoverCompleto
+    let panelCompleto = escena.panelCompleto
     if muestra?.conDatos != conDatos || muestra?.panelCompleto != panelCompleto {
       muestra?.conDatos = conDatos
       muestra?.panelCompleto = panelCompleto
@@ -164,6 +164,7 @@ extension HUDStage {
     // Cada escena parte del reposo: lo que dejó la anterior —un panel
     // abierto, una onda montada— no se mezcla con lo que viene.
     dictationContent.punteroEncima = false
+    dictationContent.panelDeVidrio = false
     dictationContent.showsVoiceVisual = false
     if occupant != .none { retract() }
 
@@ -173,9 +174,10 @@ extension HUDStage {
       .segmentosConPalabra, .segmentoConDatos:
       reaplicarElEstado()
 
-    case .hover, .hoverCompleto:
+    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio:
       dictationContent.contexto = linea
-      if escena == .hoverCompleto { llenarElPanel() }
+      if escena.panelCompleto { llenarElPanel() }
+      dictationContent.panelDeVidrio = escena.conVidrio
       dictationContent.punteroEncima = true
       reaplicarElEstado()
 
@@ -244,6 +246,7 @@ extension HUDStage {
     self.muestra = nil
     control.congelado = false
     dictationContent.punteroEncima = false
+    dictationContent.panelDeVidrio = false
     fijarLaPalabra(false)
     prestado.devolver(a: self)
   }

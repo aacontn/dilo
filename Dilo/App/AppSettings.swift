@@ -47,6 +47,8 @@ final class AppSettings {
     /// vez para no borrarle la elección a quien ya la había cambiado.
     static let hudClearsMenuBar = "hudClearsMenuBar"
     static let hudEstiloSinNotch = "hudEstiloSinNotch"
+    static let paleta = "diloPaleta"
+    static let hudPanelDeVidrio = "hudPanelDeVidrio"
     static let hudRetardoDeHover = "hudRetardoDeHover"
     static let hudPantalla = "hudPantalla"
     static let hudModoEnReposo = "hudModoEnReposo"
@@ -327,6 +329,28 @@ final class AppSettings {
   /// que cuelga debajo de la barra de menús. Con notch real no se mira.
   var hudEstiloSinNotch: HUDEstiloSinNotch {
     didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
+  }
+
+  /// Con qué colores se dibujan la muesca, Ajustes y el ícono de la barra
+  /// (`PaletaDeDilo`): Glaciar de fábrica o Grafito, en Apariencia → Color.
+  /// Se aplica en vivo. Decisión del 2026-10-14: el mango salió.
+  ///
+  /// La clave nació con el makeover y nunca guardó otra cosa; un valor que
+  /// ya no existe (`mango`, `menta`, de una copia de prueba) se lee como el
+  /// de fábrica.
+  var paleta: PaletaDeDilo.Nombre {
+    didSet {
+      defaults.set(paleta.rawValue, forKey: Keys.paleta)
+      PaletaActiva.compartida.elegir(paleta)
+    }
+  }
+
+  /// El panel del hover al estilo Dynamic Glass: negro en la muesca que se
+  /// funde en vidrio (`PanelDeVidrio`). **Ajuste oculto y apagado** mientras
+  /// se prueba (2026-10-14): sólo tiene fila en un Debug, y se lee cada vez
+  /// que el panel se abre.
+  var hudPanelDeVidrio: Bool {
+    didSet { defaults.set(hudPanelDeVidrio, forKey: Keys.hudPanelDeVidrio) }
   }
 
   /// Cuánto tiene que quedarse el puntero encima de la muesca antes de que se
@@ -690,6 +714,10 @@ final class AppSettings {
     // quería la forma donde iría el notch, que es el default de hoy.
     hudEstiloSinNotch = Self.stored(in: defaults, key: Keys.hudEstiloSinNotch)
       ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == true ? .pildora : .notchSimulado)
+    // Leerla no la aplica: la paleta activa es una por proceso, y un
+    // `AppSettings` de un test no puede pintar la app. La aplica `AppDelegate`.
+    paleta = Self.stored(in: defaults, key: Keys.paleta) ?? .deFabrica
+    hudPanelDeVidrio = defaults.bool(forKey: Keys.hudPanelDeVidrio)
     // `double(forKey:)` lee una clave ausente como cero, que dejaría el hover
     // instantáneo para todo el mundo; la ausencia se pregunta directo.
     hudRetardoDeHover = defaults.object(forKey: Keys.hudRetardoDeHover) as? Double

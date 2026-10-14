@@ -90,8 +90,8 @@ struct HUDMarcaDeReposo: View {
 
   static func color(para nivel: Double?) -> Color {
     guard let nivel else { return .white.opacity(0.85) }
-    if nivel >= 90 { return Color(red: 1, green: 0.38, blue: 0.32) }
-    if nivel >= 75 { return DiloBrand.mango }
+    if nivel >= 90 { return PaletaDeDilo.actual.alerta.color }
+    if nivel >= 75 { return PaletaDeDilo.actual.aviso.color }
     return .white.opacity(0.85)
   }
 
@@ -135,7 +135,7 @@ struct HUDMarcaDeReposo: View {
   /// reposo **no** hace.
   private var punto: some View {
     Circle()
-      .fill(DiloBrand.mango.opacity(0.9))
+      .fill(PaletaDeDilo.actual.puntoDeReposo.color)
       .frame(width: 3 * scale, height: 3 * scale)
   }
 }

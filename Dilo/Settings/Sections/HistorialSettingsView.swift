@@ -73,7 +73,7 @@ struct HistorialSettingsView: View {
         // la ayuda y para VoiceOver.
         Button { copiar(entrada) } label: {
           Image(systemName: copiada == entrada.id ? "checkmark" : "doc.on.doc")
-            .foregroundStyle(copiada == entrada.id ? DiloBrand.menta : .primary)
+            .foregroundStyle(copiada == entrada.id ? PaletaDeDilo.actual.exito.color : .primary)
         }
         .buttonStyle(SettingsButtonStyle())
         .help(copiada == entrada.id ? "Copiado" : "Copiar")

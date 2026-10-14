@@ -108,7 +108,7 @@ struct HUDLineaSobria: View {
       Text(verbatim: texto)
         .font(.system(size: 9.5, weight: .bold, design: .rounded))
     }
-    .foregroundStyle(DiloBrand.mango)
+    .foregroundStyle(PaletaDeDilo.actual.acento.color)
     .fixedSize()
   }
 
@@ -123,7 +123,7 @@ struct HUDLineaSobria: View {
       .font(.system(size: 8, weight: .heavy))
       .foregroundStyle(.black)
       .frame(width: 15, height: 15)
-      .background(Circle().fill(DiloBrand.mango))
+      .background(Circle().fill(PaletaDeDilo.actual.acento.color))
       .accessibilityLabel(Text(esNota ? "Guardar la nota" : "Terminar"))
   }
 
@@ -149,10 +149,17 @@ struct HUDLineaSobria: View {
     } else {
       Text(linea)
         .font(.system(size: Self.cuerpo, weight: .regular))
-        .foregroundStyle(.white.opacity(0.9))
+        .foregroundStyle(esError ? PaletaDeDilo.actual.error.color : .white.opacity(0.9))
         .lineLimit(1)
         .truncationMode(.tail)
     }
+  }
+
+  /// Si la línea es un aviso o un error: va en el color de error de la
+  /// paleta. Con la de fábrica es el mismo blanco del resto.
+  private var esError: Bool {
+    if case .resultado(.aviso) = content.estado { return true }
+    return false
   }
 
   /// Lo comprometido en blanco y la conjetura del reconocedor más apagada,

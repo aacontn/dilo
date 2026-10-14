@@ -36,7 +36,7 @@ struct HUDCursorDeDictado: View {
 
   private func barra(visible: Bool) -> some View {
     RoundedRectangle(cornerRadius: 1 * scale, style: .continuous)
-      .fill(DiloBrand.mango)
+      .fill(PaletaDeDilo.actual.cursor.color)
       .frame(width: 2 * scale, height: 15 * scale)
       .opacity(visible ? 1 : 0)
   }
