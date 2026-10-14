@@ -179,6 +179,27 @@ extension DirectDictationController {
       _ proveedor: ResolucionDeProveedor.DeSesion
     ) async -> TransformacionDeModo.Resultado
 
+    /// Cómo se lee lo que rodea al dictado en la otra app. Con valor por
+    /// defecto: un test que no lo arma tiene destinos sin ancla y sin
+    /// navegador, así que no se lee nada.
+    var lectoresDeContexto: LectoresDeContexto = .delAnfitrion
+    /// Correr un modo con el contexto de la app como dato no confiable, y si
+    /// puede viajar a un proveedor en línea. Nil corre `transformar` sin
+    /// contexto, que es lo que los tests de antes esperan.
+    var transformarConContexto: (@Sendable (
+      _ texto: String,
+      _ modo: Modo,
+      _ proveedor: ResolucionDeProveedor.DeSesion,
+      _ contexto: SobreDelDictado.ContextoDeLaApp?,
+      _ contextoEnLinea: Bool
+    ) async -> TransformacionDeModo.Resultado)?
+    /// El valor del campo donde se pegó, para el vigía de correcciones. La
+    /// misma lectura que verifica el pegado (`HostCapabilities.fotoDelCampo`),
+    /// fuera del actor principal: no se lee el campo de dos maneras.
+    var leerCampoParaAprender: @Sendable (AnclaDelFoco) async -> String? = { ancla in
+      await Task.detached(priority: .utility) { Anfitrion.actual.fotoDelCampo(ancla).valor }.value
+    }
+
     /// Builds the production boundaries around the live services the
     /// controller previously constructed itself.
     @MainActor
@@ -340,6 +361,12 @@ extension DirectDictationController {
         registrarLatencia: { await latencias.agregar($0) },
         transformar: { texto, modo, proveedor in
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
+        },
+        lectoresDeContexto: .delAnfitrion,
+        transformarConContexto: { texto, modo, proveedor, contexto, enLinea in
+          await TransformacionDeModo().correr(
+            texto, con: modo, deSesion: proveedor, contexto: contexto, contextoEnLinea: enLinea
+          )
         }
       )
     }

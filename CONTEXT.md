@@ -83,6 +83,23 @@ El diccionario personal: nombres, proyectos, siglas y términos técnicos que
 Dilo tiene que respetar. Se quedan sólo en esta compu. _Evitar_: vocabulario
 personalizado, custom words.
 
+**Contexto de la app** ·
+Lo que rodeaba al dictado al empezar —la app y, si la persona lo prende, el
+texto alrededor del cursor, la selección y el sitio— que un **Modo** usa
+como referencia para escribir bien los nombres. Nunca es una orden ni texto
+para pegar, y nunca se guarda. _Evitar_: screen context, contexto de
+pantalla.
+
+**Frase disparadora** ·
+Una frase dicha al principio o al final del dictado («como correo») que
+elige el **Modo** y se va del texto. Distinta de las palabras clave, que
+desempatan y se quedan. _Evitar_: trigger word, comando de voz.
+
+**Aprender de las correcciones** ·
+Ofrecer en la muesca agregar a **Tus palabras** lo que la persona corrigió a
+mano después de pegar. Nunca sin que lo acepte. _Evitar_: autoaprendizaje,
+learning.
+
 **Muletillas** ·
 Las palabras de relleno del español hablado que la limpieza saca. El
 spanglish técnico **no** es muletilla y queda intacto. _Evitar_: filler

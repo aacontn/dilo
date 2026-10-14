@@ -29,6 +29,12 @@ public protocol LectorDeAccesibilidad: Sendable {
   func fijarEspera(_ elemento: AXUIElement, segundos: Float)
   /// Si el atributo se puede escribir, o nil si la app no lo sabe decir.
   func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool?
+  /// Un atributo con parámetro, como el texto de un rango
+  /// (`kAXStringForRangeParameterizedAttribute`): leer cien caracteres
+  /// alrededor del cursor sin copiar el documento entero por IPC.
+  func atributoConParametro(
+    _ elemento: AXUIElement, _ nombre: String, _ parametro: CFTypeRef
+  ) -> CFTypeRef?
 }
 
 extension LectorDeAccesibilidad {
@@ -36,6 +42,11 @@ extension LectorDeAccesibilidad {
   public func fijarEspera(_ elemento: AXUIElement, segundos: Float) {}
 
   public func seEscribe(_ elemento: AXUIElement, _ nombre: String) -> Bool? { nil }
+
+  /// Un doble que no lo sabe contestar dice que no se pudo leer.
+  public func atributoConParametro(
+    _ elemento: AXUIElement, _ nombre: String, _ parametro: CFTypeRef
+  ) -> CFTypeRef? { nil }
 }
 
 /// El lector de verdad: la API de Accesibilidad tal cual.
@@ -86,5 +97,15 @@ public struct AccesibilidadDelSistema: LectorDeAccesibilidad {
     case .success: return seEscribe.boolValue
     default: return nil
     }
+  }
+
+  public func atributoConParametro(
+    _ elemento: AXUIElement, _ nombre: String, _ parametro: CFTypeRef
+  ) -> CFTypeRef? {
+    var valor: CFTypeRef?
+    guard AXUIElementCopyParameterizedAttributeValue(
+      elemento, nombre as CFString, parametro, &valor
+    ) == .success else { return nil }
+    return valor
   }
 }

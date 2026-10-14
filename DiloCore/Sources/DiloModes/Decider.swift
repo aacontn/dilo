@@ -46,15 +46,25 @@ public struct ContextoDeDecision: Equatable, Sendable {
   /// La app al frente cuando empezó el dictado. Es la señal más fuerte que
   /// existe y la más barata: no cuesta ni un milisegundo.
   public var appAlFrente: String?
+  /// El bundle id de esa app: un modo puede nombrarla así, sin depender de
+  /// cómo se llame en este idioma.
+  public var bundleID: String?
+  /// Dominio y ruta de la página, si la app es un navegador
+  /// (`LectorDeSitio`).
+  public var sitio: String?
   public var modoActivo: String?
   public var ultimasLineas: [String]
 
   public init(
     appAlFrente: String? = nil,
+    bundleID: String? = nil,
+    sitio: String? = nil,
     modoActivo: String? = nil,
     ultimasLineas: [String] = []
   ) {
     self.appAlFrente = appAlFrente
+    self.bundleID = bundleID
+    self.sitio = sitio
     self.modoActivo = modoActivo
     self.ultimasLineas = ultimasLineas
   }

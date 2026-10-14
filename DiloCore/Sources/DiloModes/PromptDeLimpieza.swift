@@ -17,26 +17,63 @@ import Foundation
 /// dictada quedan escapados adentro del campo: no hay cómo salirse.
 public struct SobreDelDictado: Encodable, Equatable, Sendable {
   public var dictado: String
-  /// La app, el texto antes del cursor, la selección. Lo escribió otra
-  /// persona o otra app, así que es material de consulta y nunca una orden.
-  /// Hoy siempre va nil: leerlo es trabajo del capítulo de contexto.
+  /// La app, el sitio, el texto alrededor del cursor, la selección. Lo
+  /// escribió otra persona u otra app, así que es material de consulta y
+  /// nunca una orden. Lo llena `ContextoCapturado.paraElSobre`, sólo con las
+  /// fuentes que la persona prendió.
   public var contextoNoConfiable: ContextoDeLaApp?
 
   public struct ContextoDeLaApp: Encodable, Equatable, Sendable {
-    public var app: String
+    public var app: String?
+    /// `CategoriaDeApp.rawValue`: «correo», «mensajeria», «codigo»…
+    public var categoria: String?
+    public var sitio: String?
     public var textoAntesDelCursor: String?
+    public var textoDespuesDelCursor: String?
     public var seleccion: String?
 
-    public init(app: String, textoAntesDelCursor: String? = nil, seleccion: String? = nil) {
+    public init(
+      app: String? = nil,
+      categoria: String? = nil,
+      sitio: String? = nil,
+      textoAntesDelCursor: String? = nil,
+      textoDespuesDelCursor: String? = nil,
+      seleccion: String? = nil
+    ) {
       self.app = app
+      self.categoria = categoria
+      self.sitio = sitio
       self.textoAntesDelCursor = textoAntesDelCursor
+      self.textoDespuesDelCursor = textoDespuesDelCursor
       self.seleccion = seleccion
     }
 
+    public var estaVacio: Bool {
+      [app, categoria, sitio, textoAntesDelCursor, textoDespuesDelCursor, seleccion]
+        .allSatisfy { $0?.isEmpty ?? true }
+    }
+
     enum CodingKeys: String, CodingKey {
-      case app
+      case app, categoria, sitio
       case textoAntesDelCursor = "texto_antes_del_cursor"
+      case textoDespuesDelCursor = "texto_despues_del_cursor"
       case seleccion
+    }
+
+    /// Los textos recortados para que quepan en `tope` caracteres entre
+    /// todos: del texto antes del cursor importa el final, que es lo más
+    /// cercano a lo que viene; de lo de después y de la selección, el
+    /// comienzo. Antes la mitad, la selección un tercio, después un sexto.
+    func recortado(a tope: Int) -> ContextoDeLaApp {
+      var copia = self
+      copia.textoAntesDelCursor = textoAntesDelCursor.map { String($0.suffix(tope / 2)) }
+      copia.seleccion = seleccion.map { String($0.prefix(tope / 3)) }
+      copia.textoDespuesDelCursor = textoDespuesDelCursor.map { String($0.prefix(tope / 6)) }
+      for clave in [\ContextoDeLaApp.textoAntesDelCursor, \.seleccion, \.textoDespuesDelCursor]
+      where copia[keyPath: clave]?.isEmpty == true {
+        copia[keyPath: clave] = nil
+      }
+      return copia
     }
   }
 
@@ -50,16 +87,14 @@ public struct SobreDelDictado: Encodable, Equatable, Sendable {
     case contextoNoConfiable = "contexto_no_confiable"
   }
 
-  /// El contexto se recorta para que no se coma la ventana: del texto antes
-  /// del cursor importa el final, de la selección el comienzo.
+  /// El contexto se recorta para que no se coma la ventana
+  /// (`ContextoDeLaApp.recortado`); un tope de cero lo saca entero, y un
+  /// contexto que queda vacío no se escribe.
   public func json(topeDeContexto: Int) -> String {
     var copia = self
-    if var contexto = copia.contextoNoConfiable {
-      contexto.textoAntesDelCursor = contexto.textoAntesDelCursor.map {
-        String($0.suffix(topeDeContexto))
-      }
-      contexto.seleccion = contexto.seleccion.map { String($0.prefix(topeDeContexto / 2)) }
-      copia.contextoNoConfiable = contexto
+    if let contexto = copia.contextoNoConfiable {
+      let recortado = contexto.recortado(a: max(0, topeDeContexto))
+      copia.contextoNoConfiable = topeDeContexto <= 0 || recortado.estaVacio ? nil : recortado
     }
     let codificador = JSONEncoder()
     codificador.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -148,8 +183,11 @@ public enum PromptDeLimpieza {
   ///   primero los ejemplos del final y después las reglas; el marco nunca.
   ///   Mejor una limpieza con menos ejemplos que un dictado que no cabe y
   ///   sale sin limpiar.
+  /// - Parameter largoDelContexto: lo que mide el contexto que va en la
+  ///   petición (`topeDeContexto(enElChipPara:largoDelDictado:)`). Entra una
+  ///   vez y no sale: cuenta una.
   public static func instrucciones(
-    para modo: Modo, largoDelDictado: Int = 0, ventana: Int? = nil
+    para modo: Modo, largoDelDictado: Int = 0, ventana: Int? = nil, largoDelContexto: Int = 0
   ) -> String {
     let conReglas = modo.cuidado == .limpieza
     var cuantos = conReglas ? ejemplos.count : 0
@@ -164,7 +202,8 @@ public enum PromptDeLimpieza {
     }
     guard let ventana else { return armar() }
     // El dictado entra una vez y vuelve a salir limpio: cuenta dos veces.
-    let disponible = ventana - holguraDelChip - 2 * (largoDelDictado / 3 + 1)
+    let contexto = largoDelContexto > 0 ? largoDelContexto / 3 + 1 : 0
+    let disponible = ventana - holguraDelChip - 2 * (largoDelDictado / 3 + 1) - contexto
     var texto = armar()
     while tokensEstimados(texto) > disponible, cuantos > 0 || reglasVan {
       if cuantos > 0 { cuantos -= 1 } else { reglasVan = false }
@@ -172,6 +211,26 @@ public enum PromptDeLimpieza {
     }
     return texto
   }
+
+  /// Cuántos caracteres de contexto caben en el chip con este dictado.
+  ///
+  /// El dictado manda: entra y vuelve a salir limpio, así que cuenta dos
+  /// veces, y el marco y las reglas del modo van antes que el contexto. Lo
+  /// que sobra, hasta `topeDeContextoEnElChip`; con un dictado largo, nada.
+  /// Los ejemplos ceden después, en `instrucciones`, que recibe lo que el
+  /// contexto ocupó.
+  public static func topeDeContexto(enElChipPara modo: Modo, largoDelDictado: Int) -> Int {
+    var fijo = holguraDelChip + tokensEstimados(marco) + 2 * (largoDelDictado / 3 + 1)
+      + tokensEstimados(modo.prompt) + tokensEstimados(modo.instruccionFinal)
+    if modo.cuidado == .limpieza { fijo += tokensEstimados(reglas) }
+    // Las claves del sobre, las comillas y lo que el codificador escapa.
+    let sobra = ventanaDelChip - fijo - margenDelSobre
+    return max(0, min(topeDeContextoEnElChip, sobra * 3))
+  }
+
+  /// Lo que el JSON del contexto pide además del texto: seis claves, sus
+  /// comillas y los escapes de algún salto de línea.
+  static let margenDelSobre = 80
 
   /// El turno del usuario: el encargo del modo afuera —es de quien dicta y sí
   /// es confiable—, el sobre JSON adentro y el recordatorio de cierre al

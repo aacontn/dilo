@@ -139,6 +139,26 @@ public enum MigracionDeModos {
     )
   }
 
+  /// Los sitios y las frases que eligen a cada modo de fábrica llegaron
+  /// después de que ya había modos guardados: a esos les faltan, y sin esto
+  /// sólo una instalación nueva o «Restaurar los de fábrica» los traería.
+  ///
+  /// Corre una vez (la marca la guarda `AppSettings`). Toca sólo los de
+  /// fábrica que no tienen **ni** sitios **ni** frases: antes de esta versión
+  /// el campo no existía, así que vacío es «nunca se eligió», y a uno que la
+  /// persona ya editó no se le pisa nada.
+  public static func sumarSenalesDeFabrica(_ modos: [Modo]) -> [Modo] {
+    modos.map { modo in
+      guard modo.esDeFabrica, modo.sitios.isEmpty, modo.disparadoras.isEmpty,
+        let deFabrica = Modo.deFabrica.modo(modo.id)
+      else { return modo }
+      var conSenales = modo
+      conSenales.sitios = deFabrica.sitios
+      conSenales.disparadoras = deFabrica.disparadoras
+      return conSenales
+    }
+  }
+
   /// El id del modo que sale de un prompt heredado. Con prefijo para que no
   /// choque nunca con un id de fábrica de Dilo ni con un UUID de uno nuevo.
   public static func idDeModo(_ idHeredado: String) -> String {

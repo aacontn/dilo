@@ -88,6 +88,24 @@ public protocol HostCapabilities: Sendable {
   /// Lo que se puede leer del campo del ancla para saber si un pegado
   /// entró. Vacía (`esLegible == false`) donde no se puede leer.
   func fotoDelCampo(_ ancla: AnclaDelFoco) -> FotoDelCampo
+
+  /// Hasta `tope` caracteres a cada lado del cursor del ancla, y la
+  /// selección. Vacío donde no se puede leer otra app.
+  func textoAlrededor(de ancla: AnclaDelFoco, tope: Int) -> TextoAlrededorDelCursor
+
+  /// El dominio y la ruta de la página que muestra el navegador `pid`, o
+  /// nil. Se rinde en `limite`.
+  func sitio(dePid pid: pid_t, hasta limite: ContinuousClock.Instant) -> String?
+}
+
+extension HostCapabilities {
+  /// Lo que no puede leer otra app no lee nada: la respuesta de un anfitrión
+  /// que no lo implementa es la del sandbox.
+  public func textoAlrededor(de ancla: AnclaDelFoco, tope: Int) -> TextoAlrededorDelCursor {
+    TextoAlrededorDelCursor()
+  }
+
+  public func sitio(dePid pid: pid_t, hasta limite: ContinuousClock.Instant) -> String? { nil }
 }
 
 /// El anfitrión de esta ejecución, resuelto una vez.

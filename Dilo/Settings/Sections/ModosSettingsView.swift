@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloModes
 import SwiftUI
 
@@ -60,9 +61,11 @@ struct ModosSettingsView: View {
 
         SettingsRow(
           title: "Cuándo corresponde cada modo",
-          description: "Las apps y las palabras que delatan a cada modo son lo que Dilo mira para decidir. Se editan dentro del modo, en «Afinarlo más»."
+          description: "Primero una frase dicha al principio o al final, como «como correo», que elige el modo aunque esto esté apagado y se va del texto. Con esto prendido, después el sitio del navegador, la app y las palabras que delatan a cada modo. Se editan dentro del modo, en «Afinarlo más»."
         ) { EmptyView() }
       }
+
+      ContextoDeLosModosCard(settings: settings)
 
       SettingsCard(title: "Proveedor general") {
         SettingsRow(
@@ -334,9 +337,20 @@ struct ModoEditorView: View {
             .font(.caption)
             .foregroundStyle(.white.opacity(0.45))
             .fixedSize(horizontal: false, vertical: true)
-          TextField("Apps", text: lista($modo.apps))
+          TextField("Apps (nombre o bundle id)", text: lista($modo.apps))
             .textFieldStyle(.roundedBorder)
           TextField("Palabras clave", text: lista($modo.palabrasClave))
+            .textFieldStyle(.roundedBorder)
+          if Anfitrion.actual.admite(.sitioDelNavegador) {
+            TextField("Sitios (github.com, mail.google.com/mail)", text: lista($modo.sitios))
+              .textFieldStyle(.roundedBorder)
+          }
+
+          Text("Si dices una de estas frases al principio o al final del dictado, se usa este modo y la frase no se pega. Le gana a todo menos a la tecla, y funciona aunque Dilo no elija solo.")
+            .font(.caption)
+            .foregroundStyle(.white.opacity(0.45))
+            .fixedSize(horizontal: false, vertical: true)
+          TextField("Frases que lo eligen (como correo)", text: lista($modo.disparadoras))
             .textFieldStyle(.roundedBorder)
         }
         .padding(.top, 8)

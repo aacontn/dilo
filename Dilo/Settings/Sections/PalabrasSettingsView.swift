@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloText
 import SwiftUI
 
@@ -42,6 +43,21 @@ struct PalabrasSettingsView: View {
         }
       }
 
+      // Lee el campo de otra app después de pegar: donde no se puede (App
+      // Store), la opción no existe.
+      if Anfitrion.actual.admite(.vigiaDeCorrecciones) {
+        SettingsCard(title: "Aprender de tus correcciones") {
+          SettingsRow(
+            title: "Ofrecer lo que corrijo a mano",
+            description: "Si arreglas una palabra que Dilo pegó mal, como «cuba netes» por «Kubernetes», la muesca te ofrece aprenderla. Nunca agrega nada sin que aceptes, y lo aprendido queda acá abajo, donde se borra. Mira el campo 30 segundos después de pegar, nunca un campo de contraseña, y no guarda lo que lee."
+          ) {
+            Toggle("Ofrecer lo que corrijo a mano", isOn: $settings.aprenderDeCorrecciones)
+              .labelsHidden()
+              .toggleStyle(.switch)
+          }
+        }
+      }
+
       SettingsCard(title: "Cuando digo…") {
         SettingsRow(
           title: "Escríbelo así",
@@ -64,7 +80,7 @@ struct PalabrasSettingsView: View {
             title: "\(reemplazo.dice) → \(reemplazo.escribe)",
             description: reemplazo.dice.count < 4
               ? "Corto y común: va a cambiar en todas partes donde lo digas."
-              : ""
+              : reemplazo.aprendido ? "Aprendida de una corrección tuya." : ""
           ) {
             Button("Quitar") { settings.reemplazos.removeAll { $0 == reemplazo } }
               .buttonStyle(SettingsButtonStyle())

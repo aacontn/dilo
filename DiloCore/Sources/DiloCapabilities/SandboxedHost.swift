@@ -45,7 +45,7 @@ public struct SandboxedHost: HostCapabilities {
       true
     case .focoAntesDePegar, .relecturaDelFoco, .tituloDeVentanaActiva,
       .arrastreDeArchivosAlNotch, .consumoDeIADeOtrasApps, .notasDeApple,
-      .atajoAlProceso:
+      .atajoAlProceso, .contextoDelCampo, .sitioDelNavegador, .vigiaDeCorrecciones:
       false
     }
   }

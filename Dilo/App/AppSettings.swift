@@ -82,6 +82,9 @@ final class AppSettings {
     static let muletillasPropias = "diloMuletillasPropias"
     static let comandosDeFormato = "diloComandosDeFormato"
     static let reemplazos = "diloReemplazos"
+    static let fuentesDeContexto = "diloFuentesDeContexto"
+    static let migracionDeSenales = "diloMigracionDeSenales"
+    static let aprenderDeCorrecciones = "diloAprenderDeCorrecciones"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -247,6 +250,25 @@ final class AppSettings {
         defaults.set(datos, forKey: Keys.reemplazos)
       }
     }
+  }
+
+  /// Qué le cuenta Dilo al modelo de texto sobre dónde dictas: la app, y si
+  /// la persona lo prende, el texto alrededor del cursor, la selección y el
+  /// sitio. Se guarda como JSON; uno ilegible vuelve a los de fábrica (sólo
+  /// la app).
+  var fuentesDeContexto: FuentesDeContexto {
+    didSet {
+      if let datos = try? JSONEncoder().encode(fuentesDeContexto) {
+        defaults.set(datos, forKey: Keys.fuentesDeContexto)
+      }
+    }
+  }
+
+  /// Si Dilo mira el campo un rato después de pegar para ofrecer aprender
+  /// lo que corregiste. Prendido de fábrica en el target directo: nunca
+  /// agrega nada sin que lo aceptes en la muesca. En App Store no existe.
+  var aprenderDeCorrecciones: Bool {
+    didSet { defaults.set(aprenderDeCorrecciones, forKey: Keys.aprenderDeCorrecciones) }
   }
 
   /// Lo que `DiloText` necesita saber, armado en un solo lugar.
@@ -624,12 +646,28 @@ final class AppSettings {
       defaults.set(migracion.unAtajoDiloDecide, forKey: Keys.unAtajoDiloDecide)
       defaults.set(migracion.version, forKey: Keys.migracionDeModos)
     }
+    // Los sitios y las frases de los modos de fábrica, una vez, a quien ya
+    // tenía modos guardados (`MigracionDeModos.sumarSenalesDeFabrica`). La
+    // marca va última, por lo mismo que arriba.
+    if !defaults.bool(forKey: Keys.migracionDeSenales) {
+      let conSenales = MigracionDeModos.sumarSenalesDeFabrica(migracion.modos)
+      if conSenales != migracion.modos {
+        modos = conSenales
+        if let datos = try? JSONEncoder().encode(conSenales) {
+          defaults.set(datos, forKey: Keys.modos)
+        }
+      }
+      defaults.set(true, forKey: Keys.migracionDeSenales)
+    }
     palabrasPropias = defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
     limpiarMuletillas = defaults.object(forKey: Keys.limpiarMuletillas) as? Bool ?? true
     muletillasPropias = defaults.stringArray(forKey: Keys.muletillasPropias) ?? []
     comandosDeFormato = defaults.object(forKey: Keys.comandosDeFormato) as? Bool ?? true
     reemplazos = defaults.data(forKey: Keys.reemplazos)
       .flatMap { try? JSONDecoder().decode([Reemplazo].self, from: $0) } ?? []
+    fuentesDeContexto = defaults.data(forKey: Keys.fuentesDeContexto)
+      .flatMap { try? JSONDecoder().decode(FuentesDeContexto.self, from: $0) } ?? .deFabrica
+    aprenderDeCorrecciones = defaults.object(forKey: Keys.aprenderDeCorrecciones) as? Bool ?? true
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas
