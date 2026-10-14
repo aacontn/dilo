@@ -68,7 +68,14 @@ struct DictationHUDShellView: View {
     // sola línea, sin bandas apiladas (`HUDLineaSobria`). La pila de bandas
     // se queda para el notch real, donde el contenido tiene que colgar por
     // debajo del recorte físico.
-    guard !sinCarcasa else { return HUDNotchGeometry.tamañoDictando(for: screen) }
+    //
+    // Un aviso es la excepción: no es una sesión en curso sino lo que quedó
+    // de ella, y se abre con la forma de Droppy (`FormaAbierta`).
+    guard !sinCarcasa else {
+      return content.estado.abreElAviso
+        ? HUDNotchGeometry.tamañoDelAviso(for: screen)
+        : HUDNotchGeometry.tamañoDictando(for: screen)
+    }
     return HUDNotchGeometry.contentSize(
       for: screen,
       metrics: metrics,
@@ -235,6 +242,10 @@ struct DictationHUDShellView: View {
       tamañoEnReposo: tamañoEnReposo,
       costados: costados,
       vidrio: content.panelDeVidrio,
+      // Sin carcasa sólo el aviso es grande; contra una carcasa, toda forma
+      // abierta es la pila de bandas que cuelga del recorte.
+      formaGrande: !sinCarcasa || content.estado.abreElAviso,
+      filo: filo,
       content: { cuerpo },
       overlays: {
         particleCloud
@@ -270,6 +281,30 @@ struct DictationHUDShellView: View {
         pantalla: screen.nombre,
         notchReal: HUDNotchGeometry.hasMeasuredNotch(for: screen)
       )
+    }
+  }
+
+  /// El filo de color del borde de abajo (`FiloDeLaMuesca`): el acento
+  /// mientras la muesca escucha o trabaja, la menta en el acuse, el coral en
+  /// un error, el ámbar con el micrófono muerto, y el acento más bajo con el
+  /// panel del hover abierto. En reposo, nada: el reposo no cambia.
+  private var filo: Color? {
+    let paleta = PaletaDeDilo.actual
+    switch content.estado {
+    case .reposo:
+      return content.contextoVisible == nil ? nil : paleta.filo.color.opacity(0.6)
+    case .dictando:
+      return content.isAudioAlive
+        ? paleta.filo.color
+        : paleta.microfonoMuerto.color.opacity(0.6)
+    case .preparando, .procesando:
+      return paleta.filo.color.opacity(0.55)
+    case .resultado(.listo):
+      return paleta.acuse.color.opacity(0.85)
+    case .resultado(.aviso):
+      return paleta.error.color.opacity(0.75)
+    case .resultado:
+      return paleta.filo.color
     }
   }
 
@@ -361,7 +396,7 @@ struct DictationHUDShellView: View {
     if sinCarcasa {
       HUDLineaSobria(
         content: content,
-        alto: HUDNotchGeometry.tamañoDictando(for: screen).height,
+        alto: size.height,
         reduceMotion: reduceMotion
       )
     } else {

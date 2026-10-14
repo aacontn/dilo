@@ -6,7 +6,7 @@ import Testing
 
 /// El panel del hover al estilo Dynamic Glass. El vidrio no sale en PNG, así
 /// que lo que se afirma acá son los números y quién lo enciende: que está
-/// apagado de fábrica, que el arnés lo enciende sólo en sus escenas y que
+/// encendido de fábrica, que el arnés lo enciende sólo en sus escenas y que
 /// soltar la muestra lo apaga.
 @Suite("Vidrio de la muesca")
 struct VidrioDeLaMuescaTests {
@@ -35,13 +35,41 @@ struct VidrioDeLaMuescaTests {
     #expect(CurvaDeLaMuesca(respuesta: 0.5, amortiguacion: 1).sobrepaso == 0)
   }
 
+  /// Encendido de fábrica desde el 2026-10-14, y apagable: lo que alguien
+  /// eligió se respeta. El contenido arranca sin vidrio porque el escenario
+  /// lo lee del ajuste recién al abrir el panel.
   @MainActor
-  @Test func apagadoDeFabrica() {
+  @Test func encendidoDeFabricaYApagable() {
     let nombre = "VidrioDeLaMuescaTests-\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: nombre)!
     defer { defaults.removePersistentDomain(forName: nombre) }
-    #expect(!AppSettings(defaults: defaults).hudPanelDeVidrio)
+    #expect(AppSettings(defaults: defaults).hudPanelDeVidrio)
     #expect(!DictationHUDContent().panelDeVidrio)
+    AppSettings(defaults: defaults).hudPanelDeVidrio = false
+    #expect(!AppSettings(defaults: defaults).hudPanelDeVidrio)
+  }
+
+  /// La forma abierta lleva los hombros de Droppy hasta donde la ventana
+  /// abierta deja lugar para sus alas y su sombra; la píldora, ninguno.
+  @Test func losHombrosDeLaFormaAbierta() {
+    let simulada = HUDScreenSnapshot(
+      id: 3, frame: CGRect(x: 0, y: 0, width: 1920, height: 1080), safeAreaTop: 0,
+      auxiliaryTopLeftArea: nil, auxiliaryTopRightArea: nil, menuBarHeight: 24
+    )
+    var pildora = simulada
+    pildora.estiloSinNotch = .pildora
+    let panel = CGSize(width: 400, height: 120)
+    let hombro = FormaAbierta.hombro(para: panel, en: simulada)
+    let ventana = HUDNotchGeometry.windowSize(for: simulada)
+    #expect(hombro > HUDNotchGeometry.filletSize(for: simulada))
+    #expect(hombro <= FormaAbierta.hombro)
+    #expect(panel.width + 2 * (hombro + HUDNotchGeometry.holguraDeSombra()) <= ventana.width)
+    let aviso = HUDNotchGeometry.tamañoDelAviso(for: simulada)
+    // El aviso: borde de abajo redondo entero y el hombro hasta donde empieza.
+    let radio = FormaAbierta.radioDelAviso(para: aviso)
+    #expect(radio == aviso.height / 2)
+    #expect(FormaAbierta.hombro(para: aviso, en: simulada, radioInferior: radio) == aviso.height - radio)
+    #expect(FormaAbierta.hombro(para: panel, en: pildora) == 0)
   }
 
   @MainActor

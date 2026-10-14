@@ -196,6 +196,14 @@ prefijo, porque se come justo las palabras que se vienen a leer. El modo se
 dice en reposo —si se pidió— y en el panel del hover. Procesando, preparando y
 el aviso de error miden lo mismo.
 
+> **Enmienda del 2026-10-14:** el aviso deja de medir lo mismo. Con la 0.4.4
+> puesta, Alfonso: «no le veo […] la forma linda de Droppy». Un resultado con
+> palabras —error, tarjeta sin pegar, arreglo con un clic, «Copiado»— abre la
+> forma del aviso (`HUDNotchGeometry.tamañoDelAviso`, 304×38 con la barra de
+> 24): hombros grandes, el borde de abajo redondo entero, un ícono de color y
+> la frase en blanco, en una línea. Dictar, procesar, preparar y el acuse
+> siguen en 184×26.
+
 **«Encuentro que es una tontera, sácaselo.»** Fuera «Te escucho…» y «Te
 escucho (trabado)». La onda ya dice que el micrófono está abierto, y una frase
 de estado obliga a la muesca a medir lo que mida esa frase en el idioma más
@@ -280,9 +288,10 @@ SwiftUI.
   > núcleo: la cabecera —la silueta en reposo, la carcasa, la franja de la
   > barra— es negra siempre, y la muesca en reposo y dictando no lleva
   > vidrio. Lo que cuelga hacia el escritorio sí puede: el panel del hover
-  > negro en la muesca que se funde en vidrio (`PanelDeVidrio`, apagado de
-  > fábrica detrás de `hudPanelDeVidrio`), y lo que venga después con la
-  > misma regla. El vidrio no sale en PNG: se juzga en la pantalla con
+  > negro en la muesca que se funde en vidrio (`PanelDeVidrio`, encendido de
+  > fábrica desde la misma fecha, con «Panel con vidrio» en Apariencia para
+  > apagarlo y negro si el sistema pide reducir la transparencia), y lo que
+  > venga después con la misma regla. El vidrio no sale en PNG: se juzga en la pantalla con
   > `scripts/muesca.sh mostrar hover-vidrio hover-completo-vidrio`.
 - **El botón de cancelar y el cronómetro.** Mientras se dicta la forma no toma
   el mouse (contrato del notch: el clic es del documento en el que estás

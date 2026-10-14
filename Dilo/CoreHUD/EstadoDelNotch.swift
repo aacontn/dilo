@@ -85,6 +85,16 @@ enum EstadoDelNotch: Equatable, Sendable {
     self == .reposo
   }
 
+  /// Si este estado abre la forma del aviso (`HUDNotchGeometry.tamañoDelAviso`)
+  /// en vez de la muesca de dictar: un resultado que dice algo con palabras
+  /// —un error, la tarjeta de un dictado sin pegar, un arreglo con un clic,
+  /// «Copiado»—. El acuse no: es el check dentro de la muesca de dictar, y
+  /// terminar bien no agranda nada.
+  var abreElAviso: Bool {
+    guard case let .resultado(resultado) = self else { return false }
+    return !resultado.esAcuse
+  }
+
   /// El nombre corto con que este estado aparece en el log de la muesca
   /// (`RegistroDeLaMuesca`). Sin pasar por el catálogo a propósito: `log show`
   /// tiene que leerse igual en un Mac en inglés que en uno en español, y el

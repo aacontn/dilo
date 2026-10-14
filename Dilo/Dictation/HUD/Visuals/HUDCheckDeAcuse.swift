@@ -33,17 +33,35 @@ struct HUDCheckDeAcuse: View {
   @State private var dibujado = false
 
   var body: some View {
-    TrazoDelCheck()
-      .trim(from: 0, to: dibujado || reduceMotion ? 1 : 0)
-      .stroke(
-        PaletaDeDilo.actual.acuse.color,
-        style: StrokeStyle(lineWidth: 1.8 * (lado / 15), lineCap: .round, lineJoin: .round)
-      )
-      .frame(width: lado, height: lado)
-      .animation(reduceMotion ? nil : .easeOut(duration: Self.trazado), value: dibujado)
-      .onAppear { dibujado = true }
-      .accessibilityHidden(true)
+    let acuse = PaletaDeDilo.actual.acuse.color
+    ZStack {
+      // Un disco tenue del mismo color detrás del trazo, y el trazo con su
+      // luz: solo, el check de 13 puntos en una línea de 1,6 se perdía en el
+      // negro y el acuse —el único momento en que la muesca dice «salió
+      // bien»— pasaba sin que se notara el color (2026-10-14). Sigue sin
+      // agrandar la muesca: el disco cabe en la línea de 26 puntos.
+      Circle()
+        .fill(acuse.opacity(0.16))
+        .frame(width: lado * Self.disco, height: lado * Self.disco)
+        .scaleEffect(dibujado || reduceMotion ? 1 : 0.6)
+        .opacity(dibujado || reduceMotion ? 1 : 0)
+      TrazoDelCheck()
+        .trim(from: 0, to: dibujado || reduceMotion ? 1 : 0)
+        .stroke(
+          acuse,
+          style: StrokeStyle(lineWidth: 1.8 * (lado / 15), lineCap: .round, lineJoin: .round)
+        )
+        .shadow(color: acuse.opacity(0.7), radius: 3)
+        .frame(width: lado, height: lado)
+    }
+    .frame(width: lado * Self.disco, height: lado * Self.disco)
+    .animation(reduceMotion ? nil : .easeOut(duration: Self.trazado), value: dibujado)
+    .onAppear { dibujado = true }
+    .accessibilityHidden(true)
   }
+
+  /// Cuánto mide el disco de atrás respecto del lado del check.
+  static let disco: CGFloat = 1.45
 }
 
 /// El trazado de `.scheck`, en su lienzo original de 16×16 y escalado al

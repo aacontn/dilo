@@ -229,6 +229,33 @@ enum HUDNotchGeometry {
     )
   }
 
+  /// La muesca de un aviso del camino del error, en una pantalla sin carcasa:
+  /// la del dictado ensanchada y con aire abajo, para que tenga la forma
+  /// abierta de Droppy —hombros grandes y el borde de abajo redondo entero—
+  /// y lugar para el ícono de color y, si lo hay, el botón
+  /// (`FormaAbierta`, 2026-10-14).
+  ///
+  /// **Dictar no cambia**: sigue en `tamañoDictando`, que es la regla de no
+  /// crecer al dictar. Lo que crece es sólo lo que no es una sesión en curso
+  /// —un aviso, la tarjeta de un dictado que no se pegó, un arreglo con un
+  /// clic, «Copiado»—, que dura unos segundos y tiene que leerse; el acuse
+  /// sigue siendo el check dentro de la muesca de dictar. Sigue siendo una
+  /// sola línea de unos treinta caracteres.
+  static func tamañoDelAviso(for screen: HUDScreenSnapshot) -> CGSize {
+    let dictando = tamañoDictando(for: screen)
+    return CGSize(
+      width: max(dictando.width, anchoDelAviso),
+      height: dictando.height + aireDelAviso
+    )
+  }
+
+  /// El ancho del aviso: ícono, una línea de unos cuarenta caracteres en
+  /// once puntos —«No pude pegarlo: quedó en el portapapeles» entera— o una
+  /// de treinta con el botón de un arreglo.
+  static let anchoDelAviso: CGFloat = 304
+  /// Lo que el aviso cuelga por debajo de la muesca de dictar.
+  static let aireDelAviso: CGFloat = 12
+
   /// El alto del panel que abre el hover: la silueta más lo que pide una
   /// línea, con techo.
   ///
@@ -605,6 +632,7 @@ enum HUDNotchGeometry {
       posibles.datos = posibles.datos || screen.anchoDeLosLados > 0
       return max(
         tamañoDictando(for: screen).height,
+        tamañoDelAviso(for: screen).height,
         altoDelPanelDeHover(for: screen, secciones: posibles)
       )
     }

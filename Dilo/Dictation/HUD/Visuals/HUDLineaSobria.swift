@@ -56,6 +56,9 @@ struct HUDLineaSobria: View {
           .frame(maxWidth: .infinity)
       } else {
         HStack(spacing: 6) {
+          if let icono = iconoDelAviso {
+            insignia(icono)
+          }
           // Una nota lo dice antes que nada, con palabra y no sólo con ícono:
           // estas palabras van a Notas, no a donde está el cursor.
           if esNota {
@@ -72,7 +75,9 @@ struct HUDLineaSobria: View {
           }
           texto
             .frame(maxWidth: .infinity, alignment: .leading)
-          if content.sesionTrabadaEnCurso {
+          if let accion = accionDelAviso {
+            botonDelAviso(accion)
+          } else if content.sesionTrabadaEnCurso {
             botonDeGuardar
           } else if muestraOnda {
             // El cursor mango dice lo que ninguna onda dice: que lo escrito
@@ -82,7 +87,10 @@ struct HUDLineaSobria: View {
         }
       }
     }
-    .padding(.horizontal, 10)
+    // El aviso es la forma grande, con el borde de abajo redondo entero:
+    // más aire a los costados para que el ícono y el botón no queden
+    // pegados a la curva.
+    .padding(.horizontal, content.estado.abreElAviso ? 16 : 10)
     .frame(height: alto)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Text("Dilo"))
@@ -148,18 +156,63 @@ struct HUDLineaSobria: View {
       )
     } else {
       Text(linea)
-        .font(.system(size: Self.cuerpo, weight: .regular))
-        .foregroundStyle(esError ? PaletaDeDilo.actual.error.color : .white.opacity(0.9))
+        .font(.system(size: Self.cuerpo, weight: content.estado.abreElAviso ? .medium : .regular))
+        // Blanco: el color del aviso lo llevan el ícono y el filo del borde
+        // (`FiloDeLaMuesca`). Una línea entera en coral sobre el negro se
+        // leía como una alarma y no como una frase.
+        .foregroundStyle(.white.opacity(0.92))
         .lineLimit(1)
         .truncationMode(.tail)
     }
   }
 
-  /// Si la línea es un aviso o un error: va en el color de error de la
-  /// paleta. Con la de fábrica es el mismo blanco del resto.
-  private var esError: Bool {
-    if case .resultado(.aviso) = content.estado { return true }
-    return false
+  /// El ícono de un aviso y su color: qué clase de cosa pasó, antes de leer
+  /// la frase. Sólo en los estados que abren la forma del aviso.
+  private var iconoDelAviso: (nombre: String, color: Color)? {
+    let paleta = PaletaDeDilo.actual
+    switch content.estado {
+    case .resultado(.aviso): return ("exclamationmark", paleta.error.color)
+    case .resultado(.copiado): return ("checkmark", paleta.acuse.color)
+    case .resultado(.retenido): return ("doc.on.clipboard.fill", paleta.acento.color)
+    case let .resultado(.accionable(aviso)):
+      switch aviso.accion {
+      case .abrirAjustes: return ("gearshape.fill", paleta.acento.color)
+      case .deshacerCancelacion: return ("arrow.uturn.backward", paleta.acento.color)
+      }
+    default: return nil
+    }
+  }
+
+  /// Un ícono en su disco del mismo color, tenue: la marca de color del
+  /// aviso, como las de los HUD de Droppy.
+  private func insignia(_ icono: (nombre: String, color: Color)) -> some View {
+    Image(systemName: icono.nombre)
+      .font(.system(size: 9, weight: .bold))
+      .foregroundStyle(icono.color)
+      .frame(width: 19, height: 19)
+      .background(Circle().fill(icono.color.opacity(0.18)))
+      .accessibilityHidden(true)
+  }
+
+  /// Lo que el clic de un aviso accionable hace, dicho en el botón. El clic
+  /// lo recibe la muesca entera (`HUDStage`); el botón dice dónde tocar.
+  private var accionDelAviso: String? {
+    guard case let .resultado(.accionable(aviso)) = content.estado else { return nil }
+    switch aviso.accion {
+    case .abrirAjustes: return String(localized: "Abrir")
+    case .deshacerCancelacion: return String(localized: "Deshacer")
+    }
+  }
+
+  private func botonDelAviso(_ titulo: String) -> some View {
+    Text(verbatim: titulo)
+      .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+      .foregroundStyle(.black)
+      .padding(.horizontal, 9)
+      .padding(.vertical, 3)
+      .background(Capsule(style: .continuous).fill(PaletaDeDilo.actual.acento.color))
+      .fixedSize()
+      .accessibilityHidden(true)
   }
 
   /// Lo comprometido en blanco y la conjetura del reconocedor más apagada,

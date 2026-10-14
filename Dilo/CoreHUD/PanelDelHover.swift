@@ -156,7 +156,10 @@ struct HUDPanelDelHover: View {
         .frame(height: HUDNotchGeometry.altoDeLosModos, alignment: .top)
       }
     }
-    .padding(.horizontal, enTarjetas ? PanelDeVidrio.aireLateral : 16)
+    // El mismo aire con vidrio o en negro: desde el 2026-10-14 los dos abren
+    // con el radio de 40 de Droppy, y con 16 los chips del pie quedaban
+    // asomados fuera de la curva.
+    .padding(.horizontal, PanelDeVidrio.aireLateral)
     .padding(.bottom, secciones.llevaAire ? HUDNotchGeometry.aireAlPieDelPanel : 0)
   }
 
@@ -384,11 +387,28 @@ struct HUDPanelDelHover: View {
       .foregroundStyle(elegido ? .black : .white.opacity(0.75))
       .padding(.horizontal, 8)
       .padding(.vertical, 3)
-      .background(
-        Capsule(style: .continuous).fill(elegido ? PaletaDeDilo.actual.acento.color : .white.opacity(0.12))
-      )
+      .background { fondoDelChip(elegido: elegido) }
       .contentShape(Capsule())
       .onTapGesture { content.alElegirModo?(id) }
       .accessibilityAddTraits(elegido ? [.isButton, .isSelected] : .isButton)
+  }
+
+  /// La selección en el degradado de la onda —de azul a celeste en Glaciar,
+  /// de gris a blanco en Grafito— con su luz: el modo elegido es lo que más
+  /// tiene que saltar a la vista del panel. Lo no elegido, blanco tenue.
+  @ViewBuilder
+  private func fondoDelChip(elegido: Bool) -> some View {
+    if elegido {
+      let paleta = PaletaDeDilo.actual
+      Capsule(style: .continuous)
+        .fill(LinearGradient(
+          colors: [paleta.ondaBase.mezcla(con: paleta.ondaPunta, 0.35).color, paleta.ondaPunta.color],
+          startPoint: .leading,
+          endPoint: .trailing
+        ))
+        .shadow(color: paleta.halo.color.opacity(0.5), radius: 4)
+    } else {
+      Capsule(style: .continuous).fill(.white.opacity(0.12))
+    }
   }
 }

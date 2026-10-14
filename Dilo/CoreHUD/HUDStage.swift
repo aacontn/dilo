@@ -857,8 +857,12 @@ final class HUDStage {
       // Sin carcasa la forma abierta es la muesca apenas más grande, medida:
       // una zona del ancho del panel del hover se comería clics de media
       // barra de menús mientras se dicta.
+      // El aviso es más grande (`tamañoDelAviso`), y la tarjeta y el arreglo
+      // con un clic, que son avisos, toman el mouse en toda su forma.
       guard HUDNotchGeometry.hasMeasuredNotch(for: pantallaActual) else {
-        return HUDNotchGeometry.tamañoDictando(for: pantallaActual)
+        return estado.abreElAviso
+          ? HUDNotchGeometry.tamañoDelAviso(for: pantallaActual)
+          : HUDNotchGeometry.tamañoDictando(for: pantallaActual)
       }
       return CGSize(
         width: min(renderedSettings.hudMetrics.contentWidth, ventana.width),

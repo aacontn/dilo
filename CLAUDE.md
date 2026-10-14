@@ -394,10 +394,30 @@ siendo cierto:
   siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
   el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
   `FondoDeLaMuesca`): negro en la muesca que se funde en `glassEffect`, con
-  los radios y resortes observados en Droppy y las secciones en tarjetas.
-  Apagado de fábrica (`hudPanelDeVidrio`, oculto; interruptor en Debug), sin
-  vidrio montado en reposo. No sale en PNG: escenas `hover-vidrio` y
-  `hover-completo-vidrio` del arnés.
+  un canto de brillo blanco, los radios y resortes observados en Droppy y las
+  secciones en tarjetas. **Encendido de fábrica** desde el 2026-10-14
+  (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en Apariencia): apagado
+  y escondido en Debug nadie lo veía. «Reducir transparencia» del sistema le
+  gana y lo deja negro. Sin vidrio montado en reposo. No sale en PNG: escenas
+  `hover-vidrio` y `hover-completo-vidrio` del arnés.
+- **La forma abierta es la de Droppy; el reposo y dictar no cambian**
+  (`FormaAbierta`, 2026-10-14). El panel del hover —con vidrio o en negro—
+  abre con hombros grandes (los 32 de Droppy, acotados a lo que la ventana
+  abierta deja para las alas y su sombra) y 40 abajo; el aviso, con el borde
+  de abajo redondo entero (28 de Droppy, o la mitad del alto). Los dos radios
+  se achican juntos si no caben uno sobre otro (`SiluetaDeLaMuesca`), y el
+  hover y el paso al aviso usan los resortes de Droppy (`CurvaDeLaMuesca`).
+  160×24 con alas de 9 en reposo y 184×26 dictando siguen iguales.
+- **El color se ve en el canto, no en el cuerpo** (2026-10-14: «no le veo
+  mucho cambio a los colores en el notch»). El negro sigue negro; la forma
+  abierta lleva un filo de luz en el borde de abajo (`FiloDeLaMuesca`, token
+  `filo`) que dice en qué está sin palabras: acento dictando, menta en el
+  acuse, coral en un error, ámbar con el micrófono muerto, más bajo con el
+  panel abierto. Es estático —no anima, no cuesta CPU— y en reposo no existe.
+  Además la onda reparte su degradado por la fila (`coloresDeLaBarra`), el
+  check lleva disco y luz, el aviso un ícono de color con la frase en blanco
+  y el modo elegido del panel va en el degradado de la onda. Con Grafito todo
+  eso es blanco y gris, y sólo el acuse y el error llevan color.
 - **Y dictar apenas la agranda: 184×26 donde la barra mide 24**
   (`HUDNotchGeometry.tamañoDictando` — el alto de la barra más un décimo, un
   15 % más de ancho que el reposo). Todo lo que dice comparte **una línea**:
@@ -412,7 +432,10 @@ siendo cierto:
   (`HUDNotchGeometry.contentSize`). El panel del hover mide 400 y **sí** puede
   ser más alto que la muesca de dictado —ahí el mouse está encima a propósito,
   y es donde van a vivir las acciones que no son el dictado—, con techo en
-  `altoMaximoDelHover`.
+  `altoMaximoDelHover`. **El aviso tampoco es dictar**: un resultado con
+  palabras —error, tarjeta sin pegar, arreglo con un clic, «Copiado»— abre
+  `tamañoDelAviso` (304×38 con la barra de 24, `EstadoDelNotch.abreElAviso`),
+  una línea con ícono y, si lo hay, el botón; el acuse sigue en 184×26.
 - **El final del dictado no abre nada.** El camino feliz acusa con un check
   donde estaba la onda —el `.scheck` del overlay de Tauri, punto por punto, en
   menta— y vuelve a reposo en 700 ms (`HUDCheckDeAcuse`,

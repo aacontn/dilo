@@ -410,7 +410,8 @@ struct MuescaTests {
   private func formaDibujada(
     en pantalla: HUDScreenSnapshot,
     content: DictationHUDContent,
-    settings: DictationSessionSettings
+    settings: DictationSessionSettings,
+    ala: CGFloat? = nil
   ) throws -> FormaMedida {
     let ventana = HUDNotchGeometry.windowSize(for: pantalla)
     let renderer = ImageRenderer(
@@ -424,7 +425,10 @@ struct MuescaTests {
     // que sus últimas columnas son antialias y no cuentan como negro opaco:
     // un ancho medido incluyéndolas depende del rasterizador. El cuerpo se
     // mide por debajo de ellas, donde la forma tiene su ancho entero.
-    let ala = Int(HUDNotchGeometry.filletSize(for: pantalla).rounded(.up))
+    //
+    // `ala` es el hombro de la forma medida: el de la carcasa, salvo en la
+    // forma abierta de Droppy, que lo lleva más grande (`FormaAbierta`).
+    let ala = Int((ala ?? HUDNotchGeometry.filletSize(for: pantalla)).rounded(.up))
     var marco = Extremos()
     var cuerpo = Extremos()
     for y in 0..<mapa.pixelsHigh {
@@ -480,11 +484,16 @@ struct MuescaTests {
     _ forma: FormaMedida,
     mide esperado: CGSize,
     en pantalla: HUDScreenSnapshot,
+    ala: CGFloat? = nil,
     _ estado: String
   ) {
-    let ala = HUDNotchGeometry.filletSize(for: pantalla)
+    let ala = ala ?? HUDNotchGeometry.filletSize(for: pantalla)
     let ventana = HUDNotchGeometry.windowSize(for: pantalla)
-    #expect(abs(forma.cuerpo.width - esperado.width) <= 1, "\(estado): ancho \(forma.cuerpo.width)")
+    // El cuerpo se mide justo debajo de las alas. Con los hombros grandes de
+    // la forma abierta, ahí ya empieza la esquina continua de abajo, que
+    // arranca más arriba que su radio: un par de puntos menos de ancho.
+    let tolerancia: CGFloat = ala > HUDNotchGeometry.filletSize(for: pantalla) ? 3 : 1
+    #expect(abs(forma.cuerpo.width - esperado.width) <= tolerancia, "\(estado): ancho \(forma.cuerpo.width)")
     #expect(abs(forma.marco.height - esperado.height) <= 1, "\(estado): alto \(forma.marco.height)")
     #expect(forma.marco.minY == 0, "\(estado): nace del borde de arriba")
     #expect(abs(forma.cuerpo.midX - ventana.width / 2) <= 1, "\(estado): centrada en la ventana")
@@ -515,19 +524,25 @@ struct MuescaTests {
 
   /// El hover abre la silueta hasta el ancho de la forma abierta y unos pocos
   /// puntos más de alto, con techo. Sigue siendo la silueta creciendo, no una
-  /// ventana que se abrió.
+  /// ventana que se abrió, y desde el 2026-10-14 con la forma abierta de
+  /// Droppy: los hombros grandes y el radio de abajo del panel.
   @MainActor
   @Test func elHoverDibujaElPanelDeContextoYNadaMas() throws {
     let simulada = pantalla(barra: 24)
     let content = DictationHUDContent()
     content.contexto = "Correo"
     content.punteroEncima = true
+    let panel = CGSize(width: 400, height: 46)
+    let radio = PanelDeVidrio.radio(para: panel, cabecera: HUDNotchGeometry.alturaDeCabecera(for: simulada))
+    let hombro = FormaAbierta.hombro(para: panel, en: simulada, radioInferior: radio)
+    #expect(hombro > HUDNotchGeometry.filletSize(for: simulada))
     let forma = try formaDibujada(
       en: simulada,
       content: content,
-      settings: AppSettings.previewStore().sessionSettings
+      settings: AppSettings.previewStore().sessionSettings,
+      ala: hombro
     )
-    afirmar(forma, mide: CGSize(width: 400, height: 46), en: simulada, "hover")
+    afirmar(forma, mide: panel, en: simulada, ala: hombro, "hover")
     #expect(forma.marco.height <= HUDNotchGeometry.altoMaximoDelHover)
   }
 
@@ -572,20 +587,31 @@ struct MuescaTests {
     afirmar(forma, mide: HUDNotchGeometry.tamañoDictando(for: simulada), en: simulada, "acuse")
   }
 
-  /// Y un error tampoco: la misma muesca, con la línea que dice qué pasó.
+  /// Un error sí crece, pero poco: desde el 2026-10-14 abre la forma del
+  /// aviso —la de dictar ensanchada y con aire abajo, con los hombros y el
+  /// borde redondo de Droppy (`FormaAbierta`)— y sigue siendo una línea.
+  /// Dictar y el acuse no cambian.
   @MainActor
-  @Test func elErrorMideLoMismoYSiDicePalabras() throws {
+  @Test func elErrorAbreLaFormaDelAvisoYDicePalabras() throws {
     let simulada = pantalla(barra: 24)
     let content = DictationHUDContent()
     content.estado = .resultado(.aviso("No se pudo pegar el texto"))
     content.isRevealed = true
     content.text = "No se pudo pegar el texto"
+    let dictando = HUDNotchGeometry.tamañoDictando(for: simulada)
+    let aviso = HUDNotchGeometry.tamañoDelAviso(for: simulada)
+    let hombro = FormaAbierta.hombro(
+      para: aviso, en: simulada, radioInferior: FormaAbierta.radioDelAviso(para: aviso)
+    )
     let forma = try formaDibujada(
       en: simulada,
       content: content,
-      settings: AppSettings.previewStore().sessionSettings
+      settings: AppSettings.previewStore().sessionSettings,
+      ala: hombro
     )
-    afirmar(forma, mide: HUDNotchGeometry.tamañoDictando(for: simulada), en: simulada, "error")
+    afirmar(forma, mide: aviso, en: simulada, ala: hombro, "error")
+    #expect(aviso.height - dictando.height == HUDNotchGeometry.aireDelAviso)
+    #expect(aviso.width <= HUDMetrics.standard.contentWidth)
   }
 
   /// La línea que deja el escenario en el log del sistema, para diagnosticar
