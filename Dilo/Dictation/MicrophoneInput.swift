@@ -118,6 +118,12 @@ final class MicrophoneInput: @unchecked Sendable {
   /// El micrófono al que quedó fijado el motor, para volver a fijar el que
   /// arma una reconstrucción. Nil sigue la entrada del sistema.
   private var entradaFijada: EntradaDeAudio?
+  /// Con qué dispositivo y formato arrancó el motor que corre, para
+  /// reconocer el aviso de cambio de ruta que sigue a nuestro propio fijado.
+  private var huellaAlArrancar: GuardiaDeReconstruccion.Huella?
+  /// El tope de reconstrucciones: si el motor entra en bucle igual, se deja
+  /// de fijar el micrófono y se sigue con la entrada del sistema.
+  private var guardia = GuardiaDeReconstruccion()
   /// Para el registro de gatillo → primer búfer, con y sin motor tibio: es
   /// la medida que decide si el motor tibio se prende de fábrica.
   private var abiertoEn: ContinuousClock.Instant?
@@ -249,6 +255,10 @@ final class MicrophoneInput: @unchecked Sendable {
     }
 
     engine.prepare()
+    // Antes de `start()` y no después: el aviso que sigue al fijado puede
+    // llegar, en otro hilo, antes de que `start()` vuelva.
+    let huella = Self.huella(de: engine)
+    stateLock.withLock { huellaAlArrancar = huella }
     do {
       try engine.start()
     } catch {
@@ -257,15 +267,41 @@ final class MicrophoneInput: @unchecked Sendable {
     }
   }
 
+  /// En qué dispositivo y con qué formato está la entrada del motor ahora.
+  private static func huella(de engine: AVAudioEngine) -> GuardiaDeReconstruccion.Huella {
+    let formato = engine.inputNode.inputFormat(forBus: 0)
+    return GuardiaDeReconstruccion.Huella(
+      dispositivo: engine.inputNode.auAudioUnit.deviceID,
+      tasa: formato.sampleRate,
+      canales: formato.channelCount
+    )
+  }
+
   private func observeConfigurationChanges(of engine: AVAudioEngine) {
     stopObservingConfigurationChanges()
     let observer = NotificationCenter.default.addObserver(
       forName: .AVAudioEngineConfigurationChange,
       object: engine,
       queue: nil
-    ) { [weak self] _ in
+    ) { [weak self, weak engine] _ in
+      guard let self else { return }
+      // Fijar un motor nuevo y arrancarlo hace que ese mismo motor avise un
+      // cambio de ruta sin haberse detenido. Reconstruir por eso fijaba otro
+      // motor, que volvía a avisar: el bucle de la webcam en la 0.4.4.
+      if let engine {
+        let alArrancar = self.stateLock.withLock { self.huellaAlArrancar }
+        let ahora = Self.huella(de: engine)
+        guard GuardiaDeReconstruccion.hayQueReconstruir(
+          corriendo: engine.isRunning, alArrancar: alArrancar, ahora: ahora
+        ) else {
+          AppLog.audio.info(
+            "aviso de cambio de ruta con el motor andando en el mismo micrófono (\(ahora.tasa, privacy: .public) Hz): no reconstruyo"
+          )
+          return
+        }
+      }
       AppLog.audio.notice("audio route changed; the engine has stopped itself")
-      self?.recoverFromRouteChange()
+      self.recoverFromRouteChange()
     }
     stateLock.withLock { configurationObserver = observer }
   }
@@ -332,6 +368,21 @@ final class MicrophoneInput: @unchecked Sendable {
     previous.inputNode.removeTap(onBus: 0)
 
     let engine = AVAudioEngine()
+    // Más de `maximo` reconstrucciones en la ventana es un bucle, lo cause
+    // quien lo cause: se suelta el micrófono fijado y se sigue con la entrada
+    // del sistema, que nunca se fija y no puede alimentarlo.
+    let (cruzoElTope, enLaVentana, soltada) = stateLock.withLock {
+      () -> (Bool, Int, EntradaDeAudio?) in
+      let cruzo = guardia.anotar(en: .now)
+      let soltada = cruzo ? entradaFijada : nil
+      if guardia.dejoDeFijar { entradaFijada = nil }
+      return (cruzo, guardia.enLaVentana, soltada)
+    }
+    if cruzoElTope {
+      AppLog.audio.notice(
+        "\(enLaVentana) reconstrucciones del motor en \(GuardiaDeReconstruccion.ventana.components.seconds) s: dejo de fijar \(soltada?.nombre ?? "el micrófono", privacy: .public) y sigo con la entrada del sistema"
+      )
+    }
     // El motor nuevo vuelve al mismo micrófono. Si ya no está (se
     // desenchufó), fijarlo falla y el motor sigue al del sistema: el dictado
     // continúa en vez de morirse.
@@ -350,6 +401,12 @@ final class MicrophoneInput: @unchecked Sendable {
   }
 
   private func fijar(_ engine: AVAudioEngine, a entrada: EntradaDeAudio) {
+    // Ya está ahí: volver a fijarlo no cambia nada y avisa otro cambio de
+    // ruta.
+    guard engine.inputNode.auAudioUnit.deviceID != entrada.id else {
+      stateLock.withLock { entradaFijada = entrada }
+      return
+    }
     do {
       try engine.fijarEntrada(entrada)
       stateLock.withLock { entradaFijada = entrada }
