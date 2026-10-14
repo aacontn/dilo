@@ -286,12 +286,13 @@ final class AppSettings {
     didSet { defaults.set(hudEstiloSinNotch.rawValue, forKey: Keys.hudEstiloSinNotch) }
   }
 
-  /// Con qué colores se dibujan la muesca y Ajustes (`PaletaDeDilo`).
+  /// Con qué colores se dibujan la muesca, Ajustes y el ícono de la barra
+  /// (`PaletaDeDilo`): Glaciar de fábrica o Grafito, en Apariencia → Color.
+  /// Se aplica en vivo. Decisión del 2026-10-14: el mango salió.
   ///
-  /// **Ajuste oculto** mientras Alfonso elige entre las paletas sin naranja
-  /// (2026-10-14): no tiene fila en Ajustes salvo en un Debug. Se cambia con
-  /// `defaults write cl.espaciodigital.dilo diloPaleta glaciar` y se aplica
-  /// en vivo cuando lo cambia el selector de Debug. De fábrica, `mango`.
+  /// La clave nació con el makeover y nunca guardó otra cosa; un valor que
+  /// ya no existe (`mango`, `menta`, de una copia de prueba) se lee como el
+  /// de fábrica.
   var paleta: PaletaDeDilo.Nombre {
     didSet {
       defaults.set(paleta.rawValue, forKey: Keys.paleta)
@@ -638,7 +639,7 @@ final class AppSettings {
       ?? (defaults.object(forKey: Keys.hudClearsMenuBar) as? Bool == true ? .pildora : .notchSimulado)
     // Leerla no la aplica: la paleta activa es una por proceso, y un
     // `AppSettings` de un test no puede pintar la app. La aplica `AppDelegate`.
-    paleta = Self.stored(in: defaults, key: Keys.paleta) ?? .mango
+    paleta = Self.stored(in: defaults, key: Keys.paleta) ?? .deFabrica
     hudPanelDeVidrio = defaults.bool(forKey: Keys.hudPanelDeVidrio)
     // `double(forKey:)` lee una clave ausente como cero, que dejaría el hover
     // instantáneo para todo el mundo; la ausencia se pregunta directo.

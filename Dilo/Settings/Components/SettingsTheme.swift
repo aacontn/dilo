@@ -7,10 +7,10 @@ import SwiftUI
 /// naranjas distintos.
 ///
 /// Son los colores **de la marca** —el ícono, `brand/`, la landing— y no los
-/// de la interfaz: la muesca y Ajustes dibujan con `PaletaDeDilo.actual`, cuya
-/// paleta de fábrica (`mango`) usa exactamente estos números. Que una vista
-/// pida `DiloBrand.mango` es pedir naranja aunque la paleta elegida no lo
-/// tenga. Las paletas del Edge Glow nunca recolorean el caparazón
+/// de la interfaz: la muesca y Ajustes dibujan con `PaletaDeDilo.actual`
+/// (Glaciar de fábrica desde el 2026-10-14). Ninguna vista los pide: que una
+/// pidiera `DiloBrand.mango` sería volver a pintar naranja. Quedan hasta que
+/// el ícono se regenere para Glaciar. Las paletas del Edge Glow nunca recolorean el caparazón
 /// (CONTEXT.md).
 enum DiloBrand {
   /// Tinta `#0D1117` — el fondo del ícono y la base de toda superficie oscura.

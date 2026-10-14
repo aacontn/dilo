@@ -50,11 +50,12 @@ struct Tono: Equatable, Sendable {
 /// el token de lo que dibujan (`cursor`, `acuse`, `acentoDeAjustes`…); qué
 /// color es cada uno se decide acá, en una sola tabla.
 ///
-/// **De fábrica es `mango`, que es lo de siempre, número por número.** Las
-/// otras tres son la exploración del 2026-10-14 («el color naranja ya no me
-/// gusta», con el makeover al estilo Droppy) y se eligen con un ajuste oculto
-/// (`defaults write cl.espaciodigital.dilo diloPaleta glaciar`), con el
-/// selector de Debug en Apariencia o con `--paleta` en el arnés de la muesca.
+/// **De fábrica es `glaciar`; `grafito` se elige en Ajustes → Apariencia →
+/// Color.** Decisión de Alfonso del 2026-10-14, con el makeover al estilo
+/// Droppy: «el color naranja ya no me gusta». El mango y la menta de antes
+/// salieron como opciones; siguen siendo los colores del ícono (`DiloBrand`,
+/// `brand/`) hasta que se regenere. El arnés de la muesca dibuja con
+/// cualquiera de las dos con `--paleta`.
 ///
 /// Fuera de la paleta, a propósito: las paletas del Edge Glow (las elige la
 /// persona y nunca recolorean el caparazón), el arcoíris del estilo Siri y
@@ -62,36 +63,34 @@ struct Tono: Equatable, Sendable {
 struct PaletaDeDilo: Equatable, Sendable, Identifiable {
   /// Cuál es. El `rawValue` se guarda en `UserDefaults`: no se renombra.
   enum Nombre: String, CaseIterable, Sendable, Identifiable {
-    case mango
-    case grafito
     case glaciar
-    case menta
+    case grafito
+
+    /// La de fábrica.
+    static let deFabrica = Nombre.glaciar
 
     var id: String { rawValue }
 
-    /// Nombre propio de cada paleta: no se traduce.
+    /// Lo que dice el selector de Ajustes. El `rawValue` es lo que se guarda
+    /// y no se traduce nunca; esto sí.
     var titulo: String {
       switch self {
-      case .mango: "Mango"
-      case .grafito: "Grafito"
-      case .glaciar: "Glaciar"
-      case .menta: "Menta"
+      case .glaciar: String(localized: "Glaciar")
+      case .grafito: String(localized: "Grafito")
       }
     }
 
     var paleta: PaletaDeDilo {
       switch self {
-      case .mango: .mango
-      case .grafito: .grafito
       case .glaciar: .glaciar
-      case .menta: .menta
+      case .grafito: .grafito
       }
     }
   }
 
   /// Los colores de categoría de Ajustes: cada atajo y cada serie de
   /// Actividad tiene el suyo para distinguirse de los otros, no para decir
-  /// la marca. Van acá porque uno de los de fábrica es naranja.
+  /// la marca. Van acá porque antes uno era naranja.
   struct Categorias: Equatable, Sendable {
     var sesiones: Tono
     var tiempo: Tono
@@ -152,39 +151,6 @@ struct PaletaDeDilo: Equatable, Sendable, Identifiable {
 }
 
 extension PaletaDeDilo {
-  /// La de siempre: tinta, mango y menta, con los números exactos que cada
-  /// vista tenía escritos antes de esta capa. Un test la compara con
-  /// `DiloBrand`.
-  static let mango = PaletaDeDilo(
-    nombre: .mango,
-    acento: Tono(hex: 0xFF9E1B),
-    ondaBase: Tono(hex: 0xFF9E1B),
-    ondaPunta: Tono(hex: 0xFF5C5C),
-    halo: Tono(hex: 0xFF5C5C, alfa: 0.5),
-    ondaCuerpo: Tono(hex: 0x2EE6A8),
-    puntoDeReposo: Tono(hex: 0xFF9E1B, alfa: 0.9),
-    cursor: Tono(hex: 0xFF9E1B),
-    acuse: Tono(hex: 0x2EE6A8),
-    error: Tono.blanco.opacidad(0.9),
-    segmento: Tono(hex: 0xFF9E1B),
-    aviso: Tono(hex: 0xFF9E1B),
-    alerta: Tono(rojo: 1, verde: 0.38, azul: 0.32),
-    microfonoMuerto: Tono(rojo: 1, verde: 0.6, azul: 0.16),
-    acentoDeAjustes: Tono(hex: 0xFF9E1B),
-    exito: Tono(hex: 0x2EE6A8),
-    fondoDeAjustes: Tono(rojo: 0.025, verde: 0.027, azul: 0.035),
-    barraLateral: Tono(rojo: 0.035, verde: 0.038, azul: 0.049),
-    tarjetaDeAjustes: Tono(rojo: 0.065, verde: 0.069, azul: 0.087),
-    categorias: Categorias(
-      sesiones: Tono(rojo: 0.20, verde: 0.82, azul: 0.58),
-      tiempo: Tono(rojo: 0.62, verde: 0.50, azul: 0.98),
-      segundoIdioma: Tono(rojo: 0.45, verde: 0.82, azul: 0.6),
-      traducir: Tono(rojo: 0.66, verde: 0.55, azul: 0.95),
-      leerEnVoz: Tono(rojo: 0.95, verde: 0.7, azul: 0.35)
-    ),
-    acentoDeLaBarra: Tono(hex: 0xFF9E1B)
-  )
-
   /// Blanco y grafito, como Droppy y como el sistema: la muesca es negra y
   /// todo lo que dice es blanco en distintas intensidades. El único color que
   /// queda es semántico —verde lo que salió bien, coral lo que no—, así que
@@ -220,10 +186,12 @@ extension PaletaDeDilo {
     acentoDeLaBarra: Tono(hex: 0x8E8E93)
   )
 
-  /// Fría: celeste sobre negro, del azul de Apple al cian. Es la familia de
-  /// color de Droppy —su ícono va de lavanda a azul eléctrico— pero más
-  /// clara, porque su azul `#1219ED` sobre negro casi no se ve. El acuse es
-  /// una menta pálida, del mismo frío pero otra cosa que la onda.
+  /// **La de fábrica** (2026-10-14). Fría: celeste sobre negro, del azul de
+  /// Apple al cian. Es la familia de color de Droppy —su ícono va de lavanda
+  /// a azul eléctrico— pero más clara, porque su azul `#1219ED` sobre negro
+  /// casi no se ve. El acuse es una menta pálida, del mismo frío pero otra
+  /// cosa que la onda. Los fondos de Ajustes son los de siempre, que ya
+  /// tiraban a azul.
   static let glaciar = PaletaDeDilo(
     nombre: .glaciar,
     acento: Tono(hex: 0x64D2FF),
@@ -254,40 +222,6 @@ extension PaletaDeDilo {
     acentoDeLaBarra: Tono(hex: 0x0A84FF)
   )
 
-  /// La menta, que ya era de Dilo, pasa a protagonista: la onda, el cursor,
-  /// el punto y el acento. Como la onda ahora es menta, el acuse pasa a
-  /// blanco —un check del color de la onda que reemplaza no se lee como un
-  /// cambio de estado—. Ajustes vuelve a la tinta del ícono.
-  static let menta = PaletaDeDilo(
-    nombre: .menta,
-    acento: Tono(hex: 0x2EE6A8),
-    ondaBase: Tono(hex: 0x14B8A6),
-    ondaPunta: Tono(hex: 0x2EE6A8),
-    halo: Tono(hex: 0x2EE6A8, alfa: 0.45),
-    ondaCuerpo: Tono(hex: 0x2EE6A8),
-    puntoDeReposo: Tono(hex: 0x2EE6A8, alfa: 0.9),
-    cursor: Tono(hex: 0x2EE6A8),
-    acuse: .blanco,
-    error: Tono(hex: 0xFF6B6B),
-    segmento: Tono(hex: 0x2EE6A8),
-    aviso: Tono(hex: 0xFFD60A),
-    alerta: Tono(hex: 0xFF6B6B),
-    microfonoMuerto: Tono(hex: 0xFFD60A),
-    acentoDeAjustes: Tono(hex: 0x2EE6A8),
-    exito: Tono(hex: 0x2EE6A8),
-    fondoDeAjustes: Tono(hex: 0x080B0F),
-    barraLateral: Tono(hex: 0x0D1117),
-    tarjetaDeAjustes: Tono(hex: 0x161B22),
-    categorias: Categorias(
-      sesiones: Tono(hex: 0x2EE6A8),
-      tiempo: Tono(hex: 0x8486F6),
-      segundoIdioma: Tono(hex: 0x7DD3FC),
-      traducir: Tono(hex: 0xA5A7FA),
-      leerEnVoz: Tono(hex: 0x5EEAD4)
-    ),
-    acentoDeLaBarra: Tono(hex: 0x14B8A6)
-  )
-
   /// La paleta con que se dibuja ahora: la elegida o, mientras el arnés
   /// muestra una escena con `--paleta`, la de la muestra.
   ///
@@ -306,7 +240,7 @@ final class PaletaActiva: Observable, Sendable {
   static let compartida = PaletaActiva()
 
   private struct Estado {
-    var elegida: PaletaDeDilo.Nombre = .mango
+    var elegida: PaletaDeDilo.Nombre = .deFabrica
     var deMuestra: PaletaDeDilo.Nombre?
   }
 

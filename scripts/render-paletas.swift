@@ -12,7 +12,7 @@ import SwiftUI
 /// dice en su rótulo; el de verdad se mira con `scripts/muesca.sh mostrar
 /// hover-vidrio`.
 extension RenderDeLaMuesca {
-  static let paletasDeLaLamina: [PaletaDeDilo] = [.mango, .grafito, .glaciar, .menta]
+  static let paletasDeLaLamina: [PaletaDeDilo] = PaletaDeDilo.Nombre.allCases.map(\.paleta)
   static let anchoDeCelda: CGFloat = 470
   static let anchoDelRotulo: CGFloat = 170
   static let seccionesDeLaLamina = SeccionesDelPanel(recientes: 2, modos: true)
@@ -20,10 +20,8 @@ extension RenderDeLaMuesca {
   /// Una frase por paleta, la que va en la cabecera de su columna.
   static func frase(de paleta: PaletaDeDilo) -> String {
     switch paleta.nombre {
-    case .mango: "Hoy · referencia. Mango, brasas a rojo, check menta."
-    case .grafito: "Blanco y grafito, como Droppy y el sistema. Color sólo semántico."
-    case .glaciar: "Fría: azul de Apple a celeste. Acuse en menta pálida."
-    case .menta: "La menta de Dilo como protagonista. Acuse en blanco."
+    case .glaciar: "De fábrica. Fría: azul de Apple a celeste. Acuse en menta pálida."
+    case .grafito: "Elegible en Apariencia → Color. Blanco y grafito, como Droppy y el sistema."
     }
   }
 
@@ -82,7 +80,7 @@ extension RenderDeLaMuesca {
     }
 
     let lamina = VStack(alignment: .leading, spacing: 0) {
-      Text("Dilo · paletas sin naranja (2026-10-14) — columnas: paletas; en cada una, barra clara | barra oscura")
+      Text("Dilo · Glaciar de fábrica y Grafito (2026-10-14) — en cada columna, barra clara | barra oscura")
         .font(.system(size: 15, weight: .semibold))
         .foregroundStyle(.white)
         .padding(.bottom, 10)

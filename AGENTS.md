@@ -185,21 +185,28 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 
-**Colores de marca:** tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`, en
-`DiloBrand` (`Dilo/Settings/Components/SettingsTheme.swift`), una sola vez
-para SwiftUI y para los `NSImage`. Los activos están en `brand/`; el `.icns`
-se regenera con `rsvg-convert` + `iconutil` desde `brand/dilo-icon.svg` y
-queda en `brand/generado/`.
+**El acento de la app es Glaciar** (decisión de Alfonso del 2026-10-14: «el
+color naranja ya no me gusta»): azul `#0A84FF` a celeste `#64D2FF` sobre
+negro, con el acuse en menta pálida `#7DF9C4`. **Grafito** —blanco y gris,
+color sólo para lo que salió bien o mal— se elige en Ajustes → Apariencia →
+Color, y se guarda en `diloPaleta`. El mango y la menta salieron como
+opciones de la interfaz.
 
-**Los colores de la interfaz salen de `PaletaDeDilo`** (2026-10-14), no de
-`DiloBrand`: la muesca y Ajustes piden `PaletaDeDilo.actual` y el token de
-lo que dibujan —`cursor`, `acuse`, `puntoDeReposo`, `acentoDeAjustes`…—, y
-qué color es cada uno vive en una sola tabla. Una vista nueva no escribe
-`DiloBrand.mango` ni un `Color(red:…)`: pide el token, o lo agrega a la
-paleta. De fábrica es `mango`, la de siempre número por número; `grafito`,
-`glaciar` y `menta` son la exploración sin naranja, elegibles con el ajuste
-oculto `diloPaleta`, el selector de Debug en Apariencia o `--paleta` en el
-arnés. Fuera de la paleta, a propósito: las del Edge Glow y el ícono.
+**Los colores de la interfaz salen de `PaletaDeDilo`**, no de `DiloBrand`:
+la muesca, Ajustes, los Primeros pasos y el ícono de la barra piden
+`PaletaDeDilo.actual` y el token de lo que dibujan —`cursor`, `acuse`,
+`puntoDeReposo`, `acentoDeAjustes`, `acentoDeLaBarra`…—, y qué color es cada
+uno vive en una sola tabla. Una vista nueva no escribe `DiloBrand.mango` ni
+un `Color(red:…)`: pide el token, o lo agrega a la paleta. El `AccentColor`
+del catálogo es el azul de Glaciar. Fuera de la paleta, a propósito: las del
+Edge Glow, que elige la persona.
+
+**Colores de marca** (`DiloBrand`, `Dilo/Settings/Components/SettingsTheme.swift`):
+tinta `#0D1117`, mango `#FF9E1B`, menta `#2EE6A8`. Son los del ícono y de
+`brand/`, que **todavía no se regeneraron** para Glaciar; ninguna vista los
+usa. Los activos están en `brand/`; el `.icns` se regenera con
+`rsvg-convert` + `iconutil` desde `brand/dilo-icon.svg` y queda en
+`brand/generado/`.
 
 Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 `packageProductDependencies` de **los dos** targets, y a esta tabla.
@@ -268,7 +275,7 @@ siendo cierto:
   2026-10-13). `MaquinaDelNotch` no cambia: la sesión del contrato entra a
   los asientos mientras no hay reposo y exige la forma, así que **dictando la
   principal es siempre el dictado**. Las ocupantes de hoy son dos cosas que
-  ya existían: la toma guardada para reintentar (derecha, en mango; un clic
+  ya existían: la toma guardada para reintentar (derecha, en el acento; un clic
   la reintenta, como el menú de la barra) y una tarjeta de un dictado sin
   pegar que otra sesión tapó (`TarjetaDeRespaldo.tapada`, izquierda; un clic
   la copia; no vence mientras dura una sesión y se va un minuto después de
@@ -322,7 +329,7 @@ siendo cierto:
   mientras dura el dictado: el arreglo es elegir la píldora, no ensanchar ni
   angostar la forma.
 - **En reposo la muesca no dice nada**: la silueta y, a lo sumo, un punto
-  mango de tres puntos abajo al centro (`HUDMarcaDeReposo`). Ni texto, ni
+  de tres puntos en el color de la paleta abajo al centro (`HUDMarcaDeReposo`). Ni texto, ni
   onda, ni etiqueta; eso aparece cuando la forma crece. El único dato que
   puede llegar a decir es el nombre del modo activo, en 9 pt gris y **apagado
   de fábrica** (`hudModoEnReposo`); nunca los dos a la vez.
@@ -343,9 +350,11 @@ siendo cierto:
   `cubic-bezier(0,22 1 0,36 1)` en 460 ms (`aperturaDeTauri`). Con Reducir
   movimiento es un corte de 120 ms.
 - **Lo que la forma abierta lleva adentro es el overlay de Tauri traducido**:
-  la onda de brasas de nueve barras mango→rojo (`HUDOndaDeBrasas`, el estilo de
-  fábrica), la cursiva de quince puntos del transcript y el cursor mango que
-  parpadea mientras el micrófono está abierto (`HUDCursorDeDictado`). Los
+  la onda de brasas de nueve barras (`HUDOndaDeBrasas`, el estilo de
+  fábrica), la cursiva de quince puntos del transcript y el cursor que
+  parpadea mientras el micrófono está abierto (`HUDCursorDeDictado`). Desde
+  el 2026-10-14 van en Glaciar —la onda de azul a celeste, el cursor
+  celeste, el check en menta pálida— y no en el mango→rojo de Tauri. Los
   números salen de `src/overlay/RecordingOverlay.css` del repo congelado y
   están anotados ahí donde se usan. Lo que **no** se trajo —el vidrio dentro
   de la muesca, el botón de cancelar, el cronómetro, las cuatro anchuras— y

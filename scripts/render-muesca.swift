@@ -27,10 +27,10 @@ import SwiftUI
 @main
 enum RenderDeLaMuesca {
   /// La paleta con que se dibuja: la de la app (`PaletaDeDilo`, compilada
-  /// junto con este archivo), no una copia. De fábrica `mango`; la lámina de
+  /// junto con este archivo), no una copia. La de fábrica; la lámina de
   /// paletas la cambia entre columna y columna, y como `ImageRenderer`
   /// rasteriza en el acto, cada columna sale con la suya.
-  nonisolated(unsafe) static var paleta = PaletaDeDilo.mango
+  nonisolated(unsafe) static var paleta = PaletaDeDilo.Nombre.deFabrica.paleta
 
   /// Uno de los dos 1080p del Mac mini: sin carcasa, con el ajuste de fábrica.
   /// El alto de la barra es lo que reporta una pantalla así; la app lo mide

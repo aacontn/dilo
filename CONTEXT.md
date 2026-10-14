@@ -90,7 +90,7 @@ words, ruido.
 
 **Píldora** ·
 La superficie del HUD en una pantalla sin notch: **debajo** de la barra de
-menús, con mango, forma de onda y texto parcial. _Evitar_: overlay, banner,
+menús, con el acento de Dilo, forma de onda y texto parcial. _Evitar_: overlay, banner,
 notch simulado.
 
 **Notch** ·
@@ -139,9 +139,10 @@ No se registra una sección vacía ni deshabilitada.
 - Con carcasa física: fillets contra el recorte. Sin notch: **píldora debajo
   de la barra de menús**, que no tapa status items y no imita el HUD de
   volumen del sistema.
-- La píldora lleva **corona mango, onda del micrófono y texto parcial**: la
-  identidad de Dilo, no un HUD del sistema. La onda es menta con puntas mango
-  también con notch.
+- La píldora lleva **onda del micrófono y texto parcial** en los colores de
+  Dilo: la identidad de Dilo, no un HUD del sistema. Desde el 2026-10-14 el
+  acento es Glaciar (azul a celeste; Grafito se elige en Ajustes) y no mango;
+  vale también con notch.
 - El HUD aparece sobre apps en pantalla completa y en todos los Espacios, y se
   reordena al frente en cada cambio de espacio activo.
 - La máquina del HUD prevé **tres estados** —dictando, reunión, conversando—
