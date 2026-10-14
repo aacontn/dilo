@@ -45,4 +45,15 @@ public enum Capacidad: String, CaseIterable, Sendable {
   /// App Store sólo los deja con una excepción que Apple revisa a mano; ahí
   /// la nota rápida se esconde.
   case notasDeApple
+  /// Leer el texto alrededor del cursor y la selección del campo donde se
+  /// va a pegar, al empezar el dictado, para que la limpieza escriba bien
+  /// los nombres que ya están en la pantalla. Es Accesibilidad hacia otra
+  /// app: en App Store no existe.
+  case contextoDelCampo
+  /// La página que muestra el navegador al frente (dominio y ruta), leída
+  /// por Accesibilidad. Sirve al contexto y a elegir modo por sitio.
+  case sitioDelNavegador
+  /// Mirar el campo un rato después de pegar para aprender lo que la persona
+  /// corrigió a mano. Lee otra app por Accesibilidad: sólo target directo.
+  case vigiaDeCorrecciones
 }

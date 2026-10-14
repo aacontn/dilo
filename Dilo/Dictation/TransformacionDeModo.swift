@@ -54,10 +54,16 @@ struct TransformacionDeModo: Sendable {
   ///   **No hay segundo intento**: si ése falla, no se prueba otro. Mandarle
   ///   a una nube lo que alguien dictó creyendo que no salía de su Mac no se
   ///   arregla avisando después.
+  /// - Parameter contexto: lo que rodeaba al dictado, ya filtrado por los
+  ///   interruptores de la persona (`ContextoCapturado.paraElSobre`).
+  /// - Parameter contextoEnLinea: si el contexto puede viajar a un proveedor
+  ///   que no corre en este Mac. Apagado, sólo lo ve un modelo local.
   func correr(
     _ texto: String,
     con modo: Modo,
-    deSesion: ResolucionDeProveedor.DeSesion
+    deSesion: ResolucionDeProveedor.DeSesion,
+    contexto: SobreDelDictado.ContextoDeLaApp? = nil,
+    contextoEnLinea: Bool = false
   ) async -> Resultado {
     guard !texto.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
       return .sinModo
@@ -80,16 +86,23 @@ struct TransformacionDeModo: Sendable {
     // El dictado viaja como dato dentro de un JSON. En el chip la ventana es
     // de 4.096 tokens y las instrucciones se ajustan al largo del dictado.
     let enElChip = resuelto.proveedor.dialecto == .enElChip
+    let topeDeContexto = Self.topeDeContexto(
+      para: modo, largoDelDictado: texto.count, proveedor: resuelto.proveedor,
+      contextoEnLinea: contextoEnLinea
+    )
+    let sobre = SobreDelDictado(
+      dictado: texto, contextoNoConfiable: topeDeContexto > 0 ? contexto : nil
+    )
+    let largoDelContexto = sobre.json(topeDeContexto: topeDeContexto).count
+      - SobreDelDictado(dictado: texto).json(topeDeContexto: 0).count
     let instrucciones = PromptDeLimpieza.instrucciones(
       para: modo,
       largoDelDictado: texto.count,
-      ventana: enElChip ? PromptDeLimpieza.ventanaDelChip : nil
+      ventana: enElChip ? PromptDeLimpieza.ventanaDelChip : nil,
+      largoDelContexto: largoDelContexto
     )
     let peticion = PromptDeLimpieza.peticion(
-      para: modo,
-      sobre: SobreDelDictado(dictado: texto),
-      topeDeContexto: enElChip
-        ? PromptDeLimpieza.topeDeContextoEnElChip : PromptDeLimpieza.topeDeContextoEnLinea
+      para: modo, sobre: sobre, topeDeContexto: topeDeContexto
     )
     let modelo = resuelto.modelo
     let timeout = timeout
@@ -133,17 +146,49 @@ struct TransformacionDeModo: Sendable {
         )
       )
     }
-    return Self.juzgar(limpio, contra: texto, modo: modo)
+    return Self.juzgar(
+      limpio, contra: texto, modo: modo,
+      contexto: sobre.contextoNoConfiable.map(Self.textos(del:)) ?? []
+    )
+  }
+
+  /// Cuánto contexto viaja con este dictado a este proveedor. En el chip, lo
+  /// que deja la ventana después del dictado; en otro modelo de este Mac, el
+  /// tope de los grandes; a una nube, nada salvo que la persona lo haya
+  /// pedido: el contexto lo escribió otra persona u otra app, y no sale del
+  /// Mac sin permiso explícito.
+  static func topeDeContexto(
+    para modo: Modo, largoDelDictado: Int, proveedor: Proveedor, contextoEnLinea: Bool
+  ) -> Int {
+    if proveedor.dialecto == .enElChip {
+      return PromptDeLimpieza.topeDeContexto(enElChipPara: modo, largoDelDictado: largoDelDictado)
+    }
+    return proveedor.esLocal || contextoEnLinea ? PromptDeLimpieza.topeDeContextoEnLinea : 0
+  }
+
+  /// Los textos del contexto que el modelo podría copiar.
+  static func textos(del contexto: SobreDelDictado.ContextoDeLaApp) -> [String] {
+    [contexto.textoAntesDelCursor, contexto.textoDespuesDelCursor, contexto.seleccion]
+      .compactMap(\.self)
   }
 
   /// Ninguna respuesta del modelo se pega sin pasar por acá. Se juzga contra
   /// lo que el modelo recibió —el dictado ya limpio por las reglas—, con la
   /// vara que declara el modo. Rechazar no reintenta en otro proveedor.
-  static func juzgar(_ respuesta: String, contra dictado: String, modo: Modo) -> Resultado {
+  ///
+  /// - Parameter contexto: los textos de la pantalla que viajaron con el
+  ///   dictado. Una salida que copia una frase de ahí se rechaza aunque el
+  ///   perfil del modo deje cambiar todo lo demás.
+  static func juzgar(
+    _ respuesta: String, contra dictado: String, modo: Modo, contexto: [String] = []
+  ) -> Resultado {
     do throws(ValidadorDeLimpieza.Rechazo) {
       let aceptado = try ValidadorDeLimpieza.validar(
         respuesta, contra: dictado, perfil: .init(modo.cuidado)
       )
+      if ValidadorDeLimpieza.copiaElContexto(aceptado, fuente: dictado, contexto: contexto) {
+        throw .copioElContexto
+      }
       return .transformado(aceptado)
     } catch {
       // El motivo sí, el texto nunca: es lo que dice qué afinar.

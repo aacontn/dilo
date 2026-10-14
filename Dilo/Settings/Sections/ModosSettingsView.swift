@@ -64,6 +64,8 @@ struct ModosSettingsView: View {
         ) { EmptyView() }
       }
 
+      ContextoDeLosModosCard(settings: settings)
+
       SettingsCard(title: "Proveedor general") {
         SettingsRow(
           title: "Quién reescribe",

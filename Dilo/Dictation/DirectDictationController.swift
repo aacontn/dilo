@@ -88,6 +88,9 @@ final class DirectDictationController {
   /// Lo último que la muesca mostró en vivo, para que la cuenta regresiva
   /// se escriba al lado sin borrarlo.
   private var ultimoEnVivo = (firme: "", volatil: "")
+  /// Lo que rodeaba al dictado, leído en paralelo con el micrófono y
+  /// recogido al soltar. Sólo RAM, sólo esta sesión.
+  private let contextoDelDictado = CapturaDeContexto()
 
   convenience init(
     settings: AppSettings,
@@ -715,6 +718,7 @@ final class DirectDictationController {
       } else {
         ducking.restore()
         activity.release()
+        contextoDelDictado.cancelar()
         focusedTarget = nil
         sessionStartTask = nil
         currentSessionSettings = nil
@@ -777,6 +781,14 @@ final class DirectDictationController {
     }
 
     focusedTarget = target
+    // En paralelo y nunca antes del micrófono: lo que no llegue al soltar no
+    // existe (`CapturaDeContexto`).
+    contextoDelDictado.empezar(
+      destino: target,
+      fuentes: settings.fuentesDeContexto,
+      sitioParaElegirModo: false,
+      lectores: dependencies.lectoresDeContexto
+    )
     send(.beginApproved)
   }
 
@@ -882,6 +894,18 @@ final class DirectDictationController {
     )
   }
 
+  /// Corre el modo con el contexto de la app cuando lo hay. Sin contexto, el
+  /// camino de siempre.
+  private func transformar(
+    _ texto: String, _ modo: Modo, _ proveedor: ResolucionDeProveedor.DeSesion,
+    contexto: SobreDelDictado.ContextoDeLaApp?, contextoEnLinea: Bool
+  ) async -> TransformacionDeModo.Resultado {
+    if let contexto, let conContexto = dependencies.transformarConContexto {
+      return await conContexto(texto, modo, proveedor, contexto, contextoEnLinea)
+    }
+    return await dependencies.transformar(texto, modo, proveedor)
+  }
+
   /// Lo que el historial guarda como modo: el nombre y el id, porque el
   /// nombre se edita y el id no, y —cuando lo eligió Dilo— la regla que ganó.
   /// Un modo que apareció sin que nadie apretara su tecla tiene que poder
@@ -958,6 +982,7 @@ final class DirectDictationController {
     let elegidoAMano = modoElegidoAMano
     let appAlFrente = focusedTarget?.applicationName
     let esNota = sesionEsNota
+    let (contexto, fuentes) = contextoDelDictado.recoger()
     finishTask = Task { [weak self] in
       guard let self else { return }
       defer { finishTask = nil }
@@ -1009,8 +1034,9 @@ final class DirectDictationController {
         // un idioma, con su ejemplo en ese idioma, así que darle una
         // traducción es pedirle trabajar en uno para el que no se escribió.
         if let modo, willShape {
-          switch await dependencies.transformar(
-            text, modo, session.proveedorDeSesion(para: modo)
+          switch await transformar(
+            text, modo, session.proveedorDeSesion(para: modo),
+            contexto: contexto.paraElSobre(fuentes), contextoEnLinea: fuentes.tambienEnLinea
           ) {
           case let .transformado(reescrito):
             text = reescrito

@@ -31,9 +31,9 @@ struct PromptDeLimpiezaTests {
       let contexto = try #require(leido?["contexto_no_confiable"] as? [String: Any])
       let antes = try #require(contexto["texto_antes_del_cursor"] as? String)
       let seleccion = try #require(contexto["seleccion"] as? String)
-      #expect(antes.count == tope)
+      #expect(antes.count == tope / 2)
       #expect(antes.hasSuffix("FIN"))
-      #expect(seleccion.count == tope / 2)
+      #expect(seleccion.count == tope / 3)
       #expect(seleccion.hasPrefix("INICIO"))
     }
   }

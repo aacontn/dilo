@@ -42,6 +42,10 @@ public enum ValidadorDeLimpieza {
     /// Una palabra con contenido desapareció sin que nadie se corrigiera:
     /// «no subas el build todavía» no es «no subas el build».
     case perdioUnaPalabra
+    /// Copió a la salida un pedazo del contexto de la app que no se dictó
+    /// (`copiaElContexto`): el contexto es material de consulta, nunca texto
+    /// para pegar.
+    case copioElContexto
 
     /// Lo que dice la muesca. Corto, porque la persona está mirando su texto,
     /// y con dónde quedó lo que el modo propuso: el validador también se
@@ -55,6 +59,7 @@ public enum ValidadorDeLimpieza {
       case .vacia, .basura: "devolvió algo que no era texto"
       case .corrigioAMedias: "dejó a medias una corrección"
       case .perdioUnaPalabra: "sacó una palabra que dijiste"
+      case .copioElContexto: "copió texto de la pantalla"
       default: "cambió demasiado tu texto"
       }
       return "\(modo) \(que): va tu dictado sin el modo, y lo que propuso "

@@ -118,6 +118,15 @@ public struct FullHost: HostCapabilities {
     LecturaDelCampo(lector: lector).foto(de: ancla)
   }
 
+  public func textoAlrededor(de ancla: AnclaDelFoco, tope: Int) -> TextoAlrededorDelCursor {
+    LecturaDelContexto(lector: lector).alrededor(de: ancla, tope: tope)
+  }
+
+  public func sitio(dePid pid: pid_t, hasta limite: ContinuousClock.Instant) -> String? {
+    LecturaDelSitio(lector: lector).url(dePid: pid, hasta: limite)
+      .flatMap(LectorDeSitio.dominioYRuta)
+  }
+
   /// El foco se le pregunta primero a la app al frente y sólo después al
   /// elemento del sistema. Medido en macOS 26, el elemento del sistema no
   /// contesta por ninguna app —ni con texto claramente seleccionado— y el de

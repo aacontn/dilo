@@ -79,6 +79,7 @@ final class AppSettings {
     static let muletillasPropias = "diloMuletillasPropias"
     static let comandosDeFormato = "diloComandosDeFormato"
     static let reemplazos = "diloReemplazos"
+    static let fuentesDeContexto = "diloFuentesDeContexto"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -222,6 +223,18 @@ final class AppSettings {
     didSet {
       if let datos = try? JSONEncoder().encode(reemplazos) {
         defaults.set(datos, forKey: Keys.reemplazos)
+      }
+    }
+  }
+
+  /// Qué le cuenta Dilo al modelo de texto sobre dónde dictas: la app, y si
+  /// la persona lo prende, el texto alrededor del cursor, la selección y el
+  /// sitio. Se guarda como JSON; uno ilegible vuelve a los de fábrica (sólo
+  /// la app).
+  var fuentesDeContexto: FuentesDeContexto {
+    didSet {
+      if let datos = try? JSONEncoder().encode(fuentesDeContexto) {
+        defaults.set(datos, forKey: Keys.fuentesDeContexto)
       }
     }
   }
@@ -591,6 +604,8 @@ final class AppSettings {
     comandosDeFormato = defaults.object(forKey: Keys.comandosDeFormato) as? Bool ?? true
     reemplazos = defaults.data(forKey: Keys.reemplazos)
       .flatMap { try? JSONDecoder().decode([Reemplazo].self, from: $0) } ?? []
+    fuentesDeContexto = defaults.data(forKey: Keys.fuentesDeContexto)
+      .flatMap { try? JSONDecoder().decode(FuentesDeContexto.self, from: $0) } ?? .deFabrica
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas
