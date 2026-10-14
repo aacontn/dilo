@@ -286,6 +286,20 @@ final class HUDStage {
   /// hacia el controlador de dictado, que es quien tiene la toma.
   var alPedirReintento: (() -> Void)?
 
+  /// Lo que Dilo ofrece aprender de una corrección, mientras viva en su
+  /// segmento. Quién decide cuándo aparece, cuándo vence y qué hace el clic
+  /// es `CorreccionesDelDictado`; el escenario sólo lo sienta y lo dibuja.
+  private(set) var ofertaDeAprendizaje: OfertaDeAprendizaje?
+  /// Un clic en ese segmento: aprender o deshacer.
+  var alTocarAprendizaje: (() -> Void)?
+
+  func mostrarOfertaDeAprendizaje(_ oferta: OfertaDeAprendizaje?) {
+    let antes = ofertaDeAprendizaje?.actividad.id
+    ofertaDeAprendizaje = oferta
+    if let antes, antes != oferta?.actividad.id { sentar(.retirar(id: antes)) }
+    if let oferta { sentar(.publicar(oferta.actividad)) } else { aplicarSegmentos() }
+  }
+
   /// La toma que quedó en RAM cambió: aparece, se reintentó o venció. Llega
   /// del mismo aviso que esconde o muestra sus entradas en el menú de la
   /// barra (`DirectDictationController.onTomaFallidaChange`).
@@ -345,6 +359,8 @@ final class HUDStage {
     switch id {
     case ActividadDeLaMuesca.tomaGuardada.id:
       alPedirReintento?()
+    case ActividadDeLaMuesca.ofertaDeAprendizaje.id, ActividadDeLaMuesca.aprendizajeHecho.id:
+      alTocarAprendizaje?()
     case ActividadDeLaMuesca.retenido.id:
       guard let tarjeta = retenidoAlCostado else { return }
       copiarAlPortapapeles(tarjeta.texto)
@@ -369,6 +385,8 @@ final class HUDStage {
     switch actividad?.id {
     case ActividadDeLaMuesca.tomaGuardada.id: .toma
     case ActividadDeLaMuesca.retenido.id: .retenido
+    case ActividadDeLaMuesca.ofertaDeAprendizaje.id, ActividadDeLaMuesca.aprendizajeHecho.id:
+      ofertaDeAprendizaje?.segmento
     default: nil
     }
   }

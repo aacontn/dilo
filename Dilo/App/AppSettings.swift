@@ -81,6 +81,7 @@ final class AppSettings {
     static let reemplazos = "diloReemplazos"
     static let fuentesDeContexto = "diloFuentesDeContexto"
     static let migracionDeSenales = "diloMigracionDeSenales"
+    static let aprenderDeCorrecciones = "diloAprenderDeCorrecciones"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -238,6 +239,13 @@ final class AppSettings {
         defaults.set(datos, forKey: Keys.fuentesDeContexto)
       }
     }
+  }
+
+  /// Si Dilo mira el campo un rato después de pegar para ofrecer aprender
+  /// lo que corregiste. Prendido de fábrica en el target directo: nunca
+  /// agrega nada sin que lo aceptes en la muesca. En App Store no existe.
+  var aprenderDeCorrecciones: Bool {
+    didSet { defaults.set(aprenderDeCorrecciones, forKey: Keys.aprenderDeCorrecciones) }
   }
 
   /// Lo que `DiloText` necesita saber, armado en un solo lugar.
@@ -620,6 +628,7 @@ final class AppSettings {
       .flatMap { try? JSONDecoder().decode([Reemplazo].self, from: $0) } ?? []
     fuentesDeContexto = defaults.data(forKey: Keys.fuentesDeContexto)
       .flatMap { try? JSONDecoder().decode(FuentesDeContexto.self, from: $0) } ?? .deFabrica
+    aprenderDeCorrecciones = defaults.object(forKey: Keys.aprenderDeCorrecciones) as? Bool ?? true
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas

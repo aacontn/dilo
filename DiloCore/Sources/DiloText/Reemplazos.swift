@@ -13,10 +13,27 @@ import Foundation
 public struct Reemplazo: Codable, Equatable, Hashable, Sendable {
   public var dice: String
   public var escribe: String
+  /// Vino de una corrección que la persona aceptó en la muesca y no de
+  /// Ajustes (`TusPalabrasAprendidas`). Sólo cambia cómo se muestra.
+  public var aprendido: Bool
 
-  public init(dice: String, escribe: String) {
+  public init(dice: String, escribe: String, aprendido: Bool = false) {
     self.dice = dice
     self.escribe = escribe
+    self.aprendido = aprendido
+  }
+
+  private enum CodingKeys: String, CodingKey {
+    case dice, escribe, aprendido
+  }
+
+  /// Un `diloReemplazos` guardado antes de que existiera la marca se lee
+  /// entero: sin esto, la lista de alguien se perdía completa.
+  public init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    dice = try c.decode(String.self, forKey: .dice)
+    escribe = try c.decode(String.self, forKey: .escribe)
+    aprendido = try c.decodeIfPresent(Bool.self, forKey: .aprendido) ?? false
   }
 }
 

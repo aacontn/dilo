@@ -132,6 +132,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       stage?.mostrarTomaGuardada(duracion)
     }
     stage.alPedirReintento = { dictationController.reintentarTomaFallida() }
+    // Aprender de una corrección: la oferta vive en un segmento de la muesca
+    // y el clic vuelve al controlador, que es quien sabe qué se aprendió.
+    dictationController.correcciones.alCambiarLaOferta = { [weak stage] oferta in
+      stage?.mostrarOfertaDeAprendizaje(oferta)
+    }
+    stage.alTocarAprendizaje = { dictationController.correcciones.tocar() }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alTerminarSesionTrabada = { dictationController.terminarSesionTrabada() }
     stage.dictationContent.alDictarTraduciendo = { dictationController.dictarTraduciendo() }

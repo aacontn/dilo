@@ -166,6 +166,12 @@ extension DirectDictationController {
       _ contexto: SobreDelDictado.ContextoDeLaApp?,
       _ contextoEnLinea: Bool
     ) async -> TransformacionDeModo.Resultado)?
+    /// El valor del campo donde se pegó, para el vigía de correcciones. La
+    /// misma lectura que verifica el pegado (`HostCapabilities.fotoDelCampo`),
+    /// fuera del actor principal: no se lee el campo de dos maneras.
+    var leerCampoParaAprender: @Sendable (AnclaDelFoco) async -> String? = { ancla in
+      await Task.detached(priority: .utility) { Anfitrion.actual.fotoDelCampo(ancla).valor }.value
+    }
 
     /// Builds the production boundaries around the live services the
     /// controller previously constructed itself.

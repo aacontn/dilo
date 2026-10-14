@@ -95,6 +95,9 @@ final class DirectDictationController {
   /// Lo que rodeaba al dictado, leído en paralelo con el micrófono y
   /// recogido al soltar. Sólo RAM, sólo esta sesión.
   private let contextoDelDictado = CapturaDeContexto()
+  /// Mirar el campo después de pegar y ofrecer aprender lo que la persona
+  /// corrigió. `AppDelegate` lo conecta con la muesca.
+  var correcciones: CorreccionesDelDictado
 
   convenience init(
     settings: AppSettings,
@@ -116,6 +119,7 @@ final class DirectDictationController {
   init(settings: AppSettings, dependencies: Dependencies) {
     self.settings = settings
     self.dependencies = dependencies
+    correcciones = CorreccionesDelDictado(settings: settings)
     keyEventMonitor = GlobalKeyEventMonitor { [weak self] event in
       // El instante se toma acá, en el tap, y no cuando el main actor llegue
       // a atender el evento. Arrancar una sesión —la assertion de actividad,
@@ -751,6 +755,9 @@ final class DirectDictationController {
     // Every rejection below releases it, because .beginRejected produces no
     // effects and nothing downstream would.
     activity.hold()
+    // Un dictado nuevo, aunque sea en el mismo campo, no es una corrección
+    // del anterior: nunca dos vigías.
+    correcciones.detener()
 
     guard isPrepared else {
       dependencies.showMessage(preparationFailureMessage ?? "Preparando el reconocimiento…", nil)
@@ -994,6 +1001,9 @@ final class DirectDictationController {
     let delAtajoGeneral = modoDelAtajoGeneral
     let esNota = sesionEsNota
     let (contexto, fuentes) = contextoDelDictado.recoger()
+    // El campo para el vigía de correcciones, ahora: el `sessionEnded` que
+    // sigue al pegado deja `focusedTarget` en nil.
+    let anclaParaVigilar = focusedTarget?.ancla
     finishTask = Task { [weak self] in
       guard let self else { return }
       defer { finishTask = nil }
@@ -1138,6 +1148,19 @@ final class DirectDictationController {
         // destino son lo que no se puede perder en silencio.
         let resultado = ResultadoDelNotch.tras(entrega, texto: text)
         dependencies.showResultado(resultado)
+        // Lo que entró se mira un rato por si la persona lo corrige. Una
+        // traducción no: lo oído está en otro idioma que lo pegado.
+        switch entrega {
+        case .pegado, .pegadoSinConfirmar:
+          if let anclaParaVigilar, session.translation == nil {
+            correcciones.vigilar(
+              pegado: text, crudo: crudo, ancla: anclaParaVigilar,
+              leer: dependencies.leerCampoParaAprender
+            )
+          }
+        default:
+          break
+        }
         if resultado.esAcuse || resultado == .copiado, let avisoDelModo {
           dependencies.showMessage("\(avisoDelModo)", nil)
         }
