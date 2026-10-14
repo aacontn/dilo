@@ -239,11 +239,12 @@ extension RenderDeLaMuesca {
       height: HUDNotchGeometry.altoDelPanelDeHover(for: pantalla, secciones: secciones)
     )
     let cabecera = HUDNotchGeometry.alturaDeCabecera(for: pantalla)
-    let radio = vidrio
-      ? PanelDeVidrio.radio(para: tamaño, cabecera: cabecera)
-      : HUDNotchGeometry.radioEnReposo(for: pantalla)
+    // Con vidrio o en negro, la forma abierta de Droppy (`FormaAbierta`).
+    let radio = PanelDeVidrio.radio(para: tamaño, cabecera: cabecera)
     let silueta = SiluetaDeLaMuesca(
-      estilo: .muesca, radioDeHombro: HUDNotchGeometry.filletSize(for: pantalla), radioInferior: radio
+      estilo: .muesca,
+      radioDeHombro: FormaAbierta.hombro(para: tamaño, en: pantalla, radioInferior: radio),
+      radioInferior: radio
     )
     let ventana = CGSize(
       width: HUDNotchGeometry.windowSize(for: pantalla).width,
@@ -285,7 +286,7 @@ extension RenderDeLaMuesca {
         .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
         .tarjetaDelPanel(vidrio, radioInferior: ultima)
       }
-      .padding(.horizontal, vidrio ? PanelDeVidrio.aireLateral : 16)
+      .padding(.horizontal, PanelDeVidrio.aireLateral)
       .frame(width: tamaño.width, height: tamaño.height, alignment: .top)
       .background {
         Group {
