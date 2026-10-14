@@ -146,7 +146,6 @@ extension HUDStage {
     }
     prepararLosDatos(conDatos)
     let pildoras = escena.pildoras
-    dictationContent.pildorasDeVidrio = escena.pildorasDeVidrio
     mostrarTomaGuardada(pildoras.toma ? 12 : nil)
     ponerRetenidoEnPildora(
       pildoras.retenido ? TarjetaDeRespaldo(texto: texto ?? escena.textoDeMuestra ?? "", porque: .sinConfirmar) : nil
@@ -160,7 +159,7 @@ extension HUDStage {
 
     let linea = texto ?? escena.textoDeMuestra ?? ""
     switch escena {
-    case .reposo, .reposoConDatos, .pildoraToma, .pildoraRetenido, .dosPildoras, .pildoraVidrio:
+    case .reposo, .reposoConDatos, .pildoraToma, .pildoraRetenido, .dosPildoras:
       reaplicarElEstado()
 
     case .hover, .hoverCompleto:
@@ -176,7 +175,7 @@ extension HUDStage {
       decir(falta.texto)
       revealDictation()
 
-    case .dictando, .dictandoLargo, .dictandoConPildoras, .dictandoPildorasVidrio:
+    case .dictando, .dictandoLargo, .dictandoConPildoras:
       claim(.dictation, on: pantalla)
       recibir(.escuchar)
       escucharDeMentira()
@@ -234,7 +233,6 @@ extension HUDStage {
     self.muestra = nil
     control.congelado = false
     dictationContent.punteroEncima = false
-    dictationContent.pildorasDeVidrio = false
     prestado.devolver(a: self)
   }
 

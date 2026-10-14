@@ -88,9 +88,6 @@ final class DictationHUDContent {
   /// dibuja.
   var pildoraIzquierda: ContenidoDePildora?
   var pildoraDerecha: ContenidoDePildora?
-  /// Las píldoras de vidrio en vez de negras. Variante en prueba, apagada:
-  /// sólo la enciende el arnés de Debug (`pildora-vidrio`).
-  var pildorasDeVidrio = false
   /// Un clic en una píldora, con el id de su actividad. Lo cablea `HUDStage`.
   @ObservationIgnored var alTocarPildora: ((String) -> Void)?
 

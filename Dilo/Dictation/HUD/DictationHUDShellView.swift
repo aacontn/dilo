@@ -806,7 +806,6 @@ struct DictationHUDShellView: View {
         derecha: content.pildoraDerecha,
         screen: screen,
         acento: DiloBrand.mango,
-        vidrio: content.pildorasDeVidrio,
         alTocar: { id in content.alTocarPildora?(id) }
       )
     }

@@ -42,21 +42,17 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case pildoraRetenido = "pildora-retenido"
   case dosPildoras = "dos-pildoras"
   case dictandoConPildoras = "dictando-pildoras"
-  /// La variante de vidrio de las píldoras, en prueba: el Liquid Glass no se
-  /// dibuja en PNG y sólo se puede juzgar en la pantalla.
-  case pildoraVidrio = "pildora-vidrio"
-  case dictandoPildorasVidrio = "dictando-pildoras-vidrio"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
   var textoDeMuestra: String? {
     switch self {
-    case .dictando, .dictandoConPildoras, .dictandoPildorasVidrio: "Aprieta, habla, suelta"
+    case .dictando, .dictandoConPildoras: "Aprieta, habla, suelta"
     case .dictandoLargo:
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
     case .procesando: "quedamos el martes a las diez"
     case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
-    case .retenido, .pildoraRetenido, .dosPildoras, .pildoraVidrio:
+    case .retenido, .pildoraRetenido, .dosPildoras:
       "quedamos el martes a las diez en la oficina de Providencia"
     case .hover, .hoverCompleto: "Listo · «quedamos el martes a las diez»"
     default: nil
@@ -68,10 +64,10 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   var estado: EstadoDelNotch {
     switch self {
     case .reposo, .reposoConDatos, .hover, .hoverCompleto: .reposo
-    case .pildoraToma, .pildoraRetenido, .dosPildoras, .pildoraVidrio: .reposo
+    case .pildoraToma, .pildoraRetenido, .dosPildoras: .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
-    case .dictando, .dictandoLargo, .dictandoConPildoras, .dictandoPildorasVidrio: .dictando
+    case .dictando, .dictandoLargo, .dictandoConPildoras: .dictando
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
@@ -86,13 +82,10 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     switch self {
     case .pildoraToma: (true, false)
     case .pildoraRetenido: (false, true)
-    case .dosPildoras, .dictandoConPildoras, .pildoraVidrio, .dictandoPildorasVidrio: (true, true)
+    case .dosPildoras, .dictandoConPildoras: (true, true)
     default: (false, false)
     }
   }
-
-  /// Si la escena dibuja las píldoras de vidrio.
-  var pildorasDeVidrio: Bool { self == .pildoraVidrio || self == .dictandoPildorasVidrio }
 
   static let tarjetaDeMuestra = TarjetaDeRespaldo(
     texto: EscenaDeMuestra.retenido.textoDeMuestra ?? "",

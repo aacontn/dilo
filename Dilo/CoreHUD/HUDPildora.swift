@@ -46,10 +46,6 @@ struct HUDPildora: View {
   /// El mango de Dilo. Entra por parámetro para que el render de la muesca
   /// la dibuje sin traer el sistema de diseño de Ajustes.
   let acento: Color
-  /// De vidrio (Liquid Glass) en vez de negra. Apagado de fábrica: es una
-  /// variante en prueba que sólo enciende el arnés (`pildora-vidrio`), porque
-  /// el vidrio no se dibuja fuera de pantalla y hay que verlo en la app.
-  var vidrio = false
   let alTocar: () -> Void
 
   /// El radio de la píldora bajo la barra: una cápsula perfecta de veinte
@@ -65,31 +61,19 @@ struct HUDPildora: View {
         .lineLimit(1)
         .minimumScaleFactor(0.8)
     }
-    .foregroundStyle(contenido.destacada ? acento : (vidrio ? Color.primary : Color.white.opacity(0.85)))
+    .foregroundStyle(contenido.destacada ? acento : Color.white.opacity(0.85))
     .padding(.horizontal, 8)
     .frame(width: HUDNotchGeometry.anchoDePildora, height: alto)
-    .modifier(FondoDePildora(vidrio: vidrio, radio: Self.radio))
+    .background {
+      SiluetaDeLaMuesca(estilo: .isla, radioDeHombro: 0, radioInferior: Self.radio)
+        .fill(Color.black)
+    }
     .contentShape(SiluetaDeLaMuesca(estilo: .isla, radioDeHombro: 0, radioInferior: Self.radio))
     .onTapGesture(perform: alTocar)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Text(contenido.accesibilidad))
     .accessibilityAddTraits(.isButton)
     .accessibilityAction { alTocar() }
-  }
-}
-
-/// Negro, o vidrio de macOS 26 con la misma silueta.
-private struct FondoDePildora: ViewModifier {
-  let vidrio: Bool
-  let radio: CGFloat
-
-  func body(content: Content) -> some View {
-    let forma = SiluetaDeLaMuesca(estilo: .isla, radioDeHombro: 0, radioInferior: radio)
-    if vidrio {
-      content.glassEffect(.regular, in: forma)
-    } else {
-      content.background { forma.fill(Color.black) }
-    }
   }
 }
 
@@ -105,7 +89,6 @@ struct HUDPildorasAlCostado: View {
   let derecha: ContenidoDePildora?
   let screen: HUDScreenSnapshot
   let acento: Color
-  var vidrio = false
   let alTocar: (String) -> Void
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -131,7 +114,7 @@ struct HUDPildorasAlCostado: View {
   }
 
   private func pildora(_ contenido: ContenidoDePildora, ancla: UnitPoint) -> some View {
-    HUDPildora(contenido: contenido, alto: alto, acento: acento, vidrio: vidrio) { alTocar(contenido.id) }
+    HUDPildora(contenido: contenido, alto: alto, acento: acento) { alTocar(contenido.id) }
       .id(contenido.id)
       .transition(
         reduceMotion ? .opacity : .scale(scale: 0.4, anchor: ancla).combined(with: .opacity)
