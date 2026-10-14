@@ -19,6 +19,12 @@ public struct MedidaDeToma: Sendable, Equatable {
   public let umbral: Float
   public let segundosConVoz: Double
   public let duracion: Double
+  /// Cuánto de la toma fue cero exacto, en ventanas de 100 ms: el micrófono
+  /// no entregaba nada. No es la sala —una sala callada nunca es cero
+  /// digital—, es un Bluetooth cambiando al perfil de llamada: el WH-CH720N
+  /// entrega entre 0,8 y 1 s de ceros al abrirse (medido el 14-oct con
+  /// `taller/pruebas/nivel-de-los-microfonos`).
+  public let segundosEnCero: Double
 
   /// −50 dBFS: por debajo de esto nada cuenta como voz, aunque la sala sea
   /// un estudio. Ocelli.
@@ -35,6 +41,10 @@ public struct MedidaDeToma: Sendable, Equatable {
   /// reintentar: alguien habló y el motor no lo entendió. Debajo, fue un
   /// apretón sin querer o una tos, y basta con decir que no se escuchó.
   public static let segundosDeVozParaGuardar: Double = 0.5
+  /// Con al menos esto de ceros exactos, el micrófono estuvo dormido una
+  /// parte de la toma y «no te escuché» no se puede afirmar. Medio segundo:
+  /// la mitad de lo que tarda en despertar un Bluetooth medido. Propio.
+  public static let segundosEnCeroDeMicrofonoDormido: Double = 0.5
 
   public var rmsDB: Float { 20 * log10(max(rms, 1e-9)) }
 
@@ -53,8 +63,25 @@ public struct MedidaDeToma: Sendable, Equatable {
   /// dictado.
   public var huboVoz: Bool { segundosConVoz >= Self.segundosDeVozParaGuardar }
 
+  /// El micrófono no entregó nada durante una parte de la toma: lo que se
+  /// haya dicho entonces nadie lo oyó, ni Dilo ni el motor.
+  public var microfonoDormido: Bool { segundosEnCero >= Self.segundosEnCeroDeMicrofonoDormido }
+
   public static let vacia = MedidaDeToma(
-    rms: 0, pico: 0, piso: 0, umbral: umbralMinimo, segundosConVoz: 0, duracion: 0)
+    rms: 0, pico: 0, piso: 0, umbral: umbralMinimo, segundosConVoz: 0, duracion: 0, segundosEnCero: 0)
+
+  public init(
+    rms: Float, pico: Float, piso: Float, umbral: Float,
+    segundosConVoz: Double, duracion: Double, segundosEnCero: Double = 0
+  ) {
+    self.rms = rms
+    self.pico = pico
+    self.piso = piso
+    self.umbral = umbral
+    self.segundosConVoz = segundosConVoz
+    self.duracion = duracion
+    self.segundosEnCero = segundosEnCero
+  }
 
   public static func medir(_ muestras: [Float], tasa: Double = PoliticaDeGrabacion.tasa) -> MedidaDeToma {
     guard !muestras.isEmpty else { return .vacia }
@@ -64,14 +91,16 @@ public struct MedidaDeToma: Sendable, Equatable {
       let pico = vDSP.maximumMagnitude(todo)
 
       // El piso de la sala: el percentil 10 de la energía en ventanas de
-      // 50 ms que se pisan cada 25 ms.
+      // 50 ms que se pisan cada 25 ms. Sin las de cero exacto: ésas son el
+      // micrófono sin entregar, no la sala.
       let ancho = Int(tasa * 0.05)
       let salto = Int(tasa * 0.025)
       var energias: [Float] = []
       energias.reserveCapacity(todo.count / max(salto, 1) + 1)
       var inicio = 0
       while inicio + ancho <= todo.count {
-        energias.append(vDSP.rootMeanSquare(UnsafeBufferPointer(rebasing: todo[inicio..<inicio + ancho])))
+        let energia = vDSP.rootMeanSquare(UnsafeBufferPointer(rebasing: todo[inicio..<inicio + ancho]))
+        if energia > 0 { energias.append(energia) }
         inicio += salto
       }
       energias.sort()
@@ -81,16 +110,18 @@ public struct MedidaDeToma: Sendable, Equatable {
       // La voz se cuenta en ventanas de 100 ms sin pisarse.
       let ventana = Int(tasa * 0.1)
       var conVoz = 0
+      var enCero = 0
       inicio = 0
       while inicio + ventana <= todo.count {
-        if vDSP.rootMeanSquare(UnsafeBufferPointer(rebasing: todo[inicio..<inicio + ventana])) > umbral {
-          conVoz += 1
-        }
+        let energia = vDSP.rootMeanSquare(UnsafeBufferPointer(rebasing: todo[inicio..<inicio + ventana]))
+        if energia > umbral { conVoz += 1 }
+        if energia == 0 { enCero += 1 }
         inicio += ventana
       }
       return MedidaDeToma(
         rms: rms, pico: pico, piso: piso, umbral: umbral,
-        segundosConVoz: Double(conVoz) * 0.1, duracion: duracion)
+        segundosConVoz: Double(conVoz) * 0.1, duracion: duracion,
+        segundosEnCero: Double(enCero) * 0.1)
     }
   }
 }

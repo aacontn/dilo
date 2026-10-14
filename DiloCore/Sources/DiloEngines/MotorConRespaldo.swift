@@ -9,6 +9,9 @@ import os
 public enum TomaSinTexto: LocalizedError, Sendable, Equatable {
   /// La toma no tenía voz: un apretón sin querer, o el micrófono lejos.
   case nadieHablo
+  /// El micrófono entregó ceros una parte de la toma —un Bluetooth que
+  /// despierta tarda un segundo— y no salió texto: no es que nadie hablara.
+  case microfonoDormido
   /// Hubo voz y no salió texto: la toma quedó en RAM para reintentar.
   case guardada
   /// El reintento tampoco sacó texto: la toma sigue guardada.
@@ -20,6 +23,8 @@ public enum TomaSinTexto: LocalizedError, Sendable, Equatable {
     switch self {
     case .nadieHablo:
       "No te escuché."
+    case .microfonoDormido:
+      "El micrófono tardó en abrir y no alcancé a oírte."
     case .guardada:
       "No salió el texto. Guardé lo que dijiste: reinténtalo desde el menú de Dilo."
     case .tampocoSalio:
@@ -149,7 +154,17 @@ public actor MotorConRespaldo: SpeechEngine {
       // Sin audio medido —una toma que la grabadora no vio— no se puede
       // decir que nadie habló: sale vacío, como siempre salió.
       guard medida.hayAudio else { return "" }
+      // Con los números de la toma: once «No te escuché» seguidos en la
+      // 0.4.3 no dejaron nada en el log con qué saber por qué.
+      Self.logger.notice(
+        "nadie habló: \(medida.duracion, format: .fixed(precision: 1), privacy: .public) s, rms \(medida.rmsDB, format: .fixed(precision: 1), privacy: .public) dBFS, voz \(medida.segundosConVoz, format: .fixed(precision: 1), privacy: .public) s, ceros \(medida.segundosEnCero, format: .fixed(precision: 1), privacy: .public) s"
+      )
       throw TomaSinTexto.nadieHablo
+    case .microfonoDormido:
+      Self.logger.notice(
+        "sin texto y con \(medida.segundosEnCero, privacy: .public) s de ceros: el micrófono tardó en entregar"
+      )
+      throw TomaSinTexto.microfonoDormido
     case .fallida:
       guard let idioma else { return "" }
       Self.logger.notice("ningún motor sacó texto de una toma con voz; queda en RAM")
