@@ -206,8 +206,8 @@ final class HUDStage {
     dictationContent.alTocarLaTarjeta = { [weak self] tarjeta in
       self?.copiarLaTarjeta(tarjeta)
     }
-    dictationContent.alTocarPildora = { [weak self] id in
-      self?.tocarPildora(id)
+    dictationContent.alTocarSegmento = { [weak self] id in
+      self?.tocarSegmento(id)
     }
     // El puntero entra por el área de seguimiento de la vista y por ningún
     // otro lado: la ventana ya no ignora el mouse, así que ve entrar el
@@ -239,6 +239,7 @@ final class HUDStage {
     datos.alCambiar = { [weak self] izquierdo, derecho in
       self?.dictationContent.datoIzquierdo = izquierdo
       self?.dictationContent.datoDerecho = derecho
+      self?.anotarLosDatosEscondidos()
     }
   }
 
@@ -256,24 +257,32 @@ final class HUDStage {
     return datos.llevaDatos ? HUDNotchGeometry.anchoDeUnLado : 0
   }
 
-  /// Quién se sienta dónde (`AsientosDeLaMuesca`): la forma y las dos
-  /// píldoras de los costados. La sesión del contrato entra y sale sola con
-  /// el estado; la toma guardada y el retenido, cuando existen.
+  /// Quién se sienta dónde (`AsientosDeLaMuesca`): la forma y los dos
+  /// costados. La sesión del contrato entra y sale sola con el estado; la
+  /// toma guardada y el retenido, cuando existen, como segmentos al costado:
+  /// la misma silueta estirada hacia su lado (`HUDSegmentosAlCostado`).
   private(set) var asientos = AsientosDeLaMuesca()
-  /// La tarjeta que otra sesión tapó, mientras viva en su píldora.
-  private(set) var retenidoEnPildora: TarjetaDeRespaldo?
+  /// La tarjeta que otra sesión tapó, mientras viva en su segmento.
+  private(set) var retenidoAlCostado: TarjetaDeRespaldo?
   private var vencimientoDelRetenido: Task<Void, Never>?
   /// Cuánto dura la toma que quedó en RAM, o nil sin toma.
   private(set) var tomaGuardada: TimeInterval?
-  /// Los lados donde hay una píldora sentada ahora.
-  private(set) var ladosConPildora: Set<LadoDePildora> = []
-  /// Si la ventana está montada con lugar para píldoras. Va detrás de
-  /// `ladosConPildora` al encogerse: la última píldora se va animando y la
-  /// ventana se achica cuando ya se fue, como con el panel del hover.
-  private(set) var ventanaConPildoras = false
-  private var encogerPildorasTask: Task<Void, Never>?
+  /// Los costados donde hay un segmento sentado ahora.
+  private(set) var costadosConSegmento: Set<LadoDelAsiento> = []
+  /// Si la ventana está montada con lugar para segmentos. Va detrás de
+  /// `costadosConSegmento` al encogerse: el último segmento se va animando y
+  /// la ventana se achica cuando ya se fue, como con el panel del hover.
+  private(set) var ventanaConSegmentos = false
+  private var encogerSegmentosTask: Task<Void, Never>?
+  /// Cuándo cada segmento dice su palabra (`PalabraDeLosSegmentos`), y los
+  /// plazos que la encogen.
+  private(set) var palabra = PalabraDeLosSegmentos()
+  private var encogerPalabraTasks: [LadoDelAsiento: Task<Void, Never>] = [:]
+  /// Los costados cuyo dato está escondido por un segmento, para anotar en el
+  /// log cuándo se esconde y cuándo vuelve.
+  private var datosEscondidos: Set<LadoDelAsiento> = []
 
-  /// Un clic en la píldora de la toma: reintentarla. Lo cablea `AppDelegate`
+  /// Un clic en el segmento de la toma: reintentarla. Lo cablea `AppDelegate`
   /// hacia el controlador de dictado, que es quien tiene la toma.
   var alPedirReintento: (() -> Void)?
 
@@ -285,11 +294,11 @@ final class HUDStage {
     sentar(duracion == nil ? .retirar(id: ActividadDeLaMuesca.tomaGuardada.id) : .publicar(.tomaGuardada))
   }
 
-  /// Pone (o saca) la píldora de una tarjeta tapada. La pone el propio
+  /// Pone (o saca) el segmento de una tarjeta tapada. Lo pone el propio
   /// escenario cuando una sesión tapa una tarjeta; interna para el arnés y
   /// los tests.
-  func ponerRetenidoEnPildora(_ tarjeta: TarjetaDeRespaldo?) {
-    retenidoEnPildora = tarjeta
+  func ponerRetenidoAlCostado(_ tarjeta: TarjetaDeRespaldo?) {
+    retenidoAlCostado = tarjeta
     vencimientoDelRetenido?.cancel()
     vencimientoDelRetenido = nil
     guard tarjeta != nil else {
@@ -301,18 +310,18 @@ final class HUDStage {
   }
 
   /// La sesión del contrato está en los asientos mientras la máquina no
-  /// descansa, y una tarjeta que otra sesión tapa se corre a una píldora
+  /// descansa, y una tarjeta que otra sesión tapa se corre a un segmento
   /// (`TarjetaDeRespaldo.tapada`).
   private func seguirLaSesion(de anterior: EstadoDelNotch, a nuevo: EstadoDelNotch) {
     if !enMuestra, let tapada = TarjetaDeRespaldo.tapada(de: anterior, a: nuevo) {
-      ponerRetenidoEnPildora(tapada)
+      ponerRetenidoAlCostado(tapada)
     }
     guard nuevo != .reposo else {
       sentar(.retirar(id: ActividadDeLaMuesca.sesion(escuchando: false).id))
       programarVencimientoDelRetenido()
       return
     }
-    // Mientras dura una sesión la píldora del retenido no vence: lo que se
+    // Mientras dura una sesión el segmento del retenido no vence: lo que se
     // quiere es poder recogerlo cuando la sesión termine.
     vencimientoDelRetenido?.cancel()
     vencimientoDelRetenido = nil
@@ -322,24 +331,24 @@ final class HUDStage {
   private func programarVencimientoDelRetenido() {
     vencimientoDelRetenido?.cancel()
     vencimientoDelRetenido = nil
-    guard retenidoEnPildora != nil else { return }
+    guard retenidoAlCostado != nil else { return }
     vencimientoDelRetenido = Task { [weak self, reloj] in
-      try? await reloj.sleep(TarjetaDeRespaldo.duracionEnPildora)
+      try? await reloj.sleep(TarjetaDeRespaldo.duracionAlCostado)
       guard !Task.isCancelled, let self, estado == .reposo else { return }
-      ponerRetenidoEnPildora(nil)
+      ponerRetenidoAlCostado(nil)
     }
   }
 
-  /// Un clic en una píldora. Mientras se dicta la ventana no toma el mouse,
+  /// Un clic en un segmento. Mientras se dicta la ventana no toma el mouse,
   /// así que esto sólo llega en reposo o con una tarjeta a la vista.
-  func tocarPildora(_ id: String) {
+  func tocarSegmento(_ id: String) {
     switch id {
     case ActividadDeLaMuesca.tomaGuardada.id:
       alPedirReintento?()
     case ActividadDeLaMuesca.retenido.id:
-      guard let tarjeta = retenidoEnPildora else { return }
+      guard let tarjeta = retenidoAlCostado else { return }
       copiarAlPortapapeles(tarjeta.texto)
-      ponerRetenidoEnPildora(nil)
+      ponerRetenidoAlCostado(nil)
       // Lo dice la forma, como cuando se copia la tarjeta misma; con otra
       // tarjeta a la vista no la tapa.
       guard estado == .reposo, let pantallaActual else { return }
@@ -349,14 +358,14 @@ final class HUDStage {
     }
   }
 
-  /// Mueve los asientos y lleva el resultado a las píldoras.
+  /// Mueve los asientos y lleva el resultado a los segmentos.
   private func sentar(_ evento: AsientosDeLaMuesca.Evento) {
     asientos.recibir(evento)
-    aplicarPildoras()
+    aplicarSegmentos()
   }
 
-  /// Qué dice la píldora de cada actividad que hoy puede tener una.
-  private func contenido(de actividad: ActividadDeLaMuesca?) -> ContenidoDePildora? {
+  /// Qué dice el segmento de cada actividad que hoy puede tener uno.
+  private func contenido(de actividad: ActividadDeLaMuesca?) -> ContenidoDelSegmento? {
     switch actividad?.id {
     case ActividadDeLaMuesca.tomaGuardada.id: .toma
     case ActividadDeLaMuesca.retenido.id: .retenido
@@ -364,50 +373,126 @@ final class HUDStage {
     }
   }
 
-  /// Lleva los asientos a la forma: el contenido de cada píldora, la ventana
-  /// y la zona que recibe el mouse.
+  /// Lleva los asientos a la forma: el contenido de cada segmento, su
+  /// palabra, la ventana y la zona que recibe el mouse.
   ///
-  /// La ventana sigue la regla de siempre: crece **antes** de que la píldora
-  /// empiece a entrar y se encoge **después** de que la última terminó de
+  /// La ventana sigue la regla de siempre: crece **antes** de que el segmento
+  /// empiece a entrar y se encoge **después** de que el último terminó de
   /// irse (`dismissDuration`), o la animación sale recortada.
-  private func aplicarPildoras() {
-    let izquierda = contenido(de: asientos.pildora(.izquierda))
-    let derecha = contenido(de: asientos.pildora(.derecha))
-    var lados: Set<LadoDePildora> = []
-    if izquierda != nil { lados.insert(.izquierda) }
-    if derecha != nil { lados.insert(.derecha) }
-    ladosConPildora = lados
+  private func aplicarSegmentos() {
+    let izquierdo = contenido(de: asientos.costado(.izquierda))
+    let derecho = contenido(de: asientos.costado(.derecha))
+    var lados: Set<LadoDelAsiento> = []
+    if izquierdo != nil { lados.insert(.izquierda) }
+    if derecho != nil { lados.insert(.derecha) }
+    costadosConSegmento = lados
     if !lados.isEmpty {
-      encogerPildorasTask?.cancel()
-      encogerPildorasTask = nil
-      if !ventanaConPildoras {
-        ventanaConPildoras = true
+      encogerSegmentosTask?.cancel()
+      encogerSegmentosTask = nil
+      if !ventanaConSegmentos {
+        ventanaConSegmentos = true
         remontarConLosLadosActuales()
       }
-    } else if ventanaConPildoras, encogerPildorasTask == nil {
-      encogerPildorasTask = Task { [weak self, reloj] in
+    } else if ventanaConSegmentos, encogerSegmentosTask == nil {
+      encogerSegmentosTask = Task { [weak self, reloj] in
         try? await reloj.sleep(Self.dismissDuration)
         guard !Task.isCancelled, let self else { return }
-        encogerPildorasTask = nil
-        guard ladosConPildora.isEmpty else { return }
-        ventanaConPildoras = false
+        encogerSegmentosTask = nil
+        guard costadosConSegmento.isEmpty else { return }
+        ventanaConSegmentos = false
         remontarConLosLadosActuales()
       }
     }
-    if dictationContent.pildoraIzquierda != izquierda { dictationContent.pildoraIzquierda = izquierda }
-    if dictationContent.pildoraDerecha != derecha { dictationContent.pildoraDerecha = derecha }
+    // Quien aparece entra diciendo su palabra; quien se va, la suelta.
+    for (lado, nuevo, viejo) in [
+      (LadoDelAsiento.izquierda, izquierdo, dictationContent.segmentoIzquierdo),
+      (.derecha, derecho, dictationContent.segmentoDerecho),
+    ] where nuevo?.id != viejo?.id {
+      cambiarLaPalabra(nuevo == nil ? .seFue(lado) : .aparecio(lado))
+    }
+    if dictationContent.segmentoIzquierdo != izquierdo { dictationContent.segmentoIzquierdo = izquierdo }
+    if dictationContent.segmentoDerecho != derecho { dictationContent.segmentoDerecho = derecho }
+    anotarLosDatosEscondidos()
     actualizarZonaInteractiva()
   }
 
-  /// Cuántas píldoras caben y si la pantalla está en pantalla completa, cada
+  /// Mueve la palabra de los segmentos y programa cuándo se encoge.
+  private func cambiarLaPalabra(_ evento: PalabraDeLosSegmentos.Evento) {
+    for efecto in palabra.recibir(evento) {
+      guard case let .encogerEn(lado, plazo, turno) = efecto else { continue }
+      encogerPalabraTasks[lado]?.cancel()
+      encogerPalabraTasks[lado] = Task { [weak self, reloj] in
+        try? await reloj.sleep(plazo)
+        guard !Task.isCancelled, let self else { return }
+        cambiarLaPalabra(.vencio(lado, turno: turno))
+      }
+    }
+    if dictationContent.segmentosConPalabra != palabra.conPalabra {
+      dictationContent.segmentosConPalabra = palabra.conPalabra
+      // El segmento cambió de ancho: la zona del mouse lo sigue.
+      actualizarZonaInteractiva()
+    }
+  }
+
+  /// Fija o suelta la palabra de todos los segmentos. Sólo para el arnés.
+  func fijarLaPalabra(_ fijada: Bool) {
+    cambiarLaPalabra(.fijar(fijada))
+  }
+
+  /// Encoge ya la palabra de todos los segmentos, como si hubieran vencido
+  /// sus tres segundos. Sólo para el arnés y los tests.
+  func encogerLaPalabra() {
+    for lado in palabra.presentes {
+      cambiarLaPalabra(.vencio(lado, turno: palabra.turno(de: lado)))
+    }
+  }
+
+  /// Qué segmento hay bajo este punto de pantalla, si alguno.
+  private func segmento(en punto: CGPoint) -> LadoDelAsiento? {
+    guard let pantallaActual else { return nil }
+    let cuerpo = HUDNotchGeometry.siluetaEnPantalla(
+      for: pantallaActual,
+      tamaño: tamañoDeLaSilueta,
+      encuadre: encuadre
+    )
+    let costados = dictationContent.costados(en: pantallaActual)
+    for lado in dictationContent.costadosConSegmentoVisible {
+      guard let ancho = dictationContent.anchoDelSegmento(lado) else { continue }
+      let rect = HUDNotchGeometry.rectDelSegmento(lado, ancho: ancho, costados: costados, cuerpo: cuerpo)
+      if rect.contains(punto) { return lado }
+    }
+    return nil
+  }
+
+  /// Anota en el log el dato de cada costado que un segmento esconde y el
+  /// que vuelve (`ReglaDeLosCostados`).
+  private func anotarLosDatosEscondidos() {
+    var conDato: Set<LadoDelAsiento> = []
+    if dictationContent.datoIzquierdo != nil { conDato.insert(.izquierda) }
+    if dictationContent.datoDerecho != nil { conDato.insert(.derecha) }
+    let escondidos = ReglaDeLosCostados.escondidos(conDato: conDato, segmentos: costadosConSegmento)
+    guard escondidos != datosEscondidos else { return }
+    for lado in escondidos.symmetricDifference(datosEscondidos) {
+      let dato = lado == .izquierda ? dictationContent.datoIzquierdo : dictationContent.datoDerecho
+      let segmento = lado == .izquierda ? dictationContent.segmentoIzquierdo : dictationContent.segmentoDerecho
+      RegistroDeLaMuesca.anotarDatoEscondido(
+        dato?.dato.rawValue ?? "?",
+        lado: lado,
+        segmento: escondidos.contains(lado) ? segmento?.id : nil
+      )
+    }
+    datosEscondidos = escondidos
+  }
+
+  /// Cuántos segmentos caben y si la pantalla está en pantalla completa, cada
   /// vez que la forma se monta: cambia con la pantalla y con el espacio.
   private func actualizarLosLugares(de pantalla: HUDScreenSnapshot) {
-    let lugares = HUDNotchGeometry.lugaresParaPildoras(for: pantalla)
+    let lugares = HUDNotchGeometry.lugaresAlCostado(for: pantalla)
     let suprimida = HUDNotchGeometry.reposoSeEsconde(for: pantalla)
     guard lugares != asientos.lugares || suprimida != asientos.suprimida else { return }
-    asientos.recibir(.lugaresParaPildoras(lugares))
+    asientos.recibir(.lugaresAlCostado(lugares))
     asientos.recibir(.suprimir(suprimida))
-    aplicarPildoras()
+    aplicarSegmentos()
   }
 
   // MARK: El panel del hover
@@ -606,6 +691,7 @@ final class HUDStage {
       redDeSeguridadTask?.cancel()
       redDeSeguridadTask = nil
       dictationContent.punteroEncima = false
+      if palabra.bajoElPuntero != nil { cambiarLaPalabra(.punteroEncima(nil)) }
     } else if punteroSobreLaSilueta, !dictationContent.punteroEncima {
       // El puntero ya estaba encima cuando el estado cambió: terminar de
       // dictar con el mouse parado sobre la muesca tiene que volver a abrir
@@ -725,9 +811,9 @@ final class HUDStage {
       for: pantallaActual,
       tamaño: tamañoDeLaSilueta,
       encuadre: encuadre,
-      // Las píldoras se esconden con el panel del hover abierto, y lo que
+      // Los segmentos se esconden con el panel del hover abierto, y lo que
       // no se ve no toma clics.
-      pildoras: dictationContent.contextoVisible == nil ? ladosConPildora : []
+      costados: dictationContent.costados(en: pantallaActual)
     )
     // Mientras no había zona la ventana ignoraba el mouse (`HUDPanel`) y el
     // área de seguimiento no vio nada: terminar de dictar con el puntero
@@ -863,7 +949,7 @@ final class HUDStage {
     guard var pantalla = pantallaActual else { return }
     pantalla.anchoDeLosLados = anchoDeLosLados
     pantalla.seccionesPosibles = seccionesPosibles
-    pantalla.llevaPildoras = ventanaConPildoras
+    pantalla.llevaSegmentos = ventanaConSegmentos
     mount(on: pantalla)
   }
 
@@ -899,6 +985,11 @@ final class HUDStage {
     punteroSobreLaSilueta = dentro
     ultimoPunto = punto
     guard estado.tomaElMouse else { return }
+    // El segmento no es silueta para la intención: posarse en él le
+    // devuelve la palabra y nunca abre el panel del hover. Para
+    // `IntencionDelPuntero` es «afuera», así que con el panel abierto
+    // ir al segmento empieza la gracia de cierre, como ir a la barra.
+    cambiarLaPalabra(.punteroEncima(dentro ? nil : segmento(en: punto)))
     decidir(conLaMuestra: punto, dentro: dentro)
   }
 
@@ -907,6 +998,7 @@ final class HUDStage {
   func punteroSalio() {
     guard !enMuestra else { return }
     punteroSobreLaSilueta = false
+    cambiarLaPalabra(.punteroEncima(nil))
     guard estado.tomaElMouse else { return }
     decidir(conLaMuestra: ultimoPunto ?? posicionDelPuntero(), dentro: false)
   }
@@ -1152,7 +1244,7 @@ final class HUDStage {
         nombre: screen.localizedName,
         anchoDeLosLados: anchoDeLosLados,
         seccionesPosibles: seccionesPosibles,
-        llevaPildoras: ventanaConPildoras
+        llevaSegmentos: ventanaConSegmentos
       )
     }
     return HUDPlacement.selectDisplay(
@@ -1251,7 +1343,7 @@ final class HUDStage {
   }
 
   /// Un resultado que no es de ninguna sesión —un aviso, una copia hecha
-  /// desde una píldora— en la forma, con la pantalla ya elegida.
+  /// desde un segmento— en la forma, con la pantalla ya elegida.
   private func decir(_ resultado: ResultadoDelNotch, texto text: String, en screen: HUDScreenSnapshot) {
     claim(.message, on: screen)
     recibir(.entregar(resultado))
@@ -1329,7 +1421,7 @@ final class HUDStage {
     panel.assertOverlayOrder()
     actualizarPresencia()
     actualizarZonaInteractiva()
-    // Al final: si cambian los lugares, las píldoras pueden pedir otra
+    // Al final: si cambian los lugares, los segmentos pueden pedir otra
     // ventana, y ese montaje tiene que encontrar éste terminado.
     actualizarLosLugares(de: screen)
   }

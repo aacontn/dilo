@@ -299,14 +299,14 @@ enum HUDNotchGeometry {
   /// entera sensible al mouse se tragaría clics en media barra de menús. Sólo
   /// la silueta toma el mouse; el resto pasa de largo (`HUDHostingView`).
   ///
-  /// Con píldoras a la vista la franja se estira hasta ellas por su lado: un
-  /// solo rectángulo, así que los pocos puntos entre el ala y la píldora
-  /// también toman el clic mientras hay una.
+  /// Con un segmento al costado la franja se estira lo que la silueta se
+  /// estira por ese lado (`CostadosDeLaSilueta`): el segmento es parte de la
+  /// forma y toma su clic.
   static func zonaInteractiva(
     for screen: HUDScreenSnapshot,
     tamaño: CGSize,
     encuadre: EncuadreDeLaVentana = .abierta,
-    pildoras: Set<LadoDePildora> = []
+    costados: CostadosDeLaSilueta = CostadosDeLaSilueta()
   ) -> CGRect {
     let ventana = windowSize(for: screen, encuadre: encuadre)
     let ancho = min(tamaño.width, ventana.width)
@@ -317,10 +317,9 @@ enum HUDNotchGeometry {
       width: ancho,
       height: alto
     )
-    guard !pildoras.isEmpty else { return silueta }
-    let alcance = alcanceDePildoras(for: screen)
-    let minX = pildoras.contains(.izquierda) ? max(0, silueta.minX - alcance) : silueta.minX
-    let maxX = pildoras.contains(.derecha) ? min(ventana.width, silueta.maxX + alcance) : silueta.maxX
+    guard costados.total > 0 else { return silueta }
+    let minX = max(0, silueta.minX - costados.izquierda)
+    let maxX = min(ventana.width, silueta.maxX + costados.derecha)
     return CGRect(x: minX, y: silueta.minY, width: maxX - minX, height: silueta.height)
   }
 
@@ -566,12 +565,12 @@ enum HUDNotchGeometry {
     switch encuadre {
     case .reposo:
       let silueta = reposoSize(for: screen)
-      // Con píldoras, la ventana en reposo es la silueta más lo que ellas
-      // ocupan a cada lado, y nada más: es la misma regla de «la ventana es
-      // la muesca», con las píldoras como parte de ella.
-      let holgura = screen.llevaPildoras
-        ? max(holguraEnReposo(for: screen), alcanceDePildoras(for: screen))
-        : holguraEnReposo(for: screen)
+      // Con segmentos, la ventana en reposo es la silueta más lo que puede
+      // llegar a estirarse a cada lado con la palabra, y nada más: es la
+      // misma regla de «la ventana es la muesca», con los segmentos como
+      // parte de ella. Sin segmentos, exactamente lo de siempre.
+      let holgura = holguraEnReposo(for: screen)
+        + (screen.llevaSegmentos ? estiramientoMaximo(for: screen, compacta: true) : 0)
       return CGSize(
         width: min(silueta.width + holgura * 2, screen.frame.width),
         // Exactamente la silueta: **nada** debajo. Las alas cuelgan a los
@@ -582,13 +581,14 @@ enum HUDNotchGeometry {
       )
     case .abierta:
       let holgura = holguraDeRevelacion(for: screen)
-      // Dictando, las píldoras siguen al costado de la muesca apenas más
+      // Dictando, los segmentos siguen estirando la muesca apenas más
       // grande; con datos a los costados eso puede pasar del ancho del panel.
-      let conPildoras = screen.llevaPildoras
-        ? tamañoDictando(for: screen).width + alcanceDePildoras(for: screen) * 2
+      let conSegmentos = screen.llevaSegmentos
+        ? tamañoDictando(for: screen).width
+          + (estiramientoMaximo(for: screen, compacta: false) + filletSize(for: screen)) * 2
         : 0
       return CGSize(
-        width: min(max(HUDMetrics.standard.contentWidth + holgura * 2, conPildoras), screen.frame.width),
+        width: min(max(HUDMetrics.standard.contentWidth + holgura * 2, conSegmentos), screen.frame.width),
         height: altoDeLaFormaMasAlta(for: screen) + holgura
       )
     }
@@ -649,41 +649,74 @@ struct SeccionesDelPanel: Equatable, Sendable {
 }
 
 extension HUDNotchGeometry {
-  /// Cuántas píldoras caben al costado de la muesca en esta pantalla.
+  /// Cuántos segmentos caben al costado de la muesca en esta pantalla.
   ///
-  /// **Dos en el notch simulado, ninguna en las demás**, de fábrica. Al lado
+  /// **Dos en el notch simulado, ninguno en las demás**, de fábrica. Al lado
   /// del simulado está el centro de la barra de menús, que macOS deja vacío;
   /// al lado de una carcasa real están los menús de la app y los status
-  /// items, y una píldora encima tapa algo que la persona usa. La píldora
-  /// bajo la barra flota sobre el escritorio y no tiene costados de los que
-  /// colgar nada.
-  static func lugaresParaPildoras(for screen: HUDScreenSnapshot) -> Int {
-    simulatesNotch(for: screen) ? AsientosDeLaMuesca.maximoDePildoras : 0
+  /// items, y estirar la silueta encima tapa algo que la persona usa. La
+  /// píldora bajo la barra flota sobre el escritorio y no tiene costados.
+  static func lugaresAlCostado(for screen: HUDScreenSnapshot) -> Int {
+    simulatesNotch(for: screen) ? AsientosDeLaMuesca.maximoDeCostados : 0
   }
 
-  /// El ancho de una píldora: un ícono y una palabra en diez puntos
-  /// («Reintentar», «No se pegó»), con aire. Fijo para que la ventana se
-  /// dimensione antes de dibujar, como el panel del hover.
-  static let anchoDePildora: CGFloat = 88
+  /// El segmento encogido: el ícono y su aire, nada más. Es lo que se queda
+  /// al costado mientras la toma o el retenido existan.
+  static let anchoDeSegmentoEncogido: CGFloat = 26
 
-  /// El aire entre el final del ala y la píldora: lo justo para que se lea
-  /// como algo que salió de la muesca y no como parte de ella.
-  static let separacionDePildora: CGFloat = 4
+  /// Lo más que un segmento mide con su palabra. Una palabra más larga se
+  /// recorta antes que estirar la muesca hasta los menús; es también lo que
+  /// la ventana reserva a cada lado mientras haya segmentos, para que la
+  /// palabra entre y salga sin cambiar la ventana.
+  static let anchoMaximoDeSegmento: CGFloat = 100
 
-  /// Lo que una píldora ocupa a su lado, medido desde el borde del cuerpo:
-  /// el ala, el aire y la píldora.
-  static func alcanceDePildoras(for screen: HUDScreenSnapshot) -> CGFloat {
-    filletSize(for: screen) + separacionDePildora + anchoDePildora
+  /// El lugar que un lado de la silueta ya tiene antes de estirarse: el de su
+  /// dato (`anchoDeLosLados`) en reposo, que el segmento ocupa mientras está
+  /// (`ReglaDeLosCostados`). Abierta, el contenido usa todo el ancho y no
+  /// queda lugar de nadie.
+  static func lugarDelLado(for screen: HUDScreenSnapshot, compacta: Bool) -> CGFloat {
+    compacta ? screen.anchoDeLosLados : 0
   }
 
-  /// El alto de una píldora: el de la silueta en reposo menos dos puntos
-  /// arriba y abajo, centrada en la barra. Más alta tocaría el borde de la
-  /// pantalla y se leería como otra muesca.
-  static func altoDePildora(for screen: HUDScreenSnapshot) -> CGFloat {
-    max(0, reposoSize(for: screen).height - margenDePildora * 2)
+  /// Lo más que la silueta se puede estirar hacia un lado por un segmento.
+  static func estiramientoMaximo(for screen: HUDScreenSnapshot, compacta: Bool) -> CGFloat {
+    max(0, anchoMaximoDeSegmento - lugarDelLado(for: screen, compacta: compacta))
   }
 
-  static let margenDePildora: CGFloat = 2
+  /// Cuánto se estira la silueta hacia cada lado con segmentos de estos
+  /// anchos (nil: no hay segmento de ese lado). Lo que el lado ya tenía por
+  /// su dato no se vuelve a pedir.
+  static func estiramientos(
+    for screen: HUDScreenSnapshot,
+    izquierdo: CGFloat?,
+    derecho: CGFloat?,
+    compacta: Bool
+  ) -> CostadosDeLaSilueta {
+    let lugar = lugarDelLado(for: screen, compacta: compacta)
+    func estirar(_ ancho: CGFloat?) -> CGFloat {
+      guard let ancho else { return 0 }
+      return max(0, min(ancho, anchoMaximoDeSegmento) - lugar)
+    }
+    return CostadosDeLaSilueta(izquierda: estirar(izquierdo), derecha: estirar(derecho))
+  }
+
+  /// Dónde está el segmento de un lado, en las mismas coordenadas que
+  /// `cuerpo` —la silueta sin estirar—: pegado a su borde exterior estirado,
+  /// del ancho del segmento y del alto del cuerpo.
+  static func rectDelSegmento(
+    _ lado: LadoDelAsiento,
+    ancho: CGFloat,
+    costados: CostadosDeLaSilueta,
+    cuerpo: CGRect
+  ) -> CGRect {
+    let ancho = min(ancho, anchoMaximoDeSegmento)
+    switch lado {
+    case .izquierda:
+      return CGRect(x: cuerpo.minX - costados.izquierda, y: cuerpo.minY, width: ancho, height: cuerpo.height)
+    case .derecha:
+      return CGRect(x: cuerpo.maxX + costados.derecha - ancho, y: cuerpo.minY, width: ancho, height: cuerpo.height)
+    }
+  }
 
   /// Cuántos recientes muestra el panel. Tres: más ya es una lista para leer,
   /// y el panel es para agarrar algo al paso.

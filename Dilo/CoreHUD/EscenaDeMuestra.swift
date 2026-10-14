@@ -35,24 +35,33 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case retenido
   case hover
   case hoverCompleto = "hover-completo"
-  /// Las píldoras de los asientos (`AsientosDeLaMuesca`): la toma guardada a
-  /// la derecha, el retenido a la izquierda, las dos, y las dos al costado
-  /// de la muesca dictando.
-  case pildoraToma = "pildora-toma"
-  case pildoraRetenido = "pildora-retenido"
-  case dosPildoras = "dos-pildoras"
-  case dictandoConPildoras = "dictando-pildoras"
+  /// Los segmentos de los asientos (`AsientosDeLaMuesca`): la toma guardada
+  /// a la derecha, el retenido a la izquierda, los dos, y los dos estirando
+  /// la muesca dictando. Entran con la palabra y a los tres segundos se
+  /// encogen al ícono, como en la app.
+  case segmentoToma = "segmento-toma"
+  case segmentoRetenido = "segmento-retenido"
+  case dosSegmentos = "dos-segmentos"
+  case dictandoConSegmentos = "dictando-segmentos"
+  /// Los dos ya encogidos al ícono, y los dos con la palabra fija (lo que se
+  /// ve con el puntero encima de uno).
+  case segmentosEncogidos = "segmentos-encogidos"
+  case segmentosConPalabra = "segmentos-palabra"
+  /// Los datos de los costados encendidos y la toma a la derecha: el
+  /// segmento ocupa el lugar del dato de su lado (`ReglaDeLosCostados`).
+  /// `reposo-datos` es el antes.
+  case segmentoConDatos = "segmento-datos"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
   var textoDeMuestra: String? {
     switch self {
-    case .dictando, .dictandoConPildoras: "Aprieta, habla, suelta"
+    case .dictando, .dictandoConSegmentos: "Aprieta, habla, suelta"
     case .dictandoLargo:
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
     case .procesando: "quedamos el martes a las diez"
     case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
-    case .retenido, .pildoraRetenido, .dosPildoras:
+    case .retenido, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra:
       "quedamos el martes a las diez en la oficina de Providencia"
     case .hover, .hoverCompleto: "Listo · «quedamos el martes a las diez»"
     default: nil
@@ -64,10 +73,12 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   var estado: EstadoDelNotch {
     switch self {
     case .reposo, .reposoConDatos, .hover, .hoverCompleto: .reposo
-    case .pildoraToma, .pildoraRetenido, .dosPildoras: .reposo
+    case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
+      .segmentoConDatos:
+      .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
-    case .dictando, .dictandoLargo, .dictandoConPildoras: .dictando
+    case .dictando, .dictandoLargo, .dictandoConSegmentos: .dictando
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
@@ -76,16 +87,35 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     }
   }
 
-  /// Qué píldoras pone la escena. Las demás escenas no ponen ninguna, para
-  /// que lo que se mira sea siempre lo mismo.
-  var pildoras: (toma: Bool, retenido: Bool) {
+  /// Qué segmentos pone la escena. Las demás no ponen ninguno, para que lo
+  /// que se mira sea siempre lo mismo.
+  var segmentos: (toma: Bool, retenido: Bool) {
     switch self {
-    case .pildoraToma: (true, false)
-    case .pildoraRetenido: (false, true)
-    case .dosPildoras, .dictandoConPildoras: (true, true)
+    case .segmentoToma, .segmentoConDatos: (true, false)
+    case .segmentoRetenido: (false, true)
+    case .dosSegmentos, .dictandoConSegmentos, .segmentosEncogidos, .segmentosConPalabra: (true, true)
     default: (false, false)
     }
   }
+
+  /// Cómo queda la palabra de los segmentos de la escena.
+  enum PalabraDeMuestra: Sendable {
+    /// Entra y se encoge sola a los tres segundos.
+    case entra
+    case encogida
+    case fija
+  }
+
+  var palabra: PalabraDeMuestra {
+    switch self {
+    case .segmentosEncogidos: .encogida
+    case .segmentosConPalabra: .fija
+    default: .entra
+    }
+  }
+
+  /// Si la escena lleva los datos de los costados encendidos.
+  var conDatos: Bool { self == .reposoConDatos || self == .hoverCompleto || self == .segmentoConDatos }
 
   static let tarjetaDeMuestra = TarjetaDeRespaldo(
     texto: EscenaDeMuestra.retenido.textoDeMuestra ?? "",

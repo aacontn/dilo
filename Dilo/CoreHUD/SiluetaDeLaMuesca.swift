@@ -33,17 +33,28 @@ struct SiluetaDeLaMuesca: Shape {
   var radioDeHombro: CGFloat
   /// Radio de las esquinas de abajo (y de las de arriba en `.isla`).
   var radioInferior: CGFloat
+  /// Cuánto se estira la silueta más allá de su marco hacia cada lado, para
+  /// llevar un segmento al costado (`HUDSegmentosAlCostado`). Las alas se
+  /// corren a los extremos nuevos: una sola pieza, sin hueco. Sólo en
+  /// `.muesca`.
+  var costados = CostadosDeLaSilueta()
 
-  var animatableData: AnimatablePair<CGFloat, CGFloat> {
-    get { AnimatablePair(radioDeHombro, radioInferior) }
+  var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>> {
+    get {
+      AnimatablePair(
+        AnimatablePair(radioDeHombro, radioInferior),
+        AnimatablePair(costados.izquierda, costados.derecha)
+      )
+    }
     set {
-      radioDeHombro = newValue.first
-      radioInferior = newValue.second
+      radioDeHombro = newValue.first.first
+      radioInferior = newValue.first.second
+      costados = CostadosDeLaSilueta(izquierda: newValue.second.first, derecha: newValue.second.second)
     }
   }
 
-  /// La misma silueta sin alas: lo que recorta el contenido y lo que dibuja
-  /// lo que no toca ningún borde.
+  /// La misma silueta sin alas ni costados: lo que recorta el contenido y lo
+  /// que dibuja lo que no toca ningún borde.
   var sinHombros: SiluetaDeLaMuesca {
     SiluetaDeLaMuesca(estilo: estilo, radioDeHombro: 0, radioInferior: radioInferior)
   }
@@ -62,6 +73,12 @@ struct SiluetaDeLaMuesca: Shape {
       )
       .path(in: rect)
     case .muesca:
+      let rect = CGRect(
+        x: rect.minX - max(0, costados.izquierda),
+        y: rect.minY,
+        width: rect.width + max(0, costados.izquierda) + max(0, costados.derecha),
+        height: rect.height
+      )
       let cuerpo = UnevenRoundedRectangle(
         topLeadingRadius: 0,
         bottomLeadingRadius: abajo,
@@ -94,11 +111,25 @@ struct SiluetaDeLaMuesca: Shape {
 extension SiluetaDeLaMuesca {
   /// La silueta que esta pantalla dibuja: muesca con alas contra una carcasa
   /// o en el notch simulado, isla en la píldora bajo la barra.
-  static func para(_ screen: HUDScreenSnapshot, radioInferior: CGFloat) -> SiluetaDeLaMuesca {
+  static func para(
+    _ screen: HUDScreenSnapshot,
+    radioInferior: CGFloat,
+    costados: CostadosDeLaSilueta = CostadosDeLaSilueta()
+  ) -> SiluetaDeLaMuesca {
     SiluetaDeLaMuesca(
       estilo: HUDNotchGeometry.closesAtTop(for: screen) ? .isla : .muesca,
       radioDeHombro: HUDNotchGeometry.filletSize(for: screen),
-      radioInferior: radioInferior
+      radioInferior: radioInferior,
+      costados: costados
     )
   }
+}
+
+/// Cuánto se estira la silueta hacia cada lado más allá del marco de su
+/// cuerpo, en puntos. Cero y cero es la muesca de siempre.
+struct CostadosDeLaSilueta: Equatable, Sendable {
+  var izquierda: CGFloat = 0
+  var derecha: CGFloat = 0
+
+  var total: CGFloat { izquierda + derecha }
 }

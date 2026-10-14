@@ -29,7 +29,7 @@ struct MuestraEnCurso {
   fileprivate let datoIzquierdo: LadoDeLaMuesca?
   fileprivate let datoDerecho: LadoDeLaMuesca?
   fileprivate let tomaGuardada: TimeInterval?
-  fileprivate let retenidoEnPildora: TarjetaDeRespaldo?
+  fileprivate let retenidoAlCostado: TarjetaDeRespaldo?
   fileprivate let botones: Botones
 
   /// Los cierres que los botones de la forma llaman. Mientras dura la muestra
@@ -45,7 +45,7 @@ struct MuestraEnCurso {
     var alDictarNota: (() -> Void)?
     var alHacerClic: (() -> Void)?
     var alTocarLaTarjeta: ((TarjetaDeRespaldo) -> Void)?
-    var alTocarPildora: ((String) -> Void)?
+    var alTocarSegmento: ((String) -> Void)?
 
     @MainActor
     init(de content: DictationHUDContent) {
@@ -58,7 +58,7 @@ struct MuestraEnCurso {
       alDictarNota = content.alDictarNota
       alHacerClic = content.alHacerClic
       alTocarLaTarjeta = content.alTocarLaTarjeta
-      alTocarPildora = content.alTocarPildora
+      alTocarSegmento = content.alTocarSegmento
     }
 
     @MainActor
@@ -72,7 +72,7 @@ struct MuestraEnCurso {
       content.alDictarNota = alDictarNota
       content.alHacerClic = alHacerClic
       content.alTocarLaTarjeta = alTocarLaTarjeta
-      content.alTocarPildora = alTocarPildora
+      content.alTocarSegmento = alTocarSegmento
     }
 
     @MainActor
@@ -88,7 +88,7 @@ struct MuestraEnCurso {
     let content = stage.dictationContent
     self.escena = escena
     tomaGuardada = stage.tomaGuardada
-    retenidoEnPildora = stage.retenidoEnPildora
+    retenidoAlCostado = stage.retenidoAlCostado
     recientes = content.recientes
     proximaReunion = content.proximaReunion
     modosDelPanel = content.modosDelPanel
@@ -105,7 +105,7 @@ struct MuestraEnCurso {
   fileprivate func devolver(a stage: HUDStage) {
     let content = stage.dictationContent
     stage.mostrarTomaGuardada(tomaGuardada)
-    stage.ponerRetenidoEnPildora(retenidoEnPildora)
+    stage.ponerRetenidoAlCostado(retenidoAlCostado)
     content.recientes = recientes
     content.proximaReunion = proximaReunion
     content.modosDelPanel = modosDelPanel
@@ -137,7 +137,7 @@ extension HUDStage {
     dibujandoMuestra = true
     defer { dibujandoMuestra = false }
 
-    let conDatos = escena == .reposoConDatos || escena == .hoverCompleto
+    let conDatos = escena.conDatos
     let panelCompleto = escena == .hoverCompleto
     if muestra?.conDatos != conDatos || muestra?.panelCompleto != panelCompleto {
       muestra?.conDatos = conDatos
@@ -145,11 +145,21 @@ extension HUDStage {
       remontarConLosLadosActuales()
     }
     prepararLosDatos(conDatos)
-    let pildoras = escena.pildoras
-    mostrarTomaGuardada(pildoras.toma ? 12 : nil)
-    ponerRetenidoEnPildora(
-      pildoras.retenido ? TarjetaDeRespaldo(texto: texto ?? escena.textoDeMuestra ?? "", porque: .sinConfirmar) : nil
+    // Los segmentos salen y vuelven a entrar en cada escena: así se ve la
+    // entrada con la palabra y no el resto de la escena anterior.
+    let segmentos = escena.segmentos
+    fijarLaPalabra(false)
+    mostrarTomaGuardada(nil)
+    ponerRetenidoAlCostado(nil)
+    mostrarTomaGuardada(segmentos.toma ? 12 : nil)
+    ponerRetenidoAlCostado(
+      segmentos.retenido ? TarjetaDeRespaldo(texto: texto ?? escena.textoDeMuestra ?? "", porque: .sinConfirmar) : nil
     )
+    switch escena.palabra {
+    case .entra: break
+    case .encogida: encogerLaPalabra()
+    case .fija: fijarLaPalabra(true)
+    }
 
     // Cada escena parte del reposo: lo que dejó la anterior —un panel
     // abierto, una onda montada— no se mezcla con lo que viene.
@@ -159,7 +169,8 @@ extension HUDStage {
 
     let linea = texto ?? escena.textoDeMuestra ?? ""
     switch escena {
-    case .reposo, .reposoConDatos, .pildoraToma, .pildoraRetenido, .dosPildoras:
+    case .reposo, .reposoConDatos, .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos,
+      .segmentosConPalabra, .segmentoConDatos:
       reaplicarElEstado()
 
     case .hover, .hoverCompleto:
@@ -175,7 +186,7 @@ extension HUDStage {
       decir(falta.texto)
       revealDictation()
 
-    case .dictando, .dictandoLargo, .dictandoConPildoras:
+    case .dictando, .dictandoLargo, .dictandoConSegmentos:
       claim(.dictation, on: pantalla)
       recibir(.escuchar)
       escucharDeMentira()
@@ -233,6 +244,7 @@ extension HUDStage {
     self.muestra = nil
     control.congelado = false
     dictationContent.punteroEncima = false
+    fijarLaPalabra(false)
     prestado.devolver(a: self)
   }
 

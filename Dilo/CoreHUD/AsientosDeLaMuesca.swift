@@ -10,7 +10,7 @@ enum PrioridadDeActividad: Int, Comparable, Sendable {
   static func < (a: Self, b: Self) -> Bool { a.rawValue < b.rawValue }
 }
 
-enum LadoDePildora: String, Sendable {
+enum LadoDelAsiento: String, Sendable {
   case derecha, izquierda
 }
 
@@ -19,8 +19,8 @@ enum AsientoDeLaMuesca: Equatable, Sendable {
   case ninguno
   /// La muesca entera: lo que se dibuja dentro de la forma.
   case principal
-  /// Una píldora al costado, pegada a la forma.
-  case pildora(LadoDePildora)
+  /// Un segmento al costado: la misma silueta, estirada hacia ese lado.
+  case costado(LadoDelAsiento)
 }
 
 /// Por qué una actividad se quedó sin asiento. Se le dice a quien la publicó
@@ -28,9 +28,9 @@ enum AsientoDeLaMuesca: Equatable, Sendable {
 enum MotivoDeCesion: String, Sendable {
   /// Otra más importante se quedó con el lugar.
   case superada
-  /// Las dos píldoras están ocupadas por iguales que llegaron antes.
+  /// Los dos costados están ocupados por iguales que llegaron antes.
   case sinLugar
-  /// Esta pantalla no tiene lugar para píldoras (notch real, píldora bajo la
+  /// Esta pantalla no tiene lugar al costado (notch real, píldora bajo la
   /// barra) y la actividad no puede ser la forma entera.
   case pantallaSinLugar
   /// Pantalla completa: sólo se ve lo que la persona está mirando o grabando.
@@ -54,9 +54,9 @@ struct ActividadDeLaMuesca: Identifiable, Equatable, Sendable {
   /// Se lleva la forma aunque haya otra igual de importante sentada ahí: la
   /// sesión de dictado. Quien habla está mirando la muesca.
   var exigeElPrincipal = false
-  /// Puede ocupar la forma entera; si no, sólo una píldora.
+  /// Puede ocupar la forma entera; si no, sólo un costado.
   var puedeSerPrincipal = true
-  var ladoPreferido: LadoDePildora?
+  var ladoPreferido: LadoDelAsiento?
   /// Falsa cuando quien la publicó dice que no hay nada que mostrar por ahora.
   var activa = true
 
@@ -66,9 +66,9 @@ struct ActividadDeLaMuesca: Identifiable, Equatable, Sendable {
 }
 
 /// Quién se sienta dónde: una actividad principal —la forma— y hasta dos
-/// píldoras al costado. Un reductor puro, como `MaquinaDelNotch` (ADR-0005):
+/// segmentos al costado. Un reductor puro, como `MaquinaDelNotch` (ADR-0005):
 /// entra un evento, sale la lista de cambios de asiento. Lo que se dibuja lo
-/// decide `HUDStage` con `principal` y `pildora(_:)`.
+/// decide `HUDStage` con `principal` y `costado(_:)`.
 ///
 /// **`MaquinaDelNotch` no cambia**: sigue siendo el ciclo de vida del
 /// dictado. Esto va un nivel arriba y decide quién tiene la forma y quién se
@@ -77,30 +77,30 @@ struct ActividadDeLaMuesca: Identifiable, Equatable, Sendable {
 /// Reglas, en orden:
 /// 1. Quien exige el principal lo toma (la sesión de dictado).
 /// 2. Quien abre el micrófono nunca se queda fuera: si no le toca el
-///    principal, se lleva una píldora aunque la pantalla no tenga lugar.
+///    principal, se lleva un costado aunque la pantalla no tenga lugar.
 /// 3. Lo que la persona llevó al centro con un toque.
 /// 4. Después, la prioridad.
 /// 5. A igual prioridad **se queda quien ya estaba** (histéresis): sin esto,
-///    dos fuentes que se actualizan se turnan la píldora en cada evento.
+///    dos fuentes que se actualizan se turnan el costado en cada evento.
 /// 6. A igual todo, la más reciente.
 ///
 /// La idea de asientos con prioridad y motivo de cesión es la de las
 /// actividades en vivo de las islas de notch; las reglas y la implementación
 /// son propias.
 struct AsientosDeLaMuesca: Equatable, Sendable {
-  static let maximoDePildoras = 2
+  static let maximoDeCostados = 2
 
   enum Evento: Equatable, Sendable {
     case publicar(ActividadDeLaMuesca)
     case retirar(id: String)
-    /// Cuántas píldoras caben en esta pantalla (0…2)
-    /// (`HUDNotchGeometry.lugaresParaPildoras`).
-    case lugaresParaPildoras(Int)
+    /// Cuántos segmentos caben al costado en esta pantalla (0…2)
+    /// (`HUDNotchGeometry.lugaresAlCostado`).
+    case lugaresAlCostado(Int)
     /// Pantalla completa: sólo queda lo que nunca se esconde.
     case suprimir(Bool)
     /// La persona apagó (o encendió) esta fuente en Ajustes.
     case apagar(id: String, Bool)
-    /// La persona tocó una píldora para llevarla al centro: gana la forma
+    /// La persona tocó un segmento para llevarlo al centro: gana la forma
     /// aunque no pueda ser principal por sí sola, hasta que se suelte o se
     /// retire. Nunca le quita la forma a la sesión ni a una grabación.
     case llevarAlCentro(id: String)
@@ -117,7 +117,7 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
 
   private(set) var actividades: [String: ActividadDeLaMuesca] = [:]
   private(set) var asientos: [String: AsientoDeLaMuesca] = [:]
-  private(set) var lugares = maximoDePildoras
+  private(set) var lugares = maximoDeCostados
   private(set) var suprimida = false
   private(set) var apagadas: Set<String> = []
   private(set) var alCentro: String?
@@ -131,8 +131,8 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
     asientos.first { $0.value == .principal }.flatMap { actividades[$0.key] }
   }
 
-  func pildora(_ lado: LadoDePildora) -> ActividadDeLaMuesca? {
-    asientos.first { $0.value == .pildora(lado) }.flatMap { actividades[$0.key] }
+  func costado(_ lado: LadoDelAsiento) -> ActividadDeLaMuesca? {
+    asientos.first { $0.value == .costado(lado) }.flatMap { actividades[$0.key] }
   }
 
   func asiento(de id: String) -> AsientoDeLaMuesca { asientos[id] ?? .ninguno }
@@ -151,8 +151,8 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
       llegada[id] = nil
       motivos[id] = nil
       if alCentro == id { alCentro = nil }
-    case let .lugaresParaPildoras(n):
-      lugares = min(max(n, 0), Self.maximoDePildoras)
+    case let .lugaresAlCostado(n):
+      lugares = min(max(n, 0), Self.maximoDeCostados)
     case let .suprimir(valor):
       suprimida = valor
     case let .apagar(id, apagada):
@@ -203,9 +203,9 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
       nuevos[restantes.remove(at: i).id] = .principal
     }
 
-    // Píldoras: las del micrófono primero y sin tope de pantalla.
+    // Costados: los del micrófono primero y sin tope de pantalla.
     let conMicrofono = restantes.filter(\.abreElMicrofono)
-    let lugaresEfectivos = max(lugares, min(conMicrofono.count, Self.maximoDePildoras))
+    let lugaresEfectivos = max(lugares, min(conMicrofono.count, Self.maximoDeCostados))
     var sentadas = Array(restantes.prefix(lugaresEfectivos))
     for faltante in conMicrofono where !sentadas.contains(where: { $0.id == faltante.id }) {
       // Más de dos grabaciones a la vez no cabe; la de menor rango cede a la
@@ -215,7 +215,7 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
       }
     }
 
-    var libres: [LadoDePildora] = [.derecha, .izquierda]
+    var libres: [LadoDelAsiento] = [.derecha, .izquierda]
     // Primero quien ya tenía lado, para que nadie salte de costado.
     let ordenDeLado = sentadas.sorted { a, b in
       Self.ladoDe(antes[a.id]) != nil && Self.ladoDe(antes[b.id]) == nil
@@ -225,13 +225,13 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
       let lado = deseado.flatMap { libres.contains($0) ? $0 : nil } ?? libres.first
       guard let lado else { break }
       libres.removeAll { $0 == lado }
-      nuevos[actividad.id] = .pildora(lado)
+      nuevos[actividad.id] = .costado(lado)
     }
 
     // Por qué se quedó fuera cada candidata sin asiento.
     let mejorSentada = candidatas.filter { nuevos[$0.id] != nil }.map(\.prioridad).max()
     for actividad in candidatas where nuevos[actividad.id] == nil {
-      if lugares < Self.maximoDePildoras && !actividad.puedeSerPrincipal {
+      if lugares < Self.maximoDeCostados && !actividad.puedeSerPrincipal {
         motivos[actividad.id] = .pantallaSinLugar
       } else if let mejorSentada, mejorSentada > actividad.prioridad {
         motivos[actividad.id] = .superada
@@ -251,8 +251,8 @@ struct AsientosDeLaMuesca: Equatable, Sendable {
     }
   }
 
-  private static func ladoDe(_ asiento: AsientoDeLaMuesca?) -> LadoDePildora? {
-    if case let .pildora(lado)? = asiento { return lado }
+  private static func ladoDe(_ asiento: AsientoDeLaMuesca?) -> LadoDelAsiento? {
+    if case let .costado(lado)? = asiento { return lado }
     return nil
   }
 }
@@ -268,16 +268,45 @@ extension ActividadDeLaMuesca {
   }
 
   /// La toma que quedó en RAM cuando un dictado no sacó texto: dura diez
-  /// minutos (`PoliticaDeGrabacion`) y un clic la reintenta. Sólo píldora, a
+  /// minutos (`PoliticaDeGrabacion`) y un clic la reintenta. Sólo costado, a
   /// la derecha, donde la barra deja los status items.
   static let tomaGuardada = ActividadDeLaMuesca(
     id: "toma", prioridad: .normal, puedeSerPrincipal: false, ladoPreferido: .derecha
   )
 
   /// Un dictado que no se pegó y al que otra sesión le tapó la tarjeta. Alta:
-  /// son palabras que todavía no llegaron a ninguna parte. Sólo píldora, a la
+  /// son palabras que todavía no llegaron a ninguna parte. Sólo costado, a la
   /// izquierda.
   static let retenido = ActividadDeLaMuesca(
     id: "retenido", prioridad: .alta, puedeSerPrincipal: false, ladoPreferido: .izquierda
   )
+}
+
+/// Un segmento ocupa el lugar del dato de su costado (CPU, RAM, Claude,
+/// Codex): el dato se esconde mientras el segmento está y vuelve cuando se
+/// va.
+///
+/// No caben los dos: el lado de un dato mide `anchoDeUnLado` y un segmento
+/// con su palabra pide más; apilarlos estiraría la muesca hasta los menús.
+/// Gana el segmento porque es algo pendiente con las palabras de la persona,
+/// y un dato se puede esperar unos segundos. Lo escondido se anota en el log
+/// de la muesca (`RegistroDeLaMuesca.anotarDatoEscondido`): no se esconde en
+/// silencio.
+enum ReglaDeLosCostados {
+  /// El dato que se ve en este lado con estos segmentos sentados.
+  static func datoVisible<Dato>(
+    _ dato: Dato?,
+    en lado: LadoDelAsiento,
+    segmentos: Set<LadoDelAsiento>
+  ) -> Dato? {
+    segmentos.contains(lado) ? nil : dato
+  }
+
+  /// Los lados cuyo dato queda escondido: los que tienen dato y segmento.
+  static func escondidos(
+    conDato: Set<LadoDelAsiento>,
+    segmentos: Set<LadoDelAsiento>
+  ) -> Set<LadoDelAsiento> {
+    conDato.intersection(segmentos)
+  }
 }

@@ -49,11 +49,12 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// secciones que nadie pidió es pantalla que no deja pasar clics mientras
   /// el hover está abierto (ADR-0001, enmienda del 2026-09-22).
   var seccionesPosibles = SeccionesDelPanel()
-  /// Si hay alguna píldora sentada al costado de la muesca
-  /// (`AsientosDeLaMuesca`). Ensancha la ventana a los dos lados por igual,
-  /// para que la forma siga centrada en ella (`HUDNotchGeometry.alcanceDePildoras`).
+  /// Si hay algún segmento sentado al costado de la muesca
+  /// (`AsientosDeLaMuesca`). Ensancha la ventana a los dos lados por igual
+  /// —lo que un segmento puede estirarse con su palabra—, para que la forma
+  /// siga centrada en ella (`HUDNotchGeometry.estiramientoMaximo`).
   ///
   /// Viaja con la pantalla por lo mismo que `anchoDeLosLados`: la ventana y
   /// la zona que recibe el mouse tienen que leer el mismo número.
-  var llevaPildoras = false
+  var llevaSegmentos = false
 }

@@ -58,6 +58,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// which reads as a glitch on a shape whose whole job is to look like
   /// hardware.
   var clipsContent: Bool = false
+  /// Cuánto se estira la silueta hacia cada lado por los segmentos de los
+  /// asientos (`HUDSegmentosAlCostado`). Cero y cero, lo de siempre.
+  var costados = CostadosDeLaSilueta()
   @ViewBuilder let content: Content
   @ViewBuilder let overlays: Overlays
 
@@ -75,7 +78,7 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// se achica al colapsar contra la carcasa, y esa transición es de la
   /// superficie.
   private var silueta: SiluetaDeLaMuesca {
-    SiluetaDeLaMuesca.para(screen, radioInferior: cornerRadius)
+    SiluetaDeLaMuesca.para(screen, radioInferior: cornerRadius, costados: costados)
   }
 
   /// Descansando manda la silueta en reposo, que depende de la forma que esta
@@ -161,6 +164,10 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     // La silueta en reposo también cambia de tamaño sin que `isRevealed`
     // se mueva: el hover la abre para mostrar contexto.
     .animation(animacionDelTamaño, value: renderedSize)
+    // Un segmento que entra, dice su palabra o se encoge estira la silueta
+    // con el resorte de apertura del estilo, el mismo de la muesca; con
+    // Reducir movimiento es un corte.
+    .animation(reduceMotion ? nil : revealStyle.apertura, value: costados)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
   }
 

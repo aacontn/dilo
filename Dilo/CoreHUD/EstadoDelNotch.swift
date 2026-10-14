@@ -218,7 +218,7 @@ extension TarjetaDeRespaldo {
   ///
   /// Antes, lo que empezaba encima de la tarjeta la tapaba y el texto sólo
   /// seguía en «Copiar el último dictado» —que el dictado siguiente pisa—.
-  /// Ahora una tarjeta tapada se corre a una píldora al costado
+  /// Ahora una tarjeta tapada se corre a un segmento al costado
   /// (`ActividadDeLaMuesca.retenido`) y se puede copiar con un clic cuando lo
   /// que la tapó termina.
   ///
@@ -235,11 +235,11 @@ extension TarjetaDeRespaldo {
     }
   }
 
-  /// Cuánto se queda la píldora de una tarjeta tapada, contado desde que la
+  /// Cuánto se queda el segmento de una tarjeta tapada, contado desde que la
   /// muesca vuelve a reposo; mientras dura otra sesión no corre. Un minuto:
   /// lo que tarda alguien en darse cuenta de que el dictado de antes no
   /// llegó. Después el texto sigue en los recientes del panel del hover.
-  static let duracionEnPildora = Duration.seconds(60)
+  static let duracionAlCostado = Duration.seconds(60)
 }
 
 extension ResultadoDelNotch {

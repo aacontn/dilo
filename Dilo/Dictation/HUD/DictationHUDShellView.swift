@@ -233,11 +233,12 @@ struct DictationHUDShellView: View {
       rippleTrigger: content.sessionEpoch,
       rippleEnabled: settings.voiceVisual.usesEdgeGlow,
       tamañoEnReposo: tamañoEnReposo,
+      costados: costados,
       content: { cuerpo },
       overlays: {
         particleCloud
         edgeGlow
-        pildorasAlCostado
+        segmentosAlCostado
       }
     )
     // Sólo la silueta toma el mouse, y sólo en los estados que hacen algo con
@@ -321,8 +322,14 @@ struct DictationHUDShellView: View {
         scale: metrics.scale,
         // El alto de la silueta, medido: la marca lo llena y no lo estira.
         alto: tamañoEnReposo.height,
-        izquierdo: content.datoIzquierdo,
-        derecho: content.datoDerecho,
+        // Un segmento ocupa el lugar del dato de su lado mientras está
+        // (`ReglaDeLosCostados`); el dato vuelve cuando el segmento se va.
+        izquierdo: ReglaDeLosCostados.datoVisible(
+          content.datoIzquierdo, en: .izquierda, segmentos: content.costadosConSegmentoVisible
+        ),
+        derecho: ReglaDeLosCostados.datoVisible(
+          content.datoDerecho, en: .derecha, segmentos: content.costadosConSegmentoVisible
+        ),
         anchoDeLado: screen.anchoDeLosLados
       )
     } else {
@@ -793,20 +800,21 @@ struct DictationHUDShellView: View {
     }
   }
 
-  /// Las píldoras de los asientos, a los costados de la forma.
-  ///
-  /// Se esconden mientras el panel del hover está abierto: el panel mide 400
-  /// y la ventana abierta no tiene lugar para él y para ellas, y lo que el
-  /// mouse vino a mirar es el panel. Vuelven al cerrarse.
+  /// Cuánto se estira la silueta hacia cada costado por sus segmentos.
+  private var costados: CostadosDeLaSilueta { content.costados(en: screen) }
+
+  /// Lo que dicen los segmentos de los asientos, en la parte estirada de la
+  /// silueta. Se esconden con el panel del hover abierto.
   @ViewBuilder
-  private var pildorasAlCostado: some View {
-    if HUDNotchGeometry.lugaresParaPildoras(for: screen) > 0, content.contextoVisible == nil {
-      HUDPildorasAlCostado(
-        izquierda: content.pildoraIzquierda,
-        derecha: content.pildoraDerecha,
-        screen: screen,
+  private var segmentosAlCostado: some View {
+    if HUDNotchGeometry.lugaresAlCostado(for: screen) > 0 {
+      HUDSegmentosAlCostado(
+        izquierdo: content.segmentoIzquierdoVisible,
+        derecho: content.segmentoDerechoVisible,
+        conPalabra: content.segmentosConPalabra,
+        costados: costados,
         acento: DiloBrand.mango,
-        alTocar: { id in content.alTocarPildora?(id) }
+        alTocar: { id in content.alTocarSegmento?(id) }
       )
     }
   }

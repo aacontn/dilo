@@ -158,6 +158,26 @@ enum RegistroDeLaMuesca {
     log.notice("\(linea, privacy: .public)")
   }
 
+  /// La línea de un dato de los costados que un segmento tapa o que vuelve
+  /// (`ReglaDeLosCostados`). En el log y no sólo en la vista: «no veo la CPU»
+  /// tiene que poder contestarse sin mirar la pantalla de nadie. El nombre
+  /// del dato y el id del segmento, nada de lo dictado.
+  static func lineaDelDato(
+    _ dato: String,
+    lado: LadoDelAsiento,
+    segmento: String?
+  ) -> String {
+    if let segmento {
+      return "dato=\(dato) lado=\(lado.rawValue) escondido por segmento=\(segmento)"
+    }
+    return "dato=\(dato) lado=\(lado.rawValue) vuelve"
+  }
+
+  static func anotarDatoEscondido(_ dato: String, lado: LadoDelAsiento, segmento: String?) {
+    guard activo else { return }
+    log.notice("\(lineaDelDato(dato, lado: lado, segmento: segmento), privacy: .public)")
+  }
+
   /// `488x190`, en puntos enteros. La `x` es una equis y no un `×`: un
   /// predicado de `log show` se escribe a mano en un terminal.
   private static func medida(_ tamaño: CGSize) -> String {

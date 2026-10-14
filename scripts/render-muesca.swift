@@ -66,20 +66,8 @@ enum RenderDeLaMuesca {
     try escribir(lienzo(claro: true) { dictando }, en: destino, como: "dictando")
     try escribir(lienzo(claro: true) { acuse }, en: destino, como: "check")
     try escribir(comparacion, en: destino, como: "comparacion")
-    // Los asientos: una píldora, dos, y las dos al costado de la muesca
-    // dictando. Lo que se juzga es que nazcan del borde de la forma y no de
-    // la ventana, centradas en la barra y con la ventana justa.
-    let unaPildora = enLaVentana(tamaño: reposo, radio: radio, encuadre: .reposo, pildoras: (nil, .toma)) {
-      marcaDeReposo(alto: reposo.height)
-    }
-    let dosPildoras = enLaVentana(
-      tamaño: reposo, radio: radio, encuadre: .reposo, pildoras: (.retenido, .toma)
-    ) { marcaDeReposo(alto: reposo.height) }
-    try escribir(lienzo(claro: true) { unaPildora }, en: destino, como: "pildora-una")
-    try escribir(lienzo(claro: true) { dosPildoras }, en: destino, como: "pildora-dos")
-    try escribir(lienzo(claro: false) { dosPildoras }, en: destino, como: "pildora-dos-oscuro")
-    try escribir(lienzo(claro: true) { dictandoConPildoras }, en: destino, como: "pildora-dictando")
-    medir("pildora-dos", dosPildoras)
+    // Los segmentos de los asientos, en su propia carpeta y en una lámina.
+    try escribirLosSegmentos(en: destino.appending(path: "c2"))
     // Tres cortes y no cuatro: la muesca sobria crece tan poco que un cuarto
     // era el mismo PNG.
     for (i, avance) in [0.0, 0.5, 1.0].enumerated() {
@@ -148,6 +136,7 @@ enum RenderDeLaMuesca {
     tamaño: CGSize,
     radio: CGFloat,
     sombra: Bool = true,
+    costados: CostadosDeLaSilueta = CostadosDeLaSilueta(),
     @ViewBuilder contenido: () -> some View
   ) -> some View {
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)
@@ -158,7 +147,7 @@ enum RenderDeLaMuesca {
       .background {
         // La silueta de la app, en una pieza, con sus alas fuera del marco
         // (`SiluetaDeLaMuesca`): la misma que dibuja `HUDSurface`.
-        SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: fillet, radioInferior: radio)
+        SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: fillet, radioInferior: radio, costados: costados)
           .fill(Color.black)
           .shadow(
             color: .black.opacity(sombra ? 0.35 : 0),
@@ -168,17 +157,40 @@ enum RenderDeLaMuesca {
       }
   }
 
+  /// Lo que lleva cada costado: el segmento y si dice su palabra.
+  struct Segmentos {
+    var izquierdo: ContenidoDelSegmento?
+    var derecho: ContenidoDelSegmento?
+    var conPalabra: Set<LadoDelAsiento> = []
+
+    static let ninguno = Segmentos()
+    var hay: Bool { izquierdo != nil || derecho != nil }
+
+    /// Lo mismo que calcula `DictationHUDContent.costados(en:)` en la app,
+    /// con las mismas funciones.
+    func costados(en pantalla: HUDScreenSnapshot, compacta: Bool) -> CostadosDeLaSilueta {
+      HUDNotchGeometry.estiramientos(
+        for: pantalla,
+        izquierdo: izquierdo?.ancho(conPalabra: conPalabra.contains(.izquierda)),
+        derecho: derecho?.ancho(conPalabra: conPalabra.contains(.derecha)),
+        compacta: compacta
+      )
+    }
+  }
+
   /// La ventana anfitriona: del tamaño real y anclando la forma arriba y al
   /// centro, igual que `HUDSurface`. El resto tiene que quedar transparente.
   static func enLaVentana(
     tamaño: CGSize,
     radio: CGFloat,
     encuadre: HUDNotchGeometry.EncuadreDeLaVentana = .abierta,
-    pildoras: (izquierda: ContenidoDePildora?, derecha: ContenidoDePildora?) = (nil, nil),
+    segmentos: Segmentos = .ninguno,
+    en pantalla: HUDScreenSnapshot = pantalla,
     @ViewBuilder contenido: () -> some View
   ) -> some View {
     var pantalla = pantalla
-    pantalla.llevaPildoras = pildoras.izquierda != nil || pildoras.derecha != nil
+    pantalla.llevaSegmentos = segmentos.hay
+    let costados = segmentos.costados(en: pantalla, compacta: encuadre == .reposo)
     // La ventana mide lo que mide el estado: en reposo **es** la muesca —sin
     // sombra que alojar, sólo lo que las alas cuelgan a los lados— y sólo
     // crece con la forma abierta. El marco punteado del PNG es lo que deja ver
@@ -189,16 +201,19 @@ enum RenderDeLaMuesca {
     // punteada cruzando la silueta arruina justo lo que se viene a mirar.
     return ZStack(alignment: .top) {
       marcoDeLaVentana
-      silueta(tamaño: tamaño, radio: radio, sombra: encuadre == .abierta, contenido: contenido)
-        // Las píldoras como en la app: capa de la forma, colgadas a sus
-        // costados (`HUDPildorasAlCostado`), con la vista de verdad.
-        .overlay {
-          HUDPildorasAlCostado(
-            izquierda: pildoras.izquierda, derecha: pildoras.derecha,
-            screen: pantalla, acento: mango, alTocar: { _ in }
-          )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      silueta(
+        tamaño: tamaño, radio: radio, sombra: encuadre == .abierta, costados: costados, contenido: contenido
+      )
+      // Los segmentos como en la app: la silueta estirada pone el negro y
+      // `HUDSegmentosAlCostado`, la vista de verdad, el ícono y la palabra.
+      .overlay {
+        HUDSegmentosAlCostado(
+          izquierdo: segmentos.izquierdo, derecho: segmentos.derecho,
+          conPalabra: segmentos.conPalabra, costados: costados,
+          acento: mango, alTocar: { _ in }
+        )
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     .frame(width: ventana.width, height: ventana.height)
   }
@@ -259,10 +274,9 @@ enum RenderDeLaMuesca {
     }
   }
 
-  /// Dictando con las dos píldoras al costado: se corren con la muesca que
-  /// crece, y la ventana abierta las aloja.
-  static var dictandoConPildoras: some View {
-    enLaVentana(tamaño: tamañoAbierto, radio: radioDictando, pildoras: (.retenido, .toma)) {
+  /// Dictando con los dos segmentos estirando la muesca.
+  static func dictandoConSegmentos(_ segmentos: Segmentos) -> some View {
+    enLaVentana(tamaño: tamañoAbierto, radio: radioDictando, segmentos: segmentos) {
       lineaSobria {
         ondaCompacta
         Text("…el martes a las diez")
@@ -273,6 +287,101 @@ enum RenderDeLaMuesca {
         cursor
       }
     }
+  }
+
+  /// Los segmentos en reposo, con y sin palabra, dictando, y con los datos
+  /// de los costados antes y durante: un PNG por caso y la lámina
+  /// `c2-final.png` con barra clara y oscura.
+  @MainActor
+  static func escribirLosSegmentos(en carpeta: URL) throws {
+    try FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
+    let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
+    let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
+    var conDatos = pantalla
+    conDatos.anchoDeLosLados = HUDNotchGeometry.anchoDeUnLado
+    let reposoConDatos = HUDNotchGeometry.reposoSize(for: conDatos)
+
+    func enReposo(_ segmentos: Segmentos) -> AnyView {
+      AnyView(enLaVentana(tamaño: reposo, radio: radio, encuadre: .reposo, segmentos: segmentos) {
+        marcaDeReposo(alto: reposo.height)
+      })
+    }
+    func conLosDatos(_ segmentos: Segmentos) -> AnyView {
+      AnyView(
+        enLaVentana(tamaño: reposoConDatos, radio: radio, encuadre: .reposo, segmentos: segmentos, en: conDatos) {
+          // Los datos como `HUDMarcaDeReposo`: el de un lado con segmento
+          // se esconde (`ReglaDeLosCostados`).
+          ZStack {
+            marcaDeReposo(alto: reposoConDatos.height)
+            HStack(spacing: 0) {
+              datoDeMuestra("Codex", "35%").opacity(segmentos.izquierdo == nil ? 1 : 0)
+              Spacer(minLength: 0)
+              datoDeMuestra("CPU", "12%").opacity(segmentos.derecho == nil ? 1 : 0)
+            }
+            .padding(.horizontal, 16)
+          }
+          .frame(height: reposoConDatos.height)
+        }
+      )
+    }
+
+    let toma = Segmentos(derecho: .toma, conPalabra: [.derecha])
+    let tomaEncogida = Segmentos(derecho: .toma)
+    let dos = Segmentos(izquierdo: .retenido, derecho: .toma, conPalabra: [.izquierda, .derecha])
+    let dosEncogidos = Segmentos(izquierdo: .retenido, derecho: .toma)
+    let casos: [(String, String, AnyView)] = [
+      ("reposo-toma-palabra", "Reposo · «Reintentar» entra con la palabra", enReposo(toma)),
+      ("reposo-toma-encogida", "Reposo · a los 3 s, sólo el ícono", enReposo(tomaEncogida)),
+      ("reposo-dos-palabra", "Reposo · los dos, con palabra", enReposo(dos)),
+      ("reposo-dos-encogidos", "Reposo · los dos, encogidos", enReposo(dosEncogidos)),
+      ("dictando-dos", "Dictando · los dos, encogidos", AnyView(dictandoConSegmentos(dosEncogidos))),
+      ("datos-antes", "Datos a los costados · sin segmento", conLosDatos(.ninguno)),
+      ("datos-toma-palabra", "Datos · «Reintentar» ocupa el lugar de la CPU", conLosDatos(toma)),
+      ("datos-toma-encogida", "Datos · ya encogido", conLosDatos(tomaEncogida)),
+      ("reposo-sin-segmentos", "Sin segmentos · la muesca de siempre", enReposo(.ninguno)),
+    ]
+    for (nombre, _, vista) in casos {
+      try escribir(lienzo(claro: true) { vista }, en: carpeta, como: "\(nombre)-claro")
+      try escribir(lienzo(claro: false) { vista }, en: carpeta, como: "\(nombre)-oscuro")
+      medir(nombre, vista)
+    }
+    let lamina = VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 0) {
+        Color.clear.frame(width: 250, height: 28)
+        Text("Barra clara").frame(width: 460)
+        Text("Barra oscura").frame(width: 460)
+      }
+      .font(.system(size: 13, weight: .semibold))
+      .foregroundStyle(.white)
+      ForEach(Array(casos.enumerated()), id: \.offset) { _, caso in
+        HStack(spacing: 0) {
+          Text(caso.1)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.white.opacity(0.85))
+            .frame(width: 242, alignment: .leading)
+            .padding(.leading, 8)
+          ForEach([true, false], id: \.self) { claro in
+            lienzo(claro: claro) { caso.2 }
+              .frame(width: 460, height: 64, alignment: .top)
+              .clipped()
+              .overlay(Rectangle().stroke(Color(white: 0.3), lineWidth: 1))
+          }
+        }
+      }
+    }
+    .padding(10)
+    .background(Color(white: 0.08))
+    try escribir(lamina, en: carpeta, como: "c2-final")
+  }
+
+  /// Un dato de los costados de mentira, con las medidas de `HUDValorDeDato`:
+  /// etiqueta apagada y valor claro en once puntos.
+  static func datoDeMuestra(_ etiqueta: String, _ valor: String) -> some View {
+    HStack(spacing: 3) {
+      Text(etiqueta).foregroundStyle(.white.opacity(0.5))
+      Text(valor).foregroundStyle(.white.opacity(0.9))
+    }
+    .font(.system(size: 11, weight: .medium, design: .rounded))
   }
 
   /// El final: el check donde estaba la onda, dentro de la misma muesca y sin

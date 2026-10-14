@@ -2,19 +2,19 @@ import Testing
 
 @testable import Dilo
 
-/// Quién se sienta dónde en la muesca: una forma y hasta dos píldoras.
+/// Quién se sienta dónde en la muesca: una forma y hasta dos costados.
 ///
 /// El reductor es puro, así que todo se afirma sin ventana. Las reglas que
 /// cargan peso son dos que vienen del contrato del notch —quien habla se
 /// lleva la forma, y una grabación nunca se esconde— y una de oficio: dos
-/// fuentes iguales no se turnan la píldora cada vez que se actualizan.
+/// fuentes iguales no se turnan el costado cada vez que se actualizan.
 @Suite("Asientos de la muesca")
 struct AsientosDeLaMuescaTests {
   /// Una reunión grabando, como la que va a llegar en v2: abre el micrófono
   /// pero le cede la forma al dictado.
   private let reunion = ActividadDeLaMuesca(id: "reunion", prioridad: .alta, abreElMicrofono: true)
 
-  private func pildora(_ id: String, _ prioridad: PrioridadDeActividad = .normal, lado: LadoDePildora? = nil)
+  private func costado(_ id: String, _ prioridad: PrioridadDeActividad = .normal, lado: LadoDelAsiento? = nil)
     -> ActividadDeLaMuesca
   {
     ActividadDeLaMuesca(id: id, prioridad: prioridad, puedeSerPrincipal: false, ladoPreferido: lado)
@@ -25,50 +25,50 @@ struct AsientosDeLaMuescaTests {
   @Test func sinNadiePublicadoLaMuescaDescansa() {
     let asientos = AsientosDeLaMuesca()
     #expect(asientos.principal == nil)
-    #expect(asientos.pildora(.derecha) == nil)
-    #expect(asientos.pildora(.izquierda) == nil)
+    #expect(asientos.costado(.derecha) == nil)
+    #expect(asientos.costado(.izquierda) == nil)
   }
 
-  /// Lo que sólo puede ser píldora nunca toma la forma, aunque esté sola.
-  @Test func unaPildoraSolaNoTomaLaForma() {
+  /// Lo que sólo puede ser costado nunca toma la forma, aunque esté sola.
+  @Test func unCostadoSoloNoTomaLaForma() {
     var asientos = AsientosDeLaMuesca()
     asientos.recibir(.publicar(.tomaGuardada))
     #expect(asientos.principal == nil)
-    #expect(asientos.asiento(de: "toma") == .pildora(.derecha))
+    #expect(asientos.asiento(de: "toma") == .costado(.derecha))
   }
 
   /// El recorrido del ejecutable de prueba del plan: datos → reunión →
   /// dictado → sin lugar → pantalla completa → fin del dictado.
   @Test func elDictadoSeLlevaLaFormaYLaReunionNuncaSeEsconde() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("dato.claude", .baja, lado: .izquierda)))
-    a.recibir(.publicar(pildora("dato.cpu", .baja, lado: .derecha)))
-    #expect(a.pildora(.izquierda)?.id == "dato.claude")
-    #expect(a.pildora(.derecha)?.id == "dato.cpu")
+    a.recibir(.publicar(costado("dato.claude", .baja, lado: .izquierda)))
+    a.recibir(.publicar(costado("dato.cpu", .baja, lado: .derecha)))
+    #expect(a.costado(.izquierda)?.id == "dato.claude")
+    #expect(a.costado(.derecha)?.id == "dato.cpu")
 
     a.recibir(.publicar(reunion))
     #expect(a.principal?.id == "reunion")
 
-    // Empieza un dictado: se lleva la forma, y la reunión baja a una píldora
+    // Empieza un dictado: se lleva la forma, y la reunión baja a un costado
     // desplazando a un dato, que se entera de por qué.
     let cambios = a.recibir(.publicar(dictado))
     #expect(a.principal?.id == "sesion")
-    #expect(Self.esPildora(a.asiento(de: "reunion")))
+    #expect(Self.esCostado(a.asiento(de: "reunion")))
     #expect(cambios.contains { $0.ahora == .ninguno && $0.motivo == .superada })
 
-    // Sin lugar para píldoras, la reunión sigue a la vista.
-    a.recibir(.lugaresParaPildoras(0))
-    #expect(Self.esPildora(a.asiento(de: "reunion")))
+    // Sin lugar para costados, la reunión sigue a la vista.
+    a.recibir(.lugaresAlCostado(0))
+    #expect(Self.esCostado(a.asiento(de: "reunion")))
     #expect(a.asiento(de: "dato.cpu") == .ninguno)
     #expect(a.motivos["dato.cpu"] == .pantallaSinLugar)
 
     // Pantalla completa: sólo lo que nunca se esconde.
-    a.recibir(.lugaresParaPildoras(2))
+    a.recibir(.lugaresAlCostado(2))
     a.recibir(.suprimir(true))
     #expect(a.asiento(de: "dato.claude") == .ninguno)
     #expect(a.motivos["dato.claude"] == .suprimida)
     #expect(a.principal?.id == "sesion")
-    #expect(Self.esPildora(a.asiento(de: "reunion")))
+    #expect(Self.esCostado(a.asiento(de: "reunion")))
     a.recibir(.suprimir(false))
 
     // Termina el dictado: la reunión vuelve a la forma.
@@ -77,20 +77,20 @@ struct AsientosDeLaMuescaTests {
   }
 
   /// Histéresis: tres iguales, dos lugares. El que se actualiza no pierde su
-  /// píldora ni salta de costado, y el tercero espera.
-  @Test func dosIgualesNoSeTurnanLaPildora() {
+  /// costado ni salta de costado, y el tercero espera.
+  @Test func dosIgualesNoSeTurnanElCostado() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("x")))
-    a.recibir(.publicar(pildora("y")))
-    a.recibir(.publicar(pildora("z")))
+    a.recibir(.publicar(costado("x")))
+    a.recibir(.publicar(costado("y")))
+    a.recibir(.publicar(costado("z")))
     // Los dos primeros se sentaron; el más reciente sin lugar.
     let ladoDeX = a.asiento(de: "x")
-    #expect(Self.esPildora(ladoDeX))
+    #expect(Self.esCostado(ladoDeX))
     #expect(a.asiento(de: "z") == .ninguno)
     #expect(a.motivos["z"] == .sinLugar)
 
-    a.recibir(.publicar(pildora("x")))
-    a.recibir(.publicar(pildora("y")))
+    a.recibir(.publicar(costado("x")))
+    a.recibir(.publicar(costado("y")))
     #expect(a.asiento(de: "x") == ladoDeX)
     #expect(a.asiento(de: "z") == .ninguno)
   }
@@ -98,13 +98,13 @@ struct AsientosDeLaMuescaTests {
   /// Lo más importante desplaza a lo menos importante, y lo dice.
   @Test func laPrioridadDesplazaConMotivo() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("dato.a", .baja)))
-    a.recibir(.publicar(pildora("dato.b", .baja)))
+    a.recibir(.publicar(costado("dato.a", .baja)))
+    a.recibir(.publicar(costado("dato.b", .baja)))
     let cambios = a.recibir(.publicar(.retenido))
     // Prefiere la izquierda, pero el dato que se queda no salta de costado:
     // el retenido se sienta donde se fue el desplazado.
-    #expect(a.asiento(de: "retenido") == .pildora(.derecha))
-    #expect(a.asiento(de: "dato.b") == .pildora(.izquierda))
+    #expect(a.asiento(de: "retenido") == .costado(.derecha))
+    #expect(a.asiento(de: "dato.b") == .costado(.izquierda))
     let desplazado = cambios.first { $0.ahora == .ninguno }
     #expect(desplazado?.motivo == .superada)
   }
@@ -112,10 +112,10 @@ struct AsientosDeLaMuescaTests {
   /// Un lado preferido ocupado cae al otro; quien ya estaba no se mueve.
   @Test func unLadoOcupadoCaeAlOtro() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("primero", lado: .derecha)))
-    a.recibir(.publicar(pildora("segundo", lado: .derecha)))
-    #expect(a.asiento(de: "primero") == .pildora(.derecha))
-    #expect(a.asiento(de: "segundo") == .pildora(.izquierda))
+    a.recibir(.publicar(costado("primero", lado: .derecha)))
+    a.recibir(.publicar(costado("segundo", lado: .derecha)))
+    #expect(a.asiento(de: "primero") == .costado(.derecha))
+    #expect(a.asiento(de: "segundo") == .costado(.izquierda))
   }
 
   /// La toma y el retenido, las ocupantes de hoy, cada una en su lado y las
@@ -126,14 +126,14 @@ struct AsientosDeLaMuescaTests {
     a.recibir(.publicar(.retenido))
     a.recibir(.publicar(dictado))
     #expect(a.principal?.id == "sesion")
-    #expect(a.pildora(.derecha)?.id == "toma")
-    #expect(a.pildora(.izquierda)?.id == "retenido")
+    #expect(a.costado(.derecha)?.id == "toma")
+    #expect(a.costado(.izquierda)?.id == "retenido")
   }
 
   /// Con un solo lugar gana lo más importante.
   @Test func conUnLugarGanaElRetenido() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.lugaresParaPildoras(1))
+    a.recibir(.lugaresAlCostado(1))
     a.recibir(.publicar(.tomaGuardada))
     a.recibir(.publicar(.retenido))
     #expect(a.asiento(de: "retenido") != .ninguno)
@@ -148,12 +148,12 @@ struct AsientosDeLaMuescaTests {
     a.recibir(.apagar(id: "reunion", true))
     #expect(a.principal?.id == "reunion")
 
-    a.recibir(.publicar(pildora("dato")))
+    a.recibir(.publicar(costado("dato")))
     a.recibir(.apagar(id: "dato", true))
     #expect(a.asiento(de: "dato") == .ninguno)
     #expect(a.motivos["dato"] == .apagada)
     a.recibir(.apagar(id: "dato", false))
-    #expect(Self.esPildora(a.asiento(de: "dato")))
+    #expect(Self.esCostado(a.asiento(de: "dato")))
   }
 
   /// La sesión tampoco se esconde en pantalla completa: hoy los estados
@@ -178,7 +178,7 @@ struct AsientosDeLaMuescaTests {
   /// mismo orden para el mismo evento.
   @Test func losCambiosSalenOrdenados() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("b")))
+    a.recibir(.publicar(costado("b")))
     let cambios = a.recibir(.publicar(dictado))
     #expect(cambios.map(\.id) == cambios.map(\.id).sorted())
     let otros = a.recibir(.retirar(id: "sesion"))
@@ -186,12 +186,12 @@ struct AsientosDeLaMuescaTests {
     #expect(otros.first?.ahora == .ninguno)
   }
 
-  /// Llevar al centro: una píldora gana la forma, cede ante el dictado y
+  /// Llevar al centro: un costado gana la forma, cede ante el dictado y
   /// vuelve cuando el dictado termina. Un id desconocido no hace nada, y
   /// retirar lo que estaba al centro lo suelta.
   @Test func llevarAlCentro() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("agente")))
+    a.recibir(.publicar(costado("agente")))
     a.recibir(.llevarAlCentro(id: "agente"))
     #expect(a.principal?.id == "agente")
 
@@ -208,13 +208,13 @@ struct AsientosDeLaMuescaTests {
     #expect(a.principal == nil)
   }
 
-  @Test func soltarDelCentroDevuelveLaPildora() {
+  @Test func soltarDelCentroDevuelveElCostado() {
     var a = AsientosDeLaMuesca()
-    a.recibir(.publicar(pildora("agente", lado: .izquierda)))
+    a.recibir(.publicar(costado("agente", lado: .izquierda)))
     a.recibir(.llevarAlCentro(id: "agente"))
     a.recibir(.soltarDelCentro)
     #expect(a.principal == nil)
-    #expect(a.asiento(de: "agente") == .pildora(.izquierda))
+    #expect(a.asiento(de: "agente") == .costado(.izquierda))
   }
 
   /// Retirar algo que no estaba no mueve nada.
@@ -224,8 +224,8 @@ struct AsientosDeLaMuescaTests {
     #expect(a.recibir(.retirar(id: "retenido")).isEmpty)
   }
 
-  private static func esPildora(_ asiento: AsientoDeLaMuesca) -> Bool {
-    if case .pildora = asiento { return true }
+  private static func esCostado(_ asiento: AsientoDeLaMuesca) -> Bool {
+    if case .costado = asiento { return true }
     return false
   }
 }

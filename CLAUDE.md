@@ -253,7 +253,7 @@ siendo cierto:
   (`HUDNotchGeometry.filletSize`). Son lo que funde la silueta con el borde de
   la pantalla; sin ellas queda un rectángulo. La píldora sigue sin llevarlas:
   flota separada y no toca ningún borde.
-- **La muesca tiene asientos: una forma y hasta dos píldoras al costado**
+- **La muesca tiene asientos: la forma y hasta dos segmentos al costado**
   (`AsientosDeLaMuesca`, reductor puro con sus reglas y motivos de cesión;
   2026-10-13). `MaquinaDelNotch` no cambia: la sesión del contrato entra a
   los asientos mientras no hay reposo y exige la forma, así que **dictando la
@@ -263,13 +263,32 @@ siendo cierto:
   pegar que otra sesión tapó (`TarjetaDeRespaldo.tapada`, izquierda; un clic
   la copia; no vence mientras dura una sesión y se va un minuto después de
   volver a reposo). Sólo el notch simulado tiene lugar
-  (`HUDNotchGeometry.lugaresParaPildoras`): al lado de una carcasa real hay
-  menús y status items. Las píldoras son capa **de la forma** y cuelgan
-  fuera de su marco como las alas, así que siguen solas a la muesca que
-  crece; la ventana en reposo pasa a ser «la silueta más sus píldoras»
-  (`HUDScreenSnapshot.llevaPildoras`), crece antes de que entren y se encoge
-  después de que se van. Con el panel del hover abierto se esconden.
-  Reuniones, agentes y datos de los costados todavía no son actividades.
+  (`HUDNotchGeometry.lugaresAlCostado`): al lado de una carcasa real hay
+  menús y status items. Reuniones y agentes todavía no son actividades.
+- **Un segmento al costado es la misma silueta, estirada** (variante elegida
+  por Alfonso el 2026-10-13; la píldora negra separada y la de vidrio se
+  descartaron). `SiluetaDeLaMuesca.costados` estira el negro hacia el lado
+  del segmento con las alas en los extremos nuevos: una pieza, sin hueco, y
+  sin estirar nada la muesca es la de siempre. `HUDSegmentosAlCostado` sólo
+  pone el ícono y la palabra y recibe el clic, con la acción entera en la
+  etiqueta de accesibilidad y en el tooltip. **Encogido mide 26 pt, el
+  ícono**; entra diciendo su palabra («Reintentar», «No se pegó», medida en su
+  letra, techo `anchoMaximoDeSegmento`) y a los 3 s se encoge, y con el
+  puntero encima la vuelve a decir (`PalabraDeLosSegmentos`, puro y con
+  turno). Se anima con el resorte de apertura del estilo; con Reducir
+  movimiento es un corte. **El segmento no es silueta para
+  `IntencionDelPuntero`**: posarse en él devuelve la palabra y nunca abre el
+  panel del hover. La ventana en reposo reserva lo que un segmento puede
+  estirarse con su palabra (`HUDScreenSnapshot.llevaSegmentos`), crece antes
+  de que entre y se encoge después de que se va; la zona del mouse se estira
+  lo que se estira el negro. Con el panel del hover abierto se esconden.
+- **Un segmento ocupa el lugar del dato de su costado** (`ReglaDeLosCostados`):
+  el dato (CPU, RAM, Claude, Codex) se esconde mientras el segmento está y
+  vuelve cuando se va, y la silueta se estira sólo lo que el segmento pide de
+  más sobre los `anchoDeUnLado` del dato. Lo escondido y lo que vuelve se
+  anota en el log de la muesca (`dato=cpu lado=derecha escondido por
+  segmento=toma`); en el panel del hover el detalle de los datos sigue
+  entero.
 - **La silueta es una sola pieza** (`SiluetaDeLaMuesca`, 2026-10-13): cuerpo,
   alas y esquinas en un `Shape`, la misma para notch real, simulado
   (`.muesca`) y píldora (`.isla`), con los dos radios animables. Las alas se

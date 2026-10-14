@@ -83,13 +83,15 @@ final class DictationHUDContent {
   var datoIzquierdo: LadoDeLaMuesca?
   var datoDerecho: LadoDeLaMuesca?
 
-  /// Lo que va en cada píldora al costado de la muesca, o nil. Lo escribe
+  /// Lo que va en el segmento de cada costado de la muesca, o nil. Lo escribe
   /// `HUDStage` desde los asientos (`AsientosDeLaMuesca`); la forma sólo lo
   /// dibuja.
-  var pildoraIzquierda: ContenidoDePildora?
-  var pildoraDerecha: ContenidoDePildora?
-  /// Un clic en una píldora, con el id de su actividad. Lo cablea `HUDStage`.
-  @ObservationIgnored var alTocarPildora: ((String) -> Void)?
+  var segmentoIzquierdo: ContenidoDelSegmento?
+  var segmentoDerecho: ContenidoDelSegmento?
+  /// Los costados cuyo segmento dice su palabra ahora (`PalabraDeLosSegmentos`).
+  var segmentosConPalabra: Set<LadoDelAsiento> = []
+  /// Un clic en un segmento, con el id de su actividad. Lo cablea `HUDStage`.
+  @ObservationIgnored var alTocarSegmento: ((String) -> Void)?
 
   // MARK: El panel del hover
 
@@ -167,4 +169,38 @@ final class DictationHUDContent {
   /// Un clic en la tarjeta de un dictado que no se pegó: lo copia. Lo cablea
   /// `HUDStage`.
   @ObservationIgnored var alTocarLaTarjeta: ((TarjetaDeRespaldo) -> Void)?
+}
+
+extension DictationHUDContent {
+  /// Los segmentos que se ven ahora: ninguno con el panel del hover abierto,
+  /// que crece sobre ellos y es lo que el mouse vino a mirar.
+  var segmentoIzquierdoVisible: ContenidoDelSegmento? { contextoVisible == nil ? segmentoIzquierdo : nil }
+  var segmentoDerechoVisible: ContenidoDelSegmento? { contextoVisible == nil ? segmentoDerecho : nil }
+
+  /// Los costados con un segmento a la vista.
+  var costadosConSegmentoVisible: Set<LadoDelAsiento> {
+    var lados: Set<LadoDelAsiento> = []
+    if segmentoIzquierdoVisible != nil { lados.insert(.izquierda) }
+    if segmentoDerechoVisible != nil { lados.insert(.derecha) }
+    return lados
+  }
+
+  /// Cuánto se estira la silueta hacia cada lado en esta pantalla. Lo leen la
+  /// vista, para dibujar, y el escenario, para la zona del mouse: un solo
+  /// cálculo para los dos.
+  func costados(en screen: HUDScreenSnapshot) -> CostadosDeLaSilueta {
+    guard HUDNotchGeometry.lugaresAlCostado(for: screen) > 0 else { return CostadosDeLaSilueta() }
+    return HUDNotchGeometry.estiramientos(
+      for: screen,
+      izquierdo: anchoDelSegmento(.izquierda),
+      derecho: anchoDelSegmento(.derecha),
+      compacta: estado.esCompacto && contextoVisible == nil
+    )
+  }
+
+  /// Lo que mide el segmento visible de ese lado, con o sin su palabra.
+  func anchoDelSegmento(_ lado: LadoDelAsiento) -> CGFloat? {
+    let segmento = lado == .izquierda ? segmentoIzquierdoVisible : segmentoDerechoVisible
+    return segmento?.ancho(conPalabra: segmentosConPalabra.contains(lado))
+  }
 }
