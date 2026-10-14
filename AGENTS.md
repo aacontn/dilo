@@ -180,7 +180,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos | 5, 9 |
-| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma | 3 |
+| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
@@ -496,6 +496,34 @@ siendo cierto:
   reproductor entra por el inicializador (`ReproductorDeSonidos`) para que un
   test lo afirme sin tocar el audio de nadie.
 - **El silencio y un micrófono muerto tienen que verse distinto.**
+  `DetectorDeMicMuerto` cuenta segundos de audio en cero exacto —una sala
+  callada nunca es cero digital—: reabre el motor una vez al segundo si nunca
+  sonó, avisa a los 5 s y escala a los 15 s. Los ceros no publican nivel, así
+  que el watchdog del HUD pasa la onda a ámbar; a los 5 s la muesca lo dice en
+  «preparando», y el corte por falta de voz dice por qué corta. Los avisos
+  viajan por `MicrofonoDeLaSesion`, no por el contrato de los motores.
+
+## El micrófono
+
+- **Dilo nunca escribe la entrada del sistema** (ni ningún ajuste de audio
+  del sistema). Elige su micrófono por dictado con `PlanDeMicrofono` (puro,
+  `DiloEngines`) y lo fija sólo en su `AVAudioEngine`
+  (`AVAudioEngine.fijarEntrada`), antes de leer el formato del bus; una
+  reconstrucción por cambio de ruta lo vuelve a fijar, y si ya no está sigue
+  con el del sistema.
+- **Automático, de fábrica:** la entrada del sistema, salvo que sea
+  Bluetooth —abrir su micrófono baja los audífonos al perfil de llamada—; ahí,
+  el micrófono del Mac (no con la tapa cerrada) y después uno con cable. Un
+  iPhone por Continuity nunca se elige solo. Ajustes → Dictado → Micrófono
+  ofrece Automático, El del sistema o uno por nombre, guardado por UID con el
+  nombre de respaldo (`diloMicrofonoElegidoUID`, `diloMicrofonoElegidoNombre`).
+- **Avisar antes de grabar que el micrófono elegido no está** se pregunta a
+  `PlanDeMicrofono.Decision.avisoAntesDeGrabar`; no se repite la regla.
+- **El motor tibio está apagado de fábrica** (`diloMotorDeAudioTibio`): un
+  motor preparado sin `start()`, sólo cableado, 30 min como tope, vencido con
+  cualquier cambio de dispositivos. No se prende para todos hasta medir el
+  reposo con y sin él (`scripts/metrics.sh`) y comparar «primer búfer a N ms
+  de abrir (motor tibio: sí/no)» en el log, categoría `audio`.
 
 ## Idioma, copy y el catálogo
 
