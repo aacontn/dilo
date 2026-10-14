@@ -112,17 +112,21 @@ struct HUDOndaDeBrasas: View {
 
   private func barra(_ indice: Int, vaiven: CGFloat) -> some View {
     RoundedRectangle(cornerRadius: radio * scale, style: .continuous)
-      .fill(relleno)
+      .fill(relleno(indice))
       .frame(width: anchoDeBarra * scale, height: alto(indice) * scale)
       // El halo de `box-shadow: 0 0 8px` — la mitad en radio de sombra, que es
       // la conversión de siempre entre el blur de CSS y el de Core Graphics.
-      .shadow(color: halo, radius: 4 * scale)
+      // En la compacta un poco más cerrado: con cuatro puntos sobre barras de
+      // tres, el halo se desparramaba y lavaba el azul en vez de sostenerlo.
+      .shadow(color: halo, radius: (compacta ? 3 : 4) * scale)
       .scaleEffect(y: vaiven, anchor: .center)
   }
 
-  /// Mango abajo, rojo arriba: el degradado de `--s-wave-lo`→`--s-wave-hi`.
-  /// Con el micrófono muerto no hay brasa que mostrar.
-  private var relleno: LinearGradient {
+  /// El degradado de `--s-wave-lo`→`--s-wave-hi`, repartido por la fila:
+  /// la primera barra más azul y la última más celeste
+  /// (`PaletaDeDilo.coloresDeLaBarra`). Con el micrófono muerto no hay brasa
+  /// que mostrar.
+  private func relleno(_ indice: Int) -> LinearGradient {
     guard content.isAudioAlive else {
       return LinearGradient(
         colors: [
@@ -133,8 +137,9 @@ struct HUDOndaDeBrasas: View {
         endPoint: .top
       )
     }
+    let colores = PaletaDeDilo.actual.coloresDeLaBarra(indice, de: barras)
     return LinearGradient(
-      colors: [PaletaDeDilo.actual.ondaBase.color, PaletaDeDilo.actual.ondaPunta.color],
+      colors: [colores.abajo.color, colores.arriba.color],
       startPoint: .bottom,
       endPoint: .top
     )

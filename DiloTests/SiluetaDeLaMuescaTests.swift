@@ -40,12 +40,27 @@ struct SiluetaDeLaMuescaTests {
     #expect(!camino.contains(CGPoint(x: 0.5, y: 23.5)))
   }
 
-  /// Un ala más alta que el cuerpo se asomaría por debajo: se acota al alto.
+  /// Un ala más alta que el cuerpo se asomaría por debajo: se acota al alto,
+  /// y si con la esquina de abajo no caben, los dos radios se achican juntos
+  /// (como `DroppyNotchShellShape`): 6 de hombro y 3 abajo en 6 de alto son
+  /// 4 y 2.
   @Test func unHombroMasAltoQueElCuerpoSeAcota() {
     let bajo = CGRect(x: 0, y: 0, width: 100, height: 6)
     let caja = SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: 11, radioInferior: 3).path(in: bajo).boundingRect
     #expect(abs(caja.height - 6) < 0.001)
-    #expect(abs(caja.minX - -6) < 0.001)
+    #expect(abs(caja.minX - -4) < 0.001)
+  }
+
+  /// Los radios de la forma abierta caben uno sobre el otro y no se tocan:
+  /// el hombro de 19 y el borde redondo de 19 del aviso, en 38 de alto.
+  @Test func losRadiosQueCabenNoSeAchican() {
+    let aviso = CGRect(x: 0, y: 0, width: 304, height: 38)
+    let caja = SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: 19, radioInferior: 19).path(in: aviso).boundingRect
+    #expect(abs(caja.minX - -19) < 0.001)
+    // El cuerpo sin alas tiene las mismas esquinas que con alas.
+    let cuerpo = SiluetaDeLaMuesca(estilo: .muesca, radioDeHombro: 30, radioInferior: 19).sinHombros
+    #expect(cuerpo.path(in: aviso).boundingRect == aviso)
+    #expect(!cuerpo.path(in: aviso).contains(CGPoint(x: 2, y: 36)), "la esquina de abajo es redonda")
   }
 
   @Test func sinHombrosEsElCuerpoSolo() {

@@ -60,6 +60,11 @@ enum RenderDeLaMuesca {
       try escribirLasPaletas(en: destino)
       return
     }
+    // `--antes-despues`: la lámina del cambio visible (`render-antes-despues.swift`).
+    if CommandLine.arguments.contains("--antes-despues") {
+      try escribirAntesYDespues(en: destino)
+      return
+    }
 
     let reposo = HUDNotchGeometry.reposoSize(for: pantalla)
     let fillet = HUDNotchGeometry.filletSize(for: pantalla)

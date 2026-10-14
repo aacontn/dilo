@@ -346,9 +346,11 @@ final class AppSettings {
   }
 
   /// El panel del hover al estilo Dynamic Glass: negro en la muesca que se
-  /// funde en vidrio (`PanelDeVidrio`). **Ajuste oculto y apagado** mientras
-  /// se prueba (2026-10-14): sólo tiene fila en un Debug, y se lee cada vez
-  /// que el panel se abre.
+  /// funde en vidrio (`PanelDeVidrio`). **Encendido de fábrica** desde el
+  /// 2026-10-14, con su interruptor en Ajustes → Apariencia: apagado y con
+  /// la fila sólo en Debug nadie lo veía. Se lee cada vez que el panel se
+  /// abre, y «Reducir transparencia» del sistema le gana
+  /// (`FondoDeLaMuesca`).
   var hudPanelDeVidrio: Bool {
     didSet { defaults.set(hudPanelDeVidrio, forKey: Keys.hudPanelDeVidrio) }
   }
@@ -717,7 +719,9 @@ final class AppSettings {
     // Leerla no la aplica: la paleta activa es una por proceso, y un
     // `AppSettings` de un test no puede pintar la app. La aplica `AppDelegate`.
     paleta = Self.stored(in: defaults, key: Keys.paleta) ?? .deFabrica
-    hudPanelDeVidrio = defaults.bool(forKey: Keys.hudPanelDeVidrio)
+    // `bool(forKey:)` lee la clave ausente como apagado; el de fábrica es
+    // encendido, así que la ausencia se pregunta directo.
+    hudPanelDeVidrio = defaults.object(forKey: Keys.hudPanelDeVidrio) as? Bool ?? true
     // `double(forKey:)` lee una clave ausente como cero, que dejaría el hover
     // instantáneo para todo el mundo; la ausencia se pregunta directo.
     hudRetardoDeHover = defaults.object(forKey: Keys.hudRetardoDeHover) as? Double

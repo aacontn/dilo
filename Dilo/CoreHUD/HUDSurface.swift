@@ -63,8 +63,17 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   var costados = CostadosDeLaSilueta()
   /// El panel del hover al estilo Dynamic Glass: negro en la cabecera que se
   /// funde en vidrio, con los radios y resortes de Droppy (`PanelDeVidrio`).
-  /// Apagado de fábrica; sólo cambia algo mientras el hover está abierto.
+  /// Encendido de fábrica desde el 2026-10-14; sólo cambia algo mientras el
+  /// hover está abierto.
   var vidrio = false
+  /// Si la forma abierta de este estado es la grande, con los hombros y el
+  /// borde redondo de Droppy (`FormaAbierta`): el aviso sin carcasa, la pila
+  /// de bandas contra una carcasa. La muesca de dictar (184×26) no lo es:
+  /// sigue con los radios de la carcasa.
+  var formaGrande = false
+  /// El color del filo del borde de abajo mientras la forma está abierta
+  /// (`FiloDeLaMuesca`), o nil para ninguno. En reposo no se dibuja nunca.
+  var filo: Color? = nil
   @ViewBuilder let content: Content
   @ViewBuilder let overlays: Overlays
 
@@ -82,7 +91,20 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// se achica al colapsar contra la carcasa, y esa transición es de la
   /// superficie.
   private var silueta: SiluetaDeLaMuesca {
-    SiluetaDeLaMuesca.para(screen, radioInferior: cornerRadius, costados: costados)
+    SiluetaDeLaMuesca.para(
+      screen,
+      radioInferior: cornerRadius,
+      radioDeHombro: abiertaAlEstiloDroppy
+        ? FormaAbierta.hombro(para: renderedSize, en: screen, radioInferior: cornerRadius)
+        : nil,
+      costados: costados
+    )
+  }
+
+  /// Si la forma dibujada ahora es la abierta de Droppy: el panel del hover,
+  /// o un estado revelado que pidió la forma grande.
+  private var abiertaAlEstiloDroppy: Bool {
+    panelDelHoverAbierto || (formaGrande && !isCollapsedIntoHousing)
   }
 
   /// Descansando manda la silueta en reposo, que depende de la forma que esta
@@ -90,10 +112,16 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// métricas. Con 8 puntos sobre los 25 de alto de la muesca la silueta
   /// seguía leyéndose cuadrada.
   private var cornerRadius: CGFloat {
-    if vidrio, panelDelHoverAbierto {
+    // El panel del hover abre con la forma de Droppy, con vidrio o en
+    // negro: el radio de 40 de su estante. Antes eran los 11 del reposo y el
+    // panel se abría como un rectángulo.
+    if panelDelHoverAbierto {
       return PanelDeVidrio.radio(
         para: renderedSize, cabecera: HUDNotchGeometry.alturaDeCabecera(for: screen)
       )
+    }
+    if formaGrande, !isCollapsedIntoHousing {
+      return FormaAbierta.radioDelAviso(para: renderedSize)
     }
     guard !isCollapsedIntoHousing else { return HUDNotchGeometry.radioEnReposo(for: screen) }
     // Una forma abierta apenas más alta que la muesca —la sobria dictando,
@@ -197,14 +225,17 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// volver a la silueta de fábrica es cerrar, cualquier otro es abrir.
   private var animacionDelTamaño: Animation? {
     guard tamañoEnReposo != nil else { return nil }
-    guard !isRevealed, !reduceMotion else { return revealAnimation }
-    let vuelveAlReposo = renderedSize == HUDNotchGeometry.reposoSize(for: screen)
-    // Con el vidrio, los resortes de Droppy (0,47/0,76 al abrir, 0,54/0,90 al
-    // cerrar): son parte de cómo se ve el panel, no del estilo elegido.
-    if vidrio {
-      return vuelveAlReposo ? CurvaDeLaMuesca.cierre.animacion : CurvaDeLaMuesca.apertura.animacion
+    guard !reduceMotion else { return revealAnimation }
+    // Revelada, la forma sólo cambia de tamaño entre estados de la sesión:
+    // de la muesca de dictar al aviso, que se abre con el resorte de Droppy.
+    if isRevealed {
+      return formaGrande ? CurvaDeLaMuesca.apertura.animacion : revealAnimation
     }
-    return vuelveAlReposo ? revealStyle.cierre : revealStyle.apertura
+    let vuelveAlReposo = renderedSize == HUDNotchGeometry.reposoSize(for: screen)
+    // El panel del hover, con vidrio o en negro, abre y cierra con los
+    // resortes de Droppy (0,47/0,76 al abrir, 0,54/0,90 al cerrar): son parte
+    // de cómo se ve la forma abierta, no del estilo elegido.
+    return vuelveAlReposo ? CurvaDeLaMuesca.cierre.animacion : CurvaDeLaMuesca.apertura.animacion
   }
 
   /// Growing from the housing never parks: there is no transform to hide the
@@ -298,8 +329,19 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// The ripple sits between the clip and the shadow: it displaces the
   /// housing's pixels, and the shadow outside the effect stays still instead of
   /// shimmering with the wave.
-  @ViewBuilder
   private var housing: some View {
+    fondo
+      .overlay {
+        if let filo, !isCollapsedIntoHousing || panelDelHoverAbierto {
+          FiloDeLaMuesca(silueta: silueta.sinHombros, color: filo, alto: cornerRadius + 4)
+            .transition(.opacity)
+        }
+      }
+      .animation(.easeOut(duration: 0.25), value: filo)
+  }
+
+  @ViewBuilder
+  private var fondo: some View {
     if vidrio {
       // Sin la onda del borde: el vidrio sólo vive en reposo y en el hover,
       // y la onda es del arranque de una sesión, cuando la forma es negra.

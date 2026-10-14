@@ -16,11 +16,14 @@ import SwiftUI
 /// como dos objetos pegados (`docs/design/2026-09-21-experiencia-dilo.md`,
 /// enmienda del 2026-10-14).
 ///
-/// Apagado de fábrica (`AppSettings.hudPanelDeVidrio`) y sólo mientras el
-/// panel está abierto: en reposo no hay vidrio montado, así que el reposo
-/// cuesta lo mismo que antes (spec §3). El vidrio **no sale en PNG**
-/// (`ImageRenderer` no lo dibuja): se juzga en la pantalla con las escenas
-/// `hover-vidrio` y `hover-completo-vidrio` del arnés.
+/// **Encendido de fábrica desde el 2026-10-14** (`AppSettings.hudPanelDeVidrio`,
+/// interruptor en Ajustes → Apariencia): apagado y escondido en Debug, nadie
+/// lo veía —«no le veo mucho vidrio»—. Sólo mientras el panel está abierto:
+/// en reposo no hay vidrio montado, así que el reposo cuesta lo mismo que
+/// antes (spec §3). Con «Reducir transparencia» del sistema cae a negro. El
+/// vidrio **no sale en PNG** (`ImageRenderer` no lo dibuja): se juzga en la
+/// pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio` del
+/// arnés.
 enum PanelDeVidrio {
   /// El radio de abajo del panel abierto: el `expandedShelfCornerRadius` de
   /// Droppy. Se achica sólo si el panel es más bajo que eso.
@@ -28,8 +31,13 @@ enum PanelDeVidrio {
   /// Cuánto mide el paso de negro a vidrio bajo la cabecera.
   static let fundido: CGFloat = 22
   /// El tinte oscuro del vidrio. Sin tinte, `.regular` sobre un fondo de
-  /// pantalla claro deja el texto blanco sin contraste.
-  static let tinte: Double = 0.42
+  /// pantalla claro deja el texto blanco sin contraste; con los 0,42 de la
+  /// primera versión el vidrio se leía como un gris oscuro y no como vidrio.
+  static let tinte: Double = 0.3
+  /// El brillo del borde: un filo blanco que se apaga hacia abajo, que es lo
+  /// que hace que el vidrio se lea como un objeto con canto y no como un
+  /// gris translúcido.
+  static let brilloDelBorde: Double = 0.32
   /// El radio de una tarjeta del panel, y cuánto sobresale de su contenido.
   static let radioDeTarjeta: CGFloat = 12
   static let margenDeTarjeta: CGFloat = 8
@@ -48,6 +56,53 @@ enum PanelDeVidrio {
   /// menos lo que la tarjeta queda adentro.
   static func radioDeLaUltimaTarjeta(radioDelPanel: CGFloat) -> CGFloat {
     max(radioDeTarjeta, radioDelPanel - (aireLateral - margenDeTarjeta))
+  }
+}
+
+/// Las medidas de la muesca **abierta**, al estilo de Droppy: hombros
+/// grandes que se abren hacia el borde de la pantalla y el borde de abajo
+/// bien redondeado.
+///
+/// Técnica observada en Droppy (`DroppyShellMetrics`): notch abierto con 32
+/// de radio arriba —el hombro cóncavo— y 28 abajo en sus HUD, 40 en el
+/// estante y 44 en la isla. Implementación propia. Hasta el 2026-10-14 la
+/// forma abierta llevaba los hombros de la carcasa (9 en la muesca simulada)
+/// y 11 abajo en el panel negro: se abría como un rectángulo
+/// («no le veo […] la forma linda de Droppy»).
+///
+/// **Sólo la forma abierta.** El reposo (160×24, alas de 9) y dictar
+/// (184×26) quedan como estaban: `HUDSurface` pide estas medidas sólo para
+/// el panel del hover y para la forma grande —el aviso sin carcasa, la pila
+/// de bandas contra una carcasa real—.
+enum FormaAbierta {
+  /// El hombro de Droppy abierto (`expandedNotchTopRadius`).
+  static let hombro: CGFloat = 32
+  /// El radio de abajo de un HUD abierto de Droppy: el del aviso y el de la
+  /// forma grande contra una carcasa.
+  static let radioDelAviso: CGFloat = 28
+
+  /// El hombro para una forma de este tamaño: el de Droppy, sin pasarse de
+  /// lo que la ventana abierta tiene a cada lado para las alas y su sombra,
+  /// ni de lo que deja libre la esquina de abajo —si no, la silueta achica
+  /// los dos radios juntos y el aviso pierde el borde redondo entero—. La
+  /// píldora no lleva alas: cero.
+  static func hombro(
+    para tamaño: CGSize,
+    en screen: HUDScreenSnapshot,
+    radioInferior: CGFloat = 0
+  ) -> CGFloat {
+    let carcasa = HUDNotchGeometry.filletSize(for: screen)
+    guard carcasa > 0 else { return 0 }
+    let ventana = HUDNotchGeometry.windowSize(for: screen, encuadre: .abierta)
+    let lugar = (ventana.width - tamaño.width) / 2 - HUDNotchGeometry.holguraDeSombra()
+    let libre = tamaño.height - radioInferior
+    return max(carcasa, min(hombro, lugar, libre))
+  }
+
+  /// El radio de abajo del aviso: el de Droppy, o redondo entero si la forma
+  /// es más baja que eso.
+  static func radioDelAviso(para tamaño: CGSize) -> CGFloat {
+    max(0, min(radioDelAviso, tamaño.height / 2, tamaño.width / 4))
   }
 }
 
@@ -96,6 +151,8 @@ struct FondoDeLaMuesca: View {
     case imitacion
   }
 
+  @Environment(\.accessibilityReduceTransparency) private var reducirTransparencia
+
   let silueta: SiluetaDeLaMuesca
   /// El alto de la cabecera (`HUDNotchGeometry.alturaDeCabecera`).
   let alturaDeCabecera: CGFloat
@@ -104,13 +161,19 @@ struct FondoDeLaMuesca: View {
   let abierto: Bool
   var material: Material = .vidrio
 
+  /// «Reducir transparencia» manda: el panel se dibuja negro, con las mismas
+  /// tarjetas encima. Es lo que el sistema promete con ese ajuste, y el negro
+  /// ya era el panel de antes.
+  private var conVidrio: Bool { abierto && !reducirTransparencia }
+
   var body: some View {
     ZStack(alignment: .top) {
       // Lo de abajo se funde: vidrio abierto, negro cerrado. Con una
       // transición de opacidad el vidrio se apaga mientras la forma se
       // encoge, en vez de pasar a negro de golpe al empezar a cerrar.
-      if abierto {
+      if conVidrio {
         cuerpo
+          .overlay { brillo }
           .transition(.opacity)
       } else {
         silueta
@@ -125,17 +188,46 @@ struct FondoDeLaMuesca: View {
     }
   }
 
+  /// El vidrio con la silueta entera, alas incluidas: los hombros grandes de
+  /// la forma abierta bajan más que la cabecera, y lo que asoma debajo del
+  /// fundido tiene que ser vidrio y no un hueco.
   @ViewBuilder
   private var cuerpo: some View {
     switch material {
     case .vidrio:
       Color.clear
-        .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta.sinHombros)
+        .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta)
     case .imitacion:
-      silueta.sinHombros
-        .fill(Color(white: 0.09).opacity(0.62))
-        .overlay(silueta.sinHombros.stroke(Color.white.opacity(0.14), lineWidth: 0.5))
+      silueta
+        .fill(Color(white: 0.09).opacity(0.58))
     }
+  }
+
+  /// El canto del vidrio: un filo blanco en el contorno del cuerpo que se
+  /// apaga hacia abajo y no toca la cabecera, que es negra.
+  private var brillo: some View {
+    silueta.sinHombros
+      .stroke(
+        LinearGradient(
+          colors: [
+            .white.opacity(PanelDeVidrio.brilloDelBorde),
+            .white.opacity(PanelDeVidrio.brilloDelBorde * 0.35),
+            .white.opacity(PanelDeVidrio.brilloDelBorde * 0.6),
+          ],
+          startPoint: .top,
+          endPoint: .bottom
+        ),
+        lineWidth: 0.75
+      )
+      .mask(alignment: .top) {
+        VStack(spacing: 0) {
+          Color.clear.frame(height: alturaDeCabecera)
+          LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+            .frame(height: PanelDeVidrio.fundido)
+          Color.black
+        }
+        .padding(.horizontal, -60)
+      }
   }
 
   /// La franja de la cabecera y el degradado del fundido. Más ancha que la
@@ -149,6 +241,62 @@ struct FondoDeLaMuesca: View {
       Spacer(minLength: 0)
     }
     .padding(.horizontal, -60)
+  }
+}
+
+/// El filo de color del borde de abajo de la muesca abierta: una luz fina en
+/// el acento que sigue la curva de las esquinas y se apaga hacia los
+/// costados.
+///
+/// Es la manera de que el color se vea **sin ensuciar el negro**, que es el
+/// criterio de Droppy: negro y blanco, y un acento sólo donde pasa algo. El
+/// cuerpo sigue negro entero; lo que cambia de color es el canto, como el
+/// borde iluminado de un objeto, y dice en qué está la muesca sin una
+/// palabra —el acento dictando, la menta en el acuse, el coral en un error—.
+/// Estático: no anima ni redibuja nada mientras la forma está quieta, así
+/// que no cuesta CPU (spec §3). En reposo no se monta.
+struct FiloDeLaMuesca: View {
+  /// La silueta del cuerpo, sin alas (`SiluetaDeLaMuesca.sinHombros`).
+  let silueta: SiluetaDeLaMuesca
+  let color: Color
+  /// Cuánto sube el filo desde el borde de abajo. Con el radio de la
+  /// esquina basta para que la luz doble la curva y no siga por el costado.
+  let alto: CGFloat
+
+  var body: some View {
+    let trazo = silueta.stroke(
+      LinearGradient(
+        stops: [
+          .init(color: color.opacity(0), location: 0),
+          .init(color: color, location: 0.3),
+          .init(color: color, location: 0.7),
+          .init(color: color.opacity(0), location: 1),
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+      ),
+      lineWidth: 1.25
+    )
+    ZStack {
+      // La luz difusa y el filo nítido: sin el halo, una línea de un punto
+      // sobre la barra clara se lee como un error de dibujo.
+      trazo.blur(radius: 3)
+      trazo
+    }
+    .mask {
+      // Más grande que la forma: el trazo va centrado en el borde y su luz
+      // cae por fuera.
+      VStack(spacing: 0) {
+        Color.clear
+        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+          .frame(height: alto)
+        Color.black.frame(height: 6)
+      }
+      .padding(.horizontal, -6)
+      .padding(.bottom, -6)
+    }
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
   }
 }
 

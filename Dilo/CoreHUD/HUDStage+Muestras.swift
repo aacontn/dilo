@@ -215,10 +215,16 @@ extension HUDStage {
       decir(resultado.esAcuse ? "" : resultado.texto)
       revealDictation()
 
-    case .avisoLargo:
+    case .avisoLargo, .aviso:
       claim(.message, on: pantalla)
       recibir(.entregar(.aviso(linea)))
       decir(linea)
+      revealDictation()
+
+    case .avisoConArreglo:
+      claim(.message, on: pantalla)
+      recibir(.entregar(.accionable(EscenaDeMuestra.arregloDeMuestra)))
+      decir(EscenaDeMuestra.arregloDeMuestra.texto)
       revealDictation()
     }
   }

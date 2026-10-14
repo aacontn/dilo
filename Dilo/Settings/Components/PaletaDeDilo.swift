@@ -37,6 +37,18 @@ struct Tono: Equatable, Sendable {
     Tono(rojo: rojo, verde: verde, azul: azul, alfa: alfa)
   }
 
+  /// El tono a `t` del camino hacia `otro` (0 es éste, 1 es el otro), en
+  /// sRGB y sin corregir la luz: entre dos azules vecinos no hace falta más.
+  func mezcla(con otro: Tono, _ t: Double) -> Tono {
+    let t = min(max(t, 0), 1)
+    return Tono(
+      rojo: rojo + (otro.rojo - rojo) * t,
+      verde: verde + (otro.verde - verde) * t,
+      azul: azul + (otro.azul - azul) * t,
+      alfa: alfa + (otro.alfa - alfa) * t
+    )
+  }
+
   var color: Color { Color(.sRGB, red: rojo, green: verde, blue: azul, opacity: alfa) }
   var nsColor: NSColor { NSColor(srgbRed: rojo, green: verde, blue: azul, alpha: alfa) }
 }
@@ -113,6 +125,10 @@ struct PaletaDeDilo: Equatable, Sendable, Identifiable {
   var halo: Tono
   /// El cuerpo de los otros estilos de onda; sus puntas son `ondaBase`.
   var ondaCuerpo: Tono
+  /// El filo de color del borde de abajo de la muesca abierta
+  /// (`FiloDeLaMuesca`): lo que dice, sin una palabra, que la forma está
+  /// haciendo algo. Con alfa: es una luz sobre el negro, no una línea.
+  var filo: Tono
   /// El punto de tres puntos de la muesca en reposo (`HUDMarcaDeReposo`).
   var puntoDeReposo: Tono
   /// El cursor que parpadea mientras el micrófono está abierto.
@@ -163,6 +179,7 @@ extension PaletaDeDilo {
     ondaPunta: .blanco,
     halo: Tono.blanco.opacidad(0.35),
     ondaCuerpo: Tono(hex: 0xD1D1D6),
+    filo: Tono.blanco.opacidad(0.22),
     puntoDeReposo: Tono.blanco.opacidad(0.7),
     cursor: .blanco,
     acuse: Tono(hex: 0x30D158),
@@ -197,8 +214,9 @@ extension PaletaDeDilo {
     acento: Tono(hex: 0x64D2FF),
     ondaBase: Tono(hex: 0x0A84FF),
     ondaPunta: Tono(hex: 0x64D2FF),
-    halo: Tono(hex: 0x64D2FF, alfa: 0.45),
+    halo: Tono(hex: 0x64D2FF, alfa: 0.6),
     ondaCuerpo: Tono(hex: 0x64D2FF),
+    filo: Tono(hex: 0x64D2FF, alfa: 0.85),
     puntoDeReposo: Tono(hex: 0x64D2FF, alfa: 0.9),
     cursor: Tono(hex: 0x64D2FF),
     acuse: Tono(hex: 0x7DF9C4),
@@ -221,6 +239,21 @@ extension PaletaDeDilo {
     ),
     acentoDeLaBarra: Tono(hex: 0x0A84FF)
   )
+
+  /// Los dos colores de una barra de la onda, abajo y arriba.
+  ///
+  /// La fila entera es un degradado de izquierda a derecha —de `ondaBase` en
+  /// la primera barra a `ondaPunta` en la última— y cada barra, además, se
+  /// aclara hacia la punta. Con un solo degradado vertical, cinco barras de
+  /// tres puntos se leían como un celeste parejo y el azul no aparecía
+  /// nunca (2026-10-14: «no le veo mucho cambio a los colores en el notch»).
+  func coloresDeLaBarra(_ indice: Int, de barras: Int) -> (abajo: Tono, arriba: Tono) {
+    let t = barras > 1 ? Double(indice) / Double(barras - 1) : 1
+    return (
+      abajo: ondaBase.mezcla(con: ondaPunta, t * 0.55),
+      arriba: ondaBase.mezcla(con: ondaPunta, 0.45 + t * 0.55)
+    )
+  }
 
   /// La paleta con que se dibuja ahora: la elegida o, mientras el arnés
   /// muestra una escena con `--paleta`, la de la muestra.

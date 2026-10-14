@@ -32,6 +32,11 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case acuse
   case copiado
   case avisoLargo = "aviso-largo"
+  /// La forma del aviso al estilo Droppy (`FormaAbierta`, 2026-10-14): un
+  /// error corto con su ícono y el filo coral, y un arreglo con un clic con
+  /// su botón. `aviso-largo` es el que no cabe.
+  case aviso
+  case avisoConArreglo = "aviso-arreglo"
   case retenido
   case hover
   case hoverCompleto = "hover-completo"
@@ -66,6 +71,8 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
     case .procesando: "quedamos el martes a las diez"
     case .avisoLargo: "No pude pegarlo ahí: el texto quedó en el portapapeles y en «Copiar el último dictado»"
+    case .aviso: "No pude pegarlo: quedó en el portapapeles"
+    case .avisoConArreglo: "Falta el permiso del micrófono"
     case .retenido, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra:
       "quedamos el martes a las diez en la oficina de Providencia"
     case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio: "Listo · «quedamos el martes a las diez»"
@@ -87,7 +94,8 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
-    case .avisoLargo: .resultado(.aviso(textoDeMuestra ?? ""))
+    case .avisoLargo, .aviso: .resultado(.aviso(textoDeMuestra ?? ""))
+    case .avisoConArreglo: .resultado(.accionable(Self.arregloDeMuestra))
     case .retenido: .resultado(.retenido(Self.tarjetaDeMuestra))
     }
   }
@@ -130,6 +138,13 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   var panelCompleto: Bool { self == .hoverCompleto || self == .hoverCompletoVidrio }
   /// Si el panel va con vidrio.
   var conVidrio: Bool { self == .hoverVidrio || self == .hoverCompletoVidrio }
+
+  /// Un arreglo con un clic que no abre nada: en el arnés los botones están
+  /// apagados, y el panel de Ajustes del Sistema es sólo el rótulo.
+  static let arregloDeMuestra = AvisoConAccion(
+    texto: EscenaDeMuestra.avisoConArreglo.textoDeMuestra ?? "",
+    accion: .abrirAjustes("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+  )
 
   static let tarjetaDeMuestra = TarjetaDeRespaldo(
     texto: EscenaDeMuestra.retenido.textoDeMuestra ?? "",

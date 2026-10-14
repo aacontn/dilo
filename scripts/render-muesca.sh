@@ -8,6 +8,10 @@
 # paleta de `PaletaDeDilo` en una columna, estado por estado, sobre barra
 # clara y oscura) y `barra-de-menus.png` (el ícono de la barra con cada una).
 #
+# Con `--antes-despues` deja sólo `antes-despues.png`: la 0.4.4 contra la
+# forma abierta de Droppy, el vidrio en imitación y el filo de color, en
+# Glaciar y Grafito (`render-antes-despues.swift`).
+#
 # Compila la geometría de verdad del HUD junto con `render-muesca.swift` y
 # rasteriza con `ImageRenderer` fuera de pantalla. No lanza la app, no abre
 # ventanas y no toca el escritorio: es lo que hace que la forma se pueda
@@ -40,8 +44,10 @@ swiftc -O \
   "$raiz/Dilo/CoreHUD/HUDMetrics.swift" \
   "$raiz/Dilo/CoreHUD/VidrioDeLaMuesca.swift" \
   "$raiz/Dilo/Settings/Components/PaletaDeDilo.swift" \
+  "$raiz/Dilo/Dictation/HUD/Visuals/HUDCheckDeAcuse.swift" \
   "$raiz/scripts/render-muesca.swift" \
   "$raiz/scripts/render-paletas.swift" \
+  "$raiz/scripts/render-antes-despues.swift" \
   -o "$taller/render-muesca"
 
 # Lo que viene después de la carpeta (`--paletas`) pasa tal cual. Con

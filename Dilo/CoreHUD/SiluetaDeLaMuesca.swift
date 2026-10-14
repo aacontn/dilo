@@ -38,6 +38,11 @@ struct SiluetaDeLaMuesca: Shape {
   /// corren a los extremos nuevos: una sola pieza, sin hueco. Sólo en
   /// `.muesca`.
   var costados = CostadosDeLaSilueta()
+  /// Si dibuja las alas. Sin ellas es el cuerpo solo, pero con las esquinas
+  /// que el cuerpo tiene **con** alas: cuando los dos radios no caben se
+  /// achican juntos, y el vidrio o el recorte tienen que seguir el mismo
+  /// borde que el negro.
+  var conAlas = true
 
   var animatableData: AnimatablePair<AnimatablePair<CGFloat, CGFloat>, AnimatablePair<CGFloat, CGFloat>> {
     get {
@@ -56,12 +61,12 @@ struct SiluetaDeLaMuesca: Shape {
   /// La misma silueta sin alas ni costados: lo que recorta el contenido y lo
   /// que dibuja lo que no toca ningún borde.
   var sinHombros: SiluetaDeLaMuesca {
-    SiluetaDeLaMuesca(estilo: estilo, radioDeHombro: 0, radioInferior: radioInferior)
+    SiluetaDeLaMuesca(estilo: estilo, radioDeHombro: radioDeHombro, radioInferior: radioInferior, conAlas: false)
   }
 
   nonisolated func path(in rect: CGRect) -> Path {
     guard rect.width > 0, rect.height > 0 else { return Path() }
-    let abajo = max(0, radioInferior)
+    var abajo = max(0, radioInferior)
     switch estilo {
     case .isla:
       return UnevenRoundedRectangle(
@@ -79,6 +84,17 @@ struct SiluetaDeLaMuesca: Shape {
         width: rect.width + max(0, costados.izquierda) + max(0, costados.derecha),
         height: rect.height
       )
+      // Los dos radios se achican juntos si no caben uno sobre el otro, como
+      // hace Droppy con su forma (`DroppyNotchShellShape.path(in:)`): un ala
+      // que baja más allá de donde empieza la esquina de abajo deja una
+      // muesca entre las dos. Con los radios de reposo y de dictar caben
+      // siempre (9 + 11 en 24), así que esto sólo toca la forma abierta.
+      var hombro = min(max(0, radioDeHombro), rect.height)
+      if hombro + abajo > rect.height, hombro + abajo > 0 {
+        let escala = rect.height / (hombro + abajo)
+        hombro *= escala
+        abajo *= escala
+      }
       let cuerpo = UnevenRoundedRectangle(
         topLeadingRadius: 0,
         bottomLeadingRadius: abajo,
@@ -87,9 +103,9 @@ struct SiluetaDeLaMuesca: Shape {
         style: .continuous
       )
       .path(in: rect)
-      // Un ala más alta que el cuerpo se asomaría por debajo de él.
-      let hombro = min(max(0, radioDeHombro), rect.height)
-      guard hombro > 0 else { return cuerpo }
+      // Un ala más alta que el cuerpo se asomaría por debajo de él: ya
+      // quedó acotada arriba.
+      guard conAlas, hombro > 0 else { return cuerpo }
       let izquierda = NotchFilletShape(side: .leading).path(
         in: CGRect(x: rect.minX - hombro, y: rect.minY, width: hombro, height: hombro)
       )
@@ -111,14 +127,18 @@ struct SiluetaDeLaMuesca: Shape {
 extension SiluetaDeLaMuesca {
   /// La silueta que esta pantalla dibuja: muesca con alas contra una carcasa
   /// o en el notch simulado, isla en la píldora bajo la barra.
+  ///
+  /// `radioDeHombro` nil es el de la carcasa (`HUDNotchGeometry.filletSize`);
+  /// la forma abierta pide los hombros grandes de `FormaAbierta`.
   static func para(
     _ screen: HUDScreenSnapshot,
     radioInferior: CGFloat,
+    radioDeHombro: CGFloat? = nil,
     costados: CostadosDeLaSilueta = CostadosDeLaSilueta()
   ) -> SiluetaDeLaMuesca {
     SiluetaDeLaMuesca(
       estilo: HUDNotchGeometry.closesAtTop(for: screen) ? .isla : .muesca,
-      radioDeHombro: HUDNotchGeometry.filletSize(for: screen),
+      radioDeHombro: radioDeHombro ?? HUDNotchGeometry.filletSize(for: screen),
       radioInferior: radioInferior,
       costados: costados
     )
