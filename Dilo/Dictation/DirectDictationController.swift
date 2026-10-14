@@ -504,6 +504,11 @@ final class DirectDictationController {
       }
 
       isPrepared = true
+      // La primera lectura de lo que impide dictar abre la conexión con
+      // Core Audio y TCC —decenas de milisegundos de pared la primera vez,
+      // décimas de milisegundo después—. Se paga acá, al preparar, y no en el
+      // primer gatillo.
+      _ = dependencies.leerPermisos()
       installTriggerMonitor()
     }
   }
@@ -1135,7 +1140,7 @@ final class DirectDictationController {
           crudo = crudoRetenido
         } else {
           crudo = try await dependencies.finishRecognition()
-          anotarRevisado(revision: await dependencies.duracionDeLaRevision())
+          anotarRevisado()
         }
         // La costura de español de Dilo: todo lo reconocido pasa por DiloText
         // antes de que nadie más lo toque — espacios, muletillas y tus
@@ -1263,6 +1268,7 @@ final class DirectDictationController {
           text, focusedTarget, session.insertionDestination
         )
         anotarEntrega(entrega, atajo: dependencies.instanteDelAtajo())
+        anotarRevision(await dependencies.duracionDeLaRevision())
         AppLog.delivery.info(
           "session ended: \(entrega.nombreEnElLog, privacy: .public), \(UsageMetrics.wordCount(in: spoken), privacy: .public) words in \(speakingDuration, format: .fixed(precision: 1), privacy: .public)s"
         )

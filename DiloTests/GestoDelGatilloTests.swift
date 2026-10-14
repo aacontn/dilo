@@ -255,3 +255,26 @@ struct GestoDelGatilloTests {
     #expect(otra.recibir(.procesar).isEmpty)
   }
 }
+
+/// Lo que el gatillo lee antes de abrir el micrófono no puede cobrarle al
+/// arranque del dictado. Se mide en CPU del hilo y no en reloj de pared: lo
+/// que se afirma es lo que cuesta, no que el runner estuvo libre.
+struct LecturaParaDictarTests {
+  private func cpu() -> Duration {
+    var t = timespec()
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t)
+    return .seconds(t.tv_sec) + .nanoseconds(t.tv_nsec)
+  }
+
+  @MainActor @Test func leerLoQueImpideDictarYaTibioCuestaMenosDeDosMilisegundos() {
+    // La primera lectura es la que la preparación hace por adelantado.
+    _ = LecturaParaDictar.leer()
+    var mejor = Duration.seconds(1)
+    for _ in 0..<3 {
+      let antes = cpu()
+      _ = LecturaParaDictar.leer()
+      mejor = min(mejor, cpu() - antes)
+    }
+    #expect(mejor < .milliseconds(2), "leer costó \(mejor) de CPU")
+  }
+}

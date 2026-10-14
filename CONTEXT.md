@@ -152,8 +152,10 @@ No se registra una sección vacía ni deshabilitada.
   y en v1 sólo dibuja el primero. Los otros dos existen como casos explícitos
   sin UI; un estado que no dibuja nada no abre el escenario.
 - Durante el **Dictado** el HUD es sólo visual: los clics lo atraviesan y
-  nunca toma el foco. Acepta el mouse sólo cuando recibe un archivo o
-  sostiene una transcripción terminada.
+  nunca toma el foco. Acepta el mouse sólo cuando recibe un archivo,
+  sostiene una transcripción terminada o un dictado sin pegar, o dice un
+  aviso que se arregla con un clic (abrir el panel de un permiso, deshacer
+  un Esc).
 - La pantalla del HUD se fija al arrancar la sesión; si se desconecta a
   media sesión, se va a la pantalla del puntero.
 - El HUD es la única superficie para el estado y los errores del dictado, y

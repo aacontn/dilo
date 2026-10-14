@@ -144,6 +144,20 @@ struct LatenciaPorFaseTests {
     #expect(registro.percentiles(.acuse) == nil)
   }
 
+  /// Lo que tarda un modo se mide en las sesiones con modo: en las otras la
+  /// fase vale cero y bajaría la mediana a nada.
+  @Test func elModoSeMideSoloDondeCorrio() {
+    var registro = RegistroDeLatencias()
+    for i in 0..<20 {
+      registro.agregar(MedicionDeSesion(
+        fecha: .now, motor: "Apple", conModo: i < 5, traducido: false, resultado: .pegado,
+        milisegundos: [Fase.modo.rawValue: i < 5 ? 600 : 0]
+      ))
+    }
+    #expect(registro.percentiles(.modo)?.p50 == 600)
+    #expect(registro.percentiles(.traduccion) == nil)
+  }
+
   /// La cabecera del CSV es un contrato con quien lo abre en Numbers: no se
   /// mueve sin querer. Y nada del texto dictado viaja en él.
   @Test func elCSVTieneCabeceraEstableYNingunTexto() {

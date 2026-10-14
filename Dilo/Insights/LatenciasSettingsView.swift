@@ -9,8 +9,14 @@ import UniformTypeIdentifiers
 /// Lee el archivo cada vez que aparece y no se suscribe a nada: el registro
 /// cambia una vez por dictado, y mientras Ajustes está abierto no se dicta.
 struct LatenciasSettingsView: View {
-  @State private var registro = RegistroDeLatencias()
+  @State private var registro: RegistroDeLatencias
   @State private var aviso: String?
+
+  /// Con un registro de antemano para las vistas previas y el render en
+  /// PNG; en Ajustes se lee del disco al aparecer.
+  init(registro: RegistroDeLatencias = RegistroDeLatencias()) {
+    _registro = State(initialValue: registro)
+  }
 
   /// Las fases que se muestran: las que suman al «soltar → texto» y la que
   /// cuesta al apretar. El CSV las lleva todas.
@@ -19,7 +25,7 @@ struct LatenciasSettingsView: View {
   ]
 
   var body: some View {
-    SettingsCard(title: "LATENCIA POR FASE") {
+    SettingsCard(title: "Latencia por fase") {
       if registro.sesiones.count < RegistroDeLatencias.minimoParaPercentiles {
         SettingsRow(
           title: "Todavía no hay suficientes dictados",
@@ -43,10 +49,12 @@ struct LatenciasSettingsView: View {
       ) {
         HStack(spacing: 8) {
           Button("Copiar CSV") { copiar() }
+            .buttonStyle(SettingsButtonStyle())
           #if !DILO_MAS
             // En App Store no: guardar donde la persona elija pide un
             // entitlement que el sandbox de Dilo no tiene. Copiar sirve igual.
             Button("Exportar latencias…") { exportar() }
+              .buttonStyle(SettingsButtonStyle())
           #endif
         }
         .disabled(registro.sesiones.isEmpty)

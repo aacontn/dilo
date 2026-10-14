@@ -2498,13 +2498,13 @@
         }
       }
     },
-    "LATENCIA POR FASE": {
+    "Latencia por fase": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "LATENCY BY PHASE"
+            "value": "Latency by phase"
           }
         }
       }

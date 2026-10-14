@@ -25,11 +25,17 @@ extension DirectDictationController {
     }
   }
 
-  /// El texto ya revisado; el del motor fue `revision` antes.
-  func anotarRevisado(revision: Duration?) {
-    let ahora = ContinuousClock.now
-    relojDeFases.marcar(.revisado, en: ahora)
-    if let revision { relojDeFases.marcar(.textoDelMotor, en: ahora - revision) }
+  /// El texto ya revisado, en el momento en que llegó.
+  func anotarRevisado() {
+    relojDeFases.marcar(.revisado)
+  }
+
+  /// Cuándo devolvió el motor su texto: `revision` antes del revisado. Se
+  /// pregunta después de entregar y no al llegar el texto, porque preguntarle
+  /// al motor es un salto de actor, y ninguno le suma a soltar→texto.
+  func anotarRevision(_ revision: Duration?) {
+    guard let revision, let revisado = relojDeFases.instante(de: .revisado) else { return }
+    relojDeFases.marcar(.textoDelMotor, en: revisado - revision)
   }
 
   /// La entrega contestó. El ⌘V cuenta sólo si salió en esta sesión: el

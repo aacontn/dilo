@@ -197,9 +197,13 @@ struct RegistroDeLatencias: Codable, Equatable, Sendable {
 
   /// p50 y p95 de una fase, de las sesiones que la midieron. Con menos de
   /// cinco no se dice nada: un percentil de dos datos es un dato.
+  ///
+  /// El modo y la traducción, sólo de las sesiones donde corrieron: en las
+  /// demás miden cero, y una mediana de ceros esconde lo que tarda un modo.
   func percentiles(_ fase: Fase, motor: String? = nil) -> (p50: Int, p95: Int)? {
     let valores = sesiones
       .filter { motor == nil || $0.motor == motor }
+      .filter { fase == .modo ? $0.conModo : fase == .traduccion ? $0.traducido : true }
       .compactMap { $0.ms(fase) }
       .sorted()
     guard valores.count >= Self.minimoParaPercentiles else { return nil }
