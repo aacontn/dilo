@@ -433,6 +433,24 @@ struct TextInsertionServiceTests {
     #expect(pasteboard.string(forType: .string) == "dictated text")
   }
 
+  /// El bit de fn que deja colgado un gatillo F19 no detiene el ⌘V: fn no
+  /// cambia lo que pega. Antes cada dictado así terminaba en la tarjeta.
+  @Test func elBitDeFnDeUnGatilloF19NoImpidePegar() async {
+    let pasteboard = makePasteboard(con: "previous clipboard")
+    var postedPaste = false
+    let bitDeF19 = LecturasDelTeclado(
+      entradaSegura: { false }, modificadores: { CGEventFlags(rawValue: 0x2080_0000) })
+    let service = makeService(pasteboard, teclado: bitDeF19) { _ in
+      postedPaste = true
+      return true
+    }
+
+    let outcome = await service.entregar("dictated text", a: makeTarget())
+
+    #expect(postedPaste)
+    #expect(outcome != .retenido(.teclasSostenidas))
+  }
+
   /// La entrada segura encendida es una contraseña con el foco: no hay ⌘V.
   @Test func conEntradaSeguraNoPega() async {
     let pasteboard = makePasteboard(con: "previous clipboard")

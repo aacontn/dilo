@@ -77,6 +77,67 @@ struct CompuertasDelPegadoTests {
     #expect(reloj.ahora == .zero)
   }
 
+  /// El gatillo de Alfonso es F19, y toda tecla de función —como las
+  /// flechas— lleva el bit de fn, que el estado del HID deja marcado tras
+  /// soltarla. fn no cambia lo que hace ⌘V: con el bit encendido se pega al
+  /// tiro. Antes esperaba dos segundos y terminaba en la tarjeta
+  /// (`retenido(teclasSostenidas)`, 14-oct 18:24).
+  @Test func elBitDeFnNoEstorbaAlPegar() async {
+    let reloj = RelojQueAvanza()
+    let deUnaTeclaDeFuncion = CGEventFlags(rawValue: 0x2080_0000)
+    for vistas in [CGEventFlags.maskSecondaryFn, deUnaTeclaDeFuncion] {
+      let espera = await teclado(modificadores: { _ in vistas }, reloj: reloj)
+        .esperarTeclado(ahora: { reloj.ahora }, dormir: { reloj.dormir($0) })
+      #expect(espera.motivo == nil)
+    }
+    #expect(reloj.ahora == .zero)
+  }
+
+  /// Para teclear sí importa fn, pero la tecla y no el bit: un bit que quedó
+  /// de F19 no impide el reintento; fn apretada de verdad, sí (🌐A es el Dock).
+  @Test func paraTeclearFnSeMiraPorSuTecla() {
+    let bitColgado = LecturasDelTeclado(
+      entradaSegura: { false }, modificadores: { .maskSecondaryFn }, fnAbajo: { false })
+    #expect(bitColgado.sePuedeTeclear)
+    let fnApretada = LecturasDelTeclado(
+      entradaSegura: { false }, modificadores: { .maskSecondaryFn }, fnAbajo: { true })
+    #expect(!fnApretada.sePuedeTeclear)
+  }
+
+  /// Una tarea cancelada no puede dormir. Antes devolvía «teclas sostenidas»
+  /// al instante sin volver a mirar; ahora mira una vez más y lo dice.
+  @Test func cancelarLaEsperaMiraUnaVezMasYLoDice() async {
+    struct Cancelado: Error {}
+    let lecturas = OSAllocatedUnfairLock(initialState: 0)
+    let soltaron = LecturasDelTeclado(
+      entradaSegura: { false },
+      modificadores: { lecturas.withLock { $0 += 1; return $0 == 1 ? .maskShift : [] } }
+    )
+    let libre = await soltaron.esperarTeclado(ahora: { .zero }, dormir: { _ in throw Cancelado() })
+    #expect(libre.motivo == nil)
+    #expect(libre.interrumpida)
+
+    let sostenida = LecturasDelTeclado(entradaSegura: { false }, modificadores: { .maskShift })
+    let espera = await sostenida.esperarTeclado(ahora: { .zero }, dormir: { _ in throw Cancelado() })
+    #expect(espera.motivo == .teclasSostenidas)
+    #expect(espera.interrumpida)
+    #expect(espera.lineaDelLog.contains("se canceló"))
+  }
+
+  /// Rendirse deja dicho qué teclas vio: un «teclas sostenidas» sin nombres
+  /// no se puede arreglar.
+  @Test func alRendirseDiceQueTeclasVio() async {
+    let reloj = RelojQueAvanza()
+    let espera = await teclado(modificadores: { _ in [.maskAlternate, .maskSecondaryFn] }, reloj: reloj)
+      .esperarTeclado(ahora: { reloj.ahora }, dormir: { reloj.dormir($0) })
+    #expect(espera.motivo == .teclasSostenidas)
+    #expect(!espera.interrumpida)
+    #expect(espera.vistas == [.maskAlternate, .maskSecondaryFn])
+    #expect(espera.lineaDelLog.contains("⌥ fn (0x880000)"))
+    #expect(espera.lineaDelLog.contains("tras 2000 ms"))
+    #expect(EsperaDelTeclado.describir([]) == "ninguna (0x0)")
+  }
+
   /// Teclear con ⌘ abajo es mandar atajos: «hola» sería ⌘H.
   @Test func paraTeclearTambienEstorbaComando() {
     let conComando = LecturasDelTeclado(entradaSegura: { false }, modificadores: { .maskCommand })

@@ -90,10 +90,11 @@ extension TextInsertionService {
     }
 
     // 2. El teclado libre, y el foco y el cursor donde estaban.
-    if let motivo = await dependencies.teclado.esperarTecladoLibre(
-      ahora: reloj.now,
-      dormir: reloj.sleep
-    ) {
+    let espera = await dependencies.teclado.esperarTeclado(ahora: reloj.now, dormir: reloj.sleep)
+    if let motivo = espera.motivo {
+      // A nivel notice para que quede en el log sin encender nada: un
+      // «teclas sostenidas» sin decir cuáles no se puede arreglar.
+      AppLog.delivery.notice("\(espera.lineaDelLog, privacy: .public)")
       return dejar(texto, foto: foto, conteo: conteoAceptado, porque: motivo, tiempos: tiempos)
     }
     guard sigueAhi(destino, ancla: ancla) else {
@@ -176,7 +177,14 @@ extension TextInsertionService {
   ) async -> ResultadoDeEntrega {
     let reloj = dependencies.clock
     // Sin ningún `await` entre esta mirada y el primer evento.
-    guard dependencies.teclado.sePuedeTeclear, sigueAhi(destino, ancla: campo.ancla) else {
+    let teclado = dependencies.teclado
+    guard teclado.sePuedeTeclear else {
+      AppLog.delivery.notice(
+        "no tecleo: entrada segura \(teclado.entradaSegura(), privacy: .public), fn abajo \(teclado.fnAbajo(), privacy: .public), vi \(EsperaDelTeclado.describir(teclado.modificadores()), privacy: .public)"
+      )
+      return quedarseParaPegarAMano(pendiente, porque: .noEntro, tiempos: tiempos)
+    }
+    guard sigueAhi(destino, ancla: campo.ancla) else {
       return quedarseParaPegarAMano(pendiente, porque: .noEntro, tiempos: tiempos)
     }
     guard await dependencies.teclear(TecleoDelDictado.pedazos(de: texto), canal) else {
