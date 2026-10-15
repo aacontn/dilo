@@ -23,10 +23,12 @@
 # medir es fallo— hasta que le des el Release con `--tamano-de`.
 #
 # Para medir la latencia el .app tiene que ser un build **Debug**: el gancho
-# DILO_METRICS_WAV no existe en release. Y el terminal desde el que corres esto
-# necesita Accesibilidad, porque la sesión se dispara apretando el menú de la
-# barra. La app siempre se lanza con `open`, nunca ejecutando el binario: TCC
-# atribuye los permisos al proceso responsable.
+# DILO_METRICS_WAV no existe en release. La sesión se dispara con una
+# notificación distribuida que sólo escucha esa copia Debug
+# (`DisparadorDeMetricas`); hasta la 0.4.8 se apretaba el menú de la barra por
+# AppleScript, y por eso el terminal pedía Accesibilidad. La app siempre se
+# lanza con `open`, nunca ejecutando el binario: TCC atribuye los permisos al
+# proceso responsable.
 set -euo pipefail
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

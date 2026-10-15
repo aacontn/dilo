@@ -88,11 +88,26 @@ final class HUDStage {
   /// con una máquina por feature se pisan los temporizadores.
   let control: ControlDelNotch
 
-  /// Un clic en la silueta en reposo: abre el menú de acciones, el mismo del
-  /// status item. Lo cablea `AppDelegate`, que es quien tiene el menú.
+  /// Un clic en la silueta en reposo: abre el panel de acciones, el mismo del
+  /// clic derecho en el ícono de la barra. Lo cablea `AppDelegate`, que es
+  /// quien tiene el panel.
   var alPedirAcciones: (() -> Void)?
   /// Un clic en la silueta mostrando un resultado: copia lo último dictado.
   var alPedirCopiar: (() -> Void)?
+
+  /// Si el panel de la barra está abierto. Mientras lo está, el hover no
+  /// abre su panel, y si estaba abierto se recoge: colgando bajo la muesca,
+  /// los dos se tapaban. El menú gris de antes no tenía el problema porque
+  /// era modal y ningún plazo del hover corría con él abierto. Lo cablea
+  /// `AppDelegate`.
+  var panelDeLaBarraAbierto = false {
+    didSet {
+      guard panelDeLaBarraAbierto, !oldValue else { return }
+      cancelarHover()
+      intencion.reiniciar()
+      if dictationContent.punteroEncima { cerrarElPanel() }
+    }
+  }
   /// Un clic en un aviso accionable: lo que el aviso ofrece. Lo cablea
   /// `AppDelegate`, que es quien sabe abrir Ajustes del Sistema.
   var alPedirAccion: ((AvisoConAccion.Accion) -> Void)?
@@ -304,7 +319,7 @@ final class HUDStage {
   }
 
   /// La toma que quedó en RAM cambió: aparece, se reintentó o venció. Llega
-  /// del mismo aviso que esconde o muestra sus entradas en el menú de la
+  /// del mismo aviso que esconde o muestra su tarjeta en el panel de la
   /// barra (`DirectDictationController.onTomaFallidaChange`).
   func mostrarTomaGuardada(_ duracion: TimeInterval?) {
     tomaGuardada = duracion
@@ -1047,6 +1062,10 @@ final class HUDStage {
   /// que la ventana cambiaba de tamaño, que es justo lo que el hover hace al
   /// abrirse.
   private func decidir(conLaMuestra punto: CGPoint, dentro: Bool) {
+    // Con el panel de la barra abierto la intención no ve nada: al cerrarse,
+    // la próxima muestra es una entrada nueva y no un panel que cree estar
+    // abierto.
+    guard !panelDeLaBarraAbierto else { return }
     intencion.ajustes.retardo = .milliseconds(
       Int((max(0, settings.hudRetardoDeHover) * 1000).rounded())
     )
@@ -1085,7 +1104,7 @@ final class HUDStage {
   /// primer dictado: qué se dice con el panel abierto lo resuelve
   /// `DictationHUDContent.contextoVisible`, que nunca se queda sin algo.
   private func abrirElPanel() {
-    guard estado.tomaElMouse else { return }
+    guard estado.tomaElMouse, !panelDeLaBarraAbierto else { return }
     // La ventana primero, el contexto después: el panel del hover también
     // es la silueta creciendo, y crece con la misma curva.
     ajustarVentana(a: .abierta)
@@ -1137,16 +1156,23 @@ final class HUDStage {
     hoverTask = nil
   }
 
-  /// Dónde abrir el menú de acciones: justo debajo de la silueta, en
-  /// coordenadas de pantalla.
-  var puntoDeAcciones: NSPoint? {
+  /// De dónde cuelga el panel de acciones: la silueta en reposo, en
+  /// coordenadas de pantalla. El panel va centrado justo debajo, y un clic
+  /// dentro de este marco con el panel abierto lo cierra en vez de cerrarlo y
+  /// volver a abrirlo (`ControlDelPanelDeLaBarra`).
+  var siluetaDeAcciones: NSRect? {
     guard let pantallaActual else { return nil }
     let ventana = HUDNotchGeometry.windowFrame(for: pantallaActual, encuadre: encuadre)
     let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
-    return NSPoint(x: ventana.midX, y: ventana.maxY - reposo.height)
+    return NSRect(
+      x: ventana.midX - reposo.width / 2,
+      y: ventana.maxY - reposo.height,
+      width: reposo.width,
+      height: reposo.height
+    )
   }
 
-  /// Un clic en la silueta. En reposo abre el menú de acciones, salvo que el
+  /// Un clic en la silueta. En reposo abre el panel de acciones, salvo que el
   /// hover tenga el panel abierto con algo que copiar: ahí «copiar el último
   /// dictado» es la acción del panel, que es donde quedó al salir el estado
   /// Resultado.

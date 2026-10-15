@@ -378,6 +378,22 @@ sistema entero, Dilo incluido, y arranca antes que el Begin. `AudioDucker`
 dice en su encabezado que el ducking empieza después del sonido de empezar, y
 hoy no es verdad.
 
+## El ícono de la barra deja el menú gris (2026-10-15)
+
+> «es momento de mejorar la ventana que se abre al tocar el ícono de Dilo en
+> la top bar: con botón izquierdo que abra la app de Dilo, con botón derecho
+> alguna ventana como la de ahora pero que sea linda, así como la de
+> Switchboard».
+
+El clic izquierdo abre Ajustes, que es la app. El derecho abre un panel de
+vidrio ahumado con lo mismo que tenía el menú —y el modo del atajo general—,
+ordenado de lo que pide algo (una toma que no salió) a lo que se busca de vez
+en cuando (Primeros pasos, Novedades, Actualizaciones, Salir). El clic en la
+muesca en reposo, que antes abría ese menú, abre el mismo panel bajo ella.
+El panel no toma nunca el teclado: el menú no movía el foco de la app donde
+se dicta, y el panel tampoco puede. Detalle y reglas en `AGENTS.md`, «El ícono
+de la barra de menús»; los PNG salen de `scripts/render-panel-de-la-barra.sh`.
+
 ## Ventana y navegación
 
 Destino de producto: Recientes, Reuniones y Ajustes.

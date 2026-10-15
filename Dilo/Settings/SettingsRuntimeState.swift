@@ -9,7 +9,7 @@ import Observation
 final class SettingsRuntimeState {
   var isDictating: Bool
 
-  /// La sección que alguien de afuera pidió abrir —el menú de la barra, o el
+  /// La sección que alguien de afuera pidió abrir —el panel de la barra, o el
   /// arranque después de actualizar, que abre Novedades—. La ventana de
   /// Ajustes la consume y la deja en nil: es una orden, no un estado.
   var seccionPedida: SettingsSection?

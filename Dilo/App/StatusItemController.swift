@@ -2,6 +2,18 @@ import AppKit
 import DiloCapabilities
 import DiloModes
 
+/// El ícono de Dilo en la barra de menús.
+///
+/// **Clic izquierdo abre la app; clic derecho (o ⌃clic), el panel de la
+/// barra** (Alfonso, 2026-10-15: «con botón izquierdo que abra la app de
+/// Dilo, con botón derecho alguna ventana como la de ahora pero que sea
+/// linda, así como la de Switchboard»). Hasta la 0.4.8 cualquier clic abría
+/// un `NSMenu` gris; el panel (`ControlDelPanelDeLaBarra`) ofrece todo lo que
+/// ofrecía, con jerarquía, y el modo del atajo general. Qué hace cada clic lo
+/// decide `ClicEnLaBarra`, puro.
+///
+/// Mientras se dicta el ícono sigue latiendo, y mientras se transcribe un
+/// archivo se llena como una batería: eso no cambió.
 @MainActor
 final class StatusItemController: NSObject {
   private let statusItem: NSStatusItem
@@ -12,28 +24,42 @@ final class StatusItemController: NSObject {
   private let openOnboarding: () -> Void
   private let openNovedades: () -> Void
   private let checkForUpdates: () -> Void
-  private let dictationItem: NSMenuItem
-  private let readAloudItem: NSMenuItem
-  /// "Copiar el último dictado". Escondido mientras no hay nada que copiar:
-  /// un ítem apagado que nunca se prendió no explica nada.
-  private let copiarItem: NSMenuItem
-  /// Lo que el modo propuso y el validador no dejó pegar. Es la salida de
-  /// emergencia de un falso rechazo; sin rechazo no aparece.
-  private let copiarPropuestaItem: NSMenuItem
-  private let copiarOriginalItem: NSMenuItem
   private var ultimoDictado: UltimoDictado?
   /// Reintentar o botar la toma que quedó en RAM cuando un dictado no sacó
   /// texto. Las cablea `AppDelegate`.
   let tomaFallida = EntradasDeTomaFallida()
   /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
-  /// `AppDelegate`; sin él el ítem no hace nada.
+  /// `AppDelegate`; sin él la fila no hace nada.
   var dictarNota: (() -> Void)?
+  /// Los modos que el panel ofrece y cuál usa el atajo general. Lo cablea
+  /// `AppDelegate`, que es quien tiene los ajustes; se lee cada vez que el
+  /// panel se abre, así que un modo nuevo aparece sin avisar a nadie.
+  var leerModos: () -> (modos: [PanelDeLaBarra.Modo], elegido: String?) = { ([], nil) }
+  /// Deja puesto el modo del atajo general (nil, el dictado normal).
+  var alElegirModo: ((String?) -> Void)?
+  /// El panel se abrió o se cerró. Lo escucha la muesca, que mientras tanto
+  /// no abre su propio panel encima (`HUDStage.panelDeLaBarraAbierto`).
+  var alCambiarElPanel: ((Bool) -> Void)?
+  /// Si el panel lleva vidrio: el mismo interruptor «Panel con vidrio» que
+  /// el panel de la muesca.
+  var leerVidrio: () -> Bool = { true }
   /// Deja un texto en el portapapeles. Es una costura para poder afirmar en
   /// un test qué se copió sin tocar el portapapeles de verdad.
   var copiarAlPortapapeles: (String) -> Void = { texto in
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(texto, forType: .string)
   }
+  /// El panel del clic derecho, y lo que necesita saber para dibujarse.
+  private let panel: ControlDelPanelDeLaBarra
+  private var entrada = PanelDeLaBarra.Entrada(
+    admiteNota: Anfitrion.actual.admite(.notasDeApple),
+    // Leer en voz alta es releer la selección de otra app, y eso el sandbox
+    // no lo da. Lo que no se puede hacer se esconde.
+    admiteLeer: Anfitrion.actual.admite(.relecturaDelFoco)
+  )
+  /// Si el panel abierto cuelga del ícono —y no de la muesca—: sólo entonces
+  /// el ícono se resalta.
+  private var panelDesdeElIcono = false
   private var blinkTimer: Timer?
   private var blinkDimmed = false
   private let templateIcon = NSImage(named: "MenuBarIcon")
@@ -63,150 +89,153 @@ final class StatusItemController: NSObject {
     self.openNovedades = openNovedades
     self.checkForUpdates = checkForUpdates
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-    dictationItem = NSMenuItem(title: "Empezar a dictar", action: nil, keyEquivalent: "")
-    readAloudItem = NSMenuItem(title: "Leer lo seleccionado", action: nil, keyEquivalent: "")
-    copiarItem = NSMenuItem(
-      title: "Copiar el último dictado", action: nil, keyEquivalent: ""
-    )
-    copiarOriginalItem = NSMenuItem(
-      title: "Copiar lo que dijiste, sin el modo", action: nil, keyEquivalent: ""
-    )
-    copiarPropuestaItem = NSMenuItem(
-      title: "Copiar lo que propuso el modo", action: nil, keyEquivalent: ""
-    )
+    panel = ControlDelPanelDeLaBarra(marca: NSImage(named: "MenuBarIcon"))
     super.init()
 
-    statusItem.button?.image = templateIcon
-    statusItem.button?.image?.accessibilityDescription = "Dilo"
-
-    let menu = NSMenu()
-
-    dictationItem.action = #selector(toggleDictationItem)
-    dictationItem.target = self
-    menu.addItem(dictationItem)
-
-    // La nota rápida, al lado de dictar: es un dictado que termina en Notas.
-    if Anfitrion.actual.admite(.notasDeApple) {
-      let notaItem = NSMenuItem(
-        title: String(localized: "Dictar una nota"),
-        action: #selector(dictarNotaItem),
-        keyEquivalent: ""
-      )
-      notaItem.target = self
-      menu.addItem(notaItem)
+    if let button = statusItem.button {
+      button.image = templateIcon
+      button.image?.accessibilityDescription = "Dilo"
+      button.imagePosition = .imageOnly
+      // Sin `menu`: con un menú puesto, AppKit lo abre en cualquier clic y
+      // la acción nunca llega. Los dos botones llegan como acción, al
+      // soltar, y `ClicEnLaBarra` decide.
+      button.target = self
+      button.action = #selector(clicEnElIcono)
+      button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+      button.setAccessibilityLabel(String(localized: "Dilo"))
+      button.setAccessibilityHelp(String(localized: "Clic: abre Dilo. Clic derecho: el panel con las acciones."))
     }
 
-    readAloudItem.action = #selector(toggleReadAloudItem)
-    readAloudItem.target = self
-    // Leer en voz alta es releer la selección de otra app, y eso el sandbox
-    // no lo da. Lo que no se puede hacer se esconde: el ítem no se agrega.
-    if Anfitrion.actual.admite(.relecturaDelFoco) {
-      menu.addItem(readAloudItem)
+    panel.alElegir = { [weak self] accion in self?.hacer(accion) }
+    // El ícono se queda resaltado mientras el panel cuelga de él, como con
+    // el menú gris.
+    panel.alCambiarLaVisibilidad = { [weak self] abierto in
+      guard let self else { return }
+      self.statusItem.button?.highlight(abierto && self.panelDesdeElIcono)
+      self.alCambiarElPanel?(abierto)
     }
-
-    let transcribeItem = NSMenuItem(
-      title: "Transcribir un archivo…",
-      action: #selector(transcribeFileItem),
-      keyEquivalent: ""
-    )
-    transcribeItem.target = self
-    menu.addItem(transcribeItem)
-
-    // Lo último que dictaste, siempre a mano. Es la red bajo el pegado: si
-    // no aterrizó donde querías, o si el modo lo dejó peor, las palabras
-    // siguen acá sin haber encendido el historial (que viene apagado a
-    // propósito y escribe a disco).
-    copiarItem.action = #selector(copiarUltimoDictado)
-    copiarItem.target = self
-    copiarItem.isHidden = true
-    menu.addItem(copiarItem)
-
-    copiarPropuestaItem.action = #selector(copiarPropuestaDelUltimoDictado)
-    copiarPropuestaItem.target = self
-    copiarPropuestaItem.isHidden = true
-    menu.addItem(copiarPropuestaItem)
-
-    copiarOriginalItem.action = #selector(copiarOriginalDelUltimoDictado)
-    copiarOriginalItem.target = self
-    copiarOriginalItem.isHidden = true
-    menu.addItem(copiarOriginalItem)
-
-    // Al lado de copiar, porque es lo mismo un paso antes: lo que dijiste,
-    // cuando todavía no hay texto que copiar.
-    tomaFallida.agregar(a: menu)
-
-    menu.addItem(.separator())
-
-    let settingsItem = NSMenuItem(
-      title: "Ajustes…",
-      action: #selector(openSettingsItem),
-      keyEquivalent: ","
-    )
-    settingsItem.target = self
-    menu.addItem(settingsItem)
-
-    // Primeros pasos no se ve una sola vez y se pierde: es donde están los
-    // permisos y el dictado de prueba, que es lo que alguien vuelve a buscar
-    // cuando algo dejó de funcionar.
-    let onboardingItem = NSMenuItem(
-      title: "Primeros pasos…",
-      action: #selector(openOnboardingItem),
-      keyEquivalent: ""
-    )
-    onboardingItem.target = self
-    menu.addItem(onboardingItem)
-
-    let novedadesItem = NSMenuItem(
-      title: "Novedades de esta versión…",
-      action: #selector(openNovedadesItem),
-      keyEquivalent: ""
-    )
-    novedadesItem.target = self
-    menu.addItem(novedadesItem)
-
-    let updatesItem = NSMenuItem(
-      title: "Buscar actualizaciones…",
-      action: #selector(checkForUpdatesItem),
-      keyEquivalent: ""
-    )
-    updatesItem.target = self
-    menu.addItem(updatesItem)
-
-    menu.addItem(NSMenuItem(
-      title: "Salir de Dilo",
-      action: #selector(NSApplication.terminate(_:)),
-      keyEquivalent: "q"
-    ))
-    statusItem.menu = menu
-    self.menuDeAcciones = menu
+    tomaFallida.alCambiar = { [weak self] reloj in
+      self?.entrada.tomaGuardada = reloj
+      self?.refrescarElPanel()
+    }
   }
 
-  /// El mismo menú que abre el ícono de la barra.
-  ///
-  /// Lo expone para que un clic en el notch en reposo abra exactamente esto
-  /// y no una copia: dos menús con las mismas entradas se desincronizan al
-  /// primer ítem que alguien agrega a uno solo.
-  private(set) var menuDeAcciones = NSMenu()
-
-  /// Abre el menú de acciones en un punto de la pantalla —debajo de la
-  /// forma del HUD, que es donde la persona acaba de hacer clic—.
-  func mostrarAcciones(en punto: NSPoint) {
-    menuDeAcciones.popUp(positioning: nil, at: punto, in: nil)
+  @objc private func clicEnElIcono(_ sender: NSStatusBarButton) {
+    // Sólo cuenta como clic un evento de mouse sobre este botón y de ahora:
+    // apretado por Accesibilidad no hay evento propio, y `currentEvent`
+    // puede ser uno viejo de otra ventana.
+    let evento = NSApp.currentEvent.flatMap { evento in
+      evento.window === sender.window
+        && ProcessInfo.processInfo.systemUptime - evento.timestamp < 1 ? evento : nil
+    }
+    let boton: ClicEnLaBarra.Boton =
+      switch evento?.type {
+      case .leftMouseUp, .leftMouseDown: .izquierdo
+      case .rightMouseUp, .rightMouseDown: .derecho
+      default: .otro
+      }
+    let conControl = evento?.modifierFlags.contains(.control) ?? false
+    switch ClicEnLaBarra.decidir(boton: boton, conControl: conControl) {
+    case .abrirDilo:
+      panel.cerrar()
+      openSettings()
+    case .abrirPanel:
+      guard let ancla = anclaDelIcono else { return }
+      prepararLaEntrada()
+      panelDesdeElIcono = true
+      panel.alternar(colgandoDe: ancla.icono, en: ancla.pantalla)
+    }
   }
 
-  /// Copia lo último dictado sin pasar por el menú, para el clic sobre el
+  /// El marco del ícono y el de su pantalla, en coordenadas de pantalla: de
+  /// ahí cuelga el panel.
+  private var anclaDelIcono: (icono: CGRect, pantalla: CGRect)? {
+    guard let button = statusItem.button, let window = button.window,
+      let pantalla = window.screen ?? NSScreen.main
+    else { return nil }
+    let icono = window.convertToScreen(button.convert(button.bounds, to: nil))
+    return (icono, pantalla.frame)
+  }
+
+  /// Abre el panel bajo la muesca, que es donde la persona acaba de hacer
+  /// clic. **Es el mismo panel del ícono, no una copia**: dos listas con las
+  /// mismas acciones se desincronizan al primer ítem que alguien agrega a una
+  /// sola. Un segundo clic en la muesca lo cierra.
+  func mostrarAcciones(bajo silueta: CGRect) {
+    let pantalla = NSScreen.screens.first { $0.frame.intersects(silueta) } ?? NSScreen.main
+    guard let pantalla else { return }
+    prepararLaEntrada()
+    panelDesdeElIcono = false
+    panel.alternar(colgandoDe: silueta, en: pantalla.frame, centrado: true)
+  }
+
+  /// Copia lo último dictado sin pasar por el panel, para el clic sobre el
   /// resultado en el notch.
   func copiarLoUltimo() {
     guard let ultimoDictado else { return }
     copiarAlPortapapeles(ultimoDictado.texto(.entregado))
   }
 
+  /// Lo que se lee al abrir y no se empuja: los modos, el vidrio y la hora,
+  /// para el «hace 2 min».
+  private func prepararLaEntrada() {
+    let modos = leerModos()
+    entrada.modos = modos.modos
+    entrada.modoElegido = modos.elegido
+    entrada.ahora = Date()
+    panel.estado.material = leerVidrio() ? .vidrio : .negro
+    panel.estado.entrada = entrada
+  }
+
+  /// Con el panel abierto, lo que cambia se ve: el estado del encabezado, un
+  /// dictado que llega, la toma que se va.
+  private func refrescarElPanel() {
+    guard panel.estaAbierto else { return }
+    entrada.ahora = Date()
+    panel.estado.entrada = entrada
+  }
+
+  /// Lo que pidió el panel. El panel ya decidió si cerrarse
+  /// (`PanelDeLaBarra.Accion.cierre`).
+  private func hacer(_ accion: PanelDeLaBarra.Accion) {
+    switch accion {
+    case .abrirDilo: openSettings()
+    case .dictar: toggleDictation()
+    case .dictarNota: dictarNota?()
+    case .leerSeleccion: toggleReadAloud()
+    case .transcribirArchivo: transcribeFile()
+    case let .copiar(copia): copiar(copia)
+    case .reintentarToma: tomaFallida.reintentar?()
+    case .descartarToma: tomaFallida.descartar?()
+    case let .elegirModo(id):
+      alElegirModo?(id)
+      entrada.modoElegido = id
+      refrescarElPanel()
+    case .primerosPasos: openOnboarding()
+    case .novedades: openNovedades()
+    case .buscarActualizaciones: checkForUpdates()
+    case .salir: NSApp.terminate(nil)
+    }
+  }
+
+  private func copiar(_ copia: PanelDeLaBarra.Accion.Copia) {
+    guard let ultimoDictado else { return }
+    switch copia {
+    case .entregado: copiarAlPortapapeles(ultimoDictado.texto(.entregado))
+    case .original: copiarAlPortapapeles(ultimoDictado.texto(.original))
+    case .propuesta:
+      guard ultimoDictado.tienePropuesta else { return }
+      copiarAlPortapapeles(ultimoDictado.texto(.propuesta))
+    }
+  }
+
   /// Mirrors the session state on the shell: the ghost pulses between
-  /// full and dimmed tint while recording, and the menu item flips.
+  /// full and dimmed tint while recording, and the panel says so.
   /// An Edge Glow session passes its palette accent so the pulse speaks
   /// the session's color; nil keeps the theme tint.
   func setRecording(_ isRecording: Bool, accent: NSColor? = nil) {
-    dictationItem.title = isRecording ? "Parar el dictado" : "Empezar a dictar"
+    entrada.dictando = isRecording
+    refrescarElPanel()
     sessionIcons = isRecording ? accent.flatMap(makeSessionIcons) : nil
     if isRecording {
       startBlinking()
@@ -215,19 +244,12 @@ final class StatusItemController: NSObject {
     }
   }
 
-  /// Shows the recorded bindings as menu hints; the event tap does the
-  /// real work, these only display. Bare modifier keys cannot render as
-  /// key equivalents, so those ride a trailing badge instead.
+  /// Las teclas, para que el panel las diga; el tap de eventos hace el
+  /// trabajo, esto sólo las muestra.
   func setKeyBindings(trigger: KeyBinding, readAloud: KeyBinding) {
-    dictationItem.badge = NSMenuItemBadge(string: trigger.label)
-    if readAloud.keyEquivalent.isEmpty {
-      readAloudItem.keyEquivalent = ""
-      readAloudItem.badge = NSMenuItemBadge(string: readAloud.label)
-    } else {
-      readAloudItem.badge = nil
-      readAloudItem.keyEquivalent = readAloud.keyEquivalent
-      readAloudItem.keyEquivalentModifierMask = readAloud.cocoaModifiers
-    }
+    entrada.atajoDeDictar = trigger.label
+    entrada.atajoDeLeer = readAloud.label
+    refrescarElPanel()
   }
 
   private func startBlinking() {
@@ -293,6 +315,8 @@ final class StatusItemController: NSObject {
   func setTranscriptionProgress(_ fraction: Double?, accent: NSColor) {
     transcriptionProgress = fraction
     transcriptionAccent = accent
+    entrada.progresoDeArchivo = fraction
+    refrescarElPanel()
     guard blinkTimer == nil else { return }
     if let fraction {
       statusItem.button?.contentTintColor = nil
@@ -347,81 +371,28 @@ final class StatusItemController: NSObject {
     return icon
   }
 
-  /// Mirrors Read Aloud playback on the menu item.
+  /// La lectura en voz alta, en el panel: «Dejar de leer» mientras suena.
   func setSpeaking(_ isSpeaking: Bool) {
-    readAloudItem.title = isSpeaking ? "Dejar de leer" : "Leer lo seleccionado"
+    entrada.leyendo = isSpeaking
+    refrescarElPanel()
   }
 
-  /// Lo último que se dictó, o nil para esconder las dos entradas.
+  /// Lo último que se dictó, o nil para que el panel no ofrezca copiar.
   ///
-  /// La segunda sólo aparece cuando hay dos cosas distintas que copiar: con
-  /// el dictado normal, "lo entregado" y "lo que dijiste" son lo mismo, y dos
-  /// entradas que copian el mismo texto es ruido en un menú de ocho líneas.
+  /// Lo dicho sin el modo y lo que el modo propuso sólo aparecen cuando son
+  /// otra cosa que lo entregado: dos filas que copian el mismo texto es
+  /// ruido (`PanelDeLaBarra.contenido`).
   func setUltimoDictado(_ dictado: UltimoDictado?) {
     ultimoDictado = dictado
-    let conPropuesta = dictado?.tienePropuesta == true ? dictado : nil
-    copiarPropuestaItem.isHidden = conPropuesta == nil
-    copiarPropuestaItem.badge = conPropuesta.map {
-      NSMenuItemBadge(string: $0.vistazo(.propuesta))
+    entrada.ultimo = dictado.map {
+      PanelDeLaBarra.Ultimo(
+        entregado: $0.texto(.entregado),
+        original: $0.texto(.original),
+        propuesta: $0.tienePropuesta ? $0.texto(.propuesta) : nil,
+        modo: $0.modo,
+        cuando: $0.cuando
+      )
     }
-    guard let dictado, !dictado.texto(.entregado).isEmpty else {
-      copiarItem.isHidden = true
-      copiarOriginalItem.isHidden = true
-      return
-    }
-    copiarItem.isHidden = false
-    copiarItem.title = String(localized: "Copiar el último dictado")
-    copiarItem.badge = NSMenuItemBadge(string: dictado.vistazo(.entregado))
-    copiarOriginalItem.isHidden = !dictado.tieneDosMitades
-    copiarOriginalItem.badge = dictado.tieneDosMitades
-      ? NSMenuItemBadge(string: dictado.vistazo(.original))
-      : nil
-  }
-
-  @objc private func copiarUltimoDictado() {
-    guard let ultimoDictado else { return }
-    copiarAlPortapapeles(ultimoDictado.texto(.entregado))
-  }
-
-  @objc private func copiarOriginalDelUltimoDictado() {
-    guard let ultimoDictado else { return }
-    copiarAlPortapapeles(ultimoDictado.texto(.original))
-  }
-
-  @objc private func copiarPropuestaDelUltimoDictado() {
-    guard let ultimoDictado, ultimoDictado.tienePropuesta else { return }
-    copiarAlPortapapeles(ultimoDictado.texto(.propuesta))
-  }
-
-  @objc private func toggleDictationItem() {
-    toggleDictation()
-  }
-
-  @objc private func dictarNotaItem() {
-    dictarNota?()
-  }
-
-  @objc private func toggleReadAloudItem() {
-    toggleReadAloud()
-  }
-
-  @objc private func transcribeFileItem() {
-    transcribeFile()
-  }
-
-  @objc private func checkForUpdatesItem() {
-    checkForUpdates()
-  }
-
-  @objc private func openOnboardingItem() {
-    openOnboarding()
-  }
-
-  @objc private func openNovedadesItem() {
-    openNovedades()
-  }
-
-  @objc private func openSettingsItem() {
-    openSettings()
+    refrescarElPanel()
   }
 }
