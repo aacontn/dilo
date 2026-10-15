@@ -252,7 +252,7 @@ private struct SettingsContent: View {
             SoundsSettingsView(settings: settings, sounds: sounds).padding(.top, 12)
           }
         case .datosDeLaMuesca:
-          DatosDeLaMuescaSettingsView(settings: settings)
+          DatosDeLaMuescaSettingsView(settings: settings, probarAgente: runtimeState.probarAgente)
         case .sounds:
           SoundsSettingsView(settings: settings, sounds: sounds)
         case .motor:

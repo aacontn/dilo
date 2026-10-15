@@ -32,4 +32,8 @@ enum AppLog {
   /// Qué anfitrión resolvió esta ejecución y qué esconde. Es lo primero que
   /// hay que saber cuando algo "no aparece" en el build de App Store.
   static let capacidades = Logger(subsystem: subsystem, category: "capacidades")
+  /// Lo que entra de afuera: URL `dilo://` (qué se entendió o por qué se
+  /// rechazó) y los App Intents que corren. Nunca el texto de un dictado ni
+  /// el nombre de un proyecto en público.
+  static let plataforma = Logger(subsystem: subsystem, category: "plataforma")
 }

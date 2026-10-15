@@ -342,6 +342,17 @@ enum RenderDeLaMuesca {
     let tomaEncogida = Segmentos(derecho: .toma)
     let dos = Segmentos(izquierdo: .retenido, derecho: .toma, conPalabra: [.izquierda, .derecha])
     let dosEncogidos = Segmentos(izquierdo: .retenido, derecho: .toma)
+    // Un agente que avisa por su hook (`SegmentoDeAgente`, 2026-10-15). Se
+    // arma a mano porque el render no compila `DiloPlataforma`; el ícono, la
+    // palabra y el acento son los de `SegmentoDeAgente.contenido`.
+    let claudeEspera = ContenidoDelSegmento(
+      id: "agente.claude.dilo", simbolo: "hand.raised.fill", texto: "Claude", destacada: true, accesibilidad: ""
+    )
+    let codexTrabaja = ContenidoDelSegmento(
+      id: "agente.codex.web", simbolo: "ellipsis.circle", texto: "Codex", destacada: false, accesibilidad: ""
+    )
+    let agente = Segmentos(derecho: claudeEspera, conPalabra: [.derecha])
+    let dosAgentes = Segmentos(izquierdo: codexTrabaja, derecho: claudeEspera, conPalabra: [.izquierda, .derecha])
     let casos: [(String, String, AnyView)] = [
       ("reposo-toma-palabra", "Reposo · «Reintentar» entra con la palabra", enReposo(toma)),
       ("reposo-toma-encogida", "Reposo · a los 3 s, sólo el ícono", enReposo(tomaEncogida)),
@@ -351,6 +362,8 @@ enum RenderDeLaMuesca {
       ("datos-antes", "Datos a los costados · sin segmento", conLosDatos(.ninguno)),
       ("datos-toma-palabra", "Datos · «Reintentar» ocupa el lugar de la CPU", conLosDatos(toma)),
       ("datos-toma-encogida", "Datos · ya encogido", conLosDatos(tomaEncogida)),
+      ("reposo-agente-espera", "Agente · «Claude» te espera", enReposo(agente)),
+      ("reposo-dos-agentes", "Agentes · Codex trabaja, Claude espera", enReposo(dosAgentes)),
       ("reposo-sin-segmentos", "Sin segmentos · la muesca de siempre", enReposo(.ninguno)),
     ]
     for (nombre, _, vista) in casos {

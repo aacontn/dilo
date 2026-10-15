@@ -1,3 +1,4 @@
+import AppIntents
 import AppKit
 import DiloCapabilities
 import DiloEngines
@@ -24,6 +25,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let settingsRuntimeState = SettingsRuntimeState()
   private let updaterService = SparkleUpdaterService()
   private let launchAtLoginService = LaunchAtLoginService()
+  /// Los agentes de código que avisan por su *hook* (`dilo://agente?…`).
+  private var agentes: AgentesEnLaMuesca?
+  /// Lo que los App Intents llaman; `PuenteDeAtajos` lo guarda débil, así
+  /// que vive acá.
+  private var accionesDeAtajos: AccionesDeDiloEnVivo?
+  private var avisoDeAtajo: AvisoDeAtajoEnLaMuesca?
+  /// Las URL que llegan antes de que la app termine de arrancar: abrir
+  /// `dilo://` con Dilo cerrado lo lanza, y AppKit entrega la URL antes de
+  /// `applicationDidFinishLaunching`.
+  private var urlsPendientes: [URL] = []
   #if DEBUG
     /// El arnés de la muesca: dibuja cada estado a pedido, sin dictar
     /// (`EscenaDeMuestra`, `scripts/muesca.sh`). No existe en Release.
@@ -166,6 +177,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dictationController.deshacerCancelacion()
       }
     }
+    // Lo que llega de afuera y pide un segmento al costado: los agentes de
+    // código por su *hook* y «Mostrar en la muesca» de Atajos. El escenario
+    // sólo los sienta y los dibuja; el clic vuelve a quien los publicó.
+    let agentes = AgentesEnLaMuesca(
+      settings: settings,
+      publicar: { [weak stage] actividad, contenido in stage?.publicarDeAfuera(actividad, contenido: contenido) },
+      retirar: { [weak stage] id in stage?.retirarDeAfuera(id: id) }
+    )
+    self.agentes = agentes
+    let avisoDeAtajo = AvisoDeAtajoEnLaMuesca(
+      publicar: { [weak stage] actividad, contenido in stage?.publicarDeAfuera(actividad, contenido: contenido) },
+      retirar: { [weak stage] id in stage?.retirarDeAfuera(id: id) }
+    )
+    self.avisoDeAtajo = avisoDeAtajo
+    stage.alTocarSegmentoDeAfuera = { [weak agentes, weak avisoDeAtajo] id in
+      if id == AvisoDeAtajoEnLaMuesca.actividad.id {
+        avisoDeAtajo?.quitar()
+      } else {
+        agentes?.tocar(id: id)
+      }
+    }
+    settingsRuntimeState.probarAgente = { [weak agentes] in agentes?.probar() }
+
+    // Los App Intents (Atajos, Spotlight, Siri) llaman a lo mismo que el
+    // menú de la barra y el panel del hover.
+    let accionesDeAtajos = AccionesDeDiloEnVivo(
+      settings: settings,
+      dictado: dictationController,
+      copiarAlPortapapeles: { [weak statusItemController] texto in
+        statusItemController?.copiarAlPortapapeles(texto)
+      },
+      aviso: avisoDeAtajo
+    )
+    self.accionesDeAtajos = accionesDeAtajos
+    PuenteDeAtajos.actual = accionesDeAtajos
+    AtajosDeDilo.updateAppShortcutParameters()
+
     #if DEBUG
       receptorDeMuestras.alDibujar = { [weak stage] escena, texto in
         stage?.mostrarMuestra(escena, texto: texto)
@@ -250,6 +298,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     updaterService.start()
 
     saludar(settings)
+
+    for url in urlsPendientes { agentes.abrir(url) }
+    urlsPendientes = []
+  }
+
+  /// `dilo://…` (`CFBundleURLTypes` de `Info.plist`). Hoy sólo
+  /// `dilo://agente?…`; qué se acepta y por qué no más lo dice
+  /// `EnlaceDeDilo`.
+  func application(_ application: NSApplication, open urls: [URL]) {
+    guard !Self.isHostingTests else { return }
+    guard let agentes else {
+      urlsPendientes.append(contentsOf: urls.prefix(16))
+      return
+    }
+    for url in urls { agentes.abrir(url) }
   }
 
   /// Rebinding in Settings updates the event tap and the status menu

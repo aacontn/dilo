@@ -30,6 +30,8 @@ struct DatosDeLaMuescaSettingsView: View {
   var admiteIA = Anfitrion.actual.admite(.consumoDeIADeOtrasApps)
   /// Deja la vista previa con el panel del hover abierto: para los renders.
   var previaAbierta: Bool?
+  /// «Probar» de la tarjeta de agentes. Nil en los renders.
+  var probarAgente: (() -> Void)?
 
   @State private var estadosDetectados: [DatoDeLaMuesca: EstadoDeLaFuente] = [:]
 
@@ -79,6 +81,8 @@ struct DatosDeLaMuescaSettingsView: View {
           }
         }
       }
+
+      AgentesSettingsCard(settings: settings, probar: probarAgente)
 
       PanelDelHoverSettings(settings: settings)
     }

@@ -1,5 +1,6 @@
 #if DEBUG
 import DiloConsumo
+import DiloPlataforma
 import Foundation
 
 /// Lo que el arnés le pidió prestado a la forma, para devolverlo al soltar.
@@ -155,6 +156,14 @@ extension HUDStage {
     ponerRetenidoAlCostado(
       segmentos.retenido ? TarjetaDeRespaldo(texto: texto ?? escena.textoDeMuestra ?? "", porque: .sinConfirmar) : nil
     )
+    // El agente de muestra, armado con las mismas piezas que uno de verdad.
+    retirarDeAfuera(id: Self.agenteDeMuestra.id)
+    if escena == .agenteEsperando {
+      publicarDeAfuera(
+        SegmentoDeAgente.actividad(Self.agenteDeMuestra),
+        contenido: SegmentoDeAgente.contenido(Self.agenteDeMuestra)
+      )
+    }
     switch escena.palabra {
     case .entra: break
     case .encogida: encogerLaPalabra()
@@ -175,7 +184,7 @@ extension HUDStage {
     let linea = texto ?? escena.textoDeMuestra ?? ""
     switch escena {
     case .reposo, .reposoConDatos, .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos,
-      .segmentosConPalabra, .segmentoConDatos:
+      .segmentosConPalabra, .segmentoConDatos, .agenteEsperando:
       reaplicarElEstado()
 
     case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
@@ -257,7 +266,14 @@ extension HUDStage {
     alInterrumpirLaMuestra?()
   }
 
+  /// La sesión que dibuja `agente-esperando`.
+  static let agenteDeMuestra = RegistroDeAgentes.Sesion(
+    id: RegistroDeAgentes.id(agente: .claude, proyecto: "muestra"),
+    agente: .claude, proyecto: "muestra", fase: .espera, ultimaNoticia: Date()
+  )
+
   private func devolver(_ prestado: MuestraEnCurso) {
+    retirarDeAfuera(id: Self.agenteDeMuestra.id)
     self.muestra = nil
     control.congelado = false
     dictationContent.punteroEncima = false

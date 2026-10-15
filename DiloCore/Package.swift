@@ -13,12 +13,13 @@ import PackageDescription
 // línea del producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8—
 // se separa en `.library(name: "DiloModes", targets: ["DiloModes"])`.
 // `DiloConsumo` —los datos que la muesca muestra a sus costados— viaja igual
-// y por lo mismo.
+// y por lo mismo, y `DiloPlataforma` —el URL scheme, los agentes que avisan
+// por su *hook* y lo que llega de Atajos (fase 5, 2026-10-15)— también.
 let package = Package(
   name: "DiloCore",
   platforms: [.macOS(.v26)],
   products: [
-    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo"]),
+    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloPlataforma"]),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
     .library(name: "DiloEngines", targets: ["DiloEngines"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
@@ -45,6 +46,7 @@ let package = Package(
     .target(name: "DiloText"),
     .target(name: "DiloModes"),
     .target(name: "DiloConsumo"),
+    .target(name: "DiloPlataforma"),
     .target(name: "DiloCapabilities"),
     .target(
       name: "DiloEngines",
@@ -60,6 +62,7 @@ let package = Package(
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),
+    .testTarget(name: "DiloPlataformaTests", dependencies: ["DiloPlataforma"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),

@@ -6474,6 +6474,611 @@
           }
         }
       }
+    },
+    "Dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate"
+          }
+        }
+      }
+    },
+    "Empieza a dictar donde está el cursor, como un toque al atajo de Dilo. Vuelve a correrlo, toca el atajo o haz clic en la muesca para terminar; Esc cancela.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts dictating where the cursor is, like a tap on Dilo's shortcut. Run it again, tap the shortcut or click the notch to finish; Esc cancels."
+          }
+        }
+      }
+    },
+    "Vacío usa el modo del atajo general, el que eliges en el panel de la muesca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty uses the general shortcut's mode, the one you pick in the notch panel."
+          }
+        }
+      }
+    },
+    "Dictar con ${modo}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate with ${modo}"
+          }
+        }
+      }
+    },
+    "Dicta una nota rápida que se guarda en Apple Notas. Termina con el atajo de Dilo o con un clic en la muesca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictates a quick note that is saved to Apple Notes. Finish with Dilo's shortcut or a click on the notch."
+          }
+        }
+      }
+    },
+    "Elegir el modo de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Dilo's mode"
+          }
+        }
+      }
+    },
+    "Cambia el modo que usa el atajo general de Dilo. «Sin modo» dicta tal como lo dices, sin pasar por ninguna IA. Los modos con tecla propia siguen con la suya.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes the mode Dilo's general shortcut uses. “No mode” types what you say as you say it, without any AI. Modes with their own key keep it."
+          }
+        }
+      }
+    },
+    "Usar ${modo} en el atajo general": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use ${modo} for the general shortcut"
+          }
+        }
+      }
+    },
+    "Listo: el atajo general dicta sin modo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: the general shortcut dictates with no mode."
+          }
+        }
+      }
+    },
+    "Listo: el atajo general usa %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: the general shortcut uses %@."
+          }
+        }
+      }
+    },
+    "Último dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last dictation"
+          }
+        }
+      }
+    },
+    "Devuelve lo último que dictaste con Dilo. Vive sólo en memoria: después de cerrar Dilo no hay nada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Returns the last thing you dictated with Dilo. It lives only in memory: after Dilo quits there is nothing."
+          }
+        }
+      }
+    },
+    "Copiar el último dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy last dictation"
+          }
+        }
+      }
+    },
+    "Deja lo último que dictaste en el portapapeles, como el ítem del menú de Dilo, y lo devuelve.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puts the last thing you dictated on the clipboard, like Dilo's menu item, and returns it."
+          }
+        }
+      }
+    },
+    "Copiado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied."
+          }
+        }
+      }
+    },
+    "Transcribir un archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe a file"
+          }
+        }
+      }
+    },
+    "Transcribe un audio o un video en este Mac, sin mandarlo a ningún lado, y devuelve el texto.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribes an audio or video file on this Mac, without sending it anywhere, and returns the text."
+          }
+        }
+      }
+    },
+    "Archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File"
+          }
+        }
+      }
+    },
+    "Buscar en el historial de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Dilo's history"
+          }
+        }
+      }
+    },
+    "Dictados guardados que contienen un texto, del más nuevo al más viejo. Sólo con el historial encendido; vacío devuelve los últimos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved dictations that contain some text, newest first. Only with history on; empty returns the latest ones."
+          }
+        }
+      }
+    },
+    "Cuántos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How many"
+          }
+        }
+      }
+    },
+    "Buscar ${consulta} en el historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search history for ${consulta}"
+          }
+        }
+      }
+    },
+    "Buscar dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search dictations"
+          }
+        }
+      }
+    },
+    "Pone un aviso corto al costado de la muesca de Dilo por unos segundos. Un clic lo quita.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows a short notice beside Dilo's notch for a few seconds. A click removes it."
+          }
+        }
+      }
+    },
+    "Texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text"
+          }
+        }
+      }
+    },
+    "Símbolo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol"
+          }
+        }
+      }
+    },
+    "El nombre de un SF Symbol, como bell o checkmark.circle.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The name of an SF Symbol, like bell or checkmark.circle."
+          }
+        }
+      }
+    },
+    "Segundos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seconds"
+          }
+        }
+      }
+    },
+    "Mostrar ${texto} en la muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show ${texto} in the notch"
+          }
+        }
+      }
+    },
+    "Elegir modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose mode"
+          }
+        }
+      }
+    },
+    "Modo de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo mode"
+          }
+        }
+      }
+    },
+    "Sin modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No mode"
+          }
+        }
+      }
+    },
+    "Versión del dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictation version"
+          }
+        }
+      }
+    },
+    "Lo que se pegó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What was pasted"
+          }
+        }
+      }
+    },
+    "Lo que dijiste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you said"
+          }
+        }
+      }
+    },
+    "Dilo todavía está arrancando. Prueba de nuevo en unos segundos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo is still starting. Try again in a few seconds."
+          }
+        }
+      }
+    },
+    "No hay un dictado reciente. Lo último que dictas vive sólo en memoria y se va al cerrar Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no recent dictation. Your last dictation lives only in memory and goes away when Dilo quits."
+          }
+        }
+      }
+    },
+    "El historial está apagado. Actívalo en Dilo → Ajustes → Historial.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History is off. Turn it on in Dilo → Settings → History."
+          }
+        }
+      }
+    },
+    "Ese modo ya no existe en Dilo. Elige otro en el atajo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That mode no longer exists in Dilo. Pick another one in the shortcut."
+          }
+        }
+      }
+    },
+    "No pude leer ese archivo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't read that file."
+          }
+        }
+      }
+    },
+    "No hay nada que mostrar: el texto llegó vacío.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to show: the text was empty."
+          }
+        }
+      }
+    },
+    "%@ está trabajando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is working"
+          }
+        }
+      }
+    },
+    "%@ te espera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is waiting for you"
+          }
+        }
+      }
+    },
+    "%@ terminó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ finished"
+          }
+        }
+      }
+    },
+    "%@ se detuvo con un error": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ stopped with an error"
+          }
+        }
+      }
+    },
+    "%@ cerró la sesión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ended the session"
+          }
+        }
+      }
+    },
+    "%@ en %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ in %@"
+          }
+        }
+      }
+    },
+    "%@. Un clic lo quita de la muesca.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@. A click removes it from the notch."
+          }
+        }
+      }
+    },
+    "prueba": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "test"
+          }
+        }
+      }
+    },
+    "Agentes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agents"
+          }
+        }
+      }
+    },
+    "Mostrar agentes en la muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show agents in the notch"
+          }
+        }
+      }
+    },
+    "Claude Code, Codex y otros avisan por su hook cuando trabajan, terminan o te esperan, y la muesca lo muestra al costado. Dilo no lee sus archivos ni sus credenciales: sólo sabe lo que el agente le avisa.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code, Codex and others report through their hook when they work, finish or wait for you, and the notch shows it on the side. Dilo doesn't read their files or credentials: it only knows what the agent tells it."
+          }
+        }
+      }
+    },
+    "En ~/.claude/settings.json (o el de un proyecto), dentro del objeto de más afuera:": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ~/.claude/settings.json (or a project's), inside the outermost object:"
+          }
+        }
+      }
+    },
+    "En ~/.codex/config.toml. Codex avisa sólo al terminar cada turno:": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ~/.codex/config.toml. Codex only reports at the end of each turn:"
+          }
+        }
+      }
+    },
+    "Pone «Claude te espera» al costado de la muesca, como lo haría el hook. Un clic en el segmento lo quita.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows “Claude is waiting for you” beside the notch, as the hook would. A click on the segment removes it."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

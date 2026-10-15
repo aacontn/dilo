@@ -334,8 +334,9 @@ final class DirectDictationController {
   private func claimSession(for slot: GlobalKeyEventMonitor.TriggerSlot) {
     activeSlot = slot
     // Una sesión nueva no es nota salvo que `dictarNota` diga lo contrario
-    // justo después.
+    // justo después; lo mismo el «sin modo» de un atajo.
     sesionEsNota = false
+    sesionSinModo = false
     if let rol = slot.bindingRole {
       activeBinding = settings.binding(for: rol)
     } else {
@@ -467,6 +468,53 @@ final class DirectDictationController {
   func terminarSesionTrabada() {
     guard machine.isSessionActive else { return }
     send(.menuToggled(now: .now))
+  }
+
+  /// Si la sesión en curso la abrió un atajo que pidió dictar **sin modo**:
+  /// ni el modo elegido para el atajo general ni «Dilo decide», porque la
+  /// persona dijo cuál quería.
+  private(set) var sesionSinModo = false
+
+  /// Qué modo pide un atajo de la app Atajos o Siri (`DictarIntent`).
+  enum ModoPedido: Equatable, Sendable {
+    /// Como el ítem del menú: el atajo general, con el modo que tenga
+    /// elegido en el panel del hover.
+    case elDelAtajoGeneral
+    /// Las palabras como se dijeron, sin ninguna IA.
+    case ninguno
+    /// Un modo por su id, como si se hubiera apretado su tecla.
+    case modo(String)
+  }
+
+  /// Lo que hizo un pedido de dictar desde afuera.
+  enum RespuestaAlDictar: Equatable, Sendable {
+    case empezo, termino
+    /// El modo pedido ya no existe (se borró después de armar el atajo).
+    case modoDesconocido
+  }
+
+  /// Empieza un dictado trabado desde Atajos o Siri, o termina el que está
+  /// en curso, igual que el ítem del menú (fase 5, 2026-10-15). Trabado
+  /// porque nadie sostiene una tecla; se termina con el gatillo, con un clic
+  /// en la muesca o corriendo el atajo otra vez, y Esc lo cancela.
+  @discardableResult
+  func dictarDesdeUnAtajo(_ pedido: ModoPedido) -> RespuestaAlDictar {
+    guard !machine.isSessionActive else {
+      send(.menuToggled(now: .now))
+      return .termino
+    }
+    switch pedido {
+    case .elDelAtajoGeneral:
+      claimSession(for: .primary)
+    case .ninguno:
+      claimSession(for: .primary)
+      sesionSinModo = true
+    case let .modo(id):
+      guard settings.modos.modo(id) != nil else { return .modoDesconocido }
+      claimSession(for: .modo(id))
+    }
+    send(.menuToggled(now: .now))
+    return .empezo
   }
 
   func toggleFromMenu() {
@@ -722,14 +770,14 @@ final class DirectDictationController {
       let deLaTecla = session.modos.modo(activeSlot.modoID)
       // El atajo general usa el modo que se eligió en el panel del hover,
       // si se eligió uno; sin elección sigue siendo el dictado limpio.
-      modoDelAtajoGeneral = activeSlot == .primary && !sesionEsNota
+      modoDelAtajoGeneral = activeSlot == .primary && !sesionEsNota && !sesionSinModo
         ? session.modos.modo(session.modoDelAtajoGeneralID) : nil
       sessionModo = deLaTecla ?? modoDelAtajoGeneral
       // Una nota sale como se dijo: ni el modo del atajo general —una nota no
       // es un correo— ni «Dilo decide», que opinaría por la app al frente,
       // que no es donde va a terminar. El del hover no es elegir a mano: una
       // frase disparadora le gana.
-      modoElegidoAMano = deLaTecla != nil || sesionEsNota
+      modoElegidoAMano = deLaTecla != nil || sesionEsNota || sesionSinModo
       dependencies.mostrarQueEsNota(sesionEsNota)
       dependencies.showListening(
         focusedTarget?.displayID,

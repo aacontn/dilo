@@ -1,4 +1,5 @@
 import CoreGraphics
+import DiloPlataforma
 import Foundation
 import Testing
 
@@ -160,6 +161,22 @@ struct ArnesDeLaMuescaTests {
     #expect(stage.dictationContent.alHacerClic != nil)
     stage.dictationContent.alDictarNota?()
     #expect(notas == 1)
+  }
+
+  /// `agente-esperando` sienta a Claude al costado con las piezas de un
+  /// agente de verdad, y soltar la muestra lo quita.
+  @MainActor
+  @Test func elAgenteDeMuestraSeSientaYSeVa() {
+    let stage = escenario(DrivenClock())
+    stage.mostrarMuestra(.agenteEsperando, texto: nil)
+    let id = HUDStage.agenteDeMuestra.id
+    #expect(stage.segmentosDeAfuera[id]?.texto == "Claude")
+    #expect(stage.asientos.asiento(de: id) != .ninguno)
+    stage.mostrarMuestra(.reposo, texto: nil)
+    #expect(stage.segmentosDeAfuera[id] == nil, "otra escena no lo arrastra")
+    stage.mostrarMuestra(.agenteEsperando, texto: nil)
+    stage.soltarMuestra()
+    #expect(stage.segmentosDeAfuera.isEmpty)
   }
 
   /// Un dictado de verdad le gana a la muestra: la escena se suelta en el

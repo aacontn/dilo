@@ -296,6 +296,32 @@ final class HUDStage {
   /// Un clic en ese segmento: aprender o deshacer.
   var alTocarAprendizaje: (() -> Void)?
 
+  /// Lo que llega de afuera de Dilo y pide un segmento: los agentes que
+  /// avisan por su *hook* (`AgentesEnLaMuesca`) y «Mostrar en la muesca» de
+  /// Atajos (`AvisoDeAtajoEnLaMuesca`). El escenario sólo los sienta y los
+  /// dibuja; cuándo aparecen, cuándo se van y qué hace el clic lo decide
+  /// quien los publicó (2026-10-15). Nunca piden la forma: sólo costado.
+  private(set) var segmentosDeAfuera: [String: ContenidoDelSegmento] = [:]
+  /// Un clic en uno de esos segmentos, con el id de su actividad.
+  var alTocarSegmentoDeAfuera: ((String) -> Void)?
+
+  /// Sienta (o vuelve a sentar con otro contenido) un segmento de afuera.
+  /// Con otro contenido bajo el mismo id el segmento vuelve a decir su
+  /// palabra: «Claude» que pasa de trabajar a esperarte se tiene que notar.
+  func publicarDeAfuera(_ actividad: ActividadDeLaMuesca, contenido: ContenidoDelSegmento) {
+    var actividad = actividad
+    actividad.puedeSerPrincipal = false
+    actividad.exigeElPrincipal = false
+    actividad.abreElMicrofono = false
+    segmentosDeAfuera[actividad.id] = contenido
+    sentar(.publicar(actividad))
+  }
+
+  func retirarDeAfuera(id: String) {
+    guard segmentosDeAfuera.removeValue(forKey: id) != nil else { return }
+    sentar(.retirar(id: id))
+  }
+
   func mostrarOfertaDeAprendizaje(_ oferta: OfertaDeAprendizaje?) {
     let antes = ofertaDeAprendizaje?.actividad.id
     ofertaDeAprendizaje = oferta
@@ -373,7 +399,7 @@ final class HUDStage {
       guard estado == .reposo, let pantallaActual else { return }
       decir(.copiado, texto: ResultadoDelNotch.copiado.texto, en: pantallaActual)
     default:
-      break
+      if segmentosDeAfuera[id] != nil { alTocarSegmentoDeAfuera?(id) }
     }
   }
 
@@ -390,7 +416,7 @@ final class HUDStage {
     case ActividadDeLaMuesca.retenido.id: .retenido
     case ActividadDeLaMuesca.ofertaDeAprendizaje.id, ActividadDeLaMuesca.aprendizajeHecho.id:
       ofertaDeAprendizaje?.segmento
-    default: nil
+    default: actividad.flatMap { segmentosDeAfuera[$0.id] }
     }
   }
 
@@ -424,11 +450,13 @@ final class HUDStage {
         remontarConLosLadosActuales()
       }
     }
-    // Quien aparece entra diciendo su palabra; quien se va, la suelta.
+    // Quien aparece entra diciendo su palabra; quien se va, la suelta. Un
+    // segmento que cambia lo que dice —un agente que pasa a esperarte—
+    // también la vuelve a decir.
     for (lado, nuevo, viejo) in [
       (LadoDelAsiento.izquierda, izquierdo, dictationContent.segmentoIzquierdo),
       (.derecha, derecho, dictationContent.segmentoDerecho),
-    ] where nuevo?.id != viejo?.id {
+    ] where nuevo != viejo {
       cambiarLaPalabra(nuevo == nil ? .seFue(lado) : .aparecio(lado))
     }
     if dictationContent.segmentoIzquierdo != izquierdo { dictationContent.segmentoIzquierdo = izquierdo }
