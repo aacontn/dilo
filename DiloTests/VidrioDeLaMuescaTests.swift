@@ -4,11 +4,11 @@ import Testing
 
 @testable import Dilo
 
-/// El panel del hover al estilo Dynamic Glass: negro opaco con el vidrio sólo
-/// en la franja de abajo. El vidrio no sale en PNG, así que lo que se afirma
-/// acá son los números y quién lo enciende: que la franja nunca sube al
-/// texto, que el pie sigue oscuro, que está encendido de fábrica, que el
-/// arnés lo enciende sólo en sus escenas y que soltar la muestra lo apaga.
+/// El panel del hover: vidrio ahumado, oscuro y parejo. El vidrio no sale
+/// en PNG, así que lo que se afirma acá son los números y quién lo
+/// enciende: que el velo negro lo deja oscuro, que el filo quieto es tenue,
+/// que está encendido de fábrica, que el arnés lo enciende sólo en sus
+/// escenas y que soltar la muestra lo apaga.
 @Suite("Vidrio de la muesca")
 struct VidrioDeLaMuescaTests {
   /// Los 32 medidos en Droppy en un panel alto; en uno bajo, nunca más de lo
@@ -19,26 +19,23 @@ struct VidrioDeLaMuescaTests {
     #expect(PanelDeVidrio.radio(para: CGSize(width: 120, height: 200), cabecera: 24) == 30)
   }
 
-  /// El vidrio es sólo el último ~30 % del panel, con piso y techo, y nunca
-  /// sube a la cabecera.
-  @Test func laFranjaDeVidrioEsElPie() {
-    #expect(PanelDeVidrio.franja(para: 142, cabecera: 24) > 40)
-    #expect(PanelDeVidrio.franja(para: 142, cabecera: 24) < 44)
-    #expect(PanelDeVidrio.franja(para: 82, cabecera: 24) == PanelDeVidrio.franjaMinima)
-    #expect(PanelDeVidrio.franja(para: 248, cabecera: 24) == PanelDeVidrio.franjaMaxima)
-    #expect(PanelDeVidrio.franja(para: 40, cabecera: 24) == 16)
-    #expect(abs(PanelDeVidrio.inicioDeLaFranja(para: 200, cabecera: 24) - 0.7) < 0.0001)
+  /// El vidrio se queda, ahumado (2026-10-15, «el de vidrio ahumado se ve
+  /// choro»): más negro que vidrio, para que sobre una página blanca se lea
+  /// como carbón y no como el gris claro de la 0.4.5; pero sin llegar a
+  /// negro, que entonces no hay vidrio. La lámina lo imita con un carbón.
+  @Test func elVidrioAhumadoEsOscuroYParejo() {
+    #expect(PanelDeVidrio.negroEncima >= 0.5)
+    #expect(PanelDeVidrio.negroEncima < 1)
+    #expect(PanelDeVidrio.tinte >= 0.4)
+    #expect(PanelDeVidrio.grisDeLaLamina > 0.1 && PanelDeVidrio.grisDeLaLamina < 0.3)
+    #expect(PanelDeVidrio.esperaDelReflejo + PanelDeVidrio.duracionDelReflejo <= 1)
   }
 
-  /// El punto más claro del panel —el borde de abajo— sigue siendo vidrio
-  /// oscuro: deja pasar a lo sumo un tercio del fondo, y el negro de encima
-  /// nunca llega a cero. Con los números de la 0.4.5 (tinte 0,3 y nada de
-  /// negro encima) pasaba el 70 %, y sobre una página blanca el panel era
-  /// gris claro con letra blanca.
-  @Test func elPieSigueOscuro() {
-    #expect(PanelDeVidrio.negroAlPie > 0)
-    #expect(PanelDeVidrio.transmisionAlPie > 0)
-    #expect(PanelDeVidrio.transmisionAlPie <= 0.34)
+  /// Lo que queda con el panel quieto es un filo tenue, no una línea: el
+  /// reflejo que cruza es lo único brillante, y dura menos de un segundo.
+  @Test func elFiloQuietoEsTenue() {
+    #expect(PanelDeVidrio.brilloDelBorde <= 0.25)
+    #expect(PanelDeVidrio.brilloDelReflejo > PanelDeVidrio.brilloDelBorde * 3)
   }
 
   /// Abrir rebota apenas (unos 2,5 %) y cerrar casi nada (0,15 %): la ventana

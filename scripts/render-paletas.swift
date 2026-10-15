@@ -255,7 +255,7 @@ extension RenderDeLaMuesca {
       contenidoDelPanel(recientes: secciones.recientes)
         .frame(width: tamaño.width, height: tamaño.height, alignment: .top)
         .background {
-          FondoDeLaMuesca(silueta: silueta, alturaDeCabecera: cabecera, abierto: vidrio, material: .imitacion())
+          FondoDeLaMuesca(silueta: silueta, abierto: vidrio, material: .imitacion())
             .shadow(
               color: .black.opacity(0.25),
               radius: HUDMetrics.standard.shadowRadius,

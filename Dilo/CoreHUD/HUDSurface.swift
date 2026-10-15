@@ -61,10 +61,9 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// Cuánto se estira la silueta hacia cada lado por los segmentos de los
   /// asientos (`HUDSegmentosAlCostado`). Cero y cero, lo de siempre.
   var costados = CostadosDeLaSilueta()
-  /// El panel del hover al estilo Dynamic Glass: negro en la cabecera que se
-  /// funde en vidrio, con los radios y resortes de Droppy (`PanelDeVidrio`).
-  /// Encendido de fábrica desde el 2026-10-14; sólo cambia algo mientras el
-  /// hover está abierto.
+  /// El panel del hover de vidrio ahumado (`PanelDeVidrio`), con los radios
+  /// y resortes de Droppy. Encendido de fábrica
+  /// desde el 2026-10-14; sólo cambia algo mientras el hover está abierto.
   var vidrio = false
   /// Si la forma abierta de este estado es la grande, con los hombros y el
   /// borde redondo de Droppy (`FormaAbierta`): el aviso sin carcasa, la pila
@@ -347,7 +346,6 @@ struct HUDSurface<Content: View, Overlays: View>: View {
       // y la onda es del arranque de una sesión, cuando la forma es negra.
       FondoDeLaMuesca(
         silueta: silueta,
-        alturaDeCabecera: HUDNotchGeometry.alturaDeCabecera(for: screen),
         abierto: panelDelHoverAbierto
       )
       .shadow(

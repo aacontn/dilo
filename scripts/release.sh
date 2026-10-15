@@ -12,10 +12,6 @@
 # rotación deliberada tiene que decirlo:
 #   scripts/release.sh 0.5.0 --confirmar-rotacion-de-llave
 #
-# **`Dilo-MAS` no pasa por acá.** Ese target va a la App Store y se sube con
-# `.github/workflows/release.yml` (job `mas-upload`, manual): App Store Connect
-# no acepta un DMG ni notariza nada, y Sparkle no existe en ese binario.
-#
 # Dos copias del mismo DMG en cada release. `Dilo-vX.Y.Z.dmg` es la que la
 # gente baja, para que el archivo en su carpeta Descargas diga qué versión es.
 # `Dilo.dmg` es una copia byte a byte que mantiene resolviendo la URL
@@ -181,7 +177,7 @@ fi
 # en CI (.github/workflows/ci.yml), que es donde TCC deniega solo.
 paso "Tests"
 (cd DiloCore && swift test --scratch-path "$TALLER/swiftpm" 2>&1 | tail -5)
-for esquema in Dilo Dilo-MAS; do
+for esquema in Dilo; do
   xcodebuild build \
     -project Dilo.xcodeproj \
     -scheme "$esquema" \
@@ -506,6 +502,3 @@ paso "Listo"
 echo "  release:  $(gh release view "$TAG" -R "$REPO" --json url -q .url)"
 echo "  descarga: https://github.com/$REPO/releases/latest/download/Dilo.dmg"
 echo "  feed:     $FEED"
-echo
-echo "  Dilo-MAS no salió de acá: para la App Store, despacha el job"
-echo "  'mas-upload' de .github/workflows/release.yml."

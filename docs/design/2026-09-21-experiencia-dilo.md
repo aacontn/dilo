@@ -307,6 +307,26 @@ SwiftUI.
   > controles en blanco—. La lámina con la 0.4.5 contra la nueva sobre una
   > página blanca y un escritorio oscuro sale de
   > `scripts/render-muesca.sh <carpeta> --antes-despues --referencia <cuadro>`.
+  >
+  > **Segunda corrección, el mismo 2026-10-15 (0.4.6): negro, y el vidrio
+  > sólo al abrir.** «Sólo negro, con algo de efecto glass cuando se abre».
+  > Con la franja quieta, sobre una página blanca la fila de los modos
+  > quedaba sobre una mancha gris. Ahora el panel nace de vidrio ahumado que
+  > el negro tapa en 0,42 s, un reflejo cruza el canto de abajo y se apaga,
+  > y queda un filo blanco tenue; con el panel quieto no hay vidrio montado.
+  > Y la densidad pasa a la de Droppy: letra de 10,5 a 12,5, los modos como
+  > pestañas sin fondo con el elegido en una píldora gris, «Traducir» y
+  > «Nota» como íconos. Se miró en la pantalla de verdad, con el arnés y
+  > `hudOcultarAlCompartir` apagado en la copia de prueba, sobre un fondo
+  > claro y uno oscuro, y cuadro a cuadro durante la apertura.
+  >
+  > **Tercera corrección, el mismo 2026-10-15 (0.4.7): el ahumado se
+  > queda.** Mirando la apertura cuadro a cuadro, Alfonso eligió el primero
+  > —el vidrio ahumado antes de cerrarse en negro—: «se ve choro». Ese es
+  > ahora el panel abierto: vidrio tintado de negro con un velo negro al
+  > 55 % encima, un carbón parejo (medido entre #2C2C2C y #3B3B3B sobre una
+  > página blanca y sobre un escritorio azul oscuro) donde la letra blanca
+  > se lee siempre. El reflejo del canto al abrir y el filo tenue siguen.
 - **El botón de cancelar y el cronómetro.** Mientras se dicta la forma no toma
   el mouse (contrato del notch: el clic es del documento en el que estás
   escribiendo), así que un botón ahí es un botón que no se puede apretar. Esc

@@ -6233,6 +6233,17 @@
         }
       }
     },
+    "Dicta una nota que termina en Notas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate a note that lands in Notes"
+          }
+        }
+      }
+    },
     "Dicta y se pega traducido": {
       "extractionState": "manual",
       "localizations": {

@@ -53,18 +53,21 @@ Distingue propuesta, implementación y deuda pendiente.
 
 ## Restricciones que no se negocian
 
-- **Dos targets, desde el día uno.** `Dilo` (venta directa, Sparkle,
-  `cl.espaciodigital.dilo`) y `Dilo-MAS` (App Sandbox, sin Sparkle,
-  `cl.espaciodigital.dilo.mas`). Retrofitear el sandbox después cuesta meses.
-- **El sandbox no rompe la compilación: se cae en ejecución.** Todo lo que
-  dependa de la API de Accesibilidad hacia otras apps pasa por
-  `HostCapabilities` (Tarea 2). Lo que no se puede hacer **se esconde**, no
-  falla. Se prueba lanzando con `open -a`, **nunca desde el terminal**: TCC
+- **Un solo target: `Dilo`** (Developer ID, Sparkle,
+  `cl.espaciodigital.dilo`). **Dilo es para uso propio y no va a la App
+  Store** (Alfonso, 2026-10-15: «el Dilo MAS olvidémoslo, ya no vale la pena
+  meterle cabeza para regalarlo, lo hacemos para nosotros»). El target
+  `Dilo-MAS`, su esquema, sus entitlements, la condición `DILO_MAS` y los
+  jobs de App Store en CI se sacaron ese día; no los vuelvas a armar.
+- **`HostCapabilities` se queda** aunque ya no haya target con sandbox:
+  todo lo que dependa de la API de Accesibilidad hacia otras apps pasa por
+  ahí, y lo que el anfitrión no puede hacer **se esconde**, no falla. Se
+  prueba lanzando con `open -a`, **nunca desde el terminal**: TCC
   atribuye el permiso al proceso padre y el tap de audio devuelve silencio.
   Qué anfitrión resolvió una copia lo dice ella misma al arrancar:
   `log show --predicate 'subsystem == "cl.espaciodigital.dilo"' --last 5m`,
-  categoría `capacidades`. Antes de buscar por qué "no aparece" algo en el
-  build de App Store, mira esa línea: lista lo que está escondido.
+  categoría `capacidades`. Antes de buscar por qué "no aparece" algo, mira
+  esa línea: lista lo que está escondido.
 - **Ningún gatillo por defecto escribe símbolos** en teclado latino. Nada de
   ⌥ derecha sola: en ISO-LatAm es AltGr y escribe `@ # \ | { } [ ]`. Default
   `fn`/🌐 sostenido; alternativa ⌃⌥Espacio.
@@ -144,7 +147,7 @@ Distingue propuesta, implementación y deuda pendiente.
   ahí se rechaza (`copioElContexto`). Nunca va al historial ni a un log; a un
   proveedor en línea viaja sólo con su propio interruptor, apagado de
   fábrica. Lo que lee otra app (`contextoDelCampo`, `sitioDelNavegador`,
-  `vigiaDeCorrecciones`) se esconde en MAS. El OCR de la pantalla no existe
+  `vigiaDeCorrecciones`) se esconde en sandbox. El OCR de la pantalla no existe
   todavía.
 - **Dilo nunca aprende solo.** Tras pegar, `VigiaDeCorrecciones` mira el
   campo hasta 30 s (cada 500 ms, calma de 1,5 s, nunca con entrada segura) y
@@ -398,25 +401,31 @@ siendo cierto:
   no lo trates como prohibido). La cabecera —la silueta en reposo— es negra
   siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
   el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
-  `FondoDeLaMuesca`). **El texto va siempre sobre negro** (2026-10-15): el
-  panel es negro opaco y el `glassEffect` asoma sólo en la franja de abajo
-  —el último ~30 %—, donde el negro se derrite en vidrio tintado oscuro sin
-  llegar nunca a cero (`negroAlPie`; el pie deja pasar a lo sumo un tercio
-  del fondo), con un filo de luz blanco en la curva de abajo. La 0.4.5 tenía
-  negro sólo en la cabecera y vidrio con tinte 0,3 en todo lo demás: sobre
-  una página blanca, gris claro con letra blanca, ilegible. **Encendido de
-  fábrica** (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en
-  Apariencia; apagado, la misma forma en negro entero). «Reducir
-  transparencia» del sistema le gana y lo deja negro. Sin vidrio montado en
-  reposo. No sale en PNG: la lámina lo imita (`Material.imitacion`, rotulado)
-  y el de verdad se mira con las escenas `hover-vidrio` y
-  `hover-completo-vidrio` del arnés.
-- **El panel del hover tiene la jerarquía de Droppy** (2026-10-15,
-  `PiezasDelPanel.swift`): lo último dictado en grande y en negrita, con qué
-  es y cuándo en gris debajo; los recientes anteriores en una línea gris;
-  los controles en blanco, el modo elegido en blanco lleno. El color, sólo en
-  un detalle chico —el ícono del último, el ✓ de copiado, la reunión que
-  empieza—. Las piezas toman valores sueltos para que el render de la
+  `FondoDeLaMuesca`). **El panel abierto es vidrio ahumado, oscuro y
+  parejo** (Alfonso, 2026-10-15, al ver la apertura cuadro a cuadro: «el de
+  vidrio ahumado se ve choro»): vidrio tintado de negro (`tinte` 0,45) con
+  un velo negro encima (`negroEncima` 0,55), que en la pantalla queda en un
+  carbón de #2C2C2C a #3B3B3B tanto sobre blanco como sobre un escritorio
+  oscuro. Al abrir, un reflejo cruza el canto de abajo y se apaga; queda un
+  filo blanco tenue en la curva. Cerrado —reposo, dictando— no hay vidrio
+  montado. Lo que no vuelve: el vidrio claro de la 0.4.5 (letra blanca
+  sobre gris claro) y el vidrio sólo en el último ~30 % de la 0.4.6 (una
+  mancha bajo los modos). **Encendido de fábrica** (`hudPanelDeVidrio`,
+  interruptor «Panel con vidrio» en Apariencia; apagado, negro puro sin
+  vidrio ni filo). «Reducir transparencia» le gana y lo deja negro;
+  «Reducir movimiento» quita el reflejo. No sale en PNG: la lámina lo imita
+  con el carbón medido (`grisDeLaLamina`) y el de verdad se mira en la
+  pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio` del
+  arnés.
+- **El panel del hover tiene la jerarquía y la densidad de Droppy**
+  (2026-10-15, `PiezasDelPanel.swift`): letra de 10,5 a 12,5. Lo último
+  dictado en 12,5 semibold, con qué es y cuándo en gris debajo; los
+  recientes anteriores en una línea gris; los modos como las pestañas de su
+  bandeja —texto de 11 sin fondo, el elegido en una píldora gris de 20—, y
+  «Traducir» (globo y «EN») y «Nota» como íconos sin fondo tras un corte
+  fino. Los modos en botones de 24 con el elegido en blanco lleno fueron
+  «muy grandes». El color, sólo en un detalle chico —el ícono del último, el
+  ✓ de copiado, la reunión que empieza—. Las piezas toman valores sueltos para que el render de la
   muesca dibuje las mismas vistas y no una copia.
 - **La forma abierta es la de Droppy; el reposo y dictar no cambian**
   (`FormaAbierta`, 2026-10-14). El panel del hover —con vidrio o en negro—
@@ -432,8 +441,9 @@ siendo cierto:
   mucho cambio a los colores en el notch»). El negro sigue negro; la forma
   abierta lleva un filo de luz en el borde de abajo (`FiloDeLaMuesca`, token
   `filo`) que dice en qué está sin palabras: acento dictando, menta en el
-  acuse, coral en un error, ámbar con el micrófono muerto, más bajo con el
-  panel abierto. Es estático —no anima, no cuesta CPU— y en reposo no existe.
+  acuse, coral en un error, ámbar con el micrófono muerto; con el panel
+  abierto, ninguno (el vidrio lleva su filo blanco y, sin vidrio, el panel
+  es negro puro). Es estático —no anima, no cuesta CPU— y en reposo no existe.
   Además la onda reparte su degradado por la fila (`coloresDeLaBarra`), el
   check lleva disco y luz, el aviso un ícono de color con la frase en blanco
   y el modo elegido del panel va en el degradado de la onda. Con Grafito todo
@@ -703,10 +713,8 @@ DerivedData vive en `/Volumes/SSD2/derived-data` (disco de taller, se puede
 borrar entero). Nunca en el disco interno.
 
 ```bash
-# Los dos targets, limpio
+# La app, limpio
 xcodebuild -project Dilo.xcodeproj -scheme Dilo -configuration Debug \
-  -derivedDataPath /Volumes/SSD2/derived-data build
-xcodebuild -project Dilo.xcodeproj -scheme Dilo-MAS -configuration Debug \
   -derivedDataPath /Volumes/SSD2/derived-data build
 
 # El paquete propio, sin abrir Xcode
@@ -766,9 +774,9 @@ de destino: no reemplaza al número de `metrics.sh`, dice dónde se van sus
 milisegundos. Los hitos también salen como `os_signpost` (categoría
 `latencia`) para Instruments.
 
-Los dos `xcodebuild`, `swift test` y la suite de la app tienen que pasar antes
-de devolver el trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
-el terminal.
+El `xcodebuild build`, `swift test` y la suite de la app tienen que pasar
+antes de devolver el trabajo. Para probar permisos en runtime: `open -a`,
+nunca el binario desde el terminal.
 
 **`xcodebuild test` se colgaba en este Mac** antes de "Testing started": el
 host de los tests es la app real, y al arrancar levanta su tap de CGEvent, que
@@ -795,7 +803,7 @@ Hardened Runtime encendido, dyld se niega a cargar `Sparkle.framework` y la app
 no arranca. El target `Dilo` lee `$(DILO_HARDENED_RUNTIME)`, que el proyecto
 define en `NO`: quien firma con Developer ID pasa `DILO_HARDENED_RUNTIME=YES`
 en la línea de comandos y nadie tiene que acordarse de un switch en Xcode.
-`Dilo-MAS` se queda en `NO`. Detalle en `docs/ProjectSettings.md`.
+Detalle en `docs/ProjectSettings.md`.
 
 **`DILO_SUFIJO_ID` corre los bundle ids de una corrida.** Vacío por defecto;
 con `DILO_SUFIJO_ID=.ci` la app pasa a `cl.espaciodigital.dilo.ci` y el bundle
@@ -846,13 +854,9 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
   `dilo-notary` (con reintentos: el fallo del 14-sep en el repo Tauri fue red
   sondeando el estado, no la firma), grapa, regenera el appcast firmado y
   publica el release.
-- **App Store:** despachar `.github/workflows/release.yml`. El job `dilo-mas`
-  deja el `.pkg` firmado como artefacto; subirlo a App Store Connect es el job
-  `mas-upload`, que sólo corre si el despacho marca la casilla.
 - **Los secrets que espera CI** —`APPLE_CERTIFICATE`,
   `APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_API_ISSUER`,
-  `APPLE_API_KEY`, `APPLE_API_KEY_P8`, más `APPLE_MAS_APP_CERTIFICATE`,
-  `APPLE_MAS_INSTALLER_CERTIFICATE` y `APPLE_MAS_CERTIFICATE_PASSWORD`— están
+  `APPLE_API_KEY` y `APPLE_API_KEY_P8`— están
   en `docs/ProjectSettings.md`, con qué es cada uno y cómo firmar local. Acá
   van los **nombres**; los valores, jamás.
 

@@ -1,15 +1,10 @@
 name: Release
 
 # Manual a propósito. Un release de Dilo firma con la identidad de Alfonso,
-# notariza contra Apple y —si se lo pide— sube un binario a App Store Connect:
-# ninguna de las tres cosas se dispara sola desde un push.
+# y notariza contra Apple: ninguna de las dos cosas se dispara sola desde un
+# push. Dilo no va a la App Store (2026-10-15): es para uso propio.
 on:
   workflow_dispatch:
-    inputs:
-      subir_a_app_store:
-        description: "Subir el .pkg de Dilo-MAS a App Store Connect"
-        type: boolean
-        default: false
 
 # Los secrets que espera este workflow (todos en Settings → Secrets → Actions):
 #
@@ -22,13 +17,8 @@ on:
 #   APPLE_API_ISSUER                issuer de la Team key de App Store Connect
 #   APPLE_API_KEY                   id de esa key (el de AuthKey_XXXX.p8)
 #   APPLE_API_KEY_P8                contenido del .p8
-#   APPLE_MAS_APP_CERTIFICATE       .p12 de "Apple Distribution" (sólo MAS)
-#   APPLE_MAS_INSTALLER_CERTIFICATE .p12 de "3rd Party Mac Developer Installer"
-#   APPLE_MAS_CERTIFICATE_PASSWORD  contraseña de esos dos
 #
-# Los seis primeros ya existen en el repo del Dilo Tauri (aacontn/dilo); los
-# tres de MAS son nuevos. Sin ellos el workflow no falla: compila, firma
-# ad-hoc y avisa. Así se puede probar la cañería antes de tener identidad.
+# Ya existen en el repo del Dilo Tauri (aacontn/dilo).
 
 jobs:
   dilo:
@@ -236,135 +226,3 @@ jobs:
           path: |
             ${{ runner.temp }}/Dilo-v*.dmg
             ${{ runner.temp }}/Dilo-v*.zip
-
-  dilo-mas:
-    name: Dilo-MAS (App Store)
-    runs-on: macos-26
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v5
-
-      # La App Store quiere dos identidades distintas: "Apple Distribution"
-      # firma la app y "3rd Party Mac Developer Installer" firma el .pkg.
-      # Nada de esto se notariza: App Store Connect hace su propia revisión.
-      - name: Importar los certificados de App Store
-        env:
-          APPLE_MAS_APP_CERTIFICATE: ${{ secrets.APPLE_MAS_APP_CERTIFICATE }}
-          APPLE_MAS_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_MAS_INSTALLER_CERTIFICATE }}
-          APPLE_MAS_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_MAS_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          if [ -z "$APPLE_MAS_APP_CERTIFICATE" ]; then
-            echo "::warning::sin APPLE_MAS_APP_CERTIFICATE — el .app se firma ad-hoc y no habrá .pkg"
-            exit 0
-          fi
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security list-keychains -d user -s build.keychain login.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security set-keychain-settings -t 3600 -u build.keychain
-          for var in APPLE_MAS_APP_CERTIFICATE APPLE_MAS_INSTALLER_CERTIFICATE; do
-            valor="${!var}"
-            [ -n "$valor" ] || continue
-            echo "$valor" | base64 --decode > "$RUNNER_TEMP/$var.p12"
-            security import "$RUNNER_TEMP/$var.p12" -k build.keychain \
-              -P "$APPLE_MAS_CERTIFICATE_PASSWORD" \
-              -T /usr/bin/codesign -T /usr/bin/productbuild
-            rm -f "$RUNNER_TEMP/$var.p12"
-          done
-          security set-key-partition-list -S apple-tool:,apple:,codesign:,productbuild: \
-            -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v build.keychain
-
-      - name: Elegir identidades
-        id: identidad
-        run: |
-          IDS="$(security find-identity -v build.keychain 2>/dev/null || true)"
-          APP_ID="$(echo "$IDS" | grep -E "Apple Distribution|3rd Party Mac Developer Application" | head -1 | awk -F'"' '{print $2}' || true)"
-          PKG_ID="$(echo "$IDS" | grep -E "3rd Party Mac Developer Installer|Apple Distribution Installer" | head -1 | awk -F'"' '{print $2}' || true)"
-          TEAM_ID="$(sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p' <<<"$APP_ID")"
-          {
-            echo "app_id=$APP_ID"
-            echo "pkg_id=$PKG_ID"
-            echo "team_id=$TEAM_ID"
-          } >> "$GITHUB_OUTPUT"
-          echo "app: ${APP_ID:-<ad-hoc>} · instalador: ${PKG_ID:-<ninguno>}"
-
-      # Hardened Runtime no se enciende acá: la App Store no lo pide y este
-      # binario no lleva Sparkle (condición DILO_MAS), que era el motivo por
-      # el que el runtime molestaba.
-      - name: Archivar Dilo-MAS
-        env:
-          APP_ID: ${{ steps.identidad.outputs.app_id }}
-          TEAM_ID: ${{ steps.identidad.outputs.team_id }}
-        run: |
-          set -o pipefail
-          ARGS=()
-          if [ -n "$APP_ID" ]; then
-            ARGS+=(CODE_SIGN_IDENTITY="$APP_ID" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID")
-          else
-            ARGS+=(CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="")
-          fi
-          xcodebuild archive \
-            -project Dilo.xcodeproj \
-            -scheme Dilo-MAS \
-            -configuration Release \
-            -archivePath "$RUNNER_TEMP/Dilo-MAS.xcarchive" \
-            -derivedDataPath "$RUNNER_TEMP/dd" \
-            -destination 'generic/platform=macOS' \
-            "${ARGS[@]}" | tail -50
-          mkdir -p "$RUNNER_TEMP/export"
-          cp -R "$RUNNER_TEMP/Dilo-MAS.xcarchive/Products/Applications/Dilo-MAS.app" "$RUNNER_TEMP/export/"
-          codesign -d --entitlements :- "$RUNNER_TEMP/export/Dilo-MAS.app" || true
-
-      - name: productbuild
-        if: steps.identidad.outputs.pkg_id != ''
-        env:
-          PKG_ID: ${{ steps.identidad.outputs.pkg_id }}
-        run: |
-          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
-            "$RUNNER_TEMP/export/Dilo-MAS.app/Contents/Info.plist")"
-          productbuild \
-            --component "$RUNNER_TEMP/export/Dilo-MAS.app" /Applications \
-            --sign "$PKG_ID" \
-            "$RUNNER_TEMP/Dilo-MAS-v$VERSION.pkg"
-          pkgutil --check-signature "$RUNNER_TEMP/Dilo-MAS-v$VERSION.pkg"
-
-      - name: Subir artefactos
-        uses: actions/upload-artifact@v7
-        with:
-          name: dilo-mas
-          path: |
-            ${{ runner.temp }}/Dilo-MAS-v*.pkg
-          if-no-files-found: warn
-
-  # Subir a App Store Connect es irreversible de hecho: una build subida queda
-  # en el historial del app record y no se borra. Por eso es un job aparte que
-  # sólo corre si el despacho lo pidió con la casilla.
-  mas-upload:
-    name: Subir a App Store Connect
-    needs: dilo-mas
-    if: ${{ inputs.subir_a_app_store }}
-    runs-on: macos-26
-    timeout-minutes: 30
-    steps:
-      - uses: actions/download-artifact@v7
-        with:
-          name: dilo-mas
-          path: pkg
-
-      - name: altool --upload-app
-        env:
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
-        run: |
-          PKG="$(find pkg -name '*.pkg' | head -1)"
-          [ -n "$PKG" ] || { echo "no hay .pkg que subir"; exit 1; }
-          # altool busca la llave por id en este directorio; no acepta una ruta.
-          mkdir -p "$HOME/.appstoreconnect/private_keys"
-          printf '%s\n' "$APPLE_API_KEY_P8" > "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"
-          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"
-          xcrun altool --upload-app -t macos -f "$PKG" \
-            --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
-          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_$APPLE_API_KEY.p8"

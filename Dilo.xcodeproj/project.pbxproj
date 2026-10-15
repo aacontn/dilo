@@ -29,17 +29,9 @@
 /* Begin PBXFileReference section */
 		9E87DA66302384C5007A1A70 /* Dilo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dilo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E87DA73302384C5007A1A70 /* DiloTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DiloTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9EDILOMAS0000000000000P1 /* Dilo-MAS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dilo-MAS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		9EDILOMAS0000000000000E1 /* Exceptions for "Dilo" folder in "Dilo-MAS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 9EDILOMAS0000000000000T1 /* Dilo-MAS */;
-		};
 		9ESPARK04000000000000004 /* Exceptions for "Dilo" folder in "Dilo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -54,7 +46,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				9ESPARK04000000000000004 /* Exceptions for "Dilo" folder in "Dilo" target */,
-				9EDILOMAS0000000000000E1 /* Exceptions for "Dilo" folder in "Dilo-MAS" target */,
 			);
 			path = Dilo;
 			sourceTree = "<group>";
@@ -75,16 +66,6 @@
 				9EDILOCORE00000000000008 /* DiloCapabilities in Frameworks */,
 				9EDILOCORE00000000000014 /* DiloEngines in Frameworks */,
 				9ESPARK03000000000000003 /* Sparkle in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9EDILOMAS0000000000000F1 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				9EDILOCORE00000000000005 /* DiloText in Frameworks */,
-				9EDILOCORE00000000000009 /* DiloCapabilities in Frameworks */,
-				9EDILOCORE00000000000015 /* DiloEngines in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -111,7 +92,6 @@
 			isa = PBXGroup;
 			children = (
 				9E87DA66302384C5007A1A70 /* Dilo.app */,
-				9EDILOMAS0000000000000P1 /* Dilo-MAS.app */,
 				9E87DA73302384C5007A1A70 /* DiloTests.xctest */,
 			);
 			name = Products;
@@ -144,31 +124,6 @@
 			);
 			productName = Dilo;
 			productReference = 9E87DA66302384C5007A1A70 /* Dilo.app */;
-			productType = "com.apple.product-type.application";
-		};
-		9EDILOMAS0000000000000T1 /* Dilo-MAS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 9EDILOMAS0000000000000C0 /* Build configuration list for PBXNativeTarget "Dilo-MAS" */;
-			buildPhases = (
-				9EDILOMAS0000000000000S1 /* Sources */,
-				9EDILOMAS0000000000000F1 /* Frameworks */,
-				9EDILOMAS0000000000000R1 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				9E87DA68302384C5007A1A70 /* Dilo */,
-			);
-			name = "Dilo-MAS";
-			packageProductDependencies = (
-				9EDILOCORE00000000000003 /* DiloText */,
-				9EDILOCORE00000000000007 /* DiloCapabilities */,
-				9EDILOCORE00000000000013 /* DiloEngines */,
-			);
-			productName = "Dilo-MAS";
-			productReference = 9EDILOMAS0000000000000P1 /* Dilo-MAS.app */;
 			productType = "com.apple.product-type.application";
 		};
 		9E87DA72302384C5007A1A70 /* DiloTests */ = {
@@ -211,9 +166,6 @@
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = 9E87DA65302384C5007A1A70;
 					};
-					9EDILOMAS0000000000000T1 = {
-						CreatedOnToolsVersion = 27.0;
-					};
 				};
 			};
 			buildConfigurationList = 9E87DA61302384C5007A1A70 /* Build configuration list for PBXProject "Dilo" */;
@@ -236,7 +188,6 @@
 			projectRoot = "";
 			targets = (
 				9E87DA65302384C5007A1A70 /* Dilo */,
-				9EDILOMAS0000000000000T1 /* Dilo-MAS */,
 				9E87DA72302384C5007A1A70 /* DiloTests */,
 			);
 		};
@@ -257,13 +208,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9EDILOMAS0000000000000R1 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -275,13 +219,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9E87DA6F302384C5007A1A70 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9EDILOMAS0000000000000S1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -559,93 +496,6 @@
 			};
 			name = Release;
 		};
-		9EDILOMAS0000000000000C1 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Dilo-MAS.entitlements";
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 367;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = NO;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Dilo guarda tus notas rápidas en Apple Notas, en la carpeta «Dilo». No toca ninguna otra nota.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
-				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 0.4.6;
-				PRODUCT_BUNDLE_IDENTIFIER = "cl.espaciodigital.dilo.mas$(DILO_SUFIJO_ID)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DILO_MAS $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = NO;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-			};
-			name = Debug;
-		};
-		9EDILOMAS0000000000000C2 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "Dilo-MAS.entitlements";
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 367;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = NO;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Dilo;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Alfonso Contreras / Espacio Digital";
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Dilo lee tu calendario para mostrarte la próxima reunión al pasar el mouse por la muesca. Nada sale de esta compu.";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Dilo guarda tus notas rápidas en Apple Notas, en la carpeta «Dilo». No toca ninguna otra nota.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dilo usa el micrófono para transcribir lo que dictas, en esta compu.";
-				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dilo convierte tu voz en texto en esta compu.";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				LLVM_LTO = YES_THIN;
-				MARKETING_VERSION = 0.4.6;
-				PRODUCT_BUNDLE_IDENTIFIER = "cl.espaciodigital.dilo.mas$(DILO_SUFIJO_ID)";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				STRIP_INSTALLED_PRODUCT = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DILO_MAS $(inherited)";
-				SWIFT_APPROACHABLE_CONCURRENCY = NO;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -672,15 +522,6 @@
 			buildConfigurations = (
 				9E87DA8B302384C5007A1A70 /* Debug */,
 				9E87DA8C302384C5007A1A70 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		9EDILOMAS0000000000000C0 /* Build configuration list for PBXNativeTarget "Dilo-MAS" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9EDILOMAS0000000000000C1 /* Debug */,
-				9EDILOMAS0000000000000C2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
