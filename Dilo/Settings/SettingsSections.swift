@@ -60,19 +60,10 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     }
   }
 
-  /// El target de App Store no trae Sparkle: ahí las actualizaciones las
-  /// entrega la tienda y un panel que no puede hacer nada sería una promesa
-  /// falsa. Lo mismo con Leer en voz alta, que es releer la selección de otra
-  /// app y el sandbox no lo permite. Lo que no se puede hacer se esconde, no
-  /// falla.
+  /// Leer en voz alta es releer la selección de otra app, y en sandbox no
+  /// se puede: lo que no se puede hacer se esconde, no falla.
   var isAvailable: Bool {
     switch self {
-    case .updates:
-      #if DILO_MAS
-        false
-      #else
-        true
-      #endif
     case .readAloud:
       Anfitrion.actual.admite(.relecturaDelFoco)
     default:

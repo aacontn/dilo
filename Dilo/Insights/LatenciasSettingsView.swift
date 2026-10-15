@@ -50,12 +50,8 @@ struct LatenciasSettingsView: View {
         HStack(spacing: 8) {
           Button("Copiar CSV") { copiar() }
             .buttonStyle(SettingsButtonStyle())
-          #if !DILO_MAS
-            // En App Store no: guardar donde la persona elija pide un
-            // entitlement que el sandbox de Dilo no tiene. Copiar sirve igual.
-            Button("Exportar latencias…") { exportar() }
-              .buttonStyle(SettingsButtonStyle())
-          #endif
+          Button("Exportar latencias…") { exportar() }
+            .buttonStyle(SettingsButtonStyle())
         }
         .disabled(registro.sesiones.isEmpty)
       }
@@ -99,21 +95,19 @@ struct LatenciasSettingsView: View {
     aviso = String(localized: "Copiado: pégalo en Numbers o en un reporte.")
   }
 
-  #if !DILO_MAS
-    private func exportar() {
-      let panel = NSSavePanel()
-      panel.nameFieldStringValue = "latencias-dilo.csv"
-      panel.allowedContentTypes = [.commaSeparatedText]
-      let csv = registro.csv()
-      panel.begin { respuesta in
-        guard respuesta == .OK, let url = panel.url else { return }
-        do {
-          try csv.write(to: url, atomically: true, encoding: .utf8)
-          aviso = String(localized: "Guardado en \(url.lastPathComponent).")
-        } catch {
-          aviso = error.localizedDescription
-        }
+  private func exportar() {
+    let panel = NSSavePanel()
+    panel.nameFieldStringValue = "latencias-dilo.csv"
+    panel.allowedContentTypes = [.commaSeparatedText]
+    let csv = registro.csv()
+    panel.begin { respuesta in
+      guard respuesta == .OK, let url = panel.url else { return }
+      do {
+        try csv.write(to: url, atomically: true, encoding: .utf8)
+        aviso = String(localized: "Guardado en \(url.lastPathComponent).")
+      } catch {
+        aviso = error.localizedDescription
       }
     }
-  #endif
+  }
 }

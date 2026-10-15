@@ -39,24 +39,12 @@ struct AboutSettingsView: View {
           EmptyView()
         }
 
-        // La lista se parte en dos literales en vez de armarse con `+` porque
-        // una clave del catálogo es una frase entera: el build de App Store no
-        // lleva Sparkle y no puede decir que sí.
-        #if DILO_MAS
-          SettingsRow(
-            title: "Licencias de terceros",
-            description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT)."
-          ) {
-            EmptyView()
-          }
-        #else
-          SettingsRow(
-            title: "Licencias de terceros",
-            description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT)."
-          ) {
-            EmptyView()
-          }
-        #endif
+        SettingsRow(
+          title: "Licencias de terceros",
+          description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT)."
+        ) {
+          EmptyView()
+        }
       }
 
       Text(

@@ -53,18 +53,21 @@ Distingue propuesta, implementación y deuda pendiente.
 
 ## Restricciones que no se negocian
 
-- **Dos targets, desde el día uno.** `Dilo` (venta directa, Sparkle,
-  `cl.espaciodigital.dilo`) y `Dilo-MAS` (App Sandbox, sin Sparkle,
-  `cl.espaciodigital.dilo.mas`). Retrofitear el sandbox después cuesta meses.
-- **El sandbox no rompe la compilación: se cae en ejecución.** Todo lo que
-  dependa de la API de Accesibilidad hacia otras apps pasa por
-  `HostCapabilities` (Tarea 2). Lo que no se puede hacer **se esconde**, no
-  falla. Se prueba lanzando con `open -a`, **nunca desde el terminal**: TCC
+- **Un solo target: `Dilo`** (Developer ID, Sparkle,
+  `cl.espaciodigital.dilo`). **Dilo es para uso propio y no va a la App
+  Store** (Alfonso, 2026-10-15: «el Dilo MAS olvidémoslo, ya no vale la pena
+  meterle cabeza para regalarlo, lo hacemos para nosotros»). El target
+  `Dilo-MAS`, su esquema, sus entitlements, la condición `DILO_MAS` y los
+  jobs de App Store en CI se sacaron ese día; no los vuelvas a armar.
+- **`HostCapabilities` se queda** aunque ya no haya target con sandbox:
+  todo lo que dependa de la API de Accesibilidad hacia otras apps pasa por
+  ahí, y lo que el anfitrión no puede hacer **se esconde**, no falla. Se
+  prueba lanzando con `open -a`, **nunca desde el terminal**: TCC
   atribuye el permiso al proceso padre y el tap de audio devuelve silencio.
   Qué anfitrión resolvió una copia lo dice ella misma al arrancar:
   `log show --predicate 'subsystem == "cl.espaciodigital.dilo"' --last 5m`,
-  categoría `capacidades`. Antes de buscar por qué "no aparece" algo en el
-  build de App Store, mira esa línea: lista lo que está escondido.
+  categoría `capacidades`. Antes de buscar por qué "no aparece" algo, mira
+  esa línea: lista lo que está escondido.
 - **Ningún gatillo por defecto escribe símbolos** en teclado latino. Nada de
   ⌥ derecha sola: en ISO-LatAm es AltGr y escribe `@ # \ | { } [ ]`. Default
   `fn`/🌐 sostenido; alternativa ⌃⌥Espacio.
@@ -144,7 +147,7 @@ Distingue propuesta, implementación y deuda pendiente.
   ahí se rechaza (`copioElContexto`). Nunca va al historial ni a un log; a un
   proveedor en línea viaja sólo con su propio interruptor, apagado de
   fábrica. Lo que lee otra app (`contextoDelCampo`, `sitioDelNavegador`,
-  `vigiaDeCorrecciones`) se esconde en MAS. El OCR de la pantalla no existe
+  `vigiaDeCorrecciones`) se esconde en sandbox. El OCR de la pantalla no existe
   todavía.
 - **Dilo nunca aprende solo.** Tras pegar, `VigiaDeCorrecciones` mira el
   campo hasta 30 s (cada 500 ms, calma de 1,5 s, nunca con entrada segura) y
@@ -710,10 +713,8 @@ DerivedData vive en `/Volumes/SSD2/derived-data` (disco de taller, se puede
 borrar entero). Nunca en el disco interno.
 
 ```bash
-# Los dos targets, limpio
+# La app, limpio
 xcodebuild -project Dilo.xcodeproj -scheme Dilo -configuration Debug \
-  -derivedDataPath /Volumes/SSD2/derived-data build
-xcodebuild -project Dilo.xcodeproj -scheme Dilo-MAS -configuration Debug \
   -derivedDataPath /Volumes/SSD2/derived-data build
 
 # El paquete propio, sin abrir Xcode
@@ -773,9 +774,9 @@ de destino: no reemplaza al número de `metrics.sh`, dice dónde se van sus
 milisegundos. Los hitos también salen como `os_signpost` (categoría
 `latencia`) para Instruments.
 
-Los dos `xcodebuild`, `swift test` y la suite de la app tienen que pasar antes
-de devolver el trabajo. Para probar el sandbox en runtime: `open -a`, nunca el binario desde
-el terminal.
+El `xcodebuild build`, `swift test` y la suite de la app tienen que pasar
+antes de devolver el trabajo. Para probar permisos en runtime: `open -a`,
+nunca el binario desde el terminal.
 
 **`xcodebuild test` se colgaba en este Mac** antes de "Testing started": el
 host de los tests es la app real, y al arrancar levanta su tap de CGEvent, que
@@ -802,7 +803,7 @@ Hardened Runtime encendido, dyld se niega a cargar `Sparkle.framework` y la app
 no arranca. El target `Dilo` lee `$(DILO_HARDENED_RUNTIME)`, que el proyecto
 define en `NO`: quien firma con Developer ID pasa `DILO_HARDENED_RUNTIME=YES`
 en la línea de comandos y nadie tiene que acordarse de un switch en Xcode.
-`Dilo-MAS` se queda en `NO`. Detalle en `docs/ProjectSettings.md`.
+Detalle en `docs/ProjectSettings.md`.
 
 **`DILO_SUFIJO_ID` corre los bundle ids de una corrida.** Vacío por defecto;
 con `DILO_SUFIJO_ID=.ci` la app pasa a `cl.espaciodigital.dilo.ci` y el bundle
@@ -853,13 +854,9 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
   `dilo-notary` (con reintentos: el fallo del 14-sep en el repo Tauri fue red
   sondeando el estado, no la firma), grapa, regenera el appcast firmado y
   publica el release.
-- **App Store:** despachar `.github/workflows/release.yml`. El job `dilo-mas`
-  deja el `.pkg` firmado como artefacto; subirlo a App Store Connect es el job
-  `mas-upload`, que sólo corre si el despacho marca la casilla.
 - **Los secrets que espera CI** —`APPLE_CERTIFICATE`,
   `APPLE_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`, `APPLE_API_ISSUER`,
-  `APPLE_API_KEY`, `APPLE_API_KEY_P8`, más `APPLE_MAS_APP_CERTIFICATE`,
-  `APPLE_MAS_INSTALLER_CERTIFICATE` y `APPLE_MAS_CERTIFICATE_PASSWORD`— están
+  `APPLE_API_KEY` y `APPLE_API_KEY_P8`— están
   en `docs/ProjectSettings.md`, con qué es cada uno y cómo firmar local. Acá
   van los **nombres**; los valores, jamás.
 

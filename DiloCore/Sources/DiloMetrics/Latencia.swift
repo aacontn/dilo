@@ -151,9 +151,9 @@ public enum Latencia {
   /// ciegas abre Ajustes en vez de dictar, que fue exactamente lo que pasó la
   /// primera vez.
   ///
-  /// Se apunta **por pid y no por nombre**: en este repo conviven `Dilo` y
-  /// `Dilo-MAS`, y los dos se llaman "Dilo" para Accesibilidad. Pedir "el
-  /// proceso Dilo" dicta con la app equivocada y el número medido es de otra.
+  /// Se apunta **por pid y no por nombre**: la copia instalada y la de
+  /// prueba se llaman las dos "Dilo" para Accesibilidad. Pedir "el proceso
+  /// Dilo" dicta con la app equivocada y el número medido es de otra.
   static func guion(pid: pid_t, cuerpo: String) -> String {
     """
     tell application "System Events" to tell (first application process whose unix id is \(pid))
