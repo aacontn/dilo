@@ -174,6 +174,30 @@ final class AppSettings {
     dictationHistoryFolder ?? DictationHistoryStore.defaultFolderURL
   }
 
+  /// Lo que leen de estos ajustes el servidor MCP y el CLI
+  /// (`FuenteDelHistorial`, 2026-10-15). Corren sin ventana y **sin crear
+  /// `AppSettings`**: su `init` migra modos y escribe en `UserDefaults`, y un
+  /// proceso que sólo lee no tiene por qué escribir nada. Las claves siguen
+  /// siendo de este archivo; afuera se piden por acá, y se leen en cada
+  /// llamada porque la app abierta puede cambiarlas mientras tanto.
+  struct LecturaParaAgentes: Sendable, Equatable {
+    var historialEncendido: Bool
+    var carpetaDelHistorial: URL
+    var palabrasPropias: [String]
+  }
+
+  nonisolated static func lecturaParaAgentes(de defaults: UserDefaults) -> LecturaParaAgentes {
+    LecturaParaAgentes(
+      // `bool(forKey:)` y no `as? Bool`: entiende también el `YES` de un
+      // `-dictationHistoryEnabled YES` por la línea de comandos, y sin la
+      // clave da `false`, que es el de fábrica.
+      historialEncendido: defaults.bool(forKey: Keys.historyEnabled),
+      carpetaDelHistorial: defaults.string(forKey: Keys.historyFolder).map { URL(filePath: $0) }
+        ?? DictationHistoryStore.defaultFolderURL,
+      palabrasPropias: defaults.stringArray(forKey: Keys.palabrasPropias) ?? []
+    )
+  }
+
   /// La versión de migración que ya corrió sobre estos ajustes. Cero en una
   /// instalación que nunca la vio.
   @ObservationIgnored

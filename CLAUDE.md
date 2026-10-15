@@ -222,6 +222,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
+| `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
 
 **El acento de la app es Glaciar** (decisión de Alfonso del 2026-10-14: «el
 color naranja ya no me gusta»): azul `#0A84FF` a celeste `#64D2FF` sobre
@@ -252,8 +253,8 @@ Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 paquete pero no se enlaza a ningún target, y por eso no toca `project.pbxproj`.
 Se construye y se corre desde `scripts/metrics.sh`.
 
-**Excepción vigente:** `DiloModes` viaja dentro del producto `DiloText` en vez
-de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
+**Excepción vigente:** `DiloModes` (y con él `DiloConsumo` y `DiloAgentes`)
+viaja dentro del producto `DiloText` en vez de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
 archivo estuvo congelado mientras corrían cinco ramas en paralelo. El módulo,
 su carpeta y sus tests sí son propios; lo único compartido es la línea del
 producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8— se separa en
@@ -291,6 +292,9 @@ siendo cierto:
 - `Settings/` — la ventana de Ajustes sin barra de título: `SettingsView` es
   el marco, `SettingsSections` la navegación, `Sections/` un archivo por
   panel, `Components/` el sistema de diseño reutilizable.
+- `Agentes/` — el mismo binario sin ventanas: `ArranqueParaAgentes` decide en
+  `AppDelegate.main()` si es servidor MCP o CLI, y `FuenteDelHistorial` les
+  da el historial y Tus palabras (ver «Agentes: servidor MCP y CLI»).
 
 ### Reglas del HUD que siguen mordiendo (heredadas)
 
@@ -664,6 +668,112 @@ siendo cierto:
   cualquier cambio de dispositivos. No se prende para todos hasta medir el
   reposo con y sin él (`scripts/metrics.sh`) y comparar «primer búfer a N ms
   de abrir (motor tibio: sí/no)» en el log, categoría `audio`.
+
+## Agentes: servidor MCP y CLI
+
+Desde el 2026-10-15 (plan, fase 5 paso 3) **el mismo binario de Dilo** es
+también un servidor MCP por stdio y un CLI para scripts. No hay target ni
+ejecutable aparte: `ArranqueParaAgentes.correrSinVentanasSiCorresponde()` es
+la primera línea de `AppDelegate.main()` y decide con `ModoDeArranque` (puro,
+en `DiloAgentes`, con tests) mirando sólo `argv`:
+
+- `--mcp` en cualquier lugar → servidor MCP;
+- `argv[0]` que se llama exactamente `dilo` (el enlace) → CLI;
+- primer argumento `spec`, `dictados`, `palabras`, `ayuda`, `help`, `--help`
+  o `-h` → CLI;
+- cualquier otra cosa → la app de siempre. Los argumentos de un guion
+  (`-NSDocumentRevisionsDebugMode YES`, `-psn_…`) nunca deciden el modo, y el
+  ejecutable `Dilo` con mayúscula **no** es el CLI: compararlo sin distinguir
+  mayúsculas dejaría a la persona sin app.
+
+En modo MCP o CLI **no se crea `NSApplication`**: no hay muesca, ni ícono en
+la barra, ni tap, ni micrófono, ni Sparkle. Lo único que se lee son las
+claves de `UserDefaults` que `AppSettings.lecturaParaAgentes` expone (sin
+crear `AppSettings`, cuyo `init` migra y escribe) y los archivos del
+historial con `DictationHistoryStore.entradas(in:)`.
+
+Reglas:
+
+- **stdout es el protocolo.** Nada en ese camino escribe con `print`; los
+  avisos van a `AppLog.agentes` o a stderr. `ServidorMCPDelBinarioTests`
+  lanza el binario con `--mcp` y falla si una línea de stdout no es JSON.
+- **Todo es de sólo lectura**, y lo dictado se declara dato no confiable en
+  las `instructions` del `initialize`: un dictado escrito como orden no es
+  una orden para el agente.
+- **Una sola tabla.** `HerramientasDeDilo` define las herramientas; el
+  `tools/list`, la validación de argumentos, `dilo spec` y `dilo --help`
+  salen de ahí. Una herramienta nueva se agrega a esa tabla y a
+  `CLIDeDilo.comandos`, con su test.
+- **Errores que dicen qué hacer.** Un fallo de herramienta va con `isError`
+  y una frase de arreglo; el CLI responde siempre el mismo sobre
+  `{ok, comando, datos | error{codigo, mensaje, arreglo}, meta}` y sale con
+  0 ok, 3 historial apagado o ilegible, 4 uso, 5 no encontrado.
+
+Herramientas (MCP) y comandos (CLI), las cuatro del plan:
+
+| MCP | CLI |
+| --- | --- |
+| `dictados_recientes {maximo}` | `dilo dictados recientes [--maximo N]` |
+| `buscar_dictados {consulta, maximo}` | `dilo dictados buscar <consulta> [--maximo N]` |
+| `ver_dictado {id, desde, max_caracteres}` | `dilo dictados ver <id> [--desde N] [--max_caracteres N]` |
+| `tus_palabras` | `dilo palabras` |
+
+Topes: `maximo` 10 (hasta 50), extractos de 280 caracteres con `recortado`,
+páginas de 20.000 caracteres (hasta 100.000). El id para agentes es
+`2026-10-12T09:41:07`, con `#2` si hubo dos en el mismo segundo
+(`IdsDeDictados`). **Con el historial apagado —el de fábrica— no hay dictados
+que leer** y las herramientas lo dicen; `tus_palabras` funciona igual. Lo
+que vive sólo en la app abierta (el último dictado sin historial, un dictado
+pedido por un agente con confirmación en la muesca) espera a un socket de la
+app viva; no existe todavía.
+
+**Cómo se registra en un cliente** (sólo documentado; nadie lo registra por
+la persona). Con la app instalada en `/Applications`:
+
+```sh
+claude mcp add dilo -- /Applications/Dilo.app/Contents/MacOS/Dilo --mcp
+```
+
+```toml
+# ~/.codex/config.toml
+[mcp_servers.dilo]
+command = "/Applications/Dilo.app/Contents/MacOS/Dilo"
+args = ["--mcp"]
+```
+
+```json
+{
+  "mcpServers": {
+    "dilo": { "command": "/Applications/Dilo.app/Contents/MacOS/Dilo", "args": ["--mcp"] }
+  }
+}
+```
+
+El JSON sirve para `.mcp.json` de un proyecto y para los clientes que leen
+`mcpServers`. El comando `dilo` es un enlace al mismo ejecutable:
+`ln -s /Applications/Dilo.app/Contents/MacOS/Dilo ~/.local/bin/dilo`. Por el
+enlace Foundation no ve el bundle, así que `ArranqueParaAgentes.bundleDeLaApp`
+sigue el enlace hasta el `.app` para leer sus ajustes y su versión. Ajustes
+todavía no tiene el botón «Instalar el comando `dilo`» del plan.
+
+**TCC.** El historial vive de fábrica en `~/Documents/Dilo/`, y Documentos es
+una carpeta protegida: la primera vez que un agente lee dictados, macOS le
+pregunta a la persona si deja que **quien lanzó el proceso** (el terminal, o
+el cliente del agente) lea Documentos. Es una vez y es correcto que pregunte.
+
+**Probarlo sin ventanas y sin tocar los datos de Alfonso.** El binario de un
+DerivedData tiene el bundle id de la app instalada y lee sus ajustes; para
+no leer el historial real (ni disparar ese diálogo), pisa las claves por la
+línea de comandos —`NSArgumentDomain`, no escribe nada—:
+
+```sh
+BIN=…/Build/Products/Debug/Dilo.app/Contents/MacOS/Dilo
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+  | "$BIN" --mcp -dictationHistoryFolder /private/tmp/historial-de-prueba -diloPalabrasPropias '("Prueba")'
+"$BIN" --help
+"$BIN" dictados recientes -dictationHistoryEnabled NO   # sale con 3
+```
 
 ## Idioma, copy y el catálogo
 
