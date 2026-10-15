@@ -293,6 +293,20 @@ SwiftUI.
   > apagarlo y negro si el sistema pide reducir la transparencia), y lo que
   > venga después con la misma regla. El vidrio no sale en PNG: se juzga en la pantalla con
   > `scripts/muesca.sh mostrar hover-vidrio hover-completo-vidrio`.
+  >
+  > **Corrección del 2026-10-15: el vidrio es sólo el pie.** Con la 0.4.5
+  > instalada el panel «se ve mal»: negro en la cabecera y vidrio con tinte
+  > 0,3 en todo lo demás, que sobre una página blanca quedaba gris claro con
+  > letra blanca encima. Droppy hace lo contrario —se ve en su video
+  > «Dynamic Glass»—: el panel es negro opaco casi entero y el vidrio
+  > aparece sólo en el último cuarto, ahumado y oscuro, con un filo de luz en
+  > el borde de abajo. Así queda ahora (`PanelDeVidrio`): el texto siempre
+  > sobre negro, la franja de vidrio tintado al pie sin que el negro llegue
+  > nunca a cero, radio de 32 abajo, y el contenido con la jerarquía de
+  > Droppy —lo principal grande y en negrita, lo secundario en gris, los
+  > controles en blanco—. La lámina con la 0.4.5 contra la nueva sobre una
+  > página blanca y un escritorio oscuro sale de
+  > `scripts/render-muesca.sh <carpeta> --antes-despues --referencia <cuadro>`.
 - **El botón de cancelar y el cronómetro.** Mientras se dicta la forma no toma
   el mouse (contrato del notch: el clic es del documento en el que estás
   escribiendo), así que un botón ahí es un botón que no se puede apretar. Esc

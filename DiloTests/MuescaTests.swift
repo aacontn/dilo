@@ -181,10 +181,10 @@ struct MuescaTests {
     #expect(alto > reposo.height)
     #expect(alto > HUDNotchGeometry.tamañoDictando(for: simulada).height)
     #expect(alto <= HUDNotchGeometry.altoMaximoDelHover)
-    // Era 110 con una línea y el detalle de los datos; con las secciones del
-    // 2026-09-24, ordenadas, el techo es 220, y sigue siendo un panel y no
-    // una ventana.
-    #expect(HUDNotchGeometry.altoMaximoDelHover <= 220)
+    // Era 110 con una línea y el detalle de los datos; 220 con las secciones
+    // del 2026-09-24, y 248 con la jerarquía de Droppy del 2026-10-15. Sigue
+    // siendo un panel y no una ventana.
+    #expect(HUDNotchGeometry.altoMaximoDelHover <= 248)
     // El ancho es el del contenido elegido en Ajustes, no uno medido del
     // texto ni el de la muesca dictando.
     #expect(HUDMetrics.standard.contentWidth == 400)
@@ -192,14 +192,17 @@ struct MuescaTests {
   }
 
   /// Y la ventana abierta se dimensiona por el más alto de los dos, que es el
-  /// panel del hover: 90 puntos de alto donde antes eran 190.
+  /// panel del hover: 126 puntos de alto (90 hasta la 0.4.5, 190 al principio).
   @Test func laVentanaAbiertaLaManejaElPanelDelHover() {
     let simulada = pantalla(barra: 24)
     #expect(
       HUDNotchGeometry.altoDeLaFormaMasAlta(for: simulada)
         == HUDNotchGeometry.altoDelPanelDeHover(for: simulada)
     )
-    #expect(HUDNotchGeometry.windowSize(for: simulada) == CGSize(width: 488, height: 90))
+    // 126 desde el 2026-10-15: el panel más chico ya trae lo último en
+    // grande (82 de alto, antes 46). Es la ventana abierta, transparente y
+    // sin mouse fuera de la silueta; la de reposo sigue en 178×24.
+    #expect(HUDNotchGeometry.windowSize(for: simulada) == CGSize(width: 488, height: 126))
   }
 
   /// Y la cabecera de la forma abierta sigue siendo la silueta en reposo: la
@@ -532,7 +535,7 @@ struct MuescaTests {
     let content = DictationHUDContent()
     content.contexto = "Correo"
     content.punteroEncima = true
-    let panel = CGSize(width: 400, height: 46)
+    let panel = CGSize(width: 400, height: 82)
     let radio = PanelDeVidrio.radio(para: panel, cabecera: HUDNotchGeometry.alturaDeCabecera(for: simulada))
     let hombro = FormaAbierta.hombro(para: panel, en: simulada, radioInferior: radio)
     #expect(hombro > HUDNotchGeometry.filletSize(for: simulada))
@@ -627,7 +630,7 @@ struct MuescaTests {
         forma: HUDNotchGeometry.reposoSize(for: simulada),
         pantalla: simulada.nombre,
         notchReal: HUDNotchGeometry.hasMeasuredNotch(for: simulada)
-      ) == "estado=reposo ventana=488x90 forma=160x24 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=reposo ventana=488x126 forma=160x24 pantalla=DELL U2412M notchReal=false"
     )
     // Sin nombre no se escribe un hueco: una línea con `pantalla=` vacío se
     // lee como que la pantalla no tiene nombre, no como que el campo faltó.

@@ -81,24 +81,25 @@ extension DictationHUDContent {
   static let recientesGuardados = 12
 }
 
-/// El panel que abre el hover: recientes, el detalle de los datos, la próxima
-/// reunión y los modos, en ese orden y cada uno sólo si tiene algo.
+/// El panel que abre el hover: la próxima reunión, lo último dictado en
+/// grande con los recientes anteriores debajo, el detalle de los datos y los
+/// modos, en ese orden y cada uno sólo si tiene algo.
 ///
 /// **Alto fijo por sección**, sumado en `HUDNotchGeometry.altoDelPanelDeHover`:
 /// la forma se dimensiona antes de dibujar, así que ninguna sección puede
 /// crecer con su contenido. Por eso la letra no escala con el tamaño de
 /// Ajustes y cada fila es una línea recortada.
+///
+/// **El contenido va sobre negro**, con vidrio o sin él: el vidrio es sólo
+/// la franja de abajo (`PanelDeVidrio`), donde queda la fila de los
+/// controles sobre vidrio ahumado. Las piezas —el último, cada reciente, los
+/// chips y los botones— viven en `PiezasDelPanel.swift`, con la jerarquía de
+/// Droppy.
 struct HUDPanelDelHover: View {
   let content: DictationHUDContent
   /// Lo que se dibuja si no hay ningún reciente: el modo o el nombre.
   let contexto: String
   let lados: [LadoDeLaMuesca]
-  /// Las secciones como tarjetas sobre el vidrio (`PanelDeVidrio`), en vez
-  /// de separadas por una línea sobre el negro. Los altos no cambian: la
-  /// tarjeta usa el aire que antes ocupaba el separador.
-  var enTarjetas = false
-  /// El radio de abajo del panel, para que la última tarjeta lo siga.
-  var radioDelPanel: CGFloat = 0
   var ahora = Date()
 
   private var secciones: SeccionesDelPanel {
@@ -108,10 +109,10 @@ struct HUDPanelDelHover: View {
   /// En este orden, de lo más urgente a lo más a mano:
   ///
   /// 1. **La próxima reunión**, como tarjeta: es lo único del panel que tiene
-  ///    hora, y cuando falta poco se tiñe de mango.
-  /// 2. **Recientes**, con su encabezado —o la línea de contexto si todavía no
-  ///    hay nada—.
-  /// 3. **El detalle de los datos**, detrás de un separador.
+  ///    hora, y cuando falta poco se tiñe del acento.
+  /// 2. **Lo último**, en grande, y los recientes anteriores en una línea
+  ///    cada uno —o, sin recientes, el modo o el nombre en grande—.
+  /// 3. **El detalle de los datos**.
   /// 4. **La barra de acciones** al pie: los modos y «Nota».
   ///
   /// Cada sección lleva un alto exacto, el mismo que suma
@@ -123,19 +124,11 @@ struct HUDPanelDelHover: View {
         tarjetaDeLaReunion(reunion)
           .frame(height: HUDNotchGeometry.altoDeLaReunion, alignment: .top)
       }
-      if secciones.recientes > 0 {
-        VStack(alignment: .leading, spacing: 0) {
-          encabezado("Recientes")
-          recientes
+      ultimo
+      if secciones.recientes > 1 {
+        ForEach(content.recientes.prefix(secciones.recientes).dropFirst()) { elemento in
+          filaReciente(elemento)
         }
-        .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: ultima == .primera))
-      } else {
-        Text(verbatim: contexto)
-          .font(.system(size: 10, weight: .medium, design: .rounded))
-          .foregroundStyle(.white.opacity(0.78))
-          .lineLimit(1)
-          .frame(maxWidth: .infinity)
-          .frame(height: HUDNotchGeometry.altoDelContextoEnReposo)
       }
       if secciones.datos {
         VStack(spacing: 0) {
@@ -143,7 +136,6 @@ struct HUDPanelDelHover: View {
           HUDDetalleDeLosDatos(lados: lados, ahora: ahora)
             .padding(.top, 2)
             .frame(maxHeight: .infinity, alignment: .top)
-            .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: ultima == .datos))
         }
         .frame(height: HUDNotchGeometry.altoDelDetalleDeDatos, alignment: .top)
       }
@@ -151,88 +143,56 @@ struct HUDPanelDelHover: View {
         VStack(spacing: 0) {
           separador
           modos
-            .tarjetaDelPanel(enTarjetas, radioInferior: radioDeTarjeta(esLaUltima: true))
         }
         .frame(height: HUDNotchGeometry.altoDeLosModos, alignment: .top)
       }
     }
-    // El mismo aire con vidrio o en negro: desde el 2026-10-14 los dos abren
-    // con el radio de 40 de Droppy, y con 16 los chips del pie quedaban
-    // asomados fuera de la curva.
     .padding(.horizontal, PanelDeVidrio.aireLateral)
-    .padding(.bottom, secciones.llevaAire ? HUDNotchGeometry.aireAlPieDelPanel : 0)
+    .padding(.bottom, HUDNotchGeometry.aireAlPieDelPanel)
   }
 
-  /// Cuál sección va al pie: la que lleva el radio concéntrico con el panel.
-  private enum Seccion { case primera, datos, modos }
-
-  private var ultima: Seccion {
-    secciones.modos ? .modos : secciones.datos ? .datos : .primera
-  }
-
-  private func radioDeTarjeta(esLaUltima: Bool) -> CGFloat {
-    esLaUltima
-      ? PanelDeVidrio.radioDeLaUltimaTarjeta(radioDelPanel: radioDelPanel)
-      : PanelDeVidrio.radioDeTarjeta
-  }
-
-  /// Una línea finita entre secciones, con su aire. Con tarjetas, sólo el
-  /// aire: la tarjeta ya separa.
+  /// Aire entre secciones, sin línea: con la letra grande y el negro de
+  /// fondo, la jerarquía ya separa (antes, una línea al 8 % o una tarjeta).
   private var separador: some View {
-    Rectangle()
-      .fill(.white.opacity(enTarjetas ? 0 : 0.08))
-      .frame(height: 1)
-      .frame(height: HUDNotchGeometry.altoDelSeparador)
+    Color.clear.frame(height: HUDNotchGeometry.altoDelSeparador)
   }
 
-  /// El nombre de una sección, en chico y apagado: ordena sin competir con lo
-  /// que hay debajo.
-  private func encabezado(_ titulo: LocalizedStringKey) -> some View {
-    Text(titulo)
-      .textCase(.uppercase)
-      .font(.system(size: 8, weight: .semibold, design: .rounded))
-      .tracking(0.6)
-      .foregroundStyle(.white.opacity(0.42))
-      .frame(height: HUDNotchGeometry.altoDelEncabezadoDeSeccion, alignment: .bottom)
-  }
+  // MARK: Lo último y los recientes
 
-  // MARK: Recientes
-
-  private var recientes: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      ForEach(content.recientes.prefix(HUDNotchGeometry.recientesEnElPanel)) { elemento in
-        filaReciente(elemento)
-      }
+  /// Lo último que se dictó o copió, en grande, con copiar a la derecha. Sin
+  /// recientes, el modo o el nombre, y nada que copiar.
+  @ViewBuilder
+  private var ultimo: some View {
+    if let elemento = content.recientes.first, secciones.recientes > 0 {
+      let origen = elemento.origen == .dictado ? String(localized: "Dictado") : String(localized: "Copiado")
+      HUDUltimoDelPanel(
+        titulo: elemento.vistazo,
+        subtitulo: "\(origen) · \(TextoDelPanel.hace(elemento.cuando, ahora: ahora))",
+        esDictado: elemento.origen == .dictado,
+        copiado: content.recienteCopiadoID == elemento.id
+      )
+      .contentShape(Rectangle())
+      .onTapGesture { content.alCopiarReciente?(elemento) }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Text(verbatim: elemento.vistazo))
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint(Text("Copiar"))
+    } else {
+      HUDUltimoDelPanel(
+        titulo: contexto,
+        subtitulo: String(localized: "Todavía no hay nada que copiar"),
+        ofreceCopiar: false
+      )
+      .accessibilityElement(children: .combine)
     }
   }
 
   private func filaReciente(_ elemento: ElementoReciente) -> some View {
-    HStack(spacing: 7) {
-      Image(systemName: elemento.origen == .dictado ? "waveform" : "doc.on.clipboard")
-        .font(.system(size: 8.5, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.4))
-        .frame(width: 12)
-      Text(verbatim: elemento.vistazo)
-        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-        .foregroundStyle(.white.opacity(0.82))
-        .lineLimit(1)
-        .truncationMode(.tail)
-      Spacer(minLength: 6)
-      // Íconos y no palabras (2026-09-24: «pon el ícono de copiar, no me
-      // gusta que salga copiar»): el de copiar apagado, y un ✓ en menta
-      // cuando se copió, que es cuando pasó algo.
-      if content.recienteCopiadoID == elemento.id {
-        Image(systemName: "checkmark")
-          .font(.system(size: 9.5, weight: .bold))
-          .foregroundStyle(PaletaDeDilo.actual.acuse.color)
-          .accessibilityLabel(Text("Copiado"))
-      } else {
-        Image(systemName: "doc.on.doc")
-          .font(.system(size: 9, weight: .semibold))
-          .foregroundStyle(.white.opacity(0.38))
-      }
-    }
-    .frame(height: HUDNotchGeometry.altoDeUnReciente)
+    HUDFilaRecienteDelPanel(
+      texto: elemento.vistazo,
+      esDictado: elemento.origen == .dictado,
+      copiado: content.recienteCopiadoID == elemento.id
+    )
     .contentShape(Rectangle())
     .onTapGesture { content.alCopiarReciente?(elemento) }
     .accessibilityElement(children: .ignore)
@@ -247,16 +207,16 @@ struct HUDPanelDelHover: View {
   /// Mango cuando faltan diez minutos o menos, que es cuando importa.
   private func tarjetaDeLaReunion(_ reunion: ProximaReunion) -> some View {
     let pronto = Self.esPronto(reunion, ahora: ahora)
-    return HStack(spacing: 7) {
+    return HStack(spacing: 8) {
       Image(systemName: "calendar")
-        .font(.system(size: 10, weight: .semibold))
+        .font(.system(size: 11, weight: .semibold))
         .foregroundStyle(pronto ? PaletaDeDilo.actual.acento.color : .white.opacity(0.55))
       Text(verbatim: reunion.titulo)
-        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-        .foregroundStyle(.white.opacity(0.9))
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundStyle(.white)
         .lineLimit(1)
       Text(verbatim: Self.cuando(reunion, ahora: ahora))
-        .font(.system(size: 10, weight: .medium, design: .rounded))
+        .font(.system(size: 11, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(Self.color(reunion, ahora: ahora))
         .lineLimit(1)
@@ -264,15 +224,15 @@ struct HUDPanelDelHover: View {
       Spacer(minLength: 6)
       if reunion.enlace != nil {
         Text("Unirse")
-          .font(.system(size: 9.5, weight: .bold, design: .rounded))
+          .font(.system(size: 11, weight: .bold))
           .foregroundStyle(.black)
-          .padding(.horizontal, 9)
-          .padding(.vertical, 3)
-          .background(Capsule(style: .continuous).fill(PaletaDeDilo.actual.acento.color))
+          .padding(.horizontal, 10)
+          .frame(height: 20)
+          .background(Capsule(style: .continuous).fill(pronto ? PaletaDeDilo.actual.acento.color : .white))
       }
     }
-    .padding(.horizontal, 9)
-    .frame(height: 26)
+    .padding(.horizontal, 10)
+    .frame(height: 28)
     .background(
       RoundedRectangle(cornerRadius: 8, style: .continuous)
         .fill(pronto ? PaletaDeDilo.actual.acento.color.opacity(0.14) : .white.opacity(0.06))
@@ -303,12 +263,13 @@ struct HUDPanelDelHover: View {
 
   // MARK: Los modos
 
-  /// La fila de abajo: los modos a la izquierda y «Nota» a la derecha.
+  /// La fila de abajo: los modos a la izquierda y «Traducir» y «Nota» a la
+  /// derecha, todos en blanco —el elegido, blanco lleno—.
   private var modos: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 6) {
       if !content.modosDelPanel.isEmpty {
         ScrollView(.horizontal, showsIndicators: false) {
-          HStack(spacing: 5) {
+          HStack(spacing: 6) {
             chip(nombre: String(localized: "Normal"), id: nil)
             ForEach(content.modosDelPanel) { modo in
               chip(nombre: modo.nombre, id: modo.id)
@@ -334,18 +295,10 @@ struct HUDPanelDelHover: View {
   /// se lee como roto.
   private func botonDeTraducir(_ traduccion: TraduccionDelPanel) -> some View {
     let listo: String? = if case let .hacia(destino) = traduccion { destino } else { nil }
-    return HStack(spacing: 4) {
-      Image(systemName: "globe")
-        .font(.system(size: 9, weight: .bold))
-      Text(verbatim: listo.map { "→ \($0)" } ?? String(localized: "Traducir"))
-        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-    }
-    .foregroundStyle(listo == nil ? .white.opacity(0.55) : PaletaDeDilo.actual.acento.color)
-    .padding(.horizontal, 9)
-    .padding(.vertical, 3)
-    .background(
-      Capsule(style: .continuous)
-        .fill(listo == nil ? .white.opacity(0.08) : PaletaDeDilo.actual.acento.color.opacity(0.16))
+    return HUDBotonDelPanel(
+      icono: "globe",
+      titulo: listo.map { "→ \($0)" } ?? String(localized: "Traducir"),
+      apagado: listo == nil
     )
     .contentShape(Capsule())
     .onTapGesture {
@@ -363,17 +316,8 @@ struct HUDPanelDelHover: View {
   /// Dictar una nota que termina en Apple Notas. Es un clic, no el hover:
   /// posarse encima nunca abre el micrófono (contrato del notch).
   private var botonDeNota: some View {
-    HStack(spacing: 4) {
-      Image(systemName: "square.and.pencil")
-        .font(.system(size: 9, weight: .bold))
-      Text("Nota")
-        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-    }
-    .foregroundStyle(PaletaDeDilo.actual.acento.color)
-    .padding(.horizontal, 9)
-    .padding(.vertical, 3)
-    .background(Capsule(style: .continuous).fill(PaletaDeDilo.actual.acento.color.opacity(0.16)))
-    .contentShape(Capsule())
+    HUDBotonDelPanel(icono: "square.and.pencil", titulo: String(localized: "Nota"))
+      .contentShape(Capsule())
       .onTapGesture { content.alDictarNota?() }
       .accessibilityAddTraits(.isButton)
       .accessibilityLabel(Text("Dictar una nota"))
@@ -381,34 +325,9 @@ struct HUDPanelDelHover: View {
 
   private func chip(nombre: String, id: String?) -> some View {
     let elegido = content.modoDelPanelID == id
-    return Text(verbatim: nombre)
-      .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-      .lineLimit(1)
-      .foregroundStyle(elegido ? .black : .white.opacity(0.75))
-      .padding(.horizontal, 8)
-      .padding(.vertical, 3)
-      .background { fondoDelChip(elegido: elegido) }
+    return HUDChipDelPanel(nombre: nombre, elegido: elegido)
       .contentShape(Capsule())
       .onTapGesture { content.alElegirModo?(id) }
       .accessibilityAddTraits(elegido ? [.isButton, .isSelected] : .isButton)
-  }
-
-  /// La selección en el degradado de la onda —de azul a celeste en Glaciar,
-  /// de gris a blanco en Grafito— con su luz: el modo elegido es lo que más
-  /// tiene que saltar a la vista del panel. Lo no elegido, blanco tenue.
-  @ViewBuilder
-  private func fondoDelChip(elegido: Bool) -> some View {
-    if elegido {
-      let paleta = PaletaDeDilo.actual
-      Capsule(style: .continuous)
-        .fill(LinearGradient(
-          colors: [paleta.ondaBase.mezcla(con: paleta.ondaPunta, 0.35).color, paleta.ondaPunta.color],
-          startPoint: .leading,
-          endPoint: .trailing
-        ))
-        .shadow(color: paleta.halo.color.opacity(0.5), radius: 4)
-    } else {
-      Capsule(style: .continuous).fill(.white.opacity(0.12))
-    }
   }
 }

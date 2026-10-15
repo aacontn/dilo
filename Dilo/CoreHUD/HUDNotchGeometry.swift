@@ -271,18 +271,20 @@ enum HUDNotchGeometry {
   /// Y desde el 2026-09-24 el panel tiene secciones (`HUDPanelDelHover`): los
   /// recientes en lugar de la línea de contexto, la próxima reunión y los
   /// modos. Cada una suma un alto fijo, y sólo si tiene algo que mostrar.
+  ///
+  /// Desde el 2026-10-15 la primera sección es siempre `altoDelUltimo`: lo
+  /// último dictado en grande —o, sin recientes, el modo o el nombre—, y los
+  /// recientes anteriores debajo, una línea cada uno.
   static func altoDelPanelDeHover(
     for screen: HUDScreenSnapshot,
     secciones: SeccionesDelPanel? = nil
   ) -> CGFloat {
     let secciones = secciones ?? SeccionesDelPanel(datos: screen.anchoDeLosLados > 0)
-    let primera = secciones.recientes > 0
-      ? altoDelEncabezadoDeSeccion + CGFloat(secciones.recientes) * altoDeUnReciente
-      : altoDelContextoEnReposo
+    let primera = altoDelUltimo + CGFloat(max(0, secciones.recientes - 1)) * altoDeUnReciente
     let resto = (secciones.datos ? altoDelDetalleDeDatos : 0)
       + (secciones.reunion ? altoDeLaReunion : 0)
       + (secciones.modos ? altoDeLosModos : 0)
-      + (secciones.llevaAire ? aireAlPieDelPanel : 0)
+      + aireAlPieDelPanel
     return min(reposoSize(for: screen).height + primera + resto, altoMaximoDelHover)
   }
 
@@ -493,10 +495,6 @@ enum HUDNotchGeometry {
     !hasMeasuredNotch(for: screen) && screen.menuBarHeight <= 0
   }
 
-  /// Cuánto crece la muesca hacia abajo cuando el hover abre el contexto: lo
-  /// que pide una línea chica y su aire, y nada más.
-  static let altoDelContextoEnReposo: CGFloat = 22
-
   /// El techo del panel que abre el hover. No es un tamaño, es un límite:
   /// pasar el mouse revela contexto, y algo que ocupa media pantalla sin que
   /// nadie lo haya pedido dejó de ser contexto.
@@ -505,9 +503,14 @@ enum HUDNotchGeometry {
   /// las secciones del 2026-09-24 —tres recientes, la reunión y los modos—
   /// todo encendido sumaba 181 en un 1080p. Ordenado —la reunión como
   /// tarjeta, encabezado sobre los recientes y un separador entre secciones—
-  /// suma 218; 220 es ese número, y sigue siendo un panel que cuelga de la
+  /// suma 218; 220 era ese número, y sigue siendo un panel que cuelga de la
   /// barra y no una ventana.
-  static let altoMaximoDelHover: CGFloat = 220
+  ///
+  /// 248 desde el 2026-10-15: con la jerarquía de Droppy lo principal es más
+  /// grande —el último dictado en dos líneas, controles de 24— y todo
+  /// encendido suma eso. Lo de todos los días, dos recientes y los modos,
+  /// mide 142.
+  static let altoMaximoDelHover: CGFloat = 248
 
   /// Lo mínimo que se le reserva a la barra de menús aunque el sistema diga
   /// que mide cero.
@@ -655,10 +658,6 @@ struct SeccionesDelPanel: Equatable, Sendable {
   var reunion = false
   var modos = false
 
-  /// Si el panel lleva aire al pie: con cualquier sección nueva. El panel de
-  /// una línea y el detalle de los datos ya traían el suyo.
-  var llevaAire: Bool { recientes > 0 || reunion || modos }
-
   /// Todas encendidas y llenas: lo más alto que el panel puede llegar a
   /// medir.
   static let todas = SeccionesDelPanel(
@@ -749,17 +748,23 @@ extension HUDNotchGeometry {
   /// Cuántos recientes muestra el panel. Tres: más ya es una lista para leer,
   /// y el panel es para agarrar algo al paso.
   static let recientesEnElPanel = 3
-  static let altoDeUnReciente: CGFloat = 19
-  /// El encabezado chico de una sección («RECIENTES»).
-  static let altoDelEncabezadoDeSeccion: CGFloat = 15
+  /// Lo último, en grande (`HUDUltimoDelPanel`): el cuadro de 32 con su
+  /// aire, el título en negrita y la línea gris debajo. Reemplaza al
+  /// encabezado «RECIENTES» y a la primera fila.
+  static let altoDelUltimo: CGFloat = 48
+  /// Cada reciente anterior, en una línea (`HUDFilaRecienteDelPanel`).
+  static let altoDeUnReciente: CGFloat = 22
+  /// Un chip o un botón de la fila de abajo.
+  static let altoDeUnControl: CGFloat = 24
   /// La tarjeta de la reunión y el aire que la separa de lo que sigue.
-  static let altoDeLaReunion: CGFloat = 32
+  static let altoDeLaReunion: CGFloat = 36
   /// La barra de acciones —modos y «Nota»— con su separador arriba.
-  static let altoDeLosModos: CGFloat = 36
+  static let altoDeLosModos: CGFloat = 38
   /// Lo que mide un separador entre secciones, con su aire: va incluido en el
   /// alto de la sección que lo lleva arriba.
   static let altoDelSeparador: CGFloat = 8
-  /// El aire bajo la última sección, dentro de la forma.
-  static let aireAlPieDelPanel: CGFloat = 6
+  /// El aire bajo la última sección, dentro de la forma: con el radio de 32
+  /// abajo, lo que deja la fila de los controles fuera de la curva.
+  static let aireAlPieDelPanel: CGFloat = 10
 }
 

@@ -287,12 +287,15 @@ struct DictationHUDShellView: View {
   /// El filo de color del borde de abajo (`FiloDeLaMuesca`): el acento
   /// mientras la muesca escucha o trabaja, la menta en el acuse, el coral en
   /// un error, el ámbar con el micrófono muerto, y el acento más bajo con el
-  /// panel del hover abierto. En reposo, nada: el reposo no cambia.
+  /// panel del hover abierto en negro. Con vidrio, ninguno: el canto de la
+  /// franja ya es el filo blanco del vidrio (`FondoDeLaMuesca`), y dos luces
+  /// en el mismo borde se pisan. En reposo, nada: el reposo no cambia.
   private var filo: Color? {
     let paleta = PaletaDeDilo.actual
     switch content.estado {
     case .reposo:
-      return content.contextoVisible == nil ? nil : paleta.filo.color.opacity(0.6)
+      guard content.contextoVisible != nil, !content.panelDeVidrio else { return nil }
+      return paleta.filo.color.opacity(0.6)
     case .dictando:
       return content.isAudioAlive
         ? paleta.filo.color
@@ -351,11 +354,7 @@ struct DictationHUDShellView: View {
         HUDPanelDelHover(
           content: content,
           contexto: contexto,
-          lados: ladosConDato,
-          enTarjetas: content.panelDeVidrio,
-          radioDelPanel: PanelDeVidrio.radio(
-            para: tamañoEnReposo, cabecera: HUDNotchGeometry.alturaDeCabecera(for: screen)
-          )
+          lados: ladosConDato
         )
       }
       .frame(height: tamañoEnReposo.height, alignment: .top)

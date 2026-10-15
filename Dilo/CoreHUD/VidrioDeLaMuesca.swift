@@ -1,49 +1,66 @@
 import SwiftUI
 
-/// El panel del hover al estilo Dynamic Glass: negro en la muesca que se
-/// funde hacia abajo en vidrio.
+/// El panel del hover al estilo Dynamic Glass: **negro opaco** en todo lo
+/// que tiene texto, y el vidrio sólo en una franja ahumada al pie.
 ///
-/// Técnica observada en Droppy («Black at the notch, melting into glass»):
-/// su `DynamicGlassMaterialView` hereda del `NSGlassEffectView` público, y el
-/// estante abierto lleva radios de 32 arriba, 40 en el estante y 44 en la
-/// isla (`DroppyShellMetrics`). La implementación es propia y sólo con API
-/// pública: `glassEffect(_:in:)` de SwiftUI.
+/// Técnica observada en el video «Dynamic Glass» de Droppy (cuadro guardado
+/// en el taller, `droppy-dynamic-glass-referencia.jpg`): el panel abierto es
+/// negro casi entero y recién en su último cuarto el negro «se derrite» en
+/// vidrio oscuro, con un filo de luz en el borde de abajo. El fondo apenas se
+/// adivina a través de esa franja y el texto queda siempre sobre negro, así
+/// que se lee igual sobre una página blanca que sobre un escritorio oscuro.
+/// Implementación propia y sólo con API pública: `glassEffect(_:in:)`.
 ///
-/// **La cabecera no deja nunca de ser negra.** Es la silueta en reposo —la
-/// carcasa o la franja de la barra de menús— y la muesca **es** el borde de la
-/// pantalla; lo que puede ser vidrio es sólo lo que cuelga hacia el
-/// escritorio, y el paso entre los dos es un degradado para que no se lea
-/// como dos objetos pegados (`docs/design/2026-09-21-experiencia-dilo.md`,
-/// enmienda del 2026-10-14).
+/// **Hasta la 0.4.5 era al revés** (2026-10-15): negro sólo en la cabecera y
+/// 22 puntos de fundido, y todo lo demás vidrio con un tinte de 0,3 «para que
+/// se leyera como vidrio». Sobre YouTube el panel quedaba gris claro y
+/// translúcido con letra blanca encima: «se ve mal». El vidrio claro con
+/// texto encima no vuelve.
 ///
-/// **Encendido de fábrica desde el 2026-10-14** (`AppSettings.hudPanelDeVidrio`,
-/// interruptor en Ajustes → Apariencia): apagado y escondido en Debug, nadie
-/// lo veía —«no le veo mucho vidrio»—. Sólo mientras el panel está abierto:
-/// en reposo no hay vidrio montado, así que el reposo cuesta lo mismo que
-/// antes (spec §3). Con «Reducir transparencia» del sistema cae a negro. El
-/// vidrio **no sale en PNG** (`ImageRenderer` no lo dibuja): se juzga en la
-/// pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio` del
-/// arnés.
+/// **Encendido de fábrica** (`AppSettings.hudPanelDeVidrio`, interruptor
+/// «Panel con vidrio» en Ajustes → Apariencia); apagado, la misma forma en
+/// negro entero. Sólo mientras el panel está abierto: en reposo no hay vidrio
+/// montado, así que el reposo cuesta lo mismo que antes (spec §3). Con
+/// «Reducir transparencia» del sistema cae a negro. El vidrio **no sale en
+/// PNG** (`ImageRenderer` no lo dibuja): la lámina lo imita con
+/// `FondoDeLaMuesca.Material.imitacion` y se juzga en la pantalla con las
+/// escenas `hover-vidrio` y `hover-completo-vidrio` del arnés.
 enum PanelDeVidrio {
-  /// El radio de abajo del panel abierto: el `expandedShelfCornerRadius` de
-  /// Droppy. Se achica sólo si el panel es más bajo que eso.
-  static let radioInferior: CGFloat = 40
-  /// Cuánto mide el paso de negro a vidrio bajo la cabecera.
-  static let fundido: CGFloat = 22
-  /// El tinte oscuro del vidrio. Sin tinte, `.regular` sobre un fondo de
-  /// pantalla claro deja el texto blanco sin contraste; con los 0,42 de la
-  /// primera versión el vidrio se leía como un gris oscuro y no como vidrio.
-  static let tinte: Double = 0.3
-  /// El brillo del borde: un filo blanco que se apaga hacia abajo, que es lo
-  /// que hace que el vidrio se lea como un objeto con canto y no como un
-  /// gris translúcido.
-  static let brilloDelBorde: Double = 0.32
-  /// El radio de una tarjeta del panel, y cuánto sobresale de su contenido.
-  static let radioDeTarjeta: CGFloat = 12
-  static let margenDeTarjeta: CGFloat = 8
-  /// El aire lateral del contenido con el vidrio puesto: el radio de 40 se
-  /// come las esquinas, y con los 16 del panel negro los chips de abajo
-  /// quedaban asomados por fuera de la curva.
+  /// El radio de abajo del panel abierto: unos 32 puntos, medidos en el
+  /// cuadro de Droppy contra el ancho del panel (eran 40, el
+  /// `expandedShelfCornerRadius` de su estante, y en el panel se veía más
+  /// redondo que la referencia). Se achica sólo si el panel es más bajo.
+  static let radioInferior: CGFloat = 32
+
+  /// Qué parte del alto del panel ocupa la franja de vidrio, contada desde
+  /// el borde de abajo: el último ~30 %, como en Droppy, entre un mínimo que
+  /// deja ver el vidrio en el panel de una línea y un máximo que nunca le
+  /// llega al texto principal.
+  static let proporcionDeLaFranja: CGFloat = 0.3
+  static let franjaMinima: CGFloat = 26
+  static let franjaMaxima: CGFloat = 60
+
+  /// El tinte negro del vidrio de la franja. Alto a propósito: el vidrio
+  /// de Droppy es ahumado, no claro.
+  static let tinte: Double = 0.5
+  /// Cuánto negro queda encima del vidrio en el mismo borde de abajo, donde
+  /// el degradado es más translúcido. El negro **nunca** llega a cero: es lo
+  /// que garantiza que la fila de abajo —los modos, «Nota»— quede sobre
+  /// vidrio oscuro aunque detrás haya una página blanca.
+  static let negroAlPie: Double = 0.35
+
+  /// Lo que deja pasar del fondo el borde de abajo, el punto más claro del
+  /// panel: el vidrio tintado por el negro que le queda encima. Sobre una
+  /// página blanca es un gris de un tercio, y la letra blanca sigue
+  /// leyéndose; el resto del panel deja pasar menos, y arriba nada.
+  static var transmisionAlPie: Double { (1 - tinte) * (1 - negroAlPie) }
+
+  /// El filo de luz del borde de abajo: blanco, fino, y sólo en la curva de
+  /// abajo, que es lo que hace que la franja se lea como el canto de un
+  /// vidrio y no como un gris translúcido.
+  static let brilloDelBorde: Double = 0.38
+
+  /// El aire lateral del contenido: el radio de abajo se come las esquinas.
   static let aireLateral: CGFloat = 22
 
   /// El radio de abajo para un panel de este alto: el de Droppy, sin pasarse
@@ -52,10 +69,18 @@ enum PanelDeVidrio {
     max(0, min(radioInferior, tamaño.height - cabecera, tamaño.width / 4))
   }
 
-  /// El radio de abajo de la última tarjeta: concéntrico con el del panel,
-  /// menos lo que la tarjeta queda adentro.
-  static func radioDeLaUltimaTarjeta(radioDelPanel: CGFloat) -> CGFloat {
-    max(radioDeTarjeta, radioDelPanel - (aireLateral - margenDeTarjeta))
+  /// Cuánto mide la franja de vidrio en un panel de este alto, sin subir
+  /// nunca por encima de la cabecera.
+  static func franja(para alto: CGFloat, cabecera: CGFloat) -> CGFloat {
+    let libre = max(0, alto - cabecera)
+    return min(libre, max(franjaMinima, min(franjaMaxima, alto * proporcionDeLaFranja)))
+  }
+
+  /// Dónde empieza la franja, como fracción del alto desde arriba: el
+  /// `location` del degradado de la máscara.
+  static func inicioDeLaFranja(para alto: CGFloat, cabecera: CGFloat) -> CGFloat {
+    guard alto > 0 else { return 1 }
+    return 1 - franja(para: alto, cabecera: cabecera) / alto
   }
 }
 
@@ -140,15 +165,28 @@ struct CurvaDeLaMuesca: Equatable, Sendable {
   }
 }
 
-/// El fondo de la forma con el vidrio puesto: negro en la cabecera, vidrio
-/// debajo mientras el panel está abierto, negro entero cuando no.
+/// El fondo de la forma con el vidrio puesto: negro opaco arriba y en todo
+/// el contenido, y vidrio ahumado sólo en la franja de abajo mientras el
+/// panel está abierto (`PanelDeVidrio`). Cerrado, negro entero y sin vidrio
+/// montado.
+///
+/// Son tres capas: el vidrio tintado al fondo, encima un negro con una
+/// máscara que va de opaco a `negroAlPie` en la franja, y encima un negro
+/// entero que se apaga al abrir. El negro de la máscara está siempre —la
+/// cabecera nunca cruza dos negros a media opacidad, que haría parpadear la
+/// muesca contra la barra— y el entero es lo que lleva el paso de negro a
+/// vidrio sin un salto, al abrir y al cerrar.
 struct FondoDeLaMuesca: View {
   /// Con qué se pinta lo de abajo. `imitacion` es para el render en PNG,
-  /// donde el vidrio de verdad no se dibuja: un gris translúcido que deja ver
-  /// el escritorio, rotulado como imitación en la lámina.
-  enum Material: Sendable {
+  /// donde el vidrio de verdad no se dibuja: lo que hay detrás desenfocado y
+  /// tintado con el mismo negro, rotulado como imitación en la lámina.
+  enum Material {
     case vidrio
-    case imitacion
+    /// `fondo` es lo que hay detrás de la forma, **ya desenfocado** y
+    /// recortado a su marco —el `blur` de SwiftUI no sale bien en
+    /// `ImageRenderer`, y la lámina lo desenfoca con Core Image—; sin él, el
+    /// tinte solo sobre lo que haya debajo.
+    case imitacion(fondo: AnyView? = nil)
   }
 
   @Environment(\.accessibilityReduceTransparency) private var reducirTransparencia
@@ -161,86 +199,108 @@ struct FondoDeLaMuesca: View {
   let abierto: Bool
   var material: Material = .vidrio
 
-  /// «Reducir transparencia» manda: el panel se dibuja negro, con las mismas
-  /// tarjetas encima. Es lo que el sistema promete con ese ajuste, y el negro
-  /// ya era el panel de antes.
+  /// «Reducir transparencia» manda: el panel se dibuja negro entero, que es
+  /// lo que el sistema promete con ese ajuste.
   private var conVidrio: Bool { abierto && !reducirTransparencia }
 
   var body: some View {
     ZStack(alignment: .top) {
-      // Lo de abajo se funde: vidrio abierto, negro cerrado. Con una
-      // transición de opacidad el vidrio se apaga mientras la forma se
-      // encoge, en vez de pasar a negro de golpe al empezar a cerrar.
       if conVidrio {
-        cuerpo
-          .overlay { brillo }
-          .transition(.opacity)
-      } else {
-        silueta
-          .fill(Color.black)
+        vidrio
           .transition(.opacity)
       }
-      // La cabecera, siempre y fuera de la transición: si cruzara dos
-      // negros a media opacidad, la muesca parpadearía contra la barra.
+      // El negro con la franja: opaco hasta donde empieza, y de ahí al
+      // `negroAlPie` en el borde. Es lo que deja todo el texto sobre negro.
       silueta
         .fill(Color.black)
-        .mask(alignment: .top) { mascaraDeCabecera }
+        .mask { mascaraDelNegro }
+      // El negro entero, que tapa el vidrio mientras el panel está cerrado o
+      // la transparencia está reducida, y se apaga al abrir.
+      silueta
+        .fill(Color.black)
+        .opacity(conVidrio ? 0 : 1)
+      if conVidrio {
+        brillo
+          .transition(.opacity)
+      }
     }
+    .animation(.easeOut(duration: 0.25), value: conVidrio)
   }
 
-  /// El vidrio con la silueta entera, alas incluidas: los hombros grandes de
-  /// la forma abierta bajan más que la cabecera, y lo que asoma debajo del
-  /// fundido tiene que ser vidrio y no un hueco.
+  /// El vidrio con la silueta entera, alas incluidas: arriba lo tapa el
+  /// negro, y así no hay costura entre los dos en ningún punto.
   @ViewBuilder
-  private var cuerpo: some View {
+  private var vidrio: some View {
     switch material {
     case .vidrio:
       Color.clear
         .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta)
-    case .imitacion:
-      silueta
-        .fill(Color(white: 0.09).opacity(0.58))
+    case let .imitacion(fondo):
+      ZStack {
+        if let fondo {
+          fondo
+        }
+        Color.black.opacity(PanelDeVidrio.tinte)
+      }
+      .clipShape(silueta)
     }
   }
 
-  /// El canto del vidrio: un filo blanco en el contorno del cuerpo que se
-  /// apaga hacia abajo y no toca la cabecera, que es negra.
-  private var brillo: some View {
-    silueta.sinHombros
-      .stroke(
-        LinearGradient(
-          colors: [
-            .white.opacity(PanelDeVidrio.brilloDelBorde),
-            .white.opacity(PanelDeVidrio.brilloDelBorde * 0.35),
-            .white.opacity(PanelDeVidrio.brilloDelBorde * 0.6),
-          ],
-          startPoint: .top,
-          endPoint: .bottom
-        ),
-        lineWidth: 0.75
+  /// La máscara del negro: opaca hasta la franja, y de ahí un degradado
+  /// suave —tres paradas, para que el negro «se derrita» y no corte— hasta
+  /// `negroAlPie`. Más ancha que la forma: las alas cóncavas se dibujan
+  /// fuera de su marco y una máscara del ancho justo las cortaría.
+  private var mascaraDelNegro: some View {
+    GeometryReader { geo in
+      let inicio = PanelDeVidrio.inicioDeLaFranja(para: geo.size.height, cabecera: alturaDeCabecera)
+      let pie = PanelDeVidrio.negroAlPie
+      LinearGradient(
+        stops: [
+          .init(color: .black, location: 0),
+          .init(color: .black, location: inicio),
+          .init(color: .black.opacity(pie + (1 - pie) * 0.45), location: inicio + (1 - inicio) * 0.45),
+          .init(color: .black.opacity(pie), location: 1),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
       )
-      .mask(alignment: .top) {
-        VStack(spacing: 0) {
-          Color.clear.frame(height: alturaDeCabecera)
-          LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-            .frame(height: PanelDeVidrio.fundido)
-          Color.black
-        }
-        .padding(.horizontal, -60)
-      }
-  }
-
-  /// La franja de la cabecera y el degradado del fundido. Más ancha que la
-  /// forma: las alas cóncavas de la silueta se dibujan fuera de su marco y
-  /// una máscara del ancho justo las cortaría.
-  private var mascaraDeCabecera: some View {
-    VStack(spacing: 0) {
-      Rectangle().frame(height: alturaDeCabecera)
-      LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-        .frame(height: PanelDeVidrio.fundido)
-      Spacer(minLength: 0)
     }
     .padding(.horizontal, -60)
+  }
+
+  /// El canto del vidrio: un filo blanco fino en la curva de abajo, más
+  /// fuerte al centro y apagándose hacia los costados, con un halo apenas
+  /// visible. No sube por los lados ni toca la cabecera, que es negra.
+  private var brillo: some View {
+    let radio = silueta.radioInferior
+    let trazo = silueta.sinHombros.stroke(
+      LinearGradient(
+        stops: [
+          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde * 0.4), location: 0),
+          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde), location: 0.5),
+          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde * 0.4), location: 1),
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+      ),
+      lineWidth: 0.75
+    )
+    return ZStack {
+      trazo.blur(radius: 2).opacity(0.6)
+      trazo
+    }
+    .mask {
+      VStack(spacing: 0) {
+        Color.clear
+        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+          .frame(height: radio + 6)
+        Color.black.frame(height: 4)
+      }
+      .padding(.horizontal, -4)
+      .padding(.bottom, -4)
+    }
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
   }
 }
 
@@ -297,39 +357,5 @@ struct FiloDeLaMuesca: View {
     }
     .allowsHitTesting(false)
     .accessibilityHidden(true)
-  }
-}
-
-/// El fondo de una sección del panel puesta como tarjeta, como en Droppy:
-/// un relleno blanco tenue que sobresale `margenDeTarjeta` de su contenido.
-/// La última lleva abajo el radio concéntrico con el del panel.
-struct TarjetaDelPanel: ViewModifier {
-  var radioInferior: CGFloat = PanelDeVidrio.radioDeTarjeta
-
-  func body(content: Content) -> some View {
-    content
-      .background {
-        UnevenRoundedRectangle(
-          topLeadingRadius: PanelDeVidrio.radioDeTarjeta,
-          bottomLeadingRadius: radioInferior,
-          bottomTrailingRadius: radioInferior,
-          topTrailingRadius: PanelDeVidrio.radioDeTarjeta,
-          style: .continuous
-        )
-        .fill(Color.white.opacity(0.07))
-        .padding(.horizontal, -PanelDeVidrio.margenDeTarjeta)
-      }
-  }
-}
-
-extension View {
-  /// Pone la sección en tarjeta si `enTarjeta`; si no, la deja como está.
-  @ViewBuilder
-  func tarjetaDelPanel(_ enTarjeta: Bool, radioInferior: CGFloat = PanelDeVidrio.radioDeTarjeta) -> some View {
-    if enTarjeta {
-      modifier(TarjetaDelPanel(radioInferior: radioInferior))
-    } else {
-      self
-    }
   }
 }

@@ -4,25 +4,41 @@ import Testing
 
 @testable import Dilo
 
-/// El panel del hover al estilo Dynamic Glass. El vidrio no sale en PNG, así
-/// que lo que se afirma acá son los números y quién lo enciende: que está
-/// encendido de fábrica, que el arnés lo enciende sólo en sus escenas y que
-/// soltar la muestra lo apaga.
+/// El panel del hover al estilo Dynamic Glass: negro opaco con el vidrio sólo
+/// en la franja de abajo. El vidrio no sale en PNG, así que lo que se afirma
+/// acá son los números y quién lo enciende: que la franja nunca sube al
+/// texto, que el pie sigue oscuro, que está encendido de fábrica, que el
+/// arnés lo enciende sólo en sus escenas y que soltar la muestra lo apaga.
 @Suite("Vidrio de la muesca")
 struct VidrioDeLaMuescaTests {
-  /// Los 40 de Droppy en un panel alto; en uno bajo, nunca más de lo que
-  /// cuelga bajo la cabecera.
+  /// Los 32 medidos en Droppy en un panel alto; en uno bajo, nunca más de lo
+  /// que cuelga bajo la cabecera.
   @Test func elRadioEsElDeDroppySiCabe() {
-    #expect(PanelDeVidrio.radio(para: CGSize(width: 400, height: 200), cabecera: 24) == 40)
+    #expect(PanelDeVidrio.radio(para: CGSize(width: 400, height: 200), cabecera: 24) == 32)
     #expect(PanelDeVidrio.radio(para: CGSize(width: 400, height: 46), cabecera: 24) == 22)
     #expect(PanelDeVidrio.radio(para: CGSize(width: 120, height: 200), cabecera: 24) == 30)
   }
 
-  /// La última tarjeta sigue la curva del panel y nunca queda más cuadrada
-  /// que las otras.
-  @Test func laUltimaTarjetaEsConcentrica() {
-    #expect(PanelDeVidrio.radioDeLaUltimaTarjeta(radioDelPanel: 40) == 26)
-    #expect(PanelDeVidrio.radioDeLaUltimaTarjeta(radioDelPanel: 10) == PanelDeVidrio.radioDeTarjeta)
+  /// El vidrio es sólo el último ~30 % del panel, con piso y techo, y nunca
+  /// sube a la cabecera.
+  @Test func laFranjaDeVidrioEsElPie() {
+    #expect(PanelDeVidrio.franja(para: 142, cabecera: 24) > 40)
+    #expect(PanelDeVidrio.franja(para: 142, cabecera: 24) < 44)
+    #expect(PanelDeVidrio.franja(para: 82, cabecera: 24) == PanelDeVidrio.franjaMinima)
+    #expect(PanelDeVidrio.franja(para: 248, cabecera: 24) == PanelDeVidrio.franjaMaxima)
+    #expect(PanelDeVidrio.franja(para: 40, cabecera: 24) == 16)
+    #expect(abs(PanelDeVidrio.inicioDeLaFranja(para: 200, cabecera: 24) - 0.7) < 0.0001)
+  }
+
+  /// El punto más claro del panel —el borde de abajo— sigue siendo vidrio
+  /// oscuro: deja pasar a lo sumo un tercio del fondo, y el negro de encima
+  /// nunca llega a cero. Con los números de la 0.4.5 (tinte 0,3 y nada de
+  /// negro encima) pasaba el 70 %, y sobre una página blanca el panel era
+  /// gris claro con letra blanca.
+  @Test func elPieSigueOscuro() {
+    #expect(PanelDeVidrio.negroAlPie > 0)
+    #expect(PanelDeVidrio.transmisionAlPie > 0)
+    #expect(PanelDeVidrio.transmisionAlPie <= 0.34)
   }
 
   /// Abrir rebota apenas (unos 2,5 %) y cerrar casi nada (0,15 %): la ventana

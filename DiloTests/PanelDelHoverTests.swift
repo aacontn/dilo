@@ -137,19 +137,20 @@ struct PanelDelHoverTests {
 
   // MARK: El alto
 
-  /// Cada sección suma su alto fijo, y sin secciones nuevas el panel mide lo
-  /// de siempre: la línea de contexto.
+  /// Cada sección suma su alto fijo. Sin secciones el panel es lo último en
+  /// grande —el modo o el nombre—, y cada reciente después del primero suma
+  /// una línea.
   @Test func elAltoSumaLasSecciones() {
     let base = HUDNotchGeometry.altoDelPanelDeHover(for: pantalla)
-    #expect(base == 24 + HUDNotchGeometry.altoDelContextoEnReposo)
+    #expect(base == 24 + HUDNotchGeometry.altoDelUltimo + HUDNotchGeometry.aireAlPieDelPanel)
+    let conUno = HUDNotchGeometry.altoDelPanelDeHover(
+      for: pantalla, secciones: SeccionesDelPanel(recientes: 1)
+    )
+    #expect(conUno == base)
     let conRecientes = HUDNotchGeometry.altoDelPanelDeHover(
       for: pantalla, secciones: SeccionesDelPanel(recientes: 2)
     )
-    #expect(
-      conRecientes
-        == 24 + HUDNotchGeometry.altoDelEncabezadoDeSeccion + 2 * HUDNotchGeometry.altoDeUnReciente
-        + HUDNotchGeometry.aireAlPieDelPanel
-    )
+    #expect(conRecientes == base + HUDNotchGeometry.altoDeUnReciente)
     let todo = HUDNotchGeometry.altoDelPanelDeHover(for: pantalla, secciones: .todas)
     #expect(todo <= HUDNotchGeometry.altoMaximoDelHover)
     #expect(todo > conRecientes)
@@ -165,6 +166,15 @@ struct PanelDelHoverTests {
     var todo = pantalla
     todo.seccionesPosibles = .todas
     #expect(HUDNotchGeometry.windowSize(for: todo).height > con)
+  }
+
+  /// Lo secundario del último dice cuándo, corto.
+  @Test func cuandoFueLoUltimo() {
+    let ahora = Date(timeIntervalSince1970: 1_800_000_000)
+    #expect(TextoDelPanel.hace(ahora.addingTimeInterval(-20), ahora: ahora) == String(localized: "hace un momento"))
+    #expect(TextoDelPanel.hace(ahora.addingTimeInterval(-12 * 60 - 5), ahora: ahora).contains("12"))
+    #expect(TextoDelPanel.hace(ahora.addingTimeInterval(-3 * 3600), ahora: ahora).contains("3"))
+    #expect(!TextoDelPanel.hace(ahora.addingTimeInterval(-3 * 86400), ahora: ahora).contains("hace"))
   }
 
   // MARK: Los modos
@@ -186,8 +196,8 @@ struct PanelDelHoverTests {
   @Test func todoEncendidoCabeBajoElTecho() {
     let alto = 24
       + HUDNotchGeometry.altoDeLaReunion
-      + HUDNotchGeometry.altoDelEncabezadoDeSeccion
-      + CGFloat(HUDNotchGeometry.recientesEnElPanel) * HUDNotchGeometry.altoDeUnReciente
+      + HUDNotchGeometry.altoDelUltimo
+      + CGFloat(HUDNotchGeometry.recientesEnElPanel - 1) * HUDNotchGeometry.altoDeUnReciente
       + HUDNotchGeometry.altoDelDetalleDeDatos
       + HUDNotchGeometry.altoDeLosModos
       + HUDNotchGeometry.aireAlPieDelPanel

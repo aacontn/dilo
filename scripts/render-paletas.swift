@@ -228,10 +228,10 @@ extension RenderDeLaMuesca {
     }
   }
 
-  /// El panel del hover con dos recientes y la fila de modos, negro como
-  /// hoy o con el vidrio en imitación y las secciones en tarjetas. Mide lo
-  /// que mide en la app (`HUDNotchGeometry.altoDelPanelDeHover`) y copia las
-  /// medidas de `HUDPanelDelHover`.
+  /// El panel del hover con dos recientes y la fila de modos, negro entero
+  /// o con la franja de vidrio en imitación. Mide lo que mide en la app
+  /// (`HUDNotchGeometry.altoDelPanelDeHover`) y dibuja las piezas de verdad
+  /// (`PiezasDelPanel.swift`, `contenidoDelPanel`).
   static func panelDelHover(vidrio: Bool) -> some View {
     let secciones = seccionesDeLaLamina
     let tamaño = CGSize(
@@ -250,88 +250,21 @@ extension RenderDeLaMuesca {
       width: HUDNotchGeometry.windowSize(for: pantalla).width,
       height: max(HUDNotchGeometry.windowSize(for: pantalla).height, tamaño.height + 20)
     )
-    let ultima = PanelDeVidrio.radioDeLaUltimaTarjeta(radioDelPanel: radio)
     return ZStack(alignment: .top) {
       marcoDeLaVentana
-      VStack(alignment: .leading, spacing: 0) {
-        Color.clear.frame(height: cabecera)
-        VStack(alignment: .leading, spacing: 0) {
-          Text("RECIENTES")
-            .font(.system(size: 8, weight: .semibold, design: .rounded))
-            .tracking(0.6)
-            .foregroundStyle(.white.opacity(0.42))
-            .frame(height: HUDNotchGeometry.altoDelEncabezadoDeSeccion, alignment: .bottom)
-          filaReciente("quedamos el martes a las diez en la oficina", copiado: true)
-          filaReciente("revisa el informe de Kubernetes antes del jueves", copiado: false)
+      contenidoDelPanel(recientes: secciones.recientes)
+        .frame(width: tamaño.width, height: tamaño.height, alignment: .top)
+        .background {
+          FondoDeLaMuesca(silueta: silueta, alturaDeCabecera: cabecera, abierto: vidrio, material: .imitacion())
+            .shadow(
+              color: .black.opacity(0.25),
+              radius: HUDMetrics.standard.shadowRadius,
+              y: HUDMetrics.standard.shadowOffsetY
+            )
         }
-        .tarjetaDelPanel(vidrio)
-        Rectangle()
-          .fill(.white.opacity(vidrio ? 0 : 0.08))
-          .frame(height: 1)
-          .frame(height: HUDNotchGeometry.altoDelSeparador)
-        HStack(spacing: 5) {
-          chip("Normal", elegido: true)
-          chip("Correo", elegido: false)
-          chip("Notas", elegido: false)
-          Spacer(minLength: 0)
-          HStack(spacing: 4) {
-            Image(systemName: "square.and.pencil").font(.system(size: 9, weight: .bold))
-            Text("Nota").font(.system(size: 9.5, weight: .semibold, design: .rounded))
-          }
-          .foregroundStyle(paleta.acento.color)
-          .padding(.horizontal, 9)
-          .padding(.vertical, 3)
-          .background(Capsule(style: .continuous).fill(paleta.acento.color.opacity(0.16)))
-        }
-        .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
-        .tarjetaDelPanel(vidrio, radioInferior: ultima)
-      }
-      .padding(.horizontal, PanelDeVidrio.aireLateral)
-      .frame(width: tamaño.width, height: tamaño.height, alignment: .top)
-      .background {
-        Group {
-          if vidrio {
-            FondoDeLaMuesca(silueta: silueta, alturaDeCabecera: cabecera, abierto: true, material: .imitacion)
-          } else {
-            silueta.fill(Color.black)
-          }
-        }
-        .shadow(
-          color: .black.opacity(vidrio ? 0.25 : 0.35),
-          radius: HUDMetrics.standard.shadowRadius,
-          y: HUDMetrics.standard.shadowOffsetY
-        )
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     .frame(width: ventana.width, height: ventana.height)
-  }
-
-  static func filaReciente(_ texto: String, copiado: Bool) -> some View {
-    HStack(spacing: 7) {
-      Image(systemName: "waveform")
-        .font(.system(size: 8.5, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.4))
-        .frame(width: 12)
-      Text(texto)
-        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-        .foregroundStyle(.white.opacity(0.82))
-        .lineLimit(1)
-      Spacer(minLength: 6)
-      Image(systemName: copiado ? "checkmark" : "doc.on.doc")
-        .font(.system(size: copiado ? 9.5 : 9, weight: copiado ? .bold : .semibold))
-        .foregroundStyle(copiado ? paleta.acuse.color : .white.opacity(0.38))
-    }
-    .frame(height: HUDNotchGeometry.altoDeUnReciente)
-  }
-
-  static func chip(_ nombre: String, elegido: Bool) -> some View {
-    Text(nombre)
-      .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-      .foregroundStyle(elegido ? .black : .white.opacity(0.75))
-      .padding(.horizontal, 8)
-      .padding(.vertical, 3)
-      .background(Capsule(style: .continuous).fill(elegido ? paleta.acento.color : .white.opacity(0.12)))
   }
 
   /// El ícono de la barra con cada paleta. En reposo es plantilla —lo

@@ -68,8 +68,9 @@ struct DatosDeLaMuescaSettingsTests {
     notch.anchoDeLosLados = HUDNotchGeometry.anchoDeUnLado
     #expect(
       HUDNotchGeometry.reposoSize(for: notch).height
-        + HUDNotchGeometry.altoDelContextoEnReposo
+        + HUDNotchGeometry.altoDelUltimo
         + HUDNotchGeometry.altoDelDetalleDeDatos
+        + HUDNotchGeometry.aireAlPieDelPanel
         <= HUDNotchGeometry.altoMaximoDelHover
     )
     // La ventana abierta alcanza para el panel más alto.

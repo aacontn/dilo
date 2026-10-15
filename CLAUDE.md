@@ -398,17 +398,32 @@ siendo cierto:
   no lo trates como prohibido). La cabecera —la silueta en reposo— es negra
   siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
   el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
-  `FondoDeLaMuesca`): negro en la muesca que se funde en `glassEffect`, con
-  un canto de brillo blanco, los radios y resortes observados en Droppy y las
-  secciones en tarjetas. **Encendido de fábrica** desde el 2026-10-14
-  (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en Apariencia): apagado
-  y escondido en Debug nadie lo veía. «Reducir transparencia» del sistema le
-  gana y lo deja negro. Sin vidrio montado en reposo. No sale en PNG: escenas
-  `hover-vidrio` y `hover-completo-vidrio` del arnés.
+  `FondoDeLaMuesca`). **El texto va siempre sobre negro** (2026-10-15): el
+  panel es negro opaco y el `glassEffect` asoma sólo en la franja de abajo
+  —el último ~30 %—, donde el negro se derrite en vidrio tintado oscuro sin
+  llegar nunca a cero (`negroAlPie`; el pie deja pasar a lo sumo un tercio
+  del fondo), con un filo de luz blanco en la curva de abajo. La 0.4.5 tenía
+  negro sólo en la cabecera y vidrio con tinte 0,3 en todo lo demás: sobre
+  una página blanca, gris claro con letra blanca, ilegible. **Encendido de
+  fábrica** (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en
+  Apariencia; apagado, la misma forma en negro entero). «Reducir
+  transparencia» del sistema le gana y lo deja negro. Sin vidrio montado en
+  reposo. No sale en PNG: la lámina lo imita (`Material.imitacion`, rotulado)
+  y el de verdad se mira con las escenas `hover-vidrio` y
+  `hover-completo-vidrio` del arnés.
+- **El panel del hover tiene la jerarquía de Droppy** (2026-10-15,
+  `PiezasDelPanel.swift`): lo último dictado en grande y en negrita, con qué
+  es y cuándo en gris debajo; los recientes anteriores en una línea gris;
+  los controles en blanco, el modo elegido en blanco lleno. El color, sólo en
+  un detalle chico —el ícono del último, el ✓ de copiado, la reunión que
+  empieza—. Las piezas toman valores sueltos para que el render de la
+  muesca dibuje las mismas vistas y no una copia.
 - **La forma abierta es la de Droppy; el reposo y dictar no cambian**
   (`FormaAbierta`, 2026-10-14). El panel del hover —con vidrio o en negro—
   abre con hombros grandes (los 32 de Droppy, acotados a lo que la ventana
-  abierta deja para las alas y su sombra) y 40 abajo; el aviso, con el borde
+  abierta deja para las alas y su sombra: 29 en un 1080p) y 32 abajo —40
+  hasta la 0.4.5; 32 es lo que mide el cuadro de Droppy contra el ancho de
+  su panel—; el aviso, con el borde
   de abajo redondo entero (28 de Droppy, o la mitad del alto). Los dos radios
   se achican juntos si no caben uno sobre otro (`SiluetaDeLaMuesca`), y el
   hover y el paso al aviso usan los resortes de Droppy (`CurvaDeLaMuesca`).

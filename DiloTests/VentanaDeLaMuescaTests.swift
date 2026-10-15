@@ -85,7 +85,7 @@ struct VentanaDeLaMuescaTests {
   @Test func enReposoLaVentanaNoTapaLaBarraDeMenus() {
     let reposo = HUDNotchGeometry.windowSize(for: simulado, encuadre: .reposo)
     #expect(reposo == CGSize(width: 178, height: 24))
-    #expect(HUDNotchGeometry.windowSize(for: simulado) == CGSize(width: 488, height: 90))
+    #expect(HUDNotchGeometry.windowSize(for: simulado) == CGSize(width: 488, height: 126))
     // Lo que el reclamo medía: la ventana en reposo no baja de la barra de
     // menús ni un punto.
     #expect(reposo.height == simulado.menuBarHeight)
@@ -383,7 +383,7 @@ struct VentanaDeLaMuescaTests {
     stage.recibir(.escuchar)
     // Ya creció, y la forma todavía no se reveló.
     #expect(stage.encuadre == .abierta)
-    #expect(stage.marcoDeLaVentana.size == CGSize(width: 488, height: 90))
+    #expect(stage.marcoDeLaVentana.size == CGSize(width: 488, height: 126))
     #expect(!stage.dictationContent.isRevealed)
 
     stage.retract()
@@ -424,7 +424,7 @@ struct VentanaDeLaMuescaTests {
         forma: HUDNotchGeometry.tamañoDictando(for: simulado),
         pantalla: simulado.nombre,
         notchReal: false
-      ) == "estado=dictando ventana=488x90 forma=184x26 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=dictando ventana=488x126 forma=184x26 pantalla=DELL U2412M notchReal=false"
     )
   }
 

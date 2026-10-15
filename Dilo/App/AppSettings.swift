@@ -345,8 +345,9 @@ final class AppSettings {
     }
   }
 
-  /// El panel del hover al estilo Dynamic Glass: negro en la muesca que se
-  /// funde en vidrio (`PanelDeVidrio`). **Encendido de fábrica** desde el
+  /// El panel del hover al estilo Dynamic Glass: negro opaco con una franja
+  /// de vidrio ahumado al pie (`PanelDeVidrio`); apagado, la misma forma en
+  /// negro entero. **Encendido de fábrica** desde el
   /// 2026-10-14, con su interruptor en Ajustes → Apariencia: apagado y con
   /// la fila sólo en Debug nadie lo veía. Se lee cada vez que el panel se
   /// abre, y «Reducir transparencia» del sistema le gana

@@ -167,7 +167,7 @@ struct AppearanceSettingsView: View {
 
         SettingsRow(
           title: "Panel con vidrio",
-          description: "Al pasar el mouse, la muesca se abre en negro y se funde en vidrio hacia abajo. Si en Accesibilidad tienes «Reducir transparencia», queda negro."
+          description: "Al pasar el mouse, el panel abre en negro con una franja de vidrio ahumado al pie. Apagado, negro entero. Si en Accesibilidad tienes «Reducir transparencia», queda negro."
         ) {
           Toggle("", isOn: $settings.hudPanelDeVidrio)
             .labelsHidden()

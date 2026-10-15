@@ -8,9 +8,11 @@
 # paleta de `PaletaDeDilo` en una columna, estado por estado, sobre barra
 # clara y oscura) y `barra-de-menus.png` (el ícono de la barra con cada una).
 #
-# Con `--antes-despues` deja sólo `antes-despues.png`: la 0.4.4 contra la
-# forma abierta de Droppy, el vidrio en imitación y el filo de color, en
-# Glaciar y Grafito (`render-antes-despues.swift`).
+# Con `--antes-despues` deja sólo `antes-despues.png`: el panel del hover de
+# la 0.4.5 contra el nuevo —negro con la franja de vidrio al pie—, sobre una
+# página blanca y un escritorio oscuro, con el vidrio en imitación
+# (`render-antes-despues.swift`). Con `--referencia <ruta>` suma al lado el
+# cuadro de Droppy.
 #
 # Compila la geometría de verdad del HUD junto con `render-muesca.swift` y
 # rasteriza con `ImageRenderer` fuera de pantalla. No lanza la app, no abre
@@ -43,6 +45,7 @@ swiftc -O \
   "$raiz/Dilo/Dictation/HUD/Visuals/HUDVoiceVisualStyle.swift" \
   "$raiz/Dilo/CoreHUD/HUDMetrics.swift" \
   "$raiz/Dilo/CoreHUD/VidrioDeLaMuesca.swift" \
+  "$raiz/Dilo/CoreHUD/PiezasDelPanel.swift" \
   "$raiz/Dilo/Settings/Components/PaletaDeDilo.swift" \
   "$raiz/Dilo/Dictation/HUD/Visuals/HUDCheckDeAcuse.swift" \
   "$raiz/scripts/render-muesca.swift" \
