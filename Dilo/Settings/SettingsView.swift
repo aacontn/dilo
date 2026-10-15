@@ -58,7 +58,7 @@ struct SettingsView: View {
     .background(TranslationDownloadTask(pair: runtimeState.installingTranslation?.pair))
     .superficieDeDilo()
     .onExitCommand(perform: onClose)
-    // Abrir Ajustes en una sección concreta: el menú de la barra y el
+    // Abrir Ajustes en una sección concreta: el panel de la barra y el
     // arranque después de actualizar piden Novedades. Se consume al aplicarla
     // para que volver a abrir la ventana no vuelva a saltar ahí.
     .onChange(of: runtimeState.seccionPedida, initial: true) { _, pedida in

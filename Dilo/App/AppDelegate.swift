@@ -28,6 +28,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// El arnés de la muesca: dibuja cada estado a pedido, sin dictar
     /// (`EscenaDeMuestra`, `scripts/muesca.sh`). No existe en Release.
     private let receptorDeMuestras = ReceptorDeMuestras()
+    /// La puerta de `scripts/metrics.sh` para dictar sin el menú de la barra
+    /// (`DisparadorDeMetricas`). Sólo escucha con `DILO_METRICS_WAV` puesto.
+    private let disparadorDeMetricas = DisparadorDeMetricas()
   #endif
 
   static func main() {
@@ -121,6 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       toggleDictation: { dictationController.toggleFromMenu() },
       toggleReadAloud: { readAloudController.toggle() },
       transcribeFile: { dropTranscriptionController.pickFile() },
+      // El clic izquierdo en el ícono y «Abrir» del panel: la ventana de la
+      // app, que en Dilo es Ajustes.
       openSettings: { [weak self] in self?.showSettings() },
       openOnboarding: { [weak self] in self?.mostrarPrimerosPasos() },
       openNovedades: { [weak self] in self?.showSettings(seccion: .novedades) },
@@ -128,12 +133,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.statusItemController = statusItemController
     statusItemController.dictarNota = { dictationController.dictarNota() }
+    // El panel de la barra ofrece el mismo modo del atajo general que el
+    // panel de la muesca, y lleva vidrio con el mismo interruptor.
+    statusItemController.leerModos = { [weak settings] in
+      guard let settings else { return ([], nil) }
+      return (
+        settings.modos.map { PanelDeLaBarra.Modo(id: $0.id, nombre: $0.nombre) },
+        settings.hudModoDelAtajoGeneral
+      )
+    }
+    statusItemController.alElegirModo = { [weak settings] id in
+      settings?.hudModoDelAtajoGeneral = id
+    }
+    statusItemController.leerVidrio = { [weak settings] in settings?.hudPanelDeVidrio ?? true }
     statusItemController.tomaFallida.reintentar = { dictationController.reintentarTomaFallida() }
     statusItemController.tomaFallida.descartar = { dictationController.descartarTomaFallida() }
     dictationController.onTomaFallidaChange = { [weak statusItemController, weak stage] duracion in
       statusItemController?.tomaFallida.mostrar(duracion)
       // Y en una píldora al costado de la muesca, que es donde se mira
-      // cuando un dictado no salió; un clic la reintenta, como el menú.
+      // cuando un dictado no salió; un clic la reintenta, como el panel de
+      // la barra.
       stage?.mostrarTomaGuardada(duracion)
     }
     stage.alPedirReintento = { dictationController.reintentarTomaFallida() }
@@ -155,8 +174,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // (`EstadoDelNotch`).
     stage.despertar()
     stage.alPedirAcciones = { [weak statusItemController, weak stage] in
-      guard let punto = stage?.puntoDeAcciones else { return }
-      statusItemController?.mostrarAcciones(en: punto)
+      guard let silueta = stage?.siluetaDeAcciones else { return }
+      statusItemController?.mostrarAcciones(bajo: silueta)
+    }
+    statusItemController.alCambiarElPanel = { [weak stage] abierto in
+      stage?.panelDeLaBarraAbierto = abierto
     }
     stage.alPedirCopiar = { [weak statusItemController] in
       statusItemController?.copiarLoUltimo()
@@ -176,6 +198,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       receptorDeMuestras.alSoltar = { [weak stage] in stage?.soltarMuestra() }
       stage.alInterrumpirLaMuestra = { [weak receptorDeMuestras] in receptorDeMuestras?.olvidar() }
       receptorDeMuestras.escuchar()
+      disparadorDeMetricas.alternar = { dictationController.toggleFromMenu() }
+      disparadorDeMetricas.escuchar()
     #endif
 
     dictationController.onRecordingStateChange = {
@@ -186,6 +210,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       statusItemController?.setRecording(isRecording, accent: accent)
       settingsRuntimeState?.isDictating = isRecording
     }
+    #if DEBUG
+      // Y al archivo que mira `scripts/metrics.sh`, sin tocar lo de arriba.
+      let anotarElEstado = dictationController.onRecordingStateChange
+      dictationController.onRecordingStateChange = { [disparadorDeMetricas] isRecording, session in
+        anotarElEstado?(isRecording, session)
+        disparadorDeMetricas.anotar(dictando: isRecording)
+      }
+    #endif
     // Settings drives translation directly. Routing it through the dictation
     // controller would only make that controller forward three things it has
     // no opinion about.
@@ -203,7 +235,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     translation.onStateChange = { [weak settingsRuntimeState] state in
       settingsRuntimeState?.translationModelState = state
     }
-    // Lo último que se dictó llega al menú de la barra, que es donde alguien
+    // Lo último que se dictó llega al panel de la barra, que es donde alguien
     // lo va a buscar cuando el pegado no aterrizó donde esperaba.
     dictationController.onUltimoDictadoChange = {
       [weak statusItemController, weak stage] dictado in
@@ -255,7 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     saludar(settings)
   }
 
-  /// Rebinding in Settings updates the event tap and the status menu
+  /// Rebinding in Settings updates the event tap and the bar panel's
   /// hints immediately; Observation re-arms after every change. The same
   /// loop pauses trigger handling while a key recorder is armed.
   private func observeKeyBindings() {

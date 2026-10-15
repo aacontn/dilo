@@ -42,8 +42,8 @@ struct DropTranscriptionSettingsView: View {
         } else {
           // Donde el arrastre no llega, la instrucción no puede prometerlo.
           SettingsRow(
-            title: "Elígelo desde el menú",
-            description: "Abre el menú de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
+            title: "Elígelo desde la barra",
+            description: "Haz clic derecho en el ícono de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola."
           ) {
             EmptyView()
           }

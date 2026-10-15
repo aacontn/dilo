@@ -177,6 +177,50 @@
         }
       }
     },
+    "Abre la ventana de Dilo (también con un clic izquierdo en el ícono)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the Dilo window (a left click on the icon does too)"
+          }
+        }
+      }
+    },
+    "Abrir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        }
+      }
+    },
+    "Abrir Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Dilo"
+          }
+        }
+      }
+    },
+    "Abrir los Primeros pasos: permisos y un dictado de prueba": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Getting started: permissions and a test dictation"
+          }
+        }
+      }
+    },
     "AJUSTES": {
       "extractionState": "manual",
       "localizations": {
@@ -206,17 +250,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reopen Dilo to finish"
-          }
-        }
-      }
-    },
-    "Abre el menú de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open the Dilo menu in the menu bar and pick \"Transcribe a file…\". When it is done, drag the transcript wherever you want it, or click to copy it. Leave it there and it saves itself."
           }
         }
       }
@@ -617,6 +650,17 @@
         }
       }
     },
+    "Atajo %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut %@"
+          }
+        }
+      }
+    },
     "Atajos": {
       "extractionState": "manual",
       "localizations": {
@@ -903,6 +947,17 @@
         }
       }
     },
+    "Buscar actualizaciones de Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Dilo updates"
+          }
+        }
+      }
+    },
     "Buscar actualizaciones solo": {
       "extractionState": "manual",
       "localizations": {
@@ -943,6 +998,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Canceled · click to undo"
+          }
+        }
+      }
+    },
+    "Clic: abre Dilo. Clic derecho: el panel con las acciones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click: opens Dilo. Right-click: the panel with the actions."
           }
         }
       }
@@ -991,6 +1057,17 @@
         }
       }
     },
+    "Copiar %@: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy %1$@: %2$@"
+          }
+        }
+      }
+    },
     "Copiar CSV": {
       "extractionState": "manual",
       "localizations": {
@@ -998,6 +1075,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy CSV"
+          }
+        }
+      }
+    },
+    "Copiar el último dictado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the last dictation"
+          }
+        }
+      }
+    },
+    "Copiar el último dictado: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the last dictation: %@"
           }
         }
       }
@@ -1519,6 +1618,28 @@
         }
       }
     },
+    "Dictando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictating"
+          }
+        }
+      }
+    },
+    "Dictar una nota que termina en Notas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate a note that lands in Notes"
+          }
+        }
+      }
+    },
     "Dilo": {
       "extractionState": "manual",
       "localizations": {
@@ -1574,13 +1695,13 @@
         }
       }
     },
-    "Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el menú.": {
+    "Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el panel de la barra.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dilo checks what the model returns before pasting it. If it changed a number, a “no” or an address, or answered instead of rewriting, your dictation goes in without the mode and what it proposed stays in the menu."
+            "value": "Dilo checks what the model returns before pasting it. If it changed a number, a “no” or an address, or answered instead of rewriting, your dictation goes in without the mode and what it proposed stays in the menu bar panel."
           }
         }
       }
@@ -1603,6 +1724,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo has not checked for updates yet."
+          }
+        }
+      }
+    },
+    "Dilo, panel de la barra": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo, menu bar panel"
           }
         }
       }
@@ -1636,6 +1768,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Where a transcript goes if you don't drag it out of the HUD"
+          }
+        }
+      }
+    },
+    "Elígelo desde la barra": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick it from the menu bar"
           }
         }
       }
@@ -1889,17 +2032,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete mode"
-          }
-        }
-      }
-    },
-    "Elígelo desde el menú": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pick it from the menu"
           }
         }
       }
@@ -2344,6 +2476,17 @@
         }
       }
     },
+    "Haz clic derecho en el ícono de Dilo en la barra y elige \"Transcribir un archivo…\". Cuando termina, arrastra la transcripción a donde la quieras, o haz clic para copiarla. Si la dejas ahí, se guarda sola.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right-click the Dilo icon in the menu bar and pick \"Transcribe a file…\". When it is done, drag the transcript wherever you want it, or click to copy it. Leave it there and it saves itself."
+          }
+        }
+      }
+    },
     "Haz clic en una tecla más para terminar, o usa lo que ya elegiste.": {
       "extractionState": "manual",
       "localizations": {
@@ -2509,6 +2652,28 @@
         }
       }
     },
+    "Leer en voz alta lo seleccionado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the selection aloud"
+          }
+        }
+      }
+    },
+    "Leyendo en voz alta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading aloud"
+          }
+        }
+      }
+    },
     "Limpieza": {
       "extractionState": "manual",
       "localizations": {
@@ -2520,6 +2685,17 @@
         }
       }
     },
+    "Listo para dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to dictate"
+          }
+        }
+      }
+    },
     "Lo que haga falta (traducir, resumir)": {
       "extractionState": "manual",
       "localizations": {
@@ -2527,6 +2703,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Whatever it takes (translate, summarize)"
+          }
+        }
+      }
+    },
+    "Lo que propuso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What it proposed"
           }
         }
       }
@@ -3103,6 +3290,28 @@
         }
       }
     },
+    "Modo %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode %@"
+          }
+        }
+      }
+    },
+    "Modo del atajo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut mode"
+          }
+        }
+      }
+    },
     "Modos": {
       "extractionState": "manual",
       "localizations": {
@@ -3422,6 +3631,17 @@
         }
       }
     },
+    "Novedades": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's new"
+          }
+        }
+      }
+    },
     "Océano": {
       "extractionState": "manual",
       "localizations": {
@@ -3675,6 +3895,17 @@
         }
       }
     },
+    "Primeros pasos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting started"
+          }
+        }
+      }
+    },
     "Probando…": {
       "extractionState": "manual",
       "localizations": {
@@ -3847,6 +4078,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Let Dilo pick the mode"
+          }
+        }
+      }
+    },
+    "Quedó grabado · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording kept · %@"
           }
         }
       }
@@ -4126,6 +4368,17 @@
         }
       }
     },
+    "Salir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
+        }
+      }
+    },
     "Salir de Dilo": {
       "extractionState": "manual",
       "localizations": {
@@ -4287,6 +4540,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Previous week unavailable"
+          }
+        }
+      }
+    },
+    "Sin el modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without the mode"
           }
         }
       }
@@ -4742,6 +5006,17 @@
         }
       }
     },
+    "Transcribiendo · %lld %%": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing · %lld %%"
+          }
+        }
+      }
+    },
     "Transcribir": {
       "extractionState": "manual",
       "localizations": {
@@ -4749,6 +5024,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Transcribe"
+          }
+        }
+      }
+    },
+    "Transcribir un archivo de audio o video": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe an audio or video file"
           }
         }
       }
@@ -4935,6 +5221,17 @@
         }
       }
     },
+    "Un dictado no salió": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A dictation didn't come through"
+          }
+        }
+      }
+    },
     "Un poco": {
       "extractionState": "manual",
       "localizations": {
@@ -5085,6 +5382,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Average pace"
+          }
+        }
+      }
+    },
+    "Ver las novedades de esta versión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See what's new in this version"
           }
         }
       }

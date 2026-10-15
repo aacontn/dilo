@@ -13,9 +13,11 @@ import Foundation
 /// `<wav>.soltado`. De ahí sale el t0. El t1 es el `changeCount` del
 /// portapapeles cambiando en este proceso.
 ///
-/// Lo que queda fuera de la medición a propósito: abrir el menú de la barra
-/// para disparar y para parar. Esos cientos de milisegundos son del
-/// AppleScript, no de Dilo, y por eso el t0 se toma adentro de la app.
+/// Lo que queda fuera de la medición a propósito: mandar a empezar y a parar.
+/// Eso es de quien mide, no de Dilo, y por eso el t0 se toma adentro de la
+/// app. Desde el 2026-10-15 se manda con una notificación distribuida que
+/// sólo escucha una copia Debug con el gancho (`DisparadorDeMetricas`): el
+/// ícono de la barra ya no tiene un menú que un AppleScript pueda apretar.
 public enum Latencia {
   public struct Resultado: Sendable {
     public let segundos: TimeInterval
@@ -87,17 +89,14 @@ public enum Latencia {
     // el modelo. En un M1 ocioso son unos veinte segundos; con la máquina
     // ocupada, bastante más. Con el motor de Apple estaba lista en tres. El que
     // se rinde antes no mide nada: sólo miente sobre por qué no midió.
-    try alternarDictado(pid: pid, esperando: "Parar", intentos: 40)
+    let bundle = try bundleDe(pid: pid)
+    try alternarDictado(bundle: bundle, wav: wav, esperando: "dictando", intentos: 40)
     // El gancho reproduce el WAV en tiempo real; medio segundo de sobra para
     // que el reconocedor reciba la última palabra antes de que se suelte.
     dormir(duracionDelWav + 0.5)
-    // Soltar: se manda el clic y se empieza a mirar el portapapeles en el acto,
-    // sin esperar a que `osascript` vuelva.
-    let clicDeParada = try Concha.lanzar(
-      "/usr/bin/osascript",
-      ["-e", guion(pid: pid, cuerpo: cuerpoDelClic)]
-    )
-    defer { clicDeParada.waitUntilExit() }
+    // Soltar: se manda a parar y se empieza a mirar el portapapeles en el
+    // acto.
+    mandarAAlternar(bundle: bundle)
 
     let vence = Date().addingTimeInterval(limite)
     var texto = ""
@@ -143,62 +142,45 @@ public enum Latencia {
     dormir(0.5)
   }
 
-  /// El menú de la barra de Dilo, escrito una sola vez.
-  ///
-  /// La barra se busca por forma —la que tiene un solo ítem— y no por índice:
-  /// mientras Ajustes está abierta la app deja de ser accesoria y `menu bar 1`
-  /// pasa a ser el menú principal (Dilo, Archivo, Edición…). Clicar ahí a
-  /// ciegas abre Ajustes en vez de dictar, que fue exactamente lo que pasó la
-  /// primera vez.
-  ///
-  /// Se apunta **por pid y no por nombre**: la copia instalada y la de
-  /// prueba se llaman las dos "Dilo" para Accesibilidad. Pedir "el proceso
-  /// Dilo" dicta con la app equivocada y el número medido es de otra.
-  static func guion(pid: pid_t, cuerpo: String) -> String {
-    """
-    tell application "System Events" to tell (first application process whose unix id is \(pid))
-      set barra to missing value
-      repeat with b in menu bars
-        if (count of menu bar items of b) is 1 then set barra to b
-      end repeat
-      if barra is missing value then error "no encontré la barra del status item de Dilo"
-      \(cuerpo)
-    end tell
-    """
+  /// Dónde deja la app si hay sesión: «dictando» o «listo». Tiene que
+  /// coincidir con `DisparadorDeMetricas` en la app.
+  public static func rutaDelEstado(de wav: URL) -> URL {
+    URL(fileURLWithPath: wav.path + ".estado")
   }
 
-  static func correrGuion(_ texto: String, queja: String) throws -> String {
-    let resultado = try Concha.correr("/usr/bin/osascript", ["-e", texto])
-    guard resultado.codigo == 0 else {
-      throw ErrorDeMedicion(
-        "\(queja): \(resultado.error.trimmingCharacters(in: .whitespacesAndNewlines)). "
-          + "El terminal desde el que corres metrics.sh necesita Accesibilidad."
-      )
+  /// El nombre de la notificación que escucha la copia medida. Tiene que
+  /// coincidir con `DisparadorDeMetricas.nombre(paraElBundle:)`.
+  static func notificacion(paraElBundle bundle: String) -> Notification.Name {
+    Notification.Name("\(bundle).debug.metricas")
+  }
+
+  /// Se apunta **por bundle id, sacado del pid**: la copia instalada y la de
+  /// prueba se llaman las dos "Dilo". Mandarle la orden a la equivocada mide
+  /// otra app.
+  static func bundleDe(pid: pid_t) throws -> String {
+    guard let bundle = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier else {
+      throw ErrorDeMedicion("no encontré la app con pid \(pid): ¿se cerró?")
     }
-    return resultado.salida.trimmingCharacters(in: .whitespacesAndNewlines)
+    return bundle
   }
 
-  /// Cómo se llama ahora el primer ítem del menú: dice si hay sesión en curso.
-  static func estadoDelItem(pid: pid_t) throws -> String {
-    try correrGuion(
-      guion(pid: pid, cuerpo: "return name of menu item 1 of menu 1 of menu bar item 1 of barra"),
-      queja: "no pude leer el menú de Dilo"
-    )
+  /// Si hay sesión en curso, según el archivo que deja la app.
+  static func estado(de wav: URL) -> String {
+    (try? String(contentsOf: rutaDelEstado(de: wav), encoding: .utf8))?
+      .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
   }
 
-  /// Aprieta el primer ítem del menú de la barra: "Empezar a dictar" o "Parar
-  /// el dictado", según el estado. Es el único disparador que no exige que
-  /// alguien mantenga una tecla apretada.
-  static let cuerpoDelClic = """
-    click menu bar item 1 of barra
-      delay 0.15
-      click menu item 1 of menu 1 of menu bar item 1 of barra
-    """
-
-  static func apretarElItemDeDictado(pid: pid_t) throws {
-    _ = try correrGuion(
-      guion(pid: pid, cuerpo: cuerpoDelClic),
-      queja: "no pude apretar el menú de Dilo"
+  /// Empieza o para el dictado, según el estado: lo mismo que el ítem
+  /// «Empezar a dictar» del menú de antes. Es el único disparador que no exige
+  /// que alguien mantenga una tecla apretada. `deliverImmediately`, porque
+  /// Dilo es una app accesoria que nunca está activa, y a una app inactiva el
+  /// sistema le retiene las notificaciones distribuidas.
+  static func mandarAAlternar(bundle: String) {
+    DistributedNotificationCenter.default().postNotificationName(
+      notificacion(paraElBundle: bundle),
+      object: "alternar",
+      userInfo: nil,
+      deliverImmediately: true
     )
   }
 
@@ -206,16 +188,27 @@ public enum Latencia {
   /// significa que la app no está lista —falta un permiso, o el modelo del
   /// idioma— y da un error que dice eso en vez de un timeout de veinte
   /// segundos sin explicación.
-  static func alternarDictado(pid: pid_t, esperando esperado: String, intentos: Int = 3) throws {
+  static func alternarDictado(
+    bundle: String,
+    wav: URL,
+    esperando esperado: String,
+    intentos: Int = 3
+  ) throws {
     for intento in 1...intentos {
-      if try estadoDelItem(pid: pid).contains(esperado) { return }
-      try apretarElItemDeDictado(pid: pid)
+      if estado(de: wav) == esperado { return }
+      mandarAAlternar(bundle: bundle)
       dormir(0.3)
-      if try estadoDelItem(pid: pid).contains(esperado) { return }
+      if estado(de: wav) == esperado { return }
       if intento < intentos { dormir(1.5) }
     }
+    if estado(de: wav).isEmpty {
+      throw ErrorDeMedicion(
+        "Dilo no dejó \(rutaDelEstado(de: wav).lastPathComponent): el .app medido no trae "
+          + "el disparador de métricas (¿es un build Release?)"
+      )
+    }
     throw ErrorDeMedicion(
-      "el menú de Dilo no llegó a “\(esperado)”: la app no está lista para dictar "
+      "Dilo no llegó a “\(esperado)”: la app no está lista para dictar "
         + "(¿micrófono, reconocimiento de voz, modelo de español?)"
     )
   }

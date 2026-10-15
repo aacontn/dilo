@@ -372,7 +372,7 @@ struct ModoEditorView: View {
           Text(cuidado.title).tag(cuidado)
         }
       }
-      Text("Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el menú.")
+      Text("Dilo revisa lo que devuelve el modelo antes de pegarlo. Si cambió un número, un «no» o una dirección, o contestó en vez de reescribir, va tu dictado sin el modo y lo que propuso queda en el panel de la barra.")
         .font(.caption)
         .foregroundStyle(.white.opacity(0.45))
         .fixedSize(horizontal: false, vertical: true)

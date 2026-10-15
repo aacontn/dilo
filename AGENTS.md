@@ -133,7 +133,7 @@ Distingue propuesta, implementación y deuda pendiente.
   que sale de un motor pasa por `RevisionDeToma` (tokens, firma de Amara,
   fantasmas sobre silencio, bucles), y si no queda texto con voz en la toma,
   el otro motor transcribe el mismo audio. Si tampoco sale, queda **una**
-  toma en RAM diez minutos, se dice en la muesca y se reintenta desde el menú
+  toma en RAM diez minutos, se dice en la muesca y se reintenta desde el panel
   de la barra. Los umbrales son de Ocelli e imnot, sin medir todavía en
   español: son constantes con nombre, y se calibran ahí.
 - **El contexto de la app es material de consulta, vive en RAM y no sale del
@@ -268,12 +268,13 @@ documentos (`docs/historia/README.md` dice cuáles y dónde están), y sigue
 siendo cierto:
 
 - `App/` — la raíz de composición: `AppDelegate` cablea cada controlador y
-  observa los atajos; `StatusItemController` es el menú de la barra;
+  observa los atajos; `StatusItemController` es el ícono de la barra y su
+  panel (ver «El ícono de la barra de menús»);
   `AppSettings.swift` es la única fuente persistida de preferencias. **Las
   claves y los `rawValue` cargan peso** (picks guardados, prefijos de nombres
   de sonidos): no los renombres.
 - `Input/` — el tap global de CGEvent (`GlobalKeyEventMonitor`) y el modelo
-  `KeyBinding`, compartido por dictado, Ajustes y el menú.
+  `KeyBinding`, compartido por dictado, Ajustes y el panel de la barra.
 - `Dictation/` — el núcleo de la sesión. `DictationSessionMachine` es el
   reducer puro con todas las transiciones (idle/starting/recording/finishing/
   cancelling, sostenido vs. trabado), cubierto por tests;
@@ -318,7 +319,7 @@ siendo cierto:
   los asientos mientras no hay reposo y exige la forma, así que **dictando la
   principal es siempre el dictado**. Las ocupantes de hoy son dos cosas que
   ya existían: la toma guardada para reintentar (derecha, en el acento; un clic
-  la reintenta, como el menú de la barra) y una tarjeta de un dictado sin
+  la reintenta, como el panel de la barra) y una tarjeta de un dictado sin
   pegar que otra sesión tapó (`TarjetaDeRespaldo.tapada`, izquierda; un clic
   la copia; no vence mientras dura una sesión y se va un minuto después de
   volver a reposo). Sólo el notch simulado tiene lugar
@@ -482,7 +483,7 @@ siendo cierto:
   `MaquinaDelNotch.duracionDelAcuse`). El estado Resultado quedó **sólo para
   el camino del error**: que el pegado falló, que falta un permiso, un aviso,
   y eso sí se dice con palabras porque perder un dictado en silencio está
-  prohibido. «Copiar el último dictado» vive en el menú de la barra y en el
+  prohibido. «Copiar el último dictado» vive en el panel de la barra y en el
   panel del hover, no en una franja de 400×50 que dura dos segundos y medio.
 - **La tarjeta de un dictado que no se pegó es la única excepción a «el
   resultado no toma el mouse»** (`ResultadoDelNotch.retenido`,
@@ -632,6 +633,48 @@ siendo cierto:
   que el watchdog del HUD pasa la onda a ámbar; a los 5 s la muesca lo dice en
   «preparando», y el corte por falta de voz dice por qué corta. Los avisos
   viajan por `MicrofonoDeLaSesion`, no por el contrato de los motores.
+
+## El ícono de la barra de menús
+
+- **Clic izquierdo abre Dilo; clic derecho (o ⌃clic), el panel de la barra**
+  (Alfonso, 2026-10-15: «con botón izquierdo que abra la app de Dilo, con
+  botón derecho alguna ventana como la de ahora pero que sea linda, así como
+  la de Switchboard»). La app es la ventana de Ajustes, la única que Dilo
+  tiene. Qué abre cada clic lo decide `ClicEnLaBarra` (puro); un clic sin
+  evento de mouse —Accesibilidad— abre el panel, que es lo que antes abría el
+  menú.
+- **El panel reemplaza al `NSMenu` gris y ofrece todo lo que ofrecía**:
+  `PanelDeLaBarra.contenido` arma el panel en palabras y
+  `PanelDeLaBarraTests.nadaDelMenuGrisSePierde` lo vigila. De arriba abajo:
+  Dilo con su estado (listo / dictando / leyendo / transcribiendo) y el
+  gatillo como tecla, «Abrir»; la toma que no salió, en ámbar, con
+  Reintentar y ✕; lo último dictado con copiar y, sólo cuando son otra cosa,
+  lo dicho sin el modo y lo que el modo propuso; las acciones; el modo del
+  atajo general (el mismo `hudModoDelAtajoGeneral` del panel de la muesca);
+  y al pie Primeros pasos, Novedades, Actualizaciones y Salir. Una acción
+  nueva entra al modelo y a ese test, no sólo a la vista.
+- **Se ve como el panel de la muesca**: vidrio ahumado con la receta de
+  `PanelDeVidrio` (o negro, con «Panel con vidrio» apagado o «Reducir
+  transparencia»), letra de 10,5 a 12,5 y las piezas compartidas
+  (`HUDUltimoDelPanel`, `HUDChipDelPanel`). De Switchboard toma la forma de
+  panel de barra —tarjeta flotante bajo el ícono, filas que se iluminan,
+  vínculos al pie—, sin la punta. Se revisa en PNG con
+  `scripts/render-panel-de-la-barra.sh` (claro y oscuro, vidrio imitado).
+- **El panel nunca toma el teclado ni activa a Dilo**
+  (`VentanaDelPanelDeLaBarra.canBecomeKey == false`, `.nonactivatingPanel`).
+  «Empezar a dictar» y «Leer lo seleccionado» trabajan sobre el foco de
+  otra app; una ventana de Dilo que se volviera key se lo quitaría justo
+  antes. Por eso no hay Tab ni ⌘Q adentro, y Escape lo cierra con un
+  monitor global que no se traga la tecla.
+- **Se cierra como un menú** (`ControlDelPanelDeLaBarra`): clic afuera,
+  Escape, otro clic en lo que lo abrió, o elegir algo. Copiar se queda
+  650 ms con el ✓ y elegir un modo no cierra (`PanelDeLaBarra.Accion.cierre`).
+  El clic en la silueta de la muesca en reposo abre **este mismo panel**,
+  centrado bajo ella (`HUDStage.siluetaDeAcciones`), y mientras está abierto
+  el hover de la muesca no abre el suyo encima
+  (`HUDStage.panelDeLaBarraAbierto`): el menú era modal y no chocaban.
+- Técnica observada en Switchboard (`StatusItemController`, `BarPanels`,
+  `BarPanelController`, `BarPanelModel`); el código es propio.
 
 ## El micrófono
 
@@ -870,14 +913,21 @@ miden en CI igual que acá, contra el `.app` Release, y rompen la corrida si se
 pasan. Un número medido que no cumple falla siempre: `--ci` excusa lo que no
 se pudo medir, nunca lo que salió mal.
 
-Para medir "soltar → texto" el `.app` tiene que ser un build **Debug** y el
-terminal necesita Accesibilidad: la medición inyecta un WAV y dispara la sesión
-apretando el menú de la barra. El gancho es la variable de entorno
-**`DILO_METRICS_WAV`**, que `MicrophoneInput` respeta sólo bajo `#if DEBUG`
+Para medir "soltar → texto" el `.app` tiene que ser un build **Debug**: la
+medición inyecta un WAV y dispara la sesión con una notificación distribuida.
+El gancho es la variable de entorno **`DILO_METRICS_WAV`**, que
+`MicrophoneInput` respeta sólo bajo `#if DEBUG`
 (`Dilo/Dictation/MicrophoneInput+MetricasWAV.swift`): con ella apuntando a un
 WAV, la sesión escucha ese archivo en vez del micrófono, al ritmo real, y anota
-en `<wav>.soltado` el instante en que el controlador manda a parar. En release
-no existe: el archivo entero está dentro de un `#if DEBUG`.
+en `<wav>.soltado` el instante en que el controlador manda a parar. Con la
+misma variable puesta, `DisparadorDeMetricas` escucha
+`<bundle id>.debug.metricas` para empezar y parar —la puerta del viejo ítem
+«Empezar a dictar»— y deja en `<wav>.estado` si hay sesión. **Hasta la 0.4.8
+se apretaba el menú de la barra por AppleScript** y el terminal necesitaba
+Accesibilidad; el menú pasó a ser un panel de SwiftUI (2026-10-15) y apuntarle
+un AppleScript a sus botones era apostar a cómo SwiftUI los expone. En
+release no existe nada de esto: los dos archivos están dentro de un
+`#if DEBUG`.
 
 **Y adentro, cada dictado se mide por fases** (`RelojDeFases`,
 `Dilo/Dictation/LatenciaPorFase.swift`, 2026-10-14): gatillo → micrófono,
@@ -930,7 +980,7 @@ verdad, y sirve igual para probar algo local sin pisar los propios.
 ## Primeros pasos y notas de versión
 
 - **El onboarding vive en `Dilo/Onboarding/`** y se abre solo la primera
-  vez; después, desde el menú de la barra (**Primeros pasos…**). Son cuatro
+  vez; después, desde el panel de la barra (**Primeros pasos**). Son cuatro
   pantallas: bienvenida con el gatillo real, permisos uno por uno con su
   porqué, elegir motor y un dictado de prueba en un campo de la propia ventana.
 - **Qué permiso se pide lo decide `Permiso.pasos(anfitrion:motorEsApple:)`**,

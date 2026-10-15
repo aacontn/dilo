@@ -1,53 +1,26 @@
-import AppKit
+import Foundation
 import DiloEngines
 
-/// Las dos entradas del menú de la barra para una toma que quedó en RAM:
-/// reintentarla y botarla.
+/// Reintentar o botar la toma que quedó en RAM cuando un dictado no sacó
+/// texto, tal como las ofrece el panel de la barra.
 ///
-/// Viven en el menú y no en la muesca porque el estado Resultado sólo dura
-/// lo que dura un aviso, y una toma guardada dura diez minutos. Escondidas
-/// mientras no hay toma: un ítem apagado que nunca se prendió no explica
-/// nada (la misma regla de «Copiar el último dictado»).
+/// Viven en la barra y no sólo en la muesca porque el estado Resultado dura
+/// lo que dura un aviso, y una toma guardada dura diez minutos. Sin toma no
+/// aparecen: una fila apagada que nunca se prendió no explica nada (la misma
+/// regla de «Copiar el último dictado»). Hasta la 0.4.8 eran dos ítems del
+/// menú gris; desde que el menú es un panel (2026-10-15), son una tarjeta
+/// arriba de todo (`PanelDeLaBarra.Contenido.toma`).
 @MainActor
-final class EntradasDeTomaFallida: NSObject {
+final class EntradasDeTomaFallida {
   /// Lo cablea `AppDelegate` hacia el controlador de dictado.
   var reintentar: (() -> Void)?
   var descartar: (() -> Void)?
+  /// El reloj de la toma («0:12»), o nil si se fue. Lo escucha el
+  /// `StatusItemController` para el panel.
+  var alCambiar: ((String?) -> Void)?
 
-  let reintentarItem = NSMenuItem(
-    title: String(localized: "Reintentar el dictado que no salió"), action: nil, keyEquivalent: ""
-  )
-  let descartarItem = NSMenuItem(
-    title: String(localized: "Descartar la grabación"), action: nil, keyEquivalent: ""
-  )
-
-  override init() {
-    super.init()
-    reintentarItem.action = #selector(reintentarElegido)
-    reintentarItem.target = self
-    reintentarItem.isHidden = true
-    descartarItem.action = #selector(descartarElegido)
-    descartarItem.target = self
-    descartarItem.isHidden = true
-  }
-
-  func agregar(a menu: NSMenu) {
-    menu.addItem(reintentarItem)
-    menu.addItem(descartarItem)
-  }
-
-  /// La duración de la toma guardada, o nil para esconder las dos.
+  /// La duración de la toma guardada, o nil para esconderla.
   func mostrar(_ duracion: TimeInterval?) {
-    reintentarItem.isHidden = duracion == nil
-    descartarItem.isHidden = duracion == nil
-    reintentarItem.badge = duracion.map { NSMenuItemBadge(string: PoliticaDeGrabacion.reloj($0)) }
-  }
-
-  @objc private func reintentarElegido() {
-    reintentar?()
-  }
-
-  @objc private func descartarElegido() {
-    descartar?()
+    alCambiar?(duracion.map(PoliticaDeGrabacion.reloj))
   }
 }
