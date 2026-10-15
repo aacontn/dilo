@@ -345,9 +345,8 @@ final class AppSettings {
     }
   }
 
-  /// El panel del hover con su destello de vidrio al abrir: negro opaco, que
-  /// nace de vidrio ahumado y con un reflejo que cruza el canto
-  /// (`PanelDeVidrio`); apagado, la misma forma en negro puro. **Encendido de fábrica** desde el
+  /// El panel del hover de vidrio ahumado, con un reflejo que cruza el canto
+  /// al abrir (`PanelDeVidrio`); apagado, la misma forma en negro puro. **Encendido de fábrica** desde el
   /// 2026-10-14, con su interruptor en Ajustes → Apariencia: apagado y con
   /// la fila sólo en Debug nadie lo veía. Se lee cada vez que el panel se
   /// abre, y «Reducir transparencia» del sistema le gana

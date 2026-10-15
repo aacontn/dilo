@@ -61,8 +61,8 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// Cuánto se estira la silueta hacia cada lado por los segmentos de los
   /// asientos (`HUDSegmentosAlCostado`). Cero y cero, lo de siempre.
   var costados = CostadosDeLaSilueta()
-  /// El panel del hover con el destello de vidrio al abrir (`PanelDeVidrio`):
-  /// negro opaco, con los radios y resortes de Droppy. Encendido de fábrica
+  /// El panel del hover de vidrio ahumado (`PanelDeVidrio`), con los radios
+  /// y resortes de Droppy. Encendido de fábrica
   /// desde el 2026-10-14; sólo cambia algo mientras el hover está abierto.
   var vidrio = false
   /// Si la forma abierta de este estado es la grande, con los hombros y el

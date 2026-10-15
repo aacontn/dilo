@@ -1,49 +1,51 @@
 import SwiftUI
 
-/// El panel del hover: **negro opaco**, y el vidrio sólo como un destello
-/// al abrir.
+/// El panel del hover: **vidrio ahumado** de punta a punta, oscuro y parejo.
 ///
-/// Pedido de Alfonso (2026-10-15, 0.4.6): «sólo negro, con algo de efecto
-/// glass cuando se abre». El vidrio ya no es una franja que se queda: al
-/// abrir, la forma nace de vidrio ahumado y en medio segundo se cierra en
-/// negro, mientras un reflejo recorre el canto de abajo de izquierda a
-/// derecha y se apaga. Lo que queda abierto es negro con un filo blanco muy
-/// tenue en la curva de abajo, el canto de un objeto negro brillante.
+/// Pedido de Alfonso (2026-10-15): al ver la apertura cuadro a cuadro, el
+/// primer cuadro —el vidrio ahumado antes de cerrarse en negro— «se ve
+/// choro». Ese cuadro pasa a ser el panel abierto: vidrio tintado de negro
+/// con un velo negro encima (`negroEncima`), que sobre una página blanca o
+/// un escritorio oscuro queda en un gris carbón parejo (medido en la
+/// pantalla: entre #2C2C2C y #3B3B3B), donde la letra blanca se lee
+/// siempre. Al abrir, un reflejo recorre el canto de abajo de izquierda a
+/// derecha y se apaga; queda un filo blanco muy tenue en la curva.
 ///
-/// **Hasta la 0.4.6 el vidrio se quedaba** en el último ~30 % del panel:
+/// **Antes fue sólo un destello** (nunca se publicó): nacía ahumado y el
+/// negro lo tapaba en 0,42 s. **En la 0.4.6 se quedaba** sólo en el último
+/// ~30 % del panel:
 /// negro que se derretía en vidrio ahumado bajo la fila de los modos. Sobre
 /// una página blanca era una mancha gris detrás de los controles —«se ve
 /// mal»—. Y antes, en la 0.4.5, el panel entero era vidrio claro con letra
-/// blanca encima: ilegible. Vidrio quieto debajo del texto no vuelve.
+/// blanca encima: ilegible. Lo que vale es que el vidrio sea **parejo y
+/// oscuro**: ni claro ni a medias.
 ///
-/// Técnica observada en el video «Dynamic Glass» de Droppy (el panel abierto
-/// es negro y el vidrio apenas asoma en el canto); el destello que se apaga
-/// es propio. Sólo API pública: `glassEffect(_:in:)`.
+/// Técnica observada en el video «Dynamic Glass» de Droppy (vidrio ahumado
+/// y oscuro); el velo negro encima y el reflejo son propios. Sólo API
+/// pública: `glassEffect(_:in:)`.
 ///
 /// **Encendido de fábrica** (`AppSettings.hudPanelDeVidrio`, interruptor
 /// «Panel con vidrio» en Ajustes → Apariencia); apagado, negro puro, sin
-/// destello ni filo. Con «Reducir transparencia» del sistema, negro; con
-/// «Reducir movimiento», el filo quieto sin destello ni reflejo. El vidrio
-/// se monta sólo mientras dura el destello: ni en reposo ni con el panel
-/// quieto hay vidrio montado (spec §3). **No sale en PNG** (`ImageRenderer`
-/// no lo dibuja): la lámina muestra el estado quieto y el destello se juzga
-/// en la pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio`.
+/// vidrio ni filo. Con «Reducir transparencia» del sistema, negro; con
+/// «Reducir movimiento», el vidrio sin el reflejo. El vidrio se monta sólo
+/// con el panel abierto: en reposo y dictando no hay vidrio (spec §3).
+/// **No sale en PNG** (`ImageRenderer` no lo dibuja): la lámina lo imita con
+/// el gris medido (`grisDeLaLamina`) y el de verdad se juzga en la pantalla
+/// con las escenas `hover-vidrio` y `hover-completo-vidrio`.
 enum PanelDeVidrio {
   /// El radio de abajo del panel abierto: unos 32 puntos, medidos en el
   /// cuadro de Droppy contra el ancho del panel. Se achica sólo si el panel
   /// es más bajo.
   static let radioInferior: CGFloat = 32
 
-  /// El tinte negro del vidrio del destello: ahumado, como el de Droppy.
+  /// El tinte negro del vidrio: ahumado, como el de Droppy.
   static let tinte: Double = 0.45
-  /// Cuánto negro tiene encima el vidrio en el primer cuadro: el destello
-  /// arranca ya oscuro, para que sobre una página blanca se lea como vidrio
-  /// ahumado y no como un gris.
-  static let negroAlAbrir: Double = 0.55
-  /// Lo que tarda el negro en cerrarse sobre el vidrio. Algo menos que el
-  /// resorte de apertura (0,47 s): cuando la forma termina de crecer ya es
-  /// negra.
-  static let duracionDelDestello: Double = 0.42
+  /// El velo negro encima del vidrio: lo que lo deja en carbón y no en gris
+  /// sobre una página blanca. Es el del cuadro que Alfonso eligió.
+  static let negroEncima: Double = 0.55
+  /// El gris con que la lámina imita el vidrio, que en PNG no se dibuja: el
+  /// medido en la pantalla sobre fondo claro y oscuro (0x2C–0x3B).
+  static let grisDeLaLamina: Double = 0.2
 
   /// El reflejo que recorre el canto de abajo al abrir: blanco casi entero,
   /// un 40 % del ancho, de izquierda a derecha. Arranca cuando la forma ya
@@ -152,18 +154,18 @@ struct CurvaDeLaMuesca: Equatable, Sendable {
   }
 }
 
-/// El fondo de la forma con el vidrio encendido: negro opaco siempre, y al
-/// abrir el panel, el destello (`PanelDeVidrio`): vidrio ahumado que el
-/// negro tapa en medio segundo, un reflejo que recorre el canto y el filo
-/// tenue que queda. Cerrado, negro entero y nada montado encima.
+/// El fondo de la forma con el vidrio encendido: negro opaco cerrado y, con
+/// el panel abierto, vidrio ahumado (`PanelDeVidrio`), un reflejo que
+/// recorre el canto al abrir y el filo tenue que queda. Cerrado, negro
+/// entero y nada montado encima.
 struct FondoDeLaMuesca: View {
-  /// Con qué se pinta el destello. `imitacion` es para el render en PNG,
-  /// donde el vidrio de verdad no se dibuja: ahí sólo sale el estado quieto
-  /// —negro con su filo—, que es lo que se ve con el panel abierto.
+  /// Con qué se pinta el vidrio. `imitacion` es para el render en PNG,
+  /// donde el vidrio de verdad no se dibuja: ahí sale el gris medido con su
+  /// filo, sin reflejo.
   enum Material {
     case vidrio
     /// `fondo` se acepta por compatibilidad con la lámina, que todavía lo
-    /// pasa; el estado quieto no deja ver nada de lo que hay detrás.
+    /// pasa; el vidrio ahumado no deja ver lo que hay detrás.
     case imitacion(fondo: AnyView? = nil)
   }
 
@@ -180,9 +182,9 @@ struct FondoDeLaMuesca: View {
     ZStack(alignment: .top) {
       silueta.fill(Color.black)
       if abierto {
-        DestelloDeVidrio(
+        VidrioAhumado(
           silueta: silueta,
-          conVidrio: esVidrioDeVerdad && !reducirTransparencia && !reducirMovimiento,
+          vidrio: reducirTransparencia ? .ninguno : (esVidrioDeVerdad ? .deVerdad : .imitado),
           conReflejo: esVidrioDeVerdad && !reducirMovimiento
         )
         .transition(.opacity)
@@ -197,20 +199,25 @@ struct FondoDeLaMuesca: View {
   }
 }
 
-/// Lo que pasa encima del negro al abrir: el vidrio que se cierra en negro,
-/// el reflejo que cruza el canto y el filo que queda. Se monta con el panel
-/// abierto y su `onAppear` es el arranque: cada apertura lo vuelve a correr.
-private struct DestelloDeVidrio: View {
+/// Lo que va encima del negro con el panel abierto: el vidrio ahumado, el
+/// reflejo que cruza el canto al abrir y el filo que queda. Se monta con el
+/// panel abierto y su `onAppear` es el arranque: cada apertura vuelve a
+/// correr el reflejo.
+private struct VidrioAhumado: View {
+  enum Vidrio {
+    /// `glassEffect` de verdad.
+    case deVerdad
+    /// El gris medido, para la lámina en PNG.
+    case imitado
+    /// Transparencia reducida: negro con su filo.
+    case ninguno
+  }
+
   let silueta: SiluetaDeLaMuesca
-  /// Si hay destello de vidrio. Sin él —transparencia reducida, movimiento
-  /// reducido o la lámina—, sólo el filo quieto.
-  let conVidrio: Bool
-  /// Si el reflejo recorre el canto.
+  let vidrio: Vidrio
+  /// Si el reflejo recorre el canto al abrir.
   let conReflejo: Bool
 
-  /// El vidrio está montado sólo mientras dura el destello.
-  @State private var vidrioMontado = true
-  @State private var negro: Double = PanelDeVidrio.negroAlAbrir
   /// Dónde va el reflejo, como fracción del ancho: de antes del borde
   /// izquierdo a después del derecho.
   @State private var reflejo: CGFloat = -PanelDeVidrio.anchoDelReflejo
@@ -218,12 +225,17 @@ private struct DestelloDeVidrio: View {
 
   var body: some View {
     ZStack(alignment: .top) {
-      if conVidrio, vidrioMontado {
+      switch vidrio {
+      case .deVerdad:
         Color.clear
           .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta)
         silueta
           .fill(Color.black)
-          .opacity(negro)
+          .opacity(PanelDeVidrio.negroEncima)
+      case .imitado:
+        silueta.fill(Color(white: PanelDeVidrio.grisDeLaLamina))
+      case .ninguno:
+        EmptyView()
       }
       filo(brillo: PanelDeVidrio.brilloDelBorde)
       if conReflejo, reflejoVisible {
@@ -234,26 +246,18 @@ private struct DestelloDeVidrio: View {
   }
 
   private func arrancar() {
-    if conVidrio {
-      withAnimation(.easeIn(duration: PanelDeVidrio.duracionDelDestello)) { negro = 1 }
+    guard conReflejo else { return }
+    withAnimation(
+      .easeInOut(duration: PanelDeVidrio.duracionDelReflejo).delay(PanelDeVidrio.esperaDelReflejo)
+    ) {
+      reflejo = 1
     }
-    if conReflejo {
-      withAnimation(
-        .easeInOut(duration: PanelDeVidrio.duracionDelReflejo).delay(PanelDeVidrio.esperaDelReflejo)
-      ) {
-        reflejo = 1
-      }
-    }
-    // Terminado el destello, el vidrio se desmonta —el negro ya lo tapa
-    // entero— y el reflejo también: con el panel quieto no queda nada que
-    // componer ni animar.
-    let fin = max(
-      conVidrio ? PanelDeVidrio.duracionDelDestello : 0,
-      conReflejo ? PanelDeVidrio.esperaDelReflejo + PanelDeVidrio.duracionDelReflejo : 0
-    )
+    // Pasado el reflejo se desmonta: con el panel quieto no queda nada que
+    // animar.
     Task { @MainActor in
-      try? await Task.sleep(for: .seconds(fin + 0.05))
-      vidrioMontado = false
+      try? await Task.sleep(
+        for: .seconds(PanelDeVidrio.esperaDelReflejo + PanelDeVidrio.duracionDelReflejo + 0.05)
+      )
       reflejoVisible = false
     }
   }

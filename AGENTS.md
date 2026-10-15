@@ -398,20 +398,22 @@ siendo cierto:
   no lo trates como prohibido). La cabecera —la silueta en reposo— es negra
   siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
   el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
-  `FondoDeLaMuesca`). **El panel es negro y el vidrio es un destello al
-  abrir** (Alfonso, 2026-10-15: «sólo negro, con algo de efecto glass
-  cuando se abre»): la forma nace de vidrio ahumado (`negroAlAbrir`) que el
-  negro tapa en 0,42 s, un reflejo cruza el canto de abajo de izquierda a
-  derecha y se apaga, y queda un filo blanco tenue en la curva. Terminado el
-  destello el vidrio se desmonta: con el panel quieto no hay vidrio, y el
-  texto va siempre sobre negro. La 0.4.6 dejaba vidrio quieto en el último
-  ~30 % —una mancha gris bajo los modos sobre una página blanca— y la 0.4.5,
-  vidrio claro detrás de todo: no vuelven. **Encendido de fábrica**
-  (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en Apariencia;
-  apagado, negro puro sin destello ni filo). «Reducir transparencia» le gana
-  y lo deja negro; «Reducir movimiento» deja sólo el filo. No sale en PNG: la
-  lámina dibuja el estado quieto y el destello se mira en la pantalla con
-  las escenas `hover-vidrio` y `hover-completo-vidrio` del arnés.
+  `FondoDeLaMuesca`). **El panel abierto es vidrio ahumado, oscuro y
+  parejo** (Alfonso, 2026-10-15, al ver la apertura cuadro a cuadro: «el de
+  vidrio ahumado se ve choro»): vidrio tintado de negro (`tinte` 0,45) con
+  un velo negro encima (`negroEncima` 0,55), que en la pantalla queda en un
+  carbón de #2C2C2C a #3B3B3B tanto sobre blanco como sobre un escritorio
+  oscuro. Al abrir, un reflejo cruza el canto de abajo y se apaga; queda un
+  filo blanco tenue en la curva. Cerrado —reposo, dictando— no hay vidrio
+  montado. Lo que no vuelve: el vidrio claro de la 0.4.5 (letra blanca
+  sobre gris claro) y el vidrio sólo en el último ~30 % de la 0.4.6 (una
+  mancha bajo los modos). **Encendido de fábrica** (`hudPanelDeVidrio`,
+  interruptor «Panel con vidrio» en Apariencia; apagado, negro puro sin
+  vidrio ni filo). «Reducir transparencia» le gana y lo deja negro;
+  «Reducir movimiento» quita el reflejo. No sale en PNG: la lámina lo imita
+  con el carbón medido (`grisDeLaLamina`) y el de verdad se mira en la
+  pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio` del
+  arnés.
 - **El panel del hover tiene la jerarquía y la densidad de Droppy**
   (2026-10-15, `PiezasDelPanel.swift`): letra de 10,5 a 12,5. Lo último
   dictado en 12,5 semibold, con qué es y cuándo en gris debajo; los

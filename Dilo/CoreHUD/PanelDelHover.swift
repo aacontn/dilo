@@ -90,8 +90,8 @@ extension DictationHUDContent {
 /// crecer con su contenido. Por eso la letra no escala con el tamaño de
 /// Ajustes y cada fila es una línea recortada.
 ///
-/// **El contenido va sobre negro**, con vidrio o sin él: el vidrio es sólo
-/// un destello al abrir (`PanelDeVidrio`). Las piezas —el último, cada
+/// **El contenido va sobre oscuro**, con vidrio o sin él: el vidrio es
+/// ahumado y lleva un velo negro encima (`PanelDeVidrio`). Las piezas —el último, cada
 /// reciente, los chips y los botones— viven en `PiezasDelPanel.swift`, con
 /// la jerarquía y la densidad de Droppy.
 struct HUDPanelDelHover: View {

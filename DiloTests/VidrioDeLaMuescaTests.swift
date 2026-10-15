@@ -4,10 +4,9 @@ import Testing
 
 @testable import Dilo
 
-/// El panel del hover: negro opaco, con el vidrio sólo como un destello al
-/// abrir. El vidrio no sale en PNG, así que lo que se afirma acá son los
-/// números y quién lo enciende: que el destello arranca oscuro y se cierra
-/// antes de que la forma termine de crecer, que el filo quieto es tenue,
+/// El panel del hover: vidrio ahumado, oscuro y parejo. El vidrio no sale
+/// en PNG, así que lo que se afirma acá son los números y quién lo
+/// enciende: que el velo negro lo deja oscuro, que el filo quieto es tenue,
 /// que está encendido de fábrica, que el arnés lo enciende sólo en sus
 /// escenas y que soltar la muestra lo apaga.
 @Suite("Vidrio de la muesca")
@@ -20,15 +19,15 @@ struct VidrioDeLaMuescaTests {
     #expect(PanelDeVidrio.radio(para: CGSize(width: 120, height: 200), cabecera: 24) == 30)
   }
 
-  /// El vidrio es un destello al abrir y no se queda (2026-10-15): arranca
-  /// ya ahumado —más negro que vidrio, para que sobre una página blanca no se
-  /// lea como un gris— y el negro lo tapa antes de que el resorte de apertura
-  /// termine. Con la franja quieta de la 0.4.6, la fila de los modos quedaba
-  /// sobre una mancha gris.
-  @Test func elVidrioEsUnDestelloQueSeCierraEnNegro() {
-    #expect(PanelDeVidrio.negroAlAbrir >= 0.5)
-    #expect(PanelDeVidrio.negroAlAbrir < 1)
-    #expect(PanelDeVidrio.duracionDelDestello < CurvaDeLaMuesca.apertura.respuesta)
+  /// El vidrio se queda, ahumado (2026-10-15, «el de vidrio ahumado se ve
+  /// choro»): más negro que vidrio, para que sobre una página blanca se lea
+  /// como carbón y no como el gris claro de la 0.4.5; pero sin llegar a
+  /// negro, que entonces no hay vidrio. La lámina lo imita con un carbón.
+  @Test func elVidrioAhumadoEsOscuroYParejo() {
+    #expect(PanelDeVidrio.negroEncima >= 0.5)
+    #expect(PanelDeVidrio.negroEncima < 1)
+    #expect(PanelDeVidrio.tinte >= 0.4)
+    #expect(PanelDeVidrio.grisDeLaLamina > 0.1 && PanelDeVidrio.grisDeLaLamina < 0.3)
     #expect(PanelDeVidrio.esperaDelReflejo + PanelDeVidrio.duracionDelReflejo <= 1)
   }
 
