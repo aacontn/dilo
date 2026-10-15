@@ -223,6 +223,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
+| `DiloPlataforma` | el URL scheme (`EnlaceDeDilo`), los agentes que avisan por su *hook* (`EventoDeAgente`, `RegistroDeAgentes`), las líneas para pegar en cada agente (`LineasDeLosHooks`) y el aviso de «Mostrar en la muesca» (`AvisoDeAfuera`) | fase 5 |
 
 **El acento de la app es Glaciar** (decisión de Alfonso del 2026-10-14: «el
 color naranja ya no me gusta»): azul `#0A84FF` a celeste `#64D2FF` sobre
@@ -253,8 +254,9 @@ Cuando un módulo nuevo entre, se agrega al `Package.swift`, al
 paquete pero no se enlaza a ningún target, y por eso no toca `project.pbxproj`.
 Se construye y se corre desde `scripts/metrics.sh`.
 
-**Excepción vigente:** `DiloModes` (y con él `DiloConsumo` y `DiloAgentes`)
-viaja dentro del producto `DiloText` en vez de tener el suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
+**Excepción vigente:** `DiloModes` —y con él `DiloConsumo`, `DiloAgentes` y
+`DiloPlataforma`— viaja dentro del producto `DiloText` en vez de tener el
+suyo. Un producto nuevo obliga a tocar `project.pbxproj`, y ese
 archivo estuvo congelado mientras corrían cinco ramas en paralelo. El módulo,
 su carpeta y sus tests sí son propios; lo único compartido es la línea del
 producto. Cuando alguien vuelva a abrir el `.pbxproj` —Tarea 8— se separa en
@@ -295,7 +297,11 @@ siendo cierto:
   panel, `Components/` el sistema de diseño reutilizable.
 - `Agentes/` — el mismo binario sin ventanas: `ArranqueParaAgentes` decide en
   `AppDelegate.main()` si es servidor MCP o CLI, y `FuenteDelHistorial` les
-  da el historial y Tus palabras (ver «Agentes: servidor MCP y CLI»).
+  da el historial y Tus palabras (ver «Agentes: servidor MCP y CLI»); y los
+  agentes de código en la muesca por el URL scheme (ver «Lo que entra de
+  afuera»).
+- `Atajos/` — los App Intents (Atajos, Spotlight, Siri) y el puente a la app
+  viva.
 
 ### Reglas del HUD que siguen mordiendo (heredadas)
 
@@ -324,7 +330,9 @@ siendo cierto:
   la copia; no vence mientras dura una sesión y se va un minuto después de
   volver a reposo). Sólo el notch simulado tiene lugar
   (`HUDNotchGeometry.lugaresAlCostado`): al lado de una carcasa real hay
-  menús y status items. Reuniones y agentes todavía no son actividades.
+  menús y status items. Desde el 2026-10-15 también se sientan los agentes de código y
+el aviso de un atajo, como segmentos «de afuera» (`HUDStage.publicarDeAfuera`,
+ver «Lo que entra de afuera»). Las reuniones todavía no son actividades.
 - **Un segmento al costado es la misma silueta, estirada** (variante elegida
   por Alfonso el 2026-10-13; la píldora negra separada y la de vidrio se
   descartaron). `SiluetaDeLaMuesca.costados` estira el negro hacia el lado
@@ -675,6 +683,59 @@ siendo cierto:
   (`HUDStage.panelDeLaBarraAbierto`): el menú era modal y no chocaban.
 - Técnica observada en Switchboard (`StatusItemController`, `BarPanels`,
   `BarPanelController`, `BarPanelModel`); el código es propio.
+
+## Lo que entra de afuera: URL scheme, agentes y App Intents
+
+Fase 5, pasos 1 y 2 (2026-10-15). El detalle, las líneas para pegar y lo
+que sólo se prueba a mano están en `docs/design/agentes-en-la-muesca.md`.
+
+- **Dos puertas, con reglas distintas.** El URL scheme `dilo://`
+  (`CFBundleURLTypes` en `Dilo/Info.plist`) lo abre cualquiera —un *hook*,
+  pero también una página web—, así que **sólo muestra**: hoy su única ruta
+  es `dilo://agente?de=…&fase=…&proyecto=…`, y `EnlaceDeDilo`
+  (`DiloPlataforma`, con tests) rechaza todo lo demás. Lo que abre el
+  micrófono, escribe Ajustes o toca el portapapeles va **sólo** por App
+  Intents, que arma la persona. No agregues rutas que hagan algo: agrega un
+  intent.
+- **El agente avisa; Dilo no espía.** Nada de leer los JSONL de `~/.claude`,
+  los rollouts de Codex ni la base de Cursor para seguir a un agente, ni sus
+  tokens. La persona pega en su agente la línea que muestra Ajustes → Datos
+  en la muesca → Agentes, que corre `Dilo/Resources/dilo-agente.sh` (viaja
+  en el `.app`). Dilo **nunca escribe** en `~/.claude` ni en `~/.codex`. El
+  script codifica la carpeta, no lanza Dilo si no está corriendo, manda la
+  URL por bundle id (`DILO_ID`, por defecto `cl.espaciodigital.dilo`: cada
+  Debug y cada corrida de tests registra `dilo://`) y nunca falla ni
+  imprime. `DILO_SOLO_IMPRIMIR=1` imprime la URL sin abrir nada; así lo
+  prueba `swift test`.
+- **Qué agente existe lo decide `RegistroDeAgentes`** (puro): `listo` 30 s,
+  `error` 2 min, 15 min sin noticias y se olvida, la misma fase no vuelve a
+  sentar, tope de 8 sesiones. `AgentesEnLaMuesca` duerme hasta el próximo
+  vencimiento —nada de sondeo— y el clic en el segmento lo quita. La
+  palabra del segmento es el nombre del agente; la fase va en el ícono (la
+  mano en el acento cuando te espera) y la frase con el proyecto en el
+  tooltip. Interruptor `hudAgentes`, encendido de fábrica. En el arnés,
+  `agente-esperando`; en PNG, `reposo-agente-espera` y `reposo-dos-agentes`
+  de `scripts/render-muesca.sh`.
+- **Lo de afuera nunca es la forma.** `HUDStage.publicarDeAfuera` fuerza
+  `puedeSerPrincipal = false` y nunca exige el principal ni dice abrir el
+  micrófono, lo pida quien lo pida. Un segmento que cambia su contenido bajo
+  el mismo id vuelve a decir su palabra.
+- **Los App Intents no tienen lógica propia** (`Dilo/Atajos/`). Ocho:
+  Dictar (con modo opcional, «Sin modo» incluido), Dictar una nota, Elegir el
+  modo de Dilo, Último dictado, Copiar el último dictado, Transcribir un
+  archivo, Buscar en el historial de Dilo y Mostrar en la muesca. Lo que hace
+  cada uno vive en `EjecucionDeAtajos`, que recibe la app como protocolo
+  (`AccionesParaAtajos`) y se prueba con un doble; `AccionesDeDiloEnVivo`
+  llama a lo mismo que el menú y el panel del hover
+  (`DirectDictationController.dictarDesdeUnAtajo`, `hudModoDelAtajoGeneral`,
+  `copiarAlPortapapeles`…). `AppDelegate` llena `PuenteDeAtajos.actual` al
+  arrancar. Todos corren con `supportedModes = .background`: traer Dilo al
+  frente le roba el foco a la app donde se va a pegar. Las frases nombran la
+  app; su inglés está en `Dilo/AppShortcuts.xcstrings`.
+- **Lo que entra se anota** en la categoría `plataforma` del log: qué URL se
+  rechazó y por qué (`log show --predicate 'subsystem ==
+  "cl.espaciodigital.dilo" && category == "plataforma"'`). El nombre del
+  proyecto va privado; el texto de un dictado, nunca.
 
 ## El micrófono
 

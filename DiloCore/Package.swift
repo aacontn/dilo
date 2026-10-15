@@ -14,12 +14,14 @@ import PackageDescription
 // se separa en `.library(name: "DiloModes", targets: ["DiloModes"])`.
 // `DiloConsumo` —los datos que la muesca muestra a sus costados— viaja igual
 // y por lo mismo, y también `DiloAgentes` —el servidor MCP y el CLI que el
-// mismo binario de la app atiende con `--mcp` o como `dilo` (2026-10-15)—.
+// mismo binario de la app atiende con `--mcp` o como `dilo`— y `DiloPlataforma`
+// —el URL scheme, los agentes que avisan por su *hook* y lo que llega de
+// Atajos— (fase 5, 2026-10-15).
 let package = Package(
   name: "DiloCore",
   platforms: [.macOS(.v26)],
   products: [
-    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloAgentes"]),
+    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloAgentes", "DiloPlataforma"]),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
     .library(name: "DiloEngines", targets: ["DiloEngines"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
@@ -47,6 +49,7 @@ let package = Package(
     .target(name: "DiloModes"),
     .target(name: "DiloConsumo"),
     .target(name: "DiloAgentes"),
+    .target(name: "DiloPlataforma"),
     .target(name: "DiloCapabilities"),
     .target(
       name: "DiloEngines",
@@ -63,6 +66,7 @@ let package = Package(
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),
     .testTarget(name: "DiloAgentesTests", dependencies: ["DiloAgentes"]),
+    .testTarget(name: "DiloPlataformaTests", dependencies: ["DiloPlataforma"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),

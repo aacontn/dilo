@@ -67,6 +67,10 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   /// segmento ocupa el lugar del dato de su lado (`ReglaDeLosCostados`).
   /// `reposo-datos` es el antes.
   case segmentoConDatos = "segmento-datos"
+  /// Un agente que avisa por su hook (`AgentesEnLaMuesca`): «Claude» con la
+  /// mano levantada en el acento, al costado, como lo pone
+  /// `dilo-agente.sh claude espera`.
+  case agenteEsperando = "agente-esperando"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
@@ -95,7 +99,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .reposo, .reposoConDatos, .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
       .reposo
     case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
-      .segmentoConDatos:
+      .segmentoConDatos, .agenteEsperando:
       .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)

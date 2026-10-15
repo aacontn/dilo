@@ -2,11 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Sólo Sparkle. Todas las demás claves se siguen generando desde los
-	     build settings (GENERATE_INFOPLIST_FILE sigue encendido y se fusiona
-	     con este archivo), porque Sparkle lee SUPublicEDKey directo del bundle
-	     y el passthrough INFOPLIST_KEY_ de Xcode descarta en silencio las
-	     claves que no conoce. (Heredado del árbol de origen, sigue siendo cierto.)
+	<!-- Sólo Sparkle y el URL scheme. Todas las demás claves se siguen
+	     generando desde los build settings (GENERATE_INFOPLIST_FILE sigue
+	     encendido y se fusiona con este archivo), porque Sparkle lee
+	     SUPublicEDKey directo del bundle y el passthrough INFOPLIST_KEY_ de
+	     Xcode descarta en silencio las claves que no conoce; CFBundleURLTypes
+	     tampoco tiene INFOPLIST_KEY_. (Heredado del árbol de origen, sigue
+	     siendo cierto.)
 
 	     Ojo con editar este archivo con PlistBuddy: reescribe el plist entero
 	     y se lleva estos comentarios. Cámbialo a mano o con sed.
@@ -41,5 +43,27 @@
 	     apagado para que nada reemplace el binario sin permiso. -->
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
+	<!-- El URL scheme de Dilo (fase 5, 2026-10-15): `dilo://agente?…`, por
+	     donde los agentes de código avisan a la muesca desde su hook
+	     (Dilo/Resources/dilo-agente.sh,
+	     docs/design/agentes-en-la-muesca.md). Hoy es la única ruta y es a
+	     propósito: una URL la abre cualquiera, una
+	     página web también, así que por acá sólo entra lo que se muestra y
+	     se quita con un clic. Lo que abre el micrófono o toca el
+	     portapapeles va por App Intents (Dilo/Atajos/). Qué se acepta lo
+	     decide `EnlaceDeDilo` (DiloCore/Sources/DiloPlataforma). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>cl.espaciodigital.dilo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dilo</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+	</array>
 </dict>
 </plist>

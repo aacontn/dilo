@@ -2362,5 +2362,69 @@ struct DirectDictationControllerTests {
     #expect(controller.sessionStateForTesting == .idle)
     controller.stop()
   }
-}
 
+  // Desde Atajos y Siri (fase 5, 2026-10-15)
+
+  /// Un atajo arma la misma sesión trabada que el menú; lo que cambia es qué
+  /// modo pide. Cada caso dicta «hola» y mira qué se pegó.
+  private func dictarDesdeUnAtajo(
+    _ pedido: DirectDictationController.ModoPedido,
+    modoDelPanel: Bool = true
+  ) async -> (pegado: [String], modos: [String]) {
+    let settings = AppSettings(defaults: freshDefaults())
+    if modoDelPanel { settings.hudModoDelAtajoGeneral = settings.modos.first?.id }
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let modosUsados = OSAllocatedUnfairLock<[String]>(initialState: [])
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder, prewarmed: prewarmed,
+        finishRecognition: { "hola" },
+        transformar: { texto, modo, _ in
+          modosUsados.withLock { $0.append(modo.id) }
+          return .transformado("MODO: \(texto)")
+        }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    #expect(controller.dictarDesdeUnAtajo(pedido) == .empezo)
+    await waitUntil("La sesión del atajo nunca empezó") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    // Correr el atajo otra vez la termina, como el menú.
+    #expect(controller.dictarDesdeUnAtajo(pedido) == .termino)
+    await waitUntil("La sesión del atajo nunca terminó") { recorder.recordedSessions.count == 1 }
+    controller.stop()
+    return (recorder.insertedTexts, modosUsados.withLock { $0 })
+  }
+
+  @Test func unAtajoSinModoUsaElModoDelAtajoGeneral() async {
+    let resultado = await dictarDesdeUnAtajo(.elDelAtajoGeneral)
+    #expect(resultado.pegado == ["MODO: hola"])
+  }
+
+  /// «Sin modo» le gana al modo elegido en el panel: la persona dijo cuál.
+  @Test func unAtajoQuePideSinModoPegaComoSeDijo() async {
+    let resultado = await dictarDesdeUnAtajo(.ninguno)
+    #expect(resultado.pegado == ["hola"])
+    #expect(resultado.modos.isEmpty)
+  }
+
+  @Test func unAtajoConModoUsaEseModo() async {
+    let resultado = await dictarDesdeUnAtajo(.modo("correo"), modoDelPanel: false)
+    #expect(resultado.modos == ["correo"])
+    #expect(resultado.pegado == ["MODO: hola"])
+  }
+
+  /// Un modo borrado después de armar el atajo no abre el micrófono.
+  @Test func unModoQueYaNoExisteNoEmpieza() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let controller = makeController(dependencies: makeDependencies(recorder: recorder, prewarmed: prewarmed))
+    await prepare(controller, prewarmed: prewarmed)
+    #expect(controller.dictarDesdeUnAtajo(.modo("no-existe")) == .modoDesconocido)
+    #expect(controller.sessionStateForTesting == .idle)
+    controller.stop()
+  }
+}

@@ -35,4 +35,8 @@ enum AppLog {
   /// El servidor MCP y el CLI (`ArranqueParaAgentes`). Ahí stdout es el
   /// protocolo, así que lo que el proceso tenga que decir va acá.
   static let agentes = Logger(subsystem: subsystem, category: "agentes")
+  /// Lo que entra de afuera: URL `dilo://` (qué se entendió o por qué se
+  /// rechazó) y los App Intents que corren. Nunca el texto de un dictado ni
+  /// el nombre de un proyecto en público.
+  static let plataforma = Logger(subsystem: subsystem, category: "plataforma")
 }

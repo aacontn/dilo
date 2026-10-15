@@ -14,6 +14,10 @@ final class SettingsRuntimeState {
   /// Ajustes la consume y la deja en nil: es una orden, no un estado.
   var seccionPedida: SettingsSection?
 
+  /// «Probar» de la tarjeta de agentes: pone «Claude te espera» en la
+  /// muesca sin pasar por LaunchServices (`AgentesEnLaMuesca.probar`).
+  @ObservationIgnored var probarAgente: () -> Void = {}
+
   /// Language models currently downloading, as locale identifier to progress
   /// (0…1). A language picked before its model exists downloads in the
   /// background, and the Language section says so rather than looking idle.

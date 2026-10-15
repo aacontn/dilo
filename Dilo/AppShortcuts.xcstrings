@@ -1,0 +1,127 @@
+{
+  "sourceLanguage": "es",
+  "strings": {
+    "Dictar con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Empezar a dictar con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start dictating with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Dictar con ${applicationName} en ${modo}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate with ${applicationName} in ${modo}"
+          }
+        }
+      }
+    },
+    "Dictar una nota con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate a note with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Nota rápida en ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick note in ${applicationName}"
+          }
+        }
+      }
+    },
+    "Elegir el modo de ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the ${applicationName} mode"
+          }
+        }
+      }
+    },
+    "Usar ${modo} en ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use ${modo} in ${applicationName}"
+          }
+        }
+      }
+    },
+    "Copiar el último dictado de ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the last ${applicationName} dictation"
+          }
+        }
+      }
+    },
+    "Copiar lo último de ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the latest from ${applicationName}"
+          }
+        }
+      }
+    },
+    "Transcribir un archivo con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribe a file with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Buscar en el historial de ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search ${applicationName} history"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

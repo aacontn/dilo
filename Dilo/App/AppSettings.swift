@@ -60,6 +60,7 @@ final class AppSettings {
     static let hudDatoDerecho = "hudDatoDerecho"
     static let hudPorcentajeDeClaude = "hudPorcentajeDeClaude"
     static let hudAvisosDeLimite = "hudAvisosDeLimite"
+    static let hudAgentes = "hudAgentes"
     static let hudRecientesDelPortapapeles = "hudRecientesDelPortapapeles"
     static let hudModosEnElPanel = "hudModosEnElPanel"
     static let hudModoDelAtajoGeneral = "hudModoDelAtajoGeneral"
@@ -453,6 +454,14 @@ final class AppSettings {
     didSet { defaults.set(hudAvisosDeLimite, forKey: Keys.hudAvisosDeLimite) }
   }
 
+  /// Si la muesca muestra lo que los agentes de código avisan por su *hook*
+  /// (`dilo://agente?…`, `AgentesEnLaMuesca`). **Encendido de fábrica**: no
+  /// llega nada mientras nadie pegue la línea en su agente, y quien la pegó
+  /// lo pidió. Apagado, las URL se ignoran y lo que había se retira.
+  var hudAgentes: Bool {
+    didSet { defaults.set(hudAgentes, forKey: Keys.hudAgentes) }
+  }
+
   // MARK: El panel del hover
 
   /// Si los recientes del panel del hover suman lo que copias, además de tus
@@ -761,6 +770,7 @@ final class AppSettings {
       )
     hudPorcentajeDeClaude = defaults.bool(forKey: Keys.hudPorcentajeDeClaude)
     hudAvisosDeLimite = defaults.object(forKey: Keys.hudAvisosDeLimite) as? Bool ?? true
+    hudAgentes = defaults.object(forKey: Keys.hudAgentes) as? Bool ?? true
     hudRecientesDelPortapapeles = defaults.object(forKey: Keys.hudRecientesDelPortapapeles) as? Bool ?? true
     hudModosEnElPanel = defaults.object(forKey: Keys.hudModosEnElPanel) as? Bool ?? true
     hudModoDelAtajoGeneral = defaults.string(forKey: Keys.hudModoDelAtajoGeneral)
