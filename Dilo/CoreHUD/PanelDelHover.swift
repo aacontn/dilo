@@ -101,6 +101,11 @@ struct HUDPanelDelHover: View {
   let lados: [LadoDeLaMuesca]
   var ahora = Date()
 
+  /// Si el botón de modo está desplegado. Arranca plegado cada vez que el
+  /// panel se abre, porque la vista se monta de nuevo.
+  @State private var modosAbiertos = false
+  @Namespace private var pildora
+
   private var secciones: SeccionesDelPanel {
     content.seccionesDelPanel(conDatos: !lados.isEmpty)
   }
@@ -263,30 +268,58 @@ struct HUDPanelDelHover: View {
 
   // MARK: Los modos
 
-  /// La fila de abajo: los modos a la izquierda, como pestañas —el elegido
-  /// en una píldora gris—, y «Traducir» y «Nota» a la derecha, como íconos.
+  /// La fila de abajo: el botón de modo a la izquierda y «Traducir» y
+  /// «Nota» a la derecha, como íconos. Plegado, el botón muestra sólo el
+  /// modo elegido; desplegado, todos como pestañas —el elegido en la
+  /// píldora gris— y los íconos se apartan para dejarles la fila.
   private var modos: some View {
     HStack(spacing: 4) {
       if !content.modosDelPanel.isEmpty {
-        ScrollView(.horizontal, showsIndicators: false) {
-          HStack(spacing: 2) {
-            chip(nombre: String(localized: "Normal"), id: nil)
-            ForEach(content.modosDelPanel) { modo in
-              chip(nombre: modo.nombre, id: modo.id)
+        if modosAbiertos {
+          ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 2) {
+              chip(nombre: String(localized: "Normal"), id: nil)
+              ForEach(content.modosDelPanel) { modo in
+                chip(nombre: modo.nombre, id: modo.id)
+              }
             }
           }
+          .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .leading)))
+        } else {
+          botonDeModo
+          Spacer(minLength: 0)
         }
       } else {
         Spacer(minLength: 0)
       }
-      if !content.modosDelPanel.isEmpty, content.traduccionDelPanel != nil || content.ofreceNota {
-        // Un corte fino entre lo que se elige —el modo— y lo que se hace.
-        Capsule()
-          .fill(Color.white.opacity(0.12))
-          .frame(width: 1, height: 12)
-          .padding(.horizontal, 2)
-          .accessibilityHidden(true)
+      if !modosAbiertos {
+        accionesDelPie
+          .transition(.opacity)
       }
+    }
+    // El alto de la sección menos su separador, que va arriba.
+    .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
+  }
+
+  /// El modo elegido, plegado. Un clic despliega los demás.
+  private var botonDeModo: some View {
+    let elegido = content.modosDelPanel.first { $0.id == content.modoDelPanelID }
+    let nombre = elegido?.nombre ?? String(localized: "Normal")
+    return HUDBotonDeModo(nombre: nombre, pildora: pildora)
+      .onTapGesture {
+        withAnimation(CurvaDeLaMuesca.apertura.animacion) { modosAbiertos = true }
+      }
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Text("Modo: \(nombre)"))
+      .accessibilityAddTraits(.isButton)
+      .accessibilityHint(Text("Muestra los otros modos"))
+      .help("Cambiar de modo")
+  }
+
+  /// «Traducir» y «Nota». Sin el corte fino que los separaba de las
+  /// pestañas: con el modo en una sola píldora, el aire ya los separa.
+  private var accionesDelPie: some View {
+    HStack(spacing: 4) {
       if let traduccion = content.traduccionDelPanel {
         botonDeTraducir(traduccion)
       }
@@ -294,8 +327,6 @@ struct HUDPanelDelHover: View {
         botonDeNota
       }
     }
-    // El alto de la sección menos su separador, que va arriba.
-    .frame(height: HUDNotchGeometry.altoDeLosModos - HUDNotchGeometry.altoDelSeparador)
   }
 
   /// Dictar traduciendo, al idioma elegido en Ajustes. Sin idioma todavía,
@@ -334,11 +365,16 @@ struct HUDPanelDelHover: View {
       .help("Dicta una nota que termina en Notas")
   }
 
+  /// Elegir un modo lo deja puesto y pliega la fila: la píldora viaja al
+  /// elegido y de ahí vuelve al botón.
   private func chip(nombre: String, id: String?) -> some View {
     let elegido = content.modoDelPanelID == id
-    return HUDChipDelPanel(nombre: nombre, elegido: elegido)
+    return HUDChipDelPanel(nombre: nombre, elegido: elegido, pildora: pildora)
       .contentShape(Capsule())
-      .onTapGesture { content.alElegirModo?(id) }
+      .onTapGesture {
+        content.alElegirModo?(id)
+        withAnimation(CurvaDeLaMuesca.cierre.animacion.delay(0.12)) { modosAbiertos = false }
+      }
       .accessibilityAddTraits(elegido ? [.isButton, .isSelected] : .isButton)
   }
 }

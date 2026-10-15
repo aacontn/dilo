@@ -420,11 +420,17 @@ siendo cierto:
 - **El panel del hover tiene la jerarquía y la densidad de Droppy**
   (2026-10-15, `PiezasDelPanel.swift`): letra de 10,5 a 12,5. Lo último
   dictado en 12,5 semibold, con qué es y cuándo en gris debajo; los
-  recientes anteriores en una línea gris; los modos como las pestañas de su
-  bandeja —texto de 11 sin fondo, el elegido en una píldora gris de 20—, y
-  «Traducir» (globo y «EN») y «Nota» como íconos sin fondo tras un corte
-  fino. Los modos en botones de 24 con el elegido en blanco lleno fueron
-  «muy grandes». El color, sólo en un detalle chico —el ícono del último, el
+  recientes anteriores en una línea gris; **los modos en un solo botón**
+  —el elegido en una píldora gris de 20 con una flecha—, y «Traducir»
+  (globo y «EN») y «Nota» como íconos sin fondo a la derecha. Apretar el
+  botón despliega todos los modos como las pestañas de la bandeja de
+  Droppy, con el resorte de apertura y la píldora viajando al elegido
+  (`matchedGeometryEffect`); elegir uno lo deja puesto y la fila se pliega.
+  El alto no cambia al desplegar. Alfonso, 2026-10-15: «en vez de que me
+  muestre todos los modos de una, el botón de modo, que si lo aprietas
+  aparecen dinámicamente los otros». Antes: todos los modos a la vista, y
+  antes aún, en botones de 24 con el elegido en blanco lleno: «muy
+  grandes». El color, sólo en un detalle chico —el ícono del último, el
   ✓ de copiado, la reunión que empieza—. Las piezas toman valores sueltos para que el render de la
   muesca dibuje las mismas vistas y no una copia.
 - **La forma abierta es la de Droppy; el reposo y dictar no cambian**

@@ -320,6 +320,11 @@ SwiftUI.
   > `hudOcultarAlCompartir` apagado en la copia de prueba, sobre un fondo
   > claro y uno oscuro, y cuadro a cuadro durante la apertura.
   >
+  > **Los modos, en un botón (2026-10-15).** Con todos los modos a la vista
+  > la fila seguía pesando: ahora muestra sólo el elegido, en su píldora con
+  > una flecha, y al apretarlo los demás se despliegan ahí mismo, como los
+  > widgets de Droppy. Elegir uno pliega la fila.
+  >
   > **Tercera corrección, el mismo 2026-10-15 (0.4.7): el ahumado se
   > queda.** Mirando la apertura cuadro a cuadro, Alfonso eligió el primero
   > —el vidrio ahumado antes de cerrarse en negro—: «se ve choro». Ese es

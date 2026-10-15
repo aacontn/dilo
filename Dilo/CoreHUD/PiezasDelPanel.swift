@@ -17,6 +17,12 @@ import SwiftUI
 // la fila de abajo pesaba más que lo dictado («los modos y Traducir se ven
 // mal: muy grandes»). Y antes, en la 0.4.5, todo era letra de 8 a 10,5 del
 // mismo gris: sin nada que mirar primero.
+//
+// **Los modos van en un solo botón** (2026-10-15): «en vez de que me
+// muestre todos los modos de una, el botón de modo, que si lo aprietas
+// aparecen dinámicamente los otros, como lo hace Droppy en sus widgets». La
+// fila muestra el elegido con una flecha; al apretarlo, los demás salen de
+// ahí mismo con el resorte de apertura y la píldora se corre al que eliges.
 
 /// Lo último que pasó por Dilo: el «Blue Hour · Nova Coast» del reproductor
 /// de Droppy, a la escala de un panel de texto. Un ícono con el degradado de
@@ -117,6 +123,9 @@ struct HUDFilaRecienteDelPanel: View {
 struct HUDChipDelPanel: View {
   let nombre: String
   let elegido: Bool
+  /// Con dónde comparte la píldora el botón de modo: así, al desplegarse,
+  /// la píldora del botón viaja hasta el chip elegido en vez de aparecer.
+  var pildora: Namespace.ID?
 
   var body: some View {
     Text(verbatim: nombre)
@@ -125,8 +134,52 @@ struct HUDChipDelPanel: View {
       .foregroundStyle(elegido ? .white : .white.opacity(0.5))
       .padding(.horizontal, 8)
       .frame(height: HUDNotchGeometry.altoDeUnControl)
-      .background(Capsule(style: .continuous).fill(Color.white.opacity(elegido ? 0.14 : 0)))
+      .background {
+        if elegido {
+          PildoraDelModo(espacio: pildora)
+        }
+      }
       .contentShape(Capsule(style: .continuous))
+  }
+}
+
+/// El botón de modo, plegado: el modo elegido en su píldora gris y una
+/// flecha que dice que hay más. Apretarlo despliega los demás en la misma
+/// fila (`HUDPanelDelHover`).
+struct HUDBotonDeModo: View {
+  let nombre: String
+  var pildora: Namespace.ID?
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Text(verbatim: nombre)
+        .font(.system(size: 11, weight: .semibold))
+        .lineLimit(1)
+      Image(systemName: "chevron.right")
+        .font(.system(size: 8, weight: .bold))
+        .foregroundStyle(.white.opacity(0.5))
+    }
+    .foregroundStyle(.white)
+    .padding(.leading, 8)
+    .padding(.trailing, 7)
+    .frame(height: HUDNotchGeometry.altoDeUnControl)
+    .background { PildoraDelModo(espacio: pildora) }
+    .contentShape(Capsule(style: .continuous))
+  }
+}
+
+/// La píldora gris del modo elegido. Es una sola vista para el botón y
+/// para los chips, así el `matchedGeometryEffect` la mueve de uno a otro.
+private struct PildoraDelModo: View {
+  let espacio: Namespace.ID?
+
+  var body: some View {
+    let pildora = Capsule(style: .continuous).fill(Color.white.opacity(0.14))
+    if let espacio {
+      pildora.matchedGeometryEffect(id: "pildora-del-modo", in: espacio)
+    } else {
+      pildora
+    }
   }
 }
 
