@@ -32,4 +32,7 @@ enum AppLog {
   /// Qué anfitrión resolvió esta ejecución y qué esconde. Es lo primero que
   /// hay que saber cuando algo "no aparece" en el build de App Store.
   static let capacidades = Logger(subsystem: subsystem, category: "capacidades")
+  /// El servidor MCP y el CLI (`ArranqueParaAgentes`). Ahí stdout es el
+  /// protocolo, así que lo que el proceso tenga que decir va acá.
+  static let agentes = Logger(subsystem: subsystem, category: "agentes")
 }

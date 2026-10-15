@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   #endif
 
   static func main() {
+    // Antes que nada de AppKit: con `--mcp` o como `dilo` este mismo binario
+    // es el servidor MCP o el CLI, sin ventanas ni ícono, y no vuelve de acá.
+    ArranqueParaAgentes.correrSinVentanasSiCorresponde()
     let application = NSApplication.shared
     let delegate = AppDelegate()
     application.delegate = delegate
