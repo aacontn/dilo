@@ -5,17 +5,23 @@ import SwiftUI
 // muesca (`scripts/render-muesca.sh`), así la lámina dibuja las mismas vistas
 // y no una copia que se separa.
 //
-// **La jerarquía es la de Droppy** (2026-10-15): lo principal grande, en
-// blanco y en negrita —lo último dictado, el modo elegido—; lo secundario en
-// gris; los controles en blanco. El color va sólo en un detalle chico: el
-// ícono del último dictado, el ✓ de copiado, la reunión que empieza. Hasta la
-// 0.4.5 todo era letra de 8 a 10,5 puntos casi del mismo gris, con un
-// encabezado «RECIENTES» y tarjetas: amontonado, y sin nada que mirar
-// primero.
+// **La jerarquía y la densidad son las de Droppy** (2026-10-15): lo
+// principal en blanco y semibold —lo último dictado—, lo secundario en gris,
+// y los controles como las pestañas de su bandeja: texto chico sin fondo, y
+// el elegido en una píldora gris. Letra de 10,5 a 12,5 puntos. El color va
+// sólo en un detalle chico: el ícono del último dictado, el ✓ de copiado, la
+// reunión que empieza.
+//
+// Hasta la 0.4.6 los modos eran botones de 24 con fondo, el elegido en
+// blanco lleno, y «Traducir» y «Nota» otras dos píldoras con ícono y palabra:
+// la fila de abajo pesaba más que lo dictado («los modos y Traducir se ven
+// mal: muy grandes»). Y antes, en la 0.4.5, todo era letra de 8 a 10,5 del
+// mismo gris: sin nada que mirar primero.
 
-/// Lo último que pasó por Dilo, grande: el «Blue Hour · Nova Coast» del
-/// reproductor de Droppy. Un ícono con el degradado de la paleta, el texto en
-/// negrita y debajo, en gris, qué es y cuándo; a la derecha, copiar.
+/// Lo último que pasó por Dilo: el «Blue Hour · Nova Coast» del reproductor
+/// de Droppy, a la escala de un panel de texto. Un ícono con el degradado de
+/// la paleta, el texto en semibold y debajo, en gris, qué es y cuándo; a la
+/// derecha, copiar.
 struct HUDUltimoDelPanel: View {
   let titulo: String
   /// Lo secundario: «Dictado · hace 2 min». Nil, sólo el título.
@@ -29,15 +35,19 @@ struct HUDUltimoDelPanel: View {
   /// Si se acaba de copiar: el botón dice ✓ en el color del acuse.
   var copiado = false
 
+  /// El lado del cuadro del ícono. Los recientes de abajo alinean su ícono
+  /// en esta misma columna.
+  static let cuadro: CGFloat = 26
+
   var body: some View {
     let paleta = PaletaDeDilo.actual
-    HStack(spacing: 11) {
-      RoundedRectangle(cornerRadius: 9, style: .continuous)
-        .fill(Color.white.opacity(0.09))
-        .frame(width: 32, height: 32)
+    HStack(spacing: 10) {
+      RoundedRectangle(cornerRadius: 7, style: .continuous)
+        .fill(Color.white.opacity(0.08))
+        .frame(width: Self.cuadro, height: Self.cuadro)
         .overlay {
           Image(systemName: esDictado ? "waveform" : "doc.on.clipboard")
-            .font(.system(size: 14, weight: .semibold))
+            .font(.system(size: 11.5, weight: .semibold))
             .foregroundStyle(LinearGradient(
               colors: [paleta.ondaBase.color, paleta.ondaPunta.color],
               startPoint: .bottomLeading,
@@ -46,24 +56,24 @@ struct HUDUltimoDelPanel: View {
         }
       VStack(alignment: .leading, spacing: 1) {
         Text(verbatim: titulo)
-          .font(.system(size: 13.5, weight: .bold))
+          .font(.system(size: 12.5, weight: .semibold))
           .foregroundStyle(.white)
           .lineLimit(1)
           .truncationMode(.tail)
         if let subtitulo {
           Text(verbatim: subtitulo)
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.white.opacity(0.5))
+            .font(.system(size: 10.5))
+            .foregroundStyle(.white.opacity(0.45))
             .lineLimit(1)
         }
       }
       Spacer(minLength: 8)
       if ofreceCopiar {
         Image(systemName: copiado ? "checkmark" : "doc.on.doc")
-          .font(.system(size: 12, weight: .semibold))
-          .foregroundStyle(copiado ? paleta.acuse.color : .white)
-          .frame(width: 28, height: 28)
-          .background(Circle().fill(Color.white.opacity(copiado ? 0.06 : 0.1)))
+          .font(.system(size: 10.5, weight: .semibold))
+          .foregroundStyle(copiado ? paleta.acuse.color : .white.opacity(0.75))
+          .frame(width: 22, height: 22)
+          .background(Circle().fill(Color.white.opacity(copiado ? 0.05 : 0.08)))
           .accessibilityLabel(Text(copiado ? "Copiado" : "Copiar"))
       }
     }
@@ -71,73 +81,79 @@ struct HUDUltimoDelPanel: View {
   }
 }
 
-/// Un reciente anterior: una línea en gris claro, sin competir con el último.
+/// Un reciente anterior: una línea en gris, sin competir con el último.
 struct HUDFilaRecienteDelPanel: View {
   let texto: String
   var esDictado = true
   var copiado = false
 
   var body: some View {
-    HStack(spacing: 9) {
+    HStack(spacing: 10) {
       Image(systemName: esDictado ? "waveform" : "doc.on.clipboard")
-        .font(.system(size: 9.5, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.35))
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(.white.opacity(0.3))
         // El ancho del cuadro del último: las líneas arrancan en la misma
         // columna que su título.
-        .frame(width: 32)
+        .frame(width: HUDUltimoDelPanel.cuadro)
       Text(verbatim: texto)
-        .font(.system(size: 11.5, weight: .medium))
-        .foregroundStyle(.white.opacity(0.62))
+        .font(.system(size: 11))
+        .foregroundStyle(.white.opacity(0.58))
         .lineLimit(1)
         .truncationMode(.tail)
       Spacer(minLength: 8)
       // Íconos y no palabras (2026-09-24): el de copiar apagado, y un ✓ en
       // menta cuando se copió, que es cuando pasó algo.
       Image(systemName: copiado ? "checkmark" : "doc.on.doc")
-        .font(.system(size: 10.5, weight: copiado ? .bold : .semibold))
-        .foregroundStyle(copiado ? PaletaDeDilo.actual.acuse.color : .white.opacity(0.4))
-        .frame(width: 28)
+        .font(.system(size: 9.5, weight: copiado ? .bold : .medium))
+        .foregroundStyle(copiado ? PaletaDeDilo.actual.acuse.color : .white.opacity(0.32))
+        .frame(width: 22)
     }
     .frame(height: HUDNotchGeometry.altoDeUnReciente)
   }
 }
 
-/// Un modo en la fila de abajo. El elegido, blanco con letra negra —el
-/// control encendido de Droppy—; los demás, blanco tenue.
+/// Un modo en la fila de abajo, como una pestaña de la bandeja de Droppy:
+/// texto chico sin fondo, y el elegido en blanco sobre una píldora gris.
 struct HUDChipDelPanel: View {
   let nombre: String
   let elegido: Bool
 
   var body: some View {
     Text(verbatim: nombre)
-      .font(.system(size: 11.5, weight: elegido ? .bold : .semibold))
+      .font(.system(size: 11, weight: elegido ? .semibold : .medium))
       .lineLimit(1)
-      .foregroundStyle(elegido ? .black : .white.opacity(0.8))
-      .padding(.horizontal, 11)
+      .foregroundStyle(elegido ? .white : .white.opacity(0.5))
+      .padding(.horizontal, 8)
       .frame(height: HUDNotchGeometry.altoDeUnControl)
-      .background(Capsule(style: .continuous).fill(elegido ? Color.white : Color.white.opacity(0.1)))
+      .background(Capsule(style: .continuous).fill(Color.white.opacity(elegido ? 0.14 : 0)))
+      .contentShape(Capsule(style: .continuous))
   }
 }
 
-/// Un botón de acción al pie —«Nota», «Traducir»—: ícono y palabra en
-/// blanco. Apagado, gris: todavía falta algo para que haga lo que dice.
+/// Una acción al pie —«Traducir», «Nota»—: un ícono y, si hace falta, una
+/// palabra corta, en gris claro y sin fondo, como los controles del
+/// reproductor de Droppy. Apagado, más gris: todavía falta algo para que
+/// haga lo que dice.
 struct HUDBotonDelPanel: View {
   let icono: String
-  let titulo: String
+  /// La palabra al lado del ícono —«EN»—, o nil para el ícono solo.
+  var titulo: String?
   var apagado = false
 
   var body: some View {
-    HStack(spacing: 5) {
+    HStack(spacing: 4) {
       Image(systemName: icono)
-        .font(.system(size: 11, weight: .semibold))
-      Text(verbatim: titulo)
-        .font(.system(size: 11.5, weight: .semibold))
-        .lineLimit(1)
+        .font(.system(size: 11, weight: .medium))
+      if let titulo {
+        Text(verbatim: titulo)
+          .font(.system(size: 11, weight: .semibold))
+          .lineLimit(1)
+      }
     }
-    .foregroundStyle(.white.opacity(apagado ? 0.5 : 0.95))
-    .padding(.horizontal, 11)
-    .frame(height: HUDNotchGeometry.altoDeUnControl)
-    .background(Capsule(style: .continuous).fill(Color.white.opacity(apagado ? 0.06 : 0.1)))
+    .foregroundStyle(.white.opacity(apagado ? 0.32 : 0.72))
+    .padding(.horizontal, titulo == nil ? 0 : 6)
+    .frame(minWidth: HUDNotchGeometry.altoDeUnControl, minHeight: HUDNotchGeometry.altoDeUnControl)
+    .contentShape(Capsule(style: .continuous))
   }
 }
 

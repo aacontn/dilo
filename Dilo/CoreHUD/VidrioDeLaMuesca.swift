@@ -1,86 +1,73 @@
 import SwiftUI
 
-/// El panel del hover al estilo Dynamic Glass: **negro opaco** en todo lo
-/// que tiene texto, y el vidrio sólo en una franja ahumada al pie.
+/// El panel del hover: **negro opaco**, y el vidrio sólo como un destello
+/// al abrir.
 ///
-/// Técnica observada en el video «Dynamic Glass» de Droppy (cuadro guardado
-/// en el taller, `droppy-dynamic-glass-referencia.jpg`): el panel abierto es
-/// negro casi entero y recién en su último cuarto el negro «se derrite» en
-/// vidrio oscuro, con un filo de luz en el borde de abajo. El fondo apenas se
-/// adivina a través de esa franja y el texto queda siempre sobre negro, así
-/// que se lee igual sobre una página blanca que sobre un escritorio oscuro.
-/// Implementación propia y sólo con API pública: `glassEffect(_:in:)`.
+/// Pedido de Alfonso (2026-10-15, 0.4.6): «sólo negro, con algo de efecto
+/// glass cuando se abre». El vidrio ya no es una franja que se queda: al
+/// abrir, la forma nace de vidrio ahumado y en medio segundo se cierra en
+/// negro, mientras un reflejo recorre el canto de abajo de izquierda a
+/// derecha y se apaga. Lo que queda abierto es negro con un filo blanco muy
+/// tenue en la curva de abajo, el canto de un objeto negro brillante.
 ///
-/// **Hasta la 0.4.5 era al revés** (2026-10-15): negro sólo en la cabecera y
-/// 22 puntos de fundido, y todo lo demás vidrio con un tinte de 0,3 «para que
-/// se leyera como vidrio». Sobre YouTube el panel quedaba gris claro y
-/// translúcido con letra blanca encima: «se ve mal». El vidrio claro con
-/// texto encima no vuelve.
+/// **Hasta la 0.4.6 el vidrio se quedaba** en el último ~30 % del panel:
+/// negro que se derretía en vidrio ahumado bajo la fila de los modos. Sobre
+/// una página blanca era una mancha gris detrás de los controles —«se ve
+/// mal»—. Y antes, en la 0.4.5, el panel entero era vidrio claro con letra
+/// blanca encima: ilegible. Vidrio quieto debajo del texto no vuelve.
+///
+/// Técnica observada en el video «Dynamic Glass» de Droppy (el panel abierto
+/// es negro y el vidrio apenas asoma en el canto); el destello que se apaga
+/// es propio. Sólo API pública: `glassEffect(_:in:)`.
 ///
 /// **Encendido de fábrica** (`AppSettings.hudPanelDeVidrio`, interruptor
-/// «Panel con vidrio» en Ajustes → Apariencia); apagado, la misma forma en
-/// negro entero. Sólo mientras el panel está abierto: en reposo no hay vidrio
-/// montado, así que el reposo cuesta lo mismo que antes (spec §3). Con
-/// «Reducir transparencia» del sistema cae a negro. El vidrio **no sale en
-/// PNG** (`ImageRenderer` no lo dibuja): la lámina lo imita con
-/// `FondoDeLaMuesca.Material.imitacion` y se juzga en la pantalla con las
-/// escenas `hover-vidrio` y `hover-completo-vidrio` del arnés.
+/// «Panel con vidrio» en Ajustes → Apariencia); apagado, negro puro, sin
+/// destello ni filo. Con «Reducir transparencia» del sistema, negro; con
+/// «Reducir movimiento», el filo quieto sin destello ni reflejo. El vidrio
+/// se monta sólo mientras dura el destello: ni en reposo ni con el panel
+/// quieto hay vidrio montado (spec §3). **No sale en PNG** (`ImageRenderer`
+/// no lo dibuja): la lámina muestra el estado quieto y el destello se juzga
+/// en la pantalla con las escenas `hover-vidrio` y `hover-completo-vidrio`.
 enum PanelDeVidrio {
   /// El radio de abajo del panel abierto: unos 32 puntos, medidos en el
-  /// cuadro de Droppy contra el ancho del panel (eran 40, el
-  /// `expandedShelfCornerRadius` de su estante, y en el panel se veía más
-  /// redondo que la referencia). Se achica sólo si el panel es más bajo.
+  /// cuadro de Droppy contra el ancho del panel. Se achica sólo si el panel
+  /// es más bajo.
   static let radioInferior: CGFloat = 32
 
-  /// Qué parte del alto del panel ocupa la franja de vidrio, contada desde
-  /// el borde de abajo: el último ~30 %, como en Droppy, entre un mínimo que
-  /// deja ver el vidrio en el panel de una línea y un máximo que nunca le
-  /// llega al texto principal.
-  static let proporcionDeLaFranja: CGFloat = 0.3
-  static let franjaMinima: CGFloat = 26
-  static let franjaMaxima: CGFloat = 60
+  /// El tinte negro del vidrio del destello: ahumado, como el de Droppy.
+  static let tinte: Double = 0.45
+  /// Cuánto negro tiene encima el vidrio en el primer cuadro: el destello
+  /// arranca ya oscuro, para que sobre una página blanca se lea como vidrio
+  /// ahumado y no como un gris.
+  static let negroAlAbrir: Double = 0.55
+  /// Lo que tarda el negro en cerrarse sobre el vidrio. Algo menos que el
+  /// resorte de apertura (0,47 s): cuando la forma termina de crecer ya es
+  /// negra.
+  static let duracionDelDestello: Double = 0.42
 
-  /// El tinte negro del vidrio de la franja. Alto a propósito: el vidrio
-  /// de Droppy es ahumado, no claro.
-  static let tinte: Double = 0.5
-  /// Cuánto negro queda encima del vidrio en el mismo borde de abajo, donde
-  /// el degradado es más translúcido. El negro **nunca** llega a cero: es lo
-  /// que garantiza que la fila de abajo —los modos, «Nota»— quede sobre
-  /// vidrio oscuro aunque detrás haya una página blanca.
-  static let negroAlPie: Double = 0.35
+  /// El reflejo que recorre el canto de abajo al abrir: blanco casi entero,
+  /// un 40 % del ancho, de izquierda a derecha. Arranca cuando la forma ya
+  /// creció lo bastante como para tener canto.
+  static let brilloDelReflejo: Double = 1
+  static let anchoDelReflejo: CGFloat = 0.45
+  /// La luz que el reflejo deja dentro del negro, pegada al canto: lo que
+  /// hace que se lea como luz pasando por un vidrio y no como una raya.
+  static let brilloDelVelo: Double = 0.16
+  static let altoDelVelo: CGFloat = 16
+  static let esperaDelReflejo: Double = 0.1
+  static let duracionDelReflejo: Double = 0.85
 
-  /// Lo que deja pasar del fondo el borde de abajo, el punto más claro del
-  /// panel: el vidrio tintado por el negro que le queda encima. Sobre una
-  /// página blanca es un gris de un tercio, y la letra blanca sigue
-  /// leyéndose; el resto del panel deja pasar menos, y arriba nada.
-  static var transmisionAlPie: Double { (1 - tinte) * (1 - negroAlPie) }
-
-  /// El filo de luz del borde de abajo: blanco, fino, y sólo en la curva de
-  /// abajo, que es lo que hace que la franja se lea como el canto de un
-  /// vidrio y no como un gris translúcido.
-  static let brilloDelBorde: Double = 0.38
+  /// El filo que queda con el panel abierto: blanco y muy tenue, sólo en la
+  /// curva de abajo.
+  static let brilloDelBorde: Double = 0.2
 
   /// El aire lateral del contenido: el radio de abajo se come las esquinas.
-  static let aireLateral: CGFloat = 22
+  static let aireLateral: CGFloat = 20
 
   /// El radio de abajo para un panel de este alto: el de Droppy, sin pasarse
   /// de lo que cuelga bajo la cabecera ni de un cuarto del ancho.
   static func radio(para tamaño: CGSize, cabecera: CGFloat) -> CGFloat {
     max(0, min(radioInferior, tamaño.height - cabecera, tamaño.width / 4))
-  }
-
-  /// Cuánto mide la franja de vidrio en un panel de este alto, sin subir
-  /// nunca por encima de la cabecera.
-  static func franja(para alto: CGFloat, cabecera: CGFloat) -> CGFloat {
-    let libre = max(0, alto - cabecera)
-    return min(libre, max(franjaMinima, min(franjaMaxima, alto * proporcionDeLaFranja)))
-  }
-
-  /// Dónde empieza la franja, como fracción del alto desde arriba: el
-  /// `location` del degradado de la máscara.
-  static func inicioDeLaFranja(para alto: CGFloat, cabecera: CGFloat) -> CGFloat {
-    guard alto > 0 else { return 1 }
-    return 1 - franja(para: alto, cabecera: cabecera) / alto
   }
 }
 
@@ -165,142 +152,185 @@ struct CurvaDeLaMuesca: Equatable, Sendable {
   }
 }
 
-/// El fondo de la forma con el vidrio puesto: negro opaco arriba y en todo
-/// el contenido, y vidrio ahumado sólo en la franja de abajo mientras el
-/// panel está abierto (`PanelDeVidrio`). Cerrado, negro entero y sin vidrio
-/// montado.
-///
-/// Son tres capas: el vidrio tintado al fondo, encima un negro con una
-/// máscara que va de opaco a `negroAlPie` en la franja, y encima un negro
-/// entero que se apaga al abrir. El negro de la máscara está siempre —la
-/// cabecera nunca cruza dos negros a media opacidad, que haría parpadear la
-/// muesca contra la barra— y el entero es lo que lleva el paso de negro a
-/// vidrio sin un salto, al abrir y al cerrar.
+/// El fondo de la forma con el vidrio encendido: negro opaco siempre, y al
+/// abrir el panel, el destello (`PanelDeVidrio`): vidrio ahumado que el
+/// negro tapa en medio segundo, un reflejo que recorre el canto y el filo
+/// tenue que queda. Cerrado, negro entero y nada montado encima.
 struct FondoDeLaMuesca: View {
-  /// Con qué se pinta lo de abajo. `imitacion` es para el render en PNG,
-  /// donde el vidrio de verdad no se dibuja: lo que hay detrás desenfocado y
-  /// tintado con el mismo negro, rotulado como imitación en la lámina.
+  /// Con qué se pinta el destello. `imitacion` es para el render en PNG,
+  /// donde el vidrio de verdad no se dibuja: ahí sólo sale el estado quieto
+  /// —negro con su filo—, que es lo que se ve con el panel abierto.
   enum Material {
     case vidrio
-    /// `fondo` es lo que hay detrás de la forma, **ya desenfocado** y
-    /// recortado a su marco —el `blur` de SwiftUI no sale bien en
-    /// `ImageRenderer`, y la lámina lo desenfoca con Core Image—; sin él, el
-    /// tinte solo sobre lo que haya debajo.
+    /// `fondo` se acepta por compatibilidad con la lámina, que todavía lo
+    /// pasa; el estado quieto no deja ver nada de lo que hay detrás.
     case imitacion(fondo: AnyView? = nil)
   }
 
   @Environment(\.accessibilityReduceTransparency) private var reducirTransparencia
+  @Environment(\.accessibilityReduceMotion) private var reducirMovimiento
 
   let silueta: SiluetaDeLaMuesca
-  /// El alto de la cabecera (`HUDNotchGeometry.alturaDeCabecera`).
-  let alturaDeCabecera: CGFloat
   /// Si el panel está abierto. Cerrado, la forma es negra entera y **no hay
   /// vidrio montado**.
   let abierto: Bool
   var material: Material = .vidrio
 
-  /// «Reducir transparencia» manda: el panel se dibuja negro entero, que es
-  /// lo que el sistema promete con ese ajuste.
-  private var conVidrio: Bool { abierto && !reducirTransparencia }
+  var body: some View {
+    ZStack(alignment: .top) {
+      silueta.fill(Color.black)
+      if abierto {
+        DestelloDeVidrio(
+          silueta: silueta,
+          conVidrio: esVidrioDeVerdad && !reducirTransparencia && !reducirMovimiento,
+          conReflejo: esVidrioDeVerdad && !reducirMovimiento
+        )
+        .transition(.opacity)
+      }
+    }
+    .animation(.easeOut(duration: 0.2), value: abierto)
+  }
+
+  private var esVidrioDeVerdad: Bool {
+    if case .vidrio = material { return true }
+    return false
+  }
+}
+
+/// Lo que pasa encima del negro al abrir: el vidrio que se cierra en negro,
+/// el reflejo que cruza el canto y el filo que queda. Se monta con el panel
+/// abierto y su `onAppear` es el arranque: cada apertura lo vuelve a correr.
+private struct DestelloDeVidrio: View {
+  let silueta: SiluetaDeLaMuesca
+  /// Si hay destello de vidrio. Sin él —transparencia reducida, movimiento
+  /// reducido o la lámina—, sólo el filo quieto.
+  let conVidrio: Bool
+  /// Si el reflejo recorre el canto.
+  let conReflejo: Bool
+
+  /// El vidrio está montado sólo mientras dura el destello.
+  @State private var vidrioMontado = true
+  @State private var negro: Double = PanelDeVidrio.negroAlAbrir
+  /// Dónde va el reflejo, como fracción del ancho: de antes del borde
+  /// izquierdo a después del derecho.
+  @State private var reflejo: CGFloat = -PanelDeVidrio.anchoDelReflejo
+  @State private var reflejoVisible = true
 
   var body: some View {
     ZStack(alignment: .top) {
-      if conVidrio {
-        vidrio
-          .transition(.opacity)
+      if conVidrio, vidrioMontado {
+        Color.clear
+          .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta)
+        silueta
+          .fill(Color.black)
+          .opacity(negro)
       }
-      // El negro con la franja: opaco hasta donde empieza, y de ahí al
-      // `negroAlPie` en el borde. Es lo que deja todo el texto sobre negro.
-      silueta
-        .fill(Color.black)
-        .mask { mascaraDelNegro }
-      // El negro entero, que tapa el vidrio mientras el panel está cerrado o
-      // la transparencia está reducida, y se apaga al abrir.
-      silueta
-        .fill(Color.black)
-        .opacity(conVidrio ? 0 : 1)
-      if conVidrio {
-        brillo
-          .transition(.opacity)
+      filo(brillo: PanelDeVidrio.brilloDelBorde)
+      if conReflejo, reflejoVisible {
+        reflejoDelCanto
       }
     }
-    .animation(.easeOut(duration: 0.25), value: conVidrio)
+    .onAppear(perform: arrancar)
   }
 
-  /// El vidrio con la silueta entera, alas incluidas: arriba lo tapa el
-  /// negro, y así no hay costura entre los dos en ningún punto.
-  @ViewBuilder
-  private var vidrio: some View {
-    switch material {
-    case .vidrio:
-      Color.clear
-        .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: silueta)
-    case let .imitacion(fondo):
-      ZStack {
-        if let fondo {
-          fondo
-        }
-        Color.black.opacity(PanelDeVidrio.tinte)
+  private func arrancar() {
+    if conVidrio {
+      withAnimation(.easeIn(duration: PanelDeVidrio.duracionDelDestello)) { negro = 1 }
+    }
+    if conReflejo {
+      withAnimation(
+        .easeInOut(duration: PanelDeVidrio.duracionDelReflejo).delay(PanelDeVidrio.esperaDelReflejo)
+      ) {
+        reflejo = 1
       }
-      .clipShape(silueta)
+    }
+    // Terminado el destello, el vidrio se desmonta —el negro ya lo tapa
+    // entero— y el reflejo también: con el panel quieto no queda nada que
+    // componer ni animar.
+    let fin = max(
+      conVidrio ? PanelDeVidrio.duracionDelDestello : 0,
+      conReflejo ? PanelDeVidrio.esperaDelReflejo + PanelDeVidrio.duracionDelReflejo : 0
+    )
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(fin + 0.05))
+      vidrioMontado = false
+      reflejoVisible = false
     }
   }
 
-  /// La máscara del negro: opaca hasta la franja, y de ahí un degradado
-  /// suave —tres paradas, para que el negro «se derrita» y no corte— hasta
-  /// `negroAlPie`. Más ancha que la forma: las alas cóncavas se dibujan
-  /// fuera de su marco y una máscara del ancho justo las cortaría.
-  private var mascaraDelNegro: some View {
-    GeometryReader { geo in
-      let inicio = PanelDeVidrio.inicioDeLaFranja(para: geo.size.height, cabecera: alturaDeCabecera)
-      let pie = PanelDeVidrio.negroAlPie
-      LinearGradient(
-        stops: [
-          .init(color: .black, location: 0),
-          .init(color: .black, location: inicio),
-          .init(color: .black.opacity(pie + (1 - pie) * 0.45), location: inicio + (1 - inicio) * 0.45),
-          .init(color: .black.opacity(pie), location: 1),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-      )
-    }
-    .padding(.horizontal, -60)
+  /// El trazo del canto de abajo, blanco, más fuerte al centro y apagándose
+  /// hacia los costados. No sube por los lados ni toca la cabecera.
+  private func filo(brillo: Double) -> some View {
+    trazo(brillo: brillo)
+      .mask { soloElCanto }
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
   }
 
-  /// El canto del vidrio: un filo blanco fino en la curva de abajo, más
-  /// fuerte al centro y apagándose hacia los costados, con un halo apenas
-  /// visible. No sube por los lados ni toca la cabecera, que es negra.
-  private var brillo: some View {
-    let radio = silueta.radioInferior
+  private func trazo(brillo: Double, grosor: CGFloat = 0.75) -> some View {
     let trazo = silueta.sinHombros.stroke(
       LinearGradient(
         stops: [
-          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde * 0.4), location: 0),
-          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde), location: 0.5),
-          .init(color: .white.opacity(PanelDeVidrio.brilloDelBorde * 0.4), location: 1),
+          .init(color: .white.opacity(brillo * 0.3), location: 0),
+          .init(color: .white.opacity(brillo), location: 0.5),
+          .init(color: .white.opacity(brillo * 0.3), location: 1),
         ],
         startPoint: .leading,
         endPoint: .trailing
       ),
-      lineWidth: 0.75
+      lineWidth: grosor
     )
     return ZStack {
-      trazo.blur(radius: 2).opacity(0.6)
+      trazo.blur(radius: 2 * grosor + 0.5).opacity(0.6)
       trazo
     }
-    .mask {
-      VStack(spacing: 0) {
-        Color.clear
-        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-          .frame(height: radio + 6)
-        Color.black.frame(height: 4)
-      }
-      .padding(.horizontal, -4)
-      .padding(.bottom, -4)
+  }
+
+  /// El reflejo: el mismo trazo, más brillante, visto a través de una
+  /// ventana blanda que cruza de izquierda a derecha.
+  private var reflejoDelCanto: some View {
+    ZStack {
+      trazo(brillo: PanelDeVidrio.brilloDelReflejo, grosor: 1.25)
+      // El velo: la luz dentro del negro, sólo pegada al canto de abajo.
+      silueta.sinHombros
+        .fill(LinearGradient(
+          colors: [.white.opacity(0), .white.opacity(PanelDeVidrio.brilloDelVelo)],
+          startPoint: .top,
+          endPoint: .bottom
+        ))
+        .mask {
+          VStack(spacing: 0) {
+            Color.clear
+            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+              .frame(height: PanelDeVidrio.altoDelVelo)
+          }
+        }
     }
-    .allowsHitTesting(false)
-    .accessibilityHidden(true)
+    .mask {
+      GeometryReader { geo in
+        let ancho = geo.size.width * PanelDeVidrio.anchoDelReflejo
+        LinearGradient(colors: [.clear, .black, .clear], startPoint: .leading, endPoint: .trailing)
+          .frame(width: ancho)
+          .offset(x: reflejo * geo.size.width)
+      }
+      .padding(.vertical, -6)
+    }
+    .mask { soloElCanto }
+      .allowsHitTesting(false)
+      .accessibilityHidden(true)
+  }
+
+  /// La máscara del canto: sólo la curva de abajo y un poco de lo que la
+  /// luz derrama por fuera.
+  private var soloElCanto: some View {
+    VStack(spacing: 0) {
+      Color.clear
+      LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+        .frame(height: silueta.radioInferior + 6)
+      Color.black.frame(height: 4)
+    }
+    .padding(.horizontal, -4)
+    .padding(.bottom, -4)
   }
 }
 

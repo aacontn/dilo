@@ -166,6 +166,10 @@ extension HUDStage {
     dictationContent.punteroEncima = false
     dictationContent.panelDeVidrio = false
     dictationContent.showsVoiceVisual = false
+    // Lo de la sesión que una escena de dictar pone: cada escena parte sin
+    // par de idiomas y sin trabar. Una sesión de verdad los vuelve a poner.
+    dictationContent.languageTag = nil
+    dictationContent.trabada = false
     if occupant != .none { retract() }
 
     let linea = texto ?? escena.textoDeMuestra ?? ""
@@ -174,9 +178,10 @@ extension HUDStage {
       .segmentosConPalabra, .segmentoConDatos:
       reaplicarElEstado()
 
-    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio:
+    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
       dictationContent.contexto = linea
       if escena.panelCompleto { llenarElPanel() }
+      if escena == .hoverSinIdioma { dictationContent.traduccionDelPanel = .sinDestino }
       dictationContent.panelDeVidrio = escena.conVidrio
       dictationContent.punteroEncima = true
       reaplicarElEstado()
@@ -188,8 +193,12 @@ extension HUDStage {
       decir(falta.texto)
       revealDictation()
 
-    case .dictando, .dictandoLargo, .dictandoConSegmentos:
+    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo:
       claim(.dictation, on: pantalla)
+      if escena == .dictandoTraduciendo {
+        dictationContent.languageTag = "ES → EN"
+        dictationContent.trabada = true
+      }
       recibir(.escuchar)
       escucharDeMentira()
       decir(linea)

@@ -9,7 +9,7 @@
 # clara y oscura) y `barra-de-menus.png` (el ícono de la barra con cada una).
 #
 # Con `--antes-despues` deja sólo `antes-despues.png`: el panel del hover de
-# la 0.4.5 contra el nuevo —negro con la franja de vidrio al pie—, sobre una
+# la 0.4.5 contra el nuevo —negro, en su estado quieto—, sobre una
 # página blanca y un escritorio oscuro, con el vidrio en imitación
 # (`render-antes-despues.swift`). Con `--referencia <ruta>` suma al lado el
 # cuadro de Droppy.

@@ -28,6 +28,9 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case faltaMicrofono = "falta-microfono"
   case dictando
   case dictandoLargo = "dictando-largo"
+  /// Dictando desde «Traducir» del panel: el par de idiomas al principio de
+  /// la línea y el ✓ para terminar, en los mismos 184×26.
+  case dictandoTraduciendo = "dictando-traduciendo"
   case procesando
   case acuse
   case copiado
@@ -45,6 +48,9 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   /// pantalla, sobre un fondo claro y uno oscuro.
   case hoverVidrio = "hover-vidrio"
   case hoverCompletoVidrio = "hover-completo-vidrio"
+  /// El panel lleno con «Traducir» todavía sin idioma: el botón apagado que
+  /// lleva a elegirlo.
+  case hoverSinIdioma = "hover-sin-idioma"
   /// Los segmentos de los asientos (`AsientosDeLaMuesca`): la toma guardada
   /// a la derecha, el retenido a la izquierda, los dos, y los dos estirando
   /// la muesca dictando. Entran con la palabra y a los tres segundos se
@@ -67,6 +73,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   var textoDeMuestra: String? {
     switch self {
     case .dictando, .dictandoConSegmentos: "Aprieta, habla, suelta"
+    case .dictandoTraduciendo: "nos vemos el martes en la oficina"
     case .dictandoLargo:
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
     case .procesando: "quedamos el martes a las diez"
@@ -75,7 +82,8 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .avisoConArreglo: "Falta el permiso del micrófono"
     case .retenido, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra:
       "quedamos el martes a las diez en la oficina de Providencia"
-    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio: "Listo · «quedamos el martes a las diez»"
+    case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
+      "Listo · «quedamos el martes a las diez»"
     default: nil
     }
   }
@@ -84,13 +92,14 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   /// un test recorre para afirmar que cada nombre dibuja lo que dice.
   var estado: EstadoDelNotch {
     switch self {
-    case .reposo, .reposoConDatos, .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio: .reposo
+    case .reposo, .reposoConDatos, .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
+      .reposo
     case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
       .segmentoConDatos:
       .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
-    case .dictando, .dictandoLargo, .dictandoConSegmentos: .dictando
+    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo: .dictando
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
@@ -133,11 +142,13 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   }
 
   /// Si la escena abre el panel del hover.
-  var abreElPanel: Bool { [.hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio].contains(self) }
+  var abreElPanel: Bool {
+    [.hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma].contains(self)
+  }
   /// Si el panel va lleno: recientes, datos, reunión y modos.
-  var panelCompleto: Bool { self == .hoverCompleto || self == .hoverCompletoVidrio }
+  var panelCompleto: Bool { [.hoverCompleto, .hoverCompletoVidrio, .hoverSinIdioma].contains(self) }
   /// Si el panel va con vidrio.
-  var conVidrio: Bool { self == .hoverVidrio || self == .hoverCompletoVidrio }
+  var conVidrio: Bool { [.hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma].contains(self) }
 
   /// Un arreglo con un clic que no abre nada: en el arnés los botones están
   /// apagados, y el panel de Ajustes del Sistema es sólo el rótulo.

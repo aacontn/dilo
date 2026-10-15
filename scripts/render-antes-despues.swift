@@ -311,7 +311,7 @@ extension RenderDeLaMuesca {
         Group {
           if nueva {
             FondoDeLaMuesca(
-              silueta: silueta, alturaDeCabecera: cabecera, abierto: vidrio, material: .imitacion(fondo: detras)
+              silueta: silueta, abierto: vidrio, material: .imitacion(fondo: detras)
             )
           } else {
             fondo045(silueta: silueta, cabecera: cabecera, vidrio: vidrio, detras: detras)

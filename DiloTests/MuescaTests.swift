@@ -192,17 +192,19 @@ struct MuescaTests {
   }
 
   /// Y la ventana abierta se dimensiona por el más alto de los dos, que es el
-  /// panel del hover: 126 puntos de alto (90 hasta la 0.4.5, 190 al principio).
+  /// panel del hover: 118 puntos de alto (126 en la 0.4.6, 90 hasta la 0.4.5,
+  /// 190 al principio).
   @Test func laVentanaAbiertaLaManejaElPanelDelHover() {
     let simulada = pantalla(barra: 24)
     #expect(
       HUDNotchGeometry.altoDeLaFormaMasAlta(for: simulada)
         == HUDNotchGeometry.altoDelPanelDeHover(for: simulada)
     )
-    // 126 desde el 2026-10-15: el panel más chico ya trae lo último en
-    // grande (82 de alto, antes 46). Es la ventana abierta, transparente y
-    // sin mouse fuera de la silueta; la de reposo sigue en 178×24.
-    #expect(HUDNotchGeometry.windowSize(for: simulada) == CGSize(width: 488, height: 126))
+    // 118 desde el 2026-10-15 (0.4.6 → densidad de Droppy): el panel más
+    // chico trae lo último en 40 y mide 74 (82 en la 0.4.6, 46 antes). Es la
+    // ventana abierta, transparente y sin mouse fuera de la silueta; la de
+    // reposo sigue en 178×24.
+    #expect(HUDNotchGeometry.windowSize(for: simulada) == CGSize(width: 488, height: 118))
   }
 
   /// Y la cabecera de la forma abierta sigue siendo la silueta en reposo: la
@@ -535,7 +537,7 @@ struct MuescaTests {
     let content = DictationHUDContent()
     content.contexto = "Correo"
     content.punteroEncima = true
-    let panel = CGSize(width: 400, height: 82)
+    let panel = CGSize(width: 400, height: 74)
     let radio = PanelDeVidrio.radio(para: panel, cabecera: HUDNotchGeometry.alturaDeCabecera(for: simulada))
     let hombro = FormaAbierta.hombro(para: panel, en: simulada, radioInferior: radio)
     #expect(hombro > HUDNotchGeometry.filletSize(for: simulada))
@@ -630,7 +632,7 @@ struct MuescaTests {
         forma: HUDNotchGeometry.reposoSize(for: simulada),
         pantalla: simulada.nombre,
         notchReal: HUDNotchGeometry.hasMeasuredNotch(for: simulada)
-      ) == "estado=reposo ventana=488x126 forma=160x24 pantalla=DELL U2412M notchReal=false"
+      ) == "estado=reposo ventana=488x118 forma=160x24 pantalla=DELL U2412M notchReal=false"
     )
     // Sin nombre no se escribe un hueco: una línea con `pantalla=` vacío se
     // lee como que la pantalla no tiene nombre, no como que el campo faltó.

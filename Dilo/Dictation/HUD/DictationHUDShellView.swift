@@ -286,16 +286,16 @@ struct DictationHUDShellView: View {
 
   /// El filo de color del borde de abajo (`FiloDeLaMuesca`): el acento
   /// mientras la muesca escucha o trabaja, la menta en el acuse, el coral en
-  /// un error, el ámbar con el micrófono muerto, y el acento más bajo con el
-  /// panel del hover abierto en negro. Con vidrio, ninguno: el canto de la
-  /// franja ya es el filo blanco del vidrio (`FondoDeLaMuesca`), y dos luces
-  /// en el mismo borde se pisan. En reposo, nada: el reposo no cambia.
+  /// un error, el ámbar con el micrófono muerto. Con el panel del hover
+  /// abierto, ninguno (2026-10-15): con vidrio, el canto lleva su filo blanco
+  /// (`FondoDeLaMuesca`) y dos luces en el mismo borde se pisan; sin vidrio,
+  /// el panel es negro puro, que es lo que promete el interruptor apagado.
+  /// En reposo, nada: el reposo no cambia.
   private var filo: Color? {
     let paleta = PaletaDeDilo.actual
     switch content.estado {
     case .reposo:
-      guard content.contextoVisible != nil, !content.panelDeVidrio else { return nil }
-      return paleta.filo.color.opacity(0.6)
+      return nil
     case .dictando:
       return content.isAudioAlive
         ? paleta.filo.color

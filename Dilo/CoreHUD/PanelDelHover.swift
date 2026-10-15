@@ -91,10 +91,9 @@ extension DictationHUDContent {
 /// Ajustes y cada fila es una línea recortada.
 ///
 /// **El contenido va sobre negro**, con vidrio o sin él: el vidrio es sólo
-/// la franja de abajo (`PanelDeVidrio`), donde queda la fila de los
-/// controles sobre vidrio ahumado. Las piezas —el último, cada reciente, los
-/// chips y los botones— viven en `PiezasDelPanel.swift`, con la jerarquía de
-/// Droppy.
+/// un destello al abrir (`PanelDeVidrio`). Las piezas —el último, cada
+/// reciente, los chips y los botones— viven en `PiezasDelPanel.swift`, con
+/// la jerarquía y la densidad de Droppy.
 struct HUDPanelDelHover: View {
   let content: DictationHUDContent
   /// Lo que se dibuja si no hay ningún reciente: el modo o el nombre.
@@ -207,16 +206,16 @@ struct HUDPanelDelHover: View {
   /// Mango cuando faltan diez minutos o menos, que es cuando importa.
   private func tarjetaDeLaReunion(_ reunion: ProximaReunion) -> some View {
     let pronto = Self.esPronto(reunion, ahora: ahora)
-    return HStack(spacing: 8) {
+    return HStack(spacing: 7) {
       Image(systemName: "calendar")
-        .font(.system(size: 11, weight: .semibold))
+        .font(.system(size: 10.5, weight: .semibold))
         .foregroundStyle(pronto ? PaletaDeDilo.actual.acento.color : .white.opacity(0.55))
       Text(verbatim: reunion.titulo)
-        .font(.system(size: 12, weight: .semibold))
+        .font(.system(size: 11.5, weight: .semibold))
         .foregroundStyle(.white)
         .lineLimit(1)
       Text(verbatim: Self.cuando(reunion, ahora: ahora))
-        .font(.system(size: 11, weight: .medium))
+        .font(.system(size: 10.5, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(Self.color(reunion, ahora: ahora))
         .lineLimit(1)
@@ -224,15 +223,16 @@ struct HUDPanelDelHover: View {
       Spacer(minLength: 6)
       if reunion.enlace != nil {
         Text("Unirse")
-          .font(.system(size: 11, weight: .bold))
+          .font(.system(size: 10.5, weight: .semibold))
           .foregroundStyle(.black)
-          .padding(.horizontal, 10)
-          .frame(height: 20)
+          .padding(.horizontal, 9)
+          .frame(height: 18)
           .background(Capsule(style: .continuous).fill(pronto ? PaletaDeDilo.actual.acento.color : .white))
       }
     }
-    .padding(.horizontal, 10)
-    .frame(height: 28)
+    .padding(.leading, 9)
+    .padding(.trailing, 4)
+    .frame(height: 26)
     .background(
       RoundedRectangle(cornerRadius: 8, style: .continuous)
         .fill(pronto ? PaletaDeDilo.actual.acento.color.opacity(0.14) : .white.opacity(0.06))
@@ -263,13 +263,13 @@ struct HUDPanelDelHover: View {
 
   // MARK: Los modos
 
-  /// La fila de abajo: los modos a la izquierda y «Traducir» y «Nota» a la
-  /// derecha, todos en blanco —el elegido, blanco lleno—.
+  /// La fila de abajo: los modos a la izquierda, como pestañas —el elegido
+  /// en una píldora gris—, y «Traducir» y «Nota» a la derecha, como íconos.
   private var modos: some View {
-    HStack(spacing: 6) {
+    HStack(spacing: 4) {
       if !content.modosDelPanel.isEmpty {
         ScrollView(.horizontal, showsIndicators: false) {
-          HStack(spacing: 6) {
+          HStack(spacing: 2) {
             chip(nombre: String(localized: "Normal"), id: nil)
             ForEach(content.modosDelPanel) { modo in
               chip(nombre: modo.nombre, id: modo.id)
@@ -278,6 +278,14 @@ struct HUDPanelDelHover: View {
         }
       } else {
         Spacer(minLength: 0)
+      }
+      if !content.modosDelPanel.isEmpty, content.traduccionDelPanel != nil || content.ofreceNota {
+        // Un corte fino entre lo que se elige —el modo— y lo que se hace.
+        Capsule()
+          .fill(Color.white.opacity(0.12))
+          .frame(width: 1, height: 12)
+          .padding(.horizontal, 2)
+          .accessibilityHidden(true)
       }
       if let traduccion = content.traduccionDelPanel {
         botonDeTraducir(traduccion)
@@ -295,9 +303,11 @@ struct HUDPanelDelHover: View {
   /// se lee como roto.
   private func botonDeTraducir(_ traduccion: TraduccionDelPanel) -> some View {
     let listo: String? = if case let .hacia(destino) = traduccion { destino } else { nil }
+    // «EN» y no «→ EN»: el globo ya dice traducir, y la flecha era la mitad
+    // del ancho del botón.
     return HUDBotonDelPanel(
       icono: "globe",
-      titulo: listo.map { "→ \($0)" } ?? String(localized: "Traducir"),
+      titulo: listo ?? String(localized: "Traducir"),
       apagado: listo == nil
     )
     .contentShape(Capsule())
@@ -316,11 +326,12 @@ struct HUDPanelDelHover: View {
   /// Dictar una nota que termina en Apple Notas. Es un clic, no el hover:
   /// posarse encima nunca abre el micrófono (contrato del notch).
   private var botonDeNota: some View {
-    HUDBotonDelPanel(icono: "square.and.pencil", titulo: String(localized: "Nota"))
+    HUDBotonDelPanel(icono: "square.and.pencil")
       .contentShape(Capsule())
       .onTapGesture { content.alDictarNota?() }
       .accessibilityAddTraits(.isButton)
       .accessibilityLabel(Text("Dictar una nota"))
+      .help("Dicta una nota que termina en Notas")
   }
 
   private func chip(nombre: String, id: String?) -> some View {

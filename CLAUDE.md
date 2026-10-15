@@ -398,25 +398,29 @@ siendo cierto:
   no lo trates como prohibido). La cabecera —la silueta en reposo— es negra
   siempre; lo que cuelga hacia el escritorio puede ser vidrio. El primero es
   el panel del hover al estilo Dynamic Glass (`PanelDeVidrio`,
-  `FondoDeLaMuesca`). **El texto va siempre sobre negro** (2026-10-15): el
-  panel es negro opaco y el `glassEffect` asoma sólo en la franja de abajo
-  —el último ~30 %—, donde el negro se derrite en vidrio tintado oscuro sin
-  llegar nunca a cero (`negroAlPie`; el pie deja pasar a lo sumo un tercio
-  del fondo), con un filo de luz blanco en la curva de abajo. La 0.4.5 tenía
-  negro sólo en la cabecera y vidrio con tinte 0,3 en todo lo demás: sobre
-  una página blanca, gris claro con letra blanca, ilegible. **Encendido de
-  fábrica** (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en
-  Apariencia; apagado, la misma forma en negro entero). «Reducir
-  transparencia» del sistema le gana y lo deja negro. Sin vidrio montado en
-  reposo. No sale en PNG: la lámina lo imita (`Material.imitacion`, rotulado)
-  y el de verdad se mira con las escenas `hover-vidrio` y
-  `hover-completo-vidrio` del arnés.
-- **El panel del hover tiene la jerarquía de Droppy** (2026-10-15,
-  `PiezasDelPanel.swift`): lo último dictado en grande y en negrita, con qué
-  es y cuándo en gris debajo; los recientes anteriores en una línea gris;
-  los controles en blanco, el modo elegido en blanco lleno. El color, sólo en
-  un detalle chico —el ícono del último, el ✓ de copiado, la reunión que
-  empieza—. Las piezas toman valores sueltos para que el render de la
+  `FondoDeLaMuesca`). **El panel es negro y el vidrio es un destello al
+  abrir** (Alfonso, 2026-10-15: «sólo negro, con algo de efecto glass
+  cuando se abre»): la forma nace de vidrio ahumado (`negroAlAbrir`) que el
+  negro tapa en 0,42 s, un reflejo cruza el canto de abajo de izquierda a
+  derecha y se apaga, y queda un filo blanco tenue en la curva. Terminado el
+  destello el vidrio se desmonta: con el panel quieto no hay vidrio, y el
+  texto va siempre sobre negro. La 0.4.6 dejaba vidrio quieto en el último
+  ~30 % —una mancha gris bajo los modos sobre una página blanca— y la 0.4.5,
+  vidrio claro detrás de todo: no vuelven. **Encendido de fábrica**
+  (`hudPanelDeVidrio`, interruptor «Panel con vidrio» en Apariencia;
+  apagado, negro puro sin destello ni filo). «Reducir transparencia» le gana
+  y lo deja negro; «Reducir movimiento» deja sólo el filo. No sale en PNG: la
+  lámina dibuja el estado quieto y el destello se mira en la pantalla con
+  las escenas `hover-vidrio` y `hover-completo-vidrio` del arnés.
+- **El panel del hover tiene la jerarquía y la densidad de Droppy**
+  (2026-10-15, `PiezasDelPanel.swift`): letra de 10,5 a 12,5. Lo último
+  dictado en 12,5 semibold, con qué es y cuándo en gris debajo; los
+  recientes anteriores en una línea gris; los modos como las pestañas de su
+  bandeja —texto de 11 sin fondo, el elegido en una píldora gris de 20—, y
+  «Traducir» (globo y «EN») y «Nota» como íconos sin fondo tras un corte
+  fino. Los modos en botones de 24 con el elegido en blanco lleno fueron
+  «muy grandes». El color, sólo en un detalle chico —el ícono del último, el
+  ✓ de copiado, la reunión que empieza—. Las piezas toman valores sueltos para que el render de la
   muesca dibuje las mismas vistas y no una copia.
 - **La forma abierta es la de Droppy; el reposo y dictar no cambian**
   (`FormaAbierta`, 2026-10-14). El panel del hover —con vidrio o en negro—
@@ -432,8 +436,9 @@ siendo cierto:
   mucho cambio a los colores en el notch»). El negro sigue negro; la forma
   abierta lleva un filo de luz en el borde de abajo (`FiloDeLaMuesca`, token
   `filo`) que dice en qué está sin palabras: acento dictando, menta en el
-  acuse, coral en un error, ámbar con el micrófono muerto, más bajo con el
-  panel abierto. Es estático —no anima, no cuesta CPU— y en reposo no existe.
+  acuse, coral en un error, ámbar con el micrófono muerto; con el panel
+  abierto, ninguno (el vidrio lleva su filo blanco y, sin vidrio, el panel
+  es negro puro). Es estático —no anima, no cuesta CPU— y en reposo no existe.
   Además la onda reparte su degradado por la fila (`coloresDeLaBarra`), el
   check lleva disco y luz, el aviso un ícono de color con la frase en blanco
   y el modo elegido del panel va en el degradado de la onda. Con Grafito todo

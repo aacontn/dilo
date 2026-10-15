@@ -748,21 +748,23 @@ extension HUDNotchGeometry {
   /// Cuántos recientes muestra el panel. Tres: más ya es una lista para leer,
   /// y el panel es para agarrar algo al paso.
   static let recientesEnElPanel = 3
-  /// Lo último, en grande (`HUDUltimoDelPanel`): el cuadro de 32 con su
-  /// aire, el título en negrita y la línea gris debajo. Reemplaza al
-  /// encabezado «RECIENTES» y a la primera fila.
-  static let altoDelUltimo: CGFloat = 48
+  /// Lo último (`HUDUltimoDelPanel`): el cuadro de 26 con su aire, el
+  /// título y la línea gris debajo. Reemplaza al encabezado «RECIENTES» y a
+  /// la primera fila. 48 hasta la 0.4.6, con letra de 13,5 en negrita.
+  static let altoDelUltimo: CGFloat = 40
   /// Cada reciente anterior, en una línea (`HUDFilaRecienteDelPanel`).
-  static let altoDeUnReciente: CGFloat = 22
-  /// Un chip o un botón de la fila de abajo.
-  static let altoDeUnControl: CGFloat = 24
+  static let altoDeUnReciente: CGFloat = 20
+  /// Una pestaña de modo o un botón de la fila de abajo: la píldora de las
+  /// pestañas de Droppy (24 hasta la 0.4.6).
+  static let altoDeUnControl: CGFloat = 20
   /// La tarjeta de la reunión y el aire que la separa de lo que sigue.
-  static let altoDeLaReunion: CGFloat = 36
-  /// La barra de acciones —modos y «Nota»— con su separador arriba.
-  static let altoDeLosModos: CGFloat = 38
+  static let altoDeLaReunion: CGFloat = 32
+  /// La barra de acciones —modos, «Traducir» y «Nota»— con su separador
+  /// arriba.
+  static let altoDeLosModos: CGFloat = 30
   /// Lo que mide un separador entre secciones, con su aire: va incluido en el
   /// alto de la sección que lo lleva arriba.
-  static let altoDelSeparador: CGFloat = 8
+  static let altoDelSeparador: CGFloat = 6
   /// El aire bajo la última sección, dentro de la forma: con el radio de 32
   /// abajo, lo que deja la fila de los controles fuera de la curva.
   static let aireAlPieDelPanel: CGFloat = 10
