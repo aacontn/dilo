@@ -126,7 +126,11 @@ struct RevisorEnLasCorreccionesTests {
     await aguardar("no revisó") { !recibido.todo.isEmpty }
     let candidato = recibido.todo.first?.first
     #expect(candidato?.par == kubernetes)
-    #expect(candidato?.antes.contains("secreto1 ") == false)
+    // Las ocho palabras de cada lado sí viajan —«secreto30» justo antes,
+    // «secreto1» justo después—; las lejanas, de ningún lado.
+    #expect(candidato?.antes.contains("secreto10 ") == false)
+    #expect(candidato?.antes.contains("secreto20 ") == false)
+    #expect((candidato?.antes.split(separator: " ").count ?? .max) <= 2 * 8 + 2)
     #expect(candidato?.despues.contains("revisa Kubernetes hoy") == true)
     #expect(modelos.withLock { $0 } == ["claude-sonnet-5-5"])
   }

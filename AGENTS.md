@@ -1198,6 +1198,14 @@ xcodebuild -project Dilo.xcodeproj -scheme Dilo \
 El id puede ser cualquiera bajo `cl.espaciodigital.dilo`: `DiloTests` compara
 el host por prefijo para que el truco no rompa la suite.
 
+**Con la 0.9.0 instalada y abierta, la suite también se cuelga** (2026-10-19):
+*"the test runner hung before establishing connection"*, en cualquier rama y
+con cualquier bundle id, antes de que corra una línea de Dilo. Cerrando la
+copia instalada corre entera; con la 0.4.8 abierta no pasaba. La causa exacta
+no se aisló (desde la 0.4.9 la copia instalada registra App Intents y el
+esquema `dilo://`, que la de tests también declara). Mientras tanto: cerrar Dilo antes de la suite —avisándole a
+Alfonso, que lo está usando— y abrirlo de nuevo al terminar.
+
 **Los tests quieren un `-derivedDataPath` propio.** Si lanzas a mano con
 `open -a` el `.app` que está en el mismo DerivedData, LaunchServices se queda
 con esa copia y la siguiente corrida muere en *"the test runner hung before
