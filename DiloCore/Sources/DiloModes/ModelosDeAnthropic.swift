@@ -28,6 +28,22 @@ public enum ModelosDeAnthropic {
   /// sobra para reescribir o traducir un dictado.
   public static let deFabrica = haiku
 
+  /// Quién revisa cada corrección antes de ofrecerla (`RevisionDeCorrecciones`):
+  /// una pregunta corta de sí o no, frecuente, que tiene que volver en un par
+  /// de segundos y costar casi nada. Alfonso, 2026-10-19.
+  public static let deFabricaParaRevisar = haiku
+  /// Quién ordena Tus palabras de vez en cuando (`OrdenDelDiccionario`). Un
+  /// error ahí se queda pegado y empeora todos los dictados, y corre una vez
+  /// por semana en segundo plano: vale el modelo más capaz que no es Opus.
+  /// Opus 5.5 se elige a mano si Sonnet se equivoca seguido.
+  public static let deFabricaParaOrdenar = sonnet
+
+  /// Cuánto piensa cada uno. Revisar va en `low` porque la oferta espera en
+  /// la muesca; ordenar en `medium`, porque nadie lo espera y juntar
+  /// variantes de cien entradas pide pensar un poco.
+  public static let esfuerzoParaRevisar = "low"
+  public static let esfuerzoParaOrdenar = "medium"
+
   public static func conocido(_ id: String) -> ModeloDeAnthropic? {
     let limpio = id.trimmingCharacters(in: .whitespacesAndNewlines)
     return lista.first { $0.id == limpio }
