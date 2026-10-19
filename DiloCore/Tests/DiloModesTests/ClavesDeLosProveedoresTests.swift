@@ -147,3 +147,27 @@ struct ClavesDeLosProveedoresTests {
     #expect(almacen.lecturas == 0 && almacen.escrituras == 0)
   }
 }
+
+extension ClavesDeLosProveedoresTests {
+  /// «Probar conexión» trae el secreto una vez, fuera del hilo principal,
+  /// y sin cambiar lo que se sabe de la cuenta.
+  @Test func elSecretoSeTraeSoloAlPedirlo() async {
+    let almacen = AlmacenQueExigeOtroHilo(["c": "sk"])
+    let claves = ClavesDeLosProveedores(almacen: almacen)
+    #expect(await claves.secreto("c") == "sk")
+    #expect(claves.estado(de: "c") == .sinLeer)
+  }
+}
+
+/// Un almacén en memoria que verifica que el secreto se pide fuera del
+/// hilo principal.
+final class AlmacenQueExigeOtroHilo: AlmacenDeClaves, Sendable {
+  let claves: [String: String]
+  init(_ claves: [String: String]) { self.claves = claves }
+  func clave(para cuenta: String) -> String? {
+    #expect(!Thread.isMainThread)
+    return claves[cuenta]
+  }
+  func guardar(_ clave: String, para cuenta: String) throws {}
+  func borrar(_ cuenta: String) throws {}
+}

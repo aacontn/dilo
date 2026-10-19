@@ -97,6 +97,16 @@ public final class ClavesDeLosProveedores {
     estados[cuenta] = .falta
   }
 
+  /// Trae el secreto para usarlo **una vez** —«Probar conexión»—, fuera
+  /// del hilo principal. No se guarda acá ni en ningún lado: quien lo pide
+  /// lo usa y lo suelta.
+  public func secreto(_ cuenta: String) async -> String? {
+    let almacen = almacen
+    return await Task.detached(priority: .userInitiated) {
+      almacen.clave(para: cuenta)
+    }.value
+  }
+
   /// Olvida lo sabido: la próxima pregunta vuelve a leer. Ajustes lo llama
   /// al abrir la ventana, por si la clave cambió por fuera (Acceso a
   /// Llaveros, otra copia de Dilo).

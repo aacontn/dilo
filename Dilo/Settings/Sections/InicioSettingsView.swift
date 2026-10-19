@@ -253,7 +253,7 @@ struct InicioSettingsView: View {
     return TarjetaDeInicio(
       titulo: "Claude",
       icono: "sparkle",
-      accion: ("Abrir Claude", { runtimeState.filaPedida = .claveDelProveedor })
+      accion: ("Abrir Claude", { runtimeState.seccionPedida = .claude })
     ) {
       VStack(alignment: .leading, spacing: 0) {
         HStack(spacing: 6) {

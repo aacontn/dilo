@@ -121,7 +121,7 @@ struct PortadaDeAjustes: Equatable {
           ? Self.nombre(entrada.modeloDeLosModos)
           : entrada.nombreDelGeneral,
         conClaude: entrada.modosConClaude,
-        ajuste: .modeloDelProveedor
+        ajuste: .modeloDeLosModos
       ),
       Tarea(
         id: "traducir",
@@ -164,7 +164,7 @@ struct PortadaDeAjustes: Equatable {
           titulo: String(localized: "Falta la clave de Anthropic"),
           detalle: String(localized: "Sin ella, los modos con Claude no corren y aprender y traducir vuelven a lo de antes."),
           boton: String(localized: "Pegar la clave"),
-          accion: .ir(.claveDelProveedor),
+          accion: .ir(.claveDeAnthropic),
           bloquea: false
         )
       )

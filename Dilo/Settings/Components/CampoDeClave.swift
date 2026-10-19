@@ -33,6 +33,7 @@ struct CampoDeClave: View {
             .font(.system(size: 11.5, weight: .medium))
             .foregroundStyle(PaletaDeDilo.actual.exito.color)
             .labelStyle(.titleAndIcon)
+            .fixedSize()
           Button("Cambiar") {
             borrador = ""
             cambiando = true

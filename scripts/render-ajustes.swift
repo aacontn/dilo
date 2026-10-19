@@ -40,6 +40,8 @@ enum RenderAjustes {
       Reemplazo(dice: "cuba netes", escribe: "Kubernetes", aprendido: true),
     ]
     settings.dictationHistoryEnabled = true
+    // Como en el Mac de Alfonso: los modos van por Claude Haiku 5.5.
+    settings.proveedorGeneralID = "anthropic"
 
     let uso = try usoDeEjemplo()
     let ahora = Date()

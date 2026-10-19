@@ -570,6 +570,8 @@ private struct SettingsContent: View {
     switch section {
     case .inicio:
       InicioSettingsView(settings: settings, runtimeState: runtimeState, tracker: usageTracker)
+    case .claude:
+      ClaudeSettingsView(settings: settings, runtimeState: runtimeState)
     case .general:
       GeneralSettingsView(launchAtLogin: launchAtLogin)
       if SettingsSection.readAloud.isAvailable {
@@ -591,7 +593,11 @@ private struct SettingsContent: View {
       SubtituloDeSeccion(titulo: "Idiomas y traducción", detalle: "En qué idiomas dictas y a cuál traduce la tecla de traducir")
       LanguageSettingsView(settings: settings, runtimeState: runtimeState)
     case .modos:
-      ModosSettingsView(settings: settings, claves: runtimeState.claves)
+      ModosSettingsView(
+        settings: settings,
+        claves: runtimeState.claves,
+        abrirClaude: { runtimeState.filaPedida = .modeloDeLosModos }
+      )
     case .palabras:
       PalabrasSettingsView(settings: settings, runtimeState: runtimeState)
     case .historial:

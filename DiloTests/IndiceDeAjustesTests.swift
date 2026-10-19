@@ -67,6 +67,10 @@ struct IndiceDeAjustesTests {
   @Test func seEncuentraLoQueSeBuscaSinSaberElNombre() {
     #expect(IndiceDeAjustes.buscar("microfono").first == .microfono)
     #expect(IndiceDeAjustes.buscar("api key").contains(.claveDelProveedor))
+    // Lo que se mudó a Claude se encuentra con su nombre de antes.
+    #expect(IndiceDeAjustes.buscar("clave anthropic").first == .claveDeAnthropic)
+    #expect(IndiceDeAjustes.buscar("traducir con").first == .traducirCon)
+    #expect(IndiceDeAjustes.buscar("revisar cada correccion").first == .modeloParaRevisar)
     #expect(IndiceDeAjustes.buscar("muletillas").first == .sacarMuletillas)
     #expect(IndiceDeAjustes.buscar("glaciar").first == .color)
   }

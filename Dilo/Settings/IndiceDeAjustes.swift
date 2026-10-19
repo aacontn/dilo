@@ -43,12 +43,16 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case modeloDelProveedor
   case urlBaseDelProveedor
   case claveDelProveedor
-  // Tus palabras
-  case tusPalabras
-  case ofrecerCorrecciones
+  // Claude
+  case claveDeAnthropic
+  case probarConexion
+  case modeloDeLosModos
   case aprenderConClaude
   case modeloParaRevisar
   case modeloParaOrdenar
+  // Tus palabras
+  case tusPalabras
+  case ofrecerCorrecciones
   case ordenarAhora
   case loQueOrdenoClaude
   case cuandoDigo
@@ -123,15 +127,17 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     switch self {
     case .atajoDeDictar, .microfono, .microfonoListo, .entregarElTexto, .guardarElHistorial,
       .carpetaDelHistorial, .borrarElHistorial, .idiomaDeDictado, .segundoIdioma,
-      .teclaDelSegundoIdioma, .traducirCon, .traducirA:
+      .teclaDelSegundoIdioma, .traducirA:
       .dictation
+    case .claveDeAnthropic, .probarConexion, .modeloDeLosModos, .traducirCon, .aprenderConClaude,
+      .modeloParaRevisar, .modeloParaOrdenar:
+      .claude
     case .tusModos, .agregarModo, .restaurarModos, .queDiloElija, .contextoApp, .contextoTexto,
       .contextoSeleccion, .contextoSitio, .contextoEnLinea, .proveedorGeneral,
       .modeloDelProveedor, .urlBaseDelProveedor, .claveDelProveedor:
       .modos
-    case .tusPalabras, .ofrecerCorrecciones, .aprenderConClaude, .modeloParaRevisar,
-      .modeloParaOrdenar, .ordenarAhora, .loQueOrdenoClaude, .cuandoDigo, .comandosAlDictar,
-      .sacarMuletillas, .listaDeMuletillas:
+    case .tusPalabras, .ofrecerCorrecciones, .ordenarAhora, .loQueOrdenoClaude, .cuandoDigo,
+      .comandosAlDictar, .sacarMuletillas, .listaDeMuletillas:
       .palabras
     case .buscarEnElHistorial, .actividad, .latencias:
       .historial
@@ -184,6 +190,9 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .segundoIdioma: String(localized: "Segundo idioma")
     case .teclaDelSegundoIdioma: String(localized: "Tecla del segundo idioma")
     case .traducirCon: String(localized: "Traducir con")
+    case .claveDeAnthropic: String(localized: "Clave de Anthropic")
+    case .probarConexion: String(localized: "Probar conexión")
+    case .modeloDeLosModos: String(localized: "Modelo de los modos")
     case .traducirA: String(localized: "Traducir a")
     case .tusModos: String(localized: "Tus modos")
     case .agregarModo: String(localized: "Agregar modo")
@@ -283,7 +292,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       [String(localized: "contexto"), String(localized: "privacidad")]
     case .proveedorGeneral, .modeloDelProveedor, .urlBaseDelProveedor:
       [String(localized: "proveedor"), "Anthropic", "Claude", "OpenAI", "Gemini", String(localized: "modelo")]
-    case .claveDelProveedor: ["API key", String(localized: "clave"), "token", String(localized: "Llavero"), "Anthropic"]
+    case .claveDelProveedor: ["API key", String(localized: "clave"), "token", String(localized: "Llavero"), "OpenAI", "Gemini"]
+    case .claveDeAnthropic, .probarConexion:
+      ["API key", String(localized: "clave"), "token", String(localized: "Llavero"), "Anthropic", "Claude", String(localized: "conexión")]
+    case .modeloDeLosModos: ["Claude", "Haiku", "Sonnet", "Opus", String(localized: "modos"), String(localized: "costo")]
     case .tusPalabras, .cuandoDigo: [String(localized: "diccionario"), String(localized: "vocabulario"), String(localized: "reemplazo"), String(localized: "nombres")]
     case .ofrecerCorrecciones, .aprenderConClaude, .modeloParaRevisar, .modeloParaOrdenar,
       .ordenarAhora, .loQueOrdenoClaude:

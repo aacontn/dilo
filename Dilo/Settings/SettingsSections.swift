@@ -28,7 +28,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
     switch self {
     case .portada: orden = [.inicio]
     case .voz: orden = [.dictation, .modos, .palabras, .historial, .dropTranscription]
-    case .settings: orden = [.motor, .shortcuts, .appearance, .datosDeLaMuesca, .general]
+    case .settings: orden = [.claude, .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general]
     case .dilo: orden = [.novedades, .about]
     }
     return orden.filter(\.isAvailable)
@@ -37,6 +37,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
 
 enum SettingsSection: String, CaseIterable, Identifiable {
   case inicio
+  case claude
   case general
   case appearance
   case datosDeLaMuesca
@@ -59,6 +60,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var group: SettingsSectionGroup {
     switch self {
     case .inicio: .portada
+    case .claude: .settings
     case .dictation, .modos, .palabras, .historial, .dropTranscription, .insights: .voz
     case .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .readAloud, .language,
       .shortcuts: .settings
@@ -80,6 +82,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .inicio: String(localized: "Inicio")
+    case .claude: String(localized: "Claude")
     case .general: String(localized: "General")
     case .appearance: String(localized: "Apariencia")
     case .datosDeLaMuesca: String(localized: "Datos en la muesca")
@@ -103,6 +106,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var subtitle: String {
     switch self {
     case .inicio: String(localized: "Cómo está Dilo, y lo que más se toca")
+    case .claude: String(localized: "Tu clave de Anthropic y lo que Claude hace en Dilo")
     case .general: String(localized: "Cómo arranca Dilo y la voz que te lee")
     case .appearance: String(localized: "Cómo se ve la muesca, y cómo suena")
     case .datosDeLaMuesca: String(localized: "Qué se ve a los costados de la muesca")
@@ -130,6 +134,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   /// El color del ícono en la barra lateral: el de su familia.
   var colorDelIcono: Tono {
     let iconos = PaletaDeDilo.actual.iconosDeAjustes
+    if self == .claude { return iconos.claude }
     switch group {
     case .portada: return iconos.portada
     case .voz: return iconos.voz
@@ -141,6 +146,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var icon: String {
     switch self {
     case .inicio: "house.fill"
+    case .claude: "sparkle"
     case .general: "gearshape.fill"
     case .appearance: "paintpalette.fill"
     case .datosDeLaMuesca: "gauge.with.dots.needle.33percent"
