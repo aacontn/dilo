@@ -158,7 +158,7 @@ struct ClaudeSettingsView: View {
       let general = settings.proveedores.proveedor(settings.proveedorGeneralID)
       SettingsRow(
         title: "Modos",
-        description: "Hoy los reescribe \(general?.nombre ?? String(localized: "otro proveedor")). Con Claude, el modo entiende mejor qué pediste; tu dictado viaja a Anthropic."
+        description: "Hoy los reescribe «\(general?.nombre ?? String(localized: "otro proveedor"))». Con Claude, el modo entiende mejor qué pediste; tu dictado viaja a Anthropic."
       ) {
         Button("Usar Claude") {
           settings.proveedorGeneralID = Proveedor.anthropicDeFabrica.id
@@ -221,10 +221,21 @@ struct ClaudeSettingsView: View {
       Label("Conectado", systemImage: "checkmark.circle.fill")
         .font(.system(size: 11.5, weight: .medium))
         .foregroundStyle(PaletaDeDilo.actual.exito.color)
-    case let .falla(falla):
-      Label(falla.aviso, systemImage: "exclamationmark.triangle.fill")
-        .font(.system(size: 11.5, weight: .medium))
-        .foregroundStyle(PaletaDeDilo.actual.aviso.color)
+    case let .falla(falla, detalle):
+      VStack(alignment: .trailing, spacing: 2) {
+        Label(falla.aviso, systemImage: "exclamationmark.triangle.fill")
+          .font(.system(size: 11.5, weight: .medium))
+          .foregroundStyle(PaletaDeDilo.actual.aviso.color)
+        if let detalle {
+          Text(verbatim: detalle)
+            .font(.system(size: 10.5))
+            .foregroundStyle(.white.opacity(0.55))
+            .multilineTextAlignment(.trailing)
+            .lineLimit(3)
+            .textSelection(.enabled)
+            .frame(maxWidth: 260, alignment: .trailing)
+        }
+      }
     }
   }
 

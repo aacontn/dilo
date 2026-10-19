@@ -7,9 +7,10 @@ import SwiftUI
 /// deberían ser la misma terminan con dos radios de esquina distintos a la
 /// tercera vez que alguien toca una.
 ///
-/// **Desde el 2026-10-19 el fondo es el vidrio ahumado de la muesca**: la
-/// receta del panel del hover (`PanelDeVidrio.tinte` y `negroEncima`), que
-/// queda en un carbón parejo sobre cualquier escritorio. Alfonso pidió una
+/// **Desde el 2026-10-19 el fondo es el vidrio ahumado de la muesca**: el
+/// tinte del panel del hover (`PanelDeVidrio.tinte`) con un velo negro más
+/// espeso (`negroEncima`, abajo), que queda casi negro sobre cualquier
+/// escritorio. Alfonso pidió una
 /// ventana «más bonita» y que se viera como el resto de Dilo. Con «Reducir
 /// transparencia», el fondo sólido de la paleta de antes; en los PNG, el gris
 /// medido del vidrio (`MaterialDeAjustes.imitacion`).
@@ -20,6 +21,14 @@ struct SuperficieDeDilo: ViewModifier {
 
   static let radio: CGFloat = 16
 
+  /// El velo negro de la ventana, más espeso que el del panel de la muesca
+  /// (0,55). Con el del panel, la 0.9.2 dejaba ver las miniaturas de YouTube
+  /// detrás del texto de Ajustes (captura de Alfonso, 2026-10-19): un panel
+  /// de dos líneas aguanta un fondo que asoma; una ventana llena de párrafos
+  /// grises, no. Queda vidrio en el borde y en el brillo, y el texto sobre
+  /// casi negro.
+  static let negroEncima: Double = 0.84
+
   func body(content: Content) -> some View {
     let forma = RoundedRectangle(cornerRadius: Self.radio, style: .continuous)
     content
@@ -29,7 +38,7 @@ struct SuperficieDeDilo: ViewModifier {
           case .vidrio:
             Color.clear
               .glassEffect(.regular.tint(.black.opacity(PanelDeVidrio.tinte)), in: forma)
-            Color.black.opacity(PanelDeVidrio.negroEncima)
+            Color.black.opacity(Self.negroEncima)
           case .imitacion:
             Color(white: PanelDeVidrio.grisDeLaLamina)
           case .solido:

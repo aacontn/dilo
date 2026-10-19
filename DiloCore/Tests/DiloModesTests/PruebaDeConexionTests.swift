@@ -50,6 +50,17 @@ struct PruebaDeConexionTests {
     #expect(await prueba.probar() == .falla(.sinConexion))
   }
 
+  /// Lo que Anthropic explica viaja junto a la falla, para que Ajustes diga
+  /// por qué y no sólo «rechazó el pedido».
+  @Test func elPorQueDeAnthropicViajaConLaFalla() async {
+    let cuerpo = #"{"type":"error","error":{"type":"not_found_error","message":"model: claude-haiku-5-5"}}"#
+    let prueba = PruebaDeConexion(clave: "k", transporte: responde(404, cuerpo))
+    #expect(
+      await prueba.probar()
+        == .falla(.pedidoRechazado(codigo: 404), detalle: "404 · not_found_error: model: claude-haiku-5-5")
+    )
+  }
+
   @Test func unaRespuestaSinIdNoEsUnaConexionBuena() async {
     let prueba = PruebaDeConexion(clave: "k", transporte: responde(200, #"{"type":"error"}"#))
     #expect(await prueba.probar() == .falla(.respuestaInutil))

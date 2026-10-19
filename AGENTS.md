@@ -1118,9 +1118,10 @@ funciones». Detalle de diseño en `docs/design/settings-ui.md`.
 - **Abre donde quedó**: si se cerró hace menos de diez minutos vuelve a esa
   sección; si no, Inicio (`SeccionAlAbrir`, `diloAjustesUltimaSeccion`,
   `diloAjustesCerradosEn`). Lo pedido de afuera (Novedades) gana siempre.
-- **Estética**: el vidrio ahumado de la muesca (`SuperficieDeDilo`, la misma
-  receta de `PanelDeVidrio`; sólido con «Reducir transparencia»; la
-  imitación gris en los PNG), íconos por familia en color
+- **Estética**: el vidrio ahumado de la muesca (`SuperficieDeDilo`: el
+  tinte de `PanelDeVidrio` con un velo negro de 0,84, no el 0,55 del panel
+  —con el del panel, en la 0.9.2 el escritorio se leía detrás del texto—;
+  sólido con «Reducir transparencia»; la imitación gris en los PNG), íconos por familia en color
   (`PaletaDeDilo.iconosDeAjustes`, Glaciar y Grafito), tarjetas con título
   claro, detalle gris y controles chicos. Sólo oscuro, como antes.
 - **Se revisa en PNG**: `scripts/render-ajustes.sh [salida]` (por defecto
