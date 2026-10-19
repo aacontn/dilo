@@ -132,7 +132,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     dropTranscriptionController.onProgressChange = { [weak self, weak settings] fraction in
       self?.statusItemController?.setTranscriptionProgress(
         fraction,
-        accent: settings?.sessionSettings.dropAccent ?? SettingsTheme.accentColor
+        // Sin el Llavero: es un color, y esto corre en cada avance.
+        accent: settings?.sessionSettingsParaDibujar.dropAccent ?? SettingsTheme.accentColor
       )
     }
 
