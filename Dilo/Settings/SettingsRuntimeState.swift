@@ -18,6 +18,10 @@ final class SettingsRuntimeState {
   /// muesca sin pasar por LaunchServices (`AgentesEnLaMuesca.probar`).
   @ObservationIgnored var probarAgente: () -> Void = {}
 
+  /// Quien ordena Tus palabras con Claude: «Ordenar ahora» y el deshacer
+  /// del registro, en Ajustes → Tus palabras. Nil en las vistas previas.
+  var ordenador: OrdenadorDelDiccionario?
+
   /// Language models currently downloading, as locale identifier to progress
   /// (0…1). A language picked before its model exists downloads in the
   /// background, and the Language section says so rather than looking idle.

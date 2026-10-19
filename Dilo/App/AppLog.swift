@@ -39,4 +39,7 @@ enum AppLog {
   /// rechazó) y los App Intents que corren. Nunca el texto de un dictado ni
   /// el nombre de un proyecto en público.
   static let plataforma = Logger(subsystem: subsystem, category: "plataforma")
+  /// Aprender con Claude: si revisó, si ordenó, cuántos cambios y por qué
+  /// falló. Cuentas y nombres de falla, nunca una palabra ni lo corregido.
+  static let aprendizaje = Logger(subsystem: subsystem, category: "aprendizaje")
 }

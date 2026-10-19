@@ -12,6 +12,9 @@ struct OfertaDeAprendizaje: Equatable, Sendable {
   }
 
   let pares: [ParDeCorreccion]
+  /// Los que el revisor dijo que Tus palabras arregla solos: aceptarlos no
+  /// agrega una regla a «Cuando digo…» (`RevisionDeCorrecciones.aplicar`).
+  var soloTusPalabras: Set<ParDeCorreccion> = []
   var fase: Fase = .pregunta
 
   /// Dónde se sienta. Un id por fase: al pasar a «Deshacer» el segmento
@@ -64,6 +67,12 @@ extension ActividadDeLaMuesca {
 /// que no se aceptó no se vuelve a ofrecer mientras Dilo siga abierto. Los
 /// rechazados viven en RAM: la lista de lo que alguien corrigió no se
 /// escribe en ningún lado.
+///
+/// **Con Claude** (`revisar`, prendido de fábrica si hay clave): lo que el
+/// filtro determinista propone pasa por un modelo antes de ofrecerse. El
+/// modelo descarta lo que no es vocabulario y dice si basta Tus palabras; la
+/// oferta llega uno o dos segundos más tarde. Si el modelo no contesta en
+/// plazo, no hay clave o no hay red, se ofrece lo determinista como siempre.
 @MainActor
 final class CorreccionesDelDictado {
   /// Lo que dura la pregunta a la vista.
@@ -79,10 +88,21 @@ final class CorreccionesDelDictado {
   var anfitrion: any HostCapabilities = Anfitrion.actual
   /// La muesca: muestra o retira la oferta. Lo cablea `AppDelegate`.
   var alCambiarLaOferta: ((OfertaDeAprendizaje?) -> Void)?
+  /// La segunda mirada, con Claude: el veredicto de cada candidato, o nil si
+  /// no hubo (sin clave, sin red, fuera de plazo, respuesta ilegible). Nil
+  /// entero —los tests, o sin cablear— es lo determinista de siempre. Lo
+  /// cablea `AppDelegate` (`AprendizajeConClaude.revisar`).
+  var revisar: (@Sendable (_ candidatos: [CandidatoParaRevisar], _ modelo: String) async -> [ParDeCorreccion: TipoDeAprendizaje]?)?
+  /// Se llama después de aprender algo: el orden del diccionario mira si le
+  /// toca (`OrdenadorDelDiccionario`).
+  var alAprender: (() -> Void)?
 
   private(set) var oferta: OfertaDeAprendizaje?
   private var rechazados: Set<ParDeCorreccion> = []
   private var vencimiento: Task<Void, Never>?
+  /// La revisión en curso. Un dictado nuevo o una corrección nueva la
+  /// cancela: una oferta vieja que llega tarde confunde.
+  private(set) var revision: Task<Void, Never>?
 
   init(settings: AppSettings, vigia: VigiaDeCorrecciones = VigiaDeCorrecciones()) {
     self.settings = settings
@@ -110,6 +130,8 @@ final class CorreccionesDelDictado {
 
   func detener() {
     vigia.detener()
+    revision?.cancel()
+    revision = nil
   }
 
   /// Lo pegado, editado: qué ofrecer, si algo. Interna para los tests.
@@ -127,11 +149,40 @@ final class CorreccionesDelDictado {
     }
     let pares = Array(nuevos.prefix(AprendizajeDeCorrecciones.maximoPorDictado))
     guard !pares.isEmpty else { return }
+    revision?.cancel()
+    revision = nil
+    guard let revisar, settings.aprenderConClaude else {
+      ofrecer(pares)
+      return
+    }
+    // Sólo el pedazo alrededor de cada cambio viaja: nunca el campo entero.
+    let paraRevisar = RevisionDeCorrecciones.candidatos(pares, pegado: pegado, editado: editado)
+    let modelo = settings.modeloParaRevisar
+    revision = Task { [weak self] in
+      let veredictos = await revisar(paraRevisar, modelo)
+      guard !Task.isCancelled, let self else { return }
+      revision = nil
+      guard let veredictos else {
+        ofrecer(pares)
+        return
+      }
+      let revisados = RevisionDeCorrecciones.aplicar(veredictos, a: pares)
+      // Lo que el revisor descartó no se vuelve a preguntar en esta sesión.
+      rechazados.formUnion(pares.filter { !revisados.pares.contains($0) })
+      guard !revisados.pares.isEmpty else { return }
+      ofrecer(revisados.pares, soloTusPalabras: revisados.soloTusPalabras)
+    }
+  }
+
+  private func ofrecer(_ pares: [ParDeCorreccion], soloTusPalabras: Set<ParDeCorreccion> = []) {
     // Una pregunta pendiente que nadie contestó se da por no.
     if let anterior = oferta, anterior.fase == .pregunta {
       rechazados.formUnion(anterior.pares)
     }
-    mostrar(OfertaDeAprendizaje(pares: pares), por: Self.duracionDeLaPregunta)
+    mostrar(
+      OfertaDeAprendizaje(pares: pares, soloTusPalabras: soloTusPalabras),
+      por: Self.duracionDeLaPregunta
+    )
   }
 
   /// Un clic en el segmento: en la pregunta, aprender; en el deshacer,
@@ -142,16 +193,29 @@ final class CorreccionesDelDictado {
     case .pregunta:
       var palabras = settings.palabrasPropias
       var reemplazos = settings.reemplazos
-      let hecho = TusPalabrasAprendidas.aprender(oferta.pares, palabras: &palabras, reemplazos: &reemplazos)
+      let hecho = TusPalabrasAprendidas.aprender(
+        oferta.pares, soloTusPalabras: oferta.soloTusPalabras,
+        palabras: &palabras, reemplazos: &reemplazos
+      )
       settings.palabrasPropias = palabras
       settings.reemplazos = reemplazos
-      mostrar(OfertaDeAprendizaje(pares: oferta.pares, fase: .aprendido(hecho)), por: Self.duracionDelDeshacer)
+      settings.palabrasAprendidas += hecho.palabrasNuevas
+      settings.aprendidasDesdeElOrden += hecho.palabrasNuevas.count + hecho.reemplazosNuevos.count
+      mostrar(
+        OfertaDeAprendizaje(pares: oferta.pares, soloTusPalabras: oferta.soloTusPalabras, fase: .aprendido(hecho)),
+        por: Self.duracionDelDeshacer
+      )
+      alAprender?()
     case let .aprendido(hecho):
       var palabras = settings.palabrasPropias
       var reemplazos = settings.reemplazos
       TusPalabrasAprendidas.deshacer(hecho, palabras: &palabras, reemplazos: &reemplazos)
       settings.palabrasPropias = palabras
       settings.reemplazos = reemplazos
+      settings.palabrasAprendidas.removeAll { hecho.palabrasNuevas.contains($0) }
+      settings.aprendidasDesdeElOrden = max(
+        0, settings.aprendidasDesdeElOrden - hecho.palabrasNuevas.count - hecho.reemplazosNuevos.count
+      )
       rechazados.formUnion(oferta.pares)
       mostrar(nil, por: nil)
     }

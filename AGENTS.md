@@ -149,14 +149,20 @@ Distingue propuesta, implementación y deuda pendiente.
   fábrica. Lo que lee otra app (`contextoDelCampo`, `sitioDelNavegador`,
   `vigiaDeCorrecciones`) se esconde en sandbox. El OCR de la pantalla no existe
   todavía.
-- **Dilo nunca aprende solo.** Tras pegar, `VigiaDeCorrecciones` mira el
+- **Dilo nunca aprende solo; ordenar aplica solo sólo lo seguro, y con
+  deshacer.** Tras pegar, `VigiaDeCorrecciones` mira el
   campo hasta 30 s (cada 500 ms, calma de 1,5 s, nunca con entrada segura) y
   `AprendizajeDeCorrecciones` saca pares «oído → correcto» que sean
-  vocabulario y que el motor haya oído así. La muesca los ofrece en un
+  vocabulario y que el motor haya oído así. Con clave de Anthropic, Claude
+  Haiku 5.5 los revisa antes de la oferta (ver «Aprender con Claude»). La
+  muesca los ofrece en un
   segmento al costado y con deshacer; aceptar es lo mismo que agregarlos a
   mano en Tus palabras y en «Cuando digo…» (`Reemplazo.aprendido`), y lo que
   nadie acepta vence y no se vuelve a ofrecer. El ancla del campo se toma
-  antes del `sessionEnded`, que deja `focusedTarget` en nil.
+  antes del `sessionEnded`, que deja `focusedTarget` en nil. El orden del
+  diccionario con Claude no agrega palabras nuevas: junta, corrige grafías y
+  saca; aplica solo lo que no pierde nada escrito a mano, propone lo demás,
+  y todo queda en un registro con deshacer.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
   apagado y escondido. Si algún día se silencia la música al dictar, se
   **pausa la reproducción**; el volumen es del usuario.
@@ -217,9 +223,9 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos | 5, 9 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar) | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
-| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic y la traducción con Claude (prompt, request, fallas, quién traduce) | 4 |
+| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
@@ -963,6 +969,95 @@ dictado sin modo no cambia: transcripción y reglas, sin ningún modelo.
   `temperature: 0`, los modelos 5.5 contestaban 400 y cada modo gastaba un
   viaje antes del reintento.
 
+## Aprender con Claude
+
+Alfonso, 2026-10-19: que el aprendizaje lo haga Claude, **prendido de
+fábrica** («déjalo, sí lo vamos a usar»), con la misma clave de Anthropic y
+con un selector de modelo propio. Dos usos, dos modelos:
+
+- **Revisar cada corrección → Claude Haiku 5.5.** Lo determinista sigue
+  siendo el primer filtro (`AprendizajeDeCorrecciones`, `soloDelMotor`, lo
+  rechazado y lo ya sabido); lo que pasa se le pregunta a Claude antes de la
+  oferta (`RevisionDeCorrecciones`, puro, `DiloText`): ¿es un `termino` para
+  Tus palabras, un `reemplazo` «oído → correcto», o `nada` (reformulación,
+  cambio de idea, ortografía común)? `nada` no se ofrece y queda rechazado
+  por la sesión. Un `termino` que Tus palabras arregla sola
+  (`DiccionarioPersonal.aplicar`) no deja regla en «Cuando digo…»; si no
+  alcanza —«cuba netes» no empieza con la K—, la deja igual. El modelo elige
+  por número entre los candidatos: no puede meter una palabra que el filtro
+  no propuso. Pregunta frecuente y barata: esfuerzo `low`, 4.000 tokens,
+  **plazo de 7 s**. Sin clave, sin red, fuera de plazo o con respuesta
+  ilegible, se ofrece lo determinista como antes. Un dictado nuevo cancela la
+  revisión pendiente (`CorreccionesDelDictado.detener`).
+- **Ordenar el diccionario → Claude Sonnet 5.5** de fábrica; Haiku 5.5 y Opus
+  5.5 elegibles. Una pasada en segundo plano (`OrdenDelDiccionario`, puro;
+  `OrdenadorDelDiccionario`, la app) con cuatro acciones: `unir` variantes
+  («Kubernetes»/«kubernetes»), fijar la `grafia` de un nombre conocido,
+  `quitar` lo que entró por error y resolver un `conflicto` entre reglas que
+  se pisan. Un error ahí se queda pegado y empeora todos los dictados, por
+  eso el modelo más capaz que no es Opus; Opus si Sonnet se equivoca seguido.
+  Esfuerzo `medium`, 16.000 tokens, plazo de 120 s.
+  - **Cuándo** (`CuandoOrdenar`, puro): diez entradas aprendidas desde la
+    última pasada, una semana, o nunca ordenado; nunca con el mismo
+    diccionario que la última vez (firma FNV de las dos listas) y nunca dos
+    intentos en menos de seis horas. Se mira a los dos minutos de arrancar,
+    cada seis horas y después de aceptar algo en la muesca. **Nunca empieza
+    durante un dictado** (`hayDictadoEnCurso`, que lee
+    `SettingsRuntimeState.isDictating`): espera un minuto y vuelve a mirar.
+    «Ordenar ahora» en Ajustes se salta el calendario, no el dictado.
+  - **Qué aplica solo**: lo que no pierde nada escrito a mano. Unir o
+    corregir grafías que sólo difieren en mayúsculas, tildes, espacios o
+    signos (`OrdenDelDiccionario.llavePlana`), y quitar entradas aprendidas
+    (`Reemplazo.aprendido`, y para Tus palabras `diloPalabrasAprendidas`, que
+    anota lo que entra por la muesca). Lo demás queda **propuesto** y se
+    aplica con un clic. Tope de quitadas solas por pasada:
+    `max(5, entradas / 5)`. Al unir o corregir una palabra, las reglas que la
+    escribían pasan a escribir la buena.
+  - **Deshacer**: cada cambio guarda lo que quita y lo que agrega en valores
+    concretos (`CambioDelDiccionario`); deshacer es aplicar el inverso, y se
+    puede repetir. **Lo deshecho no se vuelve a proponer** (se filtra contra
+    el registro). El registro (`diloRegistroDelOrden`, 20 pasadas) lleva
+    fecha, modelo, acción, motivo del modelo y estado.
+  - Los ids que ve el modelo (`p1`, `r1`) se resuelven contra el diccionario
+    que se mandó, y los cambios se aplican sobre el de ahora: aprender una
+    palabra mientras Sonnet piensa no rompe nada.
+- **El request** es `ConsultaAClaude` (`DiloModes`): el mismo `POST
+  /v1/messages`, clave, `anthropic-version`, lectura (`RespuestaDeAnthropic`)
+  y fallas (`FallaDeClaude` = `FallaDeTraduccion`) que traducir, más
+  `output_config: {effort, format: {type: "json_schema", schema}}`. **Sin
+  `temperature`/`top_p`/`top_k`, sin `thinking`** (omitirlo es adaptativo;
+  Sonnet 5.5 rechaza `disabled`), sin prefill, sólo bloques `text`;
+  `refusal` y `max_tokens` son falla. `timeoutInterval` del request = plazo
+  + 5 s: URLSession corta a los 60 s sin bytes, y una respuesta sin
+  streaming no manda ninguno hasta terminar. La salida igual se valida al
+  leer.
+- **Los prompts** están en español (se juzga español de Chile y la salida
+  son etiquetas), versionados en `RevisionDeCorrecciones.version` y
+  `OrdenDelDiccionario.version`. Lo dictado y lo de la persona van entre
+  etiquetas como **dato, nunca instrucción**, con `<` y `>` neutralizados.
+  Quien cambie una línea sube la versión.
+- **Qué viaja a Anthropic**: al revisar, cada par con unas ocho palabras
+  antes y después en lo pegado y en lo corregido (`recorte`, tope de 240
+  caracteres), nunca el campo entero ni la app; al ordenar, Tus palabras y
+  «Cuando digo…» con la marca de aprendida, nada de lo dictado. Nada con
+  entrada segura activa (la vigía no mira). Al log (`AppLog.aprendizaje`)
+  van cuentas y nombres de falla, nunca una palabra.
+- **Ajustes → Tus palabras → «Aprender con Claude»**
+  (`AprenderConClaudeCard`): el interruptor (`diloAprenderConClaude`,
+  prendido), el modelo para revisar (`diloModeloParaRevisar`) y para ordenar
+  (`diloModeloParaOrdenar`) —un id que ya no está en la lista vuelve al de
+  fábrica—, «Ordenar ahora», el registro con «Deshacer»/«Aplicar» y la línea
+  de qué se manda. Sin clave dice dónde pegarla y abre Modos.
+- **Costos de referencia** por millón de tokens (entrada/salida): Haiku 5.5
+  $0,10/$0,50; Sonnet 5.5 $2/$10; Opus 5.5 $4/$20. Revisar es una fracción de
+  centavo; ordenar cien entradas, unos pocos centavos.
+- **Probar**: `scripts/probar-aprendizaje.sh revisar [modelo…]` pasa las
+  correcciones de `scripts/probar-aprendizaje-correcciones.txt` (chilenas:
+  nombres, siglas, jerga, y reformulaciones que no se aprenden) por cada
+  modelo y marca si coincide con lo esperado; `ordenar` ordena un
+  diccionario de ejemplo. Por defecto compara Haiku 5.5 con Sonnet 5.5.
+  Llama a la API de verdad: se corre a mano, nunca desde un test.
+
 ## Idioma, copy y el catálogo
 
 El **español es el idioma en que se escribe** (`developmentRegion = es`); el
@@ -1102,6 +1197,14 @@ xcodebuild -project Dilo.xcodeproj -scheme Dilo \
 
 El id puede ser cualquiera bajo `cl.espaciodigital.dilo`: `DiloTests` compara
 el host por prefijo para que el truco no rompa la suite.
+
+**Con la 0.9.0 instalada y abierta, la suite también se cuelga** (2026-10-19):
+*"the test runner hung before establishing connection"*, en cualquier rama y
+con cualquier bundle id, antes de que corra una línea de Dilo. Cerrando la
+copia instalada corre entera; con la 0.4.8 abierta no pasaba. La causa exacta
+no se aisló (desde la 0.4.9 la copia instalada registra App Intents y el
+esquema `dilo://`, que la de tests también declara). Mientras tanto: cerrar Dilo antes de la suite —avisándole a
+Alfonso, que lo está usando— y abrirlo de nuevo al terminar.
 
 **Los tests quieren un `-derivedDataPath` propio.** Si lanzas a mano con
 `open -a` el `.app` que está en el mismo DerivedData, LaunchServices se queda

@@ -326,8 +326,12 @@ public enum TusPalabrasAprendidas {
   /// Lo más que se aprende solo. Más que esto es ruido que nadie revisó.
   public static let tope = 200
 
+  /// - Parameter soloTusPalabras: los que el revisor dijo que son un
+  ///   término que Tus palabras arregla solo (`RevisionDeCorrecciones`): no
+  ///   llevan regla en «Cuando digo…».
   public static func aprender(
-    _ pares: [ParDeCorreccion], palabras: inout [String], reemplazos: inout [Reemplazo]
+    _ pares: [ParDeCorreccion], soloTusPalabras: Set<ParDeCorreccion> = [],
+    palabras: inout [String], reemplazos: inout [Reemplazo]
   ) -> LoAprendido {
     var hecho = LoAprendido()
     for par in pares {
@@ -339,7 +343,7 @@ public enum TusPalabrasAprendidas {
         hecho.palabrasNuevas.append(correcto)
       }
       // Lo que se oyó escrito tal cual ya es lo correcto: basta Tus palabras.
-      guard oido != correcto else { continue }
+      guard oido != correcto, !soloTusPalabras.contains(par) else { continue }
       let llave = Reemplazos.plegar(oido)
       if let i = reemplazos.firstIndex(where: { Reemplazos.plegar($0.dice) == llave }) {
         guard reemplazos[i].escribe != correcto else { continue }

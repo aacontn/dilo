@@ -394,6 +394,33 @@ El panel no toma nunca el teclado: el menú no movía el foco de la app donde
 se dicta, y el panel tampoco puede. Detalle y reglas en `AGENTS.md`, «El ícono
 de la barra de menús»; los PNG salen de `scripts/render-panel-de-la-barra.sh`.
 
+## Aprender con Claude (2026-10-19)
+
+> «que el aprendizaje lo haga un modelo de Claude […] déjalo, sí lo vamos a
+> usar», con selector de modelo propio para poner uno más inteligente que
+> ordene y aprenda.
+
+En la muesca no cambia la forma: la oferta «Aprender» sigue siendo un
+segmento al costado y sigue pidiendo el clic. Lo que cambia es qué llega a
+ofrecerse y cuándo. Claude Haiku 5.5 mira cada corrección antes de la
+oferta y descarta lo que no es vocabulario, así que la oferta aparece uno o
+dos segundos después de que terminaste de corregir en vez de al tiro; si
+Claude no contesta en siete, se ofrece lo de siempre. Una corrección que
+Claude descarta no se ofrece: es el ruido que antes había que rechazar a
+mano.
+
+Ordenar Tus palabras no pasa por la muesca: es trabajo de fondo, sin aviso.
+Lo que hizo se ve en Ajustes → Tus palabras → «Lo que ordenó Claude», una
+fila por cambio con su motivo y un botón que deshace (o aplica, si quedó
+propuesto). Ahí mismo viven el interruptor, los dos selectores de modelo,
+«Ordenar ahora» y la línea de qué viaja a Anthropic. Detalle y reglas en
+`AGENTS.md`, «Aprender con Claude»; el PNG de la tarjeta sale de
+`ImageRenderer` a `/Volumes/SSD 1/Dilo/taller/aprender/`.
+
+Deuda: decir en la muesca, alguna vez, que el orden aplicó algo (hoy sólo
+Ajustes lo cuenta), y calibrar los dos prompts con correcciones reales
+(`scripts/probar-aprendizaje.sh`).
+
 ## Ventana y navegación
 
 Destino de producto: Recientes, Reuniones y Ajustes.

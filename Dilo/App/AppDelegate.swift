@@ -31,6 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   /// que vive acá.
   private var accionesDeAtajos: AccionesDeDiloEnVivo?
   private var avisoDeAtajo: AvisoDeAtajoEnLaMuesca?
+  /// Ordena Tus palabras con Claude de vez en cuando.
+  private var ordenador: OrdenadorDelDiccionario?
   /// Las URL que llegan antes de que la app termine de arrancar: abrir
   /// `dilo://` con Dilo cerrado lo lanza, y AppKit entrega la URL antes de
   /// `applicationDidFinishLaunching`.
@@ -176,6 +178,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       stage?.mostrarOfertaDeAprendizaje(oferta)
     }
     stage.alTocarAprendizaje = { dictationController.correcciones.tocar() }
+    // Aprender con Claude: Haiku 5.5 revisa cada corrección antes de la
+    // oferta, y Sonnet 5.5 ordena Tus palabras en segundo plano, nunca
+    // durante un dictado (`OrdenadorDelDiccionario`).
+    dictationController.correcciones.revisar = { candidatos, modelo in
+      await AprendizajeConClaude.revisar(candidatos, modelo: modelo)
+    }
+    let ordenador = OrdenadorDelDiccionario(settings: settings)
+    self.ordenador = ordenador
+    ordenador.hayDictadoEnCurso = { [weak settingsRuntimeState] in
+      settingsRuntimeState?.isDictating ?? false
+    }
+    settingsRuntimeState.ordenador = ordenador
+    dictationController.correcciones.alAprender = { [weak ordenador] in ordenador?.revisarSiToca() }
+    ordenador.empezar()
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alTerminarSesionTrabada = { dictationController.terminarSesionTrabada() }
     stage.dictationContent.alDictarTraduciendo = { dictationController.dictarTraduciendo() }

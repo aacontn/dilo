@@ -265,7 +265,7 @@ private struct SettingsContent: View {
         case .modos:
           ModosSettingsView(settings: settings)
         case .palabras:
-          PalabrasSettingsView(settings: settings)
+          PalabrasSettingsView(settings: settings, runtimeState: runtimeState)
         case .historial:
           HistorialSettingsView(settings: settings)
           DisclosureGroup("Actividad de dictado") {
