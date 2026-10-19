@@ -86,7 +86,10 @@ public struct Proveedor: Codable, Equatable, Identifiable, Sendable {
       nombre: "Anthropic",
       dialecto: .anthropic,
       urlBase: URL(string: "https://api.anthropic.com/v1"),
-      modelo: ""
+      // Claude Haiku 5.5 de fábrica (2026-10-19): con la clave basta. Los
+      // otros siguen vacíos porque no hay un modelo que recomendar sin que
+      // la persona lo elija.
+      modelo: ModelosDeAnthropic.deFabrica.id
     ),
     Proveedor(
       id: "propio",

@@ -100,6 +100,8 @@ extension BloqueoDelDictado {
       String(localized: "Elige un idioma para traducir")
     case .traduccionNoLista:
       String(localized: "La traducción no está lista")
+    case .traduccionSinClave:
+      String(localized: "Falta la clave de Anthropic")
     }
   }
 

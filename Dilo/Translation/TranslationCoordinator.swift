@@ -1,4 +1,6 @@
+import DiloModes
 import Foundation
+import os
 
 /// Everything Dictate and Translate keeps between sessions: which pair the
 /// translate key would run, whether it can run right now, and how a missing
@@ -40,6 +42,11 @@ final class TranslationCoordinator {
   }
 
   private let service: TranslationService
+  /// Traducir con Claude. Una costura: los tests no abren un socket ni leen
+  /// el Llavero.
+  private let claude: TraductorDeClaude
+
+  typealias TraductorDeClaude = @Sendable (String, DestinoDeTraduccion) async throws -> String
   /// The language the current targets were measured from, so an install can
   /// re-resolve without being told the source again.
   private var source: Locale?
@@ -65,8 +72,78 @@ final class TranslationCoordinator {
   /// and the translate key is accepted or refused against the wrong model.
   private var request = 0
 
-  init(service: TranslationService) {
+  /// - Parameter claude: por defecto, uno que nunca tiene clave; la app
+  ///   pasa `claudeEnVivo`.
+  init(
+    service: TranslationService,
+    claude: @escaping TraductorDeClaude = { _, _ in throw FallaDeTraduccion.faltaLaClave }
+  ) {
     self.service = service
+    self.claude = claude
+  }
+
+  /// Lo que salió de traducir un dictado.
+  struct Traducido: Equatable {
+    let texto: String
+    /// Por qué no tradujo Claude, cuando el que tradujo fue Apple en su
+    /// lugar. Nil si tradujo el motor de la sesión.
+    let respaldoPor: FallaDeTraduccion?
+  }
+
+  /// Traduce con el motor que la sesión congeló.
+  ///
+  /// **Si Claude falla y el modelo de Apple para este par está instalado,
+  /// traduce Apple, y la muesca lo dice** (2026-10-19). La regla de la casa
+  /// —nunca un segundo proveedor en silencio— existe para que un dictado no
+  /// termine en una nube que nadie eligió; Apple corre en este Mac y no saca
+  /// nada de acá, así que caer a él no cruza ninguna frontera. Y lo que la
+  /// tecla de traducir promete es el texto en el otro idioma: sin red, una
+  /// traducción más literal sirve más que el español en el portapapeles. Que
+  /// la muesca diga «tradujo Apple» es lo que impide que esa traducción pase
+  /// por la de Claude. Sin el modelo de Apple, la falla de Claude sube tal
+  /// cual y el dictado va al portapapeles, como antes.
+  func traducir(
+    _ text: String, with pair: TranslationPair, motor: MotorDeTraduccion.Resuelto
+  ) async throws -> Traducido {
+    switch motor {
+    case .apple:
+      return Traducido(texto: try await service.translate(text, with: pair), respaldoPor: nil)
+    case .faltaLaClave:
+      // La tecla ya se niega sin clave; esto es una clave borrada con la
+      // sesión abierta.
+      return try await conApple(text, pair, porque: .faltaLaClave)
+    case let .claude(destino):
+      do {
+        return Traducido(texto: try await claude(text, destino), respaldoPor: nil)
+      } catch let falla as FallaDeTraduccion {
+        return try await conApple(text, pair, porque: falla)
+      }
+    }
+  }
+
+  private func conApple(
+    _ text: String, _ pair: TranslationPair, porque falla: FallaDeTraduccion
+  ) async throws -> Traducido {
+    guard await service.availability(of: pair) == .installed else {
+      AppLog.delivery.notice(
+        "traducción con Claude falló (\(falla.nombreEnElLog, privacy: .public)), sin respaldo de Apple"
+      )
+      throw falla
+    }
+    do {
+      let texto = try await service.translate(text, with: pair)
+      AppLog.delivery.notice(
+        "traducción con Claude falló (\(falla.nombreEnElLog, privacy: .public)), tradujo Apple"
+      )
+      return Traducido(texto: texto, respaldoPor: falla)
+    } catch {
+      // Lo que se dice es por qué no tradujo Claude, que es lo que la persona
+      // eligió y lo que tiene arreglo.
+      AppLog.delivery.notice(
+        "traducción con Claude falló (\(falla.nombreEnElLog, privacy: .public)), Apple tampoco"
+      )
+      throw falla
+    }
   }
 
   /// Drops the pair until the next `apply`.

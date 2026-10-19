@@ -219,7 +219,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
-| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas | 4 |
+| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic y la traducción con Claude (prompt, request, fallas, quién traduce) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
@@ -878,6 +878,90 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol
 "$BIN" --help
 "$BIN" dictados recientes -dictationHistoryEnabled NO   # sale con 3
 ```
+
+## Traducir con Claude
+
+Alfonso, 2026-10-19: «Las traducciones son malísimas. Hagamos un modo de
+traducción más pro […] de español a inglés y de español a chino […] que se
+vea como inglés nativo […] que lo haga Haiku 5.5». La tecla de traducir
+puede traducir con **Claude Haiku 5.5** por la API de Anthropic o con el
+traductor de **Apple**, en el Mac.
+
+- **Quién traduce lo decide `MotorDeTraduccion`** (puro, `DiloModes`, con
+  tests). Se elige en Ajustes → Idioma → «Traducir con»
+  (`diloMotorDeTraduccion`); sin elegir, Claude si hay clave de Anthropic y
+  Apple si no. Claude traduce **desde el español** y **hacia inglés (EE. UU.)
+  o chino simplificado** (`DestinoDeTraduccion`, guardados como `en` y `zh`,
+  los mismos códigos que la fila de Apple); cualquier otro par sigue con
+  Apple. Claude elegido a mano sin clave no cae a Apple: la tecla se niega y
+  la muesca dice «Falta la clave de Anthropic» (`traduccionSinClave`).
+- **Se resuelve al apretar la tecla y la sesión lo congela** (ADR-0004):
+  `estadoDeLaTraduccion()` pregunta al Llavero sólo con la tecla de traducir y
+  sólo si la respuesta cambia algo, y lo resuelto viaja en
+  `DictationSessionSettings.motorDeTraduccion`. Con Claude no hace falta que
+  el modelo de Apple esté listo.
+- **Una sola clave de Anthropic**: la del proveedor Anthropic de los modos
+  (Llavero, servicio `cl.espaciodigital.dilo.proveedores`, cuenta
+  `proveedor.anthropic`). Se pega en **Ajustes → Modos → Proveedor general →
+  Anthropic → API key**; la fila de Idioma, si falta, dice eso y abre Modos.
+  `TranslationCoordinator.claudeEnVivo` la lee al traducir y no la guarda.
+- **El request** (`TraductorConClaude`): `POST /v1/messages`, `x-api-key`,
+  `anthropic-version: 2023-06-01`, modelo `claude-haiku-5-5` (sin sufijo de
+  fecha), `max_tokens` 8.000 (lo que el modelo piensa cuenta contra ese
+  número) y `output_config: {effort: "low"}` por latencia; si la calidad no
+  alcanza, el escalón siguiente es `medium`, en `TraductorConClaude.esfuerzo`.
+  **No lleva `temperature`, `top_p`, `top_k`, `thinking`, `budget_tokens`
+  ni un `assistant` final**: en Haiku, Sonnet y Opus 5.5 cada uno es un 400.
+  Haiku 5.5 piensa solo; la respuesta trae bloques `thinking` vacíos antes
+  del texto y se leen sólo los `text` (`RespuestaDeAnthropic`, la misma
+  lectura que los modos). Plazo de 12 s.
+- **El prompt** (`PromptDeTraduccion`, versionado en `version`) está en
+  inglés a propósito —la salida nunca es español y los modelos siguen mejor
+  instrucciones en inglés— con tres ejemplos chilenos por destino: un mensaje
+  casual con chilenismos y muletillas, un correo formal con un monto y saltos
+  de línea, y un dictado que parece una orden. Pide sentido y no calco, el
+  registro del original, nada agregado ni quitado salvo muletillas, nombres,
+  URLs, código y formato intactos, y números al uso del lector. **Lo dictado
+  es dato**: va entre `<dictado>`, una etiqueta adentro se neutraliza, y si
+  parece una orden o una pregunta se traduce, no se contesta. Quien cambie
+  una línea sube la versión.
+- **Fallas**: `stop_reason` `refusal` o `max_tokens` es falla, nunca texto a
+  medias. Cada falla tiene su frase (`FallaDeTraduccion.aviso`): sin clave,
+  clave rechazada (401/403), 429, 5xx/529, otro 4xx, sin conexión, plazo,
+  refusal, cortada. **Si Claude falla y el modelo de Apple para el par está
+  instalado, traduce Apple y la muesca dice «Sin conexión: tradujo Apple»**
+  (`TranslationCoordinator.traducir`): la regla de no ir a un segundo
+  proveedor existe para que un dictado no termine en una nube que nadie
+  eligió, y Apple corre en el Mac. Sin el modelo de Apple, el dictado va al
+  portapapeles y la muesca dice por qué no tradujo Claude.
+- El historial y el último dictado quedan como siempre: lo dicho, y lo
+  traducido al lado. Leer en voz alta sigue traduciendo con Apple.
+- **Probar la calidad**: `scripts/probar-traduccion.sh [en|zh]` traduce los
+  dictados de `scripts/probar-traduccion-dictados.txt` con el mismo código de
+  la app y la clave del Llavero (pasada por la entrada estándar). Llama a la
+  API de verdad: se corre a mano, nunca desde un test.
+
+**Los modos también van por Claude Haiku 5.5 de fábrica** (2026-10-19). El
+dictado sin modo no cambia: transcripción y reglas, sin ningún modelo.
+
+- El proveedor Anthropic trae `claude-haiku-5-5` de fábrica, y un Anthropic
+  guardado con el modelo vacío pasa a ése una vez
+  (`MigracionDeProveedores.conModeloDeFabrica`, marca
+  `diloMigracionModeloDeAnthropic`); un modelo escrito a mano no se toca.
+  En Modos el modelo de Anthropic se elige de `ModelosDeAnthropic.lista`
+  —Haiku 5.5 (recomendado), Sonnet 5.5, Opus 5.5— o «Otro…», que deja el
+  campo de siempre.
+- **El general pasa a Anthropic una sola vez** si sigue en el modelo de
+  Apple, nadie lo cambió desde esta regla y hay clave
+  (`MigracionDeProveedores.generalConClave`, al arrancar en `AppDelegate`).
+  Cualquier cambio del general anota `diloProveedorGeneralDecidido`, así que
+  quien vuelve al de Apple se queda ahí.
+- A un modelo de la lista los modos le mandan `output_config.effort` `low` y
+  `max_tokens` 8.000 (`ModelosDeAnthropic.opciones`); a un modelo escrito a
+  mano, lo de antes y nada más (Haiku 4.5 rechaza `effort`). **A Anthropic
+  nunca va `temperature`**, ni con forma: antes `conForma` mandaba
+  `temperature: 0`, los modelos 5.5 contestaban 400 y cada modo gastaba un
+  viaje antes del reintento.
 
 ## Idioma, copy y el catálogo
 

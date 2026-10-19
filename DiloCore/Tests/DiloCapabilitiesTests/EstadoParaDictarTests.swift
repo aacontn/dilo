@@ -109,6 +109,9 @@ struct EstadoParaDictarTests {
     #expect(con { $0.campoEsSeguro = true }.bloqueos == [.campoProtegido])
     #expect(con { $0.traduccion = .sinIdioma }.bloqueos == [.traduccionSinIdioma])
     #expect(con { $0.traduccion = .noLista }.bloqueos == [.traduccionNoLista])
+    #expect(con { $0.traduccion = .sinClave }.bloqueos == [.traduccionSinClave])
+    #expect(BloqueoDelDictado.traduccionSinClave.permiso == nil)
+    #expect(!BloqueoDelDictado.traduccionSinClave.seResuelveSolo)
     #expect(con { $0.traduccion = .lista }.bloqueos.isEmpty)
   }
 

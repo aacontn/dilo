@@ -21,6 +21,9 @@ struct LanguageSettingsView: View {
   /// only piece of this flow that is genuinely this view's: an install has to
   /// outlive the section being switched, so it lives in the runtime state.
   @State private var confirmingTarget: TranslationTarget?
+  /// Si hay clave de Anthropic en el Llavero. Se lee al abrir la sección: la
+  /// clave se pega en Modos, y volver acá vuelve a crear esta vista.
+  @State private var hayClaveDeAnthropic = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -60,6 +63,27 @@ struct LanguageSettingsView: View {
         }
 
         SettingsPickerRow(
+          title: "Traducir con",
+          description: motorDescription,
+          options: MotorDeTraduccion.allCases,
+          optionLabel: motorLabel(for:),
+          selection: motorElegido,
+          controlWidth: 260
+        )
+
+        // La clave vive en un solo lugar, el proveedor Anthropic de Modos: la
+        // misma sirve para los modos y para traducir.
+        if motorEnElSelector == .claude, !hayClaveDeAnthropic {
+          SettingsRow(
+            title: "Falta la clave de Anthropic",
+            description: "Pégala en Modos → Proveedor general → Anthropic → API key. Es la misma para los modos y para traducir."
+          ) {
+            Button("Abrir Modos") { runtimeState.seccionPedida = .modos }
+              .buttonStyle(SettingsButtonStyle())
+          }
+        }
+
+        SettingsPickerRow(
           title: "Traducir a",
           description: translationDescription,
           options: translationOptions,
@@ -92,7 +116,9 @@ struct LanguageSettingsView: View {
 
       VStack(alignment: .leading, spacing: 2) {
         Text(
-          "Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. Todo corre en esta compu."
+          claudeTraduceElElegido
+            ? LocalizedStringKey("Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. El dictado corre en esta compu; la traducción con Claude, en Anthropic.")
+            : LocalizedStringKey("Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. Todo corre en esta compu.")
         )
         .font(.caption)
         .foregroundStyle(.white.opacity(contrast == .increased ? 0.7 : 0.45))
@@ -101,6 +127,9 @@ struct LanguageSettingsView: View {
       .padding(.horizontal, 6)
     }
     .task {
+      hayClaveDeAnthropic = Llavero().tieneClave(
+        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
+      )
       languages = await SpeechLanguageCatalog.available()
     }
     .confirmationDialog(
@@ -174,6 +203,16 @@ struct LanguageSettingsView: View {
 
   private func translationLabel(for identifier: String) -> String {
     guard !identifier.isEmpty else { return "Apagado" }
+    if claudeOfreceDestinos {
+      switch DestinoDeTraduccion(identificador: identifier) {
+      case .ingles?: return String(localized: "Inglés (EE. UU.)")
+      case .chinoSimplificado?: return String(localized: "Chino simplificado (mandarín)")
+      case nil:
+        // Un destino que Claude no traduce sigue con Apple, y la fila lo dice.
+        return SpeechLanguageCatalog.shortName(for: Locale(identifier: identifier))
+          + " " + String(localized: "— lo traduce Apple")
+      }
+    }
     guard let target = runtimeState.translationTargets.first(where: { $0.id == identifier })
     else {
       // A stored pick this source cannot reach. Kept visible rather than
@@ -192,6 +231,12 @@ struct LanguageSettingsView: View {
       get: { settings.translationTargetIdentifier },
       set: { picked in
         runtimeState.translationInstallFailure = nil
+        // Con Claude, inglés y chino no piden ningún modelo: se eligen y ya.
+        if claudeOfreceDestinos, DestinoDeTraduccion(identificador: picked) != nil {
+          confirmingTarget = nil
+          settings.translationTargetIdentifier = picked
+          return
+        }
         let target = runtimeState.translationTargets.first { $0.id == picked }
         guard let target, target.availability == .downloadable else {
           confirmingTarget = nil
@@ -231,7 +276,9 @@ struct LanguageSettingsView: View {
         Button("Entendido") { runtimeState.translationInstallFailure = nil }
           .buttonStyle(SettingsButtonStyle())
       }
-    } else if let target = chosenTarget, let problem = modelProblem {
+    } else if !claudeTraduceElElegido, let target = chosenTarget, let problem = modelProblem {
+      // Con Claude el modelo de Apple es sólo el respaldo sin conexión: que
+      // falte no impide traducir, y la fila diría lo contrario.
       SettingsRow(title: "\(target.name) \(problem.title)", description: "\(problem.detail)") {
         Button(problem.button) { install(target) }
           .buttonStyle(SettingsButtonStyle())
@@ -245,7 +292,9 @@ struct LanguageSettingsView: View {
   /// and shows nothing at all, which is worse than saying the language is
   /// unavailable: the translate key stays bound and stays useless.
   private var translationOptions: [String] {
-    var options = [""] + runtimeState.translationTargets.map(\.id)
+    var options = claudeOfreceDestinos
+      ? [""] + DestinoDeTraduccion.allCases.map(\.identificador)
+      : [""] + runtimeState.translationTargets.map(\.id)
     let stored = settings.translationTargetIdentifier
     if !stored.isEmpty, !options.contains(stored) {
       options.append(stored)
@@ -293,6 +342,63 @@ struct LanguageSettingsView: View {
       ProgressView().progressViewStyle(.linear).frame(width: 120)
       Button("Parar") { runtimeState.stopInstallingTranslationModel() }
         .buttonStyle(SettingsButtonStyle())
+    }
+  }
+
+  /// Lo que muestra «Traducir con»: la elección, o la de fábrica ya decidida
+  /// por la clave.
+  private var motorEnElSelector: MotorDeTraduccion {
+    MotorDeTraduccion.enElSelector(
+      elegido: settings.motorDeTraduccion, hayClave: hayClaveDeAnthropic
+    )
+  }
+
+  /// Elegir en el selector guarda la elección: desde ahí manda ella y no la
+  /// clave.
+  private var motorElegido: Binding<MotorDeTraduccion> {
+    Binding(
+      get: { motorEnElSelector },
+      set: { settings.motorDeTraduccion = $0 }
+    )
+  }
+
+  private func motorLabel(for motor: MotorDeTraduccion) -> String {
+    switch motor {
+    case .claude: String(localized: "Claude (Haiku 5.5)")
+    case .apple: String(localized: "Apple, en el Mac")
+    }
+  }
+
+  /// Si Claude traduce desde el idioma de dictado. Sólo desde el español: el
+  /// prompt está escrito para un dictado chileno.
+  private var claudeOfreceDestinos: Bool {
+    motorEnElSelector == .claude
+      && MotorDeTraduccion.destinoDeClaude(
+        origen: runtimeState.translationSource?.minimalIdentifier, destino: "en"
+      ) != nil
+  }
+
+  /// Si el destino elegido lo va a traducir Claude, con la clave que hay.
+  private var claudeTraduceElElegido: Bool {
+    let motor = MotorDeTraduccion.resolver(
+      elegido: settings.motorDeTraduccion,
+      origen: runtimeState.translationSource?.minimalIdentifier,
+      destino: settings.translationTargetIdentifier,
+      hayClave: hayClaveDeAnthropic
+    )
+    if case .claude = motor { return true }
+    return false
+  }
+
+  private var motorDescription: LocalizedStringKey {
+    switch motorEnElSelector {
+    case .apple:
+      return "Corre en esta compu: lo que dictas no sale de ella. Más literal."
+    case .claude:
+      guard claudeOfreceDestinos || runtimeState.translationSource == nil else {
+        return "Claude traduce desde el español. Desde tu idioma de dictado traduce Apple."
+      }
+      return "Suena escrito por alguien nativo. Lo que dictas viaja a Anthropic; sin conexión traduce Apple, si tiene el modelo."
     }
   }
 

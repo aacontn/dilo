@@ -40,6 +40,7 @@ final class AppSettings {
     static let secondaryTriggerBinding = "dictationTriggerBindingSecondary"
     static let translateTriggerBinding = "dictationTriggerBindingTranslate"
     static let translationTarget = "translationTargetLanguage"
+    static let motorDeTraduccion = "diloMotorDeTraduccion"
     static let transcriptDestination = "transcriptDestination"
     static let transcriptFolder = "transcriptFolder"
     static let insertionDestination = "dictationInsertionDestination"
@@ -79,6 +80,10 @@ final class AppSettings {
     static let modos = "diloModos"
     static let proveedores = "diloProveedores"
     static let proveedorGeneral = "diloProveedorGeneral"
+    /// Que el general ya se decidió desde que Haiku 5.5 es el de fábrica
+    /// (`MigracionDeProveedores.generalConClave`).
+    static let proveedorGeneralDecidido = "diloProveedorGeneralDecidido"
+    static let migracionModeloDeAnthropic = "diloMigracionModeloDeAnthropic"
     static let unAtajoDiloDecide = "diloUnAtajoDiloDecide"
     static let palabrasPropias = "diloPalabrasPropias"
     static let limpiarMuletillas = "diloLimpiarMuletillas"
@@ -227,8 +232,34 @@ final class AppSettings {
   }
 
   /// El proveedor que usan los modos que no eligieron uno propio.
+  ///
+  /// Cualquier cambio anota que ya se decidió: desde ese momento la regla que
+  /// lo pasa a Anthropic cuando hay clave no vuelve a mirar
+  /// (`pasarElGeneralAClaudeSiCorresponde`).
   var proveedorGeneralID: String {
-    didSet { defaults.set(proveedorGeneralID, forKey: Keys.proveedorGeneral) }
+    didSet {
+      defaults.set(proveedorGeneralID, forKey: Keys.proveedorGeneral)
+      defaults.set(true, forKey: Keys.proveedorGeneralDecidido)
+    }
+  }
+
+  /// Una vez, al arrancar: si el general sigue en el modelo de Apple, nadie
+  /// lo cambió desde que existe esta regla y hay clave de Anthropic, los
+  /// modos pasan a Claude Haiku 5.5 (Alfonso, 2026-10-19). El criterio y por
+  /// qué está en `MigracionDeProveedores.generalConClave`.
+  ///
+  /// Fuera del `init` a propósito: preguntarle al Llavero desde un binario
+  /// firmado distinto abre un diálogo que espera a un humano, y los tests
+  /// crean `AppSettings` a cada rato. Lo llama `AppDelegate`, con el Llavero.
+  func pasarElGeneralAClaudeSiCorresponde(claves: some AlmacenDeClaves) {
+    guard let nuevo = MigracionDeProveedores.generalConClave(
+      actual: proveedorGeneralID,
+      yaSeDecidio: defaults.bool(forKey: Keys.proveedorGeneralDecidido),
+      hayClaveDeAnthropic: {
+        claves.tieneClave(para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero)
+      }
+    ) else { return }
+    proveedorGeneralID = nuevo
   }
 
   /// "Un atajo, Dilo decide": el modo se elige por la app al frente y el
@@ -603,6 +634,13 @@ final class AppSettings {
     !translationTargetIdentifier.isEmpty
   }
 
+  /// Quién traduce, elegido en Ajustes → Idioma. Nil es el de fábrica:
+  /// Claude si hay clave de Anthropic, Apple si no (`MotorDeTraduccion`).
+  /// Se guarda el `rawValue`, y vacío es nil.
+  var motorDeTraduccion: MotorDeTraduccion? {
+    didSet { defaults.set(motorDeTraduccion?.rawValue ?? "", forKey: Keys.motorDeTraduccion) }
+  }
+
   /// The pair a session would translate, or nil when translation is off or
   /// would translate a language into itself.
   func translationPair(from source: Locale) -> TranslationPair? {
@@ -672,8 +710,20 @@ final class AppSettings {
     insertionDestination = Self.stored(in: defaults, key: Keys.insertionDestination) ?? .insert
     dictationHistoryEnabled = defaults.object(forKey: Keys.historyEnabled) as? Bool ?? false
     dictationHistoryFolder = (defaults.string(forKey: Keys.historyFolder)).map { URL(filePath: $0) }
-    proveedores = Self.guardado([Proveedor].self, Keys.proveedores, in: defaults)
-      ?? Proveedor.deFabrica
+    let proveedoresGuardados = Self.guardado([Proveedor].self, Keys.proveedores, in: defaults)
+    // El Anthropic guardado con el modelo vacío pasa a Haiku 5.5, una vez
+    // (2026-10-19). Uno escrito a mano no se toca. La marca va última, como
+    // en la migración de modos.
+    if let proveedoresGuardados, !defaults.bool(forKey: Keys.migracionModeloDeAnthropic) {
+      let conModelo = MigracionDeProveedores.conModeloDeFabrica(proveedoresGuardados)
+      if conModelo != proveedoresGuardados, let datos = try? JSONEncoder().encode(conModelo) {
+        defaults.set(datos, forKey: Keys.proveedores)
+      }
+      defaults.set(true, forKey: Keys.migracionModeloDeAnthropic)
+      proveedores = conModelo
+    } else {
+      proveedores = proveedoresGuardados ?? Proveedor.deFabrica
+    }
     proveedorGeneralID = defaults.string(forKey: Keys.proveedorGeneral)
       ?? Proveedor.deFabrica[0].id
 
@@ -809,6 +859,8 @@ final class AppSettings {
       allowsMouseButton: true
     ) ?? .rightCommandTrigger
     translationTargetIdentifier = defaults.string(forKey: Keys.translationTarget) ?? ""
+    motorDeTraduccion = defaults.string(forKey: Keys.motorDeTraduccion)
+      .flatMap(MotorDeTraduccion.init(rawValue:))
   }
 
   private static func stored<Value: RawRepresentable<String>>(
@@ -953,6 +1005,9 @@ struct DictationSessionSettings: Equatable {
   /// as spoken. Captured with everything else: changing the target
   /// mid-session must not redirect the session already under way (ADR-0004).
   let translation: TranslationPair?
+  /// Con qué traduce esta sesión, resuelto al apretar la tecla. Congelado
+  /// como todo lo demás (ADR-0004): sólo importa si `translation` no es nil.
+  let motorDeTraduccion: MotorDeTraduccion.Resuelto
   let historyEnabled: Bool
   let historyFolder: URL
   /// Captured with everything else: a session that started while ducking was
@@ -1048,9 +1103,11 @@ struct DictationSessionSettings: Equatable {
   init(
     settings: AppSettings,
     translation: TranslationPair? = nil,
+    motorDeTraduccion: MotorDeTraduccion.Resuelto = .apple,
     claves: some AlmacenDeClaves = Llavero()
   ) {
     self.translation = translation
+    self.motorDeTraduccion = motorDeTraduccion
     sounds = DictationSoundSettings(
       set: settings.soundSet,
       isEnabled: settings.dictationSoundsEnabled,

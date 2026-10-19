@@ -58,7 +58,7 @@ struct ClienteHTTPTests {
   }
 
   /// Con forma: temperatura 0 y la salida `{"texto": …}` en el dialecto de
-  /// cada uno. Sin forma, el request de siempre.
+  /// cada uno, salvo Anthropic. Sin forma, el request de siempre.
   @Test func conFormaPideTemperaturaCeroYElEsquemaDeCadaUno() throws {
     let openai = try ClienteHTTP(
       proveedor: proveedor(.compatibleOpenAI, "https://api.openai.com/v1"), clave: "k"
@@ -77,7 +77,7 @@ struct ClienteHTTPTests {
     let anthropic = try ClienteHTTP(
       proveedor: proveedor(.anthropic, "https://api.anthropic.com/v1"), clave: "k"
     ).armar(instrucciones: "a", peticion: "b", modelo: "m", conForma: true)
-    #expect(cuerpo(anthropic)["temperature"] as? Int == 0)
+    #expect(cuerpo(anthropic)["temperature"] == nil)
 
     let sinForma = try ClienteHTTP(
       proveedor: proveedor(.compatibleOpenAI, "https://api.openai.com/v1"), clave: "k"
@@ -113,6 +113,41 @@ struct ClienteHTTPTests {
       let lleva = cuerpo?["response_format"] != nil
       conFormato.append(lleva)
       return lleva
+    }
+  }
+
+  /// Haiku 5.5, Sonnet 5.5 y Opus 5.5 devuelven 400 ante `temperature`,
+  /// `top_p` o `top_k` que no sean los suyos (2026-10-19). Ningún request a
+  /// Anthropic los lleva, con forma o sin ella.
+  @Test(arguments: [false, true])
+  func aAnthropicNuncaVaElMuestreo(conForma: Bool) throws {
+    let request = try ClienteHTTP(
+      proveedor: proveedor(.anthropic, "https://api.anthropic.com/v1"), clave: "k"
+    ).armar(instrucciones: "a", peticion: "b", modelo: "claude-haiku-5-5", conForma: conForma)
+    let enviado = cuerpo(request)
+    #expect(enviado["temperature"] == nil)
+    #expect(enviado["top_p"] == nil)
+    #expect(enviado["top_k"] == nil)
+  }
+
+  /// Un `refusal` o un `max_tokens` no son texto para pegar, aunque traigan
+  /// un bloque de texto; y los bloques `thinking` de delante se ignoran.
+  @Test func deAnthropicSeMiraElMotivoDeParada() throws {
+    let anthropic = ClienteHTTP(proveedor: proveedor(.anthropic, "https://x/v1"), clave: "k")
+    #expect(
+      try anthropic.leer(
+        Data(#"{"content":[{"type":"thinking","thinking":""},{"type":"text","text":"listo"}],"stop_reason":"end_turn"}"#.utf8)
+      ) == "listo"
+    )
+    #expect(throws: FallaDelProveedor.seNego) {
+      try anthropic.leer(
+        Data(#"{"content":[{"type":"text","text":"No puedo"}],"stop_reason":"refusal"}"#.utf8)
+      )
+    }
+    #expect(throws: FallaDelProveedor.respuestaCortada) {
+      try anthropic.leer(
+        Data(#"{"content":[{"type":"text","text":"a medi"}],"stop_reason":"max_tokens"}"#.utf8)
+      )
     }
   }
 
