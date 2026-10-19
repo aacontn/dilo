@@ -155,7 +155,7 @@ struct VistaPreviaDeLosDatos: View {
     ) {
       DictationHUDShellView(
         screen: pantalla,
-        settings: settings.sessionSettings,
+        settings: settings.sessionSettingsParaDibujar,
         content: content
       )
     }
