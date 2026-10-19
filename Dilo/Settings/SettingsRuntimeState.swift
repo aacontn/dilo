@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloModes
 import Foundation
 import Observation
@@ -29,6 +30,10 @@ final class SettingsRuntimeState {
   /// Lo último dictado, para Inicio: en RAM, como en el panel de la barra.
   /// Nunca se escribe en ningún lado desde acá.
   var ultimoDictado: UltimoDictado?
+
+  /// Para los renders: qué permisos faltan, en vez de preguntarle a TCC.
+  /// Nil en la app.
+  var permisosQueFaltanFijos: Set<Permiso>?
 
   /// La sección que alguien de afuera pidió abrir —el panel de la barra, o el
   /// arranque después de actualizar, que abre Novedades—. La ventana de

@@ -1,4 +1,5 @@
 import AppKit
+import DiloCapabilities
 import DiloModes
 import DiloText
 import SwiftUI
@@ -93,6 +94,9 @@ enum RenderAjustes {
     claves.fijar(conClave, para: SettingsRuntimeState.cuentaDeAnthropic)
     let runtime = SettingsRuntimeState(claves: claves)
     runtime.ventanaAbierta = true
+    // Sin preguntarle a TCC por el proceso del render: con clave, todo
+    // concedido; sin clave, también falta Accesibilidad, para ver los avisos.
+    runtime.permisosQueFaltanFijos = conClave ? [] : [.accesibilidad]
     runtime.ultimoDictado = UltimoDictado(
       original: "eh mándale el informe a Carla antes del viernes",
       limpio: "Mándale el informe a Carla antes del viernes.",

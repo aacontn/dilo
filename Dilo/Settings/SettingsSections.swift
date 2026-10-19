@@ -5,6 +5,8 @@ import Foundation
 /// typed IDs (CONTEXT.md: sections are registered in code; no empty or
 /// disabled sections render).
 enum SettingsSectionGroup: String, CaseIterable, Identifiable {
+  /// Inicio, sola y sin rótulo arriba de todo: es la portada, no un ajuste.
+  case portada
   case voz
   case settings
   case dilo
@@ -14,6 +16,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
   /// sea "SETTINGS" en una app que habla español.
   var title: String {
     switch self {
+    case .portada: ""
     case .voz: String(localized: "TU VOZ")
     case .settings: String(localized: "AJUSTES")
     case .dilo: String(localized: "DILO")
@@ -23,6 +26,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
   var sections: [SettingsSection] {
     let orden: [SettingsSection]
     switch self {
+    case .portada: orden = [.inicio]
     case .voz: orden = [.dictation, .modos, .palabras, .historial, .dropTranscription]
     case .settings: orden = [.motor, .shortcuts, .appearance, .datosDeLaMuesca, .general]
     case .dilo: orden = [.novedades, .about]
@@ -32,6 +36,7 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
 }
 
 enum SettingsSection: String, CaseIterable, Identifiable {
+  case inicio
   case general
   case appearance
   case datosDeLaMuesca
@@ -53,6 +58,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var id: Self { self }
   var group: SettingsSectionGroup {
     switch self {
+    case .inicio: .portada
     case .dictation, .modos, .palabras, .historial, .dropTranscription, .insights: .voz
     case .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .readAloud, .language,
       .shortcuts: .settings
@@ -73,6 +79,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
+    case .inicio: String(localized: "Inicio")
     case .general: String(localized: "General")
     case .appearance: String(localized: "Apariencia")
     case .datosDeLaMuesca: String(localized: "Datos en la muesca")
@@ -95,6 +102,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
+    case .inicio: String(localized: "Cómo está Dilo, y lo que más se toca")
     case .general: String(localized: "Cómo arranca Dilo y la voz que te lee")
     case .appearance: String(localized: "Cómo se ve la muesca, y cómo suena")
     case .datosDeLaMuesca: String(localized: "Qué se ve a los costados de la muesca")
@@ -117,12 +125,13 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   /// La sección con que abre la ventana cuando nadie pide otra y no se
   /// cerró hace poco (`SeccionAlAbrir`).
-  static var portada: SettingsSection { .dictation }
+  static var portada: SettingsSection { .inicio }
 
   /// El color del ícono en la barra lateral: el de su familia.
   var colorDelIcono: Tono {
     let iconos = PaletaDeDilo.actual.iconosDeAjustes
     switch group {
+    case .portada: return iconos.portada
     case .voz: return iconos.voz
     case .settings: return iconos.sistema
     case .dilo: return iconos.dilo
@@ -131,6 +140,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var icon: String {
     switch self {
+    case .inicio: "house.fill"
     case .general: "gearshape.fill"
     case .appearance: "paintpalette.fill"
     case .datosDeLaMuesca: "gauge.with.dots.needle.33percent"

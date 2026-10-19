@@ -30,7 +30,7 @@ struct SettingsWindowTests {
 
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
-      .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .dictation, .modos, .palabras,
+      .inicio, .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .dictation, .modos, .palabras,
       .historial, .dropTranscription, .readAloud, .language,
       .shortcuts, .updates, .novedades, .insights, .about,
     ]
@@ -39,7 +39,7 @@ struct SettingsWindowTests {
     // sandbox de App Store se queda sin Sparkle ni relectura del foco.
     let navegables = SettingsSectionGroup.allCases.flatMap(\.sections)
     let principales: [SettingsSection] = [
-      .dictation, .modos, .palabras, .historial, .dropTranscription,
+      .inicio, .dictation, .modos, .palabras, .historial, .dropTranscription,
       .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general, .novedades, .about,
     ]
     #expect(navegables == principales.filter(\.isAvailable))

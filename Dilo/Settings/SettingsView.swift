@@ -568,6 +568,8 @@ private struct SettingsContent: View {
   @ViewBuilder
   private var contenido: some View {
     switch section {
+    case .inicio:
+      InicioSettingsView(settings: settings, runtimeState: runtimeState, tracker: usageTracker)
     case .general:
       GeneralSettingsView(launchAtLogin: launchAtLogin)
       if SettingsSection.readAloud.isAvailable {
