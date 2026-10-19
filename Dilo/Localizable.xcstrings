@@ -1085,7 +1085,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copy the last dictation"
+            "value": "Copy last dictation"
           }
         }
       }
@@ -6915,17 +6915,6 @@
         }
       }
     },
-    "Copiar el último dictado": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy last dictation"
-          }
-        }
-      }
-    },
     "Deja lo último que dictaste en el portapapeles, como el ítem del menú de Dilo, y lo devuelve.": {
       "extractionState": "manual",
       "localizations": {
@@ -8066,6 +8055,2074 @@
           "stringUnit": {
             "state": "translated",
             "value": "Claude didn't return anything usable"
+          }
+        }
+      }
+    },
+    "%@ Claude Haiku 5.5 traduce del español a inglés o chino como alguien nativo. Sin conexión traduce Apple.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Claude Haiku 5.5 translates from Spanish into English or Chinese like a native speaker. Offline, Apple translates."
+          }
+        }
+      }
+    },
+    "%@ Reescribe lo que dictas con un modo. Haiku es el más rápido, y alcanza.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Rewrites what you dictate with a mode. Haiku is the fastest, and it's enough."
+          }
+        }
+      }
+    },
+    "%@ Una pregunta corta después de cada corrección: ¿esto se aprende? Haiku alcanza.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ A short question after each correction: should this be learned? Haiku is enough."
+          }
+        }
+      }
+    },
+    "%@ Una vez por semana o tras diez palabras nuevas. Un error ahí se queda pegado: por eso Sonnet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Once a week or after ten new words. A mistake there sticks around: hence Sonnet."
+          }
+        }
+      }
+    },
+    "%lld ajustes para «%@». Intro abre el primero.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld settings for “%@”. Return opens the first one."
+          }
+        }
+      }
+    },
+    "A Dilo le falta algo para dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo is missing something to dictate"
+          }
+        }
+      }
+    },
+    "Abrir Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Claude"
+          }
+        }
+      }
+    },
+    "Abrir Motor de voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Speech Engine"
+          }
+        }
+      }
+    },
+    "Apagado: Dilo aprende solo, sin Claude.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: Dilo learns on its own, without Claude."
+          }
+        }
+      }
+    },
+    "Apagado: no se guarda nada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: nothing is saved"
+          }
+        }
+      }
+    },
+    "Apple traduce en el Mac: lo que dictas no sale de él, pero más literal.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple translates on the Mac: what you dictate never leaves it, but it's more literal."
+          }
+        }
+      }
+    },
+    "Borrar la búsqueda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear search"
+          }
+        }
+      }
+    },
+    "Buscando las voces de esta compu…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for this Mac's voices…"
+          }
+        }
+      }
+    },
+    "Buscar ajustes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search settings"
+          }
+        }
+      }
+    },
+    "Buscar en Ajustes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Settings"
+          }
+        }
+      }
+    },
+    "Cada tarea con su modelo. El dictado sin modo no pasa por ninguna IA.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each task with its model. Dictation without a mode never goes through any AI."
+          }
+        }
+      }
+    },
+    "Cambiar en Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change in Claude"
+          }
+        }
+      }
+    },
+    "Carpeta de las transcripciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcripts folder"
+          }
+        }
+      }
+    },
+    "Carpeta del historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "History folder"
+          }
+        }
+      }
+    },
+    "Claude revisa lo que corriges antes de ofrecértelo y de vez en cuando ordena Tus palabras, con deshacer. Sin clave o sin conexión, Dilo aprende como antes, solo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude reviews what you correct before offering it and now and then tidies Your words, with undo. Without a key or a connection, Dilo learns as before, on its own."
+          }
+        }
+      }
+    },
+    "Clave de Anthropic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic key"
+          }
+        }
+      }
+    },
+    "Clave de Anthropic guardada en el Llavero": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic key saved in the Keychain"
+          }
+        }
+      }
+    },
+    "Cómo arranca Dilo y la voz que te lee": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How Dilo starts and the voice that reads to you"
+          }
+        }
+      }
+    },
+    "Cómo está Dilo, y lo que más se toca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How Dilo is doing, and what you change most"
+          }
+        }
+      }
+    },
+    "Cómo se ve la muesca, y cómo suena": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the notch looks, and how it sounds"
+          }
+        }
+      }
+    },
+    "El Llavero no la guardó. Prueba otra vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Keychain didn't save it. Try again."
+          }
+        }
+      }
+    },
+    "El Llavero no la quitó. Prueba otra vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Keychain didn't remove it. Try again."
+          }
+        }
+      }
+    },
+    "El id tal cual lo muestra la consola de Anthropic, sin fecha.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The id exactly as the Anthropic console shows it, without a date."
+          }
+        }
+      }
+    },
+    "El micrófono, dónde aterriza el texto y en qué idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone, where the text lands and in which language"
+          }
+        }
+      }
+    },
+    "En qué idiomas dictas y a cuál traduce la tecla de traducir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which languages you dictate in and what the translate key translates into"
+          }
+        }
+      }
+    },
+    "Guardada en el Llavero": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved in the Keychain"
+          }
+        }
+      }
+    },
+    "Guardando lo que dictas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving what you dictate"
+          }
+        }
+      }
+    },
+    "Guardando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving…"
+          }
+        }
+      }
+    },
+    "Hoy los reescribe %@. Con Claude, el modo entiende mejor qué pediste; tu dictado viaja a Anthropic.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today %@ rewrites them. With Claude, the mode understands better what you asked for; your dictation goes to Anthropic."
+          }
+        }
+      }
+    },
+    "Inicio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
+      }
+    },
+    "Ir a": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to"
+          }
+        }
+      }
+    },
+    "Le pregunta a Anthropic si la clave sirve y si Claude Haiku 5.5 está disponible para ella. No genera texto ni cuesta nada, y sólo pasa cuando lo aprietas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks Anthropic whether the key works and whether Claude Haiku 5.5 is available for it. It generates no text, costs nothing, and only happens when you press it."
+          }
+        }
+      }
+    },
+    "Lo que dictaste, buscable, y cuánto dictas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you dictated, searchable, and how much you dictate"
+          }
+        }
+      }
+    },
+    "Lo que dictes aparece acá, con «Copiar». Vive en la memoria: al cerrar Dilo se va.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you dictate shows up here, with “Copy”. It lives in memory: it's gone when Dilo quits."
+          }
+        }
+      }
+    },
+    "Lo que va a los costados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What goes on the sides"
+          }
+        }
+      }
+    },
+    "Local, en este Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local, on this Mac"
+          }
+        }
+      }
+    },
+    "Mientras tanto dicta Apple. No te vas a quedar sin dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meanwhile Apple dictates. You won't be left without dictation."
+          }
+        }
+      }
+    },
+    "Modelo a mano": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model by hand"
+          }
+        }
+      }
+    },
+    "Modelo de los modos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modes model"
+          }
+        }
+      }
+    },
+    "Modelo y clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model and key"
+          }
+        }
+      }
+    },
+    "Nada calza. Prueba con otra palabra: «micrófono», «clave», «muesca», «idioma».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing matches. Try another word: “microphone”, “key”, “notch”, “language”."
+          }
+        }
+      }
+    },
+    "Parakeet se está bajando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parakeet is downloading"
+          }
+        }
+      }
+    },
+    "Parakeet todavía no está en este Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parakeet isn't on this Mac yet"
+          }
+        }
+      }
+    },
+    "Pega tu clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste your key"
+          }
+        }
+      }
+    },
+    "Pegar la clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the key"
+          }
+        }
+      }
+    },
+    "Probar conexión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test connection"
+          }
+        }
+      }
+    },
+    "Pégala en Claude. Es la misma de los modos y de traducir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste it in Claude. It's the same one for modes and translation."
+          }
+        }
+      }
+    },
+    "Pégala en Claude. Es la misma para los modos y para traducir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste it in Claude. It's the same one for modes and for translating."
+          }
+        }
+      }
+    },
+    "Quién aprende": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who learns"
+          }
+        }
+      }
+    },
+    "Qué hace Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What Claude does"
+          }
+        }
+      }
+    },
+    "Qué viaja a Anthropic: el dictado que pasa por un modo o por traducir; al revisar, la palabra corregida con unas ocho palabras alrededor; al ordenar, Tus palabras y «Cuando digo…». Nada de eso queda en el registro del sistema. Los costos son de referencia, con los precios de lista por millón de tokens: Haiku 5.5 US$0,10 de entrada y US$0,50 de salida, Sonnet 5.5 US$2 y US$10, Opus 5.5 US$4 y US$20.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What goes to Anthropic: dictation that goes through a mode or translation; when reviewing, the corrected word with about eight words around it; when tidying, Your words and “When I say…”. None of it stays in the system log. Costs are for reference, at list prices per million tokens: Haiku 5.5 US$0.10 input and US$0.50 output, Sonnet 5.5 US$2 and US$10, Opus 5.5 US$4 and US$20."
+          }
+        }
+      }
+    },
+    "Revisar correcciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review corrections"
+          }
+        }
+      }
+    },
+    "Se guarda en el Llavero de macOS y no se vuelve a mostrar. Dilo no la escribe en ningún archivo ni en el registro.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's saved in the macOS Keychain and never shown again. Dilo doesn't write it to any file or to the log."
+          }
+        }
+      }
+    },
+    "Sin clave de Anthropic: todo corre en el Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Anthropic key: everything runs on the Mac"
+          }
+        }
+      }
+    },
+    "Sin ella, los modos con Claude no corren y aprender y traducir vuelven a lo de antes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without it, modes with Claude don't run and learning and translating fall back to how they were."
+          }
+        }
+      }
+    },
+    "Sin resultados para «%@»": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No results for “%@”"
+          }
+        }
+      }
+    },
+    "Tu clave de Anthropic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Anthropic key"
+          }
+        }
+      }
+    },
+    "Tu clave de Anthropic y lo que Claude hace en Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Anthropic key and what Claude does in Dilo"
+          }
+        }
+      }
+    },
+    "Tu semana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your week"
+          }
+        }
+      }
+    },
+    "Un ajuste para «%@». Intro lo abre.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One setting for “%@”. Return opens it."
+          }
+        }
+      }
+    },
+    "Un modelo que Dilo no conoce: sin costo de referencia.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A model Dilo doesn't know: no reference cost."
+          }
+        }
+      }
+    },
+    "Una sola clave para los modos, traducir y aprender. Se cobra a tu cuenta de Anthropic.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One key for modes, translating and learning. It's billed to your Anthropic account."
+          }
+        }
+      }
+    },
+    "Usar Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Claude"
+          }
+        }
+      }
+    },
+    "Ver actividad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See activity"
+          }
+        }
+      }
+    },
+    "Viven en Claude, junto a traducir y aprender: el modelo de los modos, la clave de Anthropic y «Probar conexión».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "They live in Claude, next to translating and learning: the modes model, the Anthropic key and “Test connection”."
+          }
+        }
+      }
+    },
+    "dictados hoy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dictations today"
+          }
+        }
+      }
+    },
+    "y habla; suelta para pegar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "and speak; release to paste."
+          }
+        }
+      }
+    },
+    "≈ US$%@ cada mil correcciones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ US$%@ per thousand corrections."
+          }
+        }
+      }
+    },
+    "≈ US$%@ cada mil dictados con modo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ US$%@ per thousand dictations with a mode."
+          }
+        }
+      }
+    },
+    "≈ US$%@ cada mil traducciones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ US$%@ per thousand translations."
+          }
+        }
+      }
+    },
+    "≈ US$%@ cada vez que ordena.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "≈ US$%@ each time it tidies."
+          }
+        }
+      }
+    },
+    "%lld modos, %lld con tecla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld modes, %lld with a key"
+          }
+        }
+      }
+    },
+    "%lld palabras, %lld reglas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld words, %lld rules"
+          }
+        }
+      }
+    },
+    "Buscar en el historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search history"
+          }
+        }
+      }
+    },
+    "Cambiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change"
+          }
+        }
+      }
+    },
+    "Cerrar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
+    "Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude"
+          }
+        }
+      }
+    },
+    "Conectado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected"
+          }
+        }
+      }
+    },
+    "Dar permiso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grant permission"
+          }
+        }
+      }
+    },
+    "Descargar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
+          }
+        }
+      }
+    },
+    "Dictar con %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictate with %@"
+          }
+        }
+      }
+    },
+    "Falta el permiso de %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing %@ permission"
+          }
+        }
+      }
+    },
+    "Guardar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        }
+      }
+    },
+    "Lo último que dictaste": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you dictated last"
+          }
+        }
+      }
+    },
+    "Mantén": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold"
+          }
+        }
+      }
+    },
+    "Revisa %@ y ordena %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ reviews and %@ tidies."
+          }
+        }
+      }
+    },
+    "Tu lista de muletillas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your filler words list"
+          }
+        }
+      }
+    },
+    "Ver": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View"
+          }
+        }
+      }
+    },
+    "esta semana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this week"
+          }
+        }
+      }
+    },
+    "sin clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no key"
+          }
+        }
+      }
+    },
+    "soltar → texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "release → text"
+          }
+        }
+      }
+    },
+    "otro proveedor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "another provider"
+          }
+        }
+      }
+    },
+    "Quién convierte tu voz en texto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who turns your voice into text"
+          }
+        }
+      }
+    },
+    "Qué trae la versión que tienes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's in the version you have"
+          }
+        }
+      }
+    },
+    "Tamaño del notch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notch size"
+          }
+        }
+      }
+    },
+    "Panel con vidrio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glass panel"
+          }
+        }
+      }
+    },
+    "Decir el modo en reposo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the mode at rest"
+          }
+        }
+      }
+    },
+    "En qué pantalla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which screen"
+          }
+        }
+      }
+    },
+    "Esconderla al compartir pantalla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide it when sharing the screen"
+          }
+        }
+      }
+    },
+    "Cuánto esperar con el mouse encima": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long to wait with the mouse over it"
+          }
+        }
+      }
+    },
+    "El modelo de Parakeet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Parakeet model"
+          }
+        }
+      }
+    },
+    "Soltar el modelo de la RAM": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release the model from RAM"
+          }
+        }
+      }
+    },
+    "Ofrecer lo que corrijo a mano": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offer what I fix by hand"
+          }
+        }
+      }
+    },
+    "La app": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app"
+          }
+        }
+      }
+    },
+    "El texto alrededor del cursor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The text around the cursor"
+          }
+        }
+      }
+    },
+    "Lo que tienes seleccionado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you have selected"
+          }
+        }
+      }
+    },
+    "El sitio del navegador": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The browser's site"
+          }
+        }
+      }
+    },
+    "También a proveedores en línea": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also to online providers"
+          }
+        }
+      }
+    },
+    "IA": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI"
+          }
+        }
+      }
+    },
+    "Llavero": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keychain"
+          }
+        }
+      }
+    },
+    "Notas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes"
+          }
+        }
+      }
+    },
+    "acento": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "accent"
+          }
+        }
+      }
+    },
+    "actualizaciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "updates"
+          }
+        }
+      }
+    },
+    "animación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "animation"
+          }
+        }
+      }
+    },
+    "aprender": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "learn"
+          }
+        }
+      }
+    },
+    "archivo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "file"
+          }
+        }
+      }
+    },
+    "arranque": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "startup"
+          }
+        }
+      }
+    },
+    "atajo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "shortcut"
+          }
+        }
+      }
+    },
+    "audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "audio"
+          }
+        }
+      }
+    },
+    "audífonos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "headphones"
+          }
+        }
+      }
+    },
+    "calendario": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "calendar"
+          }
+        }
+      }
+    },
+    "cambios": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "changes"
+          }
+        }
+      }
+    },
+    "cancelar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cancel"
+          }
+        }
+      }
+    },
+    "chino": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chinese"
+          }
+        }
+      }
+    },
+    "clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "key"
+          }
+        }
+      }
+    },
+    "coma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "comma"
+          }
+        }
+      }
+    },
+    "conexión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "connection"
+          }
+        }
+      }
+    },
+    "consumo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "usage"
+          }
+        }
+      }
+    },
+    "contexto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "context"
+          }
+        }
+      }
+    },
+    "copiar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "copy"
+          }
+        }
+      }
+    },
+    "correcciones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "corrections"
+          }
+        }
+      }
+    },
+    "correo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "email"
+          }
+        }
+      }
+    },
+    "costo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cost"
+          }
+        }
+      }
+    },
+    "diccionario": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dictionary"
+          }
+        }
+      }
+    },
+    "dictados": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dictations"
+          }
+        }
+      }
+    },
+    "español": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spanish"
+          }
+        }
+      }
+    },
+    "gatillo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "trigger"
+          }
+        }
+      }
+    },
+    "halo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "glow"
+          }
+        }
+      }
+    },
+    "historial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "history"
+          }
+        }
+      }
+    },
+    "idioma": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "language"
+          }
+        }
+      }
+    },
+    "inglés": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
+          }
+        }
+      }
+    },
+    "latencia": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "latency"
+          }
+        }
+      }
+    },
+    "licencia": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "license"
+          }
+        }
+      }
+    },
+    "límite": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limit"
+          }
+        }
+      }
+    },
+    "mantener": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hold"
+          }
+        }
+      }
+    },
+    "memoria": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "memory"
+          }
+        }
+      }
+    },
+    "micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "microphone"
+          }
+        }
+      }
+    },
+    "modelo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "model"
+          }
+        }
+      }
+    },
+    "modo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mode"
+          }
+        }
+      }
+    },
+    "modos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "modes"
+          }
+        }
+      }
+    },
+    "motor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "engine"
+          }
+        }
+      }
+    },
+    "muesca": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "notch"
+          }
+        }
+      }
+    },
+    "muletillas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "filler words"
+          }
+        }
+      }
+    },
+    "nombres": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "names"
+          }
+        }
+      }
+    },
+    "nueva línea": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "new line"
+          }
+        }
+      }
+    },
+    "o sea": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I mean"
+          }
+        }
+      }
+    },
+    "onda": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "waveform"
+          }
+        }
+      }
+    },
+    "palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "words"
+          }
+        }
+      }
+    },
+    "paleta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "palette"
+          }
+        }
+      }
+    },
+    "panel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "panel"
+          }
+        }
+      }
+    },
+    "pantalla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "screen"
+          }
+        }
+      }
+    },
+    "pegar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "paste"
+          }
+        }
+      }
+    },
+    "portapapeles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "clipboard"
+          }
+        }
+      }
+    },
+    "privacidad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "privacy"
+          }
+        }
+      }
+    },
+    "proveedor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider"
+          }
+        }
+      }
+    },
+    "punto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "period"
+          }
+        }
+      }
+    },
+    "píldora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pill"
+          }
+        }
+      }
+    },
+    "reemplazo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "replacement"
+          }
+        }
+      }
+    },
+    "sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "system"
+          }
+        }
+      }
+    },
+    "sonidos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sounds"
+          }
+        }
+      }
+    },
+    "tecla": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "key"
+          }
+        }
+      }
+    },
+    "tokens": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tokens"
+          }
+        }
+      }
+    },
+    "toque": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tap"
+          }
+        }
+      }
+    },
+    "traducción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "translation"
+          }
+        }
+      }
+    },
+    "transcribir": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "transcribe"
+          }
+        }
+      }
+    },
+    "versión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "version"
+          }
+        }
+      }
+    },
+    "vocabulario": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vocabulary"
+          }
+        }
+      }
+    },
+    "voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "voice"
+          }
+        }
+      }
+    },
+    "acerca de": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "about"
+          }
+        }
+      }
+    },
+    "créditos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "credits"
+          }
+        }
+      }
+    },
+    "estadísticas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "statistics"
+          }
+        }
+      }
+    },
+    "leer en voz alta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "read aloud"
+          }
+        }
+      }
+    },
+    "síntesis": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "speech synthesis"
           }
         }
       }

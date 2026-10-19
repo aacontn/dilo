@@ -223,9 +223,9 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar) | 5, 9 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`) | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
-| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`) | 4 |
+| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
@@ -299,8 +299,9 @@ siendo cierto:
   lectura en voz alta, métricas locales de uso y Sparkle. `Updates/` es el
   único lugar que puede escribir `import Sparkle`, y un test lo vigila.
 - `Settings/` — la ventana de Ajustes sin barra de título: `SettingsView` es
-  el marco, `SettingsSections` la navegación, `Sections/` un archivo por
-  panel, `Components/` el sistema de diseño reutilizable.
+  el marco, `SettingsSections` la navegación, `IndiceDeAjustes` lo que la
+  búsqueda recorre, `Sections/` un archivo por panel, `Components/` el
+  sistema de diseño reutilizable (ver «La ventana de Ajustes»).
 - `Agentes/` — el mismo binario sin ventanas: `ArranqueParaAgentes` decide en
   `AppDelegate.main()` si es servidor MCP o CLI, y `FuenteDelHistorial` les
   da el historial y Tus palabras (ver «Agentes: servidor MCP y CLI»); y los
@@ -621,7 +622,9 @@ ver «Lo que entra de afuera»). Las reuniones todavía no son actividades.
   de verdad le gana en su `claim`. En Release no existe. Una escena nueva de
   la muesca entra al enum y a su test (`ArnesDeLaMuescaTests`), no a una
   lista aparte.
-- **Ajustes también se revisa en PNG.** `scripts/render-datos-de-la-muesca.sh`
+- **Ajustes también se revisa en PNG.** `scripts/render-ajustes.sh` dibuja la
+  ventana entera, cada sección y la búsqueda abierta (ver «La ventana de
+  Ajustes»); `scripts/render-datos-de-la-muesca.sh`
   compila con `build-for-testing` y enlaza un render contra el
   `Dilo.debug.dylib` con `@testable import Dilo`, sin lanzar la app. Dibuja con
   `NSHostingView` y no con `ImageRenderer`, que cambia los interruptores y
@@ -894,7 +897,7 @@ puede traducir con **Claude Haiku 5.5** por la API de Anthropic o con el
 traductor de **Apple**, en el Mac.
 
 - **Quién traduce lo decide `MotorDeTraduccion`** (puro, `DiloModes`, con
-  tests). Se elige en Ajustes → Idioma → «Traducir con»
+  tests). Se elige en Ajustes → Claude → «Traducir con»
   (`diloMotorDeTraduccion`); sin elegir, Claude si hay clave de Anthropic y
   Apple si no. Claude traduce **desde el español** y **hacia inglés (EE. UU.)
   o chino simplificado** (`DestinoDeTraduccion`, guardados como `en` y `zh`,
@@ -908,8 +911,9 @@ traductor de **Apple**, en el Mac.
   el modelo de Apple esté listo.
 - **Una sola clave de Anthropic**: la del proveedor Anthropic de los modos
   (Llavero, servicio `cl.espaciodigital.dilo.proveedores`, cuenta
-  `proveedor.anthropic`). Se pega en **Ajustes → Modos → Proveedor general →
-  Anthropic → API key**; la fila de Idioma, si falta, dice eso y abre Modos.
+  `proveedor.anthropic`). Se pega en **Ajustes → Claude** (desde el
+  2026-10-19; antes, en Modos → Proveedor general); Idioma, Modos y Tus
+  palabras, si falta, lo dicen y llevan ahí.
   `TranslationCoordinator.claudeEnVivo` la lee al traducir y no la guarda.
 - **El request** (`TraductorConClaude`): `POST /v1/messages`, `x-api-key`,
   `anthropic-version: 2023-06-01`, modelo `claude-haiku-5-5` (sin sufijo de
@@ -1042,12 +1046,15 @@ con un selector de modelo propio. Dos usos, dos modelos:
   «Cuando digo…» con la marca de aprendida, nada de lo dictado. Nada con
   entrada segura activa (la vigía no mira). Al log (`AppLog.aprendizaje`)
   van cuentas y nombres de falla, nunca una palabra.
-- **Ajustes → Tus palabras → «Aprender con Claude»**
+- **Ajustes → Claude** (el interruptor y los modelos) **y Tus palabras →
+  «Aprender con Claude»** (lo que es del diccionario)
   (`AprenderConClaudeCard`): el interruptor (`diloAprenderConClaude`,
   prendido), el modelo para revisar (`diloModeloParaRevisar`) y para ordenar
   (`diloModeloParaOrdenar`) —un id que ya no está en la lista vuelve al de
   fábrica—, «Ordenar ahora», el registro con «Deshacer»/«Aplicar» y la línea
-  de qué se manda. Sin clave dice dónde pegarla y abre Modos.
+  de qué se manda. Sin clave dice dónde pegarla y lleva a Claude. Desde el
+  2026-10-19 el interruptor y los dos selectores viven en Ajustes → Claude;
+  Tus palabras dice quién aprende y enlaza.
 - **Costos de referencia** por millón de tokens (entrada/salida): Haiku 5.5
   $0,10/$0,50; Sonnet 5.5 $2/$10; Opus 5.5 $4/$20. Revisar es una fracción de
   centavo; ordenar cien entradas, unos pocos centavos.
@@ -1057,6 +1064,70 @@ con un selector de modelo propio. Dos usos, dos modelos:
   modelo y marca si coincide con lo esperado; `ordenar` ordena un
   diccionario de ejemplo. Por defecto compara Haiku 5.5 con Sonnet 5.5.
   Llama a la API de verdad: se corre a mano, nunca desde un test.
+
+## La ventana de Ajustes
+
+Rediseñada el 2026-10-19. Alfonso: «La ventana de configuración se congela;
+además creo que está muy simple y básica y no se condice con todas las
+funciones». Detalle de diseño en `docs/design/settings-ui.md`.
+
+- **Nada bloqueante en el hilo principal.** El congelamiento eran consultas
+  síncronas al Llavero en un `body` (el `SecureField` de Modos leía en su
+  `get:` y escribía en cada tecla; `sessionSettings` pregunta qué proveedor
+  tiene clave y lo llamaban las vistas previas de Apariencia, Datos en la
+  muesca y Transcripciones en cada evaluación), `speechVoices()` (200–570 ms
+  por llamada) en el `@State` de Leer en voz alta —SwiftUI evalúa ese valor
+  inicial **en cada reconstrucción**, aunque el desplegable esté cerrado— y
+  la HAL al aparecer Dictado. Reglas: el Llavero se pregunta sólo por
+  `SettingsRuntimeState.claves` (`ClavesDeLosProveedores`, `DiloModes`: una
+  lectura por cuenta y por apertura, fuera del hilo principal, sólo por los
+  atributos del ítem); una clave se guarda al confirmar (`CampoDeClave`) y
+  no se vuelve a mostrar; una vista previa pide `sessionSettingsParaDibujar`,
+  nunca `sessionSettings`; un `@State` nunca arranca con un objeto que
+  trabaja en su `init` (se crea en `.task`); disco, HAL y voces van en
+  `Task.detached`. Con la ventana cerrada el contenido no se dibuja
+  (`ventanaAbierta`): una ventana que sólo se ordena afuera no cancela las
+  `.task` de sus vistas.
+- **En Debug, un vigilante de cuelgues** (`VigiaDeCuelgues`): con Ajustes
+  abierto, un ping al hilo principal cada 250 ms; si tarda más de 300 ms,
+  una línea en la categoría `ajustes` del log con cuánto y en qué sección.
+  `log stream --predicate 'subsystem == "cl.espaciodigital.dilo" && category
+  == "ajustes"'`.
+- **Estructura**: Inicio (sin rótulo, la portada); TU VOZ: Dictado, Modos,
+  Tus palabras, Historial, Transcripciones; AJUSTES: Claude, Motor de voz,
+  Atajos, Apariencia, Datos en la muesca, General; DILO: Novedades, Acerca
+  de. Lo que vivía en desplegables (idiomas, sonidos, leer en voz alta,
+  actividad) se ve con un rótulo (`SubtituloDeSeccion`).
+- **Inicio** (`InicioSettingsView`, lo calculado en `PortadaDeAjustes`, puro):
+  si se puede dictar y qué falta, cada aviso con su arreglo —el permiso, el
+  modelo de Parakeet, la clave—; lo último dictado con «Copiar» (en RAM); la
+  semana y la latencia típica; qué hace Claude y con qué modelo; accesos.
+  Sin sondeo: los permisos se releen al volver Dilo al frente.
+- **Claude** (`ClaudeSettingsView`) junta la clave, «Probar conexión» y, por
+  tarea —modos, traducir, revisar, ordenar—, el modelo y su costo
+  aproximado (`CostosDeClaude`, supuestos con nombre). Modos, Idioma y Tus
+  palabras enlazan acá, no repiten campos. «Probar conexión» es
+  `GET /v1/models/claude-haiku-5-5` (`PruebaDeConexion`): valida la clave sin
+  generar tokens y sólo corre al apretarlo, nunca desde un test.
+- **Buscar (⌘F)**: `IndiceDeAjustes` nombra cada ajuste (`AjusteID`) con su
+  sección y sinónimos; `BusquedaDeAjustes` (`DiloText`, puro) busca sin
+  tildes ni mayúsculas, por pedazos; un resultado lleva a la fila
+  (`.anclaDeAjuste`) y la ilumina. **Un ajuste nuevo entra a `AjusteID` y su
+  fila lleva `.anclaDeAjuste`**; `IndiceDeAjustesTests.nadaDeLaVentanaViejaSePierde`
+  vigila que los de la 0.9.1 sigan todos y se encuentren por su nombre.
+- **Abre donde quedó**: si se cerró hace menos de diez minutos vuelve a esa
+  sección; si no, Inicio (`SeccionAlAbrir`, `diloAjustesUltimaSeccion`,
+  `diloAjustesCerradosEn`). Lo pedido de afuera (Novedades) gana siempre.
+- **Estética**: el vidrio ahumado de la muesca (`SuperficieDeDilo`, la misma
+  receta de `PanelDeVidrio`; sólido con «Reducir transparencia»; la
+  imitación gris en los PNG), íconos por familia en color
+  (`PaletaDeDilo.iconosDeAjustes`, Glaciar y Grafito), tarjetas con título
+  claro, detalle gris y controles chicos. Sólo oscuro, como antes.
+- **Se revisa en PNG**: `scripts/render-ajustes.sh [salida]` (por defecto
+  `/Volumes/SSD 1/Dilo/taller/ajustes`; `DILO_DERIVED_DATA` para otro
+  DerivedData) deja `ventana-<sección>.png`, `entera-<sección>.png` y
+  `busqueda-*.png`, con las claves fijadas en memoria, las preferencias en
+  `/private/tmp` y sin abrir ventanas.
 
 ## Idioma, copy y el catálogo
 
