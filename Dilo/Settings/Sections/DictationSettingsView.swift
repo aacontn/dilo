@@ -23,6 +23,7 @@ struct DictationSettingsView: View {
             .padding(.vertical, 8)
             .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
         }
+        .anclaDeAjuste(.atajoDeDictar)
       }
 
       MicrofonoSettingsCard(settings: settings)
@@ -35,6 +36,7 @@ struct DictationSettingsView: View {
           optionLabel: { $0.title },
           selection: $settings.insertionDestination
         )
+        .anclaDeAjuste(.entregarElTexto)
       }
 
       SettingsCard(title: "Historial") {
@@ -46,6 +48,7 @@ struct DictationSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.guardarElHistorial)
 
         SettingsRow(
           title: "Carpeta",
@@ -54,6 +57,7 @@ struct DictationSettingsView: View {
           Button("Elegir…") { chooseFolder() }
             .buttonStyle(SettingsButtonStyle())
         }
+        .anclaDeAjuste(.carpetaDelHistorial)
         .disabled(!settings.dictationHistoryEnabled)
 
         SettingsRow(
@@ -63,6 +67,7 @@ struct DictationSettingsView: View {
           Button("Borrar historial…") { isConfirmingClear = true }
             .buttonStyle(SettingsButtonStyle())
         }
+        .anclaDeAjuste(.borrarElHistorial)
       }
 
     }

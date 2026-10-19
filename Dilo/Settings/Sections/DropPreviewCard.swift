@@ -26,7 +26,7 @@ struct DropPreviewCard: View {
     ) {
       DropHUDView(
         screen: HUDPreviewScreen.notched,
-        settings: settings.sessionSettings,
+        settings: settings.sessionSettingsParaDibujar,
         drop: drop,
         acceptsDrops: false
       )

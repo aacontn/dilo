@@ -22,6 +22,7 @@ struct MicrofonoSettingsCard: View {
         selection: $settings.microfonoDeDictado,
         controlWidth: 210
       )
+      .anclaDeAjuste(.microfono)
 
       SettingsRow(
         title: "Dejarlo listo entre dictados",
@@ -31,6 +32,7 @@ struct MicrofonoSettingsCard: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.microfonoListo)
     }
     .onAppear { microfonos.mirar() }
     .onDisappear { microfonos.dejarDeMirar() }
@@ -60,6 +62,7 @@ struct MicrofonoSettingsCard: View {
 final class MicrofonosConectados {
   private(set) var conectadas: [EntradaDeAudio] = []
   @ObservationIgnored private var vigia: VigiaDeDispositivos?
+  @ObservationIgnored private var lectura: Task<Void, Never>?
 
   func mirar() {
     refrescar()
@@ -71,9 +74,22 @@ final class MicrofonosConectados {
 
   func dejarDeMirar() {
     vigia = nil
+    lectura?.cancel()
   }
 
+  /// La lista se lee fuera del hilo principal: la primera consulta a la HAL
+  /// de un proceso tarda 190–370 ms en este Mac (medido el 2026-10-19), y
+  /// con un Bluetooth despertando o un iPhone por Continuity puede tardar
+  /// más. En el hilo principal eso era Ajustes congelado al abrir Dictado,
+  /// que es la sección con que abría la ventana.
   private func refrescar() {
-    conectadas = DispositivosDeAudio.entradas()
+    lectura?.cancel()
+    lectura = Task { [weak self] in
+      let entradas = await Task.detached(priority: .userInitiated) {
+        DispositivosDeAudio.entradas()
+      }.value
+      guard !Task.isCancelled else { return }
+      self?.conectadas = entradas
+    }
   }
 }

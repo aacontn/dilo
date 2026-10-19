@@ -79,6 +79,7 @@ struct DatosDeLaMuescaSettingsView: View {
               .labelsHidden()
               .toggleStyle(.switch)
           }
+          .anclaDeAjuste(.avisosDeLimite)
         }
       }
 
@@ -155,7 +156,7 @@ struct VistaPreviaDeLosDatos: View {
     ) {
       DictationHUDShellView(
         screen: pantalla,
-        settings: settings.sessionSettings,
+        settings: settings.sessionSettingsParaDibujar,
         content: content
       )
     }
@@ -312,6 +313,7 @@ private struct TarjetaDeFuente: View {
         }
       }
     }
+    .anclaDeAjuste(AjusteID.delDato(dato))
   }
 }
 
@@ -333,6 +335,7 @@ private struct PorcentajeDelPlanDeClaude: View {
         .toggleStyle(.switch)
         .accessibilityLabel(Text("Porcentaje de tu plan (opcional)"))
     }
+    .anclaDeAjuste(.porcentajeDelPlan)
 
     if settings.hudPorcentajeDeClaude {
       HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -551,6 +554,7 @@ private struct PanelDelHoverSettings: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.recientesDelPortapapeles)
 
       SettingsRow(
         title: "Próxima reunión",
@@ -560,6 +564,7 @@ private struct PanelDelHoverSettings: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.proximaReunion)
       if sinPermisoDeCalendario {
         HStack(spacing: 8) {
           Text("Sin permiso para leer el calendario.")
@@ -584,6 +589,7 @@ private struct PanelDelHoverSettings: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.notaRapida)
       }
 
       SettingsRow(
@@ -594,6 +600,7 @@ private struct PanelDelHoverSettings: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.traducirEnElPanel)
 
       SettingsRow(
         title: "Cambiar de modo",
@@ -603,6 +610,7 @@ private struct PanelDelHoverSettings: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.modosEnElPanel)
     }
   }
 

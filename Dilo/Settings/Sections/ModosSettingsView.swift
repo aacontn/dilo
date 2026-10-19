@@ -12,17 +12,18 @@ import SwiftUI
 /// era invocable y estaba roto.
 struct ModosSettingsView: View {
   @Bindable var settings: AppSettings
+  /// Si hay clave de cada proveedor, leído una vez fuera del hilo principal
+  /// (`SettingsRuntimeState.claves`).
+  let claves: ClavesDeLosProveedores
+  /// Lleva a Ajustes → Claude, donde viven el modelo y la clave de
+  /// Anthropic desde el 2026-10-19.
+  var abrirClaude: () -> Void = {}
 
   @Environment(\.colorSchemeContrast) private var contrast
   @State private var modoEnEdicion: String?
   @State private var grabando: String?
   @State private var reparo: String?
   @State private var confirmandoRestaurar = false
-  /// «Otro…» elegido en el selector de modelos de Anthropic, mientras el
-  /// campo todavía tiene uno de la lista: el campo aparece para escribir.
-  @State private var escribiendoOtroModelo = false
-
-  private let llavero = Llavero()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -42,7 +43,9 @@ struct ModosSettingsView: View {
               .buttonStyle(SettingsButtonStyle())
           }
         }
+        .anclaDeAjuste(.agregarModo)
       }
+      .anclaDeAjuste(.tusModos)
 
       if let reparo {
         Text(reparo)
@@ -61,6 +64,7 @@ struct ModosSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.queDiloElija)
 
         SettingsRow(
           title: "Cuándo corresponde cada modo",
@@ -88,6 +92,7 @@ struct ModosSettingsView: View {
           configuracionDelProveedor(indice)
         }
       }
+      .anclaDeAjuste(.proveedorGeneral)
 
       Text(
         "Las claves de API se guardan en el Llavero de macOS, nunca en un archivo de ajustes. El modelo de Apple corre acá mismo: no necesita clave, ni cuenta, ni internet."
@@ -214,10 +219,17 @@ struct ModosSettingsView: View {
           ?? "El modelo de Apple corre en esta compu. Sin clave y sin internet."
       ) { EmptyView() }
     } else {
+      // El modelo y la clave de Anthropic viven en Claude (2026-10-19): acá
+      // se enlaza en vez de repetir los campos.
       if proveedor.dialecto == .anthropic {
-        modeloDeAnthropic(indice)
-      }
-      if proveedor.dialecto != .anthropic || mostrarCampoDeModelo(proveedor) {
+        SettingsRow(
+          title: "Modelo y clave",
+          description: "Viven en Claude, junto a traducir y aprender: el modelo de los modos, la clave de Anthropic y «Probar conexión»."
+        ) {
+          Button("Abrir Claude", action: abrirClaude)
+            .buttonStyle(SettingsButtonStyle(compacto: true))
+        }
+      } else {
         SettingsRow(title: "Modelo", description: "El id tal cual lo muestra su consola.") {
           TextField(
             "Modelo",
@@ -244,74 +256,20 @@ struct ModosSettingsView: View {
         .labelsHidden()
         .frame(width: 240)
       }
-      if proveedor.necesitaClave {
+      .anclaDeAjuste(.urlBaseDelProveedor)
+      if proveedor.necesitaClave, proveedor.dialecto != .anthropic {
         SettingsRow(
           title: "API key",
           description: "Se guarda en el Llavero de macOS. Dilo no la escribe en ningún archivo ni la muestra en pantalla."
         ) {
-          SecureField(
-            "API key",
-            text: Binding(
-              get: { llavero.clave(para: proveedor.cuentaEnElLlavero) ?? "" },
-              set: { nueva in
-                let limpia = nueva.trimmingCharacters(in: .whitespacesAndNewlines)
-                if limpia.isEmpty {
-                  try? llavero.borrar(proveedor.cuentaEnElLlavero)
-                } else {
-                  try? llavero.guardar(limpia, para: proveedor.cuentaEnElLlavero)
-                }
-              }
-            )
-          )
-          .labelsHidden()
-          .frame(width: 240)
+          // Se guarda al confirmar y nunca se vuelve a mostrar
+          // (`CampoDeClave`): antes el `SecureField` leía el Llavero en su
+          // `get:` y escribía en cada tecla, en el hilo principal.
+          CampoDeClave(cuenta: proveedor.cuentaEnElLlavero, claves: claves, ancho: 280)
         }
+        .anclaDeAjuste(.claveDelProveedor)
       }
     }
-  }
-
-  /// Para Anthropic el modelo se elige de una lista corta (2026-10-19), con
-  /// Haiku 5.5 primero porque es el de fábrica: rápido y barato, y de sobra
-  /// para reescribir un dictado. «Otro…» deja el campo de siempre.
-  private func modeloDeAnthropic(_ indice: Int) -> some View {
-    SettingsPickerRow(
-      title: "Modelo",
-      description: "Haiku es el más rápido y barato, y alcanza para los modos y para traducir.",
-      options: ModelosDeAnthropic.lista.map(\.id) + [Self.otroModelo],
-      optionLabel: { id in
-        switch id {
-        case ModelosDeAnthropic.haiku.id:
-          String(localized: "Claude Haiku 5.5 — rápido y barato (recomendado)")
-        case Self.otroModelo:
-          String(localized: "Otro…")
-        default:
-          ModelosDeAnthropic.conocido(id)?.nombre ?? id
-        }
-      },
-      selection: Binding(
-        get: {
-          let modelo = settings.proveedores[indice].modelo
-          guard !escribiendoOtroModelo, let conocido = ModelosDeAnthropic.conocido(modelo) else {
-            return Self.otroModelo
-          }
-          return conocido.id
-        },
-        set: { elegido in
-          escribiendoOtroModelo = elegido == Self.otroModelo
-          guard elegido != Self.otroModelo else { return }
-          settings.proveedores[indice].modelo = elegido
-        }
-      ),
-      controlWidth: 240
-    )
-  }
-
-  /// Lo que el selector guarda cuando se elige «Otro…». Nunca es un id: el
-  /// modelo de verdad se escribe en el campo.
-  private static let otroModelo = "otro"
-
-  private func mostrarCampoDeModelo(_ proveedor: Proveedor) -> Bool {
-    escribiendoOtroModelo || ModelosDeAnthropic.conocido(proveedor.modelo) == nil
   }
 
   private var modoEditado: Binding<Modo?> {

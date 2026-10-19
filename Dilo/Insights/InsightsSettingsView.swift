@@ -499,7 +499,7 @@ private struct InsightsCardModifier: ViewModifier {
   func body(content: Content) -> some View {
     content
       .padding(18)
-      .background(SettingsTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+      .background(FondoDeTarjeta(radio: 18))
       .overlay {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
           .stroke(

@@ -13,20 +13,39 @@ import Observation
 @MainActor
 @Observable
 final class VoiceCatalog {
-  private(set) var voices: [AVSpeechSynthesisVoice] = []
+  /// Una voz, ya leída: lo que el selector necesita y nada más.
+  ///
+  /// Un valor y no la `AVSpeechSynthesisVoice`, porque la lista se arma en
+  /// otro hilo y la voz no es `Sendable`.
+  struct Voz: Sendable, Identifiable, Equatable {
+    let identifier: String
+    let etiqueta: String
+    var id: String { identifier }
+  }
+
+  private(set) var voices: [Voz] = []
+  /// Mientras la primera lectura no vuelve. El selector dice «Buscando
+  /// voces…» en vez de «sólo hay voces de calidad normal».
+  private(set) var cargando = true
 
   @ObservationIgnored
   private nonisolated(unsafe) var observer: (any NSObjectProtocol)?
 
+  /// Crearlo no lee nada: la lista llega con `refresh()`, fuera del hilo
+  /// principal. `AVSpeechSynthesisVoice.speechVoices()` tarda entre 200 y
+  /// 570 ms en este Mac (180 voces, medido el 2026-10-19), **en cada
+  /// llamada**, y Ajustes lo llamaba desde el `@State` de Leer en voz alta:
+  /// SwiftUI evalúa ese valor inicial cada vez que reconstruye la vista
+  /// —aunque el desplegable de General esté cerrado—, así que cada cambio
+  /// del padre costaba medio segundo de ventana congelada.
   init() {
-    refresh()
     observer = NotificationCenter.default.addObserver(
       forName: AVSpeechSynthesizer.availableVoicesDidChangeNotification,
       object: nil,
       queue: .main
-    ) { _ in
+    ) { [weak self] _ in
       Task { @MainActor [weak self] in
-        self?.refresh()
+        await self?.refresh()
       }
     }
   }
@@ -37,8 +56,13 @@ final class VoiceCatalog {
     }
   }
 
-  func refresh() {
-    voices = AVSpeechSynthesisVoice.speechVoices()
+  func refresh() async {
+    voices = await Task.detached(priority: .userInitiated) { Self.leerVoces() }.value
+    cargando = false
+  }
+
+  private nonisolated static func leerVoces() -> [Voz] {
+    AVSpeechSynthesisVoice.speechVoices()
       .filter { voice in
         voice.quality == .enhanced
           || voice.quality == .premium
@@ -50,6 +74,7 @@ final class VoiceCatalog {
         }
         return lhs.name < rhs.name
       }
+      .map { Voz(identifier: $0.identifier, etiqueta: label(for: $0)) }
   }
 
   /// A picker label: "Ava · English (US) · Premium".

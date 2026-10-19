@@ -24,6 +24,7 @@ struct SoundsSettingsView: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.sonarAlDictar)
 
       SettingsPickerRow(
         title: "Juego de sonidos",
@@ -32,6 +33,7 @@ struct SoundsSettingsView: View {
         optionLabel: { $0.rawValue },
         selection: $settings.soundSet
       )
+      .anclaDeAjuste(.juegoDeSonidos)
       .disabled(!settings.dictationSoundsEnabled)
 
       SettingsSliderRow(
@@ -41,6 +43,7 @@ struct SoundsSettingsView: View {
         range: DictationSoundSettings.volumeRange,
         valueLabel: { "\(Int(($0 * 100).rounded()))%" }
       )
+      .anclaDeAjuste(.volumen)
       .disabled(!settings.dictationSoundsEnabled)
 
       SettingsRow(

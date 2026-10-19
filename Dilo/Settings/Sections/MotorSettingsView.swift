@@ -25,6 +25,7 @@ struct MotorSettingsView: View {
           selection: $settings.descargarModeloTras,
           controlWidth: 170
         )
+        .anclaDeAjuste(.soltarElModelo)
       }
     }
   }
@@ -63,6 +64,7 @@ struct SelectorDeMotor: View {
           }
         }
       }
+      .anclaDeAjuste(.motorDeVoz)
 
       SettingsCard(title: "El modelo de Parakeet") {
         SettingsRow(
@@ -91,6 +93,7 @@ struct SelectorDeMotor: View {
           }
         }
       }
+      .anclaDeAjuste(.modeloDeParakeet)
 
       if settings.motorDeVoz == .parakeet, !descargas.listo, descargas.progreso == nil {
         AvisoDeDilo(
@@ -279,9 +282,17 @@ final class DescargaDeParakeet {
     return "Son 469 MB y se bajan una sola vez. Después dictas sin internet para siempre."
   }
 
+  /// Mirar el disco, fuera del hilo principal: medir el modelo recorre cada
+  /// archivo de sus `.mlmodelc`, y Ajustes lo hacía al aparecer Motor.
   func refrescar() {
-    listo = ParakeetModelStore.estaDescargado
-    tamano = listo ? ParakeetModelStore.tamanoEnDisco : 0
+    Task {
+      let (listo, tamano) = await Task.detached(priority: .userInitiated) {
+        let listo = ParakeetModelStore.estaDescargado
+        return (listo, listo ? ParakeetModelStore.tamanoEnDisco : 0)
+      }.value
+      self.listo = listo
+      self.tamano = tamano
+    }
   }
 
   func descargar() {

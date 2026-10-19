@@ -15,9 +15,9 @@ struct PalabrasSettingsView: View {
   let runtimeState: SettingsRuntimeState
 
   @Environment(\.colorSchemeContrast) private var contrast
-  /// Si hay clave de Anthropic. Se lee al abrir la sección: la clave se pega
-  /// en Modos, y volver acá vuelve a crear esta vista.
-  @State private var hayClaveDeAnthropic = false
+  /// Si hay clave de Anthropic, de la lectura compartida de Ajustes: antes
+  /// se leía el Llavero acá, en el hilo principal.
+  private var hayClaveDeAnthropic: Bool { runtimeState.hayClaveDeAnthropic }
   @State private var palabraNueva = ""
   @State private var muletillaNueva = ""
   @State private var diceNuevo = ""
@@ -25,7 +25,11 @@ struct PalabrasSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Tus palabras") {
+      SettingsCard(
+        title: "Tus palabras",
+        icono: "character.book.closed.fill",
+        detalle: "\(settings.palabrasPropias.count) palabras y \(settings.reemplazos.count) reglas. Todo se queda en esta compu."
+      ) {
         SettingsRow(
           title: "Nombres, proyectos, siglas",
           description: "Enséñale a Dilo cómo se escriben las palabras que usas. Se quedan sólo acá. Sirven de a varias: «Espacio Digital» se arregla aunque lo dictes en dos."
@@ -39,11 +43,14 @@ struct PalabrasSettingsView: View {
               .disabled(palabraNueva.trimmingCharacters(in: .whitespaces).isEmpty)
           }
         }
+        .anclaDeAjuste(.tusPalabras)
 
-        ForEach(settings.palabrasPropias, id: \.self) { palabra in
-          SettingsRow(title: "\(palabra)", description: "") {
-            Button("Quitar") { settings.palabrasPropias.removeAll { $0 == palabra } }
-              .buttonStyle(SettingsButtonStyle())
+        if !settings.palabrasPropias.isEmpty {
+          FichasQuitables(
+            valores: settings.palabrasPropias,
+            marcadas: Set(settings.palabrasAprendidas)
+          ) { palabra in
+            settings.palabrasPropias.removeAll { $0 == palabra }
           }
         }
       }
@@ -60,6 +67,7 @@ struct PalabrasSettingsView: View {
               .labelsHidden()
               .toggleStyle(.switch)
           }
+          .anclaDeAjuste(.ofrecerCorrecciones)
         }
       }
 
@@ -94,6 +102,7 @@ struct PalabrasSettingsView: View {
           }
         }
       }
+      .anclaDeAjuste(.cuandoDigo)
 
       SettingsCard(title: "Comandos al dictar") {
         SettingsRow(
@@ -104,6 +113,7 @@ struct PalabrasSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.comandosAlDictar)
       }
 
       SettingsCard(title: "Muletillas") {
@@ -115,6 +125,7 @@ struct PalabrasSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.sacarMuletillas)
 
         SettingsRow(
           title: "Tu lista",
@@ -131,14 +142,12 @@ struct PalabrasSettingsView: View {
               .disabled(muletillaNueva.trimmingCharacters(in: .whitespaces).isEmpty)
           }
         }
+        .anclaDeAjuste(.listaDeMuletillas)
         .disabled(!settings.limpiarMuletillas)
 
-        ForEach(settings.muletillasPropias, id: \.self) { muletilla in
-          SettingsRow(title: "\(muletilla)", description: "") {
-            Button("Quitar") {
-              settings.muletillasPropias.removeAll { $0 == muletilla }
-            }
-            .buttonStyle(SettingsButtonStyle())
+        if !settings.muletillasPropias.isEmpty {
+          FichasQuitables(valores: settings.muletillasPropias) { muletilla in
+            settings.muletillasPropias.removeAll { $0 == muletilla }
           }
         }
       }
@@ -152,9 +161,7 @@ struct PalabrasSettingsView: View {
       .padding(.horizontal, 6)
     }
     .task {
-      hayClaveDeAnthropic = Llavero().tieneClave(
-        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
-      )
+      await runtimeState.claves.mirar(SettingsRuntimeState.cuentaDeAnthropic)
     }
   }
 

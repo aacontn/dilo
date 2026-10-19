@@ -42,4 +42,8 @@ enum AppLog {
   /// Aprender con Claude: si revisó, si ordenó, cuántos cambios y por qué
   /// falló. Cuentas y nombres de falla, nunca una palabra ni lo corregido.
   static let aprendizaje = Logger(subsystem: subsystem, category: "aprendizaje")
+  /// La ventana de Ajustes: en Debug, cada vez que el hilo principal tardó
+  /// en contestar con la ventana abierta, cuánto y en qué sección
+  /// (`VigiaDeCuelgues`). Nunca un valor de un ajuste.
+  static let ajustes = Logger(subsystem: subsystem, category: "ajustes")
 }

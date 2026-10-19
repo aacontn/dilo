@@ -20,7 +20,7 @@ struct SettingsPreviewCard: View {
     ) {
       DictationHUDShellView(
         screen: HUDPreviewScreen.notched,
-        settings: settings.sessionSettings,
+        settings: settings.sessionSettingsParaDibujar,
         content: content
       )
     }

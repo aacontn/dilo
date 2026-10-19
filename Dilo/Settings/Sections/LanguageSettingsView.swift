@@ -21,9 +21,10 @@ struct LanguageSettingsView: View {
   /// only piece of this flow that is genuinely this view's: an install has to
   /// outlive the section being switched, so it lives in the runtime state.
   @State private var confirmingTarget: TranslationTarget?
-  /// Si hay clave de Anthropic en el Llavero. Se lee al abrir la sección: la
-  /// clave se pega en Modos, y volver acá vuelve a crear esta vista.
-  @State private var hayClaveDeAnthropic = false
+  /// Si hay clave de Anthropic, de la lectura compartida de Ajustes
+  /// (`SettingsRuntimeState.claves`). Antes se leía el Llavero acá, en el
+  /// hilo principal, cada vez que la sección aparecía.
+  private var hayClaveDeAnthropic: Bool { runtimeState.hayClaveDeAnthropic }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -36,6 +37,7 @@ struct LanguageSettingsView: View {
           selection: $settings.recognitionLocaleIdentifier,
           controlWidth: 260
         )
+        .anclaDeAjuste(.idiomaDeDictado)
 
         SettingsPickerRow(
           title: "Segundo idioma",
@@ -47,6 +49,7 @@ struct LanguageSettingsView: View {
           selection: $settings.secondaryRecognitionLocaleIdentifier,
           controlWidth: 260
         )
+        .anclaDeAjuste(.segundoIdioma)
 
         if settings.isSecondLanguageEnabled {
           SettingsRow(
@@ -60,25 +63,29 @@ struct LanguageSettingsView: View {
               onRecordingChanged: { settings.isRecordingKeybind = $0 }
             )
           }
+          .anclaDeAjuste(.teclaDelSegundoIdioma)
         }
 
-        SettingsPickerRow(
-          title: "Traducir con",
-          description: motorDescription,
-          options: MotorDeTraduccion.allCases,
-          optionLabel: motorLabel(for:),
-          selection: motorElegido,
-          controlWidth: 260
-        )
+        // Quién traduce se elige en Claude desde el 2026-10-19, junto a lo
+        // demás que hace Claude; acá se dice y se enlaza.
+        SettingsRow(title: "Traducir con", description: motorDescription) {
+          HStack(spacing: 8) {
+            Text(verbatim: motorLabel(for: motorEnElSelector))
+              .font(.system(size: 11.5, weight: .medium))
+              .foregroundStyle(.white.opacity(0.7))
+            Button("Cambiar en Claude") { runtimeState.filaPedida = .traducirCon }
+              .buttonStyle(SettingsButtonStyle(compacto: true))
+          }
+        }
 
-        // La clave vive en un solo lugar, el proveedor Anthropic de Modos: la
-        // misma sirve para los modos y para traducir.
+        // La clave vive en un solo lugar, Ajustes → Claude: la misma sirve
+        // para los modos y para traducir.
         if motorEnElSelector == .claude, !hayClaveDeAnthropic {
           SettingsRow(
             title: "Falta la clave de Anthropic",
-            description: "Pégala en Modos → Proveedor general → Anthropic → API key. Es la misma para los modos y para traducir."
+            description: "Pégala en Claude. Es la misma para los modos y para traducir."
           ) {
-            Button("Abrir Modos") { runtimeState.seccionPedida = .modos }
+            Button("Abrir Claude") { runtimeState.filaPedida = .claveDeAnthropic }
               .buttonStyle(SettingsButtonStyle())
           }
         }
@@ -91,6 +98,7 @@ struct LanguageSettingsView: View {
           selection: confirmedTarget,
           controlWidth: 260
         )
+        .anclaDeAjuste(.traducirA)
 
         installRow
 
@@ -127,9 +135,9 @@ struct LanguageSettingsView: View {
       .padding(.horizontal, 6)
     }
     .task {
-      hayClaveDeAnthropic = Llavero().tieneClave(
-        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
-      )
+      await runtimeState.claves.mirar(SettingsRuntimeState.cuentaDeAnthropic)
+    }
+    .task {
       languages = await SpeechLanguageCatalog.available()
     }
     .confirmationDialog(
@@ -350,15 +358,6 @@ struct LanguageSettingsView: View {
   private var motorEnElSelector: MotorDeTraduccion {
     MotorDeTraduccion.enElSelector(
       elegido: settings.motorDeTraduccion, hayClave: hayClaveDeAnthropic
-    )
-  }
-
-  /// Elegir en el selector guarda la elección: desde ahí manda ella y no la
-  /// clave.
-  private var motorElegido: Binding<MotorDeTraduccion> {
-    Binding(
-      get: { motorEnElSelector },
-      set: { settings.motorDeTraduccion = $0 }
     )
   }
 

@@ -30,6 +30,7 @@ struct AboutSettingsView: View {
           EmptyView()
         }
       }
+      .anclaDeAjuste(.version)
 
       SettingsCard(title: "Licencias") {
         SettingsRow(
@@ -45,6 +46,7 @@ struct AboutSettingsView: View {
         ) {
           EmptyView()
         }
+        .anclaDeAjuste(.licencias)
       }
 
       Text(

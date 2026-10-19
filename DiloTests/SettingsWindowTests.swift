@@ -24,13 +24,13 @@ struct SettingsWindowTests {
     #expect(window.level == .normal)
     #expect(!window.isOpaque)
     #expect(!window.isReleasedWhenClosed)
-    #expect(window.contentRect(forFrameRect: window.frame).size == NSSize(width: 860, height: 600))
+    #expect(window.contentRect(forFrameRect: window.frame).size == NSSize(width: 900, height: 640))
     #expect(window.minSize == window.maxSize)
   }
 
   @Test func settingsSectionsStayFocusedOnImplementedFeatures() {
     let expected: [SettingsSection] = [
-      .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .dictation, .modos, .palabras,
+      .inicio, .claude, .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .dictation, .modos, .palabras,
       .historial, .dropTranscription, .readAloud, .language,
       .shortcuts, .updates, .novedades, .insights, .about,
     ]
@@ -39,8 +39,8 @@ struct SettingsWindowTests {
     // sandbox de App Store se queda sin Sparkle ni relectura del foco.
     let navegables = SettingsSectionGroup.allCases.flatMap(\.sections)
     let principales: [SettingsSection] = [
-      .dictation, .modos, .palabras, .historial, .dropTranscription,
-      .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general, .novedades, .about,
+      .inicio, .dictation, .modos, .palabras, .historial, .dropTranscription,
+      .claude, .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general, .novedades, .about,
     ]
     #expect(navegables == principales.filter(\.isAvailable))
     #expect(Set(navegables).count == navegables.count)

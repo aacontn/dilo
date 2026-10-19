@@ -66,10 +66,7 @@ struct ShortcutsSettingsView: View {
     .frame(maxWidth: .infinity, alignment: .center)
     .padding(.vertical, 18)
     .padding(.horizontal, 16)
-    .background(
-      SettingsTheme.card,
-      in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-    )
+    .background(FondoDeTarjeta(radio: 16))
     .overlay {
       // Armed, the border lights: nothing else on screen says the drawing
       // just became something you can click.
@@ -120,6 +117,7 @@ struct ShortcutsSettingsView: View {
         )
       }
     }
+    .anclaDeAjuste(.teclas)
   }
 
   /// Names the language when there is one, because the row's job is to say

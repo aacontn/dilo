@@ -33,6 +33,7 @@ struct UpdatesSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.buscarActualizaciones)
 
         SettingsRow(
           title: "Bajarlas solo",
@@ -43,6 +44,7 @@ struct UpdatesSettingsView: View {
             .toggleStyle(.switch)
             .disabled(!updater.automaticallyChecksForUpdates)
         }
+        .anclaDeAjuste(.actualizacionesSolas)
       }
 
       Text(

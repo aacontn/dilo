@@ -2,9 +2,9 @@ import DiloModes
 import DiloText
 import SwiftUI
 
-/// Aprender con Claude, en Ajustes → Tus palabras: el interruptor, quién
-/// revisa y quién ordena, «Ordenar ahora», lo que se manda a Anthropic y el
-/// registro de lo que el orden cambió, cada cambio con su deshacer.
+/// Aprender con Claude, en Ajustes → Tus palabras: quién aprende (se elige
+/// en Claude), «Ordenar ahora», lo que se manda a Anthropic y el registro de
+/// lo que el orden cambió, cada cambio con su deshacer.
 struct AprenderConClaudeCard: View {
   @Bindable var settings: AppSettings
   let runtimeState: SettingsRuntimeState
@@ -19,44 +19,24 @@ struct AprenderConClaudeCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
       SettingsCard(title: "Aprender con Claude") {
-        SettingsRow(
-          title: "Que Claude revise y ordene",
-          description: "Claude revisa lo que corriges antes de ofrecértelo y descarta lo que no es vocabulario. De vez en cuando ordena Tus palabras: junta variantes, fija cómo se escribe cada nombre y saca lo que entró por error. Sin clave, o sin conexión, Dilo aprende como antes, solo."
-        ) {
-          Toggle("Que Claude revise y ordene", isOn: $settings.aprenderConClaude)
-            .labelsHidden()
-            .toggleStyle(.switch)
+        // El interruptor y los modelos viven en Claude desde el 2026-10-19;
+        // acá queda lo que es de Tus palabras: ordenar y deshacer.
+        SettingsRow(title: "Quién aprende", description: "\(quienAprende)") {
+          Button("Cambiar en Claude") { runtimeState.filaPedida = .aprenderConClaude }
+            .buttonStyle(SettingsButtonStyle(compacto: true))
         }
 
-        if !hayClave {
+        if !hayClave, settings.aprenderConClaude {
           SettingsRow(
             title: "Falta la clave de Anthropic",
-            description: "Pégala en Modos → Proveedor general → Anthropic → API key. Es la misma de los modos y de traducir."
+            description: "Pégala en Claude. Es la misma de los modos y de traducir."
           ) {
-            Button("Abrir Modos") { runtimeState.seccionPedida = .modos }
-              .buttonStyle(SettingsButtonStyle())
+            Button("Abrir Claude") { runtimeState.filaPedida = .claveDeAnthropic }
+              .buttonStyle(SettingsButtonStyle(compacto: true))
           }
         }
 
         Group {
-          SettingsPickerRow(
-            title: "Revisar cada corrección",
-            description: "Una pregunta corta después de cada corrección: ¿esto se aprende, y cómo? Haiku 5.5 alcanza y cuesta casi nada.",
-            options: ModelosDeAnthropic.lista.map(\.id),
-            optionLabel: { etiqueta($0, recomendado: ModelosDeAnthropic.deFabricaParaRevisar) },
-            selection: $settings.modeloParaRevisar,
-            controlWidth: 270
-          )
-
-          SettingsPickerRow(
-            title: "Ordenar Tus palabras",
-            description: "Una vez por semana o después de diez palabras nuevas, nunca mientras dictas. Un error ahí se queda pegado, por eso Sonnet 5.5; Opus 5.5 si Sonnet se equivoca seguido.",
-            options: ModelosDeAnthropic.lista.map(\.id),
-            optionLabel: { etiqueta($0, recomendado: ModelosDeAnthropic.deFabricaParaOrdenar) },
-            selection: $settings.modeloParaOrdenar,
-            controlWidth: 270
-          )
-
           SettingsRow(title: "Ordenar ahora", description: "\(estadoDelOrden)") {
             Button(ordenador?.ordenando == true ? LocalizedStringKey("Ordenando…") : LocalizedStringKey("Ordenar ahora")) {
               ordenador?.ordenarAhora()
@@ -64,6 +44,7 @@ struct AprenderConClaudeCard: View {
             .buttonStyle(SettingsButtonStyle())
             .disabled(ordenador == nil || ordenador?.ordenando == true || !hayClave || runtimeState.isDictating)
           }
+          .anclaDeAjuste(.ordenarAhora)
         }
         .disabled(!settings.aprenderConClaude)
       }
@@ -97,9 +78,15 @@ struct AprenderConClaudeCard: View {
     }
   }
 
-  private func etiqueta(_ id: String, recomendado: ModeloDeAnthropic) -> String {
-    let nombre = ModelosDeAnthropic.conocido(id)?.nombre ?? id
-    return id == recomendado.id ? String(localized: "\(nombre) (recomendado)") : nombre
+  /// «Revisa Claude Haiku 5.5 y ordena Claude Sonnet 5.5», o que está
+  /// apagado.
+  private var quienAprende: String {
+    guard settings.aprenderConClaude else {
+      return String(localized: "Apagado: Dilo aprende solo, sin Claude.")
+    }
+    let revisa = ModelosDeAnthropic.conocido(settings.modeloParaRevisar)?.nombre ?? settings.modeloParaRevisar
+    let ordena = ModelosDeAnthropic.conocido(settings.modeloParaOrdenar)?.nombre ?? settings.modeloParaOrdenar
+    return String(localized: "Revisa \(revisa) y ordena \(ordena).")
   }
 
   private var estadoDelOrden: String {

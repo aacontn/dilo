@@ -104,6 +104,8 @@ final class AppSettings {
     static let registroDelOrden = "diloRegistroDelOrden"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
+    static let ultimaSeccionDeAjustes = "diloAjustesUltimaSeccion"
+    static let ajustesCerradosEn = "diloAjustesCerradosEn"
   }
 
   @ObservationIgnored
@@ -647,6 +649,17 @@ final class AppSettings {
     didSet { defaults.set(versionVista, forKey: Keys.versionVista) }
   }
 
+  /// La sección de Ajustes que estaba a la vista al cerrar la ventana, por
+  /// su `rawValue`, y cuándo se cerró. Volver a abrirla poco después la deja
+  /// donde estaba (`SeccionAlAbrir`). Vacía: nunca se cerró.
+  var ultimaSeccionDeAjustes: String {
+    didSet { defaults.set(ultimaSeccionDeAjustes, forKey: Keys.ultimaSeccionDeAjustes) }
+  }
+
+  var ajustesCerradosEn: Date? {
+    didSet { defaults.set(ajustesCerradosEn, forKey: Keys.ajustesCerradosEn) }
+  }
+
   /// Cuál **Motor de voz** dicta. La clave y el default viven en
   /// `EnginePreference` para poder probar la regla con `swift test`; acá
   /// sigue estando el único lugar de la app que la lee y la escribe.
@@ -936,6 +949,8 @@ final class AppSettings {
     ) ?? .optionEscape
     onboardingVisto = defaults.bool(forKey: Keys.onboardingVisto)
     versionVista = defaults.string(forKey: Keys.versionVista) ?? ""
+    ultimaSeccionDeAjustes = defaults.string(forKey: Keys.ultimaSeccionDeAjustes) ?? ""
+    ajustesCerradosEn = defaults.object(forKey: Keys.ajustesCerradosEn) as? Date
     motorDeVoz = EnginePreference.leer(defaults)
     descargarModeloTras = PreferenciaDeReposo.leer(defaults)
     umbralDeToqueMs = GestoDelGatillo.umbralMs(en: defaults)

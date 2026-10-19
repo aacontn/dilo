@@ -7,9 +7,10 @@ component vocabulary, and the feature adds one setting to it.
 
 ## The window
 
-A borderless AppKit window hosting SwiftUI. Fixed `860 × 600`, 16pt
-continuous radius, 1px low-opacity border, soft shadow. Dark only — the
-system can still override contrast and motion, but there is no light mode.
+A borderless AppKit window hosting SwiftUI. Fixed `900 × 640` (was
+`860 × 600` until 2026-10-19), 16pt continuous radius, 1px border that fades
+from top to bottom, soft shadow. Dark only — the system can still override
+contrast, motion and transparency, but there is no light mode.
 
 It is a centered modal surface, not a standard titled window. It closes with
 a leading `xmark` control or Escape. Clicking outside does not dismiss it. It
@@ -73,3 +74,35 @@ Choosing the second reveals a folder chooser.
 
 It belongs in a card of its own inside a Drop Transcription section, or in
 the existing structure if the section turns out to hold only this one row.
+
+## 2026-10-19 — el rediseño
+
+Alfonso: «La ventana de configuración se congela; además creo que está muy
+simple y básica y no se condice con todas las funciones; creo que la
+podríamos hacer más bonita y funcional». Lo que cambió, y por qué:
+
+- **El congelamiento** eran consultas síncronas en el hilo principal: el
+  Llavero en el `body` de Modos y en las vistas previas (vía
+  `sessionSettings`), `speechVoices()` en un `@State` que SwiftUI reevalúa en
+  cada reconstrucción, la HAL y el disco al aparecer una sección. Las reglas
+  que lo evitan están en `AGENTS.md` → «La ventana de Ajustes».
+- **Fondo de vidrio ahumado**, la receta del panel de la muesca
+  (`PanelDeVidrio`): carbón parejo sobre cualquier escritorio. Sólido con
+  «Reducir transparencia». Lo comparten Ajustes y los Primeros pasos
+  (`SuperficieDeDilo`).
+- **Jerarquía de Droppy**: las tarjetas dicen su título en 12,5 semibold casi
+  blanco, con ícono y una línea gris opcional (antes, un rótulo de 11 en gris
+  y mayúsculas); filas de 12,5 con lo secundario en 11 gris y diez puntos de
+  aire; controles `.small`; botones compactos para las filas con varias
+  acciones; listas de palabras como fichas en vez de una fila por palabra.
+- **Barra lateral con íconos de color por familia** (`IconoDeSeccion`,
+  `PaletaDeDilo.iconosDeAjustes`): el color en el símbolo sobre una baldosa
+  apenas encendida; la elegida se llena. Búsqueda arriba (⌘F).
+- **Secciones nuevas**: Inicio (portada accionable) y Claude (la clave y qué
+  hace Claude, con su costo). Lo que vivía en desplegables se muestra.
+- **La regla de «una tarjeta por grupo» sigue**, y se suma una: una sección
+  no repite un campo que vive en otra; dice lo que hay y enlaza
+  (`runtimeState.filaPedida`).
+- **Changes still apply live and persist immediately**, salvo la clave de un
+  proveedor, que se guarda al confirmar: escribir en el Llavero por tecla era
+  parte del congelamiento.

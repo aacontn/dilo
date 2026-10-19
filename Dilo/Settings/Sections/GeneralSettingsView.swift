@@ -15,6 +15,7 @@ struct GeneralSettingsView: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.abrirAlIniciarSesion)
     }
   }
 

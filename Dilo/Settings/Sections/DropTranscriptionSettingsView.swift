@@ -19,6 +19,7 @@ struct DropTranscriptionSettingsView: View {
           optionLabel: { $0.title },
           selection: $settings.transcriptDestination
         )
+        .anclaDeAjuste(.guardarTranscripcionEn)
 
         if settings.transcriptDestination == .chosenFolder {
           SettingsRow(
@@ -28,6 +29,7 @@ struct DropTranscriptionSettingsView: View {
             Button("Elegir…") { chooseFolder() }
               .buttonStyle(SettingsButtonStyle())
           }
+          .anclaDeAjuste(.carpetaDeTranscripciones)
         }
       }
 
