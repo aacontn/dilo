@@ -30,6 +30,10 @@ public enum BloqueoDelDictado: Equatable, Sendable {
   case campoProtegido
   case traduccionSinIdioma
   case traduccionNoLista
+  /// Se eligió traducir con Claude y no hay clave de Anthropic en el
+  /// Llavero (2026-10-19). Distinto de «no está lista»: esperar no lo
+  /// arregla, pegar la clave en Ajustes sí.
+  case traduccionSinClave
 
   /// El permiso que lo arregla, para que quien lo muestre pueda ofrecer su
   /// panel exacto (`Permiso.panelDeAjustes`) sin repetir la lista.
@@ -39,7 +43,7 @@ public enum BloqueoDelDictado: Equatable, Sendable {
     case .reconocimientoDeVozDenegado: .reconocimientoDeVoz
     case .sinAccesibilidad: .accesibilidad
     case .sinMicrofono, .bajandoModelo, .preparandoMotor, .motorFallo,
-      .campoProtegido, .traduccionSinIdioma, .traduccionNoLista:
+      .campoProtegido, .traduccionSinIdioma, .traduccionNoLista, .traduccionSinClave:
       nil
     }
   }
@@ -67,6 +71,7 @@ public enum BloqueoDelDictado: Equatable, Sendable {
     case .campoProtegido: "campoProtegido"
     case .traduccionSinIdioma: "traduccionSinIdioma"
     case .traduccionNoLista: "traduccionNoLista"
+    case .traduccionSinClave: "traduccionSinClave"
     }
   }
 }
@@ -118,6 +123,8 @@ public struct EstadoParaDictar: Equatable, Sendable {
     case noAplica
     case sinIdioma
     case noLista
+    /// Traduce con Claude y falta la clave de Anthropic.
+    case sinClave
     case lista
   }
 
@@ -185,6 +192,7 @@ public struct EstadoParaDictar: Equatable, Sendable {
     case .noAplica, .lista: break
     case .sinIdioma: lista.append(.traduccionSinIdioma)
     case .noLista: lista.append(.traduccionNoLista)
+    case .sinClave: lista.append(.traduccionSinClave)
     }
     return lista
   }

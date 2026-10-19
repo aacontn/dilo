@@ -33,6 +33,12 @@ public enum FallaDelProveedor: Error, Equatable {
   case respondioMal(codigo: Int)
   case respuestaIlegible
   case respuestaVacia
+  /// Anthropic: un clasificador de seguridad declinó (`stop_reason:
+  /// "refusal"`).
+  case seNego
+  /// Anthropic: la respuesta llegó al techo de tokens y salió cortada. Un
+  /// texto a medias no se pega.
+  case respuestaCortada
 }
 
 /// El cliente HTTP para OpenAI, Gemini, Anthropic y cualquier endpoint que
@@ -99,7 +105,7 @@ public struct ClienteHTTP: ClienteDeProveedor {
   /// - Parameter conForma: temperatura 0 y la salida `{"texto": …}`, con
   ///   el esquema en el dialecto de cada uno. Anthropic no tiene esquema
   ///   nativo: ahí lo pide el marco del prompt y la respuesta se desarma
-  ///   igual.
+  ///   igual. Y a Anthropic tampoco va la temperatura (ver abajo).
   func armar(
     instrucciones: String, peticion: String, modelo: String, conForma: Bool = false
   ) throws -> URLRequest {
@@ -150,12 +156,19 @@ public struct ClienteHTTP: ClienteDeProveedor {
         request.setValue(clave, forHTTPHeaderField: "x-api-key")
       }
       request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+      // El techo y el esfuerzo dependen del modelo: a los de la lista de
+      // Ajustes, `effort` bajo y espacio para lo que piensan; a uno escrito a
+      // mano, lo de siempre (`ModelosDeAnthropic.opciones`).
+      let opciones = ModelosDeAnthropic.opciones(para: modelo)
       cuerpo = [
         "model": modelo,
-        "max_tokens": 4096,
+        "max_tokens": opciones.maximoDeTokens,
         "system": instrucciones,
         "messages": [["role": "user", "content": peticion]],
       ]
+      if let esfuerzo = opciones.esfuerzo {
+        cuerpo["output_config"] = ["effort": esfuerzo]
+      }
     }
 
     if conForma {
@@ -178,9 +191,14 @@ public struct ClienteHTTP: ClienteDeProveedor {
             "required": ["texto"],
           ],
         ]
-      case .anthropic:
-        cuerpo["temperature"] = 0
-      case .enElChip:
+      case .anthropic, .enElChip:
+        // Anthropic sin `temperature` (2026-10-19). Los modelos Claude
+        // actuales —Haiku 5.5, Sonnet 5.5, Opus 5.5— devuelven 400 ante
+        // cualquier valor de muestreo que no sea el suyo, y con
+        // `temperature: 0` cada modo hacía un viaje perdido antes del
+        // reintento sin opciones de `reescribir`. Los modelos viejos que sí
+        // la aceptaban pierden el «sin azar», que la forma del prompt y el
+        // validador ya sostienen.
         break
       }
     }
@@ -214,13 +232,17 @@ public struct ClienteHTTP: ClienteDeProveedor {
       return texto
 
     case .anthropic:
-      let bloques = raiz["content"] as? [[String: Any]]
-      let texto = bloques?.compactMap { bloque -> String? in
-        guard bloque["type"] as? String == "text" else { return nil }
-        return bloque["text"] as? String
-      }.joined()
-      guard let texto else { throw FallaDelProveedor.respuestaIlegible }
-      return texto
+      // La misma lectura que la traducción: sólo bloques `text`, y un
+      // `refusal` o un `max_tokens` son fallas, no texto para pegar.
+      do {
+        return try RespuestaDeAnthropic.texto(de: datos)
+      } catch {
+        switch error {
+        case .ilegible: throw FallaDelProveedor.respuestaIlegible
+        case .seNego: throw FallaDelProveedor.seNego
+        case .cortada: throw FallaDelProveedor.respuestaCortada
+        }
+      }
     }
   }
 }

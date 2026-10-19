@@ -1,3 +1,4 @@
+import DiloModes
 import Foundation
 import Testing
 @testable import Dilo
@@ -433,5 +434,55 @@ struct TranslationCoordinatorTests {
     // The second request said failed, and the first must not undo it.
     #expect(!coordinator.isReady)
     #expect(reported == [.failed])
+  }
+  /// Con Claude, traduce Claude y Apple ni se entera.
+  @Test func conClaudeTraduceClaude() async throws {
+    let coordinator = TranslationCoordinator(
+      service: Fake().service(), claude: { texto, _ in "claude: \(texto)" }
+    )
+    let traducido = try await coordinator.traducir("hola", with: pair, motor: .claude(.ingles))
+    #expect(traducido == .init(texto: "claude: hola", respaldoPor: nil))
+  }
+
+  /// Claude falla y el modelo de Apple está instalado: traduce Apple, y el
+  /// resultado dice por qué.
+  @Test func siClaudeFallaTraduceAppleConElPorque() async throws {
+    let coordinator = TranslationCoordinator(
+      service: Fake().service(), claude: { _, _ in throw FallaDeTraduccion.demasiadosPedidos }
+    )
+    let traducido = try await coordinator.traducir("hola", with: pair, motor: .claude(.ingles))
+    #expect(traducido == .init(texto: "traducido: hola", respaldoPor: .demasiadosPedidos))
+  }
+
+  /// Sin el modelo de Apple no hay respaldo: sube la falla de Claude, que es
+  /// la que tiene arreglo.
+  @Test func sinElModeloDeAppleSubeLaFallaDeClaude() async {
+    let fake = Fake()
+    fake.availability = .downloadable
+    let coordinator = TranslationCoordinator(
+      service: fake.service(), claude: { _, _ in throw FallaDeTraduccion.seNego }
+    )
+    await #expect(throws: FallaDeTraduccion.seNego) {
+      try await coordinator.traducir("hola", with: pair, motor: .claude(.ingles))
+    }
+  }
+
+  /// Una clave borrada con la sesión abierta: no se llama a Claude.
+  @Test func sinClaveNiSeLlamaAClaude() async throws {
+    let coordinator = TranslationCoordinator(
+      service: Fake().service(),
+      claude: { _, _ in
+        Issue.record("no debió llamar a Claude")
+        return ""
+      }
+    )
+    let traducido = try await coordinator.traducir("hola", with: pair, motor: .faltaLaClave(.ingles))
+    #expect(traducido == .init(texto: "traducido: hola", respaldoPor: .faltaLaClave))
+  }
+
+  @Test func conAppleEsLoDeSiempre() async throws {
+    let coordinator = TranslationCoordinator(service: Fake().service())
+    let traducido = try await coordinator.traducir("hola", with: pair, motor: .apple)
+    #expect(traducido == .init(texto: "traducido: hola", respaldoPor: nil))
   }
 }

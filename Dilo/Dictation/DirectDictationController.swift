@@ -63,6 +63,10 @@ final class DirectDictationController {
   /// Everything about translation, which this controller only asks two
   /// questions of. Settings drives it directly.
   var translation: TranslationCoordinator { dependencies.translation }
+  /// Con qué traduce la sesión que se acaba de aprobar, resuelto al apretar
+  /// la tecla (`estadoDeLaTraduccion`) y congelado en la sesión al empezar a
+  /// escuchar.
+  private var motorDeTraduccionAprobado: MotorDeTraduccion.Resuelto = .apple
   /// Which slot's key began the session in flight, so the session runs in
   /// the language of the key that started it even if Settings change.
   private var activeSlot: GlobalKeyEventMonitor.TriggerSlot = .primary
@@ -384,7 +388,9 @@ final class DirectDictationController {
   /// it writes history or reaches the clipboard, and killing the process in
   /// that window loses the words with nothing to recover them from. No longer
   /// than that: a wedged insertion must not hold the quit open forever.
-  static let finishGrace = TranslationService.defaultTimeout
+  /// Con Claude, lo peor es su plazo entero y después el respaldo de Apple.
+  static let finishGrace = TraductorConClaude.plazoPorDefecto
+    + TranslationService.defaultTimeout
     + TransformacionDeModo.timeoutPorDefecto
     + .seconds(2)
 
@@ -759,7 +765,8 @@ final class DirectDictationController {
     case let .showListening(latched):
       let session = DictationSessionSettings(
         settings: settings,
-        translation: activeSlot == .translate ? translation.pair : nil
+        translation: activeSlot == .translate ? translation.pair : nil,
+        motorDeTraduccion: activeSlot == .translate ? motorDeTraduccionAprobado : .apple
       )
       currentSessionSettings = session
       // El modo de la sesión empieza en el de la tecla que la abrió. Si fue
@@ -933,6 +940,8 @@ final class DirectDictationController {
     // que mirar y el bloqueo ya lo dice.
     let target = accesibilidad ? dependencies.captureFocusedTarget() : nil
     let permisos = dependencies.leerPermisos()
+    let (traduccion, motorDeTraduccion) = estadoDeLaTraduccion()
+    motorDeTraduccionAprobado = motorDeTraduccion
     let estado = EstadoParaDictar(
       permisos: permisos,
       // La preparación de hoy pide este permiso con los dos motores
@@ -942,7 +951,7 @@ final class DirectDictationController {
       accesibilidad: accesibilidad,
       motor: estadoDelMotor(permisos),
       campoEsSeguro: target?.isSecure == true,
-      traduccion: estadoDeLaTraduccion
+      traduccion: traduccion
     )
 
     guard let bloqueo = estado.primerBloqueo else {
@@ -1007,11 +1016,32 @@ final class DirectDictationController {
     }
   }
 
-  /// Si la sesión que se va a abrir traduce, y si puede.
-  private var estadoDeLaTraduccion: EstadoParaDictar.Traduccion {
-    guard activeSlot == .translate else { return .noAplica }
-    if translation.isReady { return .lista }
-    return translation.pair == nil ? .sinIdioma : .noLista
+  /// Si la sesión que se va a abrir traduce, si puede, y con qué.
+  ///
+  /// El motor se resuelve acá, al apretar, y no al preparar los idiomas: la
+  /// clave de Anthropic se pega en Ajustes en cualquier momento, y preguntar
+  /// al Llavero al apretar es lo mismo que ya hacen los modos al empezar
+  /// cada sesión. Sólo se pregunta con la tecla de traducir y sólo si la
+  /// respuesta cambia algo (`MotorDeTraduccion.necesitaSaberSiHayClave`).
+  /// Con Claude no hace falta que el modelo de Apple esté listo: ése es sólo
+  /// el respaldo.
+  private func estadoDeLaTraduccion() -> (EstadoParaDictar.Traduccion, MotorDeTraduccion.Resuelto) {
+    guard activeSlot == .translate else { return (.noAplica, .apple) }
+    guard let pair = translation.pair else { return (.sinIdioma, .apple) }
+    let origen = pair.source.minimalIdentifier
+    let destino = settings.translationTargetIdentifier
+    let elegido = settings.motorDeTraduccion
+    let hayClave = MotorDeTraduccion.necesitaSaberSiHayClave(
+      elegido: elegido, origen: origen, destino: destino
+    ) && dependencies.hayClaveDeAnthropic()
+    let motor = MotorDeTraduccion.resolver(
+      elegido: elegido, origen: origen, destino: destino, hayClave: hayClave
+    )
+    switch motor {
+    case .claude: return (.lista, motor)
+    case .faltaLaClave: return (.sinClave, motor)
+    case .apple: return (translation.isReady ? .lista : .noLista, motor)
+    }
   }
 
   /// Dice un bloqueo en la muesca: con su clic si se arregla en Ajustes del
@@ -1318,9 +1348,15 @@ final class DirectDictationController {
           )
         )
 
+        var avisoDeLaTraduccion: String?
         if let pair = session.translation, !text.isEmpty {
           do {
-            text = try await translation.translate(text, with: pair)
+            let traducido = try await translation.traducir(
+              text, with: pair, motor: session.motorDeTraduccion
+            )
+            text = traducido.texto
+            // Claude falló y tradujo Apple: se pega, y se dice.
+            avisoDeLaTraduccion = traducido.respaldoPor?.avisoConApple
             relojDeFases.marcar(.traducido)
             relojDeFases.traducido = true
           } catch {
@@ -1340,8 +1376,11 @@ final class DirectDictationController {
             // The clipboard can refuse too, while a read still holds its
             // lease. Reporting only the translation would promise words that
             // are not anywhere the user can reach (CONTEXT.md).
+            // Si fue Claude, por qué: una clave mala no se arregla igual que
+            // un Anthropic saturado.
+            let porque = (error as? FallaDeTraduccion)?.aviso
             dependencies.showMessage(
-              !rescue.llego ? "No se pudo traducir ni copiar" : "No se pudo traducir",
+              !rescue.llego ? "No se pudo traducir ni copiar" : porque ?? "No se pudo traducir",
               nil
             )
             return
@@ -1390,8 +1429,12 @@ final class DirectDictationController {
         default:
           break
         }
-        if resultado.esAcuse || resultado == .copiado, let avisoDelModo {
-          dependencies.showMessage("\(avisoDelModo)", nil)
+        // Uno solo cabe. Que tradujo Apple va primero: es sobre el idioma
+        // que acaba de aterrizar en el documento.
+        if resultado.esAcuse || resultado == .copiado,
+          let aviso = avisoDeLaTraduccion ?? avisoDelModo
+        {
+          dependencies.showMessage("\(aviso)", nil)
         }
         if entrega.llego {
           // The words that were spoken, not the words inserted. Speaking

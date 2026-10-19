@@ -18,6 +18,9 @@ struct ModosSettingsView: View {
   @State private var grabando: String?
   @State private var reparo: String?
   @State private var confirmandoRestaurar = false
+  /// «Otro…» elegido en el selector de modelos de Anthropic, mientras el
+  /// campo todavía tiene uno de la lista: el campo aparece para escribir.
+  @State private var escribiendoOtroModelo = false
 
   private let llavero = Llavero()
 
@@ -211,16 +214,21 @@ struct ModosSettingsView: View {
           ?? "El modelo de Apple corre en esta compu. Sin clave y sin internet."
       ) { EmptyView() }
     } else {
-      SettingsRow(title: "Modelo", description: "El id tal cual lo muestra su consola.") {
-        TextField(
-          "Modelo",
-          text: Binding(
-            get: { settings.proveedores[indice].modelo },
-            set: { settings.proveedores[indice].modelo = $0 }
+      if proveedor.dialecto == .anthropic {
+        modeloDeAnthropic(indice)
+      }
+      if proveedor.dialecto != .anthropic || mostrarCampoDeModelo(proveedor) {
+        SettingsRow(title: "Modelo", description: "El id tal cual lo muestra su consola.") {
+          TextField(
+            "Modelo",
+            text: Binding(
+              get: { settings.proveedores[indice].modelo },
+              set: { settings.proveedores[indice].modelo = $0 }
+            )
           )
-        )
-        .labelsHidden()
-        .frame(width: 240)
+          .labelsHidden()
+          .frame(width: 240)
+        }
       }
       SettingsRow(
         title: "URL base",
@@ -260,6 +268,50 @@ struct ModosSettingsView: View {
         }
       }
     }
+  }
+
+  /// Para Anthropic el modelo se elige de una lista corta (2026-10-19), con
+  /// Haiku 5.5 primero porque es el de fábrica: rápido y barato, y de sobra
+  /// para reescribir un dictado. «Otro…» deja el campo de siempre.
+  private func modeloDeAnthropic(_ indice: Int) -> some View {
+    SettingsPickerRow(
+      title: "Modelo",
+      description: "Haiku es el más rápido y barato, y alcanza para los modos y para traducir.",
+      options: ModelosDeAnthropic.lista.map(\.id) + [Self.otroModelo],
+      optionLabel: { id in
+        switch id {
+        case ModelosDeAnthropic.haiku.id:
+          String(localized: "Claude Haiku 5.5 — rápido y barato (recomendado)")
+        case Self.otroModelo:
+          String(localized: "Otro…")
+        default:
+          ModelosDeAnthropic.conocido(id)?.nombre ?? id
+        }
+      },
+      selection: Binding(
+        get: {
+          let modelo = settings.proveedores[indice].modelo
+          guard !escribiendoOtroModelo, let conocido = ModelosDeAnthropic.conocido(modelo) else {
+            return Self.otroModelo
+          }
+          return conocido.id
+        },
+        set: { elegido in
+          escribiendoOtroModelo = elegido == Self.otroModelo
+          guard elegido != Self.otroModelo else { return }
+          settings.proveedores[indice].modelo = elegido
+        }
+      ),
+      controlWidth: 240
+    )
+  }
+
+  /// Lo que el selector guarda cuando se elige «Otro…». Nunca es un id: el
+  /// modelo de verdad se escribe en el campo.
+  private static let otroModelo = "otro"
+
+  private func mostrarCampoDeModelo(_ proveedor: Proveedor) -> Bool {
+    escribiendoOtroModelo || ModelosDeAnthropic.conocido(proveedor.modelo) == nil
   }
 
   private var modoEditado: Binding<Modo?> {

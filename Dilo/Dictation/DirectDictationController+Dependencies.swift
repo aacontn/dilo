@@ -34,6 +34,12 @@ extension DirectDictationController {
     /// Translation, whole. A collaborator rather than a seam: it has its own
     /// seam one layer down, and Settings talks to it directly.
     let translation: TranslationCoordinator
+    /// Si hay clave de Anthropic en el Llavero, para saber con qué traduce la
+    /// sesión que se va a abrir (`MotorDeTraduccion`). Se pregunta al apretar
+    /// la tecla de traducir y sólo si la respuesta cambia algo. Falso por
+    /// defecto: el host de los tests no tiene por qué tocar el Llavero, y
+    /// leer un ítem ajeno abre un diálogo que colgaría la suite.
+    var hayClaveDeAnthropic: @Sendable () -> Bool = { false }
 
     // Text insertion.
     let captureFocusedTarget: @MainActor () -> TextInsertionService.Target?
@@ -298,8 +304,12 @@ extension DirectDictationController {
           await speechService.shutDown()
         },
         translation: TranslationCoordinator(
-          service: TranslationService(client: .live)
+          service: TranslationService(client: .live),
+          claude: TranslationCoordinator.claudeEnVivo
         ),
+        hayClaveDeAnthropic: {
+          Llavero().tieneClave(para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero)
+        },
         captureFocusedTarget: { textInsertionService.captureFocusedTarget() },
         insertText: { await textInsertionService.entregar($0, a: $1, segun: $2) },
         requestMicrophoneAccess: { await PermissionService.requestMicrophoneAccess() },

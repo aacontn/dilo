@@ -99,11 +99,16 @@ struct DirectDictationControllerTests {
     notas: OSAllocatedUnfairLock<[String]> = .init(initialState: []),
     resultadoDeLaNota: ResultadoDeLaNota = .guardada,
     requestMicrophoneAccess: @escaping @Sendable () async -> Bool = { true },
-    parcialAlEmpezar: String? = nil
+    parcialAlEmpezar: String? = nil,
+    idiomaDeDictado: String = "en_US",
+    hayClaveDeAnthropic: Bool = false,
+    traducirConClaude: @escaping TranslationCoordinator.TraductorDeClaude = { texto, destino in
+      "claude(\(destino.identificador)): \(texto)"
+    }
   ) -> DirectDictationController.Dependencies {
     DirectDictationController.Dependencies(
       setDownloadHandler: { _ in },
-      resolveLocale: { _ in Locale(identifier: "en_US") },
+      resolveLocale: { _ in Locale(identifier: idiomaDeDictado) },
       supportedLocale: { _ in nil },
       retainOnly: { _ in },
       prewarm: { _ in prewarmed.withLock { $0 = true } },
@@ -137,8 +142,10 @@ struct DirectDictationControllerTests {
             retain: { pair in retainedPairs.withLock { $0.append(pair) } },
             shutDown: {}
           )
-        )
+        ),
+        claude: traducirConClaude
       ),
+      hayClaveDeAnthropic: { hayClaveDeAnthropic },
       captureFocusedTarget: captureFocusedTarget,
       insertText: { text, _, destination in
         recorder.events.append("insertText")
@@ -1074,6 +1081,164 @@ struct DirectDictationControllerTests {
     await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
 
     #expect(recorder.insertedTexts == ["translated: spoken words"])
+    controller.stop()
+  }
+
+  /// Con clave de Anthropic y dictando en español, la tecla de traducir
+  /// pega lo de Claude, no lo de Apple (2026-10-19).
+  @Test func conClaveLaTraduccionLaHaceClaude() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "en"
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "oye, ¿sigue en pie la reu?" },
+        idiomaDeDictado: "es_CL",
+        hayClaveDeAnthropic: true
+      )
+    )
+    await prepareWithTranslation(controller, prewarmed: prewarmed)
+
+    toque(controller, .translate)
+    await waitUntil("Session never latched") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.translate))
+    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+
+    #expect(recorder.insertedTexts == ["claude(en): oye, ¿sigue en pie la reu?"])
+    #expect(recorder.messages.isEmpty)
+    controller.stop()
+  }
+
+  /// Apple elegido a mano manda aunque haya clave.
+  @Test func appleElegidoAManoTraduceConApple() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "en"
+    settings.motorDeTraduccion = .apple
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "hola" },
+        idiomaDeDictado: "es_CL",
+        hayClaveDeAnthropic: true
+      )
+    )
+    await prepareWithTranslation(controller, prewarmed: prewarmed)
+
+    toque(controller, .translate)
+    await waitUntil("Session never latched") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.translate))
+    await waitUntil("Finish never delivered") { !recorder.insertedTexts.isEmpty }
+
+    #expect(recorder.insertedTexts == ["translated: hola"])
+    controller.stop()
+  }
+
+  /// Claude elegido a mano sin clave no abre el micrófono: la muesca dice qué
+  /// falta, aunque el modelo de Apple esté listo.
+  @Test func claudeSinClaveNoEmpiezaYLoDice() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let startEntries = OSAllocatedUnfairLock(initialState: 0)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "en"
+    settings.motorDeTraduccion = .claude
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        startEntries: startEntries,
+        idiomaDeDictado: "es_CL",
+        hayClaveDeAnthropic: false
+      )
+    )
+    await prepareWithTranslation(controller, prewarmed: prewarmed)
+
+    controller.handle(.triggerPressed(.translate))
+    await waitUntil("Never said what was missing") { !recorder.messages.isEmpty }
+
+    #expect(recorder.messages.contains(String(localized: "Falta la clave de Anthropic")))
+    #expect(startEntries.withLock { $0 } == 0)
+    controller.stop()
+  }
+
+  /// Claude falla y el modelo de Apple está: traduce Apple, se pega y la
+  /// muesca dice que fue Apple y por qué.
+  @Test func siClaudeFallaTraduceAppleYSeDice() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "en"
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "hola" },
+        idiomaDeDictado: "es_CL",
+        hayClaveDeAnthropic: true,
+        traducirConClaude: { _, _ in throw FallaDeTraduccion.sinConexion }
+      )
+    )
+    await prepareWithTranslation(controller, prewarmed: prewarmed)
+
+    toque(controller, .translate)
+    await waitUntil("Session never latched") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.translate))
+    await waitUntil("Never said Apple translated") { !recorder.messages.isEmpty }
+
+    #expect(recorder.insertedTexts == ["translated: hola"])
+    #expect(recorder.messages == [FallaDeTraduccion.sinConexion.avisoConApple])
+    controller.stop()
+  }
+
+  /// Claude falla y Apple no tiene el modelo: nada se pega, lo dicho va al
+  /// portapapeles y la muesca dice por qué no tradujo Claude.
+  @Test func siClaudeFallaSinAppleLoDichoVaAlPortapapeles() async {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.translationTargetIdentifier = "en"
+    let controller = makeController(
+      settings: settings,
+      dependencies: makeDependencies(
+        recorder: recorder,
+        prewarmed: prewarmed,
+        finishRecognition: { "hola" },
+        translationAvailability: .downloadable,
+        idiomaDeDictado: "es_CL",
+        hayClaveDeAnthropic: true,
+        traducirConClaude: { _, _ in throw FallaDeTraduccion.claveRechazada }
+      )
+    )
+    await prepare(controller, prewarmed: prewarmed)
+    // Sin el modelo de Apple el par nunca queda «listo»: se espera el par.
+    await waitUntil("The pair never resolved") { controller.translationPairForTesting != nil }
+
+    toque(controller, .translate)
+    await waitUntil("Session never latched") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.handle(.triggerPressed(.translate))
+    await waitUntil("Never said why") { !recorder.messages.isEmpty }
+
+    #expect(recorder.insertedTexts == ["hola"])
+    #expect(recorder.insertedDestinations == [.clipboardOnly])
+    #expect(recorder.messages == [FallaDeTraduccion.claveRechazada.aviso])
     controller.stop()
   }
 

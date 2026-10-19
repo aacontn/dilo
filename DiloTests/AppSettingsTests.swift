@@ -580,4 +580,62 @@ struct AppSettingsTests {
     #expect(settings.dictationSoundVolume == 0)
     #expect(defaults.double(forKey: "dictationSoundVolume") == 0)
   }
+  /// Quién traduce se guarda por su `rawValue`, y sin elegir es nil: el de
+  /// fábrica decide con la clave.
+  @Test func elMotorDeTraduccionSeGuarda() {
+    let defaults = freshDefaults()
+    #expect(AppSettings(defaults: defaults).motorDeTraduccion == nil)
+    AppSettings(defaults: defaults).motorDeTraduccion = .apple
+    #expect(defaults.string(forKey: "diloMotorDeTraduccion") == "apple")
+    #expect(AppSettings(defaults: defaults).motorDeTraduccion == .apple)
+  }
+
+  /// El Anthropic guardado sin modelo pasa a Haiku 5.5; uno escrito a mano
+  /// se queda.
+  @Test func elAnthropicSinModeloPasaAHaiku() throws {
+    let defaults = freshDefaults()
+    var vacio = Proveedor.deFabrica
+    vacio[vacio.firstIndex { $0.id == "anthropic" }!].modelo = ""
+    defaults.set(try JSONEncoder().encode(vacio), forKey: "diloProveedores")
+    #expect(
+      AppSettings(defaults: defaults).proveedores.proveedor("anthropic")?.modelo == "claude-haiku-5-5"
+    )
+
+    let otros = freshDefaults()
+    var escrito = Proveedor.deFabrica
+    escrito[escrito.firstIndex { $0.id == "anthropic" }!].modelo = "claude-mio"
+    otros.set(try JSONEncoder().encode(escrito), forKey: "diloProveedores")
+    #expect(AppSettings(defaults: otros).proveedores.proveedor("anthropic")?.modelo == "claude-mio")
+  }
+
+  /// Con clave y el general de fábrica, los modos pasan a Anthropic una vez;
+  /// quien vuelve al chip se queda en el chip.
+  @Test func conClaveElGeneralPasaAAnthropicUnaVez() throws {
+    let defaults = freshDefaults()
+    let claves = AlmacenEnMemoria()
+    let settings = AppSettings(defaults: defaults)
+
+    settings.pasarElGeneralAClaudeSiCorresponde(claves: claves)
+    #expect(settings.proveedorGeneralID == "chip")
+
+    try claves.guardar("k", para: "proveedor.anthropic")
+    settings.pasarElGeneralAClaudeSiCorresponde(claves: claves)
+    #expect(settings.proveedorGeneralID == "anthropic")
+
+    settings.proveedorGeneralID = "chip"
+    let deNuevo = AppSettings(defaults: defaults)
+    deNuevo.pasarElGeneralAClaudeSiCorresponde(claves: claves)
+    #expect(deNuevo.proveedorGeneralID == "chip")
+  }
+
+  /// Quien eligió el chip a mano después de esta versión no se mueve,
+  /// aunque pegue una clave.
+  @Test func elChipElegidoAManoSeRespeta() throws {
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.proveedorGeneralID = "openai"
+    settings.proveedorGeneralID = "chip"
+    let claves = AlmacenEnMemoria(["proveedor.anthropic": "k"])
+    settings.pasarElGeneralAClaudeSiCorresponde(claves: claves)
+    #expect(settings.proveedorGeneralID == "chip")
+  }
 }

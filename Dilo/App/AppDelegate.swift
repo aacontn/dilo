@@ -87,6 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let settings = AppSettings()
     self.settings = settings
+    // Con clave de Anthropic y el general todavía en el de fábrica, los modos
+    // pasan a Claude Haiku 5.5, una vez (`MigracionDeProveedores`).
+    settings.pasarElGeneralAClaudeSiCorresponde(claves: Llavero())
     // Antes de que nada se dibuje: la muesca en reposo ya pinta su punto.
     PaletaActiva.compartida.elegir(settings.paleta)
     // One shape, two features. The stage owns the window and hands it out;

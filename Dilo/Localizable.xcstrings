@@ -7387,6 +7387,380 @@
           }
         }
       }
+    },
+    "Falta la clave de Anthropic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic key missing"
+          }
+        }
+      }
+    },
+    "Anthropic no aceptó la clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic didn't accept the key"
+          }
+        }
+      }
+    },
+    "Anthropic pidió esperar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic asked to wait"
+          }
+        }
+      }
+    },
+    "Anthropic no está respondiendo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic isn't responding"
+          }
+        }
+      }
+    },
+    "Anthropic rechazó el pedido": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic rejected the request"
+          }
+        }
+      }
+    },
+    "Sin conexión con Anthropic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't reach Anthropic"
+          }
+        }
+      }
+    },
+    "Claude tardó demasiado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude took too long"
+          }
+        }
+      }
+    },
+    "Claude no quiso traducir esto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude declined to translate this"
+          }
+        }
+      }
+    },
+    "Muy largo para traducir de una": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too long to translate at once"
+          }
+        }
+      }
+    },
+    "Claude no devolvió la traducción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude returned no translation"
+          }
+        }
+      }
+    },
+    "Sin clave": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No key"
+          }
+        }
+      }
+    },
+    "Clave rechazada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key rejected"
+          }
+        }
+      }
+    },
+    "Anthropic saturado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic busy"
+          }
+        }
+      }
+    },
+    "Claude falló": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude failed"
+          }
+        }
+      }
+    },
+    "Sin conexión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline"
+          }
+        }
+      }
+    },
+    "Claude tardó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude timed out"
+          }
+        }
+      }
+    },
+    "Claude se negó": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude declined"
+          }
+        }
+      }
+    },
+    "Muy largo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too long"
+          }
+        }
+      }
+    },
+    "%@: tradujo Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: Apple translated"
+          }
+        }
+      }
+    },
+    "Traducir con": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate with"
+          }
+        }
+      }
+    },
+    "Pégala en Modos → Proveedor general → Anthropic → API key. Es la misma para los modos y para traducir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste it in Modes → Default provider → Anthropic → API key. The same key serves modes and translation."
+          }
+        }
+      }
+    },
+    "Abrir Modos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Modes"
+          }
+        }
+      }
+    },
+    "Los dos idiomas quedan cargados, así que cualquiera de las dos teclas responde igual de rápido. El dictado corre en esta compu; la traducción con Claude, en Anthropic.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both languages stay loaded, so either key responds just as fast. Dictation runs on this Mac; translating with Claude runs at Anthropic."
+          }
+        }
+      }
+    },
+    "Inglés (EE. UU.)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English (US)"
+          }
+        }
+      }
+    },
+    "Chino simplificado (mandarín)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simplified Chinese (Mandarin)"
+          }
+        }
+      }
+    },
+    "— lo traduce Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— translated by Apple"
+          }
+        }
+      }
+    },
+    "Claude (Haiku 5.5)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude (Haiku 5.5)"
+          }
+        }
+      }
+    },
+    "Apple, en el Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple, on this Mac"
+          }
+        }
+      }
+    },
+    "Corre en esta compu: lo que dictas no sale de ella. Más literal.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs on this Mac: what you dictate never leaves it. More literal."
+          }
+        }
+      }
+    },
+    "Claude traduce desde el español. Desde tu idioma de dictado traduce Apple.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude translates from Spanish. From your dictation language, Apple translates."
+          }
+        }
+      }
+    },
+    "Suena escrito por alguien nativo. Lo que dictas viaja a Anthropic; sin conexión traduce Apple, si tiene el modelo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reads as if a native speaker wrote it. What you dictate goes to Anthropic; offline, Apple translates if it has the model."
+          }
+        }
+      }
+    },
+    "Haiku es el más rápido y barato, y alcanza para los modos y para traducir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haiku is the fastest and cheapest, and it's plenty for modes and translation."
+          }
+        }
+      }
+    },
+    "Claude Haiku 5.5 — rápido y barato (recomendado)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Haiku 5.5 — fast and cheap (recommended)"
+          }
+        }
+      }
+    },
+    "Otro…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other…"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
