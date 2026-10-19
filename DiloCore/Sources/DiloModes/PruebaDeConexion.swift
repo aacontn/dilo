@@ -20,7 +20,10 @@ public struct PruebaDeConexion: Sendable {
   public enum Resultado: Equatable, Sendable {
     /// La clave sirve y el modelo está disponible.
     case lista(modelo: String)
-    case falla(FallaDeClaude)
+    /// `detalle`: el código y lo que Anthropic dijo, cuando lo dijo. La
+    /// primera prueba de Alfonso (2026-10-19) dio sólo «Anthropic rechazó el
+    /// pedido», y con eso no se sabe si es la clave, el saldo o el modelo.
+    case falla(FallaDeClaude, detalle: String? = nil)
   }
 
   /// El modelo que se pregunta: el de fábrica de los modos y de traducir.
@@ -55,7 +58,10 @@ public struct PruebaDeConexion: Sendable {
       let (datos, respuesta) = try await transporte(request)
       guard let http = respuesta as? HTTPURLResponse else { return .falla(.respuestaInutil) }
       guard (200..<300).contains(http.statusCode) else {
-        return .falla(FallaDeClaude.por(codigo: http.statusCode))
+        return .falla(
+          FallaDeClaude.por(codigo: http.statusCode),
+          detalle: Self.detalle(codigo: http.statusCode, de: datos)
+        )
       }
       return Self.leer(datos)
     } catch let error as URLError {
@@ -75,6 +81,22 @@ public struct PruebaDeConexion: Sendable {
     request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
     request.timeoutInterval = Self.plazo
     return request
+  }
+
+  /// «404 · not_found_error: model: …», con lo que vino en el cuerpo del
+  /// error de Anthropic (`{"error": {"type", "message"}}`). Nil si el cuerpo
+  /// no trae nada que leer: entonces la falla sola ya lo dice todo. El
+  /// mensaje de Anthropic nunca trae la clave, así que se puede mostrar.
+  static func detalle(codigo: Int, de datos: Data) -> String? {
+    guard
+      let objeto = try? JSONSerialization.jsonObject(with: datos) as? [String: Any],
+      let error = objeto["error"] as? [String: Any]
+    else { return nil }
+    let tipo = error["type"] as? String
+    let mensaje = (error["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let cuerpo = [tipo, mensaje].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: ": ")
+    guard !cuerpo.isEmpty else { return nil }
+    return String("\(codigo) · \(cuerpo)".prefix(200))
   }
 
   /// La respuesta trae el modelo con su `id`; si no, algo cambió en la API y

@@ -8422,13 +8422,13 @@
         }
       }
     },
-    "Hoy los reescribe %@. Con Claude, el modo entiende mejor qué pediste; tu dictado viaja a Anthropic.": {
+    "Hoy los reescribe «%@». Con Claude, el modo entiende mejor qué pediste; tu dictado viaja a Anthropic.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Today %@ rewrites them. With Claude, the mode understands better what you asked for; your dictation goes to Anthropic."
+            "value": "Today “%@” rewrites them. With Claude, the mode understands better what you asked for; your dictation goes to Anthropic."
           }
         }
       }
