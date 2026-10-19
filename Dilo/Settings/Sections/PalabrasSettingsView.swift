@@ -1,4 +1,5 @@
 import DiloCapabilities
+import DiloModes
 import DiloText
 import SwiftUI
 
@@ -11,8 +12,12 @@ import SwiftUI
 /// pegar estando sin internet.
 struct PalabrasSettingsView: View {
   @Bindable var settings: AppSettings
+  let runtimeState: SettingsRuntimeState
 
   @Environment(\.colorSchemeContrast) private var contrast
+  /// Si hay clave de Anthropic. Se lee al abrir la sección: la clave se pega
+  /// en Modos, y volver acá vuelve a crear esta vista.
+  @State private var hayClaveDeAnthropic = false
   @State private var palabraNueva = ""
   @State private var muletillaNueva = ""
   @State private var diceNuevo = ""
@@ -57,6 +62,8 @@ struct PalabrasSettingsView: View {
           }
         }
       }
+
+      AprenderConClaudeCard(settings: settings, runtimeState: runtimeState, hayClave: hayClaveDeAnthropic)
 
       SettingsCard(title: "Cuando digo…") {
         SettingsRow(
@@ -144,11 +151,18 @@ struct PalabrasSettingsView: View {
       .fixedSize(horizontal: false, vertical: true)
       .padding(.horizontal, 6)
     }
+    .task {
+      hayClaveDeAnthropic = Llavero().tieneClave(
+        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
+      )
+    }
   }
 
   private func agregarPalabra() {
     let limpia = palabraNueva.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !limpia.isEmpty else { return }
+    // Escrita a mano deja de ser aprendida: ordenar ya no la quita sola.
+    settings.palabrasAprendidas.removeAll { $0.caseInsensitiveCompare(limpia) == .orderedSame }
     settings.palabrasPropias = DiccionarioPersonal.terminosParaElMotor(
       settings.palabrasPropias + [limpia]
     )

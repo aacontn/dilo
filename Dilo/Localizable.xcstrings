@@ -7761,6 +7761,314 @@
           }
         }
       }
+    },
+    "Aprender con Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learn with Claude"
+          }
+        }
+      }
+    },
+    "Que Claude revise y ordene": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Let Claude review and tidy"
+          }
+        }
+      }
+    },
+    "Claude revisa lo que corriges antes de ofrecértelo y descarta lo que no es vocabulario. De vez en cuando ordena Tus palabras: junta variantes, fija cómo se escribe cada nombre y saca lo que entró por error. Sin clave, o sin conexión, Dilo aprende como antes, solo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude reviews what you correct before offering it and drops what isn't vocabulary. Now and then it tidies Your words: it merges variants, settles how each name is spelled and removes what got in by mistake. Without a key, or offline, Dilo learns as before, on its own."
+          }
+        }
+      }
+    },
+    "Pégala en Modos → Proveedor general → Anthropic → API key. Es la misma de los modos y de traducir.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste it in Modes → Default provider → Anthropic → API key. It's the same one modes and translation use."
+          }
+        }
+      }
+    },
+    "Revisar cada corrección": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review each correction"
+          }
+        }
+      }
+    },
+    "Una pregunta corta después de cada corrección: ¿esto se aprende, y cómo? Haiku 5.5 alcanza y cuesta casi nada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A short question after each correction: should this be learned, and how? Haiku 5.5 is enough and costs almost nothing."
+          }
+        }
+      }
+    },
+    "Ordenar Tus palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidy Your words"
+          }
+        }
+      }
+    },
+    "Una vez por semana o después de diez palabras nuevas, nunca mientras dictas. Un error ahí se queda pegado, por eso Sonnet 5.5; Opus 5.5 si Sonnet se equivoca seguido.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once a week or after ten new words, never while you dictate. A mistake there sticks, hence Sonnet 5.5; Opus 5.5 if Sonnet keeps getting it wrong."
+          }
+        }
+      }
+    },
+    "Ordenar ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidy now"
+          }
+        }
+      }
+    },
+    "Ordenando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidying…"
+          }
+        }
+      }
+    },
+    "Lo que ordenó Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What Claude tidied"
+          }
+        }
+      }
+    },
+    "Deshacer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
+          }
+        }
+      }
+    },
+    "Aplicar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply"
+          }
+        }
+      }
+    },
+    "Qué se manda a Anthropic: al revisar, la palabra corregida con unas ocho palabras antes y después, nunca el campo entero ni el nombre de la app; al ordenar, Tus palabras y «Cuando digo…», nada de lo que dictaste. Nada de eso queda en el registro del sistema. Cada pedido se cobra a tu clave: revisar cuesta una fracción de centavo y ordenar, unos pocos centavos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What goes to Anthropic: when reviewing, the corrected word with about eight words before and after, never the whole field or the app's name; when tidying, Your words and “When I say…”, nothing you dictated. None of it lands in the system log. Each request is billed to your key: a review costs a fraction of a cent, a tidy a few cents."
+          }
+        }
+      }
+    },
+    "%@ (recomendado)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (recommended)"
+          }
+        }
+      }
+    },
+    "Claude está ordenando. Puedes seguir dictando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude is tidying. You can keep dictating."
+          }
+        }
+      }
+    },
+    "Listo: nada que cambiar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: nothing to change."
+          }
+        }
+      }
+    },
+    "Listo: %lld aplicados, %lld propuestos. Están abajo, con su deshacer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: %1$lld applied, %2$lld proposed. They're below, each with its undo."
+          }
+        }
+      }
+    },
+    "No se pudo: %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't: %@."
+          }
+        }
+      }
+    },
+    "Todavía no se ordena. Lo hace solo; esto es para no esperar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not tidied yet. It happens on its own; this is so you don't have to wait."
+          }
+        }
+      }
+    },
+    "La última vez fue el %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last time was %@."
+          }
+        }
+      }
+    },
+    "Sacar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@"
+          }
+        }
+      }
+    },
+    "Aplicado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applied"
+          }
+        }
+      }
+    },
+    "Propuesto: lo escribiste tú o cambia letras, así que no lo apliqué solo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proposed: you wrote it or it changes letters, so I didn't apply it on my own"
+          }
+        }
+      }
+    },
+    "Deshecho": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undone"
+          }
+        }
+      }
+    },
+    "Claude no quiso ordenar esto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude declined to tidy this"
+          }
+        }
+      }
+    },
+    "El diccionario es muy largo para una pasada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The dictionary is too long for one pass"
+          }
+        }
+      }
+    },
+    "Claude no devolvió algo que se pueda usar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude didn't return anything usable"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

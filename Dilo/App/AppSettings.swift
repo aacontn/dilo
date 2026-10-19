@@ -93,6 +93,15 @@ final class AppSettings {
     static let fuentesDeContexto = "diloFuentesDeContexto"
     static let migracionDeSenales = "diloMigracionDeSenales"
     static let aprenderDeCorrecciones = "diloAprenderDeCorrecciones"
+    static let aprenderConClaude = "diloAprenderConClaude"
+    static let modeloParaRevisar = "diloModeloParaRevisar"
+    static let modeloParaOrdenar = "diloModeloParaOrdenar"
+    static let palabrasAprendidas = "diloPalabrasAprendidas"
+    static let aprendidasDesdeElOrden = "diloAprendidasDesdeElOrden"
+    static let ultimaPasadaDelOrden = "diloUltimaPasadaDelOrden"
+    static let ultimoIntentoDelOrden = "diloUltimoIntentoDelOrden"
+    static let firmaDelOrden = "diloFirmaDelOrden"
+    static let registroDelOrden = "diloRegistroDelOrden"
     static let onboardingVisto = "diloOnboardingVisto"
     static let versionVista = "diloVersionVista"
   }
@@ -327,6 +336,80 @@ final class AppSettings {
   /// agrega nada sin que lo aceptes en la muesca. En App Store no existe.
   var aprenderDeCorrecciones: Bool {
     didSet { defaults.set(aprenderDeCorrecciones, forKey: Keys.aprenderDeCorrecciones) }
+  }
+
+  /// Si el aprendizaje pasa por Claude: Haiku 5.5 revisa cada corrección
+  /// antes de ofrecerla y Sonnet 5.5 ordena Tus palabras de vez en cuando.
+  /// Prendido de fábrica (Alfonso, 2026-10-19: «déjalo, sí lo vamos a
+  /// usar»). Sin clave de Anthropic no hace nada: el aprendizaje sigue como
+  /// antes, sin red.
+  var aprenderConClaude: Bool {
+    didSet { defaults.set(aprenderConClaude, forKey: Keys.aprenderConClaude) }
+  }
+
+  /// El modelo que revisa cada corrección. Se guarda el id; uno que ya no
+  /// está en la lista vuelve al de fábrica.
+  var modeloParaRevisar: String {
+    didSet { defaults.set(modeloParaRevisar, forKey: Keys.modeloParaRevisar) }
+  }
+
+  /// El modelo que ordena Tus palabras.
+  var modeloParaOrdenar: String {
+    didSet { defaults.set(modeloParaOrdenar, forKey: Keys.modeloParaOrdenar) }
+  }
+
+  /// Las de Tus palabras que entraron de una corrección aceptada y no de
+  /// Ajustes. Ordenar sólo quita solas éstas; las escritas a mano, las
+  /// propone.
+  var palabrasAprendidas: [String] {
+    didSet { defaults.set(palabrasAprendidas, forKey: Keys.palabrasAprendidas) }
+  }
+
+  /// Cuántas entradas se aprendieron desde la última vez que se ordenó.
+  var aprendidasDesdeElOrden: Int {
+    didSet { defaults.set(aprendidasDesdeElOrden, forKey: Keys.aprendidasDesdeElOrden) }
+  }
+
+  /// La última pasada que terminó bien, y su firma del diccionario.
+  var ultimaPasadaDelOrden: Date? {
+    didSet { defaults.set(ultimaPasadaDelOrden, forKey: Keys.ultimaPasadaDelOrden) }
+  }
+
+  var firmaDelOrden: String? {
+    didSet { defaults.set(firmaDelOrden, forKey: Keys.firmaDelOrden) }
+  }
+
+  /// El último intento automático, saliera bien o mal (`CuandoOrdenar`).
+  var ultimoIntentoDelOrden: Date? {
+    didSet { defaults.set(ultimoIntentoDelOrden, forKey: Keys.ultimoIntentoDelOrden) }
+  }
+
+  /// Lo que ordenar cambió y propuso, de la pasada más nueva a la más vieja.
+  /// Son las palabras de la persona y el motivo que escribió el modelo:
+  /// nada de lo dictado. Se guarda como JSON; uno ilegible vuelve vacío.
+  var registroDelOrden: [PasadaDelOrden] {
+    didSet {
+      if let datos = try? JSONEncoder().encode(registroDelOrden) {
+        defaults.set(datos, forKey: Keys.registroDelOrden)
+      }
+    }
+  }
+
+  /// Las pasadas que se guardan. Más viejas que esto ya no se deshacen.
+  static let pasadasEnElRegistro = 20
+
+  /// Tus palabras, «Cuando digo…» y lo aprendido, como lo lee el orden.
+  var diccionario: Diccionario {
+    get {
+      Diccionario(palabras: palabrasPropias, reemplazos: reemplazos, aprendidas: Set(palabrasAprendidas))
+    }
+    set {
+      palabrasPropias = newValue.palabras
+      reemplazos = newValue.reemplazos
+      // Sólo las que siguen en la lista: una aprendida que se quitó y
+      // después se escribe a mano ya no es aprendida.
+      palabrasAprendidas = newValue.palabras.filter(newValue.aprendidas.contains)
+    }
   }
 
   /// Lo que `DiloText` necesita saber, armado en un solo lugar.
@@ -777,6 +860,18 @@ final class AppSettings {
     fuentesDeContexto = defaults.data(forKey: Keys.fuentesDeContexto)
       .flatMap { try? JSONDecoder().decode(FuentesDeContexto.self, from: $0) } ?? .deFabrica
     aprenderDeCorrecciones = defaults.object(forKey: Keys.aprenderDeCorrecciones) as? Bool ?? true
+    aprenderConClaude = defaults.object(forKey: Keys.aprenderConClaude) as? Bool ?? true
+    modeloParaRevisar = defaults.string(forKey: Keys.modeloParaRevisar)
+      .flatMap(ModelosDeAnthropic.conocido)?.id ?? ModelosDeAnthropic.deFabricaParaRevisar.id
+    modeloParaOrdenar = defaults.string(forKey: Keys.modeloParaOrdenar)
+      .flatMap(ModelosDeAnthropic.conocido)?.id ?? ModelosDeAnthropic.deFabricaParaOrdenar.id
+    palabrasAprendidas = defaults.stringArray(forKey: Keys.palabrasAprendidas) ?? []
+    aprendidasDesdeElOrden = defaults.integer(forKey: Keys.aprendidasDesdeElOrden)
+    ultimaPasadaDelOrden = defaults.object(forKey: Keys.ultimaPasadaDelOrden) as? Date
+    firmaDelOrden = defaults.string(forKey: Keys.firmaDelOrden)
+    ultimoIntentoDelOrden = defaults.object(forKey: Keys.ultimoIntentoDelOrden) as? Date
+    registroDelOrden = defaults.data(forKey: Keys.registroDelOrden)
+      .flatMap { try? JSONDecoder().decode([PasadaDelOrden].self, from: $0) } ?? []
     voiceVisual = Self.stored(in: defaults, key: Keys.voiceVisual) ?? .waveform
     // Siri Wave de fábrica: lo eligió Alfonso al ver la píldora (2026-09-21).
     waveformStyle = Self.stored(in: defaults, key: Keys.waveformStyle) ?? .brasas
