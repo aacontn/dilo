@@ -25,7 +25,11 @@ struct PalabrasSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
-      SettingsCard(title: "Tus palabras") {
+      SettingsCard(
+        title: "Tus palabras",
+        icono: "character.book.closed.fill",
+        detalle: "\(settings.palabrasPropias.count) palabras y \(settings.reemplazos.count) reglas. Todo se queda en esta compu."
+      ) {
         SettingsRow(
           title: "Nombres, proyectos, siglas",
           description: "Enséñale a Dilo cómo se escriben las palabras que usas. Se quedan sólo acá. Sirven de a varias: «Espacio Digital» se arregla aunque lo dictes en dos."
@@ -41,10 +45,12 @@ struct PalabrasSettingsView: View {
         }
         .anclaDeAjuste(.tusPalabras)
 
-        ForEach(settings.palabrasPropias, id: \.self) { palabra in
-          SettingsRow(title: "\(palabra)", description: "") {
-            Button("Quitar") { settings.palabrasPropias.removeAll { $0 == palabra } }
-              .buttonStyle(SettingsButtonStyle())
+        if !settings.palabrasPropias.isEmpty {
+          FichasQuitables(
+            valores: settings.palabrasPropias,
+            marcadas: Set(settings.palabrasAprendidas)
+          ) { palabra in
+            settings.palabrasPropias.removeAll { $0 == palabra }
           }
         }
       }
@@ -139,12 +145,9 @@ struct PalabrasSettingsView: View {
         .anclaDeAjuste(.listaDeMuletillas)
         .disabled(!settings.limpiarMuletillas)
 
-        ForEach(settings.muletillasPropias, id: \.self) { muletilla in
-          SettingsRow(title: "\(muletilla)", description: "") {
-            Button("Quitar") {
-              settings.muletillasPropias.removeAll { $0 == muletilla }
-            }
-            .buttonStyle(SettingsButtonStyle())
+        if !settings.muletillasPropias.isEmpty {
+          FichasQuitables(valores: settings.muletillasPropias) { muletilla in
+            settings.muletillasPropias.removeAll { $0 == muletilla }
           }
         }
       }

@@ -112,3 +112,94 @@ struct SubtituloDeSeccion: View {
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
+
+/// Una lista de palabras como fichas con su ✕, que se acomodan en
+/// renglones. Tus palabras y las muletillas eran una fila por palabra, cada
+/// una con su botón «Quitar»: con veinte palabras, una pila de filas iguales
+/// que empujaba todo lo demás fuera de la pantalla (2026-10-19).
+struct FichasQuitables: View {
+  let valores: [String]
+  /// Las que llevan la marca de aprendidas de una corrección.
+  var marcadas: Set<String> = []
+  let quitar: (String) -> Void
+
+  var body: some View {
+    RenglonesDeFichas(espacio: 6) {
+      ForEach(valores, id: \.self) { valor in
+        HStack(spacing: 5) {
+          if marcadas.contains(valor) {
+            Image(systemName: "sparkle")
+              .font(.system(size: 8, weight: .bold))
+              .foregroundStyle(SettingsTheme.accent)
+              .help("Aprendida de una corrección tuya")
+          }
+          Text(verbatim: valor)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.white.opacity(0.9))
+          Button {
+            quitar(valor)
+          } label: {
+            Image(systemName: "xmark")
+              .font(.system(size: 8, weight: .bold))
+              .foregroundStyle(.white.opacity(0.5))
+              .frame(width: 14, height: 14)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
+          .help("Quitar")
+          .accessibilityLabel(Text("Quitar \(valor)"))
+        }
+        .padding(.leading, 9)
+        .padding(.trailing, 5)
+        .padding(.vertical, 4)
+        .background(.white.opacity(0.08), in: Capsule())
+        .overlay { Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 1) }
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.vertical, 10)
+  }
+}
+
+/// Acomoda a sus hijos de izquierda a derecha y salta de renglón cuando no
+/// caben.
+struct RenglonesDeFichas: Layout {
+  var espacio: CGFloat = 6
+
+  func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    let ancho = proposal.width ?? .infinity
+    var x: CGFloat = 0
+    var y: CGFloat = 0
+    var alto: CGFloat = 0
+    var maximo: CGFloat = 0
+    for vista in subviews {
+      let medida = vista.sizeThatFits(.unspecified)
+      if x > 0, x + medida.width > ancho {
+        y += alto + espacio
+        x = 0
+        alto = 0
+      }
+      x += medida.width + espacio
+      alto = max(alto, medida.height)
+      maximo = max(maximo, x - espacio)
+    }
+    return CGSize(width: proposal.width ?? maximo, height: y + alto)
+  }
+
+  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    var x = bounds.minX
+    var y = bounds.minY
+    var alto: CGFloat = 0
+    for vista in subviews {
+      let medida = vista.sizeThatFits(.unspecified)
+      if x > bounds.minX, x + medida.width > bounds.maxX {
+        y += alto + espacio
+        x = bounds.minX
+        alto = 0
+      }
+      vista.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(medida))
+      x += medida.width + espacio
+      alto = max(alto, medida.height)
+    }
+  }
+}
