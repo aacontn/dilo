@@ -305,8 +305,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Lo último que se dictó llega al panel de la barra, que es donde alguien
     // lo va a buscar cuando el pegado no aterrizó donde esperaba.
     dictationController.onUltimoDictadoChange = {
-      [weak statusItemController, weak stage] dictado in
+      [weak statusItemController, weak stage, weak settingsRuntimeState] dictado in
       statusItemController?.setUltimoDictado(dictado)
+      // Y a Inicio, en Ajustes, con su «Copiar». Sólo en RAM.
+      settingsRuntimeState?.ultimoDictado = dictado
       // Lo que el hover sobre el notch en reposo revela: lo último que
       // dictaste, que es lo que alguien va a buscar ahí.
       stage?.dictationContent.contexto = dictado?.vistazo(.entregado)

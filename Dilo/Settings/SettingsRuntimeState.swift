@@ -1,3 +1,4 @@
+import DiloModes
 import Foundation
 import Observation
 
@@ -8,6 +9,26 @@ import Observation
 @Observable
 final class SettingsRuntimeState {
   var isDictating: Bool
+
+  /// Si hay clave de cada proveedor, leída una vez por apertura y fuera del
+  /// hilo principal (`ClavesDeLosProveedores`). La comparten Inicio, Claude,
+  /// Modos, Idioma y Tus palabras: antes cada una le preguntaba al Llavero
+  /// por su cuenta, en el hilo principal, y Modos lo hacía en cada `body`.
+  let claves: ClavesDeLosProveedores
+
+  /// Si la ventana de Ajustes está a la vista. Con la ventana cerrada el
+  /// contenido no se dibuja: una ventana cerrada con `orderOut` no cancela
+  /// las `.task` de sus vistas, y la vista previa de Apariencia seguía
+  /// animando la muesca a 14 cuadros por segundo con Ajustes cerrado.
+  var ventanaAbierta = false
+
+  /// La sección a la vista, la escribe la ventana. La lee el vigilante de
+  /// cuelgues para decir dónde estaba la persona cuando el hilo se trabó.
+  var seccionActual: SettingsSection?
+
+  /// Lo último dictado, para Inicio: en RAM, como en el panel de la barra.
+  /// Nunca se escribe en ningún lado desde acá.
+  var ultimoDictado: UltimoDictado?
 
   /// La sección que alguien de afuera pidió abrir —el panel de la barra, o el
   /// arranque después de actualizar, que abre Novedades—. La ventana de
@@ -86,8 +107,15 @@ final class SettingsRuntimeState {
   /// started it still exists.
   var stopInstallingTranslationModel: () -> Void = {}
 
-  init(isDictating: Bool = false) {
+  /// La cuenta del Llavero de la clave de Anthropic: una sola, la del
+  /// proveedor Anthropic de Modos, que sirve también para traducir y aprender.
+  static var cuentaDeAnthropic: String { Proveedor.anthropicDeFabrica.cuentaEnElLlavero }
+
+  var hayClaveDeAnthropic: Bool { claves.hay(Self.cuentaDeAnthropic) }
+
+  init(isDictating: Bool = false, claves: ClavesDeLosProveedores? = nil) {
     self.isDictating = isDictating
+    self.claves = claves ?? ClavesDeLosProveedores(almacen: Llavero())
   }
 
   func setDownload(identifier: String, fraction: Double?) {

@@ -33,17 +33,21 @@ struct SettingsView: View {
           .frame(width: 1)
 
         ZStack(alignment: .topLeading) {
-          SettingsContent(
-            section: selectedSection,
-            settings: settings,
-            sounds: sounds,
-            usageTracker: usageTracker,
-            runtimeState: runtimeState,
-            updater: updater,
-            launchAtLogin: launchAtLogin
-          )
-          .id(selectedSection)
-          .transition(.opacity)
+          // Con la ventana cerrada no queda nada vivo adentro: una ventana
+          // que sólo se ordena afuera no cancela las `.task` de sus vistas.
+          if runtimeState.ventanaAbierta {
+            SettingsContent(
+              section: selectedSection,
+              settings: settings,
+              sounds: sounds,
+              usageTracker: usageTracker,
+              runtimeState: runtimeState,
+              updater: updater,
+              launchAtLogin: launchAtLogin
+            )
+            .id(selectedSection)
+            .transition(.opacity)
+          }
         }
         .animation(
           reduceMotion ? nil : .easeOut(duration: 0.14),
@@ -61,6 +65,9 @@ struct SettingsView: View {
     // Abrir Ajustes en una sección concreta: el panel de la barra y el
     // arranque después de actualizar piden Novedades. Se consume al aplicarla
     // para que volver a abrir la ventana no vuelva a saltar ahí.
+    .onChange(of: selectedSection, initial: true) { _, seccion in
+      runtimeState.seccionActual = seccion
+    }
     .onChange(of: runtimeState.seccionPedida, initial: true) { _, pedida in
       guard let pedida else { return }
       selectedSection = pedida
@@ -263,7 +270,7 @@ private struct SettingsContent: View {
             LanguageSettingsView(settings: settings, runtimeState: runtimeState).padding(.top, 12)
           }
         case .modos:
-          ModosSettingsView(settings: settings)
+          ModosSettingsView(settings: settings, claves: runtimeState.claves)
         case .palabras:
           PalabrasSettingsView(settings: settings, runtimeState: runtimeState)
         case .historial:

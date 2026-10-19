@@ -15,9 +15,9 @@ struct PalabrasSettingsView: View {
   let runtimeState: SettingsRuntimeState
 
   @Environment(\.colorSchemeContrast) private var contrast
-  /// Si hay clave de Anthropic. Se lee al abrir la sección: la clave se pega
-  /// en Modos, y volver acá vuelve a crear esta vista.
-  @State private var hayClaveDeAnthropic = false
+  /// Si hay clave de Anthropic, de la lectura compartida de Ajustes: antes
+  /// se leía el Llavero acá, en el hilo principal.
+  private var hayClaveDeAnthropic: Bool { runtimeState.hayClaveDeAnthropic }
   @State private var palabraNueva = ""
   @State private var muletillaNueva = ""
   @State private var diceNuevo = ""
@@ -152,9 +152,7 @@ struct PalabrasSettingsView: View {
       .padding(.horizontal, 6)
     }
     .task {
-      hayClaveDeAnthropic = Llavero().tieneClave(
-        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
-      )
+      await runtimeState.claves.mirar(SettingsRuntimeState.cuentaDeAnthropic)
     }
   }
 

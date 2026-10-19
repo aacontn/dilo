@@ -12,6 +12,9 @@ import SwiftUI
 /// era invocable y estaba roto.
 struct ModosSettingsView: View {
   @Bindable var settings: AppSettings
+  /// Si hay clave de cada proveedor, leído una vez fuera del hilo principal
+  /// (`SettingsRuntimeState.claves`).
+  let claves: ClavesDeLosProveedores
 
   @Environment(\.colorSchemeContrast) private var contrast
   @State private var modoEnEdicion: String?
@@ -21,8 +24,6 @@ struct ModosSettingsView: View {
   /// «Otro…» elegido en el selector de modelos de Anthropic, mientras el
   /// campo todavía tiene uno de la lista: el campo aparece para escribir.
   @State private var escribiendoOtroModelo = false
-
-  private let llavero = Llavero()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -249,22 +250,10 @@ struct ModosSettingsView: View {
           title: "API key",
           description: "Se guarda en el Llavero de macOS. Dilo no la escribe en ningún archivo ni la muestra en pantalla."
         ) {
-          SecureField(
-            "API key",
-            text: Binding(
-              get: { llavero.clave(para: proveedor.cuentaEnElLlavero) ?? "" },
-              set: { nueva in
-                let limpia = nueva.trimmingCharacters(in: .whitespacesAndNewlines)
-                if limpia.isEmpty {
-                  try? llavero.borrar(proveedor.cuentaEnElLlavero)
-                } else {
-                  try? llavero.guardar(limpia, para: proveedor.cuentaEnElLlavero)
-                }
-              }
-            )
-          )
-          .labelsHidden()
-          .frame(width: 240)
+          // Se guarda al confirmar y nunca se vuelve a mostrar
+          // (`CampoDeClave`): antes el `SecureField` leía el Llavero en su
+          // `get:` y escribía en cada tecla, en el hilo principal.
+          CampoDeClave(cuenta: proveedor.cuentaEnElLlavero, claves: claves, ancho: 280)
         }
       }
     }

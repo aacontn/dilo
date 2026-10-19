@@ -14,6 +14,7 @@ struct HistorialSettingsView: View {
   @State private var consulta = ""
   @State private var entradas: [DictationHistoryStore.Entrada] = []
   @State private var copiada: String?
+  @State private var recargas = 0
 
   private let store = DictationHistoryStore()
 
@@ -28,8 +29,6 @@ struct HistorialSettingsView: View {
         ) {
           TextField("Buscar", text: $consulta)
             .frame(width: 200)
-            .onSubmit { cargar() }
-            .onChange(of: consulta) { _, _ in cargar() }
         }
 
         if entradas.isEmpty {
@@ -53,8 +52,18 @@ struct HistorialSettingsView: View {
           .padding(.horizontal, 6)
       }
     }
-    .onAppear { cargar() }
+    // Una búsqueda por pausa, no por tecla: cada búsqueda relee la carpeta
+    // entera, y `.task(id:)` cancela la anterior, así que una respuesta
+    // vieja ya no pisa a la nueva cuando llega tarde.
+    .task(id: busqueda) {
+      if !consulta.isEmpty { try? await Task.sleep(for: .milliseconds(220)) }
+      guard !Task.isCancelled else { return }
+      await cargar()
+    }
   }
+
+  /// Lo que dispara una lectura: la consulta y cada borrado.
+  private var busqueda: String { "\(recargas)|\(consulta)" }
 
   private func fila(_ entrada: DictationHistoryStore.Entrada) -> some View {
     // Lo dictado, la fecha, la app, el modo y el motor son datos: van como
@@ -66,7 +75,8 @@ struct HistorialSettingsView: View {
       : "\(entrada.dia) \(entrada.hora) · \(entrada.procedencia)"
     return SettingsRow(
       title: "\(entrada.texto)",
-      description: "\(sello)"
+      description: "\(sello)",
+      lineasDelTitulo: 3
     ) {
       HStack(spacing: 8) {
         // Íconos y no palabras, como en el notch (2026-09-24): el nombre va en
@@ -88,15 +98,14 @@ struct HistorialSettingsView: View {
     }
   }
 
-  private func cargar() {
+  private func cargar() async {
     let carpeta = settings.resolvedHistoryFolder
     let busqueda = consulta
-    Task {
-      let encontradas = await Task.detached {
-        (try? await DictationHistoryStore().buscar(busqueda, in: carpeta)) ?? []
-      }.value
-      entradas = encontradas
-    }
+    let encontradas = await Task.detached(priority: .userInitiated) {
+      (try? await DictationHistoryStore().buscar(busqueda, in: carpeta)) ?? []
+    }.value
+    guard !Task.isCancelled else { return }
+    entradas = encontradas
   }
 
   /// Copiar es siempre una acción explícita: Dilo no toca tu portapapeles
@@ -111,7 +120,7 @@ struct HistorialSettingsView: View {
     let carpeta = settings.resolvedHistoryFolder
     Task {
       try? await store.borrar(entrada, in: carpeta)
-      cargar()
+      recargas += 1
     }
   }
 }

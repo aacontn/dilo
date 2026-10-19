@@ -21,9 +21,10 @@ struct LanguageSettingsView: View {
   /// only piece of this flow that is genuinely this view's: an install has to
   /// outlive the section being switched, so it lives in the runtime state.
   @State private var confirmingTarget: TranslationTarget?
-  /// Si hay clave de Anthropic en el Llavero. Se lee al abrir la sección: la
-  /// clave se pega en Modos, y volver acá vuelve a crear esta vista.
-  @State private var hayClaveDeAnthropic = false
+  /// Si hay clave de Anthropic, de la lectura compartida de Ajustes
+  /// (`SettingsRuntimeState.claves`). Antes se leía el Llavero acá, en el
+  /// hilo principal, cada vez que la sección aparecía.
+  private var hayClaveDeAnthropic: Bool { runtimeState.hayClaveDeAnthropic }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -127,9 +128,9 @@ struct LanguageSettingsView: View {
       .padding(.horizontal, 6)
     }
     .task {
-      hayClaveDeAnthropic = Llavero().tieneClave(
-        para: Proveedor.anthropicDeFabrica.cuentaEnElLlavero
-      )
+      await runtimeState.claves.mirar(SettingsRuntimeState.cuentaDeAnthropic)
+    }
+    .task {
       languages = await SpeechLanguageCatalog.available()
     }
     .confirmationDialog(

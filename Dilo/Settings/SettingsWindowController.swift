@@ -1,4 +1,5 @@
 import AppKit
+import DiloModes
 import SwiftUI
 
 /// Owns one fixed, borderless Settings surface for the app's lifetime.
@@ -8,6 +9,11 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController: NSWindowController {
   private static let windowSize = NSSize(width: 860, height: 600)
+
+  private var runtimeState: SettingsRuntimeState?
+  #if DEBUG
+    private var vigia: VigiaDeCuelgues?
+  #endif
 
   convenience init(
     settings: AppSettings,
@@ -35,9 +41,32 @@ final class SettingsWindowController: NSWindowController {
     )
     window.setContentSize(Self.windowSize)
     self.init(window: window)
+    self.runtimeState = runtimeState
+    window.alCerrar = { [weak self] in self?.alCerrar() }
   }
 
+  /// Abrir es también volver a preguntar por las claves (una lectura, fuera
+  /// del hilo principal): pudieron cambiar por fuera mientras estaba cerrada.
   func show(reclamandoElFoco: Bool = false) {
+    if let runtimeState, !runtimeState.ventanaAbierta {
+      runtimeState.claves.olvidar()
+      runtimeState.ventanaAbierta = true
+      #if DEBUG
+        let vigia = VigiaDeCuelgues { [weak runtimeState] in
+          runtimeState?.seccionActual?.rawValue ?? "?"
+        }
+        vigia.empezar()
+        self.vigia = vigia
+      #endif
+    }
     (window as? VentanaSinBarra)?.mostrar(reclamandoElFoco: reclamandoElFoco)
+  }
+
+  private func alCerrar() {
+    runtimeState?.ventanaAbierta = false
+    #if DEBUG
+      vigia?.parar()
+      vigia = nil
+    #endif
   }
 }

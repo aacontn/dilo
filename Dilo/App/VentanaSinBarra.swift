@@ -13,6 +13,9 @@ final class VentanaSinBarra: NSWindow, NSWindowDelegate {
   /// La política a la que hay que volver cuando esta ventana se cierre, si es
   /// que hubo que cambiarla para traerla al frente.
   private var politicaADevolver: NSApplication.ActivationPolicy?
+  /// Quien quiera enterarse de que la ventana se cerró: Ajustes suelta su
+  /// contenido y apaga el vigilante de cuelgues.
+  var alCerrar: (() -> Void)?
 
   init(tamano: NSSize, titulo: String, contenido: NSViewController) {
     super.init(
@@ -70,6 +73,7 @@ final class VentanaSinBarra: NSWindow, NSWindowDelegate {
   }
 
   func windowWillClose(_ notification: Notification) {
+    alCerrar?()
     guard let politica = politicaADevolver else { return }
     politicaADevolver = nil
     NSApp.setActivationPolicy(politica)

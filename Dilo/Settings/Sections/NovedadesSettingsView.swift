@@ -11,7 +11,13 @@ import SwiftUI
 struct NovedadesSettingsView: View {
   @Environment(\.colorSchemeContrast) private var contrast
 
-  private let notas = NotasDeVersion.deEstaVersion()
+  /// Leídas y partidas una sola vez por proceso. Antes era un `let` de la
+  /// vista: cada vez que SwiftUI la reconstruía se volvía a leer el archivo
+  /// del bundle y a parsear el Markdown en el hilo principal.
+  private static let notas = NotasDeVersion.deEstaVersion()
+  private static let partes = notas.map { secciones(de: $0) } ?? []
+
+  private var notas: NotasDeVersion? { Self.notas }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -20,7 +26,7 @@ struct NovedadesSettingsView: View {
           .font(.system(size: 12, weight: .semibold))
           .foregroundStyle(SettingsTheme.accent)
 
-        ForEach(Array(secciones(de: notas).enumerated()), id: \.offset) { _, seccion in
+        ForEach(Array(Self.partes.enumerated()), id: \.offset) { _, seccion in
           if let titulo = seccion.titulo {
             SettingsCard(title: "\(titulo)") {
               cuerpo(seccion.bloques)
@@ -81,14 +87,14 @@ struct NovedadesSettingsView: View {
       .foregroundStyle(.white.opacity(contrast == .increased ? 0.88 : 0.72))
   }
 
-  private struct Seccion {
+  private struct Seccion: Sendable {
     var titulo: String?
     var bloques: [NotasDeVersion.Bloque] = []
   }
 
   /// Parte las notas en secciones por título, para que cada una caiga en su
   /// tarjeta como cualquier otro grupo de Ajustes.
-  private func secciones(de notas: NotasDeVersion) -> [Seccion] {
+  private nonisolated static func secciones(de notas: NotasDeVersion) -> [Seccion] {
     var secciones: [Seccion] = []
     var actual = Seccion(titulo: nil)
 

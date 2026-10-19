@@ -4,6 +4,9 @@ import SwiftUI
 struct SettingsRow<Control: View>: View {
   let title: LocalizedStringKey
   var description: LocalizedStringKey = ""
+  /// Tope de líneas del título, para las filas cuyo título es un dato largo
+  /// (un dictado del historial). Nil: todas las que pida.
+  var lineasDelTitulo: Int? = nil
   @ViewBuilder let control: Control
 
   @Environment(\.colorSchemeContrast) private var contrast
@@ -13,6 +16,7 @@ struct SettingsRow<Control: View>: View {
       VStack(alignment: .leading, spacing: 4) {
         Text(title)
           .font(.system(size: 13, weight: .medium))
+          .lineLimit(lineasDelTitulo)
         if description != "" {
           Text(description)
             .font(.caption)

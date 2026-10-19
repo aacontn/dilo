@@ -14,6 +14,9 @@ public protocol AlmacenDeClaves: Sendable {
   func clave(para cuenta: String) -> String?
   func guardar(_ clave: String, para cuenta: String) throws
   func borrar(_ cuenta: String) throws
+  /// Si hay clave, sin traerla. Es requisito y no sólo extensión para que el
+  /// Llavero conteste sin descifrar el secreto (ver `Llavero.tieneClave`).
+  func tieneClave(para cuenta: String) -> Bool
 }
 
 public extension AlmacenDeClaves {
@@ -48,6 +51,24 @@ public extension AlmacenDeClaves {
       let estado = SecItemCopyMatching(consulta as CFDictionary, &resultado)
       guard estado == errSecSuccess, let datos = resultado as? Data else { return nil }
       return String(data: datos, encoding: .utf8)
+    }
+
+    /// Si el ítem existe, preguntando sólo por sus atributos.
+    ///
+    /// Antes se leía el secreto entero para saber si había clave, y eso es lo
+    /// que hace saltar el diálogo «Dilo quiere usar información confidencial»
+    /// cuando la firma de la copia cambió (cada build con firma ad hoc): una
+    /// consulta síncrona que espera a un humano. Ajustes la hacía en el hilo
+    /// principal y por eso la ventana se congelaba (2026-10-19). Los atributos
+    /// no están cifrados y no piden permiso. Dilo nunca guarda una clave en
+    /// blanco (`guardar` recibe el texto ya limpio y el vacío borra), así que
+    /// existir alcanza.
+    public func tieneClave(para cuenta: String) -> Bool {
+      var consulta = baseDeConsulta(cuenta)
+      consulta[kSecReturnAttributes as String] = true
+      consulta[kSecMatchLimit as String] = kSecMatchLimitOne
+      var resultado: CFTypeRef?
+      return SecItemCopyMatching(consulta as CFDictionary, &resultado) == errSecSuccess
     }
 
     public func guardar(_ clave: String, para cuenta: String) throws {
