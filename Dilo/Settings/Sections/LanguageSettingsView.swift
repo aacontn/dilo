@@ -37,6 +37,7 @@ struct LanguageSettingsView: View {
           selection: $settings.recognitionLocaleIdentifier,
           controlWidth: 260
         )
+        .anclaDeAjuste(.idiomaDeDictado)
 
         SettingsPickerRow(
           title: "Segundo idioma",
@@ -48,6 +49,7 @@ struct LanguageSettingsView: View {
           selection: $settings.secondaryRecognitionLocaleIdentifier,
           controlWidth: 260
         )
+        .anclaDeAjuste(.segundoIdioma)
 
         if settings.isSecondLanguageEnabled {
           SettingsRow(
@@ -61,6 +63,7 @@ struct LanguageSettingsView: View {
               onRecordingChanged: { settings.isRecordingKeybind = $0 }
             )
           }
+          .anclaDeAjuste(.teclaDelSegundoIdioma)
         }
 
         SettingsPickerRow(
@@ -71,6 +74,7 @@ struct LanguageSettingsView: View {
           selection: motorElegido,
           controlWidth: 260
         )
+        .anclaDeAjuste(.traducirCon)
 
         // La clave vive en un solo lugar, el proveedor Anthropic de Modos: la
         // misma sirve para los modos y para traducir.
@@ -92,6 +96,7 @@ struct LanguageSettingsView: View {
           selection: confirmedTarget,
           controlWidth: 260
         )
+        .anclaDeAjuste(.traducirA)
 
         installRow
 

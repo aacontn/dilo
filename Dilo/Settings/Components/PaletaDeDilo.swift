@@ -111,6 +111,17 @@ struct PaletaDeDilo: Equatable, Sendable, Identifiable {
     var leerEnVoz: Tono
   }
 
+  /// Los íconos de la barra lateral de Ajustes, uno por familia de
+  /// secciones (2026-10-19): el color dice de qué grupo es cada una, como en
+  /// Ajustes del Sistema, sin que cada sección invente el suyo.
+  struct IconosDeAjustes: Equatable, Sendable {
+    var portada: Tono
+    var voz: Tono
+    var claude: Tono
+    var sistema: Tono
+    var dilo: Tono
+  }
+
   let nombre: Nombre
   var id: Nombre { nombre }
 
@@ -159,6 +170,7 @@ struct PaletaDeDilo: Equatable, Sendable, Identifiable {
   var barraLateral: Tono
   var tarjetaDeAjustes: Tono
   var categorias: Categorias
+  var iconosDeAjustes: IconosDeAjustes
 
   /// El color con que se llena el ícono de la barra de menús mientras
   /// transcribe un archivo, y el de las superficies de arrastrar un archivo.
@@ -200,6 +212,13 @@ extension PaletaDeDilo {
       traducir: Tono(hex: 0xAEAEB2),
       leerEnVoz: Tono(hex: 0x98989D)
     ),
+    iconosDeAjustes: IconosDeAjustes(
+      portada: .blanco,
+      voz: Tono(hex: 0xD1D1D6),
+      claude: Tono(hex: 0xC7C7CC),
+      sistema: Tono(hex: 0x98989D),
+      dilo: Tono(hex: 0xAEAEB2)
+    ),
     acentoDeLaBarra: Tono(hex: 0x8E8E93)
   )
 
@@ -236,6 +255,16 @@ extension PaletaDeDilo {
       segundoIdioma: Tono(hex: 0x7DF9C4),
       traducir: Tono(hex: 0xA5A7FA),
       leerEnVoz: Tono(hex: 0x5AC8FA)
+    ),
+    // Del azul de la onda al celeste del caret para lo que es dictar, la
+    // lavanda de Actividad para Claude, un gris pizarra para lo que es
+    // ajuste del Mac y la menta del acuse para lo que es de Dilo.
+    iconosDeAjustes: IconosDeAjustes(
+      portada: Tono(hex: 0x0A84FF),
+      voz: Tono(hex: 0x64D2FF),
+      claude: Tono(hex: 0xA5A7FA),
+      sistema: Tono(hex: 0x9AA6B8),
+      dilo: Tono(hex: 0x7DF9C4)
     ),
     acentoDeLaBarra: Tono(hex: 0x0A84FF)
   )

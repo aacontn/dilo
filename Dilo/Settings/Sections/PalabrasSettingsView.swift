@@ -39,6 +39,7 @@ struct PalabrasSettingsView: View {
               .disabled(palabraNueva.trimmingCharacters(in: .whitespaces).isEmpty)
           }
         }
+        .anclaDeAjuste(.tusPalabras)
 
         ForEach(settings.palabrasPropias, id: \.self) { palabra in
           SettingsRow(title: "\(palabra)", description: "") {
@@ -60,6 +61,7 @@ struct PalabrasSettingsView: View {
               .labelsHidden()
               .toggleStyle(.switch)
           }
+          .anclaDeAjuste(.ofrecerCorrecciones)
         }
       }
 
@@ -94,6 +96,7 @@ struct PalabrasSettingsView: View {
           }
         }
       }
+      .anclaDeAjuste(.cuandoDigo)
 
       SettingsCard(title: "Comandos al dictar") {
         SettingsRow(
@@ -104,6 +107,7 @@ struct PalabrasSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.comandosAlDictar)
       }
 
       SettingsCard(title: "Muletillas") {
@@ -115,6 +119,7 @@ struct PalabrasSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.sacarMuletillas)
 
         SettingsRow(
           title: "Tu lista",
@@ -131,6 +136,7 @@ struct PalabrasSettingsView: View {
               .disabled(muletillaNueva.trimmingCharacters(in: .whitespaces).isEmpty)
           }
         }
+        .anclaDeAjuste(.listaDeMuletillas)
         .disabled(!settings.limpiarMuletillas)
 
         ForEach(settings.muletillasPropias, id: \.self) { muletilla in

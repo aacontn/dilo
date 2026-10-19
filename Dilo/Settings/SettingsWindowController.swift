@@ -8,9 +8,12 @@ import SwiftUI
 /// el puntero— la pone `VentanaSinBarra`, que Primeros pasos usa igual.
 @MainActor
 final class SettingsWindowController: NSWindowController {
-  private static let windowSize = NSSize(width: 860, height: 600)
+  private static let windowSize = NSSize(
+    width: SettingsView.tamano.width, height: SettingsView.tamano.height
+  )
 
   private var runtimeState: SettingsRuntimeState?
+  private weak var settings: AppSettings?
   #if DEBUG
     private var vigia: VigiaDeCuelgues?
   #endif
@@ -42,6 +45,7 @@ final class SettingsWindowController: NSWindowController {
     window.setContentSize(Self.windowSize)
     self.init(window: window)
     self.runtimeState = runtimeState
+    self.settings = settings
     window.alCerrar = { [weak self] in self?.alCerrar() }
   }
 
@@ -49,6 +53,14 @@ final class SettingsWindowController: NSWindowController {
   /// del hilo principal): pudieron cambiar por fuera mientras estaba cerrada.
   func show(reclamandoElFoco: Bool = false) {
     if let runtimeState, !runtimeState.ventanaAbierta {
+      if let settings {
+        runtimeState.seccionPedida = SeccionAlAbrir.decidir(
+          pedida: runtimeState.seccionPedida,
+          ultima: settings.ultimaSeccionDeAjustes,
+          cerradaEn: settings.ajustesCerradosEn,
+          ahora: .now
+        )
+      }
       runtimeState.claves.olvidar()
       runtimeState.ventanaAbierta = true
       #if DEBUG
@@ -64,6 +76,10 @@ final class SettingsWindowController: NSWindowController {
 
   private func alCerrar() {
     runtimeState?.ventanaAbierta = false
+    if let settings, let seccion = runtimeState?.seccionActual {
+      settings.ultimaSeccionDeAjustes = seccion.rawValue
+      settings.ajustesCerradosEn = .now
+    }
     #if DEBUG
       vigia?.parar()
       vigia = nil

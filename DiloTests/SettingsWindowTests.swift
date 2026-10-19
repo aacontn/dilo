@@ -24,7 +24,7 @@ struct SettingsWindowTests {
     #expect(window.level == .normal)
     #expect(!window.isOpaque)
     #expect(!window.isReleasedWhenClosed)
-    #expect(window.contentRect(forFrameRect: window.frame).size == NSSize(width: 860, height: 600))
+    #expect(window.contentRect(forFrameRect: window.frame).size == NSSize(width: 900, height: 640))
     #expect(window.minSize == window.maxSize)
   }
 

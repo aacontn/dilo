@@ -36,6 +36,7 @@ struct ReadAloudSettingsView: View {
           selection: $settings.readAloudVoiceID,
           controlWidth: 240
         )
+        .anclaDeAjuste(.vozQueLee)
 
         SettingsRow(
           title: "Traducir antes de leer",
@@ -45,6 +46,7 @@ struct ReadAloudSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.traducirAntesDeLeer)
 
         SettingsRow(
           title: "Escuchar",
@@ -67,6 +69,7 @@ struct ReadAloudSettingsView: View {
           }
           .buttonStyle(SettingsButtonStyle())
         }
+        .anclaDeAjuste(.bajarVoces)
 
         if personalVoiceStatus == .notDetermined {
           SettingsRow(

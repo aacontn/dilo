@@ -27,6 +27,7 @@ struct AprenderConClaudeCard: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.aprenderConClaude)
 
         if !hayClave {
           SettingsRow(
@@ -47,6 +48,7 @@ struct AprenderConClaudeCard: View {
             selection: $settings.modeloParaRevisar,
             controlWidth: 270
           )
+          .anclaDeAjuste(.modeloParaRevisar)
 
           SettingsPickerRow(
             title: "Ordenar Tus palabras",
@@ -56,6 +58,7 @@ struct AprenderConClaudeCard: View {
             selection: $settings.modeloParaOrdenar,
             controlWidth: 270
           )
+          .anclaDeAjuste(.modeloParaOrdenar)
 
           SettingsRow(title: "Ordenar ahora", description: "\(estadoDelOrden)") {
             Button(ordenador?.ordenando == true ? LocalizedStringKey("Ordenando…") : LocalizedStringKey("Ordenar ahora")) {
@@ -64,6 +67,7 @@ struct AprenderConClaudeCard: View {
             .buttonStyle(SettingsButtonStyle())
             .disabled(ordenador == nil || ordenador?.ordenando == true || !hayClave || runtimeState.isDictating)
           }
+          .anclaDeAjuste(.ordenarAhora)
         }
         .disabled(!settings.aprenderConClaude)
       }

@@ -22,6 +22,7 @@ struct MicrofonoSettingsCard: View {
         selection: $settings.microfonoDeDictado,
         controlWidth: 210
       )
+      .anclaDeAjuste(.microfono)
 
       SettingsRow(
         title: "Dejarlo listo entre dictados",
@@ -31,6 +32,7 @@ struct MicrofonoSettingsCard: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.microfonoListo)
     }
     .onAppear { microfonos.mirar() }
     .onDisappear { microfonos.dejarDeMirar() }

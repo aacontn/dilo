@@ -43,7 +43,9 @@ struct ModosSettingsView: View {
               .buttonStyle(SettingsButtonStyle())
           }
         }
+        .anclaDeAjuste(.agregarModo)
       }
+      .anclaDeAjuste(.tusModos)
 
       if let reparo {
         Text(reparo)
@@ -62,6 +64,7 @@ struct ModosSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.queDiloElija)
 
         SettingsRow(
           title: "Cuándo corresponde cada modo",
@@ -89,6 +92,7 @@ struct ModosSettingsView: View {
           configuracionDelProveedor(indice)
         }
       }
+      .anclaDeAjuste(.proveedorGeneral)
 
       Text(
         "Las claves de API se guardan en el Llavero de macOS, nunca en un archivo de ajustes. El modelo de Apple corre acá mismo: no necesita clave, ni cuenta, ni internet."
@@ -245,6 +249,7 @@ struct ModosSettingsView: View {
         .labelsHidden()
         .frame(width: 240)
       }
+      .anclaDeAjuste(.urlBaseDelProveedor)
       if proveedor.necesitaClave {
         SettingsRow(
           title: "API key",
@@ -255,6 +260,7 @@ struct ModosSettingsView: View {
           // `get:` y escribía en cada tecla, en el hilo principal.
           CampoDeClave(cuenta: proveedor.cuentaEnElLlavero, claves: claves, ancho: 280)
         }
+        .anclaDeAjuste(.claveDelProveedor)
       }
     }
   }

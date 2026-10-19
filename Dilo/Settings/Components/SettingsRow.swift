@@ -12,25 +12,29 @@ struct SettingsRow<Control: View>: View {
   @Environment(\.colorSchemeContrast) private var contrast
 
   var body: some View {
+    // La densidad del panel de la muesca (2026-10-19): título de 12,5 casi
+    // blanco, lo secundario en 11 y gris, y menos aire que antes —diez
+    // puntos arriba y abajo en vez de trece—.
     HStack(spacing: 16) {
-      VStack(alignment: .leading, spacing: 4) {
+      VStack(alignment: .leading, spacing: 3) {
         Text(title)
-          .font(.system(size: 13, weight: .medium))
+          .font(.system(size: 12.5, weight: .medium))
+          .foregroundStyle(.white.opacity(contrast == .increased ? 1 : 0.92))
           .lineLimit(lineasDelTitulo)
         if description != "" {
           Text(description)
-            .font(.caption)
-            .foregroundStyle(.white.opacity(contrast == .increased ? 0.72 : 0.48))
+            .font(.system(size: 11))
+            .foregroundStyle(.white.opacity(contrast == .increased ? 0.72 : 0.5))
             .fixedSize(horizontal: false, vertical: true)
         }
       }
       Spacer(minLength: 12)
       control
     }
-    .padding(.vertical, 13)
+    .padding(.vertical, 10)
     .overlay(alignment: .bottom) {
       Rectangle()
-        .fill(.white.opacity(contrast == .increased ? 0.16 : 0.07))
+        .fill(.white.opacity(contrast == .increased ? 0.16 : 0.06))
         .frame(height: 1)
     }
   }
@@ -80,7 +84,7 @@ struct SettingsSliderRow: View {
           .accessibilityLabel(title)
           .accessibilityValue(valueLabel(displayedValue))
         Text(valueLabel(displayedValue))
-          .font(.system(size: 12, weight: .medium))
+          .font(.system(size: 11.5, weight: .medium))
           .monospacedDigit()
           .foregroundStyle(.white.opacity(0.62))
           .frame(width: 36, alignment: .trailing)
@@ -109,6 +113,7 @@ struct SettingsPickerRow<Value: Hashable>: View {
       }
       .labelsHidden()
       .pickerStyle(.menu)
+      .controlSize(.small)
       .frame(width: controlWidth, alignment: .trailing)
     }
   }

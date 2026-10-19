@@ -77,6 +77,7 @@ struct AppearanceSettingsView: View {
           selection: $settings.paleta
         )
       }
+      .anclaDeAjuste(.color)
 
       SettingsCard(title: "Mientras hablas") {
         SettingsPickerRow(
@@ -86,6 +87,7 @@ struct AppearanceSettingsView: View {
           optionLabel: { $0.title },
           selection: $settings.voiceVisual
         )
+        .anclaDeAjuste(.queSeVe)
 
         if Self.showsWaveformOptions(for: settings.voiceVisual) {
           SettingsPickerRow(
@@ -95,6 +97,7 @@ struct AppearanceSettingsView: View {
             optionLabel: { $0.title },
             selection: $settings.waveformStyle
           )
+          .anclaDeAjuste(.estiloDeLaOnda)
         }
 
         if Self.showsGlowPalette(for: settings.voiceVisual) {
@@ -105,6 +108,7 @@ struct AppearanceSettingsView: View {
             optionLabel: { $0.title },
             selection: $settings.glowPalette
           )
+          .anclaDeAjuste(.paletaDelHalo)
         }
 
         if Self.showsGlowCenter(for: settings.voiceVisual) {
@@ -115,6 +119,7 @@ struct AppearanceSettingsView: View {
             optionLabel: { $0.title },
             selection: $settings.glowCenter
           )
+          .anclaDeAjuste(.centroDelHalo)
         }
       }
 
@@ -128,6 +133,7 @@ struct AppearanceSettingsView: View {
           )...Double(HUDMetrics.maximumScale),
           valueLabel: { "\(Int(($0 * 100).rounded()))%" }
         )
+        .anclaDeAjuste(.tamanoDelNotch)
 
         SettingsPickerRow(
           title: "En pantallas sin notch",
@@ -137,6 +143,7 @@ struct AppearanceSettingsView: View {
           selection: $settings.hudEstiloSinNotch,
           controlWidth: 190
         )
+        .anclaDeAjuste(.pantallasSinNotch)
 
         SettingsPickerRow(
           title: "En qué pantalla",
@@ -146,6 +153,7 @@ struct AppearanceSettingsView: View {
           selection: $settings.hudPantalla,
           controlWidth: 190
         )
+        .anclaDeAjuste(.enQuePantalla)
 
         SettingsSliderRow(
           title: "Cuánto esperar con el mouse encima",
@@ -155,6 +163,7 @@ struct AppearanceSettingsView: View {
           step: 0.1,
           valueLabel: Self.etiquetaDelRetardo
         )
+        .anclaDeAjuste(.esperaDelHover)
 
         SettingsRow(
           title: "Decir el modo en reposo",
@@ -164,6 +173,7 @@ struct AppearanceSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.modoEnReposo)
 
         SettingsRow(
           title: "Panel con vidrio",
@@ -173,6 +183,7 @@ struct AppearanceSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.panelConVidrio)
 
         SettingsRow(
           title: "Esconderla al compartir pantalla",
@@ -182,6 +193,7 @@ struct AppearanceSettingsView: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+        .anclaDeAjuste(.esconderAlCompartir)
 
         SettingsPickerRow(
           title: "Cómo aparece",
@@ -190,6 +202,7 @@ struct AppearanceSettingsView: View {
           optionLabel: { $0.title },
           selection: $settings.revealStyle
         )
+        .anclaDeAjuste(.comoAparece)
 
         if Self.showsLongDraftBehavior(
           for: settings.voiceVisual,
@@ -202,6 +215,7 @@ struct AppearanceSettingsView: View {
             optionLabel: { $0.title },
             selection: $settings.longDraftStyle
           )
+          .anclaDeAjuste(.textoLargo)
         }
       }
     }

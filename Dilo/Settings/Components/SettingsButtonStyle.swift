@@ -12,6 +12,10 @@ struct SettingsButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
     configuration.label
       .font(.system(size: compacto ? 11 : 12, weight: .semibold))
+      // Un botón no se parte en dos líneas: «Restaurar los de fábrica…»
+      // partido se leía como dos botones.
+      .lineLimit(1)
+      .fixedSize()
       .foregroundStyle(.white)
       .padding(.horizontal, compacto ? 10 : 12)
       .padding(.vertical, compacto ? 5 : 8)

@@ -30,6 +30,7 @@ struct HistorialSettingsView: View {
           TextField("Buscar", text: $consulta)
             .frame(width: 200)
         }
+        .anclaDeAjuste(.buscarEnElHistorial)
 
         if entradas.isEmpty {
           SettingsRow(

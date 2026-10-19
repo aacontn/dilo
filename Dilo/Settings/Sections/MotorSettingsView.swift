@@ -25,6 +25,7 @@ struct MotorSettingsView: View {
           selection: $settings.descargarModeloTras,
           controlWidth: 170
         )
+        .anclaDeAjuste(.soltarElModelo)
       }
     }
   }
@@ -63,6 +64,7 @@ struct SelectorDeMotor: View {
           }
         }
       }
+      .anclaDeAjuste(.motorDeVoz)
 
       SettingsCard(title: "El modelo de Parakeet") {
         SettingsRow(
@@ -91,6 +93,7 @@ struct SelectorDeMotor: View {
           }
         }
       }
+      .anclaDeAjuste(.modeloDeParakeet)
 
       if settings.motorDeVoz == .parakeet, !descargas.listo, descargas.progreso == nil {
         AvisoDeDilo(

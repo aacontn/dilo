@@ -95,15 +95,15 @@ enum SettingsSection: String, CaseIterable, Identifiable {
 
   var subtitle: String {
     switch self {
-    case .general: String(localized: "Cómo arranca Dilo")
-    case .appearance: String(localized: "Cómo se ve la píldora mientras dictas")
+    case .general: String(localized: "Cómo arranca Dilo y la voz que te lee")
+    case .appearance: String(localized: "Cómo se ve la muesca, y cómo suena")
     case .datosDeLaMuesca: String(localized: "Qué se ve a los costados de la muesca")
     case .sounds: String(localized: "Los sonidos de empezar y terminar")
     case .motor: String(localized: "Quién convierte tu voz en texto")
-    case .dictation: String(localized: "Dónde aterriza lo que dictaste")
+    case .dictation: String(localized: "El micrófono, dónde aterriza el texto y en qué idioma")
     case .modos: String(localized: "Cada modo con su tecla y su IA")
     case .palabras: String(localized: "Tus palabras y las muletillas")
-    case .historial: String(localized: "Lo que dictaste, buscable")
+    case .historial: String(localized: "Lo que dictaste, buscable, y cuánto dictas")
     case .dropTranscription: String(localized: "Transcribe audio y video que le sueltes")
     case .readAloud: String(localized: "La voz que lee lo que seleccionas")
     case .language: String(localized: "En qué idiomas dictas")
@@ -115,25 +115,39 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     }
   }
 
+  /// La sección con que abre la ventana cuando nadie pide otra y no se
+  /// cerró hace poco (`SeccionAlAbrir`).
+  static var portada: SettingsSection { .dictation }
+
+  /// El color del ícono en la barra lateral: el de su familia.
+  var colorDelIcono: Tono {
+    let iconos = PaletaDeDilo.actual.iconosDeAjustes
+    switch group {
+    case .voz: return iconos.voz
+    case .settings: return iconos.sistema
+    case .dilo: return iconos.dilo
+    }
+  }
+
   var icon: String {
     switch self {
-    case .general: "gearshape"
-    case .appearance: "sparkles"
+    case .general: "gearshape.fill"
+    case .appearance: "paintpalette.fill"
     case .datosDeLaMuesca: "gauge.with.dots.needle.33percent"
     case .sounds: "waveform"
-    case .motor: "cpu"
-    case .dictation: "text.cursor"
-    case .modos: "switch.2"
-    case .palabras: "character.book.closed"
+    case .motor: "cpu.fill"
+    case .dictation: "mic.fill"
+    case .modos: "wand.and.stars"
+    case .palabras: "character.book.closed.fill"
     case .historial: "clock.arrow.circlepath"
-    case .dropTranscription: "square.and.arrow.down"
-    case .readAloud: "speaker.wave.2"
+    case .dropTranscription: "doc.text.fill"
+    case .readAloud: "speaker.wave.2.fill"
     case .language: "globe"
-    case .shortcuts: "keyboard"
-    case .updates: "arrow.down.circle"
-    case .novedades: "megaphone"
+    case .shortcuts: "keyboard.fill"
+    case .updates: "arrow.down.circle.fill"
+    case .novedades: "sparkles"
     case .insights: "chart.bar.xaxis"
-    case .about: "info.circle"
+    case .about: "info.circle.fill"
     }
   }
 }

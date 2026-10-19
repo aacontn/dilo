@@ -35,6 +35,10 @@ final class SettingsRuntimeState {
   /// Ajustes la consume y la deja en nil: es una orden, no un estado.
   var seccionPedida: SettingsSection?
 
+  /// La fila que alguien pidió mostrar: «Abrir Claude» desde Idioma, una
+  /// tarjeta de Inicio. Como `seccionPedida`, la ventana la consume.
+  var filaPedida: AjusteID?
+
   /// «Probar» de la tarjeta de agentes: pone «Claude te espera» en la
   /// muesca sin pasar por LaunchServices (`AgentesEnLaMuesca.probar`).
   @ObservationIgnored var probarAgente: () -> Void = {}

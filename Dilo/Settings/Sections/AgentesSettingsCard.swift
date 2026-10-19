@@ -37,6 +37,7 @@ struct AgentesSettingsCard: View {
           .toggleStyle(.switch)
           .accessibilityLabel(Text("Mostrar agentes en la muesca"))
       }
+      .anclaDeAjuste(.agentesEnLaMuesca)
 
       if settings.hudAgentes {
         LineaParaCopiar(

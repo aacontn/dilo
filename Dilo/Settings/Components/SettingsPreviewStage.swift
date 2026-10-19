@@ -66,7 +66,7 @@ struct SettingsPreviewStage<HUD: View>: View {
       }
     }
     .padding(16)
-    .background(SettingsTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    .background(FondoDeTarjeta(radio: 16))
     .overlay {
       RoundedRectangle(cornerRadius: 16, style: .continuous)
         .stroke(.white.opacity(contrast == .increased ? 0.22 : 0.1), lineWidth: 1)

@@ -21,6 +21,7 @@ struct ContextoDeLosModosCard: View {
       ) {
         interruptor("La app", \.app)
       }
+      .anclaDeAjuste(.contextoApp)
 
       if anfitrion.admite(.contextoDelCampo) {
         SettingsRow(
@@ -29,6 +30,7 @@ struct ContextoDeLosModosCard: View {
         ) {
           interruptor("El texto alrededor del cursor", \.textoAlrededor)
         }
+        .anclaDeAjuste(.contextoTexto)
 
         SettingsRow(
           title: "Lo que tienes seleccionado",
@@ -36,6 +38,7 @@ struct ContextoDeLosModosCard: View {
         ) {
           interruptor("Lo que tienes seleccionado", \.seleccion)
         }
+        .anclaDeAjuste(.contextoSeleccion)
       }
 
       if anfitrion.admite(.sitioDelNavegador) {
@@ -45,6 +48,7 @@ struct ContextoDeLosModosCard: View {
         ) {
           interruptor("El sitio del navegador", \.sitio)
         }
+        .anclaDeAjuste(.contextoSitio)
       }
 
       SettingsRow(
@@ -53,6 +57,7 @@ struct ContextoDeLosModosCard: View {
       ) {
         interruptor("También a proveedores en línea", \.tambienEnLinea)
       }
+      .anclaDeAjuste(.contextoEnLinea)
     }
   }
 

@@ -24,6 +24,7 @@ struct GestoDelGatilloCard: View {
         valueLabel: { "\(Int($0))" },
         controlWidth: 190
       )
+      .anclaDeAjuste(.cuantoEsUnToque)
       SettingsRow(
         title: "Deshacer un Esc",
         description: "Esc cancela el dictado sin que la tecla llegue a tu app. Durante 5 segundos, un clic en la muesca lo recupera y lo pega."
@@ -32,6 +33,7 @@ struct GestoDelGatilloCard: View {
           .labelsHidden()
           .toggleStyle(.switch)
       }
+      .anclaDeAjuste(.deshacerUnEsc)
     }
   }
 }
