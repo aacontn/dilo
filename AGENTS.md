@@ -184,6 +184,17 @@ Distingue propuesta, implementación y deuda pendiente.
 - **Nada de secretos en el repo.** Las credenciales viven en el Llavero. El
   `AGENTS.md` está versionado y se empuja a GitHub: lo que escribas acá queda
   visible para siempre.
+- **Dilo nunca abre solo el diálogo del Llavero** (2026-10-21). Lo que se
+  lee del Llavero de *otra* app —la sesión de Claude Code para el
+  porcentaje del plan— se lee en segundo plano con
+  `ClienteDeUsoDeClaude.sinDialogo` (`SecKeychainSetUserInteractionAllowed`
+  apagado): si macOS quiere preguntar, falla callado y la muesca sigue con
+  los tokens. Sólo un clic de la persona («Probar ahora») puede preguntar.
+  Las formas modernas (`LAContext.interactionNotAllowed`,
+  `kSecUseAuthenticationUIFail`) **no** evitan el diálogo en el Llavero de
+  archivo: medido. Antes, Claude Code reescribía su ítem al renovar la
+  sesión, macOS le borraba el permiso a Dilo y Alfonso veía el diálogo «a
+  cada rato».
 - **Una dependencia nueva se justifica en el commit.** Hoy: Sparkle (sólo
   `Dilo`) y FluidAudio cuando llegue el motor Parakeet.
 

@@ -4555,17 +4555,6 @@
         }
       }
     },
-    "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto, Dilo lee la sesión de Claude Code que guarda el Llavero y le pregunta tu porcentaje a api.anthropic.com. No la guarda, no la renueva y no la manda a nadie más. macOS te va a pedir permiso del Llavero una vez.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Without this, Claude shows the tokens from the last five hours, counted from its files. With it, Dilo reads the Claude Code session stored in the Keychain and asks api.anthropic.com for your percentage. It never stores it, never renews it and never sends it anywhere else. macOS will ask for Keychain access once."
-          }
-        }
-      }
-    },
     "Sin micrófono: clic para darlo": {
       "extractionState": "manual",
       "localizations": {
@@ -10123,6 +10112,27 @@
           "stringUnit": {
             "state": "translated",
             "value": "speech synthesis"
+          }
+        }
+      }
+    },
+    "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto, Dilo lee la sesión de Claude Code que guarda el Llavero y le pregunta tu porcentaje a api.anthropic.com. No la guarda, no la renueva y no la manda a nadie más. Dilo nunca te pide permiso solo: si macOS lo exige —pasa cuando Claude Code renueva su sesión—, la muesca vuelve a los tokens hasta que aprietes «Probar ahora».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without this, Claude shows the tokens from the last five hours, counted from its files. With it, Dilo reads the Claude Code session stored in the Keychain and asks api.anthropic.com for your percentage. It never stores it, never renews it and never sends it anywhere else. Dilo never asks for permission on its own: if macOS requires it —it happens when Claude Code renews its session—, the notch goes back to tokens until you press «Test now»."
+          }
+        }
+      }
+    },
+    "macOS no dejó leer tu sesión de Claude Code. Aprieta «Probar ahora» y elige «Permitir siempre».": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS didn't let Dilo read your Claude Code session. Press «Test now» and choose «Always Allow»."
           }
         }
       }
