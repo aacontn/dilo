@@ -328,7 +328,7 @@ private struct PorcentajeDelPlanDeClaude: View {
   var body: some View {
     SettingsRow(
       title: "Porcentaje de tu plan (opcional)",
-      description: "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto, Dilo lee la sesión de Claude Code que guarda el Llavero y le pregunta tu porcentaje a api.anthropic.com. No la guarda, no la renueva y no la manda a nadie más. macOS te va a pedir permiso del Llavero una vez."
+      description: "Sin esto, Claude muestra los tokens de las últimas cinco horas, contados de sus archivos. Con esto, Dilo lee la sesión de Claude Code que guarda el Llavero y le pregunta tu porcentaje a api.anthropic.com. No la guarda, no la renueva y no la manda a nadie más. Dilo nunca te pide permiso solo: si macOS lo exige —pasa cuando Claude Code renueva su sesión—, la muesca vuelve a los tokens hasta que aprietes «Probar ahora»."
     ) {
       Toggle("", isOn: $settings.hudPorcentajeDeClaude)
         .labelsHidden()
@@ -361,7 +361,8 @@ private struct PorcentajeDelPlanDeClaude: View {
     Task {
       let ahora = Date()
       do {
-        resultado = .init(consumo: try await cliente.leer(ahora: ahora), ahora: ahora)
+        // El único lugar donde Dilo deja que macOS pregunte: un clic tuyo.
+        resultado = .init(consumo: try await cliente.leer(ahora: ahora, preguntar: true), ahora: ahora)
       } catch {
         resultado = .init(falla: .de(error), ahora: ahora)
       }
@@ -519,6 +520,8 @@ enum DatosDeLaMuescaCopy {
       switch falla {
       case .sinSesion:
         texto = String(localized: "No encontré tu sesión de Claude Code en el Llavero, o no diste permiso para leerla. Inicia sesión en Claude Code y vuelve a probar.")
+      case .faltaPermiso:
+        texto = String(localized: "macOS no dejó leer tu sesión de Claude Code. Aprieta «Probar ahora» y elige «Permitir siempre».")
       case .sesionVencida:
         texto = String(localized: "Tu sesión de Claude Code venció. Abre Claude Code para que renueve su sesión.")
       case .esperar(let hasta):

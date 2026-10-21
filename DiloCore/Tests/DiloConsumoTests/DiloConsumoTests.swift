@@ -1,4 +1,6 @@
 import Foundation
+import LocalAuthentication
+import Security
 import Testing
 
 @testable import DiloConsumo
@@ -160,5 +162,25 @@ struct ClienteDeUsoDeClaudeTests {
     #expect(throws: ClienteDeUsoDeClaude.Falla.sinSesion) {
       try ClienteDeUsoDeClaude.token(de: Data(#"{"mcpOAuth":{}}"#.utf8), ahora: ahora)
     }
+  }
+
+  /// La consulta automática nunca puede abrir el diálogo del Llavero; sólo
+  /// la de «Probar ahora» (2026-10-21: Alfonso lo veía a cada rato).
+  @Test func laConsultaAutomaticaNoPregunta() {
+    let callada = ClienteDeUsoDeClaude.consulta(preguntar: false)
+    #expect((callada[kSecUseAuthenticationContext as String] as? LAContext)?.interactionNotAllowed == true)
+    #expect(callada[kSecUseAuthenticationUI as String] as? String == kSecUseAuthenticationUIFail as String)
+    let conClic = ClienteDeUsoDeClaude.consulta(preguntar: true)
+    #expect(conClic[kSecUseAuthenticationContext as String] == nil)
+    #expect(conClic[kSecUseAuthenticationUI as String] == nil)
+  }
+
+  /// Cuando macOS quiere preguntar, es «falta permiso», no «no hay sesión»:
+  /// Ajustes dice qué apretar en vez de mandar a iniciar sesión de nuevo.
+  @Test func pedirPermisoEsFaltaPermiso() {
+    #expect(ClienteDeUsoDeClaude.falla(de: errSecSuccess) == nil)
+    #expect(ClienteDeUsoDeClaude.falla(de: errSecInteractionNotAllowed) == .faltaPermiso)
+    #expect(ClienteDeUsoDeClaude.falla(de: errSecAuthFailed) == .faltaPermiso)
+    #expect(ClienteDeUsoDeClaude.falla(de: errSecItemNotFound) == .sinSesion)
   }
 }

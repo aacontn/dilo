@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// El porcentaje del plan de Claude, preguntado a Anthropic con la sesión que
@@ -14,14 +15,24 @@ import Security
 /// **Cómo se trata la credencial.** Se lee del Llavero en cada consulta y se
 /// suelta al terminar: no se guarda en ningún lado, no se escribe en el
 /// registro y no sale hacia ningún servidor que no sea el de Anthropic, que es
-/// quien la emitió. La primera lectura la autoriza la persona en el diálogo
-/// del sistema; si dice que no, la muesca sigue con los tokens de
-/// `LectorDeClaude`. Nunca se renueva el token: eso es de Claude Code, y dos
+/// quien la emitió.
+///
+/// **Dilo nunca abre el diálogo del Llavero por su cuenta** (2026-10-21). La
+/// consulta de cada dos minutos lee sin interacción (`preguntar: false`): si
+/// macOS quiere preguntar, falla con `faltaPermiso` y la muesca sigue con los
+/// tokens de `LectorDeClaude`. Sólo «Probar ahora» en Ajustes —un clic de la
+/// persona— lee preguntando. Antes la consulta automática preguntaba, y como
+/// Claude Code reescribe su ítem al renovar la sesión cada pocas horas (y
+/// macOS le borra el permiso a Dilo al reescribirlo), Alfonso veía «Dilo
+/// quiere acceder a Claude Code-credentials» una y otra vez. Nunca se renueva el token: eso es de Claude Code, y dos
 /// apps renovando la misma sesión terminan cerrándosela a la otra.
 public struct ClienteDeUsoDeClaude: Sendable {
   public enum Falla: Error, Equatable {
     /// No hay sesión de Claude Code en el Llavero, o la persona no dejó leerla.
     case sinSesion
+    /// La sesión está, pero macOS pide permiso para leerla y la lectura era
+    /// sin preguntar. Pasa cada vez que Claude Code renueva su sesión.
+    case faltaPermiso
     /// El token venció; se renueva la próxima vez que se use Claude Code.
     case sesionVencida
     /// Anthropic pidió esperar. Se respeta.
@@ -51,8 +62,10 @@ public struct ClienteDeUsoDeClaude: Sendable {
     self.agente = agente
   }
 
-  public func leer(ahora: Date = Date()) async throws -> ConsumoDeIA {
-    let token = try Self.tokenDelLlavero(ahora: ahora)
+  /// - Parameter preguntar: si macOS puede mostrar su diálogo del Llavero.
+  ///   Sólo con un clic de la persona; la consulta automática nunca pregunta.
+  public func leer(ahora: Date = Date(), preguntar: Bool = false) async throws -> ConsumoDeIA {
+    let token = try Self.tokenDelLlavero(ahora: ahora, preguntar: preguntar)
     var pedido = URLRequest(url: Self.direccion, timeoutInterval: 20)
     pedido.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     pedido.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -82,18 +95,66 @@ public struct ClienteDeUsoDeClaude: Sendable {
   }
 
   /// El token de acceso de Claude Code, o una falla que dice por qué no.
-  static func tokenDelLlavero(ahora: Date) throws -> String {
-    let consulta: [String: Any] = [
+  static func tokenDelLlavero(ahora: Date, preguntar: Bool) throws -> String {
+    var resultado: CFTypeRef?
+    let estado = preguntar
+      ? SecItemCopyMatching(consulta(preguntar: true) as CFDictionary, &resultado)
+      : sinDialogo { SecItemCopyMatching(consulta(preguntar: false) as CFDictionary, &resultado) }
+    if let falla = falla(de: estado) { throw falla }
+    guard let datos = resultado as? Data else { throw Falla.sinSesion }
+    return try token(de: datos, ahora: ahora)
+  }
+
+  /// La consulta al Llavero. Sin preguntar lleva además las dos formas
+  /// modernas de pedirle a macOS que falle en vez de preguntar (`LAContext`
+  /// con `interactionNotAllowed` y `kSecUseAuthenticationUIFail`), por si el
+  /// ítem algún día pasa al Llavero de protección de datos; hoy las que
+  /// mandan son las de `sinDialogo`.
+  static func consulta(preguntar: Bool) -> [String: Any] {
+    var consulta: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: servicioDelLlavero,
       kSecMatchLimit as String: kSecMatchLimitOne,
       kSecReturnData as String: true,
     ]
-    var resultado: CFTypeRef?
-    guard SecItemCopyMatching(consulta as CFDictionary, &resultado) == errSecSuccess,
-      let datos = resultado as? Data
-    else { throw Falla.sinSesion }
-    return try token(de: datos, ahora: ahora)
+    if !preguntar {
+      let contexto = LAContext()
+      contexto.interactionNotAllowed = true
+      consulta[kSecUseAuthenticationContext as String] = contexto
+      consulta[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUIFail
+    }
+    return consulta
+  }
+
+  /// Corre `cuerpo` con la interacción del Llavero apagada para el proceso,
+  /// y la deja como estaba. **Es lo único que de verdad evita el diálogo** en
+  /// el Llavero de archivo donde vive el ítem de Claude Code: medido el
+  /// 2026-10-21 en el Mac de Alfonso, con sólo `interactionNotAllowed` y
+  /// `kSecUseAuthenticationUIFail` el diálogo salió igual (8,6 s esperando
+  /// el clic); con esto, `errSecAuthFailed` en 0,02 s y sin ventana. La API
+  /// está desaconsejada desde macOS 10.10, pero no hay otra para este
+  /// Llavero. Es global al proceso: el candado la serializa, y mientras dura
+  /// —unos milisegundos— ninguna otra lectura del Llavero de Dilo puede
+  /// preguntar, que tampoco lo necesita (sus ítems los creó Dilo).
+  static func sinDialogo(_ cuerpo: () -> OSStatus) -> OSStatus {
+    candado.lock()
+    defer { candado.unlock() }
+    var antes: DarwinBoolean = true
+    SecKeychainGetUserInteractionAllowed(&antes)
+    SecKeychainSetUserInteractionAllowed(false)
+    defer { SecKeychainSetUserInteractionAllowed(antes.boolValue) }
+    return cuerpo()
+  }
+
+  private static let candado = NSLock()
+
+  /// Lo que dice el Llavero, como falla; nil si leyó.
+  static func falla(de estado: OSStatus) -> Falla? {
+    switch estado {
+    case errSecSuccess: nil
+    case errSecInteractionNotAllowed, errSecAuthFailed: .faltaPermiso
+    default: .sinSesion
+    }
   }
 
   /// Lo que Claude Code guarda: `{"claudeAiOauth":{"accessToken":…,
