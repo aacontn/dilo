@@ -617,6 +617,19 @@ propuestos y a validar en la Fase 0:
 
 ## Riesgos y lo que hay que medir antes (§Verificación)
 
+**Lo que usa Alfonso (respuesta del 2026-10-21):** llamadas por Zoom,
+FaceTime, WhatsApp, Meet y Teams; micrófono el de la webcam (Dilo lo ve
+como «Trust QHD Webcam»), a veces audífonos según la reunión. Con micrófono
+de webcam y parlantes, lo que dicen los demás se cuela en la pista `yo`:
+el eco sube al primer lugar de la Fase 0, y la matriz de apps son esas
+cinco.
+
+**Antes de construir, rea sobre las versiones actuales** de FluidVoice con
+FluidMeet (`Fluid-oss-1.6.12-beta.1`, más su código, GPLv3: sólo técnica) y
+de Wispr Flow con Notetaker (su descarga pide sesión: la baja Alfonso). Las
+del taller eran anteriores a ambas funciones. Queda para cuando el SSD2
+vuelva.
+
 La Fase 0 corre en un taller fuera del repo
 (`/Volumes/SSD 1/Dilo/taller/pruebas/reuniones/`), lanzado con `open -a`
 porque desde el terminal el tap devuelve silencio (`AGENTS.md:62-66`). Es
