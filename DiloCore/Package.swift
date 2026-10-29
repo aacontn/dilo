@@ -31,16 +31,18 @@ let package = Package(
     .executable(name: "dilo-metrics", targets: ["dilo-metrics"]),
   ],
   dependencies: [
-    // Parakeet TDT v3 (int8) en Core ML. Apache 2.0. Se fija por versión
-    // exacta: el paquete trae modelos que se bajan en runtime y una API que
-    // todavía se mueve semana a semana.
+    // Parakeet TDT v3 y Ultra (int8) en Core ML. Apache 2.0. Se fija por
+    // versión exacta: el paquete trae modelos que se bajan en runtime y una
+    // API que todavía se mueve semana a semana.
     //
-    // `traits: []` apaga `NemoTextProcessing`, un staticlib de Rust
-    // (~8 MB por slice) que sólo sirve a los frontends de TTS. Dilo no hace
-    // TTS con FluidAudio y el `.app` tiene que pesar menos de 25 MB (spec §3).
+    // Desde la 0.18 `traits: []` apaga tres cosas: `NemoTextProcessing`, un
+    // staticlib de Rust (~8 MB por slice) que no cabe en los 25 MB del
+    // `.app` (spec §3) —los números hablados ya los resuelve `DiloText`—, y
+    // los subsistemas `TTS` y `Diarizer`, que entran cada uno con la función
+    // que los usa.
     .package(
       url: "https://github.com/FluidInference/FluidAudio.git",
-      exact: "0.15.8",
+      exact: "0.18.0",
       traits: []
     )
   ],
