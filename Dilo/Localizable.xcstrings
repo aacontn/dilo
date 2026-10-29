@@ -4742,13 +4742,13 @@
         }
       }
     },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT).": {
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · meeting-transcriber, de pasrom (MIT) · Sparkle, de Andy Matuschak y otros (MIT).": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · Sparkle, by Andy Matuschak and others (MIT)."
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · meeting-transcriber, by pasrom (MIT) · Sparkle, by Andy Matuschak and others (MIT)."
           }
         }
       }
@@ -10133,6 +10133,303 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS didn't let Dilo read your Claude Code session. Press «Test now» and choose «Always Allow»."
+          }
+        }
+      }
+    },
+    "Grabando la reunión · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording the meeting · %@"
+          }
+        }
+      }
+    },
+    "Terminar la reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the meeting"
+          }
+        }
+      }
+    },
+    "Terminar la reunión y armar su guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the meeting and build its script"
+          }
+        }
+      }
+    },
+    "Grabar una reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a meeting"
+          }
+        }
+      }
+    },
+    "Grabar una reunión: tu micrófono y el audio del Mac, cada uno en su pista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a meeting: your microphone and the Mac's audio, each on its own track"
+          }
+        }
+      }
+    },
+    "Ya hay una reunión grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting is already recording."
+          }
+        }
+      }
+    },
+    "Queda muy poco disco para grabar (%lld MB). Libera al menos 1 GB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's too little disk space to record (%lld MB). Free up at least 1 GB."
+          }
+        }
+      }
+    },
+    "No pude crear la carpeta de la reunión: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't create the meeting's folder: %@"
+          }
+        }
+      }
+    },
+    "No pude abrir ni el micrófono ni el audio del Mac: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't open the microphone or the Mac's audio: %@"
+          }
+        }
+      }
+    },
+    "Falta el modelo de voz: bájalo en Ajustes → Motor de voz y vuelve a afinar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The voice model is missing: download it in Settings → Voice engine and refine again."
+          }
+        }
+      }
+    },
+    "No pude transcribir la reunión (%@). Vuelve a afinarla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't transcribe the meeting (%@). Refine it again."
+          }
+        }
+      }
+    },
+    "Las voces de la llamada no se separaron: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call's voices weren't separated: %@"
+          }
+        }
+      }
+    },
+    "No pude escribir el guion: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't write the script: %@"
+          }
+        }
+      }
+    },
+    "Empieza a grabar una reunión en este Mac: tu micrófono y el audio del Mac, cada uno en su pista. Al terminar sale el guion con quién dijo qué. Nada sale de esta compu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts recording a meeting on this Mac: your microphone and the Mac's audio, each on its own track. When it ends you get the script of who said what. Nothing leaves this computer."
+          }
+        }
+      }
+    },
+    "Termina la reunión que Dilo está grabando. El guion sale en unos minutos, cuando termina de afinarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends the meeting Dilo is recording. The script is ready in a few minutes, once Dilo finishes refining it."
+          }
+        }
+      }
+    },
+    "Última reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last meeting"
+          }
+        }
+      }
+    },
+    "Devuelve el guion de la última reunión que grabó Dilo, en Markdown: quién dijo qué y cuándo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Returns the script of the last meeting Dilo recorded, in Markdown: who said what and when."
+          }
+        }
+      }
+    },
+    "Buscar en tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search your meetings"
+          }
+        }
+      }
+    },
+    "Líneas de tus reuniones que contienen un texto o que dijo una persona, sin importar tildes ni mayúsculas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lines from your meetings that contain some text or that a person said, ignoring accents and case."
+          }
+        }
+      }
+    },
+    "Cuántas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How many"
+          }
+        }
+      }
+    },
+    "Buscar ${consulta} en tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search your meetings for ${consulta}"
+          }
+        }
+      }
+    },
+    "Grabando la reunión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording the meeting."
+          }
+        }
+      }
+    },
+    "Ya estaba grabando una reunión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting was already recording."
+          }
+        }
+      }
+    },
+    "Listo. El guion sale cuando Dilo termine de afinarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done. The script will be ready when Dilo finishes refining it."
+          }
+        }
+      }
+    },
+    "La reunión no empezó: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting didn't start: %@"
+          }
+        }
+      }
+    },
+    "No hay ninguna reunión grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meeting is recording."
+          }
+        }
+      }
+    },
+    "Todavía no hay ninguna reunión con guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no meeting with a script yet."
           }
         }
       }

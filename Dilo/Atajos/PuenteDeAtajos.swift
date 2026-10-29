@@ -37,6 +37,15 @@ enum PuenteDeAtajos {
     guard let actual else { throw .diloNoEstaListo }
     return actual
   }
+
+  /// Las reuniones de la app viva (`ControlDeReuniones`), aparte de las
+  /// acciones del dictado.
+  static weak var reuniones: (any ReunionesParaAtajos)?
+
+  static func requeridoParaReuniones() throws(FallaDeAtajo) -> any ReunionesParaAtajos {
+    guard let reuniones else { throw .diloNoEstaListo }
+    return reuniones
+  }
 }
 
 /// Lo que un atajo contesta cuando no puede. Cada frase dice qué hacer, no

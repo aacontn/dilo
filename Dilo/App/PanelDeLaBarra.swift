@@ -61,6 +61,9 @@ enum PanelDeLaBarra {
     /// Leer lo seleccionado, o dejar de leer.
     case leerSeleccion
     case transcribirArchivo
+    /// Empieza a grabar una reunión, o la termina si ya graba.
+    case grabarReunion
+    case terminarReunion
     case copiar(Copia)
     case reintentarToma
     case descartarToma
@@ -114,6 +117,12 @@ enum PanelDeLaBarra {
     case transcribiendo(Double)
   }
 
+  /// La reunión que se está grabando, como la dice el panel.
+  struct Reunion: Equatable, Sendable {
+    var titulo: String
+    var inicio: Date
+  }
+
   /// Un modo como lo ofrece el panel.
   struct Modo: Equatable, Sendable {
     let id: String
@@ -151,6 +160,8 @@ enum PanelDeLaBarra {
     var admiteLeer = true
     var modos: [Modo] = []
     var modoElegido: String?
+    /// La reunión que graba, o nil.
+    var reunion: Reunion?
     var ahora = Date()
 
     var actividad: Actividad {
@@ -288,6 +299,12 @@ enum PanelDeLaBarra {
     let reposo: Contenido.Tono = entrada.tomaGuardada == nil ? .reposo : .aviso
     switch entrada.actividad {
     case .lista:
+      // Una reunión grabando es lo que hay que ver arriba, con su tiempo:
+      // dictar igual se puede, y el dictado le gana el encabezado.
+      if let reunion = entrada.reunion {
+        let reloj = reloj(entrada.ahora.timeIntervalSince(reunion.inicio))
+        return .init(estado: String(localized: "Grabando la reunión · \(reloj)"), tono: .activo, atajo: atajo)
+      }
       return .init(estado: String(localized: "Listo para dictar"), tono: reposo, atajo: atajo)
     case .dictando:
       return .init(estado: String(localized: "Dictando"), tono: .activo, atajo: atajo)
@@ -334,6 +351,16 @@ enum PanelDeLaBarra {
 
   private static func acciones(_ entrada: Entrada) -> [Contenido.Fila] {
     var filas: [Contenido.Fila] = []
+    // Grabando, «Terminar» va primero: es lo que se viene a buscar.
+    if let reunion = entrada.reunion {
+      filas.append(Contenido.Fila(
+        titulo: String(localized: "Terminar la reunión"),
+        icono: "stop.circle.fill",
+        atajo: reloj(entrada.ahora.timeIntervalSince(reunion.inicio)),
+        accion: .terminarReunion,
+        accesibilidad: String(localized: "Terminar la reunión y armar su guion")
+      ))
+    }
     let dictando = entrada.actividad == .dictando
     filas.append(Contenido.Fila(
       titulo: dictando ? String(localized: "Parar el dictado") : String(localized: "Empezar a dictar"),
@@ -366,6 +393,14 @@ enum PanelDeLaBarra {
       accion: .transcribirArchivo,
       accesibilidad: String(localized: "Transcribir un archivo de audio o video")
     ))
+    if entrada.reunion == nil {
+      filas.append(Contenido.Fila(
+        titulo: String(localized: "Grabar una reunión"),
+        icono: "record.circle",
+        accion: .grabarReunion,
+        accesibilidad: String(localized: "Grabar una reunión: tu micrófono y el audio del Mac, cada uno en su pista")
+      ))
+    }
     return filas
   }
 
@@ -376,6 +411,15 @@ enum PanelDeLaBarra {
     let elegido = entrada.modos.contains { $0.id == entrada.modoElegido } ? entrada.modoElegido : nil
     return [Contenido.Chip(nombre: String(localized: "Normal"), id: nil, elegido: elegido == nil)]
       + entrada.modos.map { Contenido.Chip(nombre: $0.nombre, id: $0.id, elegido: $0.id == elegido) }
+  }
+
+  /// El tiempo de una reunión: `12:04`, o `1:02:30` pasada la hora. Vive acá
+  /// y no en `TextoDelPanel` para que el render del panel siga compilando sólo
+  /// con sus archivos.
+  static func reloj(_ segundos: TimeInterval) -> String {
+    let total = max(0, Int(segundos))
+    let (h, m, s) = (total / 3600, total / 60 % 60, total % 60)
+    return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
   }
 
   /// Una línea, sin saltos ni espacios en los bordes. El recorte lo hace la

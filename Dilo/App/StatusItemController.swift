@@ -31,6 +31,12 @@ final class StatusItemController: NSObject {
   /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
   /// `AppDelegate`; sin él la fila no hace nada.
   var dictarNota: (() -> Void)?
+  /// Grabar y terminar una reunión. Los cablea `AppDelegate` con
+  /// `ControlDeReuniones`; sin ellos las filas no hacen nada.
+  var grabarReunion: (() -> Void)?
+  var terminarReunion: (() -> Void)?
+  /// Mientras graba una reunión, el panel abierto refresca su reloj.
+  private var relojDeLaReunion: Timer?
   /// Los modos que el panel ofrece y cuál usa el atajo general. Lo cablea
   /// `AppDelegate`, que es quien tiene los ajustes; se lee cada vez que el
   /// panel se abre, así que un modo nuevo aparece sin avisar a nadie.
@@ -204,6 +210,8 @@ final class StatusItemController: NSObject {
     case .dictarNota: dictarNota?()
     case .leerSeleccion: toggleReadAloud()
     case .transcribirArchivo: transcribeFile()
+    case .grabarReunion: grabarReunion?()
+    case .terminarReunion: terminarReunion?()
     case let .copiar(copia): copiar(copia)
     case .reintentarToma: tomaFallida.reintentar?()
     case .descartarToma: tomaFallida.descartar?()
@@ -241,6 +249,20 @@ final class StatusItemController: NSObject {
       startBlinking()
     } else {
       stopBlinking()
+    }
+  }
+
+  /// La reunión que graba, o nil. Con una grabando, el panel abierto avanza
+  /// su reloj cada segundo; cerrado no cuesta nada (`refrescarElPanel` mira
+  /// si está abierto).
+  func setReunion(_ reunion: PanelDeLaBarra.Reunion?) {
+    entrada.reunion = reunion
+    refrescarElPanel()
+    relojDeLaReunion?.invalidate()
+    relojDeLaReunion = nil
+    guard reunion != nil else { return }
+    relojDeLaReunion = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+      MainActor.assumeIsolated { self?.refrescarElPanel() }
     }
   }
 

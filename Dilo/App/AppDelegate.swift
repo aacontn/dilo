@@ -31,6 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   /// que vive acá.
   private var accionesDeAtajos: AccionesDeDiloEnVivo?
   private var avisoDeAtajo: AvisoDeAtajoEnLaMuesca?
+  /// Reuniones: grabar, terminar, afinar. Chico hasta que se graba una.
+  private var reuniones: ControlDeReuniones?
   /// Ordena Tus palabras con Claude de vez en cuando.
   private var ordenador: OrdenadorDelDiccionario?
   /// Las URL que llegan antes de que la app termine de arrancar: abrir
@@ -259,6 +261,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     PuenteDeAtajos.actual = accionesDeAtajos
     AtajosDeDilo.updateAppShortcutParameters()
 
+    // Reuniones: desde el panel de la barra y los atajos. El control no abre
+    // audio ni carga modelos hasta que alguien graba; la interfaz grande lo
+    // mira por Observation.
+    let reuniones = ControlDeReuniones()
+    self.reuniones = reuniones
+    statusItemController.grabarReunion = { _ = reuniones.grabar() }
+    statusItemController.terminarReunion = { _ = reuniones.terminar() }
+    reuniones.alCambiar = { [weak statusItemController, weak reuniones] in
+      statusItemController?.setReunion(
+        reuniones?.enCurso.map { PanelDeLaBarra.Reunion(titulo: $0.titulo, inicio: $0.inicio) }
+      )
+    }
+    PuenteDeAtajos.reuniones = reuniones
+    // Lo que quedó grabando si la app murió, lo que espera el SSD y la
+    // retención del audio: en segundo plano, después de que el arranque ya
+    // terminó.
+    Task { @MainActor [weak reuniones] in
+      try? await Task.sleep(for: .seconds(10))
+      reuniones?.alArrancar()
+    }
+
     #if DEBUG
       receptorDeMuestras.alDibujar = { [weak stage] escena, texto in
         stage?.mostrarMuestra(escena, texto: texto)
@@ -271,7 +294,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     dictationController.onRecordingStateChange = {
-      [weak statusItemController, weak settingsRuntimeState] isRecording, session in
+      [weak statusItemController, weak settingsRuntimeState, weak reuniones] isRecording, session in
+      // Lo que se dicta durante una reunión no es la reunión.
+      reuniones?.dictado(enCurso: isRecording)
       let accent = session.flatMap {
         $0.voiceVisual.usesEdgeGlow ? $0.glowPalette.statusAccent : nil
       }
@@ -447,6 +472,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    // Salir con una reunión grabando la cierra con sus WAV completos; la
+    // pasada final no alcanza a correr y se retoma al volver a abrir Dilo.
+    reuniones?.terminar()
     dictationController?.stop()
     textInsertionService?.alCerrar()
     // A transcript the HUD is still offering only exists in its staging folder,
