@@ -148,7 +148,7 @@ struct TrozosParaLeerTests {
   @Test func unaOracionLargaSeCortaEnLasComas() {
     let larga = (1...20).map { "palabra\($0)" }.joined(separator: " ")
       + ", y después " + (1...20).map { "otra\($0)" }.joined(separator: " ") + "."
-    let trozos = TrozosParaLeer.partir(larga, maximo: 30)
+    let trozos = TrozosParaLeer.partir(larga, maximo: 30, primero: 30)
     #expect(trozos.count == 2)
     #expect(trozos[0].hasSuffix(","))
     for trozo in trozos {
@@ -158,8 +158,30 @@ struct TrozosParaLeerTests {
 
   @Test func sinPausasSeCortaAlTope() {
     let larga = (1...70).map { "p\($0)" }.joined(separator: " ")
-    let trozos = TrozosParaLeer.partir(larga, maximo: 30)
+    let trozos = TrozosParaLeer.partir(larga, maximo: 30, primero: 30)
     #expect(trozos.map { $0.split(separator: " ").count } == [30, 30, 10])
+  }
+
+  /// El caso del banco de voces: sin comas, la oración se cortaba entre
+  /// «tres coma cinco» y «u efe». Ahora se corta antes del «y que».
+  @Test func sinPausasSeCortaAntesDeUnaConjuncion() {
+    let dicha = TextoParaLeer.preparar(
+      "Le informamos que el pago de $1.250.000 vence el 15/03/2026 y que el saldo pendiente de 3,5 UF se cobrará en la cuota de abril."
+    )
+    let trozos = TrozosParaLeer.partir(dicha, maximo: 30, primero: 30)
+    #expect(trozos.count == 2)
+    #expect(trozos[1].hasPrefix("y que el saldo"))
+    #expect(trozos.allSatisfy { !$0.hasPrefix("u efe") })
+  }
+
+  /// El primer trozo es corto para que el primer audio llegue antes; lo de
+  /// después vuelve al tope de siempre.
+  @Test func elPrimerTrozoEsCorto() {
+    let texto = "Ayer en la tarde nos juntamos con el equipo para revisar cómo vamos con el proyecto y lo que falta. Después seguimos."
+    let trozos = TrozosParaLeer.partir(texto)
+    #expect(trozos[0].split(separator: " ").count <= TrozosParaLeer.palabrasDelPrimerTrozo)
+    #expect(trozos.last == "Después seguimos.")
+    #expect(trozos.joined(separator: " ") == texto)
   }
 
   @Test func nadaQueLeer() {
