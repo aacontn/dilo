@@ -95,6 +95,9 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   private var avisarCarga: (@Sendable (Bool) -> Void)?
   private var activa = false
   private var muestras: [Float] = []
+  /// Cuántos trabajos de afuera tienen el modelo prestado ahora (la pasada
+  /// final de una reunión). Mientras haya uno, el reposo no lo suelta.
+  private var prestamos = 0
   /// Hasta dónde ya se leyó para parciales.
   private var leidoHastaParcial = 0
   private var textoParcial = ""
@@ -294,6 +297,28 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     return try await modelo.transcribir(audio).trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
+  /// Presta el modelo cargado a un trabajo largo que no es un dictado: la
+  /// pasada final de una reunión transcribe una hora por pista con el mismo
+  /// modelo que dicta, sin cargar otros 469 MB (spec de reuniones,
+  /// «Transcripción»). Mientras dura, el reposo no lo suelta; al terminar se
+  /// arma la cuenta como después de un dictado. Un dictado que llega en medio
+  /// no espera a la reunión: los dos usan el mismo `AsrManager`, cada uno con
+  /// su estado del decoder.
+  public func conElModelo<T: Sendable>(
+    _ trabajo: @Sendable (any ModeloDeVoz) async throws -> T
+  ) async throws -> T {
+    guard cargador.disponible else { throw EngineError.modeloNoDescargado }
+    descarga?.cancel()
+    descarga = nil
+    let modelo = try await cargarModelo()
+    prestamos += 1
+    defer {
+      prestamos -= 1
+      armarDescargaPorReposo()
+    }
+    return try await trabajo(modelo)
+  }
+
   public func cancel() async {
     guard activa else { return }
     activa = false
@@ -316,7 +341,7 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   private func armarDescargaPorReposo() {
     descarga?.cancel()
     descarga = nil
-    guard !activa, modelo != nil, let reposo else { return }
+    guard !activa, prestamos == 0, modelo != nil, let reposo else { return }
 
     let reloj = self.reloj
     descarga = Task { [weak self] in
@@ -329,7 +354,7 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
   private func descargarSiNadieDicto() async {
     // Un dictado que empezó mientras corría la cuenta la gana: el `start` ya
     // canceló la tarea, y esto es el cinturón por si llegó tarde.
-    guard !activa, carga == nil else { return }
+    guard !activa, carga == nil, prestamos == 0 else { return }
     await descargarDeMemoria()
   }
 

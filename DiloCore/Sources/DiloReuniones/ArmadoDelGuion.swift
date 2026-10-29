@@ -77,15 +77,17 @@ public enum ArmadoDelGuion {
     return Resultado(palabras: palabras, hablantes: hablantes(numeros: numeros, reunion: reunion))
   }
 
-  struct Atribucion: Equatable {
-    var indice: Int?
-    var solape: Bool
+  /// El hablante de una palabra de `ellos`, por índice del diarizador.
+  public struct Atribucion: Sendable, Equatable {
+    public var indice: Int?
+    public var solape: Bool
   }
 
   /// El hablante de cada palabra de `ellos`, por índice del diarizador. Sin
   /// diarizador —falló, o no había modelo— todas son de una misma voz: el
-  /// guion sigue saliendo, con «Hablante 2» para todo lo de la llamada.
-  static func atribuir(_ ellos: [PalabraDeLaPista], actividad: ActividadDeHablantes?) -> [Atribucion] {
+  /// guion sigue saliendo, con «Hablante 2» para todo lo de la llamada. Es
+  /// público para que el banco de la Fase 0 mida exactamente esto.
+  public static func atribuir(_ ellos: [PalabraDeLaPista], actividad: ActividadDeHablantes?) -> [Atribucion] {
     guard let actividad else { return ellos.map { _ in Atribucion(indice: 0, solape: false) } }
     var salida = ellos.map { palabra in
       let r = AtribucionDeHablantes.hablante(desde: palabra.desde, hasta: palabra.hasta, en: actividad)

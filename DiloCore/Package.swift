@@ -26,7 +26,7 @@ let package = Package(
       targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloAgentes", "DiloPlataforma", "DiloReuniones"]
     ),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
-    .library(name: "DiloEngines", targets: ["DiloEngines"]),
+    .library(name: "DiloEngines", targets: ["DiloEngines", "DiloHablantes"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
     // La herramienta que mide los números del spec §3 contra un `.app` ya
     // compilado. Es de taller, no de producto: `scripts/metrics.sh` la
@@ -70,6 +70,13 @@ let package = Package(
     // habló, el eco, la búsqueda, el disco y la retención. Sin FluidAudio, para
     // que el MCP y el CLI lo lean y `swift test` lo pruebe en segundos.
     .target(name: "DiloReuniones"),
+    // Quién habló, con FluidAudio: Nemotron 3, Sortformer, LS-EEND, VBx y los
+    // embeddings de voz detrás de un contrato propio. Viaja en el producto
+    // `DiloEngines` por la misma razón que `DiloModes` viaja en `DiloText`.
+    .target(
+      name: "DiloHablantes",
+      dependencies: ["DiloReuniones", .product(name: "FluidAudio", package: "FluidAudio")]
+    ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
