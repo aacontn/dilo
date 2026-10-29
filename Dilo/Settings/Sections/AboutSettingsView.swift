@@ -42,7 +42,7 @@ struct AboutSettingsView: View {
 
         SettingsRow(
           title: "Licencias de terceros",
-          description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT)."
+          description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · meeting-transcriber, de pasrom (MIT) · Sparkle, de Andy Matuschak y otros (MIT)."
         ) {
           EmptyView()
         }
