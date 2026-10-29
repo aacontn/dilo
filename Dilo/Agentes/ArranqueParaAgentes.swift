@@ -27,6 +27,9 @@ enum ArranqueParaAgentes {
 
     let app = bundleDeLaApp
     let fuente = FuenteDelHistorial(dominio: app == .main ? nil : app.bundleIdentifier)
+    // Las reuniones, donde las deja la app (Ajustes → Reuniones), leídas del
+    // disco sin la app abierta.
+    let reuniones = ReunionesEnDisco(dominio: app == .main ? nil : app.bundleIdentifier)
     let version = app.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     Task {
       switch modo {
@@ -34,12 +37,12 @@ enum ArranqueParaAgentes {
         // stdout es el protocolo: este aviso va al log del sistema, nunca a
         // stdout. Sin texto dictado, sólo que arrancó.
         AppLog.agentes.notice("Servidor MCP por stdio, Dilo \(version, privacy: .public)")
-        await ServidorMCP(fuente: fuente, version: version).correrPorStdio()
+        await ServidorMCP(fuente: fuente, reuniones: reuniones, version: version).correrPorStdio()
         AppLog.agentes.notice("Servidor MCP: stdin cerrado, salgo")
         exit(0)
       case let .cli(argumentos):
         let salida = await CLIDeDilo.correr(
-          argumentos, herramientas: HerramientasDeDilo(fuente: fuente), version: version
+          argumentos, herramientas: HerramientasDeDilo(fuente: fuente, reuniones: reuniones), version: version
         )
         try? FileHandle.standardOutput.write(contentsOf: Data(salida.texto.utf8))
         exit(salida.codigo)

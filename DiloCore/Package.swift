@@ -54,7 +54,9 @@ let package = Package(
     .target(name: "DiloText"),
     .target(name: "DiloModes"),
     .target(name: "DiloConsumo"),
-    .target(name: "DiloAgentes"),
+    // `DiloAgentes` lee las reuniones del disco para el MCP y el CLI; lo que
+    // lee es puro y no arrastra FluidAudio.
+    .target(name: "DiloAgentes", dependencies: ["DiloReuniones"]),
     .target(name: "DiloPlataforma"),
     .target(name: "DiloCapabilities"),
     .target(
@@ -82,7 +84,7 @@ let package = Package(
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),
-    .testTarget(name: "DiloAgentesTests", dependencies: ["DiloAgentes"]),
+    .testTarget(name: "DiloAgentesTests", dependencies: ["DiloAgentes", "DiloReuniones"]),
     .testTarget(name: "DiloPlataformaTests", dependencies: ["DiloPlataforma"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
