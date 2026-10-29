@@ -241,6 +241,8 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
 | `DiloPlataforma` | el URL scheme (`EnlaceDeDilo`), los agentes que avisan por su *hook* (`EventoDeAgente`, `RegistroDeAgentes`), las líneas para pegar en cada agente (`LineasDeLosHooks`) y el aviso de «Mostrar en la muesca» (`AvisoDeAfuera`) | fase 5 |
+| `DiloReuniones` | Reuniones, lo puro: `reunion.json`, el guion palabra a palabra, carpetas ASCII, estados, relojes, palabra → hablante, eco, lo dictado, líneas y `guion.md`, búsqueda, retención, disco, búfer anular, cabecera WAV, vigía de silencio. Sin FluidAudio | reuniones F1 |
+| `DiloHablantes` | quién habló, con FluidAudio: Nemotron 3, Sortformer, LS-EEND, VBx y huellas de CAM++ detrás de `SeparacionDeVoces`. Viaja en el producto `DiloEngines` | reuniones F1 |
 
 **El acento de la app es Glaciar** (decisión de Alfonso del 2026-10-14: «el
 color naranja ya no me gusta»): azul `#0A84FF` a celeste `#64D2FF` sobre
@@ -740,10 +742,13 @@ que sólo se prueba a mano están en `docs/design/agentes-en-la-muesca.md`.
   `puedeSerPrincipal = false` y nunca exige el principal ni dice abrir el
   micrófono, lo pida quien lo pida. Un segmento que cambia su contenido bajo
   el mismo id vuelve a decir su palabra.
-- **Los App Intents no tienen lógica propia** (`Dilo/Atajos/`). Ocho:
-  Dictar (con modo opcional, «Sin modo» incluido), Dictar una nota, Elegir el
-  modo de Dilo, Último dictado, Copiar el último dictado, Transcribir un
-  archivo, Buscar en el historial de Dilo y Mostrar en la muesca. Lo que hace
+- **Los App Intents no tienen lógica propia** (`Dilo/Atajos/`). Ocho de
+  dictado: Dictar (con modo opcional, «Sin modo» incluido), Dictar una nota,
+  Elegir el modo de Dilo, Último dictado, Copiar el último dictado, Transcribir
+  un archivo, Buscar en el historial de Dilo y Mostrar en la muesca. Y cuatro
+  de reuniones (`IntentsDeReuniones.swift`, por `PuenteDeAtajos.reuniones` y
+  `EjecucionDeReuniones`): Grabar una reunión, Terminar la reunión, Última
+  reunión y Buscar en tus reuniones. Lo que hace
   cada uno vive en `EjecucionDeAtajos`, que recibe la app como protocolo
   (`AccionesParaAtajos`) y se prueba con un doble; `AccionesDeDiloEnVivo`
   llama a lo mismo que el menú y el panel del hover
@@ -803,8 +808,8 @@ en `DiloAgentes`, con tests) mirando sólo `argv`:
 
 - `--mcp` en cualquier lugar → servidor MCP;
 - `argv[0]` que se llama exactamente `dilo` (el enlace) → CLI;
-- primer argumento `spec`, `dictados`, `palabras`, `ayuda`, `help`, `--help`
-  o `-h` → CLI;
+- primer argumento `spec`, `dictados`, `palabras`, `reuniones`, `ayuda`,
+  `help`, `--help` o `-h` → CLI;
 - cualquier otra cosa → la app de siempre. Los argumentos de un guion
   (`-NSDocumentRevisionsDebugMode YES`, `-psn_…`) nunca deciden el modo, y el
   ejecutable `Dilo` con mayúscula **no** es el CLI: compararlo sin distinguir
@@ -841,6 +846,9 @@ Herramientas (MCP) y comandos (CLI), las cuatro del plan:
 | `buscar_dictados {consulta, maximo}` | `dilo dictados buscar <consulta> [--maximo N]` |
 | `ver_dictado {id, desde, max_caracteres}` | `dilo dictados ver <id> [--desde N] [--max_caracteres N]` |
 | `tus_palabras` | `dilo palabras` |
+| `reuniones_recientes {maximo}` | `dilo reuniones recientes [--maximo N]` |
+| `buscar_reuniones {consulta, hablante, maximo}` | `dilo reuniones buscar <consulta> [--hablante NOMBRE] [--maximo N]` |
+| `ver_reunion {id, parte, desde, max_caracteres}` | `dilo reuniones ver <id> [--parte guion\|resumen] [--desde N] [--max_caracteres N]` |
 
 Topes: `maximo` 10 (hasta 50), extractos de 280 caracteres con `recortado`,
 páginas de 20.000 caracteres (hasta 100.000). El id para agentes es
@@ -1075,6 +1083,82 @@ con un selector de modelo propio. Dos usos, dos modelos:
   modelo y marca si coincide con lo esperado; `ordenar` ordena un
   diccionario de ejemplo. Por defecto compara Haiku 5.5 con Sonnet 5.5.
   Llama a la API de verdad: se corre a mano, nunca desde un test.
+
+## Reuniones
+
+Desde el 2026-10-29, el núcleo de la Fase 1 del spec
+`docs/superpowers/specs/2026-10-21-reuniones-design.md` (léelo antes de tocar
+nada de esto). El producto es **el guion de quién dijo qué**, todo local, y
+Claude nunca corre solo.
+
+- **Dos pistas que nunca se mezclan.** `yo` es un `AVAudioEngine` propio
+  (`CapturaDelMicrofono`) sobre la entrada del sistema o la elegida
+  (`diloReunionesMicrofonoUID`), fijada sólo en ese motor. `ellos` es un tap
+  de Core Audio global sin Dilo (`CapturaDelSistema`: `CATapDescription` +
+  `AudioHardwareCreateProcessTap` + agregado **privado** con `TapAutoStart`,
+  `.unmuted`); ni ScreenCaptureKit ni APIs privadas. Si una falla, la otra
+  sigue: dos capturas independientes, no un agregado con las dos.
+- **El IOProc no escribe a disco.** Baja a mono y copia a un `BuferAnular`
+  (SPSC, sin locks ni memoria nueva); `PistaEnDisco` lo vacía cada segundo,
+  remuestrea a 16 kHz con la tasa de cada bloque (`RemuestreoA16k`), rellena
+  con silencio los huecos de entrega (el tap calla cuando nada suena),
+  reescribe la cabecera WAV y anota un ancla (muestra, `mHostTime`) en
+  `relojes.jsonl` cada 10 s. La vigía de silencio digital es por pista
+  (`VigiaDeSilencio`: ámbar a los 5 s, aviso a los 15 s; el tap sin búferes
+  no cuenta como ceros).
+- **Dónde.** `/Volumes/SSD 1/Dilo/reuniones/AAAA/AAAA-MM-DD-HHMM-titulo/`
+  (`diloReunionesCarpeta` para otra raíz). Sin el SSD se graba en
+  `~/Library/Application Support/Dilo/reuniones-pendientes/` y se muda al
+  montarse (`MudanzaDeReuniones`: copia, compara tamaño y SHA-256, y recién
+  entonces borra la copia interna). Si el disco se va a media reunión, las
+  dos pistas siguen allá con una parte nueva (`yo-2.wav`). No empieza con
+  menos de 1 GB libre; avisa bajo 500 MB (`PoliticaDeDisco`).
+- **Nunca perder.** `reunion.json` dice `grabando` con el pid y la hora de
+  arranque del proceso; al abrir Dilo, una `grabando` sin proceso vivo pasa a
+  `interrumpida`, se reparan sus WAV (`CabeceraWAV.reparar`) y se afina igual
+  (`ControlDeReuniones.alArrancar`, en segundo plano y diez segundos después
+  del arranque). Salir de Dilo grabando cierra los WAV y deja la pasada
+  para la próxima vez.
+- **La pasada final** (`PasadaFinal`): Parakeet sobre cada archivo entero con
+  el **mismo** `ParakeetEngine` del dictado (`ParakeetCompartido`, anotado
+  por `DiloSpeechStack`; `ParakeetEngine.conElModelo` lo presta y el reposo
+  no lo suelta mientras dura), Nemotron 3 `fast32` sobre `ellos`
+  (`SeparacionDeVoces`, trozo a trozo) y Sortformer si falla o si se eligió
+  (`diloReunionesDiarizador`). Palabra → hablante, lo dictado, el eco con
+  parlantes y las líneas se deciden en `DiloReuniones` (`ArmadoDelGuion`,
+  `LineasDelGuion`), con tests. Los modelos van a
+  `Application Support/Dilo/models/`, se bajan a pedido y se sueltan al
+  terminar. Tus palabras **no** van como vocabulario: el vocabulario de
+  FluidAudio para Parakeet v3 carga un codificador CTC en inglés.
+- **Retención** (`diloReunionesAudio`): al quedar lista, los WAV pasan a AAC
+  de 32 kbps; a los 30 días (o al terminar, o nunca) el audio va a la
+  Papelera. Borrar nunca es definitivo. El guion se queda para siempre.
+- **Privacidad.** Al log van tiempos, cuentas y nombres de falla; las rutas
+  (llevan el título) van privadas; nunca una palabra de una reunión. Lo dicho
+  en una reunión es dato no confiable para el MCP, y las huellas de voz no se
+  exponen.
+- **La API para la interfaz es `ControlDeReuniones`** (`@Observable`,
+  `@MainActor`): `enCurso` (título, inicio, carpeta, lugar, y por pista
+  `vigia`, `nivel`, `conSenal`, `pareceFaltarPermiso`, `falla`;
+  `espacioBajo`), `pasada` (id, título y `AvanceDeLaPasada` con etapa y
+  total real), `aviso` (con `panelDelAudioDelSistema` para el arreglo del
+  permiso), `grabar(evento:)`, `terminar()`, `afinarDeNuevo(id:)`,
+  `reunionesRecientes()`, `buscar(_:hablante:maximo:)`, `guionDeLaUltima()`,
+  `renombrar(hablante:a:en:)`. Juntar y reasignar son puros
+  (`EdicionDelGuion`); después se guarda con `EscritorDeReunion`. La muesca
+  todavía no tiene la actividad de la reunión.
+- **No se puede probar desde el terminal**: el tap devuelve silencio
+  (TCC lo atribuye al proceso padre). La captura se prueba con la app abierta
+  por `open -a`; las reglas, con `swift test`.
+- **El banco de la Fase 0** es taller, como `dilo-metrics`:
+  `scripts/banco-reuniones.sh <carpeta>` corre `dilo-banco-reuniones` (un
+  proceso por diarizador, para medir su RAM) sobre `<nombre>.ellos.wav`,
+  `<nombre>.yo.wav` o `<nombre>.wav` con etiquetas opcionales en
+  `<nombre>.etiquetas.tsv` (`desde⇥hasta⇥hablante`, «Yo» es la pista del
+  micrófono). Deja `banco-resultados/resumen.md`: palabras con el hablante
+  correcto, uniones, particiones, solapes, segundos por hora, carga, RAM y
+  la similitud de CAM++ entre la misma persona en dos archivos.
+  `--generar` arma dos reuniones de prueba con `say`, a archivo.
 
 ## La ventana de Ajustes
 
@@ -1402,3 +1486,8 @@ Dos activos heredados no eran publicables y **ya se sacaron**
 `Assets.xcassets/Siri/` (sin licencia, imitaba a Apple). Todo lo que queda en
 el bundle es CC0, MIT o propio. Si vuelve un activo ajeno, su licencia va en
 `LICENSE-SOUNDS.txt` o en un `LICENSE-ARTWORK.txt` antes que el archivo.
+
+## Pendientes y decisiones
+
+Lo que falta hacer o confirmar está en `docs/pendientes.md`; lo decidido, en
+`docs/decisiones.md`. Este archivo no lleva pendientes.
