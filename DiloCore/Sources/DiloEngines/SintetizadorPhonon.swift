@@ -35,7 +35,7 @@ public struct SintetizadorPhonon: Sendable {
     let proceso = Process()
     proceso.executableURL = ejecutable
     proceso.arguments = Self.argumentos(
-      texto: texto, voz: InstalacionDePhonon.archivoDeVoz(voz),
+      texto: Self.paraPhonon(texto), voz: InstalacionDePhonon.archivoDeVoz(voz),
       modelo: InstalacionDePhonon.carpetaDelModelo, salida: salida
     )
     proceso.environment = Self.entorno
@@ -63,6 +63,29 @@ public struct SintetizadorPhonon: Sendable {
     }
     try Task.checkCancellation()
     return try Self.leerWAV(salida)
+  }
+
+  /// La ñ escrita como «ni». Phonon 40m 0.5.0 no la dice: en el banco de
+  /// voces, con «Mañana temprano, el niño de la señora Muñoz viaja a
+  /// España», las tres voces probadas y el modelo multilingüe dijeron
+  /// «manana», «zenahora», «espanada», y Parakeet no oyó ninguna ñ; escrita
+  /// «maniana», «seniora», «Espania», la oyó en todas las palabras. Lo de
+  /// Apple y Supertonic sí la dicen, así que es del modelo o de su
+  /// tokenizador, no del audio. Si una versión nueva lo arregla, esto sale.
+  public static func paraPhonon(_ texto: String) -> String {
+    var resultado = ""
+    let letras = Array(texto)
+    for (i, letra) in letras.enumerated() {
+      guard letra == "ñ" || letra == "Ñ" else {
+        resultado.append(letra)
+        continue
+      }
+      let siguiente = i + 1 < letras.count ? letras[i + 1].lowercased() : ""
+      let base = letra == "Ñ" ? "N" : "n"
+      // Antes de una i, la i del «ni» sobra: «añil» → «anil».
+      resultado += siguiente == "i" ? base : base + (letra == "Ñ" && letras.indices.contains(i + 1) && letras[i + 1].isUppercase ? "I" : "i")
+    }
+    return resultado
   }
 
   /// El texto llega ya dicho por `TextoParaLeer`, y `--lang es` deja que el

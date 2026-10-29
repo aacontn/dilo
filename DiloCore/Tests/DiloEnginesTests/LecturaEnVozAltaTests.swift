@@ -78,6 +78,15 @@ struct SintetizadorPhononTests {
     ])
   }
 
+  /// Phonon 40m no dice la ñ y sí dice «ni» (medido con Parakeet).
+  @Test func laEnieSeEscribeComoNi() {
+    #expect(SintetizadorPhonon.paraPhonon("Mañana el niño de la señora Muñoz") == "Maniana el ninio de la seniora Munioz")
+    #expect(SintetizadorPhonon.paraPhonon("Ñuñoa") == "Niunioa")
+    #expect(SintetizadorPhonon.paraPhonon("ÑUÑOA") == "NIUNIOA")
+    #expect(SintetizadorPhonon.paraPhonon("añil") == "anil")
+    #expect(SintetizadorPhonon.paraPhonon("sin ene") == "sin ene")
+  }
+
   @Test func elProcesoNoSaleAInternet() {
     let entorno = SintetizadorPhonon.entorno
     #expect(entorno["HF_HUB_OFFLINE"] == "1")
