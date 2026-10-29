@@ -21,7 +21,10 @@ let package = Package(
   name: "DiloCore",
   platforms: [.macOS(.v26)],
   products: [
-    .library(name: "DiloText", targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloAgentes", "DiloPlataforma"]),
+    .library(
+      name: "DiloText",
+      targets: ["DiloText", "DiloModes", "DiloConsumo", "DiloAgentes", "DiloPlataforma", "DiloReuniones"]
+    ),
     .library(name: "DiloCapabilities", targets: ["DiloCapabilities"]),
     .library(name: "DiloEngines", targets: ["DiloEngines"]),
     .library(name: "DiloMetrics", targets: ["DiloMetrics"]),
@@ -62,6 +65,10 @@ let package = Package(
         .product(name: "FluidAudio", package: "FluidAudio"),
       ]
     ),
+    // Reuniones, lo puro: el modelo de datos, el guion, los relojes, quién
+    // habló, el eco, la búsqueda, el disco y la retención. Sin FluidAudio, para
+    // que el MCP y el CLI lo lean y `swift test` lo pruebe en segundos.
+    .target(name: "DiloReuniones"),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
@@ -72,5 +79,6 @@ let package = Package(
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
     .testTarget(name: "DiloMetricsTests", dependencies: ["DiloMetrics"]),
+    .testTarget(name: "DiloReunionesTests", dependencies: ["DiloReuniones"]),
   ]
 )

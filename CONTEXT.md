@@ -17,8 +17,11 @@ Vive en la barra de menús, sin ícono permanente en el Dock, y ofrece
 "Abrir al iniciar sesión" apagado por defecto (`SMAppService`).
 
 **Dictado** es el centro de la app y lo único que v1 entrega terminado.
-**Reuniones** y **Conversación** existen en la máquina de sesión como estados
-previstos y no se dibujan todavía.
+**Reuniones** se construyen desde el 2026-10-29 (spec
+`2026-10-21-reuniones-design.md`): el núcleo graba, afina y escribe el
+**Guion**; su superficie en la muesca y su ventana vienen después.
+**Conversación** existe en la máquina de sesión como estado previsto y no se
+dibuja todavía.
 
 Dos cosas en Dilo son modelos y **no son lo mismo**. Un **Motor de voz**
 convierte voz en texto. Un **Modelo de texto** reescribe texto que ya existe,
@@ -128,6 +131,32 @@ Una cosa que la app puede o no puede hacer según dónde corra, detrás de
 `HostCapabilities`: foco antes de pegar, releer lo pegado, título de la
 ventana, pegado directo, atajo global, tap de audio. En sandbox lo que no se
 puede **se esconde**, nunca falla. _Evitar_: feature flag, permiso.
+
+**Reunión** ·
+Una conversación grabada en esta compu, sin bot y sin nube: dos **Pistas** a
+disco desde el primer segundo y, al terminar, su **Guion**. Vive en
+`/Volumes/SSD 1/Dilo/reuniones/AAAA/<carpeta>/` (o en el respaldo interno
+mientras el SSD no está). Nunca empieza sola: el clic es de la persona.
+_Evitar_: meeting, llamada, sesión, notetaker.
+
+**Pista** ·
+Una de las dos fuentes de una **Reunión**, que nunca se mezclan: `yo` (el
+micrófono, siempre Yo) y `ellos` (el audio del sistema por el tap de Core
+Audio, lo que se diariza). Cada una tiene su WAV, sus anclas de reloj y su
+vigía de silencio. _Evitar_: canal, track, stream, fuente.
+
+**Guion** ·
+Lo que sale de una **Reunión**: una línea por intervención, con quién la dijo
+y cuándo (`Camila · 15:31 — …`). En disco son palabras con su tiempo y su
+**Hablante** (`guion.jsonl`) y su vista para leer (`guion.md`). Es el
+producto: lo que se busca, se copia y se le pasa a un agente. _Evitar_:
+transcript, acta, minuta, transcripción.
+
+**Hablante** ·
+Una voz del **Guion**. Yo sale de la pista `yo`, sin modelo; los de `ellos`
+entran como «Hablante 2», «Hablante 3»… por orden de llegada hasta que
+alguien les pone nombre. _Evitar_: speaker, participante, asistente (el
+asistente es del calendario; el hablante, del audio).
 
 **Sección de Ajustes** ·
 Una categoría navegable de preferencias persistidas con un propósito visible.
