@@ -40,14 +40,41 @@ struct PortadaDeAjustesTests {
     #expect(PortadaDeAjustes(entrada).avisos.isEmpty)
   }
 
-  @Test func parakeetSinModeloDictaConAppleYLlevaADescargarlo() {
+  @Test func parakeetSinModeloDictaConAppleYOfreceBajarUltra() {
     var entrada = entrada()
     entrada.motorElegido = .parakeet
-    entrada.parakeetListo = false
+    entrada.parakeetEnDisco = []
     let portada = PortadaDeAjustes(entrada)
     #expect(portada.motorEnUso == .apple)
     #expect(portada.listo, "dictar con Apple mientras tanto no es un bloqueo")
-    #expect(portada.avisos.map(\.accion) == [.ir(.modeloDeParakeet)])
+    #expect(portada.avisos.map(\.accion) == [.bajar(.ultra)])
+
+    entrada.parakeetBajando = true
+    #expect(PortadaDeAjustes(entrada).avisos.map(\.accion) == [.ir(.modeloDeParakeet)])
+  }
+
+  /// Quien ya tenía v3 sigue dictando con v3, y se le ofrece Ultra con su
+  /// tamaño sin bloquear nada.
+  @Test func conV3SeSigueDictandoYSeOfreceUltra() {
+    var entrada = entrada()
+    entrada.motorElegido = .parakeet
+    entrada.parakeetEnDisco = [.v3]
+    let portada = PortadaDeAjustes(entrada)
+    #expect(portada.motorEnUso == .parakeet)
+    #expect(portada.varianteEnUso == .v3)
+    #expect(portada.listo)
+    let aviso = try? #require(portada.avisos.first)
+    #expect(aviso?.accion == .bajar(.ultra))
+    #expect(aviso?.detalle.contains("\(VarianteDeParakeet.ultra.megasDeDescarga)") == true)
+  }
+
+  @Test func conUltraNoHayNadaQueOfrecer() {
+    var entrada = entrada()
+    entrada.motorElegido = .parakeet
+    entrada.parakeetEnDisco = [.ultra, .v3]
+    let portada = PortadaDeAjustes(entrada)
+    #expect(portada.varianteEnUso == .ultra)
+    #expect(portada.avisos.isEmpty)
   }
 
   @Test func sinClaveSeAvisaSoloSiAlgoUsaClaude() {

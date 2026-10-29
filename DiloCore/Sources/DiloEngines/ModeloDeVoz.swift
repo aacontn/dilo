@@ -7,7 +7,7 @@ import Foundation
 /// Existe para que `ParakeetEngine` no hable con FluidAudio directo. Las
 /// reglas que importan —cuándo se carga, qué pasa si sueltas antes de que
 /// esté, cuándo se suelta de la memoria— se prueban con `swift test`, y un
-/// `AsrManager` de verdad pide 469 MB en disco y medio minuto de Core ML.
+/// `AsrManager` de verdad pide cientos de megas en disco y medio minuto de Core ML.
 public protocol ModeloDeVoz: Sendable {
   /// La pasada final sobre el buffer entero, con estado propio: es la que
   /// manda y no arrastra nada de los parciales.
@@ -22,6 +22,14 @@ public protocol ModeloDeVoz: Sendable {
 
   /// Suelta lo que ocupa en RAM.
   func liberar() async
+
+  /// Qué modelo es, para saber si sigue siendo el que hay que usar: Ultra
+  /// puede terminar de bajar con v3 en la RAM.
+  var firma: String { get }
+}
+
+extension ModeloDeVoz {
+  public var firma: String { "" }
 }
 
 /// De dónde sale un modelo cargado, y si hay algo que cargar.
@@ -33,24 +41,49 @@ public protocol CargadorDeModelo: Sendable {
   /// Lee el modelo del disco y lo deja listo para transcribir. Tarda: en un
   /// M1 ocioso son unos veinte segundos la primera vez.
   func cargar() async throws -> any ModeloDeVoz
+
+  /// La firma del modelo que `cargar()` traería **ahora**. Si no es la del
+  /// que está en la RAM, el motor lo suelta antes del próximo dictado.
+  var firma: String { get }
 }
 
-/// El cargador de verdad: lee lo que ya está descargado y arma el
-/// `AsrManager` de FluidAudio.
-public struct CargadorDeParakeet: CargadorDeModelo {
-  private let almacen: ParakeetModelStore
+extension CargadorDeModelo {
+  public var firma: String { "" }
+}
 
-  public init(almacen: ParakeetModelStore = ParakeetModelStore()) {
-    self.almacen = almacen
+/// El cargador de verdad: resuelve qué variante dicta, lee lo que ya está
+/// descargado y arma el `AsrManager` de FluidAudio.
+///
+/// La variante se resuelve **cada vez** (`ResolucionDeParakeet`), no al armar
+/// el cargador: la descarga de Ultra termina con la app abierta, y la
+/// elección de Ajustes cambia sin reiniciar nada.
+public struct CargadorDeParakeet: CargadorDeModelo {
+  private let carpeta: URL
+  private let elegida: @Sendable () -> VarianteDeParakeet?
+
+  public init(
+    carpeta: URL = ParakeetModelStore.carpeta,
+    elegida: @escaping @Sendable () -> VarianteDeParakeet? = { nil }
+  ) {
+    self.carpeta = carpeta
+    self.elegida = elegida
   }
 
-  public var disponible: Bool { ParakeetModelStore.estaDescargado }
+  /// La variante que dictaría ahora, o nil si no hay ninguna en disco.
+  public var varianteEnUso: VarianteDeParakeet? {
+    ResolucionDeParakeet.enUso(enDisco: ParakeetModelStore.enDisco(en: carpeta), elegida: elegida())
+  }
+
+  public var disponible: Bool { varianteEnUso != nil }
+
+  public var firma: String { varianteEnUso?.rawValue ?? "" }
 
   public func cargar() async throws -> any ModeloDeVoz {
-    let modelos = try await almacen.cargar()
+    guard let variante = varianteEnUso else { throw EngineError.modeloNoDescargado }
+    let modelos = try await ParakeetModelStore(variante: variante, carpeta: carpeta).cargar()
     let manager = AsrManager(config: .default)
     try await manager.loadModels(modelos)
-    return ModeloDeParakeet(manager: manager)
+    return ModeloDeParakeet(manager: manager, variante: variante)
   }
 }
 
@@ -59,10 +92,14 @@ public struct CargadorDeParakeet: CargadorDeModelo {
 actor ModeloDeParakeet: ModeloDeVoz {
   private let manager: AsrManager
   private var estadoParcial: TdtDecoderState?
+  nonisolated let variante: VarianteDeParakeet
 
-  init(manager: AsrManager) {
+  init(manager: AsrManager, variante: VarianteDeParakeet) {
     self.manager = manager
+    self.variante = variante
   }
+
+  nonisolated var firma: String { variante.rawValue }
 
   func transcribir(_ muestras: [Float]) async throws -> String {
     var estado = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)

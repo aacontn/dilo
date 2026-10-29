@@ -356,7 +356,7 @@ extension DirectDictationController {
             in: folder
           )
         },
-        motorDelDictado: { await motores.motorDeLaUltimaSesion()?.title },
+        motorDelDictado: { await motores.nombreDelMotorDeLaUltimaSesion() },
         guardarNota: { await NotasDeApple.guardar($0) },
         mostrarQueEsNota: { hudController.mostrarQueEsNota($0) },
         setPalabrasPropias: { await speechService.setPalabrasPropias($0) },

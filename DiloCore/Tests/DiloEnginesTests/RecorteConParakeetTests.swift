@@ -4,7 +4,7 @@ import Testing
 @testable import DiloEngines
 
 /// El recorte de bordes contra Parakeet de verdad: que el texto salga igual y
-/// que soltar→texto no empeore. Pide el modelo descargado (469 MB) y voz
+/// que soltar→texto no empeore. Pide un modelo descargado (v3 o Ultra) y voz
 /// sintetizada; sin alguno de los dos, se salta diciendo cuál faltó.
 ///
 /// Se enciende a mano porque cargar el modelo en un proceso de pruebas nuevo
@@ -18,7 +18,7 @@ import Testing
 /// frase de 3,2 s: 158 ms sin recorte y 142 ms con recorte (mediana de 3).
 @Suite(
   .enabled(if: ProcessInfo.processInfo.environment["DILO_PARAKEET"] == "1", "se enciende con DILO_PARAKEET=1: carga el modelo y tarda ~30 s"),
-  .enabled(if: ParakeetModelStore.estaDescargado, "el modelo de Parakeet no está descargado en este Mac"),
+  .enabled(if: !ParakeetModelStore.enDisco().isEmpty, "el modelo de Parakeet no está descargado en este Mac"),
   .enabled(if: AudioDePrueba.haySintesis, "esta máquina no tiene `say` para fabricar voz"),
   .serialized
 )

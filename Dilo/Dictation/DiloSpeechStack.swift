@@ -20,7 +20,8 @@ enum DiloSpeechStack {
     microfono: MicrofonoDeLaSesion? = nil
   ) -> (motores: SpeechEngineRouter, respaldo: MotorConRespaldo) {
     let parakeet = ParakeetEngine(
-      captura: MicrophoneCapture(grabadora: grabadora, microfono: microfono)
+      captura: MicrophoneCapture(grabadora: grabadora, microfono: microfono),
+      cargador: cargadorDeParakeet
     )
     let motores = armar(apple: servicio, parakeet: parakeet)
     let respaldo = MotorConRespaldo(
@@ -40,9 +41,17 @@ enum DiloSpeechStack {
     return (motores, respaldo)
   }
 
+  /// Qué Parakeet carga el motor: el que resuelve lo que hay en disco y la
+  /// elección de Ajustes, leída de `UserDefaults` en cada dictado (lo que
+  /// `AppSettings` escribe). Un solo cargador para el motor y el router, así
+  /// que los dos ven la misma variante.
+  static let cargadorDeParakeet = CargadorDeParakeet(
+    elegida: { PreferenciaDeVariante.leer(.standard) }
+  )
+
   static func armar(
     apple servicio: SpeechRecognitionService,
-    parakeet: ParakeetEngine = ParakeetEngine(captura: MicrophoneCapture())
+    parakeet: ParakeetEngine = ParakeetEngine(captura: MicrophoneCapture(), cargador: cargadorDeParakeet)
   ) -> SpeechEngineRouter {
     let appleEngine = AppleEngine(
       bridge: AppleEngine.Bridge(
@@ -71,7 +80,8 @@ enum DiloSpeechStack {
       apple: appleEngine,
       parakeet: parakeet,
       elegido: .porDefecto,
-      parakeetDescargado: { ParakeetModelStore.estaDescargado },
+      parakeetDescargado: { cargadorDeParakeet.disponible },
+      nombreDeParakeet: { cargadorDeParakeet.varianteEnUso?.nombre },
       avisar: { seleccion in
         guard let aviso = seleccion.aviso else { return }
         AppLog.speech.notice("\(aviso, privacy: .public)")

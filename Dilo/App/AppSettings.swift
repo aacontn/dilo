@@ -667,6 +667,14 @@ final class AppSettings {
     didSet { EnginePreference.guardar(motorDeVoz, in: defaults) }
   }
 
+  /// Cuál Parakeet dicta si están las dos en disco. Nil —el de fábrica— es
+  /// «la mejor que haya» (`ResolucionDeParakeet`); se fija a mano con «Usar
+  /// este» en Motor de voz. La clave vive en `PreferenciaDeVariante`, y el
+  /// cargador del motor la lee de ahí en cada dictado.
+  var varianteDeParakeet: VarianteDeParakeet? {
+    didSet { PreferenciaDeVariante.guardar(varianteDeParakeet, in: defaults) }
+  }
+
   /// Cuánto aguanta el modelo de Parakeet en la RAM sin que dictes. La clave
   /// y el default viven en `PreferenciaDeReposo`, por lo mismo que el motor.
   var descargarModeloTras: DescargaPorReposo {
@@ -952,6 +960,7 @@ final class AppSettings {
     ultimaSeccionDeAjustes = defaults.string(forKey: Keys.ultimaSeccionDeAjustes) ?? ""
     ajustesCerradosEn = defaults.object(forKey: Keys.ajustesCerradosEn) as? Date
     motorDeVoz = EnginePreference.leer(defaults)
+    varianteDeParakeet = PreferenciaDeVariante.leer(defaults)
     descargarModeloTras = PreferenciaDeReposo.leer(defaults)
     umbralDeToqueMs = GestoDelGatillo.umbralMs(en: defaults)
     deshacerCancelacion = GestoDelGatillo.deshacer(en: defaults)

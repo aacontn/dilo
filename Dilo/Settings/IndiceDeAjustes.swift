@@ -304,7 +304,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .sacarMuletillas, .listaDeMuletillas: [String(localized: "muletillas"), "eh", String(localized: "o sea")]
     case .actividad, .latencias: [String(localized: "estadísticas"), String(localized: "palabras"), "CSV", String(localized: "latencia")]
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]
-    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", String(localized: "motor"), "RAM", String(localized: "memoria")]
+    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", "Ultra", String(localized: "motor"), "RAM", String(localized: "memoria")]
     case .cuantoEsUnToque, .deshacerUnEsc: [String(localized: "toque"), String(localized: "mantener"), "Esc", String(localized: "cancelar")]
     case .color: ["Glaciar", "Grafito", String(localized: "paleta"), String(localized: "acento")]
     case .queSeVe, .estiloDeLaOnda, .paletaDelHalo, .centroDelHalo, .comoAparece, .textoLargo:

@@ -29,18 +29,25 @@ public actor SpeechEngineRouter: SpeechEngine {
   /// («si estuve usando Parakeet o Apple»). Sobrevive a `finish()` porque el
   /// historial se escribe después de terminar.
   private var ultimoEfectivo: SpeechEngineKind?
+  /// Cómo se llama el modelo que escuchó, con la variante si fue Parakeet
+  /// («Parakeet Ultra»). Es lo que guarda el historial: comparar v3 con Ultra
+  /// sobre dictados reales pide saber cuál dictó cada uno.
+  private var ultimoNombre: String?
+  private let nombreDeParakeet: @Sendable () -> String?
 
   public init(
     apple: any SpeechEngine,
     parakeet: any SpeechEngine,
     elegido: SpeechEngineKind = .porDefecto,
     parakeetDescargado: @escaping @Sendable () -> Bool,
+    nombreDeParakeet: @escaping @Sendable () -> String? = { nil },
     avisar: @escaping @Sendable (EngineSelection) -> Void = { _ in }
   ) {
     self.apple = apple
     self.parakeet = parakeet
     self.elegido = elegido
     self.parakeetDescargado = parakeetDescargado
+    self.nombreDeParakeet = nombreDeParakeet
     self.avisar = avisar
   }
 
@@ -58,6 +65,10 @@ public actor SpeechEngineRouter: SpeechEngine {
 
   /// Qué motor escuchó la última sesión, o nil si todavía no hubo ninguna.
   public func motorDeLaUltimaSesion() -> SpeechEngineKind? { ultimoEfectivo }
+
+  /// El nombre del modelo que escuchó la última sesión («Parakeet Ultra»,
+  /// «Apple»), o nil si todavía no hubo ninguna.
+  public func nombreDelMotorDeLaUltimaSesion() -> String? { ultimoNombre }
 
   public func prewarm(locale: Locale) async throws {
     try await motor(for: seleccion().efectivo).prewarm(locale: locale)
@@ -86,6 +97,9 @@ public actor SpeechEngineRouter: SpeechEngine {
     // Después del `start`, no antes: una sesión que no llegó a arrancar no
     // transcribió nada y no puede quedar anotada como si sí.
     ultimoEfectivo = eleccion.efectivo
+    ultimoNombre = eleccion.efectivo == .parakeet
+      ? (nombreDeParakeet() ?? eleccion.efectivo.title)
+      : eleccion.efectivo.title
   }
 
   public func finish() async throws -> String {

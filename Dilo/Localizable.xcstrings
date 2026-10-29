@@ -23,6 +23,17 @@
         }
       }
     },
+    "%@ ocupa %lld MB y ya no se usa. Va a la Papelera: si quieres volver, lo sacas de ahí.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ takes up %2$lld MB and isn't used anymore. It goes to the Trash: if you want to go back, take it out of there."
+          }
+        }
+      }
+    },
     "%@ palabras dictadas": {
       "extractionState": "manual",
       "localizations": {
@@ -52,6 +63,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ words over the last 14 days"
+          }
+        }
+      }
+    },
+    "%@ se equivoca menos y es igual de rápido. Son %lld MB; mientras bajan, sigues dictando como hoy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ makes fewer mistakes and is just as fast. It's %2$lld MB; while it downloads, you keep dictating as usual."
+          }
+        }
+      }
+    },
+    "%@ se está bajando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is downloading"
           }
         }
       }
@@ -151,6 +184,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "5 h"
+          }
+        }
+      }
+    },
+    "A la Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Trash"
           }
         }
       }
@@ -811,6 +855,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Download"
+          }
+        }
+      }
+    },
+    "Bajar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download %@"
           }
         }
       }
@@ -1574,6 +1629,17 @@
         }
       }
     },
+    "Dicta con este. Ocupa %lld MB; borrarlo no borra nada de lo que dictaste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictating with this one. It takes up %lld MB; deleting it doesn't delete anything you dictated."
+          }
+        }
+      }
+    },
     "Dictado": {
       "extractionState": "manual",
       "localizations": {
@@ -1768,6 +1834,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Where a transcript goes if you don't drag it out of the HUD"
+          }
+        }
+      }
+    },
+    "El modelo de antes. Son %lld MB y se bajan una sola vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The previous model. It's %lld MB, downloaded only once."
           }
         }
       }
@@ -2322,6 +2399,17 @@
         }
       }
     },
+    "Está en esta compu (%lld MB), pero no dicta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's on this Mac (%lld MB), but it isn't the one dictating."
+          }
+        }
+      }
+    },
     "Exportar latencias…": {
       "extractionState": "manual",
       "localizations": {
@@ -2461,6 +2549,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edge Glow + Draft"
+          }
+        }
+      }
+    },
+    "Hay un Parakeet más preciso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's a more accurate Parakeet"
           }
         }
       }
@@ -3125,6 +3224,17 @@
         }
       }
     },
+    "Mandar %@ a la Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move %@ to the Trash"
+          }
+        }
+      }
+    },
     "Mantener y tocar": {
       "extractionState": "manual",
       "localizations": {
@@ -3253,6 +3363,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Voice visual"
+          }
+        }
+      }
+    },
+    "Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Until you download the model, Dilo dictates with Apple. You won't be left without dictation."
           }
         }
       }
@@ -3572,6 +3693,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Didn't paste"
+          }
+        }
+      }
+    },
+    "No se pudo descargar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download"
           }
         }
       }
@@ -4016,6 +4148,17 @@
         }
       }
     },
+    "Puedes cancelar cuando quieras; lo bajado se borra.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can cancel anytime; whatever was downloaded gets deleted."
+          }
+        }
+      }
+    },
     "Puedes seguir usando el otro idioma mientras tanto.": {
       "extractionState": "manual",
       "localizations": {
@@ -4221,6 +4364,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Longest streak · %@"
+          }
+        }
+      }
+    },
+    "Recomendado: se equivoca menos que v3 y es igual de rápido. Son %lld MB y se bajan una sola vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended: it makes fewer mistakes than v3 and is just as fast. It's %lld MB, downloaded only once."
           }
         }
       }
@@ -4650,6 +4804,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Release → engine text"
+          }
+        }
+      }
+    },
+    "Son %lld MB. Mientras tanto dicta Apple: no te vas a quedar sin dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's %lld MB. Meanwhile Apple dictates: you won't be left without dictation."
           }
         }
       }
@@ -5331,6 +5496,17 @@
         }
       }
     },
+    "Usar este": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this one"
+          }
+        }
+      }
+    },
     "Va al modelo como instrucción. Una o dos frases claras funcionan mejor que una lista de reglas.": {
       "extractionState": "manual",
       "localizations": {
@@ -5397,6 +5573,17 @@
         }
       }
     },
+    "Viendo qué falta…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking what's missing…"
+          }
+        }
+      }
+    },
     "Volumen": {
       "extractionState": "manual",
       "localizations": {
@@ -5437,6 +5624,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read Aloud voice"
+          }
+        }
+      }
+    },
+    "Ya dictas con %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're already dictating with %@"
           }
         }
       }

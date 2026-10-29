@@ -2,8 +2,9 @@ import DiloText
 import Foundation
 import os
 
-/// El **Motor de voz** Parakeet TDT v3 (int8) corriendo en Core ML, por
-/// FluidAudio (Apache 2.0).
+/// El **Motor de voz** Parakeet —TDT v3 o Ultra, int8— corriendo en Core ML,
+/// por FluidAudio (Apache 2.0). Cuál de las dos lo decide el cargador
+/// (`ResolucionDeParakeet`); para este actor son el mismo modelo.
 ///
 /// Acumula el audio mientras la persona habla y transcribe el buffer completo
 /// al soltar: el modelo es batch, no streaming, así que esa pasada final es la
@@ -211,6 +212,9 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     // Nadie suelta el modelo a media frase.
     descarga?.cancel()
     descarga = nil
+    await soltarSiCambioLaVariante()
+    // Soltar el modelo espera a Core ML: otra sesión pudo entrar mientras.
+    guard !activa else { throw EngineError.sesionActiva }
 
     // El modelo se carga en paralelo a la grabación: recién se necesita al
     // soltar. Grabar desde el primer milisegundo importa más que tenerlo todo
@@ -289,9 +293,20 @@ public actor ParakeetEngine: SpeechEngine, MotorConModeloEnMemoria {
     if tramo.count < audio.count { audio = Array(audio[tramo]) }
     descarga?.cancel()
     descarga = nil
+    await soltarSiCambioLaVariante()
     let modelo = try await cargarModelo()
     defer { armarDescargaPorReposo() }
     return try await modelo.transcribir(audio).trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  /// Si el modelo en la RAM ya no es el que tocaría —Ultra terminó de bajar
+  /// con v3 cargado, o la persona eligió otra variante—, se suelta para que
+  /// este dictado cargue el que corresponde. Se mira sólo al empezar: nunca
+  /// a media frase, y nunca con una carga en vuelo, que ya trae el de ahora.
+  private func soltarSiCambioLaVariante() async {
+    guard carga == nil, let modelo, modelo.firma != cargador.firma else { return }
+    Self.logger.info("cambió la variante de Parakeet: se suelta \(modelo.firma, privacy: .public)")
+    await descargarDeMemoria()
   }
 
   public func cancel() async {

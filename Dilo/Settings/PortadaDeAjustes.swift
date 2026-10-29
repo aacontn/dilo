@@ -17,7 +17,9 @@ struct PortadaDeAjustes: Equatable {
     var permisosPedidos: [Permiso] = []
     var permisosQueFaltan: Set<Permiso> = []
     var motorElegido: SpeechEngineKind = .porDefecto
-    var parakeetListo = false
+    /// Qué modelos de Parakeet hay en disco, y cuál se fijó a mano.
+    var parakeetEnDisco: Set<VarianteDeParakeet> = []
+    var varianteElegida: VarianteDeParakeet?
     var parakeetBajando = false
     /// Nil mientras el Llavero no contesta.
     var hayClave: Bool?
@@ -37,6 +39,8 @@ struct PortadaDeAjustes: Equatable {
     case pedirPermiso(Permiso)
     /// Ir a la fila de Ajustes donde se arregla.
     case ir(AjusteID)
+    /// Bajar un modelo de Parakeet ahí mismo, con la barra en Motor de voz.
+    case bajar(VarianteDeParakeet)
   }
 
   struct Aviso: Equatable, Identifiable {
@@ -64,6 +68,8 @@ struct PortadaDeAjustes: Equatable {
 
   let avisos: [Aviso]
   let motorEnUso: SpeechEngineKind
+  /// Cuál Parakeet dicta, si dicta Parakeet.
+  let varianteEnUso: VarianteDeParakeet?
   let tareas: [Tarea]
 
   /// Listo para dictar: ningún aviso bloquea.
@@ -92,10 +98,14 @@ struct PortadaDeAjustes: Equatable {
     }
 
     let seleccion = EngineResolver.resolver(
-      elegido: entrada.motorElegido, parakeetDescargado: entrada.parakeetListo
+      elegido: entrada.motorElegido,
+      parakeetEnDisco: entrada.parakeetEnDisco,
+      varianteElegida: entrada.varianteElegida
     )
     motorEnUso = seleccion.efectivo
-    if entrada.motorElegido == .parakeet, !entrada.parakeetListo {
+    varianteEnUso = seleccion.varianteDeParakeet
+    let recomendada = VarianteDeParakeet.recomendada
+    if entrada.motorElegido == .parakeet, entrada.parakeetEnDisco.isEmpty {
       avisos.append(
         Aviso(
           id: "parakeet",
@@ -103,9 +113,33 @@ struct PortadaDeAjustes: Equatable {
           titulo: entrada.parakeetBajando
             ? String(localized: "Parakeet se está bajando")
             : String(localized: "Parakeet todavía no está en este Mac"),
-          detalle: String(localized: "Mientras tanto dicta Apple. No te vas a quedar sin dictar."),
-          boton: entrada.parakeetBajando ? String(localized: "Ver") : String(localized: "Descargar"),
-          accion: .ir(.modeloDeParakeet),
+          detalle: entrada.parakeetBajando
+            ? String(localized: "Mientras tanto dicta Apple. No te vas a quedar sin dictar.")
+            : String(localized: "Son \(recomendada.megasDeDescarga) MB. Mientras tanto dicta Apple: no te vas a quedar sin dictar."),
+          boton: entrada.parakeetBajando
+            ? String(localized: "Ver")
+            : String(localized: "Bajar \(recomendada.nombre)"),
+          accion: entrada.parakeetBajando ? .ir(.modeloDeParakeet) : .bajar(recomendada),
+          bloquea: false
+        )
+      )
+    } else if entrada.motorElegido == .parakeet,
+      let ofrecida = ResolucionDeParakeet.paraBajar(enDisco: entrada.parakeetEnDisco)
+    {
+      // Quien ya tiene v3 sigue dictando con v3: nada se baja solo. Se le
+      // ofrece Ultra con su tamaño, y no bloquea nada.
+      avisos.append(
+        Aviso(
+          id: "parakeet.\(ofrecida.rawValue)",
+          icono: "sparkles",
+          titulo: entrada.parakeetBajando
+            ? String(localized: "\(ofrecida.nombre) se está bajando")
+            : String(localized: "Hay un Parakeet más preciso"),
+          detalle: String(localized: "\(ofrecida.nombre) se equivoca menos y es igual de rápido. Son \(ofrecida.megasDeDescarga) MB; mientras bajan, sigues dictando como hoy."),
+          boton: entrada.parakeetBajando
+            ? String(localized: "Ver")
+            : String(localized: "Bajar \(ofrecida.nombre)"),
+          accion: entrada.parakeetBajando ? .ir(.modeloDeParakeet) : .bajar(ofrecida),
           bloquea: false
         )
       )

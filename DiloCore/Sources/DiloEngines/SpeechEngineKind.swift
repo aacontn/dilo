@@ -9,7 +9,7 @@ public enum SpeechEngineKind: String, CaseIterable, Sendable {
 
   /// **El motor por defecto de Dilo, en un solo lugar.**
   ///
-  /// Parakeet v3 gana hoy porque el dictado sale igual en cualquier Mac y no
+  /// Parakeet gana hoy porque el dictado sale igual en cualquier Mac y no
   /// depende de qué modelo de voz tenga instalado el sistema. El spec lo deja
   /// marcado como ambigüedad: si la segunda prueba de Alfonso con
   /// SpeechAnalyzer en `es_CL` sale mejor, esto pasa a `.apple` y no hay nada
@@ -27,7 +27,9 @@ public enum SpeechEngineKind: String, CaseIterable, Sendable {
 
   public var title: String {
     switch self {
-    case .parakeet: "Parakeet v3"
+    // Sin la versión: cuál Parakeet dicta —v3 o Ultra— es del modelo en
+    // disco (`VarianteDeParakeet`), no del motor que la persona elige.
+    case .parakeet: "Parakeet"
     case .apple: "Apple"
     }
   }
