@@ -69,6 +69,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   // Motor de voz
   case motorDeVoz
   case modeloDeParakeet
+  case tusPalabrasEnParakeet
   case soltarElModelo
   // Atajos
   case teclas
@@ -143,7 +144,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .historial
     case .guardarTranscripcionEn, .carpetaDeTranscripciones:
       .dropTranscription
-    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo:
+    case .motorDeVoz, .modeloDeParakeet, .tusPalabrasEnParakeet, .soltarElModelo:
       .motor
     case .teclas, .cuantoEsUnToque, .deshacerUnEsc:
       .shortcuts
@@ -225,6 +226,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .carpetaDeTranscripciones: String(localized: "Carpeta de las transcripciones")
     case .motorDeVoz: String(localized: "Motor de voz")
     case .modeloDeParakeet: String(localized: "El modelo de Parakeet")
+    case .tusPalabrasEnParakeet: String(localized: "Tus palabras en Parakeet")
     case .soltarElModelo: String(localized: "Soltar el modelo de la RAM")
     case .teclas: String(localized: "Teclas")
     case .cuantoEsUnToque: String(localized: "Cuánto es un toque, en ms")
@@ -305,6 +307,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .actividad, .latencias: [String(localized: "estadísticas"), String(localized: "palabras"), "CSV", String(localized: "latencia")]
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]
     case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", "Ultra", String(localized: "motor"), "RAM", String(localized: "memoria")]
+    case .tusPalabrasEnParakeet: ["Parakeet", "CTC", String(localized: "vocabulario"), String(localized: "nombres"), String(localized: "diccionario")]
     case .cuantoEsUnToque, .deshacerUnEsc: [String(localized: "toque"), String(localized: "mantener"), "Esc", String(localized: "cancelar")]
     case .color: ["Glaciar", "Grafito", String(localized: "paleta"), String(localized: "acento")]
     case .queSeVe, .estiloDeLaOnda, .paletaDelHalo, .centroDelHalo, .comoAparece, .textoLargo:

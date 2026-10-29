@@ -848,6 +848,17 @@
         }
       }
     },
+    "Bajando… son unos %lld MB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading… about %lld MB."
+          }
+        }
+      }
+    },
     "Bajar": {
       "extractionState": "manual",
       "localizations": {
@@ -1042,6 +1053,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check Now"
+          }
+        }
+      }
+    },
+    "Buscar Tus palabras en el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look for Your words in the audio"
           }
         }
       }
@@ -1849,6 +1871,17 @@
         }
       }
     },
+    "El modelo de Tus palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Your words model"
+          }
+        }
+      }
+    },
     "Elígelo desde la barra": {
       "extractionState": "manual",
       "localizations": {
@@ -2406,6 +2439,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "It's on this Mac (%lld MB), but it isn't the one dictating."
+          }
+        }
+      }
+    },
+    "Está en esta compu. Se carga junto con Parakeet cuando dictas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's on this Mac. It loads along with Parakeet when you dictate."
           }
         }
       }
@@ -4808,6 +4852,17 @@
         }
       }
     },
+    "Son %lld MB y se bajan una sola vez. Hasta entonces, Tus palabras se corrigen después del motor, como siempre.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's %lld MB, downloaded only once. Until then, Your words are fixed after the engine, as always."
+          }
+        }
+      }
+    },
     "Son %lld MB. Mientras tanto dicta Apple: no te vas a quedar sin dictar.": {
       "extractionState": "manual",
       "localizations": {
@@ -5342,6 +5397,17 @@
         }
       }
     },
+    "Tus palabras en Parakeet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words in Parakeet"
+          }
+        }
+      }
+    },
     "Tus palabras y las muletillas": {
       "extractionState": "manual",
       "localizations": {
@@ -5393,6 +5459,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "A little"
+          }
+        }
+      }
+    },
+    "Una segunda pasada busca tus nombres y términos en lo que dijiste y los escribe como están en Tus palabras. Es de prueba: suma unos 250 ms al soltar y en español todavía cambia palabras que no son tuyas, por eso viene apagada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A second pass looks for your names and terms in what you said and writes them as they are in Your words. It's experimental: it adds about 250 ms after you let go and, in Spanish, it still changes words that aren't yours, so it comes off."
           }
         }
       }

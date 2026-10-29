@@ -108,6 +108,10 @@ final class AppSettings {
     static let ajustesCerradosEn = "diloAjustesCerradosEn"
   }
 
+  /// La clave de Tus palabras, para quien las lee fuera del actor principal:
+  /// el cargador de Parakeet, en cada carga del modelo.
+  nonisolated static let claveDePalabrasPropias = Keys.palabrasPropias
+
   @ObservationIgnored
   private let defaults: UserDefaults
 
@@ -675,6 +679,13 @@ final class AppSettings {
     didSet { PreferenciaDeVariante.guardar(varianteDeParakeet, in: defaults) }
   }
 
+  /// Si Parakeet busca Tus palabras en el audio con la segunda pasada del
+  /// CTC. Sin el CTC en disco no corre aunque esté encendido. La clave y el
+  /// de fábrica viven en `PreferenciaDeTusPalabrasEnParakeet`.
+  var tusPalabrasEnParakeet: Bool {
+    didSet { defaults.set(tusPalabrasEnParakeet, forKey: PreferenciaDeTusPalabrasEnParakeet.clave) }
+  }
+
   /// Cuánto aguanta el modelo de Parakeet en la RAM sin que dictes. La clave
   /// y el default viven en `PreferenciaDeReposo`, por lo mismo que el motor.
   var descargarModeloTras: DescargaPorReposo {
@@ -961,6 +972,7 @@ final class AppSettings {
     ajustesCerradosEn = defaults.object(forKey: Keys.ajustesCerradosEn) as? Date
     motorDeVoz = EnginePreference.leer(defaults)
     varianteDeParakeet = PreferenciaDeVariante.leer(defaults)
+    tusPalabrasEnParakeet = PreferenciaDeTusPalabrasEnParakeet.leer(defaults)
     descargarModeloTras = PreferenciaDeReposo.leer(defaults)
     umbralDeToqueMs = GestoDelGatillo.umbralMs(en: defaults)
     deshacerCancelacion = GestoDelGatillo.deshacer(en: defaults)

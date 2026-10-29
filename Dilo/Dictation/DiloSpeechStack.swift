@@ -46,7 +46,12 @@ enum DiloSpeechStack {
   /// `AppSettings` escribe). Un solo cargador para el motor y el router, así
   /// que los dos ven la misma variante.
   static let cargadorDeParakeet = CargadorDeParakeet(
-    elegida: { PreferenciaDeVariante.leer(.standard) }
+    elegida: { PreferenciaDeVariante.leer(.standard) },
+    // La segunda pasada de Tus palabras, con la misma lista que recibe
+    // Apple. Cambiarla recarga el modelo en el próximo dictado.
+    tusPalabras: {
+      PreferenciaDeTusPalabrasEnParakeet.palabras(en: .standard, clave: AppSettings.claveDePalabrasPropias)
+    }
   )
 
   static func armar(

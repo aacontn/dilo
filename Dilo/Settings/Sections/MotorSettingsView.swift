@@ -16,6 +16,8 @@ struct MotorSettingsView: View {
     VStack(spacing: 16) {
       SelectorDeMotor(settings: settings)
 
+      TusPalabrasEnParakeet(settings: settings)
+
       SettingsCard(title: "La memoria") {
         SettingsPickerRow(
           title: "Soltar el modelo de la RAM",
@@ -412,5 +414,114 @@ final class DescargaDeParakeet {
     progreso = nil
     bajando = nil
     refrescar()
+  }
+}
+
+/// La segunda pasada de **Tus palabras** en Parakeet: un CTC chico busca tus
+/// términos en el audio y los escribe bien donde el motor los oyó mal.
+///
+/// El interruptor no hace nada hasta que el CTC está en disco, y por eso se
+/// muestra apagado y sin tocar mientras falta. Aun con el CTC, viene apagado
+/// (`PreferenciaDeTusPalabrasEnParakeet.deFabrica`, con la medición).
+/// El CTC vive en la carpeta de FluidAudio (`ModeloDeTusPalabras`) y tiene su
+/// propio «A la Papelera».
+struct TusPalabrasEnParakeet: View {
+  @Bindable var settings: AppSettings
+  @State private var ctc = DescargaDeTusPalabras.compartida
+
+  var body: some View {
+    SettingsCard(title: "Tus palabras en Parakeet") {
+      SettingsRow(
+        title: "Buscar Tus palabras en el audio",
+        description: "Una segunda pasada busca tus nombres y términos en lo que dijiste y los escribe como están en Tus palabras. Es de prueba: suma unos 250 ms al soltar y en español todavía cambia palabras que no son tuyas, por eso viene apagada."
+      ) {
+        Toggle(
+          "Buscar Tus palabras en el audio",
+          isOn: Binding(
+            get: { ctc.listo && settings.tusPalabrasEnParakeet },
+            set: { settings.tusPalabrasEnParakeet = $0 }
+          )
+        )
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .disabled(!ctc.listo)
+      }
+      .anclaDeAjuste(.tusPalabrasEnParakeet)
+
+      SettingsRow(
+        title: "El modelo de Tus palabras",
+        description: "\(ctc.detalle)"
+      ) {
+        if ctc.bajando {
+          ProgressView().controlSize(.small)
+        } else if ctc.listo {
+          Button("A la Papelera") { ctc.moverALaPapelera() }
+            .buttonStyle(SettingsButtonStyle())
+        } else {
+          Button("Bajar") { ctc.descargar() }
+            .buttonStyle(SettingsButtonStyle())
+        }
+      }
+
+      if let error = ctc.error {
+        SettingsRow(title: "No se pudo descargar", description: "\(error)") {
+          Button("Reintentar") { ctc.descargar() }
+            .buttonStyle(SettingsButtonStyle())
+        }
+      }
+    }
+    .task { ctc.refrescar() }
+  }
+}
+
+/// El CTC de Tus palabras en disco y su descarga. Compartido por lo mismo que
+/// `DescargaDeParakeet`: cambiar de sección no puede matar una descarga.
+@MainActor
+@Observable
+final class DescargaDeTusPalabras {
+  static let compartida = DescargaDeTusPalabras()
+
+  private let modelo = ModeloDeTusPalabras()
+  private(set) var listo = ModeloDeTusPalabras.estaDescargado
+  private(set) var bajando = false
+  private(set) var error: String?
+
+  var detalle: String {
+    if bajando { return String(localized: "Bajando… son unos \(ModeloDeTusPalabras.megasDeDescarga) MB.") }
+    if listo { return String(localized: "Está en esta compu. Se carga junto con Parakeet cuando dictas.") }
+    return String(localized: "Son \(ModeloDeTusPalabras.megasDeDescarga) MB y se bajan una sola vez. Hasta entonces, Tus palabras se corrigen después del motor, como siempre.")
+  }
+
+  func refrescar() {
+    Task {
+      listo = await Task.detached(priority: .userInitiated) { ModeloDeTusPalabras.estaDescargado }.value
+    }
+  }
+
+  func descargar() {
+    guard !bajando else { return }
+    bajando = true
+    error = nil
+    Task {
+      do {
+        try await modelo.descargar()
+      } catch is CancellationError {
+      } catch {
+        self.error = error.localizedDescription
+      }
+      bajando = false
+      refrescar()
+    }
+  }
+
+  func moverALaPapelera() {
+    Task {
+      do {
+        try await modelo.moverALaPapelera()
+      } catch {
+        self.error = error.localizedDescription
+      }
+      refrescar()
+    }
   }
 }
