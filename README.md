@@ -139,5 +139,11 @@ Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
 - **[FluidAudio](https://github.com/FluidInference/FluidAudio)** (Apache 2.0)
   y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
   dependencias.
+- **[Phonon](https://huggingface.co/gradium/phonon-40m-es)**, de Gradium —
+  la voz de «Leer en voz alta». El modelo en español es CC BY-NC 4.0 (uso
+  personal, no comercial) y está hecho sobre Pocket TTS y Mimi, de
+  [Kyutai](https://kyutai.org); las voces son Apache 2.0 y el motor
+  [`ptts`](https://github.com/gradium-ai/xn-ptts), MIT o Apache 2.0. Nada de
+  eso viene dentro de Dilo: se baja aparte, a pedido.
 
 Cómo llegó cada cosa acá está en [`docs/historia/`](docs/historia/README.md).

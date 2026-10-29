@@ -33,6 +33,8 @@ final class AppSettings {
     static let hudScale = "hudScale"
     static let readAloudVoice = "readAloudVoice"
     static let readAloudTranslates = "readAloudTranslates"
+    static let readAloudMotor = "readAloudMotor"
+    static let readAloudVozPhonon = "readAloudVozPhonon"
     static let dictationTriggerBinding = "dictationTriggerBinding"
     static let readAloudBinding = "readAloudBinding"
     static let recognitionLocale = "recognitionLocale"
@@ -624,6 +626,19 @@ final class AppSettings {
     didSet { defaults.set(readAloudVoiceID, forKey: Keys.readAloudVoice) }
   }
 
+  /// Quién lee en voz alta: el `rawValue` de `MotorDeLectura`. Vacío es el
+  /// de fábrica (Phonon), para que una instalación que nunca eligió siga al
+  /// de fábrica si algún día cambia.
+  var readAloudMotor: String {
+    didSet { defaults.set(readAloudMotor, forKey: Keys.readAloudMotor) }
+  }
+
+  /// La voz de Phonon, por su nombre (`VozDePhonon.nombre`). Vacía es la de
+  /// fábrica.
+  var readAloudVozPhonon: String {
+    didSet { defaults.set(readAloudVozPhonon, forKey: Keys.readAloudVozPhonon) }
+  }
+
   var dictationTriggerBinding: KeyBinding {
     didSet { Self.store(dictationTriggerBinding, in: defaults, key: Keys.dictationTriggerBinding) }
   }
@@ -937,6 +952,8 @@ final class AppSettings {
     hudTraducirEnElPanel = defaults.object(forKey: Keys.hudTraducirEnElPanel) as? Bool ?? true
     readAloudVoiceID = defaults.string(forKey: Keys.readAloudVoice) ?? ""
     readAloudTranslates = defaults.bool(forKey: Keys.readAloudTranslates)
+    readAloudMotor = defaults.string(forKey: Keys.readAloudMotor) ?? ""
+    readAloudVozPhonon = defaults.string(forKey: Keys.readAloudVozPhonon) ?? ""
     dictationTriggerBinding = Self.storedBinding(
       in: defaults,
       key: Keys.dictationTriggerBinding,

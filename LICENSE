@@ -23,3 +23,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Componentes que Dilo baja aparte, a pedido, para «Leer en voz alta». No van
+dentro de la app ni de este repositorio; cada uno tiene su propia licencia:
+
+- Phonon 40m en español (gradium/phonon-40m-es), de Gradium. CC BY-NC 4.0:
+  uso personal y no comercial. Construido sobre Pocket TTS y el códec Mimi,
+  de Kyutai.
+- Las voces de Phonon (gradium/phonon-voices), de Gradium. Apache 2.0.
+- El motor ptts (gradium-ai/xn-ptts), de Gradium. MIT o Apache 2.0.

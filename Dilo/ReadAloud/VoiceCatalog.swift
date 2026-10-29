@@ -7,6 +7,13 @@ import Observation
 /// voices are excluded — they undersell the feature. Siri voices never appear:
 /// Apple does not expose them to third-party apps.
 ///
+/// Medido en macOS 27.0.1 el 2026-10-29: la voz de Siri que la persona tiene
+/// instalada (`com.apple.siri.natural.Carmen`, «Voz 2», es-MX) sí aparece en
+/// `speechVoices()` y habla a 48 kHz cuando pregunta un proceso firmado por
+/// Apple (el intérprete `swift`), pero un binario de terceros no la ve:
+/// `AVSpeechSynthesisVoice(identifier:)` devuelve nil y pedir `es-MX` da la
+/// Paulina compacta a 22 kHz. El filtro es de macOS, no de este catálogo.
+///
 /// Dilo cannot download voices (no public API); Settings deep-links the
 /// user to System Settings instead, and this catalog refreshes itself the
 /// moment a download finishes via `availableVoicesDidChangeNotification`.
