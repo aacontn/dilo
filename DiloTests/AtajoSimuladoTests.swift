@@ -198,3 +198,65 @@ struct AtajoSimuladoTests {
     ))
   }
 }
+
+/// El ↩ de «envía»: solo, sin modificadores, y nunca encima de uno.
+@MainActor
+struct IntroDelEnvioTests {
+  @Test func elIntroVaSoloYSinModificadores() throws {
+    let pulsaciones = try #require(AtajoSimulado.pulsacionesDeIntro(con: .ninguna))
+    #expect(pulsaciones.map(\.tecla) == [AtajoSimulado.intro, AtajoSimulado.intro])
+    #expect(pulsaciones.map(\.abajo) == [true, false])
+    #expect(pulsaciones.allSatisfy { $0.modificadores.isEmpty })
+  }
+
+  /// ⇧↩ es un salto de línea y ⌘↩ manda distinto: con un modificador
+  /// apretado no hay ↩.
+  @Test func conUnModificadorApretadoNoHayIntro() {
+    for tecla: CGKeyCode in [55, 56, 58, 59, 63] {
+      let apretadas = AtajoSimulado.TeclasApretadas(modificadores: [tecla])
+      #expect(AtajoSimulado.pulsacionesDeIntro(con: apretadas) == nil, "tecla \(tecla)")
+    }
+  }
+
+  /// Bloq Mayús es un estado, no una tecla sostenida: el ↩ sale y lo lleva.
+  @Test func bloqMayusNoBloqueaYViaja() throws {
+    let pulsaciones = try #require(
+      AtajoSimulado.pulsacionesDeIntro(con: AtajoSimulado.TeclasApretadas(bloqMayus: true))
+    )
+    #expect(pulsaciones.allSatisfy { $0.modificadores == .maskAlphaShift })
+  }
+
+  /// Si la persona suelta la tecla mientras se la espera, se manda.
+  @Test func esperaAQueSuelteYManda() async {
+    var lecturas = 0
+    var dormido = Duration.zero
+    var publicados = 0
+    let mandado = await EnvioDelMensaje.apretarIntro(
+      por: .alSistema,
+      apretadas: {
+        lecturas += 1
+        return lecturas < 4 ? AtajoSimulado.TeclasApretadas(modificadores: [59]) : .ninguna
+      },
+      crear: { _ in CGEvent(keyboardEventSource: nil, virtualKey: 36, keyDown: true) },
+      publicar: { _ in publicados += 1 },
+      dormir: { dormido += $0 }
+    )
+    #expect(mandado)
+    #expect(publicados == 2)
+    #expect(dormido < EnvioDelMensaje.esperaPorModificadores)
+  }
+
+  /// Si la sigue sosteniendo, a los dos segundos se rinde sin mandar nada.
+  @Test func siNoSueltaNoManda() async {
+    var publicados = 0
+    let mandado = await EnvioDelMensaje.apretarIntro(
+      por: .alSistema,
+      apretadas: { AtajoSimulado.TeclasApretadas(modificadores: [55]) },
+      crear: { _ in CGEvent(keyboardEventSource: nil, virtualKey: 36, keyDown: true) },
+      publicar: { _ in publicados += 1 },
+      dormir: { _ in }
+    )
+    #expect(!mandado)
+    #expect(publicados == 0)
+  }
+}

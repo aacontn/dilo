@@ -1,6 +1,7 @@
 import AppKit
 import DiloCapabilities
 import DiloModes
+import DiloText
 
 /// Cómo se lee el contexto de otra app. Una costura, para que los tests del
 /// controlador digan qué hay alrededor del cursor sin una app viva.
@@ -60,10 +61,14 @@ final class CapturaDeContexto {
   ///
   /// - Parameter sitioParaElegirModo: algún modo de la sesión se elige por
   ///   sitio, así que la página se lee aunque no vaya al prompt.
+  /// - Parameter leerAntesDelCursor: «Adaptar la mayúscula al cursor» está
+  ///   prendido: se leen los caracteres antes del cursor aunque el campo no
+  ///   vaya al prompt.
   func empezar(
     destino: TextInsertionService.Target?,
     fuentes: FuentesDeContexto,
     sitioParaElegirModo: Bool,
+    leerAntesDelCursor: Bool = false,
     lectores: LectoresDeContexto,
     anfitrion: any HostCapabilities = Anfitrion.actual
   ) {
@@ -75,6 +80,9 @@ final class CapturaDeContexto {
     guard let destino else { return }
     let turno = turno
 
+    // Sin rango en el ancla (un editor web) no hay de dónde medir: «nada
+    // antes» sería mentira, y el dictado quedaría con mayúscula de más.
+    let mideElCursor = leerAntesDelCursor && destino.ancla?.seleccion != nil
     if fuentes.leeElCampo, anfitrion.admite(.contextoDelCampo), let ancla = destino.ancla {
       tareas.append(Task { [weak self] in
         let leido = await lectores.alrededor(ancla, Self.caracteresAlrededor)
@@ -82,6 +90,14 @@ final class CapturaDeContexto {
         capturado.textoAntes = leido.antes
         capturado.textoDespues = leido.despues
         capturado.seleccion = leido.seleccion
+        if mideElCursor { capturado.antesDelCursor = leido.antes }
+      })
+    } else if mideElCursor, anfitrion.admite(.contextoDelCampo), let ancla = destino.ancla {
+      // Sólo lo que hace falta para la mayúscula: tres caracteres.
+      tareas.append(Task { [weak self] in
+        let leido = await lectores.alrededor(ancla, AjusteAlCursor.caracteresQueMira)
+        guard let self, self.turno == turno, !Task.isCancelled else { return }
+        capturado.antesDelCursor = leido.antes
       })
     }
 

@@ -315,6 +315,46 @@ struct CapturaDeContextoTests {
     #expect(captura.recoger().capturado.nombreDeApp == "App")
   }
 
+  /// La mayúscula según el cursor lee tres caracteres aunque el campo no
+  /// vaya al prompt, y no los deja como contexto para el modelo.
+  @Test func laMayusculaLeeSoloLoDeAntesDelCursor() async {
+    let topes = OSAllocatedUnfairLock(initialState: [Int]())
+    let midiendo = LectoresDeContexto(
+      alrededor: { _, tope in
+        topes.withLock { $0.append(tope) }
+        return TextoAlrededorDelCursor(antes: "el ", despues: "x", seleccion: "")
+      },
+      sitio: { _, _ in nil }
+    )
+    let captura = CapturaDeContexto()
+    captura.empezar(
+      destino: destino(bundleID: "com.apple.Notes", ancla: ancla()),
+      fuentes: .deFabrica, sitioParaElegirModo: false, leerAntesDelCursor: true,
+      lectores: midiendo, anfitrion: anfitrionCompleto
+    )
+    let leido = await esperar(captura) { $0.antesDelCursor != nil }
+    #expect(leido.antesDelCursor == "el ")
+    #expect(leido.textoAntes.isEmpty, "lo leído para la mayúscula no va al prompt")
+    #expect(topes.withLock { $0 } == [AjusteAlCursor.caracteresQueMira])
+  }
+
+  /// Sin rango en el ancla (un editor web) no hay de dónde medir: nil, y el
+  /// dictado entra como venía.
+  @Test func sinRangoNoSeMideElCursor() async {
+    let sinRango = AnclaDelFoco(
+      pid: 1, elemento: AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier),
+      seleccion: nil, marcador: nil
+    )
+    let captura = CapturaDeContexto()
+    captura.empezar(
+      destino: destino(bundleID: "com.apple.Notes", ancla: sinRango),
+      fuentes: .deFabrica, sitioParaElegirModo: false, leerAntesDelCursor: true,
+      lectores: lectores, anfitrion: anfitrionCompleto
+    )
+    try? await Task.sleep(for: .milliseconds(50))
+    #expect(captura.recoger().capturado.antesDelCursor == nil)
+  }
+
   /// El sitio sólo se pregunta a un navegador.
   @Test func elSitioSoloSePreguntaAUnNavegador() async {
     let llamadas = OSAllocatedUnfairLock(initialState: 0)

@@ -86,6 +86,9 @@ final class AppSettings {
     static let migracionModeloDeAnthropic = "diloMigracionModeloDeAnthropic"
     static let unAtajoDiloDecide = "diloUnAtajoDiloDecide"
     static let palabrasPropias = "diloPalabrasPropias"
+    static let mayusculaSegunElCursor = "diloMayusculaSegunElCursor"
+    static let envioHablado = "diloEnvioHablado"
+    static let frasesDeEnvio = "diloFrasesDeEnvio"
     static let limpiarMuletillas = "diloLimpiarMuletillas"
     static let muletillasPropias = "diloMuletillasPropias"
     static let comandosDeFormato = "diloComandosDeFormato"
@@ -664,6 +667,25 @@ final class AppSettings {
     didSet { defaults.set(ajustesCerradosEn, forKey: Keys.ajustesCerradosEn) }
   }
 
+  /// Si el dictado entra con minúscula y espacio a mitad de frase, y con
+  /// mayúscula tras un punto (`AjusteAlCursor`). Apagado de fábrica hasta
+  /// probarlo en apps reales: cambia el comienzo de cada dictado pegado.
+  var mayusculaSegunElCursor: Bool {
+    didSet { defaults.set(mayusculaSegunElCursor, forKey: Keys.mayusculaSegunElCursor) }
+  }
+
+  /// Si terminar con «envía» aprieta ↩ después de pegar (`EnvioHablado`).
+  /// Apagado de fábrica: mandar un mensaje no se deshace.
+  var envioHablado: Bool {
+    didSet { defaults.set(envioHablado, forKey: Keys.envioHablado) }
+  }
+
+  /// Las frases que mandan. Vacías vuelven a las de fábrica: una lista vacía
+  /// con el interruptor prendido no mandaría nunca y nadie sabría por qué.
+  var frasesDeEnvio: [String] {
+    didSet { defaults.set(frasesDeEnvio, forKey: Keys.frasesDeEnvio) }
+  }
+
   /// Cuál **Motor de voz** dicta. La clave y el default viven en
   /// `EnginePreference` para poder probar la regla con `swift test`; acá
   /// sigue estando el único lugar de la app que la lee y la escribe.
@@ -971,6 +993,9 @@ final class AppSettings {
     ultimaSeccionDeAjustes = defaults.string(forKey: Keys.ultimaSeccionDeAjustes) ?? ""
     ajustesCerradosEn = defaults.object(forKey: Keys.ajustesCerradosEn) as? Date
     motorDeVoz = EnginePreference.leer(defaults)
+    mayusculaSegunElCursor = defaults.bool(forKey: Keys.mayusculaSegunElCursor)
+    envioHablado = defaults.bool(forKey: Keys.envioHablado)
+    frasesDeEnvio = defaults.stringArray(forKey: Keys.frasesDeEnvio) ?? EnvioHablado.frasesDeFabrica
     varianteDeParakeet = PreferenciaDeVariante.leer(defaults)
     tusPalabrasEnParakeet = PreferenciaDeTusPalabrasEnParakeet.leer(defaults)
     descargarModeloTras = PreferenciaDeReposo.leer(defaults)
@@ -1177,6 +1202,10 @@ struct DictationSessionSettings: Equatable {
   let muestraElModoEnReposo: Bool
   /// El modo que usa el atajo general, elegido en el panel del hover, o nil.
   let modoDelAtajoGeneralID: String?
+  /// Si el dictado se adapta a lo que hay antes del cursor.
+  let ajustarAlCursor: Bool
+  /// Las frases que mandan el mensaje, o nil con «envía» apagado.
+  let frasesDeEnvio: [String]?
 
   /// The colour a Drop Transcription wears — on the HUD's target and card, and
   /// on the status ghost while a file job fills it. Edge Glow and Edge Glow +
@@ -1268,6 +1297,9 @@ struct DictationSessionSettings: Equatable {
     hudMetrics = HUDMetrics(scale: CGFloat(settings.hudScale))
     muestraElModoEnReposo = settings.hudModoEnReposo
     modoDelAtajoGeneralID = settings.hudModoDelAtajoGeneral
+    ajustarAlCursor = settings.mayusculaSegunElCursor
+    let frases = settings.frasesDeEnvio.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    frasesDeEnvio = settings.envioHablado ? (frases.isEmpty ? EnvioHablado.frasesDeFabrica : frases) : nil
   }
 }
 

@@ -189,6 +189,17 @@ extension DirectDictationController {
     /// defecto: un test que no lo arma tiene destinos sin ancla y sin
     /// navegador, así que no se lee nada.
     var lectoresDeContexto: LectoresDeContexto = .delAnfitrion
+    /// Aprieta ↩ en el destino tras un dictado que terminó con «envía». Con
+    /// valor por defecto que no aprieta nada: un test que no lo arma nunca
+    /// manda un mensaje.
+    var pulsarIntro: @MainActor (TextInsertionService.Target?) async -> Bool = { _ in false }
+    /// Si una palabra es común en español, para la mayúscula según el
+    /// cursor. Por defecto ninguna lo es: un test que no lo arma nunca baja
+    /// una mayúscula.
+    var esPalabraComun: @MainActor (String) -> Bool = { _ in false }
+    /// Despierta el corrector al empezar, para que consultarlo al soltar no
+    /// cueste nada.
+    var calentarCorrector: @MainActor () -> Void = {}
     /// Correr un modo con el contexto de la app como dato no confiable, y si
     /// puede viajar a un proveedor en línea. Nil corre `transformar` sin
     /// contexto, que es lo que los tests de antes esperan.
@@ -373,6 +384,12 @@ extension DirectDictationController {
           await TransformacionDeModo().correr(texto, con: modo, deSesion: proveedor)
         },
         lectoresDeContexto: .delAnfitrion,
+        pulsarIntro: { destino in
+          let canal = destino.map { textInsertionService.canal(para: $0) } ?? .alSistema
+          return await EnvioDelMensaje.apretarIntro(por: canal)
+        },
+        esPalabraComun: { CorrectorEnEspanol.compartido.esPalabraComun($0) },
+        calentarCorrector: { CorrectorEnEspanol.compartido.calentar() },
         transformarConContexto: { texto, modo, proveedor, contexto, enLinea in
           await TransformacionDeModo().correr(
             texto, con: modo, deSesion: proveedor, contexto: contexto, contextoEnLinea: enLinea

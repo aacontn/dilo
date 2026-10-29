@@ -95,6 +95,10 @@ public struct ContextoCapturado: Equatable, Sendable {
   public var seleccion = ""
   /// Sólo dominio y ruta, sin consulta: `mail.google.com/mail`.
   public var sitio: String?
+  /// Los últimos caracteres antes del cursor, para adaptar la mayúscula y el
+  /// espacio del dictado (`AjusteAlCursor`). Nil: no se leyó, o no llegó a
+  /// tiempo. No va al sobre: no es contexto para el modelo.
+  public var antesDelCursor: String?
 
   public init(
     nombreDeApp: String? = nil, bundleID: String? = nil,

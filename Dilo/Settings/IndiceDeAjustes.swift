@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloConsumo
 import DiloText
 import Foundation
@@ -21,6 +22,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case microfono
   case microfonoListo
   case entregarElTexto
+  case mayusculaSegunElCursor
+  case envioHablado
   case guardarElHistorial
   case carpetaDelHistorial
   case borrarElHistorial
@@ -126,7 +129,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
 
   var seccion: SettingsSection {
     switch self {
-    case .atajoDeDictar, .microfono, .microfonoListo, .entregarElTexto, .guardarElHistorial,
+    case .atajoDeDictar, .microfono, .microfonoListo, .entregarElTexto, .mayusculaSegunElCursor,
+      .envioHablado, .guardarElHistorial,
       .carpetaDelHistorial, .borrarElHistorial, .idiomaDeDictado, .segundoIdioma,
       .teclaDelSegundoIdioma, .traducirA:
       .dictation
@@ -173,6 +177,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       SettingsSection.readAloud.isAvailable
     case .buscarActualizaciones, .actualizacionesSolas:
       SettingsSection.updates.isAvailable
+    case .mayusculaSegunElCursor:
+      seccion.isAvailable && Anfitrion.actual.admite(.contextoDelCampo)
+    case .envioHablado:
+      seccion.isAvailable && Anfitrion.actual.admite(.pegadoDirecto)
     default:
       seccion.isAvailable
     }
@@ -184,6 +192,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .microfono: String(localized: "Con cuál te escucho")
     case .microfonoListo: String(localized: "Dejarlo listo entre dictados")
     case .entregarElTexto: String(localized: "Entregar el texto")
+    case .mayusculaSegunElCursor: String(localized: "Adaptar la mayúscula al cursor")
+    case .envioHablado: String(localized: "Decir «envía» al final manda el mensaje")
     case .guardarElHistorial: String(localized: "Guardar lo que dictas")
     case .carpetaDelHistorial: String(localized: "Carpeta del historial")
     case .borrarElHistorial: String(localized: "Borrar el historial")
@@ -308,6 +318,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]
     case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", "Ultra", String(localized: "motor"), "RAM", String(localized: "memoria")]
     case .tusPalabrasEnParakeet: ["Parakeet", "CTC", String(localized: "vocabulario"), String(localized: "nombres"), String(localized: "diccionario")]
+    case .mayusculaSegunElCursor: [String(localized: "mayúscula"), String(localized: "minúscula"), "cursor", String(localized: "espacio")]
+    case .envioHablado: [String(localized: "enviar"), String(localized: "mandar"), "Enter", "↩", String(localized: "mensaje")]
     case .cuantoEsUnToque, .deshacerUnEsc: [String(localized: "toque"), String(localized: "mantener"), "Esc", String(localized: "cancelar")]
     case .color: ["Glaciar", "Grafito", String(localized: "paleta"), String(localized: "acento")]
     case .queSeVe, .estiloDeLaOnda, .paletaDelHalo, .centroDelHalo, .comoAparece, .textoLargo:

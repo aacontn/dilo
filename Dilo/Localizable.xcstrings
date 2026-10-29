@@ -221,6 +221,17 @@
         }
       }
     },
+    "A mitad de frase el dictado entra con minúscula y con un espacio; después de un punto, con mayúscula. Los nombres y Tus palabras se quedan como están. Mira los tres caracteres antes del cursor al empezar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mid-sentence, dictation comes in lowercase and with a space; after a period, capitalized. Names and Your words stay as they are. It looks at the three characters before the cursor when you start."
+          }
+        }
+      }
+    },
     "Abre la ventana de Dilo (también con un clic izquierdo en el ícono)": {
       "extractionState": "manual",
       "localizations": {
@@ -261,6 +272,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Getting started: permissions and a test dictation"
+          }
+        }
+      }
+    },
+    "Adaptar la mayúscula al cursor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match capitalization to the cursor"
           }
         }
       }
@@ -1596,6 +1618,17 @@
         }
       }
     },
+    "Decir «envía» al final manda el mensaje": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saying “envía” at the end sends the message"
+          }
+        }
+      }
+    },
     "Deja que Dilo lea con tu propia voz entrenada": {
       "extractionState": "manual",
       "localizations": {
@@ -2278,6 +2311,28 @@
         }
       }
     },
+    "enviar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "send"
+          }
+        }
+      }
+    },
+    "envía, envíalo, mándalo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "envía, envíalo, mándalo"
+          }
+        }
+      }
+    },
     "Error en los datos de Actividad: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -2362,6 +2417,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not an audio or video file"
+          }
+        }
+      }
+    },
+    "espacio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "space"
           }
         }
       }
@@ -2780,6 +2846,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "Las frases que mandan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The phrases that send"
           }
         }
       }
@@ -3268,6 +3345,17 @@
         }
       }
     },
+    "mandar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "send"
+          }
+        }
+      }
+    },
     "Mandar %@ a la Papelera": {
       "extractionState": "manual",
       "localizations": {
@@ -3367,6 +3455,17 @@
         }
       }
     },
+    "mayúscula": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uppercase"
+          }
+        }
+      }
+    },
     "Memoria": {
       "extractionState": "manual",
       "localizations": {
@@ -3385,6 +3484,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Less"
+          }
+        }
+      }
+    },
+    "mensaje": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "message"
           }
         }
       }
@@ -3418,6 +3528,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Until you download the model, Dilo dictates with Apple. You won't be left without dictation."
+          }
+        }
+      }
+    },
+    "minúscula": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lowercase"
           }
         }
       }
@@ -4687,6 +4808,17 @@
         }
       }
     },
+    "Separadas por comas. Vacío vuelve a las de fábrica.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separated by commas. Empty goes back to the defaults."
+          }
+        }
+      }
+    },
     "Si el texto se pasa de largo": {
       "extractionState": "manual",
       "localizations": {
@@ -5024,6 +5156,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bindings"
+          }
+        }
+      }
+    },
+    "Termina con «envía», «envíalo» o «mándalo», después de un punto o una pausa, y Dilo aprieta ↩ tras pegar. Nunca en una terminal, en un campo de contraseña ni si no supo que el texto entró. «Literal envía» la escribe.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End with “envía”, “envíalo” or “mándalo” after a period or a pause, and Dilo presses ↩ after pasting. Never in a terminal, in a password field, or if it couldn't tell the text went in. “Literal envía” types the word."
           }
         }
       }

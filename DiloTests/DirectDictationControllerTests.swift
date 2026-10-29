@@ -60,14 +60,16 @@ struct DirectDictationControllerTests {
 
   private static func makeTarget(
     isSecure: Bool = false,
-    applicationName: String? = nil
+    applicationName: String? = nil,
+    bundleID: String? = nil
   ) -> TextInsertionService.Target {
     TextInsertionService.Target(
       element: nil,
       processIdentifier: 1,
       isSecure: isSecure,
       displayID: nil,
-      applicationName: applicationName
+      applicationName: applicationName,
+      bundleID: bundleID
     )
   }
 
@@ -846,6 +848,80 @@ struct DirectDictationControllerTests {
     controller.handle(.cancelPressed)
     await waitUntil("El Esc no volvió a reposo") { controller.sessionStateForTesting == .idle }
     controller.stop()
+  }
+
+  /// Un dictado con «envía» al final para las pruebas del ↩: arma la sesión,
+  /// la termina y espera a que se cuente. Devuelve el recorder.
+  private func dictarConEnvia(
+    _ dicho: String,
+    destino: TextInsertionService.Target = DirectDictationControllerTests.makeTarget(),
+    entrega: ResultadoDeEntrega = .pegado(.lectura),
+    encendido: Bool = true
+  ) async -> Recorder {
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.envioHablado = encendido
+    var dependencias = makeDependencies(
+      recorder: recorder,
+      prewarmed: prewarmed,
+      captureFocusedTarget: { destino },
+      finishRecognition: { dicho },
+      insertOutcome: entrega
+    )
+    dependencias.pulsarIntro = { _ in
+      recorder.events.append("intro")
+      return true
+    }
+    let controller = makeController(settings: settings, dependencies: dependencias)
+    await prepare(controller, prewarmed: prewarmed)
+    controller.toggleFromMenu()
+    await waitUntil("Session never reached recording") {
+      controller.sessionStateForTesting == .recording(.latched)
+    }
+    controller.toggleFromMenu()
+    await waitUntil("The session never ended") {
+      controller.sessionStateForTesting == .idle && recorder.events.contains("showResultado")
+    }
+    controller.stop()
+    return recorder
+  }
+
+  /// «…mañana. Envía.»: pega sin la frase y aprieta ↩ después de pegar.
+  @Test func enviaAlFinalPegaSinLaFraseYMandaDespues() async {
+    let recorder = await dictarConEnvia("Nos vemos mañana. Envía.")
+    #expect(recorder.insertedTexts == ["Nos vemos mañana."])
+    #expect(recorder.count(of: "intro") == 1)
+    let pegado = recorder.events.firstIndex(of: "insertText")
+    let intro = recorder.events.firstIndex(of: "intro")
+    #expect(pegado != nil && intro != nil && pegado! < intro!, "el ↩ va después del pegado")
+  }
+
+  /// Apagado —el de fábrica— la frase se pega y nada se manda.
+  @Test func conElEnvioApagadoLaFraseSeQuedaYNoSeManda() async {
+    let recorder = await dictarConEnvia("Nos vemos mañana. Envía.", encendido: false)
+    #expect(recorder.insertedTexts.first?.contains("nvía") == true)
+    #expect(recorder.count(of: "intro") == 0)
+  }
+
+  /// En una terminal ↩ ejecuta: se pega sin la frase, no se manda, y se dice.
+  @Test func enUnaTerminalNoSeMandaYSeDice() async {
+    let recorder = await dictarConEnvia(
+      "git status, envía", destino: Self.makeTarget(bundleID: "com.apple.Terminal")
+    )
+    #expect(recorder.count(of: "intro") == 0)
+    #expect(recorder.messages.contains(PoliticaDelEnvio.Decision.enUnaTerminal.aviso ?? "—"))
+  }
+
+  /// Un ⌘V sin confirmar puede haber caído en otra parte: no se manda.
+  @Test func sinConfirmarElPegadoNoSeManda() async {
+    let recorder = await dictarConEnvia("Listo, envíalo.", entrega: .pegadoSinConfirmar)
+    #expect(recorder.count(of: "intro") == 0)
+  }
+
+  @Test func enUnCampoSeguroNoSeManda() async {
+    let recorder = await dictarConEnvia("Listo, envíalo.", destino: Self.makeTarget(isSecure: true))
+    #expect(recorder.count(of: "intro") == 0)
   }
 
   @Test func emptyFinishTextStillRecordsAZeroWordSession() async {
