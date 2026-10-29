@@ -1402,3 +1402,8 @@ Dos activos heredados no eran publicables y **ya se sacaron**
 `Assets.xcassets/Siri/` (sin licencia, imitaba a Apple). Todo lo que queda en
 el bundle es CC0, MIT o propio. Si vuelve un activo ajeno, su licencia va en
 `LICENSE-SOUNDS.txt` o en un `LICENSE-ARTWORK.txt` antes que el archivo.
+
+## Pendientes y decisiones
+
+Lo que falta hacer o confirmar está en `docs/pendientes.md`; lo decidido, en
+`docs/decisiones.md`. Este archivo no lleva pendientes.
