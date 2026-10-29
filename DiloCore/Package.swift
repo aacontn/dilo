@@ -38,15 +38,16 @@ let package = Package(
     // versión exacta: el paquete trae modelos que se bajan en runtime y una
     // API que todavía se mueve semana a semana.
     //
-    // Desde la 0.18 `traits: []` apaga tres cosas: `NemoTextProcessing`, un
-    // staticlib de Rust (~8 MB por slice) que no cabe en los 25 MB del
-    // `.app` (spec §3) —los números hablados ya los resuelve `DiloText`—, y
-    // los subsistemas `TTS` y `Diarizer`, que entran cada uno con la función
-    // que los usa.
+    // Desde la 0.18 los traits eligen qué subsistemas se compilan. Apagado:
+    // `NemoTextProcessing`, un staticlib de Rust (~8 MB por slice) que no cabe
+    // en los 25 MB del `.app` (spec §3) —los números hablados ya los resuelve
+    // `DiloText`—. Cada subsistema entra con la función que lo usa:
+    // `Diarizer` con Reuniones (Nemotron 3, Sortformer, LS-EEND, VBx);
+    // `TTS`, todavía no.
     .package(
       url: "https://github.com/FluidInference/FluidAudio.git",
       exact: "0.18.0",
-      traits: []
+      traits: ["Diarizer"]
     )
   ],
   targets: [
