@@ -60,6 +60,11 @@ enum RenderDeLaMuesca {
       try escribirLasPaletas(en: destino)
       return
     }
+    // `--conversacion`: la barra de llamada (`render-conversacion.swift`).
+    if CommandLine.arguments.contains("--conversacion") {
+      try escribirLaConversacion(en: destino)
+      return
+    }
     // `--antes-despues`: la lámina del cambio visible (`render-antes-despues.swift`).
     if CommandLine.arguments.contains("--antes-despues") {
       try escribirAntesYDespues(en: destino)
@@ -79,6 +84,8 @@ enum RenderDeLaMuesca {
     try escribir(lienzo(claro: true) { dictando }, en: destino, como: "dictando")
     try escribir(lienzo(claro: true) { acuse }, en: destino, como: "check")
     try escribir(comparacion, en: destino, como: "comparacion")
+    // La barra de llamada de la Conversación, en su carpeta.
+    try escribirLaConversacion(en: destino.appending(path: "conversacion"))
     // Los segmentos de los asientos, en su propia carpeta y en una lámina.
     try escribirLosSegmentos(en: destino.appending(path: "c2"))
     // Tres cortes y no cuatro: la muesca sobria crece tan poco que un cuarto

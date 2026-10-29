@@ -190,10 +190,11 @@ struct DictationHUDShellView: View {
     switch kind.surface {
     case .dictado:
       dictationSurface
-    // Reunión y conversación están previstas y no se dibujan en v1 (spec §5).
-    // Casos explícitos, no un `default:`: cuando lleguen sus specs, el
-    // compilador va a traer a alguien hasta acá.
-    case .ninguna:
+    // La conversación la dibuja su propia superficie (`HUDRootView`). La
+    // reunión está prevista y no se dibuja (spec §5). Casos explícitos, no
+    // un `default:`: cuando llegue su spec, el compilador va a traer a
+    // alguien hasta acá.
+    case .conversacion, .ninguna:
       EmptyView()
     }
   }

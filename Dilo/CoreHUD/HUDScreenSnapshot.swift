@@ -57,4 +57,9 @@ struct HUDScreenSnapshot: Equatable, Sendable {
   /// Viaja con la pantalla por lo mismo que `anchoDeLosLados`: la ventana y
   /// la zona que recibe el mouse tienen que leer el mismo número.
   var llevaSegmentos = false
+  /// Si hay una **Conversación** en la muesca. La barra de llamada con lo
+  /// desplegado es más alta que el panel del hover, y la ventana abierta
+  /// tiene que poder contenerla (`HUDNotchGeometry.tamañoDeLaConversacion`).
+  /// Sin conversación, la ventana abierta mide lo de siempre.
+  var llevaConversacion = false
 }

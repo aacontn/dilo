@@ -134,19 +134,39 @@ struct HUDPildoraTests {
     )
   }
 
-  /// Spec §5: la máquina prevé tres estados y v1 dibuja uno.
-  @Test func laMaquinaPreveTresEstadosYDibujaUno() {
+  /// Spec §5: la máquina prevé tres estados; desde el 2026-10-29 dibuja el
+  /// dictado y la conversación.
+  @Test func laMaquinaPreveTresEstadosYDibujaDos() {
     #expect(HUDSessionKind.allCases.count == 3)
     #expect(HUDSessionKind.dictando.surface == .dictado)
     #expect(HUDSessionKind.reunion.surface == .ninguna)
-    #expect(HUDSessionKind.conversando.surface == .ninguna)
-    #expect(HUDSessionKind.allCases.filter(\.isDrawn) == [.dictando])
+    #expect(HUDSessionKind.conversando.surface == .conversacion)
+    #expect(HUDSessionKind.allCases.filter(\.isDrawn) == [.dictando, .conversando])
+  }
+
+  /// La barra de llamada abre la forma, toma el mouse para sus botones y la
+  /// ventana abierta la contiene entera, desplegada.
+  @MainActor
+  @Test func laConversacionAbreElEscenarioYTomaElMouse() {
+    let stage = HUDStage(settings: AppSettings.previewStore())
+    stage.colocar(en: sinNotch)
+    stage.abrirLaConversacion(en: sinNotch)
+    #expect(stage.occupant == .conversacion)
+    #expect(stage.sessionKind == .conversando)
+    #expect(stage.encuadre == .abierta)
+    #expect(stage.laFormaRecibeElMouse)
+    var conLlamada = sinNotch
+    conLlamada.llevaConversacion = true
+    let desplegada = HUDNotchGeometry.tamañoDeLaConversacion(for: conLlamada, desplegada: true)
+    #expect(HUDNotchGeometry.windowSize(for: conLlamada).height >= desplegada.height)
+    stage.cerrarLaConversacion()
+    #expect(stage.occupant == .none)
   }
 
   /// Un estado sin superficie no abre el escenario: una forma negra vacía se
   /// lee como un cuelgue, no como "esto viene en camino".
   @MainActor
-  @Test(arguments: [HUDSessionKind.reunion, .conversando])
+  @Test(arguments: [HUDSessionKind.reunion])
   func unEstadoSinSuperficieNoAbreElEscenario(kind: HUDSessionKind) {
     let stage = HUDStage(settings: AppSettings.previewStore())
     stage.claim(.dictation, on: sinNotch, kind: kind)

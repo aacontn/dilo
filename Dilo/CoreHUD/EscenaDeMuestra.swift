@@ -71,6 +71,16 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   /// mano levantada en el acento, al costado, como lo pone
   /// `dilo-agente.sh claude espera`.
   case agenteEsperando = "agente-esperando"
+  /// La barra de llamada de la Conversación (`BarraDeLlamada`): escuchando
+  /// con lo que vas diciendo, pensando con Opus, hablando, con la
+  /// transcripción y con los ajustes desplegados, silenciada y con un aviso.
+  case conversacionEscucha = "conversacion-escucha"
+  case conversacionPiensa = "conversacion-piensa"
+  case conversacionHabla = "conversacion-habla"
+  case conversacionTranscripcion = "conversacion-transcripcion"
+  case conversacionAjustes = "conversacion-ajustes"
+  case conversacionSilenciada = "conversacion-silenciada"
+  case conversacionAviso = "conversacion-aviso"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
@@ -100,6 +110,11 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
       .reposo
     case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
       .segmentoConDatos, .agenteEsperando:
+      .reposo
+    // La conversación no mueve la máquina del contrato: la barra es otra
+    // superficie (`HUDStage+Conversacion`).
+    case .conversacionEscucha, .conversacionPiensa, .conversacionHabla, .conversacionTranscripcion,
+      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso:
       .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
@@ -138,6 +153,22 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .segmentosConPalabra: .fija
     default: .entra
     }
+  }
+
+  /// La foto de la barra de llamada que dibuja la escena, o nil si no es de
+  /// la conversación.
+  var fotoDeLaConversacion: FotoDeLaConversacion? {
+    let muestra: FotoDeLaConversacion.Muestra? = switch self {
+    case .conversacionEscucha: .escucha
+    case .conversacionPiensa: .piensa
+    case .conversacionHabla: .habla
+    case .conversacionTranscripcion: .transcripcion
+    case .conversacionAjustes: .ajustes
+    case .conversacionSilenciada: .silenciada
+    case .conversacionAviso: .aviso
+    default: nil
+    }
+    return muestra.map(FotoDeLaConversacion.deMuestra)
   }
 
   /// Si la escena lleva los datos de los costados encendidos.

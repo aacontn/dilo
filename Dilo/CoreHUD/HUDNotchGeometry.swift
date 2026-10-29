@@ -249,6 +249,23 @@ enum HUDNotchGeometry {
     )
   }
 
+  /// La barra de llamada de la **Conversación**: la cabecera —la silueta en
+  /// reposo— con el estado y el modelo, la fila de controles debajo y, a
+  /// pedido, la transcripción o los ajustes (`BarraDeLlamada`). Más ancha que
+  /// el aviso porque lleva cuatro botones y lo que vas diciendo, y más angosta
+  /// que el panel del hover: no es un panel, es una llamada en curso.
+  static func tamañoDeLaConversacion(for screen: HUDScreenSnapshot, desplegada: Bool) -> CGSize {
+    CGSize(
+      width: min(anchoDeLaConversacion, screen.frame.width),
+      height: alturaDeCabecera(for: screen) + altoDeLosControlesDeLaLlamada
+        + (desplegada ? altoDelDesplegableDeLaLlamada : 0)
+    )
+  }
+
+  static let anchoDeLaConversacion: CGFloat = 344
+  static let altoDeLosControlesDeLaLlamada: CGFloat = 30
+  static let altoDelDesplegableDeLaLlamada: CGFloat = 66
+
   /// El ancho del aviso: ícono, una línea de unos cuarenta caracteres en
   /// once puntos —«No pude pegarlo: quedó en el portapapeles» entera— o una
   /// de treinta con el botón de un arreglo.
@@ -630,6 +647,13 @@ enum HUDNotchGeometry {
   /// Sin carcasa son dos candidatas y gana el panel del hover: la muesca
   /// dictando apenas crece (`tamañoDictando`) y el panel sí tiene contenido.
   static func altoDeLaFormaMasAlta(for screen: HUDScreenSnapshot) -> CGFloat {
+    let conversacion = screen.llevaConversacion
+      ? tamañoDeLaConversacion(for: screen, desplegada: true).height
+      : 0
+    return max(altoDeLaFormaMasAltaSinConversacion(for: screen), conversacion)
+  }
+
+  private static func altoDeLaFormaMasAltaSinConversacion(for screen: HUDScreenSnapshot) -> CGFloat {
     guard hasMeasuredNotch(for: screen) else {
       var posibles = screen.seccionesPosibles
       posibles.datos = posibles.datos || screen.anchoDeLosLados > 0

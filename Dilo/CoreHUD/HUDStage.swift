@@ -31,18 +31,23 @@ final class HUDStage {
     case dictation
     case message
     case drop
+    /// Una **Conversación** en curso: la barra de llamada
+    /// (`HUDStage+Conversacion`).
+    case conversacion
   }
 
   private(set) var occupant = Occupant.none
 
-  /// El estado de sesión que el escenario está sosteniendo. Hoy siempre
-  /// `dictando`: reunión y conversación están previstas y no se dibujan
+  /// El estado de sesión que el escenario está sosteniendo: `dictando` o
+  /// `conversando`; la reunión está prevista y no se dibuja
   /// (`HUDSessionKind`, spec §5). Vive acá y no en el controlador de dictado
   /// porque el escenario es uno solo para los tres.
   private(set) var sessionKind = HUDSessionKind.dictando
 
   let dictationContent = DictationHUDContent()
   let dropContent = DropHUDContent()
+  /// La barra de llamada de la Conversación (`HUDStage+Conversacion`).
+  let conversacionContent = ContenidoDeLaConversacion()
 
   /// Quien reproduce los tres sonidos de una sesión. Entra por el inicializador
   /// para que un test pueda afirmar que empezar y terminar suenan sin tocar el
@@ -824,7 +829,7 @@ final class HUDStage {
   /// Si la forma está escondida ahora mismo: sólo el reposo, y sólo donde no
   /// hay barra de menús de la que colgar (`HUDNotchGeometry.reposoSeEsconde`).
   var escondido: Bool {
-    guard let pantallaActual else { return false }
+    guard let pantallaActual, occupant != .conversacion else { return false }
     return estado.esCompacto && HUDNotchGeometry.reposoSeEsconde(for: pantallaActual)
   }
 
@@ -866,7 +871,9 @@ final class HUDStage {
   /// devuelve nil en todo el rectángulo y la ventana deja de reclamar clics;
   /// no hay ningún `ignoresMouseEvents` que conmutar.
   private func actualizarZonaInteractiva() {
-    guard let pantallaActual, estado.tomaElMouse || elArrastreTomaElMouse, !escondido else {
+    guard let pantallaActual, estado.tomaElMouse || elArrastreTomaElMouse || occupant == .conversacion,
+      !escondido
+    else {
       panel.zonaInteractiva = nil
       return
     }
@@ -895,6 +902,11 @@ final class HUDStage {
   /// clic en Copiar.
   private var tamañoDeLaSilueta: CGSize {
     guard let pantallaActual else { return .zero }
+    if occupant == .conversacion {
+      return HUDNotchGeometry.tamañoDeLaConversacion(
+        for: pantallaActual, desplegada: conversacionContent.foto.desplegada
+      )
+    }
     let ventana = HUDNotchGeometry.windowSize(for: pantallaActual, encuadre: encuadre)
     guard estado.esCompacto else {
       // Sin carcasa la forma abierta es la muesca apenas más grande, medida:
@@ -933,7 +945,7 @@ final class HUDStage {
   /// Qué ventana pide este estado, contando lo que el hover tenga abierto y
   /// un arrastre en curso.
   private func encuadreQuePide(_ estado: EstadoDelNotch) -> HUDNotchGeometry.EncuadreDeLaVentana {
-    guard estado.esCompacto else { return .abierta }
+    guard estado.esCompacto, occupant != .conversacion else { return .abierta }
     if dictationContent.contextoVisible != nil { return .abierta }
     if occupant == .drop || dropContent.mode != .none { return .abierta }
     return .reposo
@@ -1018,6 +1030,7 @@ final class HUDStage {
     pantalla.anchoDeLosLados = anchoDeLosLados
     pantalla.seccionesPosibles = seccionesPosibles
     pantalla.llevaSegmentos = ventanaConSegmentos
+    pantalla.llevaConversacion = occupant == .conversacion
     mount(on: pantalla)
   }
 
@@ -1052,7 +1065,9 @@ final class HUDStage {
     let dentro = silueta.contains(punto)
     punteroSobreLaSilueta = dentro
     ultimoPunto = punto
-    guard estado.tomaElMouse else { return }
+    // Con la llamada en la muesca, el mouse es de sus botones: el hover no
+    // abre el panel encima.
+    guard estado.tomaElMouse, occupant != .conversacion else { return }
     // El segmento no es silueta para la intención: posarse en él le
     // devuelve la palabra y nunca abre el panel del hover. Para
     // `IntencionDelPuntero` es «afuera», así que con el panel abierto
@@ -1067,7 +1082,7 @@ final class HUDStage {
     guard !enMuestra else { return }
     punteroSobreLaSilueta = false
     cambiarLaPalabra(.punteroEncima(nil))
-    guard estado.tomaElMouse else { return }
+    guard estado.tomaElMouse, occupant != .conversacion else { return }
     decidir(conLaMuestra: ultimoPunto ?? posicionDelPuntero(), dentro: false)
   }
 
@@ -1132,7 +1147,7 @@ final class HUDStage {
   /// primer dictado: qué se dice con el panel abierto lo resuelve
   /// `DictationHUDContent.contextoVisible`, que nunca se queda sin algo.
   private func abrirElPanel() {
-    guard estado.tomaElMouse, !panelDeLaBarraAbierto else { return }
+    guard estado.tomaElMouse, !panelDeLaBarraAbierto, occupant != .conversacion else { return }
     // La ventana primero, el contexto después: el panel del hover también
     // es la silueta creciendo, y crece con la misma curva.
     ajustarVentana(a: .abierta)
@@ -1333,7 +1348,8 @@ final class HUDStage {
         nombre: screen.localizedName,
         anchoDeLosLados: anchoDeLosLados,
         seccionesPosibles: seccionesPosibles,
-        llevaSegmentos: ventanaConSegmentos
+        llevaSegmentos: ventanaConSegmentos,
+        llevaConversacion: occupant == .conversacion
       )
     }
     return HUDPlacement.selectDisplay(
@@ -1383,9 +1399,11 @@ final class HUDStage {
     // Idempotente: si la máquina ya está en reposo —porque venció el
     // resultado— esto no mueve nada y no vuelve a llamar acá.
     control.recibir(.cancelar)
+    let eraConversacion = occupant == .conversacion
     occupant = .none
     dictationContent.isRevealed = false
     dropContent.isRevealed = false
+    conversacionContent.isRevealed = false
     // La ventana se encoge después, no ahora: lo que queda por delante es la
     // animación de cierre, y una ventana ya achicada la recorta.
     ajustarVentana(a: encuadreNecesario)
@@ -1406,6 +1424,11 @@ final class HUDStage {
       dropContent.mode = .none
       dropContent.heldIcon = nil
       dropContent.transcript = nil
+      // La ventana abierta deja de reservar la barra de llamada.
+      if eraConversacion {
+        sessionKind = .dictando
+        remontarConLosLadosActuales()
+      }
       aplicar(.reposo)
     }
   }
@@ -1502,6 +1525,7 @@ final class HUDStage {
       settings: renderedSettings,
       content: dictationContent,
       drop: dropContent,
+      conversacion: conversacionContent,
       kind: sessionKind,
       onDrop: { [weak self] index in
         self?.onDropReceived?(index)
