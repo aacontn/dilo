@@ -50,6 +50,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Antes que nada de AppKit: con `--mcp` o como `dilo` este mismo binario
     // es el servidor MCP o el CLI, sin ventanas ni ícono, y no vuelve de acá.
     ArranqueParaAgentes.correrSinVentanasSiCorresponde()
+    // Antes de crear cualquier motor: FluidAudio anota en debug e info el
+    // texto que transcribe, y lo dicho nunca va a disco ni a la consola.
+    RegistroDeFluidAudio.callar()
     let application = NSApplication.shared
     let delegate = AppDelegate()
     application.delegate = delegate
