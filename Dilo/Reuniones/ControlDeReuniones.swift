@@ -1,3 +1,4 @@
+import AppKit
 import DiloEngines
 import DiloHablantes
 import DiloReuniones
@@ -81,6 +82,7 @@ final class ControlDeReuniones {
   @ObservationIgnored private var grabadora: GrabadoraDeReunion?
   @ObservationIgnored private var afinando: Set<String> = []
   @ObservationIgnored private var separacion: SeparacionDeVoces?
+  @ObservationIgnored private var observadorDelDisco: (any NSObjectProtocol)?
   @ObservationIgnored private static let logger = Logger(subsystem: "cl.espaciodigital.dilo", category: "reuniones")
 
   init(
@@ -228,6 +230,25 @@ final class ControlDeReuniones {
     }
   }
 
+  /// Cuando se monta el volumen de la raíz (el SSD vuelve), muda lo que
+  /// esperaba en el respaldo interno y afina lo que quedó a medias por una
+  /// parte que estaba allá.
+  private func escucharElDisco() {
+    guard observadorDelDisco == nil else { return }
+    observadorDelDisco = NSWorkspace.shared.notificationCenter.addObserver(
+      forName: NSWorkspace.didMountNotification, object: nil, queue: .main
+    ) { [weak self] aviso in
+      let montado = aviso.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL
+      MainActor.assumeIsolated {
+        guard let self, let volumen = CarpetaDeReunion.volumen(de: self.preferencias.carpeta),
+          montado?.standardizedFileURL.path == volumen.standardizedFileURL.path
+        else { return }
+        Self.logger.notice("Volvió el disco de las reuniones: muevo lo pendiente")
+        self.alArrancar()
+      }
+    }
+  }
+
   /// Al abrir Dilo, en segundo plano y sin modelos: repara lo que quedó
   /// grabando cuando la app murió, retoma las pasadas a medias, muda al SSD
   /// lo que esperaba el disco y aplica la retención del audio. Sólo lee
@@ -237,14 +258,18 @@ final class ControlDeReuniones {
     let respaldo = self.respaldo
     let raiz = preferencias.carpeta
     let politica = preferencias.audio
+    let grabandoAhora: Set<String> = enCurso.map { [$0.id] } ?? []
+    escucharElDisco()
     Task.detached(priority: .background) { [weak self] in
       if GrabadoraDeReunion.sePuedeEscribirSinCrear(en: raiz) {
-        _ = MudanzaDeReuniones.mudar(desde: respaldo, a: raiz)
+        _ = MudanzaDeReuniones.mudar(desde: respaldo, a: raiz, noTocar: grabandoAhora)
       }
       guard let todas = try? lector.todas() else { return }
       var pendientes: [ReunionEnDisco] = []
       for var enDisco in todas {
-        if ReparacionDeReuniones.estaHuerfana(enDisco.reunion, grabandoAhora: [], estaVivo: RelojDelMac.estaVivo) {
+        if ReparacionDeReuniones.estaHuerfana(
+          enDisco.reunion, grabandoAhora: grabandoAhora, estaVivo: RelojDelMac.estaVivo
+        ) {
           if let reparada = try? ReparacionDeReuniones.reparar(enDisco) { enDisco.reunion = reparada }
         }
         // Una pasada que se cortó (la app se cerró afinando) o una reunión

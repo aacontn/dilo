@@ -49,6 +49,15 @@ final class PistaEnDisco: @unchecked Sendable {
   private var anclaPendiente = true
   private var fallo = false
   private var perdidasAvisadas = 0
+  /// Dónde tendría que empezar el próximo bloque en la hora del Mac. Un
+  /// bloque que llega más tarde dejó un hueco: el tap deja de entregar
+  /// mientras nada suena, y un motor que se reconstruye calla un momento.
+  private var hostEsperado: Double?
+
+  /// Un hueco más largo que esto se rellena con silencio en el WAV.
+  static let huecoMinimo: Double = 0.2
+  /// Y nunca más que esto de una vez: un reloj que salta no llena el disco.
+  static let huecoMaximo: Double = 4 * 3600
 
   init(
     pista: Pista,
@@ -147,18 +156,35 @@ final class PistaEnDisco: @unchecked Sendable {
     }
   }
 
+  /// Lo del búfer al archivo. Un hueco en la entrega se escribe como
+  /// silencio, para que el WAV siga el reloj del Mac: si no, las anclas
+  /// interpolarían a través del hueco y correrían las palabras de antes. El
+  /// relleno no cuenta para la vigía: un Mac callado no es una pista muerta.
   private func vaciar() {
     guard let remuestreo else { return }
     var salida: [Float] = []
+    var reales = 0
+    var medida = (todasCero: true, pico: Float(-160))
     bufer.vaciar { bloque in
-      if anclaPendiente, bloque.muestras.count > 0 {
+      guard bloque.muestras.count > 0 else { return }
+      if let esperado = hostEsperado {
+        let hueco = bloque.host - esperado
+        if hueco > Self.huecoMinimo {
+          salida += [Float](repeating: 0, count: Int(min(hueco, Self.huecoMaximo) * RemuestreoA16k.tasa))
+        }
+      }
+      hostEsperado = bloque.host + Double(bloque.muestras.count) / bloque.tasa
+      if anclaPendiente {
         anclaPendiente = false
         anotarAncla(AnclaDeReloj(pista: pista, muestra: muestrasEscritas + Int64(salida.count), host: bloque.host))
       }
-      salida += remuestreo.convertir(bloque.muestras, tasa: bloque.tasa)
+      let convertidas = remuestreo.convertir(bloque.muestras, tasa: bloque.tasa)
+      let m = convertidas.withUnsafeBufferPointer { VigiaDeSilencio.medir($0) }
+      medida = (medida.todasCero && m.todasCero, max(medida.pico, m.pico))
+      reales += convertidas.count
+      salida += convertidas
     }
-    let medida = salida.withUnsafeBufferPointer { VigiaDeSilencio.medir($0) }
-    vigia.segundo(muestras: salida.count, todasCero: medida.todasCero, pico: medida.pico)
+    vigia.segundo(muestras: reales, todasCero: medida.todasCero, pico: medida.pico)
     if !salida.isEmpty, let archivo, !fallo {
       do {
         try archivo.write(contentsOf: CabeceraWAV.pcm16(salida))
