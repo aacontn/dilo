@@ -22,6 +22,8 @@ enum DiloSpeechStack {
     let parakeet = ParakeetEngine(
       captura: MicrophoneCapture(grabadora: grabadora, microfono: microfono)
     )
+    // La pasada final de una reunión usa este mismo modelo.
+    ParakeetCompartido.anotar(parakeet)
     let motores = armar(apple: servicio, parakeet: parakeet)
     let respaldo = MotorConRespaldo(
       motores: motores,
