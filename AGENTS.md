@@ -236,7 +236,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`) | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
-| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`) | 4 |
+| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`); las reglas de la Conversación (router de modelos, turnos, fin por silencio, cliente en streaming, oraciones para la voz, tope del mes y el contrato `VozQueContesta`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
@@ -740,10 +740,11 @@ que sólo se prueba a mano están en `docs/design/agentes-en-la-muesca.md`.
   `puedeSerPrincipal = false` y nunca exige el principal ni dice abrir el
   micrófono, lo pida quien lo pida. Un segmento que cambia su contenido bajo
   el mismo id vuelve a decir su palabra.
-- **Los App Intents no tienen lógica propia** (`Dilo/Atajos/`). Ocho:
+- **Los App Intents no tienen lógica propia** (`Dilo/Atajos/`). Nueve:
   Dictar (con modo opcional, «Sin modo» incluido), Dictar una nota, Elegir el
   modo de Dilo, Último dictado, Copiar el último dictado, Transcribir un
-  archivo, Buscar en el historial de Dilo y Mostrar en la muesca. Lo que hace
+  archivo, Buscar en el historial de Dilo, Mostrar en la muesca y Conversar
+  con Dilo. Lo que hace
   cada uno vive en `EjecucionDeAtajos`, que recibe la app como protocolo
   (`AccionesParaAtajos`) y se prueba con un doble; `AccionesDeDiloEnVivo`
   llama a lo mismo que el menú y el panel del hover
@@ -1075,6 +1076,84 @@ con un selector de modelo propio. Dos usos, dos modelos:
   modelo y marca si coincide con lo esperado; `ordenar` ordena un
   diccionario de ejemplo. Por defecto compara Haiku 5.5 con Sonnet 5.5.
   Llama a la API de verdad: se corre a mano, nunca desde un test.
+
+## Conversación
+
+Alfonso, 2026-10-29: hablarle a Dilo y que conteste en voz alta, como una
+llamada. **Sólo el pensar va en línea**: tu voz la transcribe el **Motor de
+voz** del dictado en el Mac, Claude contesta por la API de Anthropic con la
+clave de siempre y la respuesta la dice una voz del Mac. **El audio nunca sale
+del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
+`DiloModes`.
+
+- **Un turno a la vez** (`MaquinaDeLaConversacion`, pura): escuchando,
+  pensando, hablando. Half duplex: mientras Dilo piensa o habla el micrófono
+  no va al motor, para que no se escuche a sí mismo. Apretar el gatillo
+  interrumpe y te da el turno; tu turno termina por silencio (`FinDelTurno`:
+  `nivelDeVoz` 0,30 en la escala de 50 dB de la muesca, `silencioParaTerminar`
+  1,1 s después de al menos `vozMinima` 250 ms) o al soltar el gatillo. Sin voz
+  `sinVozParaColgar` (90 s), cuelga sola. Los umbrales son de partida, sin
+  medir con Alfonso: se calibran ahí.
+- **El motor es el del dictado, por su contrato** (`MotorParaConversar`, que
+  arma `DirectDictationController.Dependencies.live` con el mismo router de
+  motores): un Parakeet en la RAM y no dos, y la conversación no sabe cuál
+  escucha. No pasa por `MotorConRespaldo`: un turno que no salió no se guarda
+  para reintentar, se vuelve a decir. Como el router atiende una sesión, se
+  turnan: con una llamada en curso cualquier gatillo le da el turno a la
+  persona (`DirectDictationController.hayConversacion`), y un dictado que
+  empieza por el menú o un atajo cuelga la llamada. El micrófono se elige
+  aparte (`diloConversacionMicrofonoUID`), con la misma regla
+  (`PlanDeMicrofono`).
+- **Qué modelo contesta lo decide `RouterDeModelos`** (puro, con un test por
+  regla; decidido con Alfonso el 2026-10-29): el primer turno va a **Sonnet
+  5.5** sin inferir; **Haiku 5.5** sólo para lo claramente trivial (un saludo,
+  «sí», «gracias», «repite»), en cualquier turno; **Opus 5.5** por inferencia
+  nunca en el primer turno y sólo con evidencia acumulada —señales de
+  complejidad en dos turnos del mismo tema o un turno muy largo y denso—, y una
+  vez arriba el tema se queda arriba al menos tres turnos o hasta que cambie
+  («otra cosa», «cambiando de tema»); los triviales de en medio van a Haiku sin
+  bajar el tema. Una frase explícita cambia el modelo en cualquier turno
+  («piénsalo bien», «usa Opus» suben; «rápido,», «en corto», «usa Haiku»
+  bajan) y le gana a lo fijado en Ajustes. Esfuerzo `low`, `medium` y `high`.
+  La barra dice qué modelo contestó cada turno.
+- **El request** (`ClienteDeConversacion`) es el `POST /v1/messages` de
+  siempre con `stream: true` y `cache_control` arriba del todo; **sin
+  `temperature`, `thinking` ni prefill**, sólo se leen los bloques `text` y
+  `refusal` es falla. Las líneas SSE se leen una por una
+  (`LectorDeLaRespuesta`): `URLSession.AsyncBytes.lines` se salta las vacías.
+  La voz empieza con **la primera oración completa** (`TrozosParaDecir`, que
+  no corta decimales ni abreviaturas y saca el markdown). El prompt
+  (`PromptDeLaConversacion`, versionado) pide español de Chile hablado, corto
+  y sin markdown.
+- **La voz es un contrato chico** (`VozQueContesta`): `decir` una oración a la
+  vez, `cerrarElTurno`, `detener`, `ajustar`, y los avisos `alEmpezar` y
+  `alTerminar`. Hoy la cumple `VozDelSistema` (`AVSpeechSynthesizer`); la voz
+  neural de «Leer en voz alta» se enchufa ahí sin tocar la conversación.
+- **Lo conversado vive en RAM** mientras dura la llamada y se olvida al
+  colgar: no va al historial ni a un log, y no se guarda en ninguna parte (no
+  hay un patrón aprobado para hacerlo). Al log (`AppLog.conversacion`) van el
+  modelo, el motivo, los tiempos, los tokens y el costo de cada turno, y el
+  resumen al colgar. El contexto de otras apps no se manda.
+- **Costo y tope**: cada turno suma lo que costó (`CostosDeClaude.costo(de:)`,
+  con la caché) a la sesión, que la barra muestra, y al mes
+  (`diloConversacionGasto`, sólo la suma). Con lo gastado en el tope
+  (`TopeDeGasto`, US$5 de fábrica, Ajustes → Claude → Conversación) la
+  conversación lo dice y no llama más.
+- **Dónde se empieza**: un gatillo propio **sin asignar de fábrica**
+  (`diloConversacionGatillo`, Ajustes → Claude; slot `.conversar` del tap),
+  el App Intent «Conversar con Dilo» y «Conversar con Dilo» en el panel de la
+  barra, que durante la llamada dice «Colgar la conversación».
+- **En la muesca** (`BarraDeLlamada`, `HUDSurfaceKind.conversacion`,
+  `Occupant.conversacion`): la cabecera dice en qué está y qué modelo
+  contestó; debajo, silenciar, la transcripción, los ajustes (modelo, voz,
+  velocidad y micrófono, a un clic cada uno, sin menús) y colgar. Toma el
+  mouse en toda su silueta y el hover no abre el panel encima. La máquina del
+  contrato no se mueve. Se revisa en PNG con `scripts/render-muesca.sh
+  [salida] --conversacion` y en el arnés con las escenas `conversacion-*`.
+- **Probar**: `scripts/probar-conversacion.sh` imprime qué modelo elige el
+  router para una conversación de ejemplo, sin red; con `--llamar` hace dos
+  turnos de verdad con Haiku 5.5 y mide el primer pedazo y la primera
+  oración. Llama a la API: se corre a mano, nunca desde un test.
 
 ## La ventana de Ajustes
 
