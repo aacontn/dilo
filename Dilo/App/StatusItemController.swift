@@ -31,6 +31,13 @@ final class StatusItemController: NSObject {
   /// Empieza una nota rápida que termina en Apple Notas. Lo cablea
   /// `AppDelegate`; sin él la fila no hace nada.
   var dictarNota: (() -> Void)?
+  /// Llamar o colgar la Conversación. Nil la esconde del panel.
+  var conversar: (() -> Void)? {
+    didSet {
+      entrada.admiteConversar = conversar != nil
+      refrescarElPanel()
+    }
+  }
   /// Los modos que el panel ofrece y cuál usa el atajo general. Lo cablea
   /// `AppDelegate`, que es quien tiene los ajustes; se lee cada vez que el
   /// panel se abre, así que un modo nuevo aparece sin avisar a nadie.
@@ -202,6 +209,7 @@ final class StatusItemController: NSObject {
     case .abrirDilo: openSettings()
     case .dictar: toggleDictation()
     case .dictarNota: dictarNota?()
+    case .conversar: conversar?()
     case .leerSeleccion: toggleReadAloud()
     case .transcribirArchivo: transcribeFile()
     case let .copiar(copia): copiar(copia)
@@ -246,9 +254,16 @@ final class StatusItemController: NSObject {
 
   /// Las teclas, para que el panel las diga; el tap de eventos hace el
   /// trabajo, esto sólo las muestra.
-  func setKeyBindings(trigger: KeyBinding, readAloud: KeyBinding) {
+  func setKeyBindings(trigger: KeyBinding, readAloud: KeyBinding, conversar: KeyBinding? = nil) {
     entrada.atajoDeDictar = trigger.label
     entrada.atajoDeLeer = readAloud.label
+    entrada.atajoDeConversar = conversar?.label ?? ""
+    refrescarElPanel()
+  }
+
+  /// La Conversación, en el panel: «Colgar» mientras dura.
+  func setConversando(_ conversando: Bool) {
+    entrada.conversando = conversando
     refrescarElPanel()
   }
 

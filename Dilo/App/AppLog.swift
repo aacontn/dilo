@@ -46,4 +46,8 @@ enum AppLog {
   /// en contestar con la ventana abierta, cuánto y en qué sección
   /// (`VigiaDeCuelgues`). Nunca un valor de un ajuste.
   static let ajustes = Logger(subsystem: subsystem, category: "ajustes")
+  /// La Conversación: cada turno con su modelo, el motivo, los tiempos, los
+  /// tokens y lo que costó, y el resumen al colgar. Nunca lo dicho ni lo
+  /// contestado.
+  static let conversacion = Logger(subsystem: subsystem, category: "conversacion")
 }

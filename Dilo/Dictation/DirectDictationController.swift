@@ -19,6 +19,19 @@ final class DirectDictationController {
   /// active — speaking through the speaker path mid-dictation would feed
   /// the recognizer its own audio.
   var onReadAloudTriggered: (() -> Void)?
+  /// La tecla de conversar, o cualquier gatillo mientras hay una
+  /// Conversación: `true` al apretar y `false` al soltar. El dictado no la
+  /// atiende; la reparte (`ControladorDeLaConversacion`).
+  var onConversacion: ((Bool) -> Void)?
+  /// Si hay una Conversación en curso. Mientras la hay, el gatillo del
+  /// dictado le da el turno a la persona en vez de empezar un dictado: los
+  /// dos usan el mismo motor de voz.
+  var hayConversacion: () -> Bool = { false }
+  /// El slot que la conversación tomó al apretar, para darle también el
+  /// soltar.
+  private var slotDeLaConversacion: GlobalKeyEventMonitor.TriggerSlot?
+  /// El motor de voz prestado a la Conversación (`MotorParaConversar`).
+  var motorParaConversar: MotorParaConversar? { dependencies.motorParaConversar }
   /// A language model downloading, as a locale identifier and progress (0…1),
   /// or nil progress once it finishes. Settings shows it on the language row.
   var onLanguageDownloadChange: ((String, Double?) -> Void)?
@@ -212,7 +225,8 @@ final class DirectDictationController {
       secondaryTrigger: bindings.secondary,
       readAloud: bindings.readAloud,
       translateTrigger: bindings.translate,
-      modos: bindings.modos
+      modos: bindings.modos,
+      conversar: settings.conversacionGatillo
     )
     keyEventMonitor?.setEventHandlingSuspended(settings.isRecordingKeybind)
   }
@@ -363,6 +377,8 @@ final class DirectDictationController {
     // Un modo transforma lo dictado, no cambia de idioma: dicta en el
     // principal, como el atajo de siempre.
     case .modo: primaryLocale
+    // La conversación no abre un dictado; si llegara acá, el principal.
+    case .conversar: primaryLocale
     }
   }
 
@@ -636,6 +652,13 @@ final class DirectDictationController {
     at instante: ContinuousClock.Instant = .now
   ) {
     switch event {
+    case let .triggerPressed(slot)
+      where slot == .conversar || (hayConversacion() && !machine.isSessionActive):
+      slotDeLaConversacion = slot
+      onConversacion?(true)
+    case let .triggerReleased(slot) where slot == slotDeLaConversacion:
+      slotDeLaConversacion = nil
+      onConversacion?(false)
     case let .triggerPressed(slot):
       // While a session runs, only the key that started it controls it. The
       // other language's key is inert until this session ends, so a latched

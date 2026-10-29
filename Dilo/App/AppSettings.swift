@@ -106,6 +106,15 @@ final class AppSettings {
     static let versionVista = "diloVersionVista"
     static let ultimaSeccionDeAjustes = "diloAjustesUltimaSeccion"
     static let ajustesCerradosEn = "diloAjustesCerradosEn"
+    // La Conversación (2026-10-29).
+    static let conversacionGatillo = "diloConversacionGatillo"
+    static let conversacionModelo = "diloConversacionModelo"
+    static let conversacionVoz = "diloConversacionVoz"
+    static let conversacionVelocidad = "diloConversacionVelocidad"
+    static let conversacionMicrofonoUID = "diloConversacionMicrofonoUID"
+    static let conversacionMicrofonoNombre = "diloConversacionMicrofonoNombre"
+    static let conversacionTope = "diloConversacionTopeMensual"
+    static let conversacionGasto = "diloConversacionGasto"
   }
 
   @ObservationIgnored
@@ -358,6 +367,55 @@ final class AppSettings {
   /// El modelo que ordena Tus palabras.
   var modeloParaOrdenar: String {
     didSet { defaults.set(modeloParaOrdenar, forKey: Keys.modeloParaOrdenar) }
+  }
+
+  /// La tecla de la **Conversación**. **Sin asignar de fábrica**: nil. Se
+  /// empieza también desde el panel de la barra y con el atajo «Conversar
+  /// con Dilo».
+  var conversacionGatillo: KeyBinding? {
+    didSet {
+      if let conversacionGatillo {
+        Self.store(conversacionGatillo, in: defaults, key: Keys.conversacionGatillo)
+      } else {
+        defaults.removeObject(forKey: Keys.conversacionGatillo)
+      }
+    }
+  }
+
+  /// Qué modelo contesta: automático (el router) o uno fijo.
+  var conversacionModelo: EleccionDeModelo {
+    didSet { defaults.set(conversacionModelo.rawValue, forKey: Keys.conversacionModelo) }
+  }
+
+  /// La voz que contesta, por identificador; vacío es la de fábrica.
+  var conversacionVoz: String {
+    didSet { defaults.set(conversacionVoz, forKey: Keys.conversacionVoz) }
+  }
+
+  /// Sobre la velocidad normal de la voz.
+  var conversacionVelocidad: Double {
+    didSet { defaults.set(conversacionVelocidad, forKey: Keys.conversacionVelocidad) }
+  }
+
+  /// Con qué micrófono escucha la conversación: aparte del dictado, porque
+  /// para conversar quizás sirven los audífonos aunque se dicte con el del
+  /// Mac. Automático de fábrica, con la misma regla (`PlanDeMicrofono`).
+  var conversacionMicrofono: EleccionDeMicrofono {
+    didSet {
+      defaults.set(conversacionMicrofono.uidGuardado, forKey: Keys.conversacionMicrofonoUID)
+      defaults.set(conversacionMicrofono.nombreGuardado, forKey: Keys.conversacionMicrofonoNombre)
+    }
+  }
+
+  /// El tope de gasto mensual de la conversación, en dólares
+  /// (`TopeDeGasto`).
+  var conversacionTope: Double {
+    didSet { defaults.set(conversacionTope, forKey: Keys.conversacionTope) }
+  }
+
+  /// Lo gastado este mes, sólo la suma (`GastoDelMes`).
+  var conversacionGasto: GastoDelMes? {
+    didSet { defaults.set(conversacionGasto?.guardado, forKey: Keys.conversacionGasto) }
   }
 
   /// Las de Tus palabras que entraron de una corrección aceptada y no de
@@ -879,6 +937,18 @@ final class AppSettings {
     modeloParaOrdenar = defaults.string(forKey: Keys.modeloParaOrdenar)
       .flatMap(ModelosDeAnthropic.conocido)?.id ?? ModelosDeAnthropic.deFabricaParaOrdenar.id
     palabrasAprendidas = defaults.stringArray(forKey: Keys.palabrasAprendidas) ?? []
+    conversacionGatillo = Self.storedBinding(
+      in: defaults, key: Keys.conversacionGatillo, allowsMouseButton: true
+    )
+    conversacionModelo = Self.stored(in: defaults, key: Keys.conversacionModelo) ?? .automatico
+    conversacionVoz = defaults.string(forKey: Keys.conversacionVoz) ?? ""
+    conversacionVelocidad = defaults.object(forKey: Keys.conversacionVelocidad) as? Double ?? 1
+    conversacionMicrofono = EleccionDeMicrofono(
+      uid: defaults.string(forKey: Keys.conversacionMicrofonoUID) ?? "",
+      nombre: defaults.string(forKey: Keys.conversacionMicrofonoNombre) ?? ""
+    )
+    conversacionTope = defaults.object(forKey: Keys.conversacionTope) as? Double ?? TopeDeGasto.deFabrica
+    conversacionGasto = defaults.string(forKey: Keys.conversacionGasto).flatMap(GastoDelMes.init(guardado:))
     aprendidasDesdeElOrden = defaults.integer(forKey: Keys.aprendidasDesdeElOrden)
     ultimaPasadaDelOrden = defaults.object(forKey: Keys.ultimaPasadaDelOrden) as? Date
     firmaDelOrden = defaults.string(forKey: Keys.firmaDelOrden)
@@ -1051,6 +1121,9 @@ final class AppSettings {
   /// que nunca choque con el id de un modo.
   static func idDeRol(_ role: BindingRole) -> String { "rol.\(role)" }
 
+  /// El id de la tecla de conversar entre los atajos ocupados.
+  static let idDeConversar = "rol.conversar"
+
   /// **Todos** los atajos que hoy tienen tecla en Dilo: los cuatro roles y
   /// cada modo, con el nombre que se le muestra a la persona.
   ///
@@ -1068,6 +1141,13 @@ final class AppSettings {
       return ValidadorDeGatillos.GatilloEnUso(
         id: Self.idDeRol(rol), nombre: rol.title, gatillo: binding(for: rol).gatillo
       )
+    }
+    // La tecla de conversar, cuando la hay: una tecla que el dictado y la
+    // conversación compartieran dejaría a una de las dos sin disparar.
+    if let conversacionGatillo {
+      ocupados.append(ValidadorDeGatillos.GatilloEnUso(
+        id: Self.idDeConversar, nombre: String(localized: "Conversar"), gatillo: conversacionGatillo.gatillo
+      ))
     }
     ocupados += modos.compactMap { modo in
       modo.gatillo.map {

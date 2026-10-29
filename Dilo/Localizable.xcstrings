@@ -10136,6 +10136,622 @@
           }
         }
       }
+    },
+    "Algo falló con Claude. ¿Me lo dices de nuevo?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong with Claude. Can you say that again?"
+          }
+        }
+      }
+    },
+    "Anthropic me pidió esperar un poco. Prueba de nuevo en un rato.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic asked me to wait a bit. Try again in a moment."
+          }
+        }
+      }
+    },
+    "Anthropic no aceptó la clave. Revísala en Ajustes, en Claude.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic didn't accept the key. Check it in Settings, under Claude."
+          }
+        }
+      }
+    },
+    "Anthropic no está respondiendo. Dímelo de nuevo en un rato.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic isn't responding. Tell me again in a bit."
+          }
+        }
+      }
+    },
+    "Apriétala para llamar; durante la llamada, apretarla te da el turno y soltarla lo termina. Sin tecla, conversas desde el panel de la barra o con el atajo «Conversar con Dilo».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press it to call; during the call, pressing it gives you the turn and releasing it ends it. Without a key, talk from the menu bar panel or with the “Talk with Dilo” shortcut."
+          }
+        }
+      }
+    },
+    "Automático parte en Sonnet, baja a Haiku para un «sí» o un «gracias» y sube a Opus cuando la conversación se pone compleja o se lo pides («piénsalo bien»). Fijo, contesta siempre ese, salvo que pidas otro de viva voz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic starts on Sonnet, drops to Haiku for a “yes” or a “thanks”, and moves up to Opus when the conversation gets complex or you ask for it (“think it through”). A fixed model always answers, unless you ask for another one out loud."
+          }
+        }
+      }
+    },
+    "Claude se demoró demasiado. ¿Me lo dices de nuevo?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude took too long. Can you say that again?"
+          }
+        }
+      }
+    },
+    "Colgar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hang up"
+          }
+        }
+      }
+    },
+    "Colgar la conversación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hang up the conversation"
+          }
+        }
+      }
+    },
+    "Colgar la conversación con Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hang up the conversation with Dilo"
+          }
+        }
+      }
+    },
+    "Contestó %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ answered"
+          }
+        }
+      }
+    },
+    "Conversación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation"
+          }
+        }
+      }
+    },
+    "Conversando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talking"
+          }
+        }
+      }
+    },
+    "Conversar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk"
+          }
+        }
+      }
+    },
+    "Conversar con Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk with Dilo"
+          }
+        }
+      }
+    },
+    "Conversar con Dilo en voz alta: tú hablas y Dilo contesta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk with Dilo out loud: you speak and Dilo answers"
+          }
+        }
+      }
+    },
+    "Esconder la transcripción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide the transcript"
+          }
+        }
+      }
+    },
+    "Esconder los ajustes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide the settings"
+          }
+        }
+      }
+    },
+    "Este mes: %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month: %@."
+          }
+        }
+      }
+    },
+    "La de fábrica": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        }
+      }
+    },
+    "La respuesta se cortó. Pídemela más corta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The answer got cut off. Ask me for a shorter one."
+          }
+        }
+      }
+    },
+    "Le hablas a Dilo y contesta en voz alta. Tu voz se transcribe en el Mac; a Anthropic viaja sólo el texto.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You talk to Dilo and it answers out loud. Your voice is transcribed on the Mac; only the text goes to Anthropic."
+          }
+        }
+      }
+    },
+    "Lenta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slow"
+          }
+        }
+      }
+    },
+    "Llegaste al tope de gasto de este mes para conversar. Lo puedes subir en Ajustes, en Claude.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You reached this month's spending cap for conversations. You can raise it in Settings, under Claude."
+          }
+        }
+      }
+    },
+    "Llegaste al tope del mes para conversar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly conversation cap reached"
+          }
+        }
+      }
+    },
+    "Lo que conversen aparece acá. No se guarda.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you talk about shows up here. It isn't saved."
+          }
+        }
+      }
+    },
+    "Me falta la clave de Anthropic. Pégala en Ajustes, en Claude, y conversamos.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'm missing the Anthropic key. Paste it in Settings, under Claude, and we'll talk."
+          }
+        }
+      }
+    },
+    "Me quedé sin conexión con Anthropic. ¿Me lo repites?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I lost the connection to Anthropic. Can you repeat that?"
+          }
+        }
+      }
+    },
+    "Muy rápida": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Very fast"
+          }
+        }
+      }
+    },
+    "No pude abrir el micrófono, así que corto acá.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't open the microphone, so I'm hanging up."
+          }
+        }
+      }
+    },
+    "No pude escucharte": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't hear you"
+          }
+        }
+      }
+    },
+    "Otra velocidad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another speed"
+          }
+        }
+      }
+    },
+    "Otra voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another voice"
+          }
+        }
+      }
+    },
+    "Otro micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another microphone"
+          }
+        }
+      }
+    },
+    "Pensando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thinking…"
+          }
+        }
+      }
+    },
+    "Prefiero no contestar eso.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I'd rather not answer that."
+          }
+        }
+      }
+    },
+    "Quién contesta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who answers"
+          }
+        }
+      }
+    },
+    "Rápida": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast"
+          }
+        }
+      }
+    },
+    "Silenciado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muted"
+          }
+        }
+      }
+    },
+    "Silenciar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute"
+          }
+        }
+      }
+    },
+    "Te escucho": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening"
+          }
+        }
+      }
+    },
+    "Tecla para conversar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key to talk"
+          }
+        }
+      }
+    },
+    "Tope de gasto al mes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly spending cap"
+          }
+        }
+      }
+    },
+    "Tope del mes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly cap"
+          }
+        }
+      }
+    },
+    "Tú": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        }
+      }
+    },
+    "Velocidad": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speed"
+          }
+        }
+      }
+    },
+    "Ver la transcripción": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the transcript"
+          }
+        }
+      }
+    },
+    "Volver a escuchar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmute"
+          }
+        }
+      }
+    },
+    "Voz, velocidad, modelo y micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice, speed, model and microphone"
+          }
+        }
+      }
+    },
+    "%@ Al llegar al tope, la conversación lo dice y no llama más a Anthropic hasta el mes siguiente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ When it reaches the cap, the conversation says so and stops calling Anthropic until next month."
+          }
+        }
+      }
+    },
+    "conversación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "conversation"
+          }
+        }
+      }
+    },
+    "conversar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "talk"
+          }
+        }
+      }
+    },
+    "llamada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "call"
+          }
+        }
+      }
+    },
+    "tope": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cap"
+          }
+        }
+      }
+    },
+    "Lo conversado vive en la memoria mientras dura la llamada y se olvida al colgar: no va al historial ni al registro del sistema. Una conversación de diez minutos cuesta unos centavos con Sonnet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The conversation lives in memory while the call lasts and is forgotten when you hang up: it doesn't go to the history or the system log. A ten-minute conversation costs a few cents with Sonnet."
+          }
+        }
+      }
+    },
+    "Llama a Dilo para conversar en voz alta: tú hablas, tu voz se transcribe en el Mac y Claude contesta con una voz del Mac. Sólo viaja texto. Córrelo otra vez, o aprieta Colgar en la muesca, para terminar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calls Dilo to talk out loud: you speak, your voice is transcribed on the Mac and Claude answers with a Mac voice. Only text travels. Run it again, or press Hang up in the notch, to finish."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

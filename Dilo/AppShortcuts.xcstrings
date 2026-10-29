@@ -121,6 +121,28 @@
           }
         }
       }
+    },
+    "Conversar con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Hablar con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Have a conversation with ${applicationName}"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -26,6 +26,9 @@ protocol AccionesParaAtajos: AnyObject {
   func buscarEnHistorial(_ consulta: String) async throws -> [String]
   func transcribir(_ archivo: URL) async throws -> String
   func mostrarEnLaMuesca(_ aviso: AvisoDeAfuera)
+  /// Llama a Dilo para conversar o cuelga la conversación en curso.
+  /// Devuelve si quedó conversando.
+  func conversar() -> Bool
 }
 
 @MainActor
