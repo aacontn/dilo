@@ -32,6 +32,7 @@ let package = Package(
     // compilado. Es de taller, no de producto: `scripts/metrics.sh` la
     // construye y la corre, y la app no la enlaza.
     .executable(name: "dilo-metrics", targets: ["dilo-metrics"]),
+    .executable(name: "dilo-banco-reuniones", targets: ["dilo-banco-reuniones"]),
   ],
   dependencies: [
     // Parakeet TDT v3 y Ultra (int8) en Core ML. Apache 2.0. Se fija por
@@ -78,6 +79,12 @@ let package = Package(
     .target(
       name: "DiloHablantes",
       dependencies: ["DiloReuniones", .product(name: "FluidAudio", package: "FluidAudio")]
+    ),
+    // El banco de la Fase 0: mide los diarizadores sobre reuniones de verdad.
+    // Taller, como `dilo-metrics`: la app no lo enlaza.
+    .executableTarget(
+      name: "dilo-banco-reuniones",
+      dependencies: ["DiloReuniones", "DiloHablantes", "DiloEngines"]
     ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
