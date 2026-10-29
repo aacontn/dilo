@@ -68,8 +68,39 @@ public enum CostosDeClaude {
     return (Double(consumo.entrada) * precio.entrada + Double(consumo.salida) * precio.salida) / 1_000_000
   }
 
+  /// Lo que costó de verdad una respuesta, con lo que Anthropic contó en
+  /// `usage`: la entrada normal, lo que se escribió en la caché (1,25 veces
+  /// la entrada) y lo que se leyó de ella (un décimo), y la salida, que
+  /// incluye lo que el modelo pensó. Nil para un modelo que Dilo no conoce.
+  public static func costo(de uso: UsoDeTokens, modelo: String) -> Double? {
+    guard let precio = precio(modelo) else { return nil }
+    let entrada = Double(uso.entrada) * precio.entrada
+      + Double(uso.escritosEnCache) * precio.entrada * 1.25
+      + Double(uso.leidosDeCache) * precio.entrada * 0.1
+    return (entrada + Double(uso.salida) * precio.salida) / 1_000_000
+  }
+
   /// Lo que se muestra: dólares por mil usos, o por uso para ordenar.
   public static func referencia(_ tarea: Tarea, modelo: String) -> Double? {
     porUso(tarea, modelo: modelo).map { tarea.porMil ? $0 * 1_000 : $0 }
+  }
+}
+
+/// Los tokens de una respuesta, como los cuenta `usage` de la API.
+public struct UsoDeTokens: Equatable, Sendable {
+  /// `input_tokens`: la entrada que no vino de la caché.
+  public var entrada: Int
+  /// `output_tokens`: lo dicho y lo pensado.
+  public var salida: Int
+  /// `cache_creation_input_tokens`.
+  public var escritosEnCache: Int
+  /// `cache_read_input_tokens`.
+  public var leidosDeCache: Int
+
+  public init(entrada: Int = 0, salida: Int = 0, escritosEnCache: Int = 0, leidosDeCache: Int = 0) {
+    self.entrada = entrada
+    self.salida = salida
+    self.escritosEnCache = escritosEnCache
+    self.leidosDeCache = leidosDeCache
   }
 }
