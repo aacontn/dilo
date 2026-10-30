@@ -97,6 +97,11 @@ final class DestinosDeLaConversacion {
     let conectados = servidores.map { (servidor: $0, cliente: cliente($0)) }
     let nombreDelServidor = servidores.first?.nombre ?? agente.nombre
     let faltaElServidor = !propias && servidores.isEmpty
+    // A quién le puede pasar la conversación: sale de la lista de agentes, así
+    // que uno nuevo queda alcanzable apenas tiene destino.
+    let otrosAgentes = settings.conversacionAgentes.filter {
+      $0.id != agente.id && registro.estaConectado($0.tipo.clase)
+    }
     let destino = DestinoConClaude(
       agente: agente,
       preparar: {
@@ -108,6 +113,7 @@ final class DestinosDeLaConversacion {
         }
         return await Self.preparar(propias: deDilo, servidores: conectados)
       },
+      otrosAgentes: otrosAgentes,
       leerClave: leerClave,
       eleccionDeModelo: { [weak settings] in settings?.conversacionModelo ?? .automatico }
     )

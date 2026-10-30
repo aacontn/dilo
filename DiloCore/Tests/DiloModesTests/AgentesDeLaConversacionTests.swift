@@ -15,6 +15,14 @@ struct EnrutadorDeAgentesTests {
     #expect(ComoSuena.clave(SenalesDelTurno.plegar(plegada)) == clave)
   }
 
+  @Test(arguments: [
+    "Abre Cloud Code", "abrir Claude Code", "¿Puedes abrir Claude Code?", "Quiero abrir Claude Code por favor",
+    "Usa Claude Code",
+  ])
+  func pedirUnAgenteCambiaDeAgente(dicho: String) {
+    #expect(EnrutadorDeAgentes(agentes: Agente.deFabrica).enrutar(dicho, ultimo: nil) == .cambiarA(Agente.deFabrica[1]))
+  }
+
   @Test func unNombrePropioSeEnrutaPorComoSuena() {
     let kami = Agente(id: "dilo", nombre: "Kami", tipo: .dilo, seLlamaPorNombre: true)
     let enrutador = EnrutadorDeAgentes(agentes: [kami, Agente.deFabrica[1]])

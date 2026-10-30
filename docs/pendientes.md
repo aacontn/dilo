@@ -28,3 +28,4 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 - 2026-10-29 · Instalar Rust para exportar Phonon a Core ML (primer audio < 20 ms en el ANE; enlazarlo suma ~4,2 MB). (Alfonso)
 
 - 2026-10-15 · Empujar `main` a GitHub. (Alfonso)
+- 2026-10-30 · Agregar Codex y Gemini CLI como agentes cuando estén instalados: cada uno es un adaptador como `DestinoClaudeCode` (hablan distinto); el traspaso ya los alcanza solo. Hoy sólo está instalado `claude`.

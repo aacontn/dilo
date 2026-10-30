@@ -1377,6 +1377,10 @@ nombre y un destino que contesta.
   («cloud code», «suichbord»); «revisa Claude Code», «abre…», «pásame con…»
   cambian sin mandar nada; sin nombre, el último de la llamada y si no,
   Dilo. El menú de destino de la barra hace lo mismo con un clic.
+  También hay traspaso: cada agente con Claude tiene la herramienta
+  `pasar_a_agente`, armada desde los agentes conectados, y `.pasarA` sigue la
+  conversación con el otro en el mismo turno. Un agente nuevo queda alcanzable
+  apenas tiene destino en `RegistroDeDestinos`.
 - **Cada tipo se enchufa en `RegistroDeDestinos`**: `DestinosDeLaConversacion`
   registra `.dilo`, `.mcp` y `.claudeCode` (`DestinoClaudeCode`, cuyo detalle
   largo va sólo a la transcripción por `alTranscribir`). Un tipo sin fábrica

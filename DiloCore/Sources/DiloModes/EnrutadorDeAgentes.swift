@@ -45,7 +45,8 @@ public struct EnrutadorDeAgentes: Sendable {
   /// Los verbos que cambian de agente. Van seguidos del nombre y, a lo más, de
   /// cortesía: con algo más, ese algo es el turno para el agente nombrado.
   static let cambios: [[String]] = [
-    ["revisa"], ["abre"], ["abreme"], ["pasame", "con"], ["pasame", "a"], ["paseme", "con"],
+    ["revisa"], ["abre"], ["abreme"], ["abrir"], ["puedes", "abrir"], ["podrias", "abrir"], ["quiero", "abrir"],
+    ["necesito", "abrir"], ["usa"], ["usar"], ["entra", "a"], ["pasame", "con"], ["pasame", "a"], ["paseme", "con"],
     ["ponme", "con"], ["habla", "con"], ["hablemos", "con"], ["hablar", "con"], ["quiero", "hablar", "con"],
     ["conectame", "con"], ["cambia", "a"], ["cambiate", "a"], ["llama", "a"], ["vamos", "con"],
     ["anda", "a"], ["ve", "a"],

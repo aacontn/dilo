@@ -28,6 +28,16 @@ public struct Agente: Equatable, Hashable, Sendable, Codable, Identifiable {
   /// Si su nombre despierta a Dilo cuando la escucha de nombres está prendida.
   public var seLlamaPorNombre: Bool
 
+  /// Para qué sirve, en una frase: lo que lee el agente que decide a quién
+  /// pasarle la conversación.
+  public var queHace: String {
+    switch tipo {
+    case .dilo: "conversa y usa las herramientas de Dilo en el Mac"
+    case .claudeCode: "programa en los proyectos de la persona, en una sesión de Claude Code manejada por voz"
+    case .mcp: "contesta con las herramientas de ese servidor conectado"
+    }
+  }
+
   public init(id: String, nombre: String, tipo: Tipo, seLlamaPorNombre: Bool) {
     self.id = id
     self.nombre = nombre
@@ -100,6 +110,10 @@ public enum EventoDelDestino: Sendable {
   case herramienta(nombre: String, enCurso: Bool)
   /// El destino espera un clic antes de seguir.
   case pideAprobacion(Aprobacion)
+  /// La conversación sigue con otro agente, con `mensaje` como su primer
+  /// turno o, sin mensaje, sólo cambiando. Cierra el turno de este destino,
+  /// en vez de `fin`.
+  case pasarA(Agente, mensaje: String?, costoUSD: Double?)
   /// Terminó el turno. `costoUSD` es lo que costó, si el destino lo sabe
   /// (Claude por la API sí; Claude Code va por la cuenta de la persona).
   case fin(costoUSD: Double?)

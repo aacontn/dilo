@@ -138,6 +138,7 @@ struct DestinoConClaudeTests {
         case let .pideAprobacion(aprobacion):
           aprobaciones.append(aprobacion)
           if let aprobar { aprobacion.responder(aprobar) }
+        case .pasarA: break
         case let .fin(costoUSD): costo = costoUSD
         }
       }
@@ -335,6 +336,36 @@ struct DestinoConClaudeTests {
     #expect(despues.count == 3)
   }
 
+  @Test func elTraspasoCierraElTurnoSinOtroPedidoYLoConversadoQuedaValido() async throws {
+    let claudeCode = Agente.deFabrica[1]
+    let transporte = TransporteDePrueba([
+      [SSE.inicio()] + SSE.herramienta(
+        0, id: "t1", nombre: HerramientasDeLaConversacion.nombreDelTraspaso,
+        json: [#"{"agente":"Claude Code","mensaje":"revisa los tests"}"#]
+      ) + SSE.fin("tool_use"),
+      [SSE.inicio()] + SSE.texto(0, ["Hola."]) + SSE.fin("end_turn"),
+    ])
+    let destino = DestinoConClaude(
+      agente: Agente.deFabrica[0], preparar: { HerramientasDelDestino() }, otrosAgentes: [claudeCode],
+      leerClave: { "clave" }, transporte: transporte.transporte
+    )
+    var pasado: (Agente, String?)?
+    for try await evento in destino.responder(TurnoDeLaPersona(agente: destino.agente, texto: "revisa los tests")) {
+      if case let .pasarA(otro, mensaje, _) = evento { pasado = (otro, mensaje) }
+    }
+    #expect(pasado?.0 == claudeCode)
+    #expect(pasado?.1 == "revisa los tests")
+    #expect(transporte.cuerpos.count == 1)
+
+    // El turno siguiente alterna: la API rechaza un `tool_use` sin su resultado.
+    for try await _ in destino.responder(TurnoDeLaPersona(agente: destino.agente, texto: "gracias")) {}
+    guard case let .lista(mensajes)? = transporte.cuerpos.last?["messages"] else {
+      Issue.record("sin mensajes")
+      return
+    }
+    #expect(mensajes.map { $0["role"] } == ["user", "assistant", "user", "assistant", "user"].map { .texto($0) })
+  }
+
   @Test func sinClaveFallaSinPedirNada() async {
     let transporte = TransporteDePrueba([])
     let resultado = await recorrer(destino(transporte, clave: nil), "hola")
@@ -458,6 +489,18 @@ struct PiezasDelAgenteTests {
     let escritura = Set(todas.filter { $0.efecto == .escritura }.map(\.nombre))
     #expect(escritura == ["crear_nota", "copiar_al_portapapeles", "abrir_app", "abrir_url"])
     #expect(todas.allSatisfy { $0.nombre.range(of: "^[a-zA-Z0-9_-]{1,64}$", options: .regularExpression) != nil })
+  }
+
+  @Test func losOtrosAgentesSeOfrecenComoTraspasoYNoComoPaginas() {
+    let herramienta = HerramientasDeLaConversacion.pasarAAgente([Agente.deFabrica[1]])
+    #expect(herramienta.efecto == .lectura)
+    #expect(herramienta.descripcion.contains("Claude Code"))
+    let sistema = PromptDelAgente.sistema(
+      agente: Agente.deFabrica[0], conHerramientas: true, instrucciones: [], otrosAgentes: [Agente.deFabrica[1]],
+      ahora: Date(timeIntervalSince1970: 1_793_000_000), zona: TimeZone(identifier: "America/Santiago")!
+    )
+    #expect(sistema.contains("Otros agentes: Claude Code."))
+    #expect(sistema.contains("nunca los abras con abrir_url"))
   }
 
   @Test func elAgentePrincipalSeLlamaComoLePusieron() {

@@ -516,6 +516,12 @@ final class ControladorDeLaConversacion {
             // Lo que ya se dijo se termina de decir mientras espera el clic.
             if let resto = trozos.terminar() { voz.decir(resto) }
             mostrar(aprobacion)
+          case let .pasarA(otro, mensaje, costoUSD):
+            if let resto = trozos.terminar() { voz.decir(resto) }
+            cerrarLoContestado(de: agente, costo: costoUSD)
+            pendiente = mensaje.map { .turno(TurnoDeLaPersona(agente: otro, texto: $0)) } ?? .cambiarA(otro)
+            consultar()
+            return
           case let .fin(costoUSD):
             if let resto = trozos.terminar() { voz.decir(resto) }
             terminarElTurno(de: agente, costo: costoUSD)
@@ -577,6 +583,13 @@ final class ControladorDeLaConversacion {
   }
 
   private func terminarElTurno(de agente: Agente, costo: Double?) {
+    cerrarLoContestado(de: agente, costo: costo)
+    voz.cerrarElTurno()
+  }
+
+  /// Lo que dijo el agente va a la transcripción y lo gastado al tope. La voz
+  /// sigue: en un traspaso, el otro agente continúa en el mismo turno.
+  private func cerrarLoContestado(de agente: Agente, costo: Double?) {
     consulta = nil
     soltarLaAprobacion(false)
     stage.conversacionContent.foto.herramienta = nil
@@ -589,7 +602,6 @@ final class ControladorDeLaConversacion {
       settings.conversacionGasto = TopeDeGasto.sumar(costo, a: settings.conversacionGasto, ahora: Date())
       stage.conversacionContent.foto.costo = Self.dolares(costoDeLaSesion)
     }
-    voz.cerrarElTurno()
   }
 
   /// Lo que un destino con Claude cuenta de su turno: al log, como siempre.
