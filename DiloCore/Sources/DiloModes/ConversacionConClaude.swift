@@ -152,7 +152,7 @@ public struct LectorDeLaRespuesta: Sendable {
   }
 
   /// Un evento `error` a mitad del stream: el mismo nombre que su código.
-  static func falla(deTipo tipo: String?) -> FallaDeClaude {
+  public static func falla(deTipo tipo: String?) -> FallaDeClaude {
     switch tipo {
     case "overloaded_error": .anthropicNoResponde(codigo: 529)
     case "api_error": .anthropicNoResponde(codigo: 500)

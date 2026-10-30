@@ -60,8 +60,11 @@ let package = Package(
     .target(name: "DiloModes"),
     .target(name: "DiloConsumo"),
     // `DiloAgentes` lee las reuniones del disco para el MCP y el CLI; lo que
-    // lee es puro y no arrastra FluidAudio.
-    .target(name: "DiloAgentes", dependencies: ["DiloReuniones"]),
+    // lee es puro y no arrastra FluidAudio. Desde el 2026-10-30 también es el
+    // lado cliente: el cliente MCP por stdio y el destino `.dilo` de la
+    // **Conversación**, que habla con Claude con herramientas y por eso usa el
+    // contrato y el cliente de `DiloModes`.
+    .target(name: "DiloAgentes", dependencies: ["DiloReuniones", "DiloModes"]),
     .target(name: "DiloPlataforma"),
     .target(name: "DiloCapabilities"),
     .target(
@@ -103,7 +106,7 @@ let package = Package(
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),
-    .testTarget(name: "DiloAgentesTests", dependencies: ["DiloAgentes", "DiloReuniones"]),
+    .testTarget(name: "DiloAgentesTests", dependencies: ["DiloAgentes", "DiloReuniones", "DiloModes"]),
     .testTarget(name: "DiloPlataformaTests", dependencies: ["DiloPlataforma"]),
     .testTarget(name: "DiloCapabilitiesTests", dependencies: ["DiloCapabilities"]),
     .testTarget(name: "DiloEnginesTests", dependencies: ["DiloEngines", "DiloText"]),
