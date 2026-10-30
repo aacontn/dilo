@@ -78,8 +78,10 @@ struct SintetizadorPhononTests {
     ])
   }
 
-  /// Phonon 40m no dice la ñ y sí dice «ni» (medido con Parakeet).
-  @Test func laEnieSeEscribeComoNi() {
+  /// Phonon 40m no dice la ñ ni la ú, y sí «ni» y «u» (medido con Parakeet).
+  @Test func laEnieYLaUConTildeSeReescriben() {
+    #expect(SintetizadorPhonon.paraPhonon("el último número de música") == "el ultimo numero de musica")
+    #expect(SintetizadorPhonon.paraPhonon("ÚLTIMO") == "ULTIMO")
     #expect(SintetizadorPhonon.paraPhonon("Mañana el niño de la señora Muñoz") == "Maniana el ninio de la seniora Munioz")
     #expect(SintetizadorPhonon.paraPhonon("Ñuñoa") == "Niunioa")
     #expect(SintetizadorPhonon.paraPhonon("ÑUÑOA") == "NIUNIOA")

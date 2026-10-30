@@ -28,10 +28,12 @@ public enum VocesDePhonon {
   public static let revision = "da6c9ec0d47be8df5c87c730a3aa97187f3229c3"
 
   /// La de fábrica la decidió el banco de voces (`scripts/taller-voces.sh`,
-  /// 2026-10-29): la de menos errores al transcribirla de vuelta con
-  /// Parakeet (3,7 % de WER en seis frases chilenas, empatada con Borja),
-  /// entre las de México, que es el acento más cercano al de Chile de los dos
-  /// que hay.
+  /// 2026-10-29): entre las de México, que es el acento más cercano al de
+  /// Chile de los dos que hay, la de menos errores al transcribirla de vuelta
+  /// con Parakeet en dos pasadas de seis frases chilenas (5,2 % de WER en
+  /// promedio, empatada con Jimena). Entre voces la diferencia es de ±2
+  /// puntos, que es lo que varía una misma voz de una pasada a otra: el
+  /// número elige, pero el oído de Alfonso manda.
   public static let deFabrica = "Danae"
 
   public static let todas: [VozDePhonon] = [

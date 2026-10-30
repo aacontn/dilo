@@ -65,25 +65,32 @@ public struct SintetizadorPhonon: Sendable {
     return try Self.leerWAV(salida)
   }
 
-  /// La ñ escrita como «ni». Phonon 40m 0.5.0 no la dice: en el banco de
-  /// voces, con «Mañana temprano, el niño de la señora Muñoz viaja a
-  /// España», las tres voces probadas y el modelo multilingüe dijeron
-  /// «manana», «zenahora», «espanada», y Parakeet no oyó ninguna ñ; escrita
-  /// «maniana», «seniora», «Espania», la oyó en todas las palabras. Lo de
-  /// Apple y Supertonic sí la dicen, así que es del modelo o de su
-  /// tokenizador, no del audio. Si una versión nueva lo arregla, esto sale.
+  /// La ñ escrita como «ni» y la ú sin tilde. Phonon 40m 0.5.0 no dice ni
+  /// la una ni la otra: en el banco de voces, con «Mañana temprano, el niño
+  /// de la señora Muñoz viaja a España», las tres voces probadas y el modelo
+  /// multilingüe dijeron «manana», «zenahora», «espanada», y «número»,
+  /// «música», «último» salieron «nuámero», «muásica», «ualtimo»; Parakeet
+  /// no oyó ninguna bien. Escritas «maniana», «seniora», «numero», «musica»,
+  /// las oyó todas, con el acento en su lugar. Apple y Supertonic sí las
+  /// dicen, así que es del modelo o de su tokenizador (las tiene en el
+  /// vocabulario), no del audio. Si una versión nueva lo arregla, esto sale.
   public static func paraPhonon(_ texto: String) -> String {
     var resultado = ""
     let letras = Array(texto)
     for (i, letra) in letras.enumerated() {
-      guard letra == "ñ" || letra == "Ñ" else {
+      switch letra {
+      case "ú": resultado.append("u")
+      case "Ú": resultado.append("U")
+      case "ñ", "Ñ":
+        let siguiente = i + 1 < letras.count ? letras[i + 1] : " "
+        resultado.append(letra == "Ñ" ? "N" : "n")
+        // Antes de una i, la i del «ni» sobra: «añil» → «anil».
+        if siguiente.lowercased() != "i" {
+          resultado.append(letra == "Ñ" && siguiente.isUppercase ? "I" : "i")
+        }
+      default:
         resultado.append(letra)
-        continue
       }
-      let siguiente = i + 1 < letras.count ? letras[i + 1].lowercased() : ""
-      let base = letra == "Ñ" ? "N" : "n"
-      // Antes de una i, la i del «ni» sobra: «añil» → «anil».
-      resultado += siguiente == "i" ? base : base + (letra == "Ñ" && letras.indices.contains(i + 1) && letras[i + 1].isUppercase ? "I" : "i")
     }
     return resultado
   }
@@ -91,9 +98,9 @@ public struct SintetizadorPhonon: Sendable {
   /// El texto llega ya dicho por `TextoParaLeer`, y `--lang es` deja que el
   /// normalizador del propio Phonon termine lo que aquél no tocó. En el banco
   /// de voces, con Regina e Iker, el normalizador de Phonon solo (con todas
-  /// sus reglas, fechas y horas incluidas) dejó 8,6 % de WER y los dos juntos
-  /// 5,6 %: leía «15/03/2026» como «1503-2026» y «3,5 UF» como «tres coma
-  /// cinco unidades».
+  /// sus reglas, fechas y horas incluidas) dejó 8,6 % de WER y los dos juntos,
+  /// más la ñ y la ú reescritas, 6,4 %: el de Phonon leía «15/03/2026» como
+  /// «1503-2026» y «3,5 UF» como «tres coma cinco unidades».
   static func argumentos(texto: String, voz: URL, modelo: URL, salida: URL) -> [String] {
     [
       "--model", modelo.path, "--lang", "es", "--quant", "q8",
