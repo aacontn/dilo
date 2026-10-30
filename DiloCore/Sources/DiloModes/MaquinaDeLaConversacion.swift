@@ -35,6 +35,12 @@ public struct MaquinaDeLaConversacion: Equatable, Sendable {
     case interrumpir
     case silenciar(Bool)
     case colgar
+    /// Un turno que no salió del micrófono: lo dicho después del nombre que
+    /// despertó a Dilo, o un turno que entra de afuera con la llamada en
+    /// curso. Colgada, la llamada empieza ya pensando; escuchando, el
+    /// micrófono se cierra sin entregar; pensando o hablando, lo de antes se
+    /// corta. En los tres casos se consulta.
+    case turnoDeAfuera
   }
 
   public enum Efecto: Equatable, Sendable {
@@ -61,8 +67,20 @@ public struct MaquinaDeLaConversacion: Equatable, Sendable {
       estado = .escuchando
       silenciada = false
       return [.abrirMicrofono]
+    case (.colgada, .turnoDeAfuera):
+      estado = .pensando
+      silenciada = false
+      return [.consultar]
     case (.colgada, _):
       return []
+
+    case (.escuchando, .turnoDeAfuera):
+      let microfono = microfonoAbierto
+      estado = .pensando
+      return (microfono ? [.cerrarMicrofono(entregar: false)] : []) + [.consultar]
+    case (.pensando, .turnoDeAfuera), (.hablando, .turnoDeAfuera):
+      estado = .pensando
+      return [.cancelarConsulta, .callarLaVoz, .consultar]
 
     case (_, .colgar):
       let estaba = estado
