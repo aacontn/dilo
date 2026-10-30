@@ -144,10 +144,21 @@ public struct FinDelTurno: Sendable {
   /// una pieza callada (−45 a −50) y por debajo de alguien que habla a medio
   /// metro (−25 a −15).
   public static let nivelDeVoz: Float = 0.30
-  /// Cuánto silencio termina el turno. Un segundo y algo es la pausa de quien
-  /// terminó; la de quien piensa a mitad de frase suele ser más corta. Si
-  /// corta a la gente, se sube acá.
-  public static let silencioParaTerminar: Duration = .milliseconds(1_100)
+  /// Cuánto silencio termina el turno. Es la mitad de lo que tarda Dilo en
+  /// contestar, así que va lo más corto que no corte a la gente: bajó de
+  /// 1.100 ms porque la conversación no se sentía como una. Si corta, se
+  /// sube acá.
+  public static let silencioParaTerminar: Duration = .milliseconds(700)
+  /// Cuánto se espera si lo último que se oyó deja la frase abierta («…y
+  /// pero»): ahí la pausa es de quien busca la palabra, no de quien terminó.
+  public static let silencioConLaFraseAbierta: Duration = .milliseconds(1_400)
+  /// Las palabras con que una frase no termina. El motor las escribe plegadas
+  /// o no; se comparan plegadas.
+  static let dejanLaFraseAbierta: Set<String> = [
+    "y", "e", "o", "u", "ni", "pero", "que", "porque", "pues", "aunque", "si", "cuando", "como", "donde",
+    "mientras", "entonces", "de", "del", "al", "a", "en", "con", "para", "por", "sin", "sobre", "el", "la",
+    "los", "las", "un", "una", "unos", "unas", "mi", "tu", "su", "este", "esta", "eh", "em", "mm",
+  ]
   /// Cuánta voz hace falta antes de que el silencio cuente: un golpe en la
   /// mesa no es un turno.
   public static let vozMinima: Duration = .milliseconds(250)
@@ -179,10 +190,21 @@ public struct FinDelTurno: Sendable {
     ultimaVoz = instante
   }
 
+  /// Si lo oído hasta ahora termina en una palabra que deja la frase abierta.
+  public static func dejaLaFraseAbierta(_ parcial: String) -> Bool {
+    SenalesDelTurno.plegar(parcial).split(separator: " ").last
+      .map { dejanLaFraseAbierta.contains(String($0)) } ?? false
+  }
+
   /// Si el turno ya terminó por silencio.
-  public func termino(en instante: ContinuousClock.Instant) -> Bool {
+  public func termino(en instante: ContinuousClock.Instant, fraseAbierta: Bool = false) -> Bool {
     guard huboVoz, let ultimaVoz else { return false }
-    return instante - ultimaVoz >= Self.silencioParaTerminar
+    return instante - ultimaVoz >= (fraseAbierta ? Self.silencioConLaFraseAbierta : Self.silencioParaTerminar)
+  }
+
+  /// Cuánto lleva callada la persona.
+  public func silencio(en instante: ContinuousClock.Instant) -> Duration {
+    ultimaVoz.map { instante - $0 } ?? .zero
   }
 
   /// Si pasó tanto sin voz que la conversación tiene que colgar.

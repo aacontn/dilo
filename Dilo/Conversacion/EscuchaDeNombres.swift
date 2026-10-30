@@ -109,6 +109,8 @@ final class EscuchaDeNombres {
     withObservationTracking {
       _ = settings.escucharMiNombre
       _ = settings.conversacionMicrofono
+      // Renombrar a un agente cambia lo que se escucha sin cerrar el micrófono.
+      _ = settings.conversacionAgentes
     } onChange: { [weak self] in
       Task { @MainActor [weak self] in
         self?.revisar()

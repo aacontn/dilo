@@ -874,7 +874,7 @@ nombre»).
   1,5 s** con el Parakeet del dictado (`ParakeetCompartido.conElModelo`: un
   modelo en la RAM, con su reposo de siempre) y `NombreQueDespierta` mira si
   empieza con un nombre. Sin nombre, el resto del tramo se ignora sin
-  transcribir; con nombre, se espera 1,1 s de silencio (el de `FinDelTurno`)
+  transcribir; con nombre, se espera el silencio de `FinDelTurno`
   y se transcribe el tramo entero para el primer turno. En un M1: 79 % de
   los llamados de `say` oídos (92 % con las voces neuronales), 0 falsas
   alarmas en 54 min de prosa y 10 de ruido, **0,44–0,65 % de un núcleo con
@@ -1294,7 +1294,7 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   no va al motor, para que no se escuche a sí mismo. Apretar el gatillo
   interrumpe y te da el turno; tu turno termina por silencio (`FinDelTurno`:
   `nivelDeVoz` 0,30 en la escala de 50 dB de la muesca, `silencioParaTerminar`
-  1,1 s después de al menos `vozMinima` 250 ms) o al soltar el gatillo. Sin voz
+  700 ms después de al menos `vozMinima` 250 ms, 1,4 s si la frase queda abierta) o al soltar el gatillo. Sin voz
   `sinVozParaColgar` (90 s), cuelga sola. Los umbrales son de partida, sin
   medir con Alfonso: se calibran ahí.
 - **El motor es el del dictado, por su contrato** (`MotorParaConversar`, que

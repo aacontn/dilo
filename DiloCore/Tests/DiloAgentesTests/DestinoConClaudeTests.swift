@@ -460,6 +460,15 @@ struct PiezasDelAgenteTests {
     #expect(todas.allSatisfy { $0.nombre.range(of: "^[a-zA-Z0-9_-]{1,64}$", options: .regularExpression) != nil })
   }
 
+  @Test func elAgentePrincipalSeLlamaComoLePusieron() {
+    let sistema = PromptDelAgente.sistema(
+      agente: Agente(id: "dilo", nombre: "Kami", tipo: .dilo, seLlamaPorNombre: true), conHerramientas: false,
+      instrucciones: [], ahora: Date(timeIntervalSince1970: 1_793_000_000), zona: TimeZone(identifier: "America/Santiago")!
+    )
+    #expect(sistema.hasPrefix("Eres Kami,"))
+    #expect(!sistema.contains("Eres Dilo"))
+  }
+
   @Test func elSystemDiceLaHoraYQueLoDeLasHerramientasEsDato() {
     let sistema = PromptDelAgente.sistema(
       agente: Agente.deFabrica[2], conHerramientas: true, instrucciones: [("Switchboard", "Llama a status.")],

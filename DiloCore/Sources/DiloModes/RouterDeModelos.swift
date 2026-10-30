@@ -24,7 +24,8 @@ public enum NivelDeModelo: String, CaseIterable, Comparable, Sendable {
   public var esfuerzo: String {
     switch self {
     case .haiku: "low"
-    case .sonnet: "medium"
+    // Es el que contesta casi todo, y lo que piensa se espera en silencio.
+    case .sonnet: "low"
     case .opus: "high"
     }
   }

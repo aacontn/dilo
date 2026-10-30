@@ -197,7 +197,7 @@ struct RouterDeModelosTests {
 
   @Test func elEsfuerzoVaAcordeAlModelo() {
     #expect(NivelDeModelo.haiku.esfuerzo == "low")
-    #expect(NivelDeModelo.sonnet.esfuerzo == "medium")
+    #expect(NivelDeModelo.sonnet.esfuerzo == "low")
     #expect(NivelDeModelo.opus.esfuerzo == "high")
     #expect(NivelDeModelo.allCases.map(\.modelo.id) == ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"])
   }

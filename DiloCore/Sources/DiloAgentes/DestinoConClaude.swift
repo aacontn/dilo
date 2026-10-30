@@ -20,7 +20,7 @@ public struct HerramientasDelDestino: Sendable {
 /// `system` que cambia entre turnos invalida la caché y los bloques de
 /// pensamiento que vienen después.
 public enum PromptDelAgente {
-  public static let version = 1
+  public static let version = 2
 
   public static func sistema(
     agente: Agente,
@@ -29,7 +29,12 @@ public enum PromptDelAgente {
     ahora: Date,
     zona: TimeZone
   ) -> String {
-    var partes = [PromptDeLaConversacion.instrucciones]
+    // El agente principal se llama como la persona le puso.
+    var partes = [
+      agente.tipo == .dilo
+        ? PromptDeLaConversacion.instrucciones.replacingOccurrences(of: "Eres Dilo,", with: "Eres \(agente.nombre),")
+        : PromptDeLaConversacion.instrucciones
+    ]
     if agente.tipo != .dilo {
       partes.append(
         "En esta llamada la persona te llama «\(agente.nombre)»: contestas con lo que tienes de ahí."

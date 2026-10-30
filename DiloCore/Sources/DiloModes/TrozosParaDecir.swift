@@ -5,17 +5,24 @@ import Foundation
 /// La voz empieza a hablar con la **primera oración completa** y no con la
 /// respuesta entera: eso es lo que hace que la conversación se sienta como
 /// una llamada y no como esperar un correo. Una oración termina en `.`, `!`,
-/// `?`, `…`, `:` o `;` seguidos de un espacio, o en un salto de línea.
+/// `?`, `…`, `:` o `;` seguidos de un espacio, o en un salto de línea. Lo
+/// primero de la respuesta sale antes: también con una coma, si ya lleva
+/// `palabrasParaLaPrimeraComa` palabras.
 ///
 /// Lo que no corta: un punto entre dígitos («3.5»), una abreviatura conocida
 /// («Sr.», «etc.», «EE. UU.») y un trozo de una sola letra. Puro: entra
 /// texto, salen oraciones.
 public struct TrozosParaDecir: Sendable {
   private var pendiente = ""
+  private var yaSalioAlgo = false
 
   /// Lo más corto que se manda solo. Una oración de una letra («a.») es casi
   /// siempre un pedazo de una sigla, no algo que decir.
   public static let largoMinimo = 2
+
+  /// Cuántas palabras tiene que llevar lo primero para cortar en una coma:
+  /// con menos («Sí, …», «Hola, Alfonso, …») la pausa queda rara.
+  public static let palabrasParaLaPrimeraComa = 4
 
   static let abreviaturas: Set<String> = [
     "sr", "sra", "srta", "dr", "dra", "etc", "ej", "p", "pag", "aprox", "av", "depto", "n", "nro",
@@ -33,7 +40,10 @@ public struct TrozosParaDecir: Sendable {
       let oracion = String(pendiente[..<corte])
       pendiente = String(pendiente[corte...])
       let limpia = Self.paraDecir(oracion)
-      if limpia.count >= Self.largoMinimo { oraciones.append(limpia) }
+      if limpia.count >= Self.largoMinimo {
+        oraciones.append(limpia)
+        yaSalioAlgo = true
+      }
     }
     return oraciones
   }
@@ -55,6 +65,13 @@ public struct TrozosParaDecir: Sendable {
       let siguiente = pendiente.index(after: i)
       if c == "\n" {
         return siguiente
+      }
+      if c == ",", !yaSalioAlgo {
+        let siguienteEsEspacio = siguiente < pendiente.endIndex && pendiente[siguiente].isWhitespace
+        let palabras = pendiente[..<i].split(whereSeparator: \.isWhitespace).count
+        if siguienteEsEspacio, palabras >= Self.palabrasParaLaPrimeraComa {
+          return pendiente.index(after: siguiente)
+        }
       }
       if ".!?…:;".contains(c) {
         // Hace falta ver qué viene después: sin eso no se sabe si «3.» es

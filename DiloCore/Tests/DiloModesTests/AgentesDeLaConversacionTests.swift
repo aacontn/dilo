@@ -6,6 +6,22 @@ import Testing
 /// A qué agente va lo dicho: el nombre adelante, lo que Parakeet oye mal, los
 /// cambios sin mensaje y el último agente de la llamada.
 struct EnrutadorDeAgentesTests {
+  @Test(arguments: [
+    ("kami", "kami"), ("cami", "kami"), ("camí", "kami"), ("kammy", "kami"), ("quique", "kike"),
+    ("cecilia", "sesilia"), ("zoe", "soe"), ("vale", "bale"), ("hugo", "ugo"), ("guille", "guiye"),
+    ("yoli", "yoli"), ("rey", "rei"), ("chelo", "chelo"), ("dilo", "dilo"),
+  ])
+  func comoSuena(plegada: String, clave: String) {
+    #expect(ComoSuena.clave(SenalesDelTurno.plegar(plegada)) == clave)
+  }
+
+  @Test func unNombrePropioSeEnrutaPorComoSuena() {
+    let kami = Agente(id: "dilo", nombre: "Kami", tipo: .dilo, seLlamaPorNombre: true)
+    let enrutador = EnrutadorDeAgentes(agentes: [kami, Agente.deFabrica[1]])
+    #expect(enrutador.enrutar("Cami, ¿qué tengo hoy?", ultimo: Agente.deFabrica[1])
+      == .turno(TurnoDeLaPersona(agente: kami, texto: "¿Qué tengo hoy?")))
+  }
+
   let enrutador = EnrutadorDeAgentes(agentes: Agente.deFabrica)
   var dilo: Agente { Agente.deFabrica[0] }
   var claudeCode: Agente { Agente.deFabrica[1] }

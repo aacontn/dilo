@@ -14,9 +14,10 @@ import Foundation
 /// (`/Volumes/SSD 1/Dilo/taller/escucha/README.md`): Parakeet pone la coma
 /// en casi todos los llamados y no la pone en el verbo.
 ///
-/// Compara plegado —sin tildes, mayúsculas ni signos—, porque el motor pone
-/// tildes y mayúsculas a su criterio. Un nombre de varias palabras se compara
-/// junto («Claude Code» = «claudecode»). Puro.
+/// Compara plegado —sin tildes, mayúsculas ni signos— y por cómo suena
+/// (`ComoSuena`), porque el motor pone tildes y mayúsculas a su criterio y
+/// escribe «Cami» aunque el agente se guardó «Kami». Un nombre de varias
+/// palabras se compara junto («Claude Code» = «claudecode»). Puro.
 public struct NombreQueDespierta: Sendable {
   /// Un llamado: a quién, y lo que siguió al nombre si hubo algo.
   public struct Llamado: Equatable, Sendable {
@@ -72,7 +73,7 @@ public struct NombreQueDespierta: Sendable {
   ) {
     candidatos = agentes.filter(\.seLlamaPorNombre).map { agente in
       let formas = variantes(agente).map {
-        SenalesDelTurno.plegar($0).replacingOccurrences(of: " ", with: "")
+        ComoSuena.clave(SenalesDelTurno.plegar($0).replacingOccurrences(of: " ", with: ""))
       }.filter { !$0.isEmpty }
       return (agente, Array(Set(formas)).sorted { $0.count > $1.count })
     }
@@ -100,7 +101,7 @@ public struct NombreQueDespierta: Sendable {
         var junto = ""
         var indice = inicio
         while indice < palabras.count, junto.count < objetivo.count {
-          junto += palabras[indice].plegada
+          junto += palabras[indice].clave
           indice += 1
         }
         guard junto == objetivo, objetivo.count > (mejor?.largo ?? 0) else { continue }
@@ -129,6 +130,7 @@ public struct NombreQueDespierta: Sendable {
   struct Palabra: Equatable {
     let plegada: String
     let fin: String.Index
+    var clave: String { ComoSuena.clave(plegada) }
   }
 
   static func palabras(de dicho: String) -> [Palabra] {

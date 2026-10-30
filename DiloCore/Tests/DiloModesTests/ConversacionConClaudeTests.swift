@@ -168,6 +168,20 @@ struct TrozosParaDecirTests {
     #expect(trozos.agregar("¿Te sirve? ¡Bacán! Seguimos") == ["¿Te sirve?", "¡Bacán!"])
   }
 
+  @Test func loPrimeroTambienSaleConUnaComaSiYaEsUnaFrase() {
+    var trozos = TrozosParaDecir()
+    #expect(trozos.agregar("Revisé los tests de hoy, y pasan todos, menos") == ["Revisé los tests de hoy,"])
+    #expect(trozos.agregar(" uno. Sigo") == ["y pasan todos, menos uno."])
+    #expect(trozos.terminar() == "Sigo")
+  }
+
+  @Test func unaComaTempranaODeUnDecimalNoCorta() {
+    var trozos = TrozosParaDecir()
+    #expect(trozos.agregar("Sí, lo reviso, ") == [])
+    var numeros = TrozosParaDecir()
+    #expect(numeros.agregar("El saldo de hoy es 3,5 UF en total. ") == ["El saldo de hoy es 3,5 UF en total."])
+  }
+
   @Test func elMarkdownNoSeDice() {
     var trozos = TrozosParaDecir()
     let dicho = trozos.agregar("## Pasos\n- **Primero** abre la app.\n* Después `guarda`.\n")
@@ -298,9 +312,26 @@ struct MaquinaDeLaConversacionTests {
     // Medio segundo de voz y después silencio.
     for ms in stride(from: 3_100, through: 3_600, by: 100) { fin.muestra(nivel: 0.6, en: en(ms)) }
     #expect(fin.huboVoz)
-    for ms in stride(from: 3_700, through: 4_600, by: 100) { fin.muestra(nivel: 0.1, en: en(ms)) }
-    #expect(!fin.termino(en: en(4_600)))
-    #expect(fin.termino(en: en(3_600 + 1_100)))
+    for ms in stride(from: 3_700, through: 4_200, by: 100) { fin.muestra(nivel: 0.1, en: en(ms)) }
+    #expect(!fin.termino(en: en(4_200)))
+    #expect(fin.termino(en: en(3_600 + 700)))
+    #expect(fin.silencio(en: en(4_300)) == .milliseconds(700))
+    // Con la frase abierta se espera más: es quien busca la palabra.
+    #expect(!fin.termino(en: en(3_600 + 700), fraseAbierta: true))
+    #expect(fin.termino(en: en(3_600 + 1_400), fraseAbierta: true))
+  }
+
+  @Test(arguments: [
+    ("Quiero que revises esto y", true),
+    ("Pásame la nota de", true),
+    ("Dime qué tengo, pero", true),
+    ("Dime qué tengo hoy", false),
+    ("¿Qué hora es?", false),
+    ("Revisa el", true),
+    ("", false),
+  ])
+  func unaFraseAbiertaEsperaMas(parcial: String, abierta: Bool) {
+    #expect(FinDelTurno.dejaLaFraseAbierta(parcial) == abierta)
   }
 
   @Test func unGolpeNoEsUnTurno() {

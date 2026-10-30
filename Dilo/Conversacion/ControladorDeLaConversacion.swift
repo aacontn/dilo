@@ -30,7 +30,7 @@ final class ControladorDeLaConversacion {
   /// Cada cuánto se mira el silencio mientras escucha. También es cada
   /// cuánto se redibuja el punto del nivel: siete veces por segundo basta
   /// para que se vea vivo y no cuesta nada.
-  static let cadaCuantoMirar: Duration = .milliseconds(150)
+  static let cadaCuantoMirar: Duration = .milliseconds(60)
   /// Sostener el gatillo menos que esto y soltarlo sin voz no termina el
   /// turno: fue un toque, no un turno.
   static let sostenidoMinimo: Duration = .milliseconds(400)
@@ -88,6 +88,7 @@ final class ControladorDeLaConversacion {
   private var sostenidoDesde: ContinuousClock.Instant?
   private var vigia: Task<Void, Never>?
   private var consulta: Task<Void, Never>?
+  private var tiempos: TiemposDelTurno?
   /// Las operaciones del motor, en fila: empezar, terminar y cancelar
   /// tienen que llegar en orden aunque la persona interrumpa rápido.
   private var filaDelMotor: Task<Void, Never>?
@@ -123,7 +124,10 @@ final class ControladorDeLaConversacion {
     self.voz = voz
     self.leerClave = leerClave
     destinos = DestinosDeLaConversacion(settings: settings, leerClave: leerClave)
-    self.voz.alEmpezar = { [weak self] in self?.aplicar(.empezoAHablar) }
+    self.voz.alEmpezar = { [weak self] in
+      self?.anotarElPrimerAudio()
+      self?.aplicar(.empezoAHablar)
+    }
     self.voz.alTerminar = { [weak self] in self?.terminoDeHablar() }
     destinos.alTerminarElTurno = { [weak self] agente, resumen in self?.anotar(resumen, de: agente) }
     destinos.alTranscribir = { [weak self] agente, texto in
@@ -340,8 +344,12 @@ final class ControladorDeLaConversacion {
         try? await Task.sleep(for: Self.cadaCuantoMirar)
         guard let self, !Task.isCancelled, esta == escucha, maquina.microfonoAbierto else { return }
         let ahora = ContinuousClock.now
+        let abierta = FinDelTurno.dejaLaFraseAbierta(stage.conversacionContent.foto.parcial)
         let (nivel, termino, nadie) = medidor.withLock { medicion in
-          (medicion.nivel, medicion.fin?.termino(en: ahora) ?? false, medicion.fin?.nadieHabla(en: ahora) ?? false)
+          (
+            medicion.nivel, medicion.fin?.termino(en: ahora, fraseAbierta: abierta) ?? false,
+            medicion.fin?.nadieHabla(en: ahora) ?? false
+          )
         }
         stage.conversacionContent.foto.nivel = nivel
         guard sostenidoDesde == nil else { continue }
@@ -374,6 +382,9 @@ final class ControladorDeLaConversacion {
       return
     }
     let soltado = ContinuousClock.now
+    tiempos = TiemposDelTurno(
+      soltado: soltado, silencio: medidor.withLock { $0.fin?.silencio(en: soltado) } ?? .zero
+    )
     enFila { [weak self] in
       let texto = (try? await motor.terminar()) ?? ""
       let transcribir = ContinuousClock.now - soltado
@@ -389,7 +400,7 @@ final class ControladorDeLaConversacion {
       aplicar(.transcrito(vacio: true))
       return
     }
-    AppLog.conversacion.info("turno \(self.turnos + 1): transcrito en \(Self.ms(transcribir), privacy: .public)")
+    tiempos?.transcribir = transcribir
     let ruta = enrutador.enrutar(limpio, ultimo: agenteActual)
     pendiente = ruta
     agregarLinea(limpio, deDilo: false)
@@ -493,7 +504,11 @@ final class ControladorDeLaConversacion {
           switch evento {
           case let .texto(pedazo):
             contestado += pedazo
-            for oracion in trozos.agregar(pedazo) { voz.decir(oracion) }
+            tiempos?.marcarPrimerPedazo()
+            for oracion in trozos.agregar(pedazo) {
+              tiempos?.marcarPrimeraOracion()
+              voz.decir(oracion)
+            }
           case let .herramienta(nombre, enCurso):
             stage.conversacionContent.foto.herramienta = enCurso ? nombre : nil
             if enCurso { agregarLinea(nombre, deDilo: true, quien: quienDice(agente), nota: true) }
@@ -521,6 +536,39 @@ final class ControladorDeLaConversacion {
         }
       }
     }
+  }
+
+  /// Lo que tardó el turno desde que la persona se calló hasta oír a Dilo, por
+  /// partes. Es la medida de que esto se sienta como una conversación.
+  private struct TiemposDelTurno {
+    let soltado: ContinuousClock.Instant
+    /// Lo que se esperó en silencio antes de darle el turno a Dilo.
+    let silencio: Duration
+    var transcribir: Duration?
+    var primerPedazo: Duration?
+    var primeraOracion: Duration?
+
+    mutating func marcarPrimerPedazo() {
+      if primerPedazo == nil { primerPedazo = .now - soltado }
+    }
+
+    mutating func marcarPrimeraOracion() {
+      if primeraOracion == nil { primeraOracion = .now - soltado }
+    }
+  }
+
+  private func anotarElPrimerAudio() {
+    guard let tiempos else { return }
+    self.tiempos = nil
+    let oido = ContinuousClock.now - tiempos.soltado
+    AppLog.conversacion.notice(
+      """
+      turno \(self.turnos): de callar a oír \(Self.ms(tiempos.silencio + oido), privacy: .public) \
+      (silencio \(Self.ms(tiempos.silencio), privacy: .public), transcribir \(Self.ms(tiempos.transcribir), privacy: .public), \
+      primer texto \(Self.ms(tiempos.primerPedazo), privacy: .public), primera oración \(Self.ms(tiempos.primeraOracion), privacy: .public), \
+      primer audio \(Self.ms(oido), privacy: .public))
+      """
+    )
   }
 
   /// En la transcripción, el nombre de quien contesta si no es Dilo.

@@ -8,8 +8,9 @@ import Foundation
 /// con Switchboard» cambian de agente sin mandarle nada.
 ///
 /// Compara plegado —sin tildes, sin mayúsculas, sin signos y sin espacios
-/// entre las palabras del nombre—, porque el **Motor de voz** pone tildes,
-/// comas y espacios a su criterio. Y conoce lo que Parakeet suele oír mal en
+/// entre las palabras del nombre— y por cómo suena (`ComoSuena`), porque el
+/// **Motor de voz** pone tildes, comas y espacios a su criterio y escribe
+/// «Cami» aunque el agente se guardó «Kami». Y conoce lo que Parakeet suele oír mal en
 /// los nombres de fábrica («cloud code», «suichbord»): un nombre en inglés
 /// dicho en una frase en español sale escrito como suena. Puro: entra lo
 /// dicho, sale la ruta.
@@ -23,7 +24,7 @@ public struct EnrutadorDeAgentes: Sendable {
 
   /// Lo que Parakeet escribe en vez del nombre, por nombre plegado y sin
   /// espacios. Sólo los de fábrica: un nombre que la persona inventa se
-  /// reconoce como lo escribió, y si el motor lo oye mal lo agrega a Tus
+  /// reconoce por cómo suena, y si el motor lo oye mal lo agrega a Tus
   /// palabras.
   static let comoLoOyeElMotor: [String: [String]] = [
     "claudecode": [
@@ -110,12 +111,12 @@ public struct EnrutadorDeAgentes: Sendable {
     var mejor: (Agente, Int)?
     for agente in agentes {
       for variante in Self.variantes(de: agente) {
-        let objetivo = variante.replacingOccurrences(of: " ", with: "")
+        let objetivo = ComoSuena.clave(variante.replacingOccurrences(of: " ", with: ""))
         guard !objetivo.isEmpty else { continue }
         var junto = ""
         var indice = desde
         while indice < palabras.count, junto.count < objetivo.count {
-          junto += palabras[indice].plegada
+          junto += palabras[indice].clave
           indice += 1
           if junto == objetivo, indice > (mejor?.1 ?? -1) { mejor = (agente, indice) }
         }
@@ -129,6 +130,7 @@ public struct EnrutadorDeAgentes: Sendable {
   struct Palabra: Equatable {
     let plegada: String
     let fin: String.Index
+    var clave: String { ComoSuena.clave(plegada) }
   }
 
   static func palabras(de dicho: String) -> [Palabra] {

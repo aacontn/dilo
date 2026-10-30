@@ -23,6 +23,20 @@ struct NombreQueDespiertaTests {
     #expect(regla.oir(dicho) == .init(agente: dilo, primerTurno: turno))
   }
 
+  @Test(arguments: [
+    ("Cami, ¿qué tengo hoy?", "¿Qué tengo hoy?"),
+    ("Kami, ¿qué tengo hoy?", "¿Qué tengo hoy?"),
+    ("Oye Camí, abre mis notas.", "Abre mis notas."),
+    ("Kammy, para.", "Para."),
+  ])
+  func unNombrePropioSeReconocePorComoSuena(dicho: String, turno: String) {
+    let kami = Agente(id: "dilo", nombre: "Kami", tipo: .dilo, seLlamaPorNombre: true)
+    let regla = NombreQueDespierta(agentes: [kami])
+    #expect(regla.oir(dicho) == .init(agente: kami, primerTurno: turno))
+    // Y el nombre viejo ya no despierta.
+    #expect(regla.oir("Dilo, ¿qué tengo hoy?") == nil)
+  }
+
   @Test(arguments: ["Dilo.", "Dilo", "  dilo  ", "Oye, Dilo.", "Digo."])
   func soloElNombreEsUnLlamadoSinTurno(dicho: String) {
     #expect(regla.oir(dicho) == .init(agente: dilo, primerTurno: nil))
@@ -156,7 +170,7 @@ struct VentanaDeEscuchaTests {
     #expect(rango.lowerBound == 0)
     // Hasta la última voz (trozo 14) más un poco, no hasta el final del silencio.
     #expect(rango.upperBound >= 15 * Self.paso && rango.upperBound < 16 * Self.paso)
-    // El silencio tras el nombre es el de `FinDelTurno`: 1,1 s.
+    // El silencio tras el nombre es el de `FinDelTurno`.
     let callado = acciones[0].0 - 14
     #expect(Double(callado * Self.paso) / 16_000 >= 1.1)
     #expect(!ventana.ocupada)
