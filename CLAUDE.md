@@ -1303,6 +1303,64 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   turnos de verdad con Haiku 5.5 y mide el primer pedazo y la primera
   oración. Llama a la API: se corre a mano, nunca desde un test.
 
+### Claude Code por voz
+
+El destino `Agente.Tipo.claudeCode` (2026-10-30, `docs/design/conversacion-agente.md`):
+`DestinoClaudeCode` y `ProcesoDeClaudeCode` en `Dilo/Conversacion/`, lo puro
+en `DiloModes` (`MensajesDeClaudeCode`, `EntradaDeClaudeCode`,
+`VozDeClaudeCode`, `TurnoDeClaudeCode`, `ProyectosDeClaudeCode`).
+
+- **Por la puerta oficial, con la cuenta de la persona.** Un proceso `claude`
+  por sesión en la carpeta del proyecto: `-p --input-format stream-json
+  --output-format stream-json --verbose --permission-prompt-tool stdio
+  --permission-mode manual --disallowedTools AskUserQuestion` y
+  `--append-system-prompt` (`PromptDeClaudeCodePorVoz`, versionado). Varios
+  turnos por proceso: cada mensaje `user` por stdin termina en un `result`;
+  colgar cierra stdin y, si no sale en 3 s, SIGTERM y SIGKILL. Al proceso no
+  le pasan `ANTHROPIC_API_KEY` ni `CLAUDECODE`. Las formas son las del Agent
+  SDK y están medidas contra la CLI 2.1.309; las transcripciones grabadas
+  viven en `GrabacionesDeClaudeCode` y los tests no lanzan la CLI.
+- **Nunca un modo que apruebe solo**: ni `--dangerously-skip-permissions`,
+  ni `bypassPermissions`, `dontAsk`, `acceptEdits` o `auto`
+  (`ArgumentosDeClaudeCode.prohibidos`, con test). `manual` va explícito
+  porque la persona puede tener otro modo de fábrica. Cada `can_use_tool`
+  es una `Aprobacion` («Claude Code quiere correr `swift test`»,
+  `PermisoDeClaudeCode`) y se contesta con `allow` + `updatedInput` igual a
+  lo pedido, o `deny`. Las reglas `allow` que la persona tenga en su Claude
+  Code siguen valiendo: son suyas.
+- **Qué se dice** (`VozDeClaudeCode`): cada bloque de texto, sin bloques de
+  código, tablas ni diffs, con rutas por su último pedazo, enlaces como «un
+  enlace» y un tope de ~480 caracteres cortado en una oración. Lo entero va
+  por `alTranscribir`. Las herramientas van a la barra («Corriendo `git
+  status`») y no se dicen.
+- **Proyectos por nombre** (`PedidoAClaudeCode`): «en Dilo, revisa los
+  tests» al principio de lo dicho, con o sin coma, por nombre entero o por
+  el principio de uno solo («switchboard» por `switchboard-os`). De fábrica,
+  cada carpeta de `~/Developer`; los de Ajustes → Claude → Claude Code por
+  voz le ganan por nombre (`diloClaudeCodeProyectos`). Sin nombre: la sesión
+  abierta, el último usado (`diloClaudeCodeUltimoProyecto`) o pregunta por
+  voz, y lo pedido se manda al contestar.
+- **Retomar** («retoma la sesión de Dilo», «revisa Claude Code»):
+  `--continue --fork-session`, la más reciente de la carpeta según la CLI, en
+  una copia para no escribir encima de una sesión abierta en un terminal; sin
+  tarea, le pide que cuente en qué quedó. Si Dilo tuvo que relanzar el
+  proceso en la misma llamada, retoma su propia sesión con `--resume <id>`.
+  **Dilo no lee `~/.claude`**: ni sesiones ni configuración.
+- **Interrumpir** es un `control_request` `interrupt`; el turno cierra con
+  `result` `aborted_streaming` y la sesión sigue. Los eventos se atribuyen
+  contando turnos mandados y `result` recibidos: lo del turno interrumpido
+  se descarta y un permiso suyo se niega. Si en 10 s no lo suelta, o si el
+  primer `init` no llega en 30 s, se mata.
+- **Sin sesión iniciada** la CLI arranca igual y manda un mensaje sintético
+  con `error: "authentication_failed"`: se dice «Claude Code no tiene una
+  sesión iniciada…», no el texto en inglés. Si el proceso muere antes del
+  `init`, se le pregunta a `claude auth status`. La CLI se busca en lo
+  elegido en Ajustes (`diloClaudeCodeRuta`), en las rutas de los
+  instaladores y en `command -v claude` del shell de la persona, con plazo.
+- **Al log** (`AppLog.conversacion`) van cómo se abrió, cuánto duró cada
+  turno, cuántos permisos y cuántos aprobados; la carpeta, privada; nunca lo
+  dicho ni lo contestado.
+
 ## Reuniones
 
 Desde el 2026-10-29, el núcleo de la Fase 1 del spec
