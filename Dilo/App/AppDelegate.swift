@@ -201,8 +201,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // La Conversación usa el motor de voz del dictado, así que se turnan: con
     // una llamada en curso el gatillo le da el turno a la persona, y un
     // dictado que empieza por el menú o un atajo cuelga la llamada.
+    // Contesta con Phonon, la voz de «Leer en voz alta», y con Apple mientras
+    // Phonon no esté o si la persona elige una voz de Apple en la barra.
     let conversacion = ControladorDeLaConversacion(
-      settings: settings, stage: stage, motor: dictationController.motorParaConversar
+      settings: settings, stage: stage, motor: dictationController.motorParaConversar,
+      voz: VozPhononQueContesta(settings: settings)
     )
     self.conversacion = conversacion
     conversacion.hayDictado = { [weak settingsRuntimeState] in settingsRuntimeState?.isDictating ?? false }

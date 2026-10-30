@@ -1263,8 +1263,11 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   y sin markdown.
 - **La voz es un contrato chico** (`VozQueContesta`): `decir` una oración a la
   vez, `cerrarElTurno`, `detener`, `ajustar`, y los avisos `alEmpezar` y
-  `alTerminar`. Hoy la cumple `VozDelSistema` (`AVSpeechSynthesizer`); la voz
-  neural de «Leer en voz alta» se enchufa ahí sin tocar la conversación.
+  `alTerminar`. La cumple `VozPhononQueContesta`: Phonon con la voz de «Leer
+  en voz alta», la velocidad por un `AVAudioUnitTimePitch`, y `VozDelSistema`
+  (`AVSpeechSynthesizer`) de respaldo para el turno entero si Phonon no está,
+  si «Leer en voz alta» eligió Apple, si la barra tiene una voz de Apple
+  elegida o si Phonon falla antes de sonar.
 - **Lo conversado vive en RAM** mientras dura la llamada y se olvida al
   colgar: no va al historial ni a un log, y no se guarda en ninguna parte (no
   hay un patrón aprobado para hacerlo). Al log (`AppLog.conversacion`) van el
