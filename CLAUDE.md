@@ -196,7 +196,9 @@ Distingue propuesta, implementación y deuda pendiente.
   sesión, macOS le borraba el permiso a Dilo y Alfonso veía el diálogo «a
   cada rato».
 - **Una dependencia nueva se justifica en el commit.** Hoy: Sparkle (sólo
-  `Dilo`) y FluidAudio cuando llegue el motor Parakeet.
+  `Dilo`) y FluidAudio cuando llegue el motor Parakeet. Lo que se baja en
+  runtime también cuenta: el CLI `ptts` de Phonon entró así (ver «Leer en
+  voz alta»), con su hash fijo.
 
 ## Dónde va cada cosa
 
@@ -234,8 +236,8 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
-| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`) | 5, 9 |
-| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
+| `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`); lo escrito pasado a lo dicho y en trozos para leer en voz alta (`TextoParaLeer`, `NumerosEnPalabras`, `TrozosParaLeer`) | 5, 9 |
+| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio; Phonon para leer en voz alta (`InstalacionDePhonon`, `SintetizadorPhonon`, `VocesDePhonon`, `DecisionDeLectura`) | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
@@ -956,7 +958,8 @@ traductor de **Apple**, en el Mac.
   eligió, y Apple corre en el Mac. Sin el modelo de Apple, el dictado va al
   portapapeles y la muesca dice por qué no tradujo Claude.
 - El historial y el último dictado quedan como siempre: lo dicho, y lo
-  traducido al lado. Leer en voz alta sigue traduciendo con Apple.
+  traducido al lado. Leer en voz alta sigue traduciendo con Apple (ver «Leer
+  en voz alta»).
 - **Probar la calidad**: `scripts/probar-traduccion.sh [en|zh]` traduce los
   dictados de `scripts/probar-traduccion-dictados.txt` con el mismo código de
   la app y la clave del Llavero (pasada por la entrada estándar). Llama a la
@@ -983,6 +986,87 @@ dictado sin modo no cambia: transcripción y reglas, sin ningún modelo.
   nunca va `temperature`**, ni con forma: antes `conForma` mandaba
   `temperature: 0`, los modelos 5.5 contestaban 400 y cada modo gastaba un
   viaje antes del reintento.
+
+## Leer en voz alta
+
+Alfonso, 2026-10-29: las voces premium de Apple «son malísimas»; le gusta la
+voz nueva de Siri. «Leer en voz alta» lee la selección con **Phonon 40m en
+español** (Gradium), en el Mac y sin internet, y las voces de Apple quedan de
+respaldo y como opción.
+
+- **Quién lee lo decide `DecisionDeLectura`** (puro, `DiloEngines`, con
+  tests): Phonon si está elegido (`readAloudMotor`, vacío = Phonon), si lo
+  que se lee está en español o no se sabe, y si están el runtime, el modelo y
+  la voz. Si no, lee Apple y la muesca lo dice una vez: «Bajando Phonon: por
+  ahora lee Apple» (y «Leer» arranca la descarga), «Falta instalar Phonon: lee
+  Apple», o nada si es otro idioma. Lo que no es español lo lee la voz de
+  Apple de ese idioma, nunca una voz española leyendo inglés. Traducir antes
+  de leer sigue andando: con Phonon el destino es español.
+- **Se eligió con números** (`scripts/taller-voces.sh`, los WAV, la tabla y
+  el detalle en `/Volumes/SSD 1/Dilo/taller/voces/`): seis frases chilenas
+  por motor y voz, transcritas de vuelta con Parakeet v3, en el M1 de
+  Alfonso. Phonon 40m: 6,2 % de WER con las 25 voces (4,5 % las mejores),
+  ~5× tiempo real en CPU con dos hilos y ~0,7 s al primer audio, y **cero
+  bytes en el `.app`**. Supertonic 3 dio 4,5 % y 35× tiempo real, pero corre
+  dentro de la app con el trait `TTS` de FluidAudio —que no cabe en lo que
+  queda de los 25 MB— y es Open RAIL-M: no es claramente mejor, es más
+  rápido. Pocket TTS en español, 30 % y ~1× tiempo real; su pack de 24
+  capas (1,6 GB) no terminó de cargar en el M1. Las compactas de Apple dan
+  4 %: se entienden igual de bien y suenan peor, que es lo que el WER no
+  mide. Kokoro lo descartó Alfonso («nunca me gustó»); Phonon 31m y Paradee
+  son sólo inglés; KittenTTS y MOSS-TTS-Nano no tienen camino en Swift o
+  Core ML sin ONNX o MLX.
+- **Phonon no dice la ñ ni la ú** (0.5.0; medido): «señora» sale
+  «zenahora» y «número», «nuámero». `SintetizadorPhonon.paraPhonon` le
+  escribe «ni» y «u», y Parakeet las oye bien. Si una versión nueva lo
+  arregla, eso sale.
+- **El runtime no va en el `.app`** (`InstalacionDePhonon`): el CLI `ptts`
+  de la release de `gradium-ai/xn-ptts` (8,4 MB comprimido, en CPU) se baja a
+  pedido a `Application Support/Dilo/models/phonon/` y se verifica contra el
+  SHA-256 de `SHA256SUMS`, el tar y el ejecutable; lo que no calza no se
+  ejecuta. Enlazar `PhononCore.xcframework` sumaba 4–6 MB a un `.app` que ya
+  pesa 21 de 25, y su camino Core ML pide exportar el modelo con Rust.
+- **Un proceso por trozo** (`SintetizadorPhonon`): el CLI no tiene modo
+  servidor ni saca audio por la salida estándar, y arrancarlo cuesta ~0,2 s
+  con el modelo mapeado. Los ~200 MB existen sólo mientras habla; la app
+  sigue en sus 60 MB de reposo. `HF_HUB_OFFLINE=1`, sin token, dos hilos.
+  Detener mata el proceso en curso y para el reproductor: es inmediato.
+- **El texto se dice y se trocea antes** (`DiloText`, puro, con tests):
+  `TextoParaLeer` pasa montos en pesos, dólares y UF, fechas, horas,
+  porcentajes, ordinales, RUT, teléfonos, abreviaturas y siglas a palabras,
+  con género y apócope («veintiún años», «doscientas cuotas», «una UF»), y
+  `TrozosParaLeer` corta por oración y, si es larga, por comas (≤ 30 palabras,
+  bajo los 50 tokens que piden los modelos de la familia de Pocket TTS).
+  El primer trozo va a 14 palabras para que el primer audio llegue antes, y
+  sin coma a mano el corte cae antes de «y», «que», «pero». `LectorPhonon`
+  sintetiza el trozo siguiente mientras suena el anterior. Con eso Phonon
+  bajó de 8,6 % a 6,4 % de WER contra su normalizador solo.
+  **El trait `NemoTextProcessing` sigue apagado** (8 MB) y el trait `TTS`
+  también: Phonon no pasa por FluidAudio.
+- **El modelo no se baja desde la app.** `gradium/phonon-40m-es` pide
+  aceptar términos en Hugging Face (CC BY-NC 4.0, uso personal) y responde 401
+  sin token; la app no lleva ni pide ese token. Se instala una vez con
+  `scripts/instalar-phonon.sh`, que lo lee del Llavero (servicio
+  `huggingface`, cuenta `HF_TOKEN`) y revisa cada hash. El runtime y las
+  voces (`gradium/phonon-voices`, Apache 2.0, revisión fija) sí los baja la
+  app, con avance, desde Ajustes o al primer «Leer».
+- **La voz de Siri no se puede usar** (medido en macOS 27.0.1): macOS sólo la
+  entrega a procesos firmados por Apple. En el intérprete `swift`,
+  `speechVoices()` lista `com.apple.siri.natural.Carmen` y habla a 48 kHz; en
+  un binario propio no aparece, `AVSpeechSynthesisVoice(identifier:)` da nil
+  y `es-MX` da la Paulina compacta. Disparar «Leer la selección» de Contenido
+  hablado no es una vía: no hay API para saber si está activo ni con qué
+  tecla, habría que simular la tecla con un `CGEvent` a ciegas, y su atajo de
+  fábrica, ⌥Esc, es el mismo de «Leer en voz alta» de Dilo.
+- **Ajustes** (General → Leer en voz alta): «Quién lee», la voz de Phonon
+  (25: 13 de España y 12 de México; de fábrica Danae, la de menos WER entre
+  las mexicanas en dos pasadas), el estado con «Bajar»/«Borrar» y avance,
+  y la voz de Apple.
+  Nada toca el disco en un `body`: `PhononEnDilo` mira en `Task.detached`.
+- **Licencias**: Phonon 40m (CC BY-NC 4.0, Gradium, sobre Pocket TTS y Mimi de
+  Kyutai), sus voces (Apache 2.0) y `ptts` (MIT o Apache 2.0) están en el
+  `LICENSE`, en Acerca de y en el README. Nada de eso va en el repo ni en el
+  `.app`.
 
 ## Aprender con Claude
 
@@ -1402,3 +1486,8 @@ Dos activos heredados no eran publicables y **ya se sacaron**
 `Assets.xcassets/Siri/` (sin licencia, imitaba a Apple). Todo lo que queda en
 el bundle es CC0, MIT o propio. Si vuelve un activo ajeno, su licencia va en
 `LICENSE-SOUNDS.txt` o en un `LICENSE-ARTWORK.txt` antes que el archivo.
+
+## Pendientes y decisiones
+
+Lo que falta hacer o confirmar está en `docs/pendientes.md`; lo decidido, en
+`docs/decisiones.md`. Este archivo no lleva pendientes.
