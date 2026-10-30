@@ -58,6 +58,8 @@ enum PanelDeLaBarra {
     /// Empezar o parar, según el estado: el mismo ítem del menú.
     case dictar
     case dictarNota
+    /// Llamar a Dilo para conversar, o colgar.
+    case conversar
     /// Leer lo seleccionado, o dejar de leer.
     case leerSeleccion
     case transcribirArchivo
@@ -110,6 +112,7 @@ enum PanelDeLaBarra {
   enum Actividad: Equatable, Sendable {
     case lista
     case dictando
+    case conversando
     case leyendo
     case transcribiendo(Double)
   }
@@ -143,6 +146,11 @@ enum PanelDeLaBarra {
     /// «fn», «⌃⌥Espacio»: la etiqueta del gatillo, tal como la dice Ajustes.
     var atajoDeDictar = ""
     var atajoDeLeer = ""
+    /// La tecla de conversar; vacía si no tiene (la de fábrica).
+    var atajoDeConversar = ""
+    var conversando = false
+    /// Si hay con qué conversar: lo esconde quien no la cablea.
+    var admiteConversar = true
     var ultimo: Ultimo?
     /// El reloj de una toma que quedó en RAM («0:12»), o nil si no hay.
     var tomaGuardada: String?
@@ -155,6 +163,7 @@ enum PanelDeLaBarra {
 
     var actividad: Actividad {
       if dictando { return .dictando }
+      if conversando { return .conversando }
       if leyendo { return .leyendo }
       if let progresoDeArchivo { return .transcribiendo(progresoDeArchivo) }
       return .lista
@@ -291,6 +300,8 @@ enum PanelDeLaBarra {
       return .init(estado: String(localized: "Listo para dictar"), tono: reposo, atajo: atajo)
     case .dictando:
       return .init(estado: String(localized: "Dictando"), tono: .activo, atajo: atajo)
+    case .conversando:
+      return .init(estado: String(localized: "Conversando"), tono: .activo, atajo: atajo)
     case .leyendo:
       return .init(estado: String(localized: "Leyendo en voz alta"), tono: .activo, atajo: atajo)
     case let .transcribiendo(fraccion):
@@ -348,6 +359,20 @@ enum PanelDeLaBarra {
         icono: "square.and.pencil",
         accion: .dictarNota,
         accesibilidad: String(localized: "Dictar una nota que termina en Notas")
+      ))
+    }
+    // Conversar, después de dictar y la nota: es hablar con Dilo y no al
+    // documento.
+    if entrada.admiteConversar {
+      let conversando = entrada.conversando
+      filas.append(Contenido.Fila(
+        titulo: conversando ? String(localized: "Colgar la conversación") : String(localized: "Conversar con Dilo"),
+        icono: conversando ? "phone.down.fill" : "bubble.left.and.text.bubble.right",
+        atajo: entrada.atajoDeConversar.isEmpty ? nil : entrada.atajoDeConversar,
+        accion: .conversar,
+        accesibilidad: conversando
+          ? String(localized: "Colgar la conversación con Dilo")
+          : String(localized: "Conversar con Dilo en voz alta: tú hablas y Dilo contesta")
       ))
     }
     if entrada.admiteLeer {

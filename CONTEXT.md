@@ -16,9 +16,9 @@ que ya usas. Apunta a macOS 26 en Apple Silicon; **no hay binario Intel**.
 Vive en la barra de menús, sin ícono permanente en el Dock, y ofrece
 "Abrir al iniciar sesión" apagado por defecto (`SMAppService`).
 
-**Dictado** es el centro de la app y lo único que v1 entrega terminado.
-**Reuniones** y **Conversación** existen en la máquina de sesión como estados
-previstos y no se dibujan todavía.
+**Dictado** es el centro de la app. La **Conversación** se dibuja desde el
+2026-10-29; **Reuniones** existe en la máquina de sesión como estado previsto
+y no se dibuja todavía.
 
 Dos cosas en Dilo son modelos y **no son lo mismo**. Un **Motor de voz**
 convierte voz en texto. Un **Modelo de texto** reescribe texto que ya existe,
@@ -78,6 +78,18 @@ El contrato de decisiones tipadas: recibe texto más contexto (app al frente,
 modo activo, últimas líneas) y una pregunta (`choice` / `score` / `noul`), y
 devuelve la respuesta con probabilidad. **La implementación por defecto es
 reglas, sin modelo.** _Evitar_: clasificador, router, intent engine.
+
+**Conversación** ·
+Hablarle a Dilo y que conteste en voz alta, como una llamada. La voz se
+transcribe en el Mac con el **Motor de voz**, Claude contesta en línea y una
+voz del Mac dice la respuesta: sólo viaja texto. Lo conversado vive en RAM y
+se olvida al colgar. _Evitar_: chat, asistente de voz, modo voz.
+
+**Turno** ·
+Lo que dice una de las dos partes de la **Conversación** antes de que hable la
+otra: el de la persona termina por silencio o al soltar el **Gatillo**, y el
+de Dilo cuando termina de decir la respuesta. Se habla de a uno (half
+duplex). _Evitar_: mensaje, prompt, ronda.
 
 **Tus palabras** ·
 El diccionario personal: nombres, proyectos, siglas y términos técnicos que
@@ -168,13 +180,15 @@ No se registra una sección vacía ni deshabilitada.
 - El HUD aparece sobre apps en pantalla completa y en todos los Espacios, y se
   reordena al frente en cada cambio de espacio activo.
 - La máquina del HUD prevé **tres estados** —dictando, reunión, conversando—
-  y en v1 sólo dibuja el primero. Los otros dos existen como casos explícitos
-  sin UI; un estado que no dibuja nada no abre el escenario.
+  y dibuja dictando y conversando (la barra de llamada). La reunión existe
+  como caso explícito sin UI; un estado que no dibuja nada no abre el
+  escenario.
 - Durante el **Dictado** el HUD es sólo visual: los clics lo atraviesan y
   nunca toma el foco. Acepta el mouse sólo cuando recibe un archivo,
   sostiene una transcripción terminada o un dictado sin pegar, o dice un
   aviso que se arregla con un clic (abrir el panel de un permiso, deshacer
-  un Esc).
+  un Esc). La barra de llamada de la **Conversación** toma el mouse en toda
+  su silueta mientras dura: sus botones son lo único que tiene.
 - La pantalla del HUD se fija al arrancar la sesión; si se desconecta a
   media sesión, se va a la pantalla del puntero.
 - El HUD es la única superficie para el estado y los errores del dictado, y

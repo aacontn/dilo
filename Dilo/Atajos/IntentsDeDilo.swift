@@ -44,6 +44,23 @@ struct DictarIntent: AppIntent {
   }
 }
 
+/// La **Conversación**: hablarle a Dilo y que conteste en voz alta. Correrlo
+/// otra vez cuelga.
+struct ConversarIntent: AppIntent {
+  static let title: LocalizedStringResource = "Conversar con Dilo"
+  static let description = IntentDescription(
+    "Llama a Dilo para conversar en voz alta: tú hablas, tu voz se transcribe en el Mac y Claude contesta con una voz del Mac. Sólo viaja texto. Córrelo otra vez, o aprieta Colgar en la muesca, para terminar."
+  )
+  static let supportedModes: IntentModes = .background
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    let conversando = EjecucionDeAtajos.conversar(try PuenteDeAtajos.requerido())
+    AppLog.plataforma.info("Atajo «Conversar»: \(conversando ? "llama" : "cuelga", privacy: .public)")
+    return .result()
+  }
+}
+
 /// Una nota rápida: lo que digas termina en Apple Notas, no donde está el
 /// cursor.
 struct DictarNotaIntent: AppIntent {

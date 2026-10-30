@@ -11,6 +11,7 @@ import Foundation
 final class AccionesDeDiloEnVivo: AccionesParaAtajos {
   private let settings: AppSettings
   private let dictado: DirectDictationController
+  private weak var conversacion: ControladorDeLaConversacion?
   private let copiarAlPortapapeles: (String) -> Void
   private let aviso: AvisoDeAtajoEnLaMuesca
   private let transcripcion = FileTranscriptionService()
@@ -18,11 +19,13 @@ final class AccionesDeDiloEnVivo: AccionesParaAtajos {
   init(
     settings: AppSettings,
     dictado: DirectDictationController,
+    conversacion: ControladorDeLaConversacion? = nil,
     copiarAlPortapapeles: @escaping (String) -> Void,
     aviso: AvisoDeAtajoEnLaMuesca
   ) {
     self.settings = settings
     self.dictado = dictado
+    self.conversacion = conversacion
     self.copiarAlPortapapeles = copiarAlPortapapeles
     self.aviso = aviso
     observarLosModos()
@@ -34,6 +37,15 @@ final class AccionesDeDiloEnVivo: AccionesParaAtajos {
 
   func dictarNota() {
     dictado.dictarNota()
+  }
+
+  func conversar() -> Bool {
+    guard let conversacion else { return false }
+    let estaba = conversacion.enCurso
+    conversacion.alternar()
+    // Llamar mira la clave y el tope antes de abrir: lo que se devuelve es
+    // lo que se pidió, no si ya está abierta.
+    return !estaba
   }
 
   var modos: [Modo] { settings.modos }

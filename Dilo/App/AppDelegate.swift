@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var avisoDeAtajo: AvisoDeAtajoEnLaMuesca?
   /// Ordena Tus palabras con Claude de vez en cuando.
   private var ordenador: OrdenadorDelDiccionario?
+  /// La Conversación: hablarle a Dilo y que conteste en voz alta.
+  private var conversacion: ControladorDeLaConversacion?
   /// Las URL que llegan antes de que la app termine de arrancar: abrir
   /// `dilo://` con Dilo cerrado lo lanza, y AppKit entrega la URL antes de
   /// `applicationDidFinishLaunching`.
@@ -196,6 +198,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     settingsRuntimeState.ordenador = ordenador
     dictationController.correcciones.alAprender = { [weak ordenador] in ordenador?.revisarSiToca() }
     ordenador.empezar()
+    // La Conversación usa el motor de voz del dictado, así que se turnan: con
+    // una llamada en curso el gatillo le da el turno a la persona, y un
+    // dictado que empieza por el menú o un atajo cuelga la llamada.
+    let conversacion = ControladorDeLaConversacion(
+      settings: settings, stage: stage, motor: dictationController.motorParaConversar
+    )
+    self.conversacion = conversacion
+    conversacion.hayDictado = { [weak settingsRuntimeState] in settingsRuntimeState?.isDictating ?? false }
+    conversacion.alCambiar = { [weak statusItemController] conversando in
+      statusItemController?.setConversando(conversando)
+    }
+    dictationController.hayConversacion = { [weak conversacion] in conversacion?.enCurso ?? false }
+    dictationController.onConversacion = { [weak conversacion] apretado in
+      conversacion?.gatillo(apretado: apretado)
+    }
+    statusItemController.conversar = { [weak conversacion] in conversacion?.alternar() }
     stage.dictationContent.alDictarNota = { dictationController.dictarNota() }
     stage.dictationContent.alTerminarSesionTrabada = { dictationController.terminarSesionTrabada() }
     stage.dictationContent.alDictarTraduciendo = { dictationController.dictarTraduciendo() }
@@ -253,6 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let accionesDeAtajos = AccionesDeDiloEnVivo(
       settings: settings,
       dictado: dictationController,
+      conversacion: conversacion,
       copiarAlPortapapeles: { [weak statusItemController] texto in
         statusItemController?.copiarAlPortapapeles(texto)
       },
@@ -274,12 +293,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     dictationController.onRecordingStateChange = {
-      [weak statusItemController, weak settingsRuntimeState] isRecording, session in
+      [weak self, weak statusItemController, weak settingsRuntimeState] isRecording, session in
       let accent = session.flatMap {
         $0.voiceVisual.usesEdgeGlow ? $0.glowPalette.statusAccent : nil
       }
       statusItemController?.setRecording(isRecording, accent: accent)
       settingsRuntimeState?.isDictating = isRecording
+      if isRecording { self?.conversacion?.colgar() }
     }
     #if DEBUG
       // Y al archivo que mira `scripts/metrics.sh`, sin tocar lo de arriba.
@@ -385,6 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       _ = settings.secondaryTriggerBinding
       _ = settings.readAloudBinding
       _ = settings.translateTriggerBinding
+      _ = settings.conversacionGatillo
       _ = settings.isRecordingKeybind
       // Cada modo trae su propia tecla, así que la lista entra en este bucle:
       // sin esto, asignarle una tecla a un modo la guardaba y el tap no se
@@ -429,7 +450,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     dictationController?.applyKeyBindings()
     statusItemController?.setKeyBindings(
       trigger: settings.dictationTriggerBinding,
-      readAloud: settings.readAloudBinding
+      readAloud: settings.readAloudBinding,
+      conversar: settings.conversacionGatillo
     )
   }
 
@@ -450,6 +472,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    conversacion?.colgar()
     dictationController?.stop()
     textInsertionService?.alCerrar()
     // A transcript the HUD is still offering only exists in its staging folder,

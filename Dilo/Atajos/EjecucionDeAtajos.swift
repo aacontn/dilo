@@ -47,6 +47,12 @@ enum EjecucionDeAtajos {
     return elegido.nombre
   }
 
+  /// Llama o cuelga; devuelve si quedó conversando.
+  @discardableResult
+  static func conversar(_ acciones: any AccionesParaAtajos) -> Bool {
+    acciones.conversar()
+  }
+
   static func ultimoDictado(_ acciones: any AccionesParaAtajos, mitad: MitadDelDictado) throws(FallaDeAtajo) -> String {
     let texto = acciones.ultimoDictado?.texto(mitad.mitad) ?? ""
     guard !texto.isEmpty else { throw .sinDictado }

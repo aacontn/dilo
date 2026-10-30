@@ -54,6 +54,24 @@ struct PanelDeLaBarraTests {
     // Y lo nuevo: el modo del atajo general, con «Normal».
     #expect(contenido.todasLasAcciones.contains(.elegirModo(nil)))
     #expect(contenido.todasLasAcciones.contains(.elegirModo("correo")))
+    // Y la Conversación (2026-10-29).
+    #expect(contenido.todasLasAcciones.contains(.conversar))
+  }
+
+  /// Conversar se ofrece y, mientras dura, la misma fila cuelga; el
+  /// encabezado dice que está conversando.
+  @Test func conversarLlamaYCuelga() {
+    var entrada = entradaCompleta
+    entrada.atajoDeConversar = "F18"
+    let llamar = PanelDeLaBarra.contenido(entrada).acciones.first { $0.accion == .conversar }
+    #expect(llamar?.titulo == String(localized: "Conversar con Dilo"))
+    #expect(llamar?.atajo == "F18")
+    entrada.conversando = true
+    let contenido = PanelDeLaBarra.contenido(entrada)
+    #expect(contenido.acciones.first { $0.accion == .conversar }?.titulo == String(localized: "Colgar la conversación"))
+    #expect(contenido.encabezado.estado == String(localized: "Conversando"))
+    entrada.admiteConversar = false
+    #expect(!PanelDeLaBarra.contenido(entrada).todasLasAcciones.contains(.conversar))
   }
 
   @Test func ningunaAccionSeOfreceDosVeces() {

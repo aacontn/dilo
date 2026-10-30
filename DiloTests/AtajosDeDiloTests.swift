@@ -39,6 +39,18 @@ struct AtajosDeDiloTests {
     }
     func transcribir(_ archivo: URL) async throws -> String { archivo.lastPathComponent }
     func mostrarEnLaMuesca(_ aviso: AvisoDeAfuera) { avisos.append(aviso) }
+    var conversando = false
+    func conversar() -> Bool {
+      conversando.toggle()
+      return conversando
+    }
+  }
+
+  /// «Conversar con Dilo» llama y, corrido otra vez, cuelga.
+  @Test func conversarLlamaYCuelga() {
+    let app = AppDeMentira()
+    #expect(EjecucionDeAtajos.conversar(app))
+    #expect(!EjecucionDeAtajos.conversar(app))
   }
 
   /// En el host de los tests `AppDelegate` no arranca, así que el puente

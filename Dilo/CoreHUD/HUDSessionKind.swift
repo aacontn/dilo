@@ -2,30 +2,33 @@
 /// en reunión y conversando (spec §5, "máquina de sesión con tres modos y un
 /// solo escenario").
 ///
-/// **Sólo `dictando` se dibuja en v1.** Los otros dos existen acá, hoy, por
-/// una razón concreta: obligan a que cada `switch` sobre el estado del HUD sea
-/// exhaustivo. Cuando llegue el notetaker (v2) o la conversación (v3), el
-/// compilador va a nombrar uno por uno los lugares que tienen que decidir qué
-/// dibujan, en vez de que un `default:` los deje mostrando la superficie de
-/// dictado con datos de otra cosa.
+/// **`dictando` y `conversando` se dibujan** (la conversación, desde el
+/// 2026-10-29: la barra de llamada). La reunión existe acá por una razón
+/// concreta: obliga a que cada `switch` sobre el estado del HUD sea
+/// exhaustivo. Cuando llegue el notetaker, el compilador va a nombrar uno por
+/// uno los lugares que tienen que decidir qué dibujan, en vez de que un
+/// `default:` lo deje mostrando la superficie de dictado con datos de otra
+/// cosa.
 ///
 /// Es la misma apuesta que hizo el spec al pedir dos targets desde el día uno:
 /// el enum cuesta nada ahora y meses después.
 enum HUDSessionKind: String, CaseIterable, Sendable {
-  /// Dictado directo. El único con superficie en v1.
+  /// Dictado directo.
   case dictando
   /// Reunión en curso (v2): dos flujos, mic y audio del sistema.
   case reunion
-  /// Conversación por voz (v3): el turno de Dilo y el de la persona.
+  /// **Conversación** por voz: el turno de Dilo y el de la persona, en la
+  /// barra de llamada (`BarraDeLlamada`).
   case conversando
 
   /// Qué superficie le toca dibujar a este estado.
   var surface: HUDSurfaceKind {
     switch self {
     case .dictando: .dictado
-    // Previstos y sin UI a propósito: la superficie de reunión y la de
-    // conversación son specs propios, no un ajuste de la de dictado.
-    case .reunion, .conversando: .ninguna
+    case .conversando: .conversacion
+    // Prevista y sin UI a propósito: la superficie de reunión es un spec
+    // propio, no un ajuste de la de dictado.
+    case .reunion: .ninguna
     }
   }
 
@@ -43,5 +46,6 @@ enum HUDSessionKind: String, CaseIterable, Sendable {
 /// estado.
 enum HUDSurfaceKind: String, Sendable {
   case dictado
+  case conversacion
   case ninguna
 }

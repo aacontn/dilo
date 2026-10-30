@@ -53,6 +53,9 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case aprenderConClaude
   case modeloParaRevisar
   case modeloParaOrdenar
+  case teclaDeConversar
+  case modeloDeLaConversacion
+  case topeDeLaConversacion
   // Tus palabras
   case tusPalabras
   case ofrecerCorrecciones
@@ -137,7 +140,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .teclaDelSegundoIdioma, .traducirA:
       .dictation
     case .claveDeAnthropic, .probarConexion, .modeloDeLosModos, .traducirCon, .aprenderConClaude,
-      .modeloParaRevisar, .modeloParaOrdenar:
+      .modeloParaRevisar, .modeloParaOrdenar, .teclaDeConversar, .modeloDeLaConversacion,
+      .topeDeLaConversacion:
       .claude
     case .tusModos, .agregarModo, .restaurarModos, .queDiloElija, .contextoApp, .contextoTexto,
       .contextoSeleccion, .contextoSitio, .contextoEnLinea, .proveedorGeneral,
@@ -226,6 +230,9 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .aprenderConClaude: String(localized: "Que Claude revise y ordene")
     case .modeloParaRevisar: String(localized: "Revisar cada corrección")
     case .modeloParaOrdenar: String(localized: "Ordenar Tus palabras")
+    case .teclaDeConversar: String(localized: "Tecla para conversar")
+    case .modeloDeLaConversacion: String(localized: "Quién contesta")
+    case .topeDeLaConversacion: String(localized: "Tope de gasto al mes")
     case .ordenarAhora: String(localized: "Ordenar ahora")
     case .loQueOrdenoClaude: String(localized: "Lo que ordenó Claude")
     case .cuandoDigo: String(localized: "Cuando digo…")
@@ -318,6 +325,9 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .ordenarAhora, .loQueOrdenoClaude:
       [String(localized: "aprender"), String(localized: "correcciones"), "Claude", "Haiku", "Sonnet", "Opus"]
     case .comandosAlDictar: [String(localized: "coma"), String(localized: "punto"), String(localized: "nueva línea")]
+    case .teclaDeConversar, .modeloDeLaConversacion, .topeDeLaConversacion:
+      [String(localized: "conversación"), String(localized: "conversar"), String(localized: "llamada"), String(localized: "voz"),
+       "Claude", "Haiku", "Sonnet", "Opus", String(localized: "costo"), String(localized: "tope")]
     case .sacarMuletillas, .listaDeMuletillas: [String(localized: "muletillas"), "eh", String(localized: "o sea")]
     case .actividad, .latencias: [String(localized: "estadísticas"), String(localized: "palabras"), "CSV", String(localized: "latencia")]
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]

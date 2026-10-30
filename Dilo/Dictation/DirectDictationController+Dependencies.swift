@@ -216,6 +216,9 @@ extension DirectDictationController {
     var leerCampoParaAprender: @Sendable (AnclaDelFoco) async -> String? = { ancla in
       await Task.detached(priority: .utility) { Anfitrion.actual.fotoDelCampo(ancla).valor }.value
     }
+    /// El mismo motor de voz para la Conversación: un modelo de Parakeet en
+    /// la RAM y no dos. Nil en los tests que no lo arman.
+    var motorParaConversar: MotorParaConversar?
 
     /// Builds the production boundaries around the live services the
     /// controller previously constructed itself.
@@ -278,7 +281,7 @@ extension DirectDictationController {
         )
       }
 
-      return Self(
+      var dependencias = Self(
         setDownloadHandler: { await speechService.setDownloadHandler($0) },
         resolveLocale: { try await speechService.resolveLocale(identifier: $0) },
         supportedLocale: { await speechService.supportedLocale(identifier: $0) },
@@ -396,6 +399,30 @@ extension DirectDictationController {
           )
         }
       )
+      // La Conversación escucha con el router de motores y no con el
+      // respaldo: un turno que no salió no se guarda para reintentar desde el
+      // panel, se vuelve a decir. El micrófono es el suyo, elegido aparte.
+      dependencias.motorParaConversar = MotorParaConversar(
+        empezar: { locale, eleccion, handlers in
+          let tibio = await MainActor.run { settings.motorDeAudioTibio }
+          let entradas = DispositivosDeAudio.entradas()
+          let idDelSistema = DispositivosDeAudio.entradaDelSistema()
+          let plan = PlanDeMicrofono.decidir(
+            eleccion: eleccion,
+            entradas: entradas,
+            entradaDelSistema: idDelSistema,
+            tapaCerrada: Tapa.estaCerrada
+          )
+          microfono.empezarSesion(plan, entradaDelSistema: entradas.first { $0.id == idDelSistema }, tibio: tibio)
+          await motores.elegir(await motorElegido())
+          await motores.configurarReposo(await reposoElegido())
+          try await motores.start(locale: locale, handlers: handlers)
+        },
+        terminar: { try await motores.finish() },
+        cancelar: { await motores.cancel() },
+        locale: { try await speechService.resolveLocale(identifier: $0) }
+      )
+      return dependencias
     }
   }
 }

@@ -26,6 +26,12 @@ struct AtajosDeDilo: AppShortcutsProvider {
       systemImageName: "note.text"
     )
     AppShortcut(
+      intent: ConversarIntent(),
+      phrases: ["Conversar con \(.applicationName)", "Hablar con \(.applicationName)"],
+      shortTitle: "Conversar",
+      systemImageName: "bubble.left.and.text.bubble.right"
+    )
+    AppShortcut(
       intent: ElegirModoIntent(),
       phrases: [
         "Elegir el modo de \(.applicationName)",

@@ -239,6 +239,13 @@ extension HUDStage {
       decir(linea)
       revealDictation()
 
+    case .conversacionEscucha, .conversacionPiensa, .conversacionHabla, .conversacionTranscripcion,
+      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso:
+      // Con los botones apagados, como todo el arnés.
+      conversacionContent.acciones = AccionesDeLaLlamada()
+      conversacionContent.foto = escena.fotoDeLaConversacion ?? FotoDeLaConversacion()
+      abrirLaConversacion(en: pantalla)
+
     case .avisoConArreglo:
       claim(.message, on: pantalla)
       recibir(.entregar(.accionable(EscenaDeMuestra.arregloDeMuestra)))

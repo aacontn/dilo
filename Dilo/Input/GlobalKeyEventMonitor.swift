@@ -20,6 +20,11 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
     /// arriba; el resto del arbitraje —uno a la vez, el sostenido que
     /// termina, el botón que se traga— es exactamente el mismo.
     case modo(String)
+    /// La tecla de la **Conversación**. Un slot y no un evento aparte por lo
+    /// mismo que traducir: el sostenido que termina, el botón que se traga y
+    /// uno a la vez. Qué hace lo decide el controlador de la conversación, no
+    /// el dictado (`DirectDictationController.handle`).
+    case conversar
 
     /// The preference this slot's key comes from, so a session can capture the
     /// key it started with. Nil para los modos, que no son un rol: su tecla
@@ -29,7 +34,7 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
       case .primary: .dictation
       case .secondary: .secondLanguage
       case .translate: .translate
-      case .modo: nil
+      case .modo, .conversar: nil
       }
     }
 
@@ -196,7 +201,8 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
     secondaryTrigger: KeyBinding?,
     readAloud: KeyBinding,
     translateTrigger: KeyBinding? = nil,
-    modos: [(id: String, binding: KeyBinding)] = []
+    modos: [(id: String, binding: KeyBinding)] = [],
+    conversar: KeyBinding? = nil
   ) {
     stateLock.withLock {
       // Two triggers on the same input would make the slot ambiguous, so an
@@ -208,6 +214,7 @@ final class GlobalKeyEventMonitor: @unchecked Sendable {
         (.primary, trigger),
         (.secondary, secondaryTrigger),
         (.translate, translateTrigger),
+        (.conversar, conversar),
       ] + modos.map { (TriggerSlot.modo($0.id), Optional($0.binding)) }
       // The slot holding a session goes first, whatever the usual order. A
       // language enabled mid-session can carry the same stored key, and losing

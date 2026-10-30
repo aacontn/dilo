@@ -19,6 +19,10 @@
 # ventanas y no toca el escritorio: es lo que hace que la forma se pueda
 # revisar desde una sesión que no puede usar la GUI.
 #
+# Con `--conversacion` deja sólo la barra de llamada de la Conversación:
+# `conversacion-<escena>.png` y `conversacion-todas.png`, la vista de verdad
+# (`BarraDeLlamada`) en la ventana simulada.
+#
 # Deja, entre otros, `apertura-1..4.png`: cuatro cortes de la revelación al
 # 0 %, 33 %, 66 % y 100 % del tiempo. Son lo único que deja juzgar la animación
 # desde una sesión que no puede mirar la pantalla.
@@ -51,6 +55,8 @@ swiftc -O \
   "$raiz/scripts/render-muesca.swift" \
   "$raiz/scripts/render-paletas.swift" \
   "$raiz/scripts/render-antes-despues.swift" \
+  "$raiz/Dilo/Conversacion/BarraDeLlamada.swift" \
+  "$raiz/scripts/render-conversacion.swift" \
   -o "$taller/render-muesca"
 
 # Lo que viene después de la carpeta (`--paletas`) pasa tal cual. Con
