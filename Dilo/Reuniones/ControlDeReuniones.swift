@@ -335,6 +335,60 @@ final class ControlDeReuniones {
     }.value
   }
 
+  /// Junta a `origen` en `destino` en todas sus palabras (el modelo partió a
+  /// alguien en dos) y reescribe el guion.
+  func juntar(_ origen: String, en destino: String, id: String) async throws {
+    try await editarGuion(id: id) { palabras, reunion in
+      EdicionDelGuion.juntar(origen, en: destino, palabras: &palabras, reunion: &reunion)
+    }
+  }
+
+  /// Pasa una línea a otro hablante, o a uno nuevo con nil (el modelo juntó
+  /// dos voces parecidas).
+  func reasignar(_ linea: LineaDelGuion, a destino: String?, id: String) async throws {
+    try await editarGuion(id: id) { palabras, reunion in
+      EdicionDelGuion.reasignar(linea, a: destino, palabras: &palabras, reunion: &reunion)
+    }
+  }
+
+  /// Lee, edita con una regla pura de `EdicionDelGuion` y guarda
+  /// `reunion.json`, `guion.jsonl` y `guion.md` juntos, fuera del hilo
+  /// principal.
+  private func editarGuion(
+    id: String, _ cambio: @escaping @Sendable (inout [PalabraDelGuion], inout Reunion) -> Void
+  ) async throws {
+    let lector = self.lector
+    try await Task.detached(priority: .userInitiated) {
+      guard let enDisco = try lector.reunion(id: id), enDisco.reunion.estado == .lista else { return }
+      var palabras = LectorDeReuniones.palabras(de: enDisco)
+      var reunion = enDisco.reunion
+      cambio(&palabras, &reunion)
+      try EscritorDeReunion.guardar(reunion, en: enDisco.carpeta)
+      try EscritorDeReunion.guardarGuion(palabras, reunion: reunion, en: enDisco.carpeta)
+    }.value
+  }
+
+  /// Manda la carpeta entera de una reunión a la Papelera: nunca un borrado
+  /// definitivo desde Dilo. La que está grabando o afinando no se borra.
+  func borrar(id: String) async throws {
+    guard enCurso?.id != id, pasada?.id != id else { return }
+    let lector = self.lector
+    try await Task.detached(priority: .userInitiated) {
+      guard let enDisco = try lector.reunion(id: id) else { return }
+      try FileManager.default.trashItem(at: enDisco.carpeta, resultingItemURL: nil)
+    }.value
+  }
+
+  /// Una reunión leída de nuevo, con su guion en líneas, fuera del hilo
+  /// principal. Nil si ya no está.
+  func leer(id: String) async -> (reunion: ReunionEnDisco, lineas: [LineaDelGuion])? {
+    let lector = self.lector
+    return await Task.detached(priority: .userInitiated) {
+      guard let enDisco = try? lector.reunion(id: id) else { return nil }
+      return (enDisco, LectorDeReuniones.lineas(de: enDisco))
+    }.value
+  }
+
   /// Los modelos de separar voces, junto al de Parakeet: en
   /// `Application Support/Dilo/models/`, se borran con Dilo.
   static var carpetaDeModelos: URL { ParakeetModelStore.carpeta }

@@ -14,16 +14,22 @@ import Observation
 final class InterfazDeReuniones {
   let control: ControlDeReuniones
   private weak var stage: HUDStage?
-  /// Abre (o trae) la ventana de la reunión en curso, o de la última.
-  var alAbrirLaVentana: (() -> Void)?
+  /// La ventana de la reunión. Se crea con el primer clic.
+  private(set) lazy var ventana = ControlDeLaVentanaDeReunion(control: control)
 
   init(control: ControlDeReuniones, stage: HUDStage) {
     self.control = control
     self.stage = stage
   }
 
+  /// Abre la ventana: la reunión que graba o se afina, o la que se pide (un
+  /// resultado de la búsqueda lleva su línea).
+  func abrirLaVentana(id: String? = nil, linea: Int? = nil) {
+    ventana.mostrar(id: id, linea: linea)
+  }
+
   func empezar() {
-    stage?.alAbrirLaReunion = { [weak self] in self?.alAbrirLaVentana?() }
+    stage?.alAbrirLaReunion = { [weak self] in self?.abrirLaVentana() }
     seguir()
     reflejar()
   }
