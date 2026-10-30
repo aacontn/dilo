@@ -34,7 +34,7 @@ trap 'rm -rf "$taller"' EXIT
 case "$destino" in
   en | zh) ;;
   *)
-    echo "Destino: en o zh (no «$destino»)." >&2
+    echo "Destino: en o zh (no «${destino}»)." >&2
     exit 64
     ;;
 esac

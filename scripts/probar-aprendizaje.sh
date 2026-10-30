@@ -42,7 +42,7 @@ trap 'rm -rf "$taller"' EXIT
 case "$modo" in
   revisar | ordenar) ;;
   *)
-    echo "Modo: revisar u ordenar (no «$modo»)." >&2
+    echo "Modo: revisar u ordenar (no «${modo}»)." >&2
     exit 64
     ;;
 esac

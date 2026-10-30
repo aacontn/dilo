@@ -43,7 +43,7 @@ fi
 for entrada in "${archivos[@]}"; do
   nombre="${entrada%% *}"
   esperado="${entrada##* }"
-  echo "Bajando $nombre…"
+  echo "Bajando ${nombre}…"
   security find-generic-password -s huggingface -a HF_TOKEN -w \
     | sed 's/^/Authorization: Bearer /' \
     | curl -fL --progress-bar -H @- -o "$taller/$nombre" \
