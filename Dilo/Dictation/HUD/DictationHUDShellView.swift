@@ -204,8 +204,7 @@ struct DictationHUDShellView: View {
   /// que hace es abrir un poco la forma para nombrar el modo activo o lo
   /// último que se dictó.
   private var tamañoEnReposo: CGSize {
-    let base = HUDNotchGeometry.reposoSize(for: screen)
-    guard content.contextoVisible != nil else { return base }
+    guard content.contextoVisible != nil else { return siluetaQuieta ?? HUDNotchGeometry.reposoSize(for: screen) }
     // El panel del hover es el ancho del contenido elegido en Ajustes, no uno
     // medido del texto ni el de la muesca dictando: acá el mouse está encima
     // a propósito —nadie lo abre de paso— y es donde van a vivir las acciones
@@ -218,6 +217,12 @@ struct DictationHUDShellView: View {
         secciones: content.seccionesDelPanel(conDatos: !ladosConDato.isEmpty)
       )
     )
+  }
+
+  /// La silueta quieta cuando no es la de fábrica: con una reunión que tiene
+  /// la forma, la muesca descansa del tamaño de dictar.
+  private var siluetaQuieta: CGSize? {
+    content.reunionPrincipal == nil ? nil : HUDNotchGeometry.tamañoDeLaReunion(for: screen)
   }
 
   /// Los datos de los costados que hay para el detalle del panel.
@@ -240,6 +245,7 @@ struct DictationHUDShellView: View {
       rippleTrigger: content.sessionEpoch,
       rippleEnabled: settings.voiceVisual.usesEdgeGlow,
       tamañoEnReposo: tamañoEnReposo,
+      siluetaQuieta: siluetaQuieta,
       costados: costados,
       vidrio: content.panelDeVidrio,
       // Sin carcasa sólo el aviso es grande; contra una carcasa, toda forma
@@ -316,7 +322,8 @@ struct DictationHUDShellView: View {
   /// cuando la forma se abre, así que `ventana=` tiene que decir cuál de las
   /// dos estaba puesta (`HUDNotchGeometry.EncuadreDeLaVentana`).
   private var encuadreDeLaVentana: HUDNotchGeometry.EncuadreDeLaVentana {
-    content.estado.esCompacto && content.contextoVisible == nil ? .reposo : .abierta
+    content.estado.esCompacto && content.contextoVisible == nil && content.reunionPrincipal == nil
+      ? .reposo : .abierta
   }
 
   /// El tamaño que la forma tiene ahora mismo: la silueta en reposo —abierta
@@ -345,6 +352,13 @@ struct DictationHUDShellView: View {
             HUDValorDeDato(lado: izquierdo)
           }
           Spacer(minLength: 0)
+          // Con una reunión grabando, la cabecera la sigue diciendo: abrir
+          // el panel no esconde la grabación.
+          if let reunion = content.reunionEnCurso {
+            HUDReunionViva(reunion: reunion, alto: HUDNotchGeometry.alturaDeCabecera(for: screen))
+              .frame(width: HUDNotchGeometry.tamañoDictando(for: screen).width)
+            Spacer(minLength: 0)
+          }
           if screen.anchoDeLosLados > 0, let derecho = content.datoDerecho {
             HUDValorDeDato(lado: derecho)
           }
@@ -358,6 +372,8 @@ struct DictationHUDShellView: View {
         )
       }
       .frame(height: tamañoEnReposo.height, alignment: .top)
+    } else if content.estado.esCompacto, let reunion = content.reunionPrincipal {
+      reunionConLaForma(reunion)
     } else if content.estado.esCompacto {
       HUDMarcaDeReposo(
         dibujaMarca: sinCarcasa,
@@ -386,6 +402,32 @@ struct DictationHUDShellView: View {
         .opacity(content.isRevealed ? 1 : 0)
         .animation(popDelContenido, value: content.isRevealed)
     }
+  }
+
+  /// La reunión con la forma: `● 12:04` y las dos marcas al centro, y los
+  /// datos de los costados donde siempre, salvo el del lado de un segmento
+  /// (`ReglaDeLosCostados`).
+  private func reunionConLaForma(_ reunion: ReunionEnLaMuesca) -> some View {
+    let alto = tamañoEnReposo.height
+    let lado = screen.anchoDeLosLados
+    let izquierdo = ReglaDeLosCostados.datoVisible(
+      content.datoIzquierdo, en: .izquierda, segmentos: content.costadosConSegmentoVisible
+    )
+    let derecho = ReglaDeLosCostados.datoVisible(
+      content.datoDerecho, en: .derecha, segmentos: content.costadosConSegmentoVisible
+    )
+    return HStack(spacing: 0) {
+      if lado > 0 {
+        Group { if let izquierdo { HUDValorDeDato(lado: izquierdo, scale: metrics.scale) } }
+          .frame(width: lado, height: alto)
+      }
+      HUDReunionViva(reunion: reunion, alto: alto)
+      if lado > 0 {
+        Group { if let derecho { HUDValorDeDato(lado: derecho, scale: metrics.scale) } }
+          .frame(width: lado, height: alto)
+      }
+    }
+    .frame(height: alto)
   }
 
   /// Lo que lleva la forma abierta: una línea en la muesca sobria, la pila de

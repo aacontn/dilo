@@ -320,6 +320,32 @@ final class HUDStage {
   /// Un clic en uno de esos segmentos, con el id de su actividad.
   var alTocarSegmentoDeAfuera: ((String) -> Void)?
 
+  /// Un clic en la reunión —con la forma o en su segmento—: abre la ventana
+  /// de la reunión. Lo cablea `AppDelegate`.
+  var alAbrirLaReunion: (() -> Void)?
+
+  /// La reunión que se está grabando cambió: empezó, una marca cambió, o
+  /// terminó. Se sienta como actividad (`ActividadDeLaMuesca.reunion`): sin
+  /// dictado tiene la forma, dictando baja a un costado y nunca se esconde.
+  func mostrarReunion(_ reunion: ReunionEnLaMuesca?) {
+    let antes = dictationContent.reunionEnCurso
+    guard antes != reunion else { return }
+    dictationContent.reunionEnCurso = reunion
+    if reunion == nil {
+      sentar(.retirar(id: ActividadDeLaMuesca.reunion.id))
+    } else if antes == nil {
+      sentar(.publicar(.reunion))
+    }
+  }
+
+  /// La reunión terminó: la muesca acusa con el check, como un dictado que
+  /// aterrizó, y vuelve a reposo. Sólo si está libre: un dictado en curso no
+  /// se tapa, y el check no suena.
+  func acusarElFinDeLaReunion() {
+    guard estado == .reposo, occupant == .none, !enMuestra, let pantallaActual else { return }
+    decir(.listo, texto: "", en: pantallaActual)
+  }
+
   /// Sienta (o vuelve a sentar con otro contenido) un segmento de afuera.
   /// Con otro contenido bajo el mismo id el segmento vuelve a decir su
   /// palabra: «Claude» que pasa de trabajar a esperarte se tiene que notar.
@@ -403,6 +429,8 @@ final class HUDStage {
     switch id {
     case ActividadDeLaMuesca.tomaGuardada.id:
       alPedirReintento?()
+    case ActividadDeLaMuesca.reunion.id:
+      alAbrirLaReunion?()
     case ActividadDeLaMuesca.ofertaDeAprendizaje.id, ActividadDeLaMuesca.aprendizajeHecho.id:
       alTocarAprendizaje?()
     case ActividadDeLaMuesca.retenido.id:
@@ -422,6 +450,14 @@ final class HUDStage {
   private func sentar(_ evento: AsientosDeLaMuesca.Evento) {
     asientos.recibir(evento)
     aplicarSegmentos()
+    // La reunión con la forma cambia la silueta quieta y la ventana: se
+    // vuelve a aplicar el estado para que el encuadre y la zona la sigan.
+    let principal = dictationContent.reunionEnCurso != nil
+      && asientos.principal?.id == ActividadDeLaMuesca.reunion.id
+    if dictationContent.reunionEsPrincipal != principal {
+      dictationContent.reunionEsPrincipal = principal
+      aplicar(estado)
+    }
   }
 
   /// Qué dice el segmento de cada actividad que hoy puede tener uno.
@@ -429,6 +465,7 @@ final class HUDStage {
     switch actividad?.id {
     case ActividadDeLaMuesca.tomaGuardada.id: .toma
     case ActividadDeLaMuesca.retenido.id: .retenido
+    case ActividadDeLaMuesca.reunion.id: dictationContent.reunionEnCurso.map(ContenidoDelSegmento.reunion)
     case ActividadDeLaMuesca.ofertaDeAprendizaje.id, ActividadDeLaMuesca.aprendizajeHecho.id:
       ofertaDeAprendizaje?.segmento
     default: actividad.flatMap { segmentosDeAfuera[$0.id] }
@@ -825,7 +862,10 @@ final class HUDStage {
   /// hay barra de menús de la que colgar (`HUDNotchGeometry.reposoSeEsconde`).
   var escondido: Bool {
     guard let pantallaActual else { return false }
-    return estado.esCompacto && HUDNotchGeometry.reposoSeEsconde(for: pantallaActual)
+    // Una reunión grabando no se esconde ni en pantalla completa: esconder
+    // la grabación está prohibido por el contrato del notch.
+    return estado.esCompacto && dictationContent.reunionPrincipal == nil
+      && HUDNotchGeometry.reposoSeEsconde(for: pantallaActual)
   }
 
   /// Esconde o muestra la forma sin sacarla de pantalla.
@@ -912,7 +952,9 @@ final class HUDStage {
         height: ventana.height - HUDNotchGeometry.holguraDeRevelacion(for: pantallaActual)
       )
     }
-    let reposo = HUDNotchGeometry.reposoSize(for: pantallaActual)
+    let reposo = dictationContent.reunionPrincipal == nil
+      ? HUDNotchGeometry.reposoSize(for: pantallaActual)
+      : HUDNotchGeometry.tamañoDeLaReunion(for: pantallaActual)
     // Con el contexto abierto la silueta crece hasta el ancho de la forma
     // abierta; la zona crece con ella y no más, que es lo que evita que la
     // muesca se coma clics de media barra de menús.
@@ -935,6 +977,9 @@ final class HUDStage {
   private func encuadreQuePide(_ estado: EstadoDelNotch) -> HUDNotchGeometry.EncuadreDeLaVentana {
     guard estado.esCompacto else { return .abierta }
     if dictationContent.contextoVisible != nil { return .abierta }
+    // La reunión con la forma mide lo de dictar: no cabe en la ventana del
+    // reposo, que es la silueta justa.
+    if dictationContent.reunionPrincipal != nil { return .abierta }
     if occupant == .drop || dropContent.mode != .none { return .abierta }
     return .reposo
   }
@@ -1256,6 +1301,12 @@ final class HUDStage {
       return
     }
     guard estado == .reposo else { return }
+    // Con una reunión grabando, la muesca es la reunión: un clic abre su
+    // ventana, aunque el hover se haya alcanzado a abrir.
+    if dictationContent.reunionEnCurso != nil, dictationContent.reunionEsPrincipal {
+      alAbrirLaReunion?()
+      return
+    }
     if dictationContent.contextoVisible != nil, dictationContent.puedeCopiar {
       alPedirCopiar?()
       return

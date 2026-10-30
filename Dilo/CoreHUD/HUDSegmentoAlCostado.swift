@@ -16,6 +16,9 @@ struct ContenidoDelSegmento: Equatable, Sendable {
   /// Lo que VoiceOver dice y lo que muestra el tooltip: la acción entera, no
   /// la palabra del segmento.
   let accesibilidad: String
+  /// Una reunión grabando: el ícono va en el rojo de la paleta
+  /// (`PaletaDeDilo.grabando`), no en el acento ni en blanco.
+  var grabando = false
 
   /// La toma que quedó en RAM: un clic la reintenta.
   static var toma: ContenidoDelSegmento {
@@ -103,6 +106,7 @@ struct HUDSegmentosAlCostado: View {
     return HStack(spacing: ContenidoDelSegmento.entreIconoYPalabra) {
       Image(systemName: contenido.simbolo)
         .font(.system(size: ContenidoDelSegmento.tamañoDelIcono, weight: .semibold))
+        .foregroundStyle(contenido.grabando ? PaletaDeDilo.actual.grabando.color : color(de: contenido))
       if palabra {
         Text(contenido.texto)
           .font(.system(size: ContenidoDelSegmento.tamañoDeLaPalabra, weight: .medium))
@@ -111,7 +115,7 @@ struct HUDSegmentosAlCostado: View {
           .transition(.opacity)
       }
     }
-    .foregroundStyle(contenido.destacada ? acento : Color.white.opacity(0.85))
+    .foregroundStyle(color(de: contenido))
     .frame(width: contenido.ancho(conPalabra: palabra))
     .frame(maxHeight: .infinity)
     // Mientras el ancho se anima, la palabra no se asoma fuera del negro.
@@ -123,5 +127,9 @@ struct HUDSegmentosAlCostado: View {
     .accessibilityLabel(Text(contenido.accesibilidad))
     .accessibilityAddTraits(.isButton)
     .accessibilityAction { alTocar(contenido.id) }
+  }
+
+  private func color(de contenido: ContenidoDelSegmento) -> Color {
+    contenido.destacada ? acento : Color.white.opacity(0.85)
   }
 }

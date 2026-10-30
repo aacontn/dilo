@@ -20,10 +20,11 @@ final class ControlDeReuniones {
   struct PistaEnVivo: Equatable, Sendable {
     /// La vigía: `.ambar` a los 5 s de ceros exactos, `.sinAudio` a los 15.
     var vigia: VigiaDeSilencio.Estado = .bien
-    /// dBFS del último segundo. Sobre −50 hay señal.
+    /// dBFS del último segundo. Sobre `EstadoDeLaMarca.umbralDeSenal` hay
+    /// señal.
     var nivel: Float = -160
     /// Si la marca va encendida.
-    var conSenal: Bool { nivel > -50 }
+    var conSenal: Bool { nivel > EstadoDeLaMarca.umbralDeSenal }
     /// Con `.sinAudio`: si lo que falta parece ser el permiso del audio del
     /// sistema (nunca sonó) y no una llamada en silencio.
     var pareceFaltarPermiso = false

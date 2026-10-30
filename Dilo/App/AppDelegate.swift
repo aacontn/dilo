@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var avisoDeAtajo: AvisoDeAtajoEnLaMuesca?
   /// Reuniones: grabar, terminar, afinar. Chico hasta que se graba una.
   private var reuniones: ControlDeReuniones?
+  private var interfazDeReuniones: InterfazDeReuniones?
   /// Ordena Tus palabras con Claude de vez en cuando.
   private var ordenador: OrdenadorDelDiccionario?
   /// Las URL que llegan antes de que la app termine de arrancar: abrir
@@ -274,6 +275,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       )
     }
     PuenteDeAtajos.reuniones = reuniones
+    // Y lo que se ve: la reunión en la muesca, sus avisos y su ventana.
+    let interfazDeReuniones = InterfazDeReuniones(control: reuniones, stage: stage)
+    self.interfazDeReuniones = interfazDeReuniones
+    interfazDeReuniones.empezar()
     // Lo que quedó grabando si la app murió, lo que espera el SSD y la
     // retención del audio: en segundo plano, después de que el arranque ya
     // terminó.

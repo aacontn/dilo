@@ -10433,6 +10433,94 @@
           }
         }
       }
+    },
+    "Grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording"
+          }
+        }
+      }
+    },
+    "Reunión grabando: abre su ventana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting recording: opens its window"
+          }
+        }
+      }
+    },
+    "Reunión grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting recording"
+          }
+        }
+      }
+    },
+    "Abre la ventana de la reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the meeting window"
+          }
+        }
+      }
+    },
+    "Sin audio de la llamada: falta un permiso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No call audio: a permission is missing"
+          }
+        }
+      }
+    },
+    "Tu micrófono no suena: revisa el permiso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone is silent: check the permission"
+          }
+        }
+      }
+    },
+    "Queda poco disco: la reunión sigue grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low disk space: the meeting keeps recording"
+          }
+        }
+      }
+    },
+    "El guion no salió: míralo en Reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script didn't come out: see it in Meetings"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

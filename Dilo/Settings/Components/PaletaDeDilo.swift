@@ -160,6 +160,10 @@ struct PaletaDeDilo: Equatable, Sendable, Identifiable {
   /// (CONTEXT.md, «el silencio y un micrófono muerto tienen que verse
   /// distinto»).
   var microfonoMuerto: Tono
+  /// El punto «grabando» de una reunión (`HUDReunionEnLaMuesca`). Rojo en
+  /// las dos paletas: es la convención de todo lo que graba, y con Grafito es
+  /// justo el color semántico que la regla deja pasar.
+  var grabando: Tono
 
   /// El acento de la ventana de Ajustes y de los Primeros pasos:
   /// interruptores, selección, la sección elegida.
@@ -200,6 +204,7 @@ extension PaletaDeDilo {
     aviso: Tono(hex: 0xFFD60A),
     alerta: Tono(hex: 0xFF6B6B),
     microfonoMuerto: Tono(hex: 0xFFD60A),
+    grabando: Tono(hex: 0xFF453A),
     acentoDeAjustes: Tono(hex: 0xAEAEB2),
     exito: Tono(hex: 0x30D158),
     fondoDeAjustes: Tono(hex: 0x0A0A0B),
@@ -244,6 +249,7 @@ extension PaletaDeDilo {
     aviso: Tono(hex: 0xFFD60A),
     alerta: Tono(hex: 0xFF6B6B),
     microfonoMuerto: Tono(hex: 0xFFD60A),
+    grabando: Tono(hex: 0xFF453A),
     acentoDeAjustes: Tono(hex: 0x0A84FF),
     exito: Tono(hex: 0x7DF9C4),
     fondoDeAjustes: Tono(rojo: 0.025, verde: 0.027, azul: 0.035),

@@ -81,6 +81,8 @@ enum RenderDeLaMuesca {
     try escribir(comparacion, en: destino, como: "comparacion")
     // Los segmentos de los asientos, en su propia carpeta y en una lámina.
     try escribirLosSegmentos(en: destino.appending(path: "c2"))
+    // La reunión grabando: con la forma, con las vigías y al costado.
+    try escribirLaReunion(en: destino.appending(path: "reunion"))
     // Tres cortes y no cuatro: la muesca sobria crece tan poco que un cuarto
     // era el mismo PNG.
     for (i, avance) in [0.0, 0.5, 1.0].enumerated() {
@@ -398,6 +400,83 @@ enum RenderDeLaMuesca {
     .padding(10)
     .background(Color(white: 0.08))
     try escribir(lamina, en: carpeta, como: "c2-final")
+  }
+
+  /// La reunión como actividad de la muesca (`HUDReunionEnLaMuesca`): sin
+  /// dictado tiene la forma —lo que mide la de dictar— con `● 12:04` y las
+  /// dos marcas; las vigías pasan una marca a ámbar o la tachan; dictando,
+  /// la reunión baja al costado izquierdo con el punto rojo. Un PNG por caso,
+  /// claro y oscuro, y la lámina `reunion-final.png`.
+  @MainActor
+  static func escribirLaReunion(en carpeta: URL) throws {
+    try FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
+    let tamaño = HUDNotchGeometry.tamañoDeLaReunion(for: pantalla)
+    let radio = HUDNotchGeometry.radioEnReposo(for: pantalla)
+    func conLaForma(
+      _ tiempo: String, _ microfono: ReunionEnLaMuesca.Marca, _ parlante: ReunionEnLaMuesca.Marca
+    ) -> AnyView {
+      // Ventana abierta, sin sombra: la reunión descansa como la muesca, no
+      // cuelga sobre el escritorio (`HUDSurface.siluetaQuieta`).
+      AnyView(
+        ZStack(alignment: .top) {
+          marcoDeLaVentana
+          silueta(tamaño: tamaño, radio: radio, sombra: false) {
+            HUDReunionEnLaMuesca(tiempo: tiempo, microfono: microfono, parlante: parlante, alto: tamaño.height)
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .frame(
+          width: HUDNotchGeometry.windowSize(for: pantalla).width,
+          height: HUDNotchGeometry.windowSize(for: pantalla).height
+        )
+      )
+    }
+    let reunion = ReunionEnLaMuesca(
+      inicio: Date(), titulo: "Revisión semanal", microfono: .encendida, parlante: .encendida
+    )
+    let alCostado = Segmentos(izquierdo: .reunion(reunion), conPalabra: [.izquierda])
+    let alCostadoEncogido = Segmentos(izquierdo: .reunion(reunion))
+    let casos: [(String, String, AnyView)] = [
+      ("reunion-hablan-los-dos", "Reunión · hablan los dos", conLaForma("12:04", .encendida, .encendida)),
+      ("reunion-silencio", "Reunión · silencio de verdad (apagadas)", conLaForma("12:05", .apagada, .apagada)),
+      ("reunion-llamada-ambar", "Reunión · 5 s de ceros en la llamada", conLaForma("12:09", .encendida, .ambar)),
+      ("reunion-sin-llamada", "Reunión · 15 s: sin audio de la llamada", conLaForma("12:19", .encendida, .sinAudio)),
+      ("reunion-hora", "Reunión · pasada la hora", conLaForma("1:02:30", .apagada, .encendida)),
+      ("reunion-dictando", "Dictando · la reunión al costado", AnyView(dictandoConSegmentos(alCostado))),
+      ("reunion-dictando-encogida", "Dictando · a los 3 s, el punto", AnyView(dictandoConSegmentos(alCostadoEncogido))),
+    ]
+    for (nombre, _, vista) in casos {
+      try escribir(lienzo(claro: true) { vista }, en: carpeta, como: "\(nombre)-claro")
+      try escribir(lienzo(claro: false) { vista }, en: carpeta, como: "\(nombre)-oscuro")
+      medir(nombre, vista)
+    }
+    let lamina = VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 0) {
+        Color.clear.frame(width: 250, height: 28)
+        Text("Barra clara").frame(width: 460)
+        Text("Barra oscura").frame(width: 460)
+      }
+      .font(.system(size: 13, weight: .semibold))
+      .foregroundStyle(.white)
+      ForEach(Array(casos.enumerated()), id: \.offset) { _, caso in
+        HStack(spacing: 0) {
+          Text(caso.1)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.white.opacity(0.85))
+            .frame(width: 242, alignment: .leading)
+            .padding(.leading, 8)
+          ForEach([true, false], id: \.self) { claro in
+            lienzo(claro: claro) { caso.2 }
+              .frame(width: 460, height: 64, alignment: .top)
+              .clipped()
+              .overlay(Rectangle().stroke(Color(white: 0.3), lineWidth: 1))
+          }
+        }
+      }
+    }
+    .padding(10)
+    .background(Color(white: 0.08))
+    try escribir(lamina, en: carpeta, como: "reunion-final")
   }
 
   /// Un dato de los costados de mentira, con las medidas de `HUDValorDeDato`:

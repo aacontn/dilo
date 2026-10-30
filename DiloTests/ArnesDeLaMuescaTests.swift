@@ -179,6 +179,45 @@ struct ArnesDeLaMuescaTests {
     #expect(stage.segmentosDeAfuera.isEmpty)
   }
 
+  /// La reunión de muestra tiene la forma —y la ventana crece para ella—;
+  /// dictando baja al costado izquierdo con el punto rojo, y al soltar no se
+  /// queda.
+  @MainActor
+  @Test func laReunionTieneLaFormaYDictandoBajaAlCostado() {
+    let stage = escenario(DrivenClock())
+    var abiertas = 0
+    stage.alAbrirLaReunion = { abiertas += 1 }
+    stage.mostrarMuestra(.reunion, texto: nil)
+    #expect(stage.dictationContent.reunionPrincipal != nil)
+    #expect(stage.encuadre == .abierta, "184×26 no cabe en la ventana del reposo")
+    #expect(!stage.escondido)
+    stage.mostrarMuestra(.dictandoConReunion, texto: nil)
+    #expect(stage.estado == .dictando)
+    #expect(stage.asientos.asiento(de: ActividadDeLaMuesca.reunion.id) == .costado(.izquierda))
+    #expect(stage.dictationContent.segmentoIzquierdo?.grabando == true)
+    #expect(stage.dictationContent.reunionPrincipal == nil)
+    stage.tocarSegmento(ActividadDeLaMuesca.reunion.id)
+    #expect(abiertas == 1, "un clic en el segmento abre la ventana")
+    stage.soltarMuestra()
+    #expect(stage.dictationContent.reunionEnCurso == nil, "la de muestra no se queda")
+    #expect(stage.asientos.asiento(de: ActividadDeLaMuesca.reunion.id) == .ninguno)
+  }
+
+  /// Una reunión de verdad que termina deja la muesca en el check, sin
+  /// sonar, y vuelve a reposo.
+  @MainActor
+  @Test func elFinDeLaReunionAcusaSinSonar() {
+    let sonidos = Sonidos()
+    let stage = escenario(DrivenClock(), sonidos: sonidos)
+    stage.mostrarReunion(EscenaDeMuestra.reunion.reunionDeMuestra)
+    #expect(stage.dictationContent.reunionEsPrincipal)
+    stage.mostrarReunion(nil)
+    #expect(!stage.dictationContent.reunionEsPrincipal)
+    stage.acusarElFinDeLaReunion()
+    #expect(stage.estado == .resultado(.listo))
+    #expect(sonidos.tocados == 0)
+  }
+
   /// Un dictado de verdad le gana a la muestra: la escena se suelta en el
   /// mismo `claim`, el arnés se entera, y la sesión suena como siempre.
   @MainActor

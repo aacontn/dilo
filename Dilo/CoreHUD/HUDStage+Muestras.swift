@@ -31,6 +31,7 @@ struct MuestraEnCurso {
   fileprivate let datoDerecho: LadoDeLaMuesca?
   fileprivate let tomaGuardada: TimeInterval?
   fileprivate let retenidoAlCostado: TarjetaDeRespaldo?
+  fileprivate let reunionEnCurso: ReunionEnLaMuesca?
   fileprivate let botones: Botones
 
   /// Los cierres que los botones de la forma llaman. Mientras dura la muestra
@@ -90,6 +91,7 @@ struct MuestraEnCurso {
     self.escena = escena
     tomaGuardada = stage.tomaGuardada
     retenidoAlCostado = stage.retenidoAlCostado
+    reunionEnCurso = content.reunionEnCurso
     recientes = content.recientes
     proximaReunion = content.proximaReunion
     modosDelPanel = content.modosDelPanel
@@ -107,6 +109,7 @@ struct MuestraEnCurso {
     let content = stage.dictationContent
     stage.mostrarTomaGuardada(tomaGuardada)
     stage.ponerRetenidoAlCostado(retenidoAlCostado)
+    stage.mostrarReunion(reunionEnCurso)
     content.recientes = recientes
     content.proximaReunion = proximaReunion
     content.modosDelPanel = modosDelPanel
@@ -164,6 +167,9 @@ extension HUDStage {
         contenido: SegmentoDeAgente.contenido(Self.agenteDeMuestra)
       )
     }
+    // La reunión de la escena, o ninguna: una de verdad vuelve al soltar.
+    mostrarReunion(nil)
+    mostrarReunion(escena.reunionDeMuestra)
     switch escena.palabra {
     case .entra: break
     case .encogida: encogerLaPalabra()
@@ -184,7 +190,7 @@ extension HUDStage {
     let linea = texto ?? escena.textoDeMuestra ?? ""
     switch escena {
     case .reposo, .reposoConDatos, .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos,
-      .segmentosConPalabra, .segmentoConDatos, .agenteEsperando:
+      .segmentosConPalabra, .segmentoConDatos, .agenteEsperando, .reunion, .reunionSinLlamada:
       reaplicarElEstado()
 
     case .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
@@ -202,7 +208,7 @@ extension HUDStage {
       decir(falta.texto)
       revealDictation()
 
-    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo:
+    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo, .dictandoConReunion:
       claim(.dictation, on: pantalla)
       if escena == .dictandoTraduciendo {
         dictationContent.languageTag = "ES → EN"
