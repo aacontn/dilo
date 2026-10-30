@@ -120,6 +120,12 @@ final class AppSettings {
     static let conversacionMicrofonoNombre = "diloConversacionMicrofonoNombre"
     static let conversacionTope = "diloConversacionTopeMensual"
     static let conversacionGasto = "diloConversacionGasto"
+    // Claude Code por voz (2026-10-30).
+    static let claudeCodeProyectos = "diloClaudeCodeProyectos"
+    static let claudeCodeIncluirDeveloper = "diloClaudeCodeIncluirDeveloper"
+    static let claudeCodeUltimoProyecto = "diloClaudeCodeUltimoProyecto"
+    static let claudeCodeModelo = "diloClaudeCodeModelo"
+    static let claudeCodeRuta = "diloClaudeCodeRuta"
   }
 
   /// La clave de Tus palabras, para quien las lee fuera del actor principal:
@@ -425,6 +431,39 @@ final class AppSettings {
   /// Lo gastado este mes, sólo la suma (`GastoDelMes`).
   var conversacionGasto: GastoDelMes? {
     didSet { defaults.set(conversacionGasto?.guardado, forKey: Keys.conversacionGasto) }
+  }
+
+  /// Los proyectos de Claude Code escritos a mano (nombre → carpeta). Le
+  /// ganan a uno de `~/Developer` con el mismo nombre.
+  var claudeCodeProyectos: [ProyectoDeClaudeCode] {
+    didSet {
+      if let data = try? JSONEncoder().encode(claudeCodeProyectos) {
+        defaults.set(data, forKey: Keys.claudeCodeProyectos)
+      }
+    }
+  }
+
+  /// Si cada carpeta de `~/Developer` es un proyecto de fábrica.
+  var claudeCodeIncluirDeveloper: Bool {
+    didSet { defaults.set(claudeCodeIncluirDeveloper, forKey: Keys.claudeCodeIncluirDeveloper) }
+  }
+
+  /// La carpeta del último proyecto al que se le habló, para cuando no se
+  /// nombra ninguno.
+  var claudeCodeUltimoProyecto: String {
+    didSet { defaults.set(claudeCodeUltimoProyecto, forKey: Keys.claudeCodeUltimoProyecto) }
+  }
+
+  /// Un alias de la CLI (`sonnet`, `opus`, `haiku`); vacío es el que tenga
+  /// configurado la persona en su Claude Code.
+  var claudeCodeModelo: String {
+    didSet { defaults.set(claudeCodeModelo, forKey: Keys.claudeCodeModelo) }
+  }
+
+  /// Dónde está la CLI `claude`, si no está donde la deja el instalador.
+  /// Vacío: se busca sola.
+  var claudeCodeRuta: String {
+    didSet { defaults.set(claudeCodeRuta, forKey: Keys.claudeCodeRuta) }
   }
 
   /// Las de Tus palabras que entraron de una corrección aceptada y no de
@@ -1005,6 +1044,11 @@ final class AppSettings {
     )
     conversacionTope = defaults.object(forKey: Keys.conversacionTope) as? Double ?? TopeDeGasto.deFabrica
     conversacionGasto = defaults.string(forKey: Keys.conversacionGasto).flatMap(GastoDelMes.init(guardado:))
+    claudeCodeProyectos = Self.guardado([ProyectoDeClaudeCode].self, Keys.claudeCodeProyectos, in: defaults) ?? []
+    claudeCodeIncluirDeveloper = defaults.object(forKey: Keys.claudeCodeIncluirDeveloper) as? Bool ?? true
+    claudeCodeUltimoProyecto = defaults.string(forKey: Keys.claudeCodeUltimoProyecto) ?? ""
+    claudeCodeModelo = defaults.string(forKey: Keys.claudeCodeModelo) ?? ""
+    claudeCodeRuta = defaults.string(forKey: Keys.claudeCodeRuta) ?? ""
     aprendidasDesdeElOrden = defaults.integer(forKey: Keys.aprendidasDesdeElOrden)
     ultimaPasadaDelOrden = defaults.object(forKey: Keys.ultimaPasadaDelOrden) as? Date
     firmaDelOrden = defaults.string(forKey: Keys.firmaDelOrden)

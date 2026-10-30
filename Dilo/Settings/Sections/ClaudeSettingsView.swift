@@ -98,6 +98,8 @@ struct ClaudeSettingsView: View {
 
       ConversacionSettingsCard(settings: settings)
 
+      ClaudeCodeSettingsCard(settings: settings)
+
       Text(
         "Qué viaja a Anthropic: el dictado que pasa por un modo o por traducir; al revisar, la palabra corregida con unas ocho palabras alrededor; al ordenar, Tus palabras y «Cuando digo…». Nada de eso queda en el registro del sistema. Los costos son de referencia, con los precios de lista por millón de tokens: Haiku 5.5 US$0,10 de entrada y US$0,50 de salida, Sonnet 5.5 US$2 y US$10, Opus 5.5 US$4 y US$20."
       )

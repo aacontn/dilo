@@ -56,6 +56,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case teclaDeConversar
   case modeloDeLaConversacion
   case topeDeLaConversacion
+  case rutaDeClaudeCode
+  case modeloDeClaudeCode
+  case proyectosDeDeveloper
+  case proyectosDeClaudeCode
   // Tus palabras
   case tusPalabras
   case ofrecerCorrecciones
@@ -149,7 +153,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .dictation
     case .claveDeAnthropic, .probarConexion, .modeloDeLosModos, .traducirCon, .aprenderConClaude,
       .modeloParaRevisar, .modeloParaOrdenar, .teclaDeConversar, .modeloDeLaConversacion,
-      .topeDeLaConversacion:
+      .topeDeLaConversacion, .rutaDeClaudeCode, .modeloDeClaudeCode, .proyectosDeDeveloper,
+      .proyectosDeClaudeCode:
       .claude
     case .tusModos, .agregarModo, .restaurarModos, .queDiloElija, .contextoApp, .contextoTexto,
       .contextoSeleccion, .contextoSitio, .contextoEnLinea, .proveedorGeneral,
@@ -245,6 +250,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .teclaDeConversar: String(localized: "Tecla para conversar")
     case .modeloDeLaConversacion: String(localized: "Quién contesta")
     case .topeDeLaConversacion: String(localized: "Tope de gasto al mes")
+    case .rutaDeClaudeCode: String(localized: "Dónde está Claude Code")
+    case .modeloDeClaudeCode: String(localized: "Modelo de Claude Code")
+    case .proyectosDeDeveloper: String(localized: "Proyectos de ~/Developer")
+    case .proyectosDeClaudeCode: String(localized: "Tus proyectos")
     case .ordenarAhora: String(localized: "Ordenar ahora")
     case .loQueOrdenoClaude: String(localized: "Lo que ordenó Claude")
     case .cuandoDigo: String(localized: "Cuando digo…")
@@ -344,6 +353,9 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .ordenarAhora, .loQueOrdenoClaude:
       [String(localized: "aprender"), String(localized: "correcciones"), "Claude", "Haiku", "Sonnet", "Opus"]
     case .comandosAlDictar: [String(localized: "coma"), String(localized: "punto"), String(localized: "nueva línea")]
+    case .rutaDeClaudeCode, .modeloDeClaudeCode, .proyectosDeDeveloper, .proyectosDeClaudeCode:
+      ["Claude Code", "CLI", String(localized: "proyecto"), String(localized: "carpeta"), String(localized: "sesión"),
+       String(localized: "código"), String(localized: "conversación"), String(localized: "voz"), "Sonnet", "Opus", "Haiku"]
     case .teclaDeConversar, .modeloDeLaConversacion, .topeDeLaConversacion:
       [String(localized: "conversación"), String(localized: "conversar"), String(localized: "llamada"), String(localized: "voz"),
        "Claude", "Haiku", "Sonnet", "Opus", String(localized: "costo"), String(localized: "tope")]
