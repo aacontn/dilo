@@ -21,6 +21,7 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 - 2026-10-29 · Probar «envía» al final y la mayúscula según el cursor (apagados) en Slack, Mail y Chrome.
 - 2026-10-29 · Calibrar los umbrales de silencio de la Conversación con la voz de Alfonso y probar `scripts/probar-conversacion.sh --llamar` (pide el Llavero: lo corre Alfonso).
 - 2026-10-29 · Avisarle a Gradium que Phonon 0.5.0 no pronuncia la ñ ni la ú (Dilo lo esquiva reescribiendo el texto).
+- 2026-10-30 · Confirmar de oído que «Yo» y «Ya» al partir una respuesta ya no suenan «Io», «Ia», en parlantes y en Bluetooth. Si sigue, medir cuánto se pierde la salida al encender o agregar silencio al primer audio.
 
 ## Por confirmar
 

@@ -75,6 +75,8 @@ final class VozPhononQueContesta: VozQueContesta {
       respaldo.decir(limpia)
     case .phonon:
       cola.append(limpia)
+      // Si falla, `encolar` lo vuelve a intentar y ahí pasa al respaldo.
+      _ = try? reproductorListo()
       if tarea == nil { sintetizarLaCola() }
     }
   }
@@ -160,7 +162,6 @@ final class VozPhononQueContesta: VozQueContesta {
     }
     if !sono {
       sono = true
-      reproductor.play()
       alEmpezar?()
     }
   }
@@ -200,6 +201,12 @@ final class VozPhononQueContesta: VozQueContesta {
     standardFormatWithSampleRate: SintetizadorPhonon.frecuencia, channels: 1
   )!
 
+  /// Prende la salida antes de que haya audio y la deja andando en silencio.
+  ///
+  /// Una salida recién encendida puede perderse lo primero que le llega, y
+  /// ahí está la consonante de «Yo» y «Ya»: unos 60 ms muy suaves que terminan
+  /// a los 180 ms del audio. Sin ella se oye «Io», «Ia». Lo que tarda Phonon
+  /// en sintetizar el primer trozo le da tiempo de despertar sin demorar nada.
   private func reproductorListo() throws -> AVAudioPlayerNode {
     if let reproductor { return reproductor }
     let motor = AVAudioEngine()
@@ -211,6 +218,7 @@ final class VozPhononQueContesta: VozQueContesta {
     motor.connect(reproductor, to: velocidad, format: Self.formato)
     motor.connect(velocidad, to: motor.mainMixerNode, format: Self.formato)
     try motor.start()
+    reproductor.play()
     self.motor = motor
     self.reproductor = reproductor
     self.velocidad = velocidad
