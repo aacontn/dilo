@@ -58,6 +58,8 @@ struct ConversacionSettingsCard: View {
       )
       .anclaDeAjuste(.topeDeLaConversacion)
 
+      EscucharMiNombreFila(settings: settings)
+
       Text(
         "Lo conversado vive en la memoria mientras dura la llamada y se olvida al colgar: no va al historial ni al registro del sistema. Una conversación de diez minutos cuesta unos centavos con Sonnet."
       )
