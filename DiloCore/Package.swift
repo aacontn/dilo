@@ -37,6 +37,9 @@ let package = Package(
     // taller: `scripts/comparar-motores.sh` lo construye y la app no lo enlaza.
     .executable(name: "dilo-comparar-motores", targets: ["dilo-comparar-motores"]),
     .executable(name: "dilo-banco-reuniones", targets: ["dilo-banco-reuniones"]),
+    // La espiga de la escucha de nombres: qué camino oye «Dilo, …» con menos
+    // CPU, sobre audios de `say`. Taller: la app no lo enlaza.
+    .executable(name: "dilo-banco-escucha", targets: ["dilo-banco-escucha"]),
   ],
   dependencies: [
     // Parakeet TDT v3 y Ultra (int8) en Core ML. Apache 2.0. Se fija por
@@ -89,6 +92,10 @@ let package = Package(
     .executableTarget(
       name: "dilo-banco-reuniones",
       dependencies: ["DiloReuniones", "DiloHablantes", "DiloEngines"]
+    ),
+    .executableTarget(
+      name: "dilo-banco-escucha",
+      dependencies: ["DiloModes", "DiloEngines", .product(name: "FluidAudio", package: "FluidAudio")]
     ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
