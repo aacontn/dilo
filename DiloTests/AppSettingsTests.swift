@@ -1,3 +1,4 @@
+import DiloAgentes
 import DiloEngines
 import DiloModes
 import Foundation
@@ -99,6 +100,30 @@ struct AppSettingsTests {
     #expect(defaults.string(forKey: "hudRevealStyle") == "Drift")
     #expect(defaults.string(forKey: "hudLongDraftStyle") == "Tail Only")
     #expect(defaults.string(forKey: "readAloudVoice") == "com.apple.voice.enhanced.en-GB.Jamie")
+  }
+
+  /// Los agentes y los servidores MCP de la Conversación (2026-10-30): de
+  /// fábrica Dilo, Claude Code y Switchboard; se guardan como JSON bajo su
+  /// clave, y una lista vacía vuelve a los de fábrica.
+  @Test func losAgentesYLosServidoresMCPSeGuardan() {
+    let defaults = freshDefaults()
+    let settings = AppSettings(defaults: defaults)
+    #expect(settings.conversacionAgentes == Agente.deFabrica)
+    #expect(settings.servidoresMCP == ServidorMCPConfigurado.deFabrica)
+
+    var agentes = settings.conversacionAgentes
+    agentes[2].nombre = "Centralita"
+    settings.conversacionAgentes = agentes
+    settings.servidoresMCP = []
+    #expect(defaults.data(forKey: "diloConversacionAgentes") != nil)
+    #expect(defaults.data(forKey: "diloServidoresMCP") != nil)
+
+    let reloaded = AppSettings(defaults: defaults)
+    #expect(reloaded.conversacionAgentes[2].nombre == "Centralita")
+    #expect(reloaded.servidoresMCP.isEmpty)
+
+    settings.conversacionAgentes = []
+    #expect(AppSettings(defaults: defaults).conversacionAgentes == Agente.deFabrica)
   }
 
   /// Quién lee y con qué voz de Phonon (2026-10-29). Vacíos de fábrica: así

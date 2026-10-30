@@ -249,7 +249,8 @@ extension HUDStage {
       revealDictation()
 
     case .conversacionEscucha, .conversacionPiensa, .conversacionHabla, .conversacionTranscripcion,
-      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso:
+      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso, .conversacionHerramienta,
+      .conversacionAprobacion, .conversacionDestinos:
       // Con los botones apagados, como todo el arnés.
       conversacionContent.acciones = AccionesDeLaLlamada()
       conversacionContent.foto = escena.fotoDeLaConversacion ?? FotoDeLaConversacion()

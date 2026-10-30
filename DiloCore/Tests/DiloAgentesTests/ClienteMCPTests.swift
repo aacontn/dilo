@@ -218,3 +218,20 @@ struct ReglaDelEntornoTests {
     #expect(ServidorMCPConfigurado.switchboard.id == "switchboard")
   }
 }
+
+struct LineaDeArgumentosTests {
+  @Test func separaPorEspaciosYRespetaLasComillas() {
+    #expect(LineaDeArgumentos.partir("--agent dilo") == ["--agent", "dilo"])
+    #expect(
+      LineaDeArgumentos.partir(#"-y @mcp/servidor "/Volumes/SSD 1" 'otra cosa'"#)
+        == ["-y", "@mcp/servidor", "/Volumes/SSD 1", "otra cosa"]
+    )
+    #expect(LineaDeArgumentos.partir("   ") == [])
+    #expect(LineaDeArgumentos.partir(#"a "" b"#) == ["a", "", "b"])
+  }
+
+  @Test func juntarYPartirVuelvenAlMismoLugar() {
+    let argumentos = ["-y", "@mcp/servidor", "/Volumes/SSD 1", ""]
+    #expect(LineaDeArgumentos.partir(LineaDeArgumentos.juntar(argumentos)) == argumentos)
+  }
+}

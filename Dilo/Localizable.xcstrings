@@ -12941,6 +12941,666 @@
           }
         }
       }
+    },
+    "Agente %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent %lld"
+          }
+        }
+      }
+    },
+    "Agentes de la conversación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation agents"
+          }
+        }
+      }
+    },
+    "Agregar un agente": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add an agent"
+          }
+        }
+      }
+    },
+    "Claude con herramientas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude with tools"
+          }
+        }
+      }
+    },
+    "Claude con las herramientas de ese servidor y nada más.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude with that server's tools and nothing else."
+          }
+        }
+      }
+    },
+    "Claude por la API, con tus dictados, reuniones, calendario, portapapeles y los servidores MCP que dejes entrar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude through the API, with your dictations, meetings, calendar, clipboard and the MCP servers you let in."
+          }
+        }
+      }
+    },
+    "Con la escucha de nombres prendida, decir su nombre abre la llamada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With name listening on, saying its name starts the call."
+          }
+        }
+      }
+    },
+    "Dile a quién le hablas por su nombre al principio, o elígelo en la barra de llamada. Sin nombre, contesta el último al que le hablaste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say who you're talking to by name at the start, or pick it in the call bar. Without a name, the last one you talked to answers."
+          }
+        }
+      }
+    },
+    "Ese servidor ya no está conectado: conéctalo abajo o elige otro tipo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That server is no longer connected: connect it below or pick another type."
+          }
+        }
+      }
+    },
+    "MCP: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP: %@"
+          }
+        }
+      }
+    },
+    "Nombre de %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name of %@"
+          }
+        }
+      }
+    },
+    "Quitar a %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@"
+          }
+        }
+      }
+    },
+    "Se llama por nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Called by name"
+          }
+        }
+      }
+    },
+    "Tipo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        }
+      }
+    },
+    "Una sesión de Claude Code manejada por voz, con tu cuenta de Claude Code.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Claude Code session driven by voice, with your Claude Code account."
+          }
+        }
+      }
+    },
+    "Volver a los de fábrica": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore the defaults"
+          }
+        }
+      }
+    },
+    "A quién le hablas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who you're talking to"
+          }
+        }
+      }
+    },
+    "Agente": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent"
+          }
+        }
+      }
+    },
+    "Aprobar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve"
+          }
+        }
+      }
+    },
+    "Aprobar: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve: %@"
+          }
+        }
+      }
+    },
+    "Buscando en tus reuniones…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching your meetings…"
+          }
+        }
+      }
+    },
+    "Espera tu clic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for your click"
+          }
+        }
+      }
+    },
+    "Hablándole a %@. Cambiar a quién le hablas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talking to %@. Change who you're talking to"
+          }
+        }
+      }
+    },
+    "No aprobar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't approve"
+          }
+        }
+      }
+    },
+    "También sirve decir su nombre al principio: «Switchboard, ¿qué tengo hoy?».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can also say its name at the start: “Switchboard, what's on today?”."
+          }
+        }
+      }
+    },
+    "Agregar Switchboard": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Switchboard"
+          }
+        }
+      }
+    },
+    "Agregar un servidor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a server"
+          }
+        }
+      }
+    },
+    "Argumentos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arguments"
+          }
+        }
+      }
+    },
+    "Comando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command"
+          }
+        }
+      }
+    },
+    "Conectar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect %@"
+          }
+        }
+      }
+    },
+    "Conexiones MCP": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MCP connections"
+          }
+        }
+      }
+    },
+    "Cómo se dice, y el nombre de su agente.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it's said, and its agent's name."
+          }
+        }
+      }
+    },
+    "En Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Dilo"
+          }
+        }
+      }
+    },
+    "La ruta del programa, o un nombre que esté en el PATH (npx, uvx).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The program's path, or a name on the PATH (npx, uvx)."
+          }
+        }
+      }
+    },
+    "NOMBRE=valor, una por línea. Sin claves ni tokens: Ajustes no es el Llavero.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NAME=value, one per line. No keys or tokens: Settings is not the Keychain."
+          }
+        }
+      }
+    },
+    "No encuentro ese programa en este Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I can't find that program on this Mac."
+          }
+        }
+      }
+    },
+    "Quitar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %@"
+          }
+        }
+      }
+    },
+    "Separados por espacios; entre comillas lo que lleva espacios.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separated by spaces; quote anything with spaces."
+          }
+        }
+      }
+    },
+    "Servidor %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server %lld"
+          }
+        }
+      }
+    },
+    "Servidores que Dilo lanza en tu Mac para usar sus herramientas en la conversación. Lo que no dice que sólo lee, pide un clic antes de correr.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servers Dilo launches on your Mac to use their tools in the conversation. Anything that doesn't say it only reads asks for a click before it runs."
+          }
+        }
+      }
+    },
+    "Sus herramientas también entran al agente Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its tools also go to the Dilo agent."
+          }
+        }
+      }
+    },
+    "Variables de entorno": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Environment variables"
+          }
+        }
+      }
+    },
+    "Conecta: %lld herramientas (%lld de lectura). %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected: %lld tools (%lld read-only). %@"
+          }
+        }
+      }
+    },
+    "Switchboard: la primera vez que Dilo lo lanza, Switchboard muestra una solicitud con un código en su ventana «Agentes». Autorízala ahí y elige qué herramientas y proyectos puede usar Dilo; hasta entonces sólo deja ver su estado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switchboard: the first time Dilo launches it, Switchboard shows a request with a code in its “Agents” window. Authorize it there and choose which tools and projects Dilo can use; until then it only shows its status."
+          }
+        }
+      }
+    },
+    "«Se llama por nombre» es para la escucha de nombres: con ella prendida, decir ese nombre abre la llamada. Cada nombre más que escucha es una falsa alarma más, por eso de fábrica sólo «Dilo».": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Called by name” is for name listening: with it on, saying that name starts the call. Every extra name it listens for is one more false alarm, so by default only “Dilo”."
+          }
+        }
+      }
+    },
+    "%@ todavía no está conectado a Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't connected to Dilo yet."
+          }
+        }
+      }
+    },
+    "Algo falló con %@. ¿Me lo dices de nuevo?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong with %@. Can you say it again?"
+          }
+        }
+      }
+    },
+    "Aprobado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approved"
+          }
+        }
+      }
+    },
+    "Falló %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ failed"
+          }
+        }
+      }
+    },
+    "No aprobado": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not approved"
+          }
+        }
+      }
+    },
+    "Pide aprobar: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asks to approve: %@"
+          }
+        }
+      }
+    },
+    "Te paso con %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Putting you through to %@."
+          }
+        }
+      }
+    },
+    "agente": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agent"
+          }
+        }
+      }
+    },
+    "conectar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "connect"
+          }
+        }
+      }
+    },
+    "destino": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "destination"
+          }
+        }
+      }
+    },
+    "escuchar mi nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "listen for my name"
+          }
+        }
+      }
+    },
+    "herramientas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tools"
+          }
+        }
+      }
+    },
+    "nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "name"
+          }
+        }
+      }
+    },
+    "servidor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "server"
+          }
+        }
+      }
+    },
+    "Evento": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Event"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

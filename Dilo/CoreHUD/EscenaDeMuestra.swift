@@ -81,6 +81,9 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case conversacionAjustes = "conversacion-ajustes"
   case conversacionSilenciada = "conversacion-silenciada"
   case conversacionAviso = "conversacion-aviso"
+  case conversacionHerramienta = "conversacion-herramienta"
+  case conversacionAprobacion = "conversacion-aprobacion"
+  case conversacionDestinos = "conversacion-destinos"
   /// Una reunión grabando sin dictado: `● 12:04` y las dos marcas con la
   /// forma (`HUDReunionEnLaMuesca`); la misma con el parlante en ámbar, que
   /// es la vigía a los 5 s de ceros; y dictando, la reunión al costado.
@@ -120,7 +123,8 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     // La conversación no mueve la máquina del contrato: la barra es otra
     // superficie (`HUDStage+Conversacion`).
     case .conversacionEscucha, .conversacionPiensa, .conversacionHabla, .conversacionTranscripcion,
-      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso:
+      .conversacionAjustes, .conversacionSilenciada, .conversacionAviso, .conversacionHerramienta,
+      .conversacionAprobacion, .conversacionDestinos:
       .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
@@ -186,6 +190,9 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .conversacionAjustes: .ajustes
     case .conversacionSilenciada: .silenciada
     case .conversacionAviso: .aviso
+    case .conversacionHerramienta: .herramienta
+    case .conversacionAprobacion: .aprobacion
+    case .conversacionDestinos: .destinos
     default: nil
     }
     return muestra.map(FotoDeLaConversacion.deMuestra)

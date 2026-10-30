@@ -12,8 +12,19 @@ struct FotoDeLaConversacion: Equatable {
 
   struct Linea: Equatable, Identifiable {
     let id: Int
+    /// Del lado del agente: lo que contestó, o una nota suya.
     let deDilo: Bool
     let texto: String
+    /// Quién lo dijo, si no es Dilo: «Switchboard». Nil es «Dilo» o «Tú».
+    var quien: String?
+    /// Una nota y no algo dicho: una herramienta, una aprobación. Va en gris.
+    var nota = false
+  }
+
+  /// Lo que espera un clic: «Dilo quiere crear una nota en Apple Notas».
+  struct AprobacionEnLaBarra: Equatable {
+    let descripcion: String
+    let detalle: String
   }
 
   /// Un chip que se elige: los modelos de la barra de ajustes.
@@ -43,9 +54,18 @@ struct FotoDeLaConversacion: Equatable {
   var voz = ""
   var velocidad = ""
   var microfono = ""
+  /// A quién se le habla ahora: «Dilo», «Switchboard».
+  var agente = "Dilo"
+  /// Los agentes para elegir en el menú de destino.
+  var agentes: [Opcion] = []
+  var verDestinos = false
+  /// La herramienta que corre: «Buscando en tus reuniones…».
+  var herramienta: String?
+  /// Lo que espera un clic. Mientras está, ocupa lo desplegado.
+  var aprobacion: AprobacionEnLaBarra?
 
   /// Si debajo de los controles va algo desplegado.
-  var desplegada: Bool { verTranscripcion || verAjustes }
+  var desplegada: Bool { verTranscripcion || verAjustes || verDestinos || aprobacion != nil }
 }
 
 extension FotoDeLaConversacion {
@@ -59,6 +79,9 @@ extension FotoDeLaConversacion {
     case ajustes
     case silenciada
     case aviso
+    case herramienta
+    case aprobacion
+    case destinos
   }
 
   static func deMuestra(_ muestra: Muestra) -> FotoDeLaConversacion {
@@ -70,6 +93,11 @@ extension FotoDeLaConversacion {
       Opcion(id: "haiku", titulo: "Haiku", elegida: false),
       Opcion(id: "sonnet", titulo: "Sonnet", elegida: false),
       Opcion(id: "opus", titulo: "Opus", elegida: false),
+    ]
+    foto.agentes = [
+      Opcion(id: "dilo", titulo: "Dilo", elegida: true),
+      Opcion(id: "claude-code", titulo: "Claude Code", elegida: false),
+      Opcion(id: "switchboard", titulo: "Switchboard", elegida: false),
     ]
     foto.voz = "Paulina (MX)"
     foto.velocidad = String(localized: "Normal")
@@ -98,6 +126,17 @@ extension FotoDeLaConversacion {
     case .aviso:
       foto.fase = .hablando
       foto.aviso = String(localized: "Sin conexión con Anthropic")
+    case .herramienta:
+      foto.fase = .pensando
+      foto.herramienta = String(localized: "Buscando en tus reuniones…")
+    case .aprobacion:
+      foto.fase = .pensando
+      foto.aprobacion = AprobacionEnLaBarra(
+        descripcion: "Dilo quiere crear una nota en Apple Notas",
+        detalle: "Llamar a Marta el lunes por la cotización de las banderas"
+      )
+    case .destinos:
+      foto.verDestinos = true
     }
     return foto
   }
@@ -114,6 +153,10 @@ struct AccionesDeLaLlamada {
   var siguienteVoz: () -> Void = {}
   var siguienteVelocidad: () -> Void = {}
   var siguienteMicrofono: () -> Void = {}
+  var alternarDestinos: () -> Void = {}
+  var elegirDestino: (String) -> Void = { _ in }
+  var aprobar: () -> Void = {}
+  var rechazar: () -> Void = {}
 }
 
 /// La barra de llamada de la **Conversación**, dentro de la muesca.
@@ -147,7 +190,15 @@ struct BarraDeLlamada: View {
         .frame(height: Self.altoDeLosControles)
       if foto.desplegada {
         Group {
-          if foto.verAjustes { ajustes } else { transcripcion }
+          if let aprobacion = foto.aprobacion {
+            aprobar(aprobacion)
+          } else if foto.verAjustes {
+            ajustes
+          } else if foto.verDestinos {
+            destinos
+          } else {
+            transcripcion
+          }
         }
         .frame(height: Self.altoDelDesplegable, alignment: .top)
         .transition(.opacity)
@@ -163,6 +214,7 @@ struct BarraDeLlamada: View {
     HStack(spacing: 6) {
       indicador
       Text(foto.aviso ?? textoDelEstado)
+        .contentTransition(.opacity)
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(foto.aviso == nil ? .white.opacity(0.92) : PaletaDeDilo.actual.aviso.color)
         .lineLimit(1)
@@ -186,6 +238,8 @@ struct BarraDeLlamada: View {
   }
 
   private var textoDelEstado: String {
+    if foto.aprobacion != nil { return String(localized: "Espera tu clic") }
+    if let herramienta = foto.herramienta { return herramienta }
     if foto.silenciada { return String(localized: "Silenciado") }
     switch foto.fase {
     case .escuchando: return String(localized: "Te escucho")
@@ -249,6 +303,7 @@ struct BarraDeLlamada: View {
           ? String(localized: "Esconder los ajustes") : String(localized: "Voz, velocidad, modelo y micrófono"),
         accion: acciones.alternarAjustes
       )
+      destino
       // Lo que vas diciendo, recortado por la izquierda para que nunca se
       // pierda el final, como la línea del dictado.
       Text(foto.parcial)
@@ -259,6 +314,29 @@ struct BarraDeLlamada: View {
         .frame(maxWidth: .infinity, alignment: .trailing)
       colgar
     }
+  }
+
+  /// A quién se le habla, y el menú para cambiarlo: abre los agentes abajo,
+  /// como los ajustes. Sin menú de AppKit: la muesca nunca toma el teclado.
+  private var destino: some View {
+    Button(action: acciones.alternarDestinos) {
+      HStack(spacing: 3) {
+        Text(foto.agente)
+          .lineLimit(1)
+        Image(systemName: foto.verDestinos ? "chevron.up" : "chevron.down")
+          .font(.system(size: 7.5, weight: .bold))
+          .foregroundStyle(.white.opacity(0.45))
+      }
+      .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+      .foregroundStyle(.white.opacity(0.88))
+      .padding(.horizontal, 8)
+      .frame(height: 22)
+      .fixedSize()
+      .background(Capsule().fill(.white.opacity(foto.verDestinos ? 0.18 : 0.08)))
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(Text("Hablándole a \(foto.agente). Cambiar a quién le hablas"))
+    .help(Text("A quién le hablas"))
   }
 
   private var colgar: some View {
@@ -305,7 +383,10 @@ struct BarraDeLlamada: View {
 
   /// Las últimas líneas de lo conversado, de la más vieja a la más nueva.
   private var transcripcion: some View {
-    VStack(alignment: .leading, spacing: 3) {
+    // El nombre de quien habla cabe en 26 puntos mientras son «Tú» y
+    // «Dilo»; con otro agente en la llamada, el rótulo se ensancha.
+    let anchoDelNombre: CGFloat = foto.lineas.suffix(3).contains { ($0.quien?.count ?? 0) > 4 } ? 70 : 26
+    return VStack(alignment: .leading, spacing: 3) {
       if foto.lineas.isEmpty {
         Text("Lo que conversen aparece acá. No se guarda.")
           .font(.system(size: 10.5, design: .rounded))
@@ -313,13 +394,14 @@ struct BarraDeLlamada: View {
       }
       ForEach(foto.lineas.suffix(3)) { linea in
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-          Text(linea.deDilo ? "Dilo" : String(localized: "Tú"))
+          Text(linea.quien ?? (linea.deDilo ? "Dilo" : String(localized: "Tú")))
             .font(.system(size: 9.5, weight: .semibold, design: .rounded))
             .foregroundStyle(linea.deDilo ? PaletaDeDilo.actual.acento.color : .white.opacity(0.5))
-            .frame(width: 26, alignment: .leading)
+            .lineLimit(1)
+            .frame(width: anchoDelNombre, alignment: .leading)
           Text(linea.texto)
-            .font(.system(size: 11, design: .rounded))
-            .foregroundStyle(.white.opacity(linea.deDilo ? 0.9 : 0.72))
+            .font(.system(size: linea.nota ? 10.5 : 11, design: .rounded).italic(linea.nota))
+            .foregroundStyle(.white.opacity(linea.nota ? 0.45 : (linea.deDilo ? 0.9 : 0.72)))
             .lineLimit(1)
             .truncationMode(.tail)
         }
@@ -359,6 +441,85 @@ struct BarraDeLlamada: View {
         rotulo("Micrófono")
         chip(foto.microfono, accion: acciones.siguienteMicrofono, etiqueta: String(localized: "Otro micrófono"))
       }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.top, 3)
+  }
+
+  /// Lo que un agente quiere hacer y espera un clic: qué, el detalle y los
+  /// dos botones. No se dice en voz alta como pregunta: la voz no aprueba.
+  private func aprobar(_ aprobacion: FotoDeLaConversacion.AprobacionEnLaBarra) -> some View {
+    VStack(alignment: .leading, spacing: 5) {
+      HStack(spacing: 6) {
+        Image(systemName: "hand.raised.fill")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(PaletaDeDilo.actual.acento.color)
+        Text(aprobacion.descripcion)
+          .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+          .foregroundStyle(.white.opacity(0.95))
+          .lineLimit(1)
+          .truncationMode(.tail)
+      }
+      Text(aprobacion.detalle)
+        .font(.system(size: 10.5, design: .monospaced))
+        .foregroundStyle(.white.opacity(0.55))
+        .lineLimit(1)
+        .truncationMode(.middle)
+      HStack(spacing: 6) {
+        Spacer(minLength: 0)
+        Button(action: acciones.rechazar) {
+          Text("No")
+            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 12)
+            .frame(height: 20)
+            .background(Capsule().fill(.white.opacity(0.12)))
+            .foregroundStyle(.white.opacity(0.9))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("No aprobar"))
+        Button(action: acciones.aprobar) {
+          Text("Aprobar")
+            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+            .padding(.horizontal, 12)
+            .frame(height: 20)
+            .background(Capsule().fill(PaletaDeDilo.actual.acento.color.opacity(0.85)))
+            .foregroundStyle(.white)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Aprobar: \(aprobacion.descripcion)"))
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.top, 4)
+    .accessibilityElement(children: .contain)
+  }
+
+  /// Los agentes, a un clic cada uno: el elegido recibe lo que digas sin
+  /// nombre. Decir el nombre al principio también sirve.
+  private var destinos: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      HStack(spacing: 4) {
+        rotulo("Agente")
+        ForEach(foto.agentes) { opcion in
+          Button { acciones.elegirDestino(opcion.id) } label: {
+            Text(opcion.titulo)
+              .font(.system(size: 10.5, weight: opcion.elegida ? .semibold : .regular, design: .rounded))
+              .foregroundStyle(.white.opacity(opcion.elegida ? 0.95 : 0.6))
+              .lineLimit(1)
+              .padding(.horizontal, 7)
+              .frame(height: 18)
+              .fixedSize()
+              .background(Capsule().fill(.white.opacity(opcion.elegida ? 0.18 : 0)))
+          }
+          .buttonStyle(.plain)
+          .accessibilityAddTraits(opcion.elegida ? .isSelected : [])
+        }
+      }
+      Text("También sirve decir su nombre al principio: «Switchboard, ¿qué tengo hoy?».")
+        .font(.system(size: 10, design: .rounded))
+        .foregroundStyle(.white.opacity(0.42))
+        .lineLimit(2)
+        .fixedSize(horizontal: false, vertical: true)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.top, 3)

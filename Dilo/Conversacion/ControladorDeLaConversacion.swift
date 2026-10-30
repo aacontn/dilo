@@ -1,23 +1,28 @@
+import DiloAgentes
 import DiloEngines
 import DiloModes
 import Foundation
 import Synchronization
 import os
 
-/// La **Conversación**: hablarle a Dilo y que conteste en voz alta, como una
-/// llamada.
+/// La **Conversación**: hablarle a Dilo —y a los otros **Agente**s— y que
+/// contesten en voz alta, como una llamada.
 ///
 /// Sólo el pensar va en línea. Lo que dices lo transcribe el **Motor de voz**
-/// del dictado, en el Mac (`MotorParaConversar`); Claude contesta por la API
-/// de Anthropic con la clave de siempre, en streaming
-/// (`ClienteDeConversacion`); y la respuesta la dice una voz del Mac
-/// (`VozQueContesta`). El audio nunca sale del Mac: sólo viaja texto. Lo
-/// conversado vive en RAM mientras dura la llamada y se olvida al colgar;
-/// al log van tiempos, modelo y cuentas.
+/// del dictado, en el Mac (`MotorParaConversar`); a quién va lo decide
+/// `EnrutadorDeAgentes` por el nombre al principio o por el último de la
+/// llamada; contesta el destino de ese agente (`DestinoDeConversacion`:
+/// Claude con herramientas, un servidor MCP, Claude Code); y la respuesta la
+/// dice una voz del Mac (`VozQueContesta`). El audio nunca sale del Mac: sólo
+/// viaja texto. Lo conversado vive en RAM, en cada destino, mientras dura la
+/// llamada y se olvida al colgar; al log van tiempos, modelo y cuentas.
 ///
-/// Los turnos son half duplex (`MaquinaDeLaConversacion`), el modelo de cada
-/// turno lo elige `RouterDeModelos`, el fin de tu turno lo dice
-/// `FinDelTurno` o soltar el gatillo, y el gasto del mes tiene tope
+/// Lo que un destino quiere hacer y necesita permiso llega como `Aprobacion`
+/// y se muestra en la muesca con «Aprobar» y «No»: la llamada espera el clic,
+/// no una respuesta de viva voz, y colgar responde que no.
+///
+/// Los turnos son half duplex (`MaquinaDeLaConversacion`), el fin de tu turno
+/// lo dice `FinDelTurno` o soltar el gatillo, y el gasto del mes tiene tope
 /// (`TopeDeGasto`). Todo eso es regla pura en `DiloModes`; acá sólo se
 /// ejecuta.
 @MainActor
@@ -39,6 +44,9 @@ final class ControladorDeLaConversacion {
   /// La clave de Anthropic, leída del Llavero fuera del hilo principal en
   /// el momento de usarla. No se guarda.
   private let leerClave: @Sendable () async -> String?
+  /// Quién contesta a cada agente. Claude Code se enchufa en su registro
+  /// (`destinos.registro.registrar(.claudeCode) { … }`).
+  let destinos: DestinosDeLaConversacion
 
   /// Conversando sí o no: el panel de la barra lo dice.
   var alCambiar: ((Bool) -> Void)?
@@ -47,8 +55,13 @@ final class ControladorDeLaConversacion {
   var hayDictado: () -> Bool = { false }
 
   private var maquina = MaquinaDeLaConversacion()
-  private var router = RouterDeModelos()
-  private var historial: [MensajeDeLaConversacion] = []
+  /// A quién va lo que digas sin nombre: el último al que le hablaste en esta
+  /// llamada, o el elegido en el menú de destino. Nil es Dilo.
+  private var agenteActual: Agente?
+  /// Lo que se va a consultar cuando la máquina lo pida.
+  private var pendiente: EnrutadorDeAgentes.Ruta?
+  /// La aprobación que espera un clic, si hay una.
+  private var aprobacion: Aprobacion?
   private var contadorDeLineas = 0
 
   /// Lo que el audio va midiendo, escrito desde el hilo de audio y leído
@@ -78,8 +91,10 @@ final class ControladorDeLaConversacion {
   /// Las operaciones del motor, en fila: empezar, terminar y cancelar
   /// tienen que llegar en orden aunque la persona interrumpa rápido.
   private var filaDelMotor: Task<Void, Never>?
-  /// Lo que Claude lleva contestado en este turno, por si lo interrumpen.
+  /// Lo que el destino lleva contestado en este turno, por si lo interrumpen.
   private var contestado = ""
+  /// Quién está contestando, para la transcripción.
+  private var contestando: Agente?
   /// Después de un aviso que no tiene arreglo en la llamada —falta la
   /// clave, se llegó al tope—, colgar cuando termine de decirlo.
   private var colgarAlTerminar = false
@@ -107,8 +122,10 @@ final class ControladorDeLaConversacion {
     self.motor = motor
     self.voz = voz
     self.leerClave = leerClave
+    destinos = DestinosDeLaConversacion(settings: settings, leerClave: leerClave)
     self.voz.alEmpezar = { [weak self] in self?.aplicar(.empezoAHablar) }
     self.voz.alTerminar = { [weak self] in self?.terminoDeHablar() }
+    destinos.alTerminarElTurno = { [weak self] agente, resumen in self?.anotar(resumen, de: agente) }
   }
 
   var enCurso: Bool { maquina.estado != .colgada }
@@ -117,7 +134,26 @@ final class ControladorDeLaConversacion {
 
   /// El panel de la barra y el atajo «Conversar con Dilo»: llamar o colgar.
   func alternar() {
-    enCurso ? colgar() : llamar()
+    enCurso ? colgar() : llamar(agente: nil, primerTurno: nil)
+  }
+
+  /// Abre la llamada con un agente y, si hay, con lo dicho después de su
+  /// nombre como primer turno. Es la puerta de la escucha de nombres: oyó
+  /// «Switchboard, ¿qué tengo hoy?» y llama con `switchboard` y «¿Qué tengo
+  /// hoy?».
+  ///
+  /// Con la llamada en curso cambia de agente y, si hay texto, lo consulta
+  /// ya (cortando lo que Dilo estuviera diciendo). Sin agente, el último de
+  /// la llamada o Dilo; un texto vacío abre la llamada escuchando.
+  func llamar(agente: Agente?, primerTurno: String?) {
+    let texto = primerTurno?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    guard enCurso else {
+      empezarLaLlamada(con: agente, primerTurno: texto)
+      return
+    }
+    if let agente { cambiarDeAgente(a: agente) }
+    guard !texto.isEmpty else { return }
+    entraUnTurno(TurnoDeLaPersona(agente: agente ?? agenteDeLaLlamada, texto: texto))
   }
 
   /// La tecla de conversar, o cualquier gatillo mientras hay conversación.
@@ -127,7 +163,7 @@ final class ControladorDeLaConversacion {
     if apretado {
       sostenidoDesde = .now
       guard enCurso else {
-        llamar()
+        llamar(agente: nil, primerTurno: nil)
         return
       }
       if maquina.silenciada { aplicar(.silenciar(false)) }
@@ -144,11 +180,15 @@ final class ControladorDeLaConversacion {
   func colgar() {
     guard enCurso else { return }
     aplicar(.colgar)
+    // Una aprobación sin decidir es un no: nada se hace sin el clic.
+    soltarLaAprobacion(false)
+    destinos.colgar()
     stage.cerrarLaConversacion()
     anotarElResumen()
-    historial = []
-    router = RouterDeModelos()
+    agenteActual = nil
+    pendiente = nil
     contestado = ""
+    contestando = nil
     colgarAlTerminar = false
     vigia?.cancel()
     vigia = nil
@@ -157,39 +197,62 @@ final class ControladorDeLaConversacion {
 
   // Llamar
 
-  private func llamar() {
+  /// Los agentes de Ajustes, y el enrutador que los conoce.
+  private var enrutador: EnrutadorDeAgentes { EnrutadorDeAgentes(agentes: settings.conversacionAgentes) }
+
+  /// El agente que recibe lo dicho sin nombre.
+  private var agenteDeLaLlamada: Agente { agenteActual ?? enrutador.porDefecto }
+
+  private func empezarLaLlamada(con agente: Agente?, primerTurno: String) {
     guard !enCurso, let motor else { return }
     guard !hayDictado() else { return }
+    let primero = agente ?? enrutador.porDefecto
     Task {
-      guard await leerClave() != nil else {
-        stage.showMessage(String(localized: "Falta la clave de Anthropic"))
-        return
-      }
-      guard TopeDeGasto.puedeLlamar(settings.conversacionGasto, tope: settings.conversacionTope, ahora: Date()) else {
-        stage.showMessage(String(localized: "Llegaste al tope del mes para conversar"))
-        return
+      // La clave y el tope sólo importan si el primero que contesta usa la
+      // API: Claude Code va por la cuenta de la persona.
+      if DestinosDeLaConversacion.usaLaAPI(primero) {
+        guard await leerClave() != nil else {
+          stage.showMessage(String(localized: "Falta la clave de Anthropic"))
+          return
+        }
+        guard TopeDeGasto.puedeLlamar(settings.conversacionGasto, tope: settings.conversacionTope, ahora: Date())
+        else {
+          stage.showMessage(String(localized: "Llegaste al tope del mes para conversar"))
+          return
+        }
       }
       guard !enCurso else { return }
-      empezar(motor)
+      empezar(motor, con: agente)
+      if primerTurno.isEmpty {
+        aplicar(.llamar)
+      } else {
+        entraUnTurno(TurnoDeLaPersona(agente: primero, texto: primerTurno))
+      }
     }
   }
 
-  private func empezar(_ motor: MotorParaConversar) {
+  private func empezar(_ motor: MotorParaConversar, con agente: Agente?) {
     inicioDeLaSesion = .now
     turnos = 0
     porModelo = [:]
     costoDeLaSesion = 0
     contadorDeLineas = 0
     voz.ajustar(ajustesDeLaVoz)
+    agenteActual = agente
     var foto = FotoDeLaConversacion()
     foto.modelos = opcionesDeModelo
     stage.conversacionContent.foto = foto
     stage.conversacionContent.acciones = acciones
     refrescarLosAjustes()
+    refrescarElDestino()
     stage.abrirLaConversacion(dibujandoCon: settings.sessionSettingsParaDibujar)
-    aplicar(.llamar)
     alCambiar?(true)
-    AppLog.conversacion.notice("llamada: empieza (modelo \(self.settings.conversacionModelo.rawValue, privacy: .public))")
+    AppLog.conversacion.notice(
+      """
+      llamada: empieza con \(self.agenteDeLaLlamada.id, privacy: .public) \
+      (modelo \(self.settings.conversacionModelo.rawValue, privacy: .public))
+      """
+    )
     Task { [weak self] in
       let voces = await VocesEnEspanol.leer()
       let entradas = await Task.detached(priority: .utility) { DispositivosDeAudio.entradas() }.value
@@ -324,8 +387,20 @@ final class ControladorDeLaConversacion {
       return
     }
     AppLog.conversacion.info("turno \(self.turnos + 1): transcrito en \(Self.ms(transcribir), privacy: .public)")
-    agregarDeLaPersona(limpio)
+    let ruta = enrutador.enrutar(limpio, ultimo: agenteActual)
+    pendiente = ruta
+    agregarLinea(limpio, deDilo: false)
     aplicar(.transcrito(vacio: false))
+  }
+
+  /// Un turno que no salió del micrófono: la escucha de nombres o un
+  /// `llamar(agente:primerTurno:)` con la llamada en curso. Lo que se
+  /// estuviera transcribiendo ya no cuenta.
+  private func entraUnTurno(_ turno: TurnoDeLaPersona) {
+    escucha += 1
+    pendiente = .turno(turno)
+    agregarLinea(turno.texto, deDilo: false)
+    aplicar(.turnoDeAfuera)
   }
 
   private func fallaDelMotor(_ mensaje: String, escucha esta: Int) {
@@ -337,20 +412,50 @@ final class ControladorDeLaConversacion {
     voz.cerrarElTurno()
   }
 
-  // El turno de Dilo
+  // El turno del agente
 
   private func consultar() {
-    guard let dicho = historial.last, dicho.rol == .persona else {
+    guard let ruta = pendiente else {
       aplicar(.transcrito(vacio: true))
       return
     }
-    let decision = router.decidir(dicho.texto, eleccion: settings.conversacionModelo)
-    turnos += 1
-    porModelo[decision.nivel, default: 0] += 1
-    stage.conversacionContent.foto.modelo = decision.nivel.nombreCorto
-    stage.conversacionContent.foto.aviso = nil
+    pendiente = nil
+    switch ruta {
+    case let .cambiarA(agente):
+      cambiarDeAgente(a: agente, diciendolo: true)
+    case let .turno(turno):
+      consultar(turno)
+    }
+  }
 
-    guard TopeDeGasto.puedeLlamar(settings.conversacionGasto, tope: settings.conversacionTope, ahora: Date()) else {
+  /// «Pásame con Switchboard»: cambia y lo dice, sin mandarle nada. Si ese
+  /// tipo de agente todavía no está conectado, lo dice y no cambia.
+  private func cambiarDeAgente(a agente: Agente, diciendolo: Bool = false) {
+    let conectado = destinos.registro.estaConectado(agente.tipo.clase)
+    if conectado { agenteActual = agente }
+    refrescarElDestino()
+    guard diciendolo else { return }
+    let dicho = conectado
+      ? String(localized: "Te paso con \(agente.nombre).")
+      : String(localized: "\(agente.nombre) todavía no está conectado a Dilo.")
+    agregarLinea(dicho, deDilo: true, quien: conectado ? agente.nombre : nil, nota: true)
+    voz.decir(dicho)
+    voz.cerrarElTurno()
+  }
+
+  private func consultar(_ turno: TurnoDeLaPersona) {
+    let agente = turno.agente
+    // Un agente sin conectar contesta que no lo está, pero no se queda con
+    // lo que digas después sin nombre.
+    if destinos.registro.estaConectado(agente.tipo.clase) { agenteActual = agente }
+    refrescarElDestino()
+    turnos += 1
+    stage.conversacionContent.foto.aviso = nil
+    stage.conversacionContent.foto.herramienta = nil
+
+    if DestinosDeLaConversacion.usaLaAPI(agente),
+      !TopeDeGasto.puedeLlamar(settings.conversacionGasto, tope: settings.conversacionTope, ahora: Date())
+    {
       AppLog.conversacion.notice("turno \(self.turnos): no se llama, se llegó al tope del mes")
       decirUnAviso(
         String(localized: "Llegaste al tope de gasto de este mes para conversar. Lo puedes subir en Ajustes, en Claude."),
@@ -360,86 +465,161 @@ final class ControladorDeLaConversacion {
       return
     }
 
-    let pedido = PedidoDeConversacion(nivel: decision.nivel, historial: historial)
+    let destino = destinos.destino(para: agente)
     let numero = turnos
-    let leerClave = leerClave
     contestado = ""
+    contestando = agente
+    let flujo = destino.responder(turno)
     consulta = Task { [weak self] in
-      let inicio = ContinuousClock.now
       var trozos = TrozosParaDecir()
-      var primerPedazo: Duration?
       do {
-        let cliente = ClienteDeConversacion(clave: await leerClave())
-        for try await evento in cliente.responder(pedido) {
+        for try await evento in flujo {
           guard let self, !Task.isCancelled else { return }
+          if let claude = destino as? DestinoConClaude {
+            stage.conversacionContent.foto.modelo = claude.ultimaDecision?.nivel.nombreCorto
+          } else {
+            stage.conversacionContent.foto.modelo = nil
+          }
           switch evento {
           case let .texto(pedazo):
-            if primerPedazo == nil { primerPedazo = .now - inicio }
             contestado += pedazo
             for oracion in trozos.agregar(pedazo) { voz.decir(oracion) }
-          case let .fin(uso, cortada):
+          case let .herramienta(nombre, enCurso):
+            stage.conversacionContent.foto.herramienta = enCurso ? nombre : nil
+            if enCurso { agregarLinea(nombre, deDilo: true, quien: quienDice(agente), nota: true) }
+          case let .pideAprobacion(aprobacion):
+            // Lo que ya se dijo se termina de decir mientras espera el clic.
             if let resto = trozos.terminar() { voz.decir(resto) }
-            terminarElTurno(
-              numero: numero, decision: decision, uso: uso, cortada: cortada,
-              primerPedazo: primerPedazo, total: .now - inicio
-            )
+            mostrar(aprobacion)
+          case let .fin(costoUSD):
+            if let resto = trozos.terminar() { voz.decir(resto) }
+            terminarElTurno(de: agente, costo: costoUSD)
           }
         }
       } catch {
         guard let self, !Task.isCancelled else { return }
-        let falla = error as? FallaDeClaude ?? .respuestaInutil
-        AppLog.conversacion.error(
-          "turno \(numero): \(decision.nivel.rawValue, privacy: .public) falló: \(falla.nombreEnElLog, privacy: .public)"
-        )
-        fallaDeClaude(falla)
+        if let falla = error as? FallaDeClaude {
+          AppLog.conversacion.error(
+            "turno \(numero): \(agente.id, privacy: .public) falló: \(falla.nombreEnElLog, privacy: .public)"
+          )
+          fallaDeClaude(falla)
+        } else {
+          AppLog.conversacion.error(
+            "turno \(numero): \(agente.id, privacy: .public) falló: \(String(describing: error), privacy: .public)"
+          )
+          fallaDelDestino(agente)
+        }
       }
     }
   }
 
-  private func terminarElTurno(
-    numero: Int, decision: RouterDeModelos.Decision, uso: UsoDeTokens, cortada: Bool,
-    primerPedazo: Duration?, total: Duration
-  ) {
+  /// En la transcripción, el nombre de quien contesta si no es Dilo.
+  private func quienDice(_ agente: Agente) -> String? {
+    agente.tipo == .dilo && agente.nombre == "Dilo" ? nil : agente.nombre
+  }
+
+  private func terminarElTurno(de agente: Agente, costo: Double?) {
     consulta = nil
+    soltarLaAprobacion(false)
+    stage.conversacionContent.foto.herramienta = nil
     let respuesta = contestado.trimmingCharacters(in: .whitespacesAndNewlines)
     contestado = ""
-    if !respuesta.isEmpty {
-      historial.append(MensajeDeLaConversacion(.dilo, respuesta))
-      agregarLinea(respuesta, deDilo: true)
+    contestando = nil
+    if !respuesta.isEmpty { agregarLinea(respuesta, deDilo: true, quien: quienDice(agente)) }
+    if let costo {
+      costoDeLaSesion += costo
+      settings.conversacionGasto = TopeDeGasto.sumar(costo, a: settings.conversacionGasto, ahora: Date())
+      stage.conversacionContent.foto.costo = Self.dolares(costoDeLaSesion)
     }
-    let costo = CostosDeClaude.costo(de: uso, modelo: decision.nivel.modelo.id) ?? 0
-    costoDeLaSesion += costo
-    settings.conversacionGasto = TopeDeGasto.sumar(costo, a: settings.conversacionGasto, ahora: Date())
-    stage.conversacionContent.foto.costo = Self.dolares(costoDeLaSesion)
-    AppLog.conversacion.notice(
-      """
-      turno \(numero): \(decision.nivel.rawValue, privacy: .public) (\(decision.motivo.rawValue, privacy: .public), \
-      esfuerzo \(decision.nivel.esfuerzo, privacy: .public)) primer pedazo \(Self.ms(primerPedazo), privacy: .public), \
-      total \(Self.ms(total), privacy: .public), tokens \(uso.entrada)+\(uso.escritosEnCache)w+\(uso.leidosDeCache)r/\(uso.salida)\
-      \(cortada ? " cortada" : "", privacy: .public), US$\(costo, format: .fixed(precision: 5), privacy: .public)
-      """
-    )
     voz.cerrarElTurno()
   }
 
-  /// La interrupción: lo que Claude alcanzó a contestar queda en lo
-  /// conversado con una marca, para que el turno siguiente sepa dónde lo
-  /// cortaron.
+  /// Lo que un destino con Claude cuenta de su turno: al log, como siempre.
+  private func anotar(_ resumen: ResumenDelTurno, de agente: Agente) {
+    let decision = resumen.decision
+    porModelo[decision.nivel, default: 0] += 1
+    let herramientas = resumen.herramientas.isEmpty ? "" : " herramientas \(resumen.herramientas.joined(separator: ","))"
+    let uso = resumen.uso
+    AppLog.conversacion.notice(
+      """
+      turno \(self.turnos) (\(agente.id, privacy: .public)): \(decision.nivel.rawValue, privacy: .public) \
+      (\(decision.motivo.rawValue, privacy: .public), esfuerzo \(decision.nivel.esfuerzo, privacy: .public)) \
+      vueltas \(resumen.vueltas)\(herramientas, privacy: .public) primer pedazo \(Self.ms(resumen.primerPedazo), privacy: .public), \
+      total \(Self.ms(resumen.total), privacy: .public), tokens \(uso.entrada)+\(uso.escritosEnCache)w+\(uso.leidosDeCache)r/\(uso.salida)\
+      \(resumen.cortada ? " cortada" : "", privacy: .public), US$\(resumen.costoUSD, format: .fixed(precision: 5), privacy: .public)
+      """
+    )
+  }
+
+  /// La interrupción: lo que el agente alcanzó a contestar queda en la
+  /// transcripción con una marca. Lo conversado de cada destino lo guarda el
+  /// destino, que también anota dónde lo cortaron.
   private func cancelarLaConsulta() {
     consulta?.cancel()
     consulta = nil
+    soltarLaAprobacion(false)
+    stage.conversacionContent.foto.herramienta = nil
     let alcanzo = contestado.trimmingCharacters(in: .whitespacesAndNewlines)
     contestado = ""
+    let quien = contestando.flatMap(quienDice)
+    contestando = nil
     guard !alcanzo.isEmpty else { return }
-    historial.append(MensajeDeLaConversacion(.dilo, alcanzo + " —"))
-    agregarLinea(alcanzo + " —", deDilo: true)
+    agregarLinea(alcanzo + " —", deDilo: true, quien: quien)
   }
 
   private func fallaDeClaude(_ falla: FallaDeClaude) {
     consulta = nil
     contestado = ""
+    contestando = nil
+    soltarLaAprobacion(false)
+    stage.conversacionContent.foto.herramienta = nil
     let sinArreglo = falla == .faltaLaClave || falla == .claveRechazada
     decirUnAviso(falla.dichoEnLaConversacion, enLaBarra: falla.aviso, yColgar: sinArreglo)
+  }
+
+  private func fallaDelDestino(_ agente: Agente) {
+    consulta = nil
+    contestado = ""
+    contestando = nil
+    soltarLaAprobacion(false)
+    stage.conversacionContent.foto.herramienta = nil
+    decirUnAviso(
+      String(localized: "Algo falló con \(agente.nombre). ¿Me lo dices de nuevo?"),
+      enLaBarra: String(localized: "Falló \(agente.nombre)"),
+      yColgar: false
+    )
+  }
+
+  // La aprobación
+
+  /// Pone la aprobación en la muesca, con su detalle en la transcripción. No
+  /// se dice en voz alta: no es una pregunta que se conteste con la voz.
+  private func mostrar(_ nueva: Aprobacion) {
+    soltarLaAprobacion(false)
+    aprobacion = nueva
+    stage.conversacionContent.foto.aprobacion = FotoDeLaConversacion.AprobacionEnLaBarra(
+      descripcion: nueva.descripcion, detalle: nueva.detalle
+    )
+    agregarLinea(
+      String(localized: "Pide aprobar: \(nueva.detalle)"), deDilo: true, quien: quienDice(nueva.agente), nota: true
+    )
+    AppLog.conversacion.notice("aprobación: \(nueva.agente.id, privacy: .public) pide un clic")
+    stage.remedirLaConversacion()
+  }
+
+  /// El clic, o colgar o interrumpir (que son un no). La responde una sola
+  /// vez y la saca de la muesca.
+  private func soltarLaAprobacion(_ decision: Bool) {
+    guard let esperando = aprobacion else { return }
+    aprobacion = nil
+    stage.conversacionContent.foto.aprobacion = nil
+    esperando.responder(decision)
+    agregarLinea(
+      decision ? String(localized: "Aprobado") : String(localized: "No aprobado"),
+      deDilo: false, nota: true
+    )
+    AppLog.conversacion.notice("aprobación: \(decision ? "aprobada" : "no", privacy: .public)")
+    stage.remedirLaConversacion()
   }
 
   /// Un aviso dicho en voz alta y escrito en la barra. La voz es la que
@@ -453,21 +633,12 @@ final class ControladorDeLaConversacion {
 
   // Lo conversado
 
-  /// Lo que dijiste. Dos seguidos —un turno que Claude no alcanzó a
-  /// contestar— van juntos: la API quiere turnos alternados.
-  private func agregarDeLaPersona(_ texto: String) {
-    if let ultimo = historial.last, ultimo.rol == .persona {
-      historial[historial.count - 1] = MensajeDeLaConversacion(.persona, ultimo.texto + " " + texto)
-    } else {
-      historial.append(MensajeDeLaConversacion(.persona, texto))
-    }
-    agregarLinea(texto, deDilo: false)
-  }
-
-  private func agregarLinea(_ texto: String, deDilo: Bool) {
+  private func agregarLinea(_ texto: String, deDilo: Bool, quien: String? = nil, nota: Bool = false) {
     contadorDeLineas += 1
     var lineas = stage.conversacionContent.foto.lineas
-    lineas.append(FotoDeLaConversacion.Linea(id: contadorDeLineas, deDilo: deDilo, texto: texto))
+    lineas.append(
+      FotoDeLaConversacion.Linea(id: contadorDeLineas, deDilo: deDilo, texto: texto, quien: quien, nota: nota)
+    )
     stage.conversacionContent.foto.lineas = Array(lineas.suffix(Self.lineasEnLaBarra))
   }
 
@@ -501,8 +672,38 @@ final class ControladorDeLaConversacion {
       },
       siguienteVoz: { [weak self] in self?.siguienteVoz() },
       siguienteVelocidad: { [weak self] in self?.siguienteVelocidad() },
-      siguienteMicrofono: { [weak self] in self?.siguienteMicrofono() }
+      siguienteMicrofono: { [weak self] in self?.siguienteMicrofono() },
+      alternarDestinos: { [weak self] in self?.desplegarLosDestinos() },
+      elegirDestino: { [weak self] id in
+        guard let self, let agente = settings.conversacionAgentes.first(where: { $0.id == id }) else { return }
+        cambiarDeAgente(a: agente)
+        desplegarLosDestinos()
+      },
+      aprobar: { [weak self] in self?.soltarLaAprobacion(true) },
+      rechazar: { [weak self] in self?.soltarLaAprobacion(false) }
     )
+  }
+
+  private func desplegarLosDestinos() {
+    var foto = stage.conversacionContent.foto
+    foto.verDestinos.toggle()
+    if foto.verDestinos {
+      foto.verAjustes = false
+      foto.verTranscripcion = false
+    }
+    stage.conversacionContent.foto = foto
+    stage.remedirLaConversacion()
+  }
+
+  /// El chip de a quién se le habla y los agentes del menú.
+  private func refrescarElDestino() {
+    let actual = agenteDeLaLlamada
+    var foto = stage.conversacionContent.foto
+    foto.agente = Self.corto(actual.nombre)
+    foto.agentes = settings.conversacionAgentes.map { agente in
+      FotoDeLaConversacion.Opcion(id: agente.id, titulo: agente.nombre, elegida: agente.id == actual.id)
+    }
+    stage.conversacionContent.foto = foto
   }
 
   private func desplegar(transcripcion: Bool) {
@@ -514,6 +715,7 @@ final class ControladorDeLaConversacion {
       foto.verAjustes.toggle()
       foto.verTranscripcion = false
     }
+    foto.verDestinos = false
     stage.conversacionContent.foto = foto
     stage.remedirLaConversacion()
   }

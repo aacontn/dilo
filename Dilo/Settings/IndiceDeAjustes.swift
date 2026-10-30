@@ -56,6 +56,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case teclaDeConversar
   case modeloDeLaConversacion
   case topeDeLaConversacion
+  case agentesDeLaConversacion
+  case conexionesMCP
   // Tus palabras
   case tusPalabras
   case ofrecerCorrecciones
@@ -149,7 +151,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .dictation
     case .claveDeAnthropic, .probarConexion, .modeloDeLosModos, .traducirCon, .aprenderConClaude,
       .modeloParaRevisar, .modeloParaOrdenar, .teclaDeConversar, .modeloDeLaConversacion,
-      .topeDeLaConversacion:
+      .topeDeLaConversacion, .agentesDeLaConversacion, .conexionesMCP:
       .claude
     case .tusModos, .agregarModo, .restaurarModos, .queDiloElija, .contextoApp, .contextoTexto,
       .contextoSeleccion, .contextoSitio, .contextoEnLinea, .proveedorGeneral,
@@ -245,6 +247,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .teclaDeConversar: String(localized: "Tecla para conversar")
     case .modeloDeLaConversacion: String(localized: "Quién contesta")
     case .topeDeLaConversacion: String(localized: "Tope de gasto al mes")
+    case .agentesDeLaConversacion: String(localized: "Agentes de la conversación")
+    case .conexionesMCP: String(localized: "Conexiones MCP")
     case .ordenarAhora: String(localized: "Ordenar ahora")
     case .loQueOrdenoClaude: String(localized: "Lo que ordenó Claude")
     case .cuandoDigo: String(localized: "Cuando digo…")
@@ -347,6 +351,12 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .teclaDeConversar, .modeloDeLaConversacion, .topeDeLaConversacion:
       [String(localized: "conversación"), String(localized: "conversar"), String(localized: "llamada"), String(localized: "voz"),
        "Claude", "Haiku", "Sonnet", "Opus", String(localized: "costo"), String(localized: "tope")]
+    case .agentesDeLaConversacion:
+      [String(localized: "agente"), String(localized: "nombre"), "Claude Code", "Switchboard", String(localized: "destino"),
+       String(localized: "conversación"), String(localized: "escuchar mi nombre")]
+    case .conexionesMCP:
+      ["MCP", String(localized: "servidor"), "Switchboard", String(localized: "herramientas"), String(localized: "conectar"),
+       String(localized: "conversación")]
     case .sacarMuletillas, .listaDeMuletillas: [String(localized: "muletillas"), "eh", String(localized: "o sea")]
     case .actividad, .latencias: [String(localized: "estadísticas"), String(localized: "palabras"), "CSV", String(localized: "latencia")]
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]

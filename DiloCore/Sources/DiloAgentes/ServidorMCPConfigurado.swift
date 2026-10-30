@@ -112,3 +112,40 @@ public enum ReglaDelEntorno {
     return entorno
   }
 }
+
+/// Los argumentos de un servidor MCP como se escriben en una línea de Ajustes:
+/// separados por espacios, con comillas para lo que lleva espacios
+/// (`"/Volumes/SSD 1"`), como en un terminal pero sin expandir nada.
+public enum LineaDeArgumentos {
+  public static func partir(_ linea: String) -> [String] {
+    var argumentos: [String] = []
+    var actual = ""
+    var comilla: Character?
+    var hayArgumento = false
+    for caracter in linea {
+      if let abierta = comilla {
+        if caracter == abierta { comilla = nil } else { actual.append(caracter) }
+      } else if caracter == "\"" || caracter == "'" {
+        comilla = caracter
+        hayArgumento = true
+      } else if caracter.isWhitespace {
+        if hayArgumento { argumentos.append(actual) }
+        actual = ""
+        hayArgumento = false
+      } else {
+        actual.append(caracter)
+        hayArgumento = true
+      }
+    }
+    if hayArgumento { argumentos.append(actual) }
+    return argumentos
+  }
+
+  /// La línea que vuelve a dar esos argumentos: con comillas sólo donde hace
+  /// falta.
+  public static func juntar(_ argumentos: [String]) -> String {
+    argumentos.map { argumento in
+      argumento.isEmpty || argumento.contains(where: \.isWhitespace) ? "\"\(argumento)\"" : argumento
+    }.joined(separator: " ")
+  }
+}

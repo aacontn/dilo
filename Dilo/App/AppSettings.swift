@@ -1,4 +1,5 @@
 import AppKit
+import DiloAgentes
 import DiloConsumo
 import DiloEngines
 import DiloModes
@@ -120,6 +121,8 @@ final class AppSettings {
     static let conversacionMicrofonoNombre = "diloConversacionMicrofonoNombre"
     static let conversacionTope = "diloConversacionTopeMensual"
     static let conversacionGasto = "diloConversacionGasto"
+    static let conversacionAgentes = "diloConversacionAgentes"
+    static let servidoresMCP = "diloServidoresMCP"
   }
 
   /// La clave de Tus palabras, para quien las lee fuera del actor principal:
@@ -425,6 +428,30 @@ final class AppSettings {
   /// Lo gastado este mes, sólo la suma (`GastoDelMes`).
   var conversacionGasto: GastoDelMes? {
     didSet { defaults.set(conversacionGasto?.guardado, forKey: Keys.conversacionGasto) }
+  }
+
+  /// A quién se le habla en la **Conversación**: los **Agente**s con su
+  /// nombre, su tipo y si se llaman por nombre. JSON; una lista ilegible o
+  /// vacía vuelve a los de fábrica (Dilo, Claude Code y Switchboard), porque
+  /// una llamada sin nadie que conteste no sirve.
+  var conversacionAgentes: [Agente] {
+    didSet {
+      if let datos = try? JSONEncoder().encode(conversacionAgentes) {
+        defaults.set(datos, forKey: Keys.conversacionAgentes)
+      }
+    }
+  }
+
+  /// Los servidores MCP que la persona conectó (Ajustes → Claude →
+  /// Conexiones MCP). JSON; ilegible vuelve a los de fábrica (Switchboard).
+  /// Sin secretos: `ReglaDelEntorno` rechaza las variables que suenan a
+  /// clave antes de guardarlas.
+  var servidoresMCP: [ServidorMCPConfigurado] {
+    didSet {
+      if let datos = try? JSONEncoder().encode(servidoresMCP) {
+        defaults.set(datos, forKey: Keys.servidoresMCP)
+      }
+    }
   }
 
   /// Las de Tus palabras que entraron de una corrección aceptada y no de
@@ -1005,6 +1032,10 @@ final class AppSettings {
     )
     conversacionTope = defaults.object(forKey: Keys.conversacionTope) as? Double ?? TopeDeGasto.deFabrica
     conversacionGasto = defaults.string(forKey: Keys.conversacionGasto).flatMap(GastoDelMes.init(guardado:))
+    conversacionAgentes = Self.guardado([Agente].self, Keys.conversacionAgentes, in: defaults)
+      .flatMap { $0.isEmpty ? nil : $0 } ?? Agente.deFabrica
+    servidoresMCP = Self.guardado([ServidorMCPConfigurado].self, Keys.servidoresMCP, in: defaults)
+      ?? ServidorMCPConfigurado.deFabrica
     aprendidasDesdeElOrden = defaults.integer(forKey: Keys.aprendidasDesdeElOrden)
     ultimaPasadaDelOrden = defaults.object(forKey: Keys.ultimaPasadaDelOrden) as? Date
     firmaDelOrden = defaults.string(forKey: Keys.firmaDelOrden)

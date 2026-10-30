@@ -21,7 +21,7 @@ final class LectorDelCalendario {
   /// Una reunión que empezó hace menos que esto todavía cuenta como «ahora».
   static let yaEmpezada: TimeInterval = 10 * 60
 
-  static var tienePermiso: Bool {
+  nonisolated static var tienePermiso: Bool {
     EKEventStore.authorizationStatus(for: .event) == .fullAccess
   }
 
@@ -116,7 +116,7 @@ final class LectorDelCalendario {
 
   /// El enlace de la videollamada: el del evento si es de una, o el primero
   /// que aparezca en el lugar o las notas.
-  static func enlaceDeVideollamada(url: URL?, textos: [String]) -> URL? {
+  nonisolated static func enlaceDeVideollamada(url: URL?, textos: [String]) -> URL? {
     if let url, esVideollamada(url) { return url }
     let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
     for texto in textos {
@@ -128,12 +128,12 @@ final class LectorDelCalendario {
     return nil
   }
 
-  static let dominiosDeVideollamada = [
+  nonisolated static let dominiosDeVideollamada = [
     "zoom.us", "meet.google.com", "teams.microsoft.com", "teams.live.com", "webex.com",
     "whereby.com", "around.co",
   ]
 
-  static func esVideollamada(_ url: URL) -> Bool {
+  nonisolated static func esVideollamada(_ url: URL) -> Bool {
     guard let host = url.host()?.lowercased() else { return false }
     return dominiosDeVideollamada.contains { host == $0 || host.hasSuffix("." + $0) }
   }
