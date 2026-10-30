@@ -290,10 +290,10 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`); lo escrito pasado a lo dicho y en trozos para leer en voz alta (`TextoParaLeer`, `NumerosEnPalabras`, `TrozosParaLeer`) | 5, 9 |
 | `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio; v3 y Ultra, qué variante dicta, la segunda pasada de Tus palabras, el log callado), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio; Phonon para leer en voz alta (`InstalacionDePhonon`, `SintetizadorPhonon`, `VocesDePhonon`, `DecisionDeLectura`) | 3 |
-| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`); las reglas de la Conversación (router de modelos, turnos, fin por silencio, cliente en streaming, oraciones para la voz, tope del mes y el contrato `VozQueContesta`) | 4 |
+| `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`); las reglas de la Conversación (router de modelos, turnos, fin por silencio, cliente en streaming, oraciones para la voz, tope del mes y el contrato `VozQueContesta`); el contrato de los **Agente**s y sus destinos (`DestinoDeConversacion`), a quién va lo dicho (`EnrutadorDeAgentes`) y el registro donde se enchufa cada destino (`RegistroDeDestinos`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto, el WER del banco de motores | 7 (la app **no** lo enlaza: es taller) |
-| `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
+| `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque`; el cliente MCP por stdio (`ClienteMCP`) y el destino `.dilo` de la Conversación, Claude con herramientas (`DestinoConClaude`, `HerramientasDeLaConversacion`). Depende de `DiloModes` | fase 5 |
 | `DiloPlataforma` | el URL scheme (`EnlaceDeDilo`), los agentes que avisan por su *hook* (`EventoDeAgente`, `RegistroDeAgentes`), las líneas para pegar en cada agente (`LineasDeLosHooks`) y el aviso de «Mostrar en la muesca» (`AvisoDeAfuera`) | fase 5 |
 | `DiloReuniones` | Reuniones, lo puro: `reunion.json`, el guion palabra a palabra, carpetas ASCII, estados, relojes, palabra → hablante, eco, lo dictado, líneas y `guion.md`, búsqueda, retención, disco, búfer anular, cabecera WAV, vigía de silencio. Sin FluidAudio | reuniones F1 |
 | `DiloHablantes` | quién habló, con FluidAudio: Nemotron 3, Sortformer, LS-EEND, VBx y huellas de CAM++ detrás de `SeparacionDeVoces`. Viaja en el producto `DiloEngines` | reuniones F1 |
@@ -1302,6 +1302,72 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   router para una conversación de ejemplo, sin red; con `--llamar` hace dos
   turnos de verdad con Haiku 5.5 y mide el primer pedazo y la primera
   oración. Llama a la API: se corre a mano, nunca desde un test.
+
+**La Conversación es un agente** (2026-10-30, diseño en
+`docs/design/conversacion-agente.md`). Se le habla a un **Agente**: un
+nombre y un destino que contesta.
+
+- **El contrato es `DestinoDeConversacion`** (`DiloModes`): `responder(_:)`
+  devuelve un stream de `EventoDelDestino` —texto para decir, una
+  herramienta que corre, una `Aprobacion`, el fin con su costo— y
+  `colgar()` suelta todo. El controlador no sabe quién contesta. Los
+  agentes de fábrica son Dilo, Claude Code y Switchboard
+  (`Agente.deFabrica`); se guardan en `diloConversacionAgentes` y se editan
+  en Ajustes → Claude → Agentes de la conversación.
+- **A quién va lo dicho lo decide `EnrutadorDeAgentes`** (puro, con
+  tests): el nombre al principio, plegado y con lo que Parakeet oye mal
+  («cloud code», «suichbord»); «revisa Claude Code», «abre…», «pásame con…»
+  cambian sin mandar nada; sin nombre, el último de la llamada y si no,
+  Dilo. El menú de destino de la barra hace lo mismo con un clic.
+- **Cada tipo se enchufa en `RegistroDeDestinos`**: la app registra `.dilo`
+  y `.mcp` (`DestinosDeLaConversacion`); `.claudeCode` lo registra quien lo
+  construye, con `destinos.registro.registrar(.claudeCode) { agente in … }`.
+  Sin fábrica contesta `DestinoSinConectar`, que lo dice en voz alta. El
+  registro guarda un destino por agente mientras dura la llamada.
+- **La puerta para abrir la llamada desde afuera** es
+  `ControladorDeLaConversacion.llamar(agente:primerTurno:)`: la usa la
+  escucha de nombres con lo dicho después del nombre. Con la llamada en
+  curso cambia de agente y consulta ya (`MaquinaDeLaConversacion`,
+  `.turnoDeAfuera`).
+- **El destino Dilo es Claude con herramientas** (`DestinoConClaude`):
+  tool use en streaming, el router de modelos de siempre una vez por turno,
+  y un tope de `topeDeVueltas` (8) por turno; al llegar se manda
+  `tool_choice: none` para que conteste con lo que tiene. **Lo conversado
+  sólo crece**: cada respuesta vuelve entera, con sus bloques `thinking` y
+  su firma, y el `system` y las herramientas se fijan en el primer turno.
+  Los modelos 5.5 atan sus pensamientos a la conversación y editarla los
+  invalida (y vacía la caché). Sin `temperature`, `thinking`, prefill ni
+  `tool_choice` forzado (400); `eager_input_streaming` en cada herramienta
+  y los argumentos se validan antes de correr.
+- **Cada herramienta es de lectura o de escritura**
+  (`HerramientaDelAgente`). Las propias (`HerramientasDeLaConversacion`):
+  de lectura, las de `HerramientasDeDilo` sin copiarlas, la agenda de hoy y
+  el portapapeles (sin lo secreto, recortado); de escritura, crear una nota
+  en Apple Notas, copiar al portapapeles, abrir una app o una página `http`
+  o `https`. **Las de escritura siempre piden un clic**: la muesca muestra
+  la `Aprobacion` con «Aprobar» y «No», no se dice como pregunta, y colgar
+  o interrumpir responden `false`. Lo que tocan fuera de Dilo pasa por
+  `MundoDeLaConversacion` (`MundoDelMac` en la app). Desde una llamada no se
+  piden permisos de macOS.
+- **Cliente MCP por stdio** (`ClienteMCP`, a mano como el servidor):
+  `initialize`, `tools/list` con páginas, `tools/call`, plazos por pedido,
+  stderr sólo para decir por qué se cerró y `F_SETNOSIGPIPE` para que un
+  servidor muerto no mate a Dilo. Los servidores se configuran en Ajustes →
+  Claude → Conexiones MCP (`diloServidoresMCP`: nombre, comando,
+  argumentos, entorno) y **no** se descubren leyendo `~/.claude` ni
+  `~/.codex`. Las variables que suenan a secreto se rechazan
+  (`ReglaDelEntorno`). Lo que no declara `readOnlyHint: true` es de
+  escritura. Se lanzan en la llamada, los comparten Dilo y el agente del
+  servidor, y se cierran al colgar; el que no lista en
+  `esperaDeLosServidores` (8 s) queda fuera de esa llamada.
+- **Switchboard** es el primero: `…/Switchboard OS.app/Contents/Helpers/switchboard-mcp
+  --agent dilo`. La etiqueta no es credencial: la primera vez Switchboard
+  muestra una solicitud de emparejamiento con código en su ventana
+  «Agentes», Alfonso la autoriza y elige herramientas y proyectos; hasta
+  entonces el ayudante sólo ofrece `status`. Dilo no toca credenciales de
+  Switchboard.
+- **Se revisa en PNG** con las escenas `conversacion-herramienta`,
+  `conversacion-aprobacion` y `conversacion-destinos`.
 
 ## Reuniones
 

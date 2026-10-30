@@ -86,6 +86,18 @@ transcribe en el Mac con el **Motor de voz**, Claude contesta en línea y una
 voz del Mac dice la respuesta: sólo viaja texto. Lo conversado vive en RAM y
 se olvida al colgar. _Evitar_: chat, asistente de voz, modo voz.
 
+**Agente** ·
+A quién se le habla en la **Conversación**: un nombre que sirve para
+llamarlo («Dilo», «Claude Code», «Switchboard») y un **Destino** que
+contesta. Se le habla diciendo su nombre al principio o eligiéndolo en la
+barra de llamada. _Evitar_: bot, asistente, persona.
+
+**Destino** ·
+Quien contesta los **Turno**s de un **Agente**: Claude con herramientas,
+una sesión de Claude Code, un servidor MCP. Lo que quiere hacer y cambia algo
+lo pide con una aprobación, que se decide con un clic y nunca con la voz.
+_Evitar_: backend, proveedor (eso es otra cosa: el de los **Modo**s).
+
 **Turno** ·
 Lo que dice una de las dos partes de la **Conversación** antes de que hable la
 otra: el de la persona termina por silencio o al soltar el **Gatillo**, y el
