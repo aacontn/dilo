@@ -68,4 +68,12 @@ fi
 echo "→ instalando en $DESTINO (sin relanzar)"
 rm -rf "$DESTINO"
 cp -R "$APP" "$DESTINO"
+
+# Xcode registra en LaunchServices cada compilación, sin un ajuste para
+# evitarlo, y el buscador de apps las muestra todas con el mismo nombre y el
+# mismo ícono. Desregistrarlas no dura: LaunchServices las repone mientras
+# existan. Por eso van a la papelera; compilar otra vez las regenera.
+find "$(dirname "$TALLER")" -type d -name 'Dilo.app' -prune -print0 \
+  | while IFS= read -r -d '' copia; do /usr/bin/trash "$copia" || true; done
+
 echo "✓ $DESTINO desde $(git -C "$RAIZ" rev-parse --short HEAD)"
