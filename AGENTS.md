@@ -352,7 +352,8 @@ siendo cierto:
   (`HUDNotchGeometry.lugaresAlCostado`): al lado de una carcasa real hay
   menús y status items. Desde el 2026-10-15 también se sientan los agentes de código y
 el aviso de un atajo, como segmentos «de afuera» (`HUDStage.publicarDeAfuera`,
-ver «Lo que entra de afuera»). Las reuniones todavía no son actividades.
+ver «Lo que entra de afuera»). Desde el 2026-10-29 también la reunión que
+graba (`ActividadDeLaMuesca.reunion`, ver «Reuniones»).
 - **Un segmento al costado es la misma silueta, estirada** (variante elegida
   por Alfonso el 2026-10-13; la píldora negra separada y la de vidrio se
   descartaron). `SiluetaDeLaMuesca.costados` estira el negro hacia el lado
@@ -1144,9 +1145,52 @@ Claude nunca corre solo.
   total real), `aviso` (con `panelDelAudioDelSistema` para el arreglo del
   permiso), `grabar(evento:)`, `terminar()`, `afinarDeNuevo(id:)`,
   `reunionesRecientes()`, `buscar(_:hablante:maximo:)`, `guionDeLaUltima()`,
-  `renombrar(hablante:a:en:)`. Juntar y reasignar son puros
-  (`EdicionDelGuion`); después se guarda con `EscritorDeReunion`. La muesca
-  todavía no tiene la actividad de la reunión.
+  `renombrar(hablante:a:en:)`, `juntar`, `reasignar`, `borrar(id:)` (a la
+  Papelera), `leer(id:)` y el separador (`separador`,
+  `prepararElSeparador`). Juntar y reasignar son puros (`EdicionDelGuion`) y
+  se guardan con `EscritorDeReunion`; lo que la interfaz decide —reloj,
+  marcas, nombres que se ofrecen, qué copia, dónde reproducir, cuándo
+  precalentar— vive en `DiloReuniones/InterfazDeLaReunion.swift`, con tests.
+- **La interfaz la une `InterfazDeReuniones`**, que mira el control por
+  Observation (nada de sondeo) y lleva la reunión a la muesca, sus avisos y
+  la ventana. Con ninguna reunión grabando no cuesta nada.
+- **En la muesca la reunión es una actividad alta que abre el micrófono**
+  (`ActividadDeLaMuesca.reunion`, `HUDReunionEnLaMuesca`). Sin dictado tiene
+  la forma: `● 12:04` (tiempo corrido) y las marcas de micrófono y parlante
+  en 184×26, la silueta quieta de dictar (`HUDSurface.siluetaQuieta`: crecer
+  hasta ahí **no** es abrir el hover, así que sin hombros, vidrio ni sombra;
+  la ventana pasa al encuadre abierto). El reloj es un `TimelineView` a 4 Hz
+  sin shader (`HUDReunionViva`), la única cosa que se mueve con la muesca
+  quieta, a propósito. Dictando, la sesión exige la forma y la reunión baja
+  al costado izquierdo con su punto en `PaletaDeDilo.grabando` (rojo en las
+  dos paletas); nunca se esconde, ni en pantalla completa. Las marcas siguen
+  `EstadoDeLaMarca`: silencio de verdad apagada, ceros 5 s ámbar, 15 s
+  tachada con un aviso de arreglo (`AvisoConAccion`, panel exacto de
+  Ajustes del Sistema) si la muesca está libre. Al terminar acusa con el
+  check, sin sonar. Un clic —en la forma o en el segmento— abre la ventana.
+  Escenas `reunion`, `reunion-sin-llamada`, `dictando-reunion`; PNG en
+  `render-muesca.sh` (`reunion/`) y con la vista de verdad en
+  `render-datos-de-la-muesca.sh` (`reposo-reunion*`, `hover-panel-grabando`).
+- **La ventana de la reunión** (`VentanaDeLaReunion`, `VistaDeLaReunion`,
+  `ControlDeLaVentanaDeReunion`): 380×520, vidrio de Ajustes, **nunca toma
+  el foco** (`.nonactivatingPanel`), salvo mientras se escribe «Otro
+  nombre…». «Siempre encima» encendido de fábrica
+  (`diloReunionesSiempreEncima`). Grabando, «Grabando. El guion sale al
+  terminar»; afinando, el avance real; después el guion, que se vuelve a
+  leer del disco tras cada edición. Un clic en una línea reproduce las dos
+  pistas desde ahí, cada una en su reloj (`ReproductorDelGuion`). Cerrarla
+  no termina la reunión. PNG en `render-ajustes.sh` (`reunion-*.png`).
+- **Reuniones es un destino** (con Inicio, arriba de TU VOZ) y sus ajustes
+  son «Grabar reuniones» en AJUSTES (`ReunionesSettingsView`,
+  `AjustesDeReunionesView`); los renders fijan la lista
+  (`SettingsRuntimeState.reunionesFijas`) y el separador (`separadorFijo`).
+- **Nemotron 3 se precalienta** (`PrecalentadoDelDiarizador`): su primera
+  carga compila para el Neural Engine (412 s en el M1, 0,3 s después). Se
+  baja al grabar la primera reunión cargándolo sólo en CPU, que no compila;
+  la compilación corre cuando está en disco y nadie dicta ni se afina, y se
+  anota en `models/.precalentado-<diarizador>` con el macOS y FluidAudio.
+  Una pasada espera la compilación en curso, y si le toca compilar a ella
+  la ventana lo dice (`AvanceDeLaPasada.compilandoPorPrimeraVez`).
 - **No se puede probar desde el terminal**: el tap devuelve silencio
   (TCC lo atribuye al proceso padre). La captura se prueba con la app abierta
   por `open -a`; las reglas, con `swift test`.
@@ -1188,9 +1232,10 @@ funciones». Detalle de diseño en `docs/design/settings-ui.md`.
   una línea en la categoría `ajustes` del log con cuánto y en qué sección.
   `log stream --predicate 'subsystem == "cl.espaciodigital.dilo" && category
   == "ajustes"'`.
-- **Estructura**: Inicio (sin rótulo, la portada); TU VOZ: Dictado, Modos,
+- **Estructura**: Inicio y Reuniones (sin rótulo: la portada y el destino de
+  Reuniones); TU VOZ: Dictado, Modos,
   Tus palabras, Historial, Transcripciones; AJUSTES: Claude, Motor de voz,
-  Atajos, Apariencia, Datos en la muesca, General; DILO: Novedades, Acerca
+  Grabar reuniones, Atajos, Apariencia, Datos en la muesca, General; DILO: Novedades, Acerca
   de. Lo que vivía en desplegables (idiomas, sonidos, leer en voz alta,
   actividad) se ve con un rótulo (`SubtituloDeSeccion`).
 - **Inicio** (`InicioSettingsView`, lo calculado en `PortadaDeAjustes`, puro):
