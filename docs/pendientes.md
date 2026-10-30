@@ -19,7 +19,6 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por confirmar
 
-- 2026-10-29 · Cómo se mide el tope de 25 MB: el Release sin quitar símbolos pesa 27,5 MB y lo que se publica, ~16 MB. (Alfonso)
 - 2026-10-29 · Instalar Rust para exportar Phonon a Core ML (primer audio < 20 ms en el ANE; enlazarlo suma ~4,2 MB). (Alfonso)
 
 - 2026-10-15 · Empujar `main` a GitHub. (Alfonso)

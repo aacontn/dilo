@@ -17,3 +17,4 @@
 - 2026-10-29 · Conversación: voz en el Mac y sólo el pensar en línea (Claude); router con Sonnet 5.5 en el primer turno, Haiku 5.5 para lo trivial y Opus 5.5 sólo con evidencia de dos turnos o pedido explícito, tres turnos de histéresis · decidido con Alfonso; ~US$0,10–0,15 por 10 minutos.
 - 2026-10-29 · Reuniones se construyen sin esperar la Fase 0: Nemotron 3 de fábrica, Sortformer elegible, y la Fase 0 pasa a ser un banco (`scripts/banco-reuniones.sh`) que se corre con reuniones reales · Alfonso: «démosle no más».
 - 2026-10-29 · La cuenta de Hugging Face (dev@espaciodigital.cl) vive en `Espacio Digital/herramientas/huggingface/`; otra cuenta irá en `huggingface-<cuenta>` · es de la agencia y el token sólo baja modelos.
+- 2026-10-30 · El tope de 25 MB se mide sobre el Release sin símbolos (`DEPLOYMENT_POSTPROCESSING` en Release, dSYM aparte) · es lo que se publica: 14,8 MB contra 27,5 MB con símbolos.
