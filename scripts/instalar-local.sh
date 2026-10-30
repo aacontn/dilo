@@ -68,14 +68,4 @@ fi
 echo "→ instalando en $DESTINO (sin relanzar)"
 rm -rf "$DESTINO"
 cp -R "$APP" "$DESTINO"
-
-# Xcode registra en LaunchServices cada compilación, y el buscador de apps las
-# muestra todas con el mismo nombre y el mismo ícono. Queda sólo la instalada;
-# no se borra ninguna.
-LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-{ "$LSREGISTER" -dump 2>/dev/null || true; } \
-  | sed -nE 's/^path: +(.*\/Dilo[^\/]*\.app)( \(0x[0-9a-f]+\))?$/\1/p' | sort -u \
-  | { grep -Fvx "$DESTINO" || true; } \
-  | while IFS= read -r copia; do "$LSREGISTER" -u "$copia" 2>/dev/null || true; done
-
 echo "✓ $DESTINO desde $(git -C "$RAIZ" rev-parse --short HEAD)"
