@@ -195,51 +195,6 @@ public enum HerramientasDeLaConversacion {
     )
   }
 
-  /// Cómo se llama la que pasa la conversación a otro agente. No corre en el
-  /// destino como las demás: la intercepta `DestinoConClaude`, porque cierra
-  /// el turno.
-  public static let nombreDelTraspaso = "pasar_a_agente"
-
-  /// Pasarle la conversación a otro agente conectado. Sale de la lista de
-  /// agentes: uno nuevo se puede llamar así sin tocar nada acá. De lectura:
-  /// no cambia nada, y lo que el otro agente haga pide su propio clic.
-  public static func pasarAAgente(_ agentes: [Agente]) -> HerramientaDelAgente {
-    let lista = agentes.map { "\($0.nombre): \($0.queHace)." }.joined(separator: " ")
-    return HerramientaDelAgente(
-      nombre: nombreDelTraspaso,
-      descripcion: """
-        Pasa la conversación a otro agente: la persona sigue hablando con él por voz. Úsala cuando pida \
-        abrir, revisar, retomar o hablar con uno de ellos, o algo que le toca a él. Son sesiones que Dilo \
-        maneja, no páginas ni apps: nunca los abras con abrir_url ni abrir_app. \(lista)
-        """,
-      esquema: .objeto([
-        "type": .texto("object"),
-        "properties": .objeto([
-          "agente": .objeto([
-            "type": .texto("string"),
-            "description": .texto("A quién se le pasa."),
-            "enum": .lista(agentes.map { .texto($0.nombre) }),
-          ]),
-          "mensaje": .objeto([
-            "type": .texto("string"),
-            "description": .texto(
-              "Lo que la persona le pide, con sus palabras. Sin esto, si sólo pidió abrirlo o hablar con él."
-            ),
-          ]),
-        ]),
-        "required": .lista([.texto("agente")]),
-      ]),
-      efecto: .lectura,
-      enCurso: "Pasando a otro agente…",
-      // Llega acá sólo si el nombre no es de un agente conectado.
-      ejecutar: { argumentos in
-        let pedido = texto("agente", en: argumentos) ?? ""
-        let nombres = agentes.map(\.nombre).joined(separator: ", ")
-        return ResultadoDeHerramienta("No hay un agente \(pedido). Los conectados son: \(nombres).", esError: true)
-      }
-    )
-  }
-
   static func abrirApp(_ mundo: any MundoDeLaConversacion) -> HerramientaDelAgente {
     HerramientaDelAgente(
       nombre: "abrir_app",

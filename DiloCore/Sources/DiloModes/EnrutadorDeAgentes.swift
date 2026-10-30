@@ -92,6 +92,19 @@ public struct EnrutadorDeAgentes: Sendable {
     return .turno(TurnoDeLaPersona(agente: destino, texto: dicho.trimmingCharacters(in: .whitespacesAndNewlines)))
   }
 
+  /// La persona siempre habla con una voz. Lo que nombra a un agente que
+  /// trabaja de fondo («Claude Code, revisa los tests», «abre Claude Code») se
+  /// lo dice al agente de la llamada tal como lo dijo, y es él quien lo encarga.
+  public func unaSolaVoz(_ ruta: Ruta, dicho: String) -> Ruta {
+    let agente: Agente =
+      switch ruta {
+      case let .turno(turno): turno.agente
+      case let .cambiarA(agente): agente
+      }
+    guard agente.trabajaDeFondo else { return ruta }
+    return .turno(TurnoDeLaPersona(agente: porDefecto, texto: dicho.trimmingCharacters(in: .whitespacesAndNewlines)))
+  }
+
   /// Dilo, o el primero si la persona lo sacó de la lista.
   public var porDefecto: Agente {
     agentes.first { $0.tipo == .dilo } ?? agentes.first ?? Agente.deFabrica[0]

@@ -14,9 +14,10 @@ public enum EstadoDeLaConversacion: Equatable, Sendable {
 /// Los turnos de la **Conversación**, en **half duplex**: o habla la persona
 /// o habla Dilo, nunca los dos a la vez.
 ///
-/// Mientras Dilo piensa o habla el micrófono no va al motor, para que no se
-/// escuche a sí mismo por los parlantes. Apretar el gatillo lo interrumpe y
-/// le da el turno a la persona. Es un reductor puro, como
+/// Mientras Dilo piensa o habla lo oído no va al motor, para que no se escuche
+/// a sí mismo por los parlantes. Apretar el gatillo o hablarle encima
+/// (`DetectorDeInterrupcion`) lo interrumpe y le da el turno a la persona. Es
+/// un reductor puro, como
 /// `DictationSessionMachine`: recibe un evento, cambia el estado y devuelve
 /// los efectos que el controlador ejecuta.
 public struct MaquinaDeLaConversacion: Equatable, Sendable {
@@ -31,7 +32,7 @@ public struct MaquinaDeLaConversacion: Equatable, Sendable {
     case empezoAHablar
     /// Dilo terminó de decir la respuesta (o el aviso de una falla).
     case terminoDeHablar
-    /// Apretaste el gatillo mientras Dilo pensaba o hablaba.
+    /// Apretaste el gatillo o le hablaste encima mientras pensaba o hablaba.
     case interrumpir
     case silenciar(Bool)
     case colgar
@@ -174,8 +175,12 @@ public struct FinDelTurno: Sendable {
   private var ultimaVoz: ContinuousClock.Instant?
   public private(set) var voz: Duration = .zero
 
-  public init(inicio: ContinuousClock.Instant) {
+  /// - Parameter vozPrevia: la voz que ya venía: quien interrumpió con una
+  ///   palabra sola ya terminó, y su silencio cuenta desde ahora.
+  public init(inicio: ContinuousClock.Instant, vozPrevia: Duration = .zero) {
     self.inicio = inicio
+    voz = vozPrevia
+    if vozPrevia > .zero { ultimaVoz = inicio }
   }
 
   public var huboVoz: Bool { voz >= Self.vozMinima }

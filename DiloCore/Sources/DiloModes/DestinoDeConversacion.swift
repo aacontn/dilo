@@ -28,12 +28,17 @@ public struct Agente: Equatable, Hashable, Sendable, Codable, Identifiable {
   /// Si su nombre despierta a Dilo cuando la escucha de nombres está prendida.
   public var seLlamaPorNombre: Bool
 
+  /// Si trabaja por detrás: el agente de la llamada le encarga cosas y sigue
+  /// conversando, y la persona nunca le habla directo. Codex y Gemini entran
+  /// por acá cuando estén instalados.
+  public var trabajaDeFondo: Bool { tipo == .claudeCode }
+
   /// Para qué sirve, en una frase: lo que lee el agente que decide a quién
-  /// pasarle la conversación.
+  /// encargarle algo.
   public var queHace: String {
     switch tipo {
     case .dilo: "conversa y usa las herramientas de Dilo en el Mac"
-    case .claudeCode: "programa en los proyectos de la persona, en una sesión de Claude Code manejada por voz"
+    case .claudeCode: "programa en los proyectos de la persona, por detrás, en una sesión de Claude Code"
     case .mcp: "contesta con las herramientas de ese servidor conectado"
     }
   }
@@ -58,13 +63,16 @@ public struct Agente: Equatable, Hashable, Sendable, Codable, Identifiable {
 /// lo dijo.
 public struct TurnoDeLaPersona: Equatable, Sendable {
   public var agente: Agente
-  /// Lo dicho sin el nombre del agente adelante («Claude Code, revisa los
-  /// tests» llega como «revisa los tests»).
+  /// Lo dicho sin el nombre del agente adelante («Switchboard, ¿qué tengo
+  /// hoy?» llega como «¿Qué tengo hoy?»).
   public var texto: String
+  /// No lo dijo la persona: Dilo le cuenta al agente cómo va un encargo.
+  public var esAviso: Bool
 
-  public init(agente: Agente, texto: String) {
+  public init(agente: Agente, texto: String, esAviso: Bool = false) {
     self.agente = agente
     self.texto = texto
+    self.esAviso = esAviso
   }
 }
 
@@ -110,10 +118,6 @@ public enum EventoDelDestino: Sendable {
   case herramienta(nombre: String, enCurso: Bool)
   /// El destino espera un clic antes de seguir.
   case pideAprobacion(Aprobacion)
-  /// La conversación sigue con otro agente, con `mensaje` como su primer
-  /// turno o, sin mensaje, sólo cambiando. Cierra el turno de este destino,
-  /// en vez de `fin`.
-  case pasarA(Agente, mensaje: String?, costoUSD: Double?)
   /// Terminó el turno. `costoUSD` es lo que costó, si el destino lo sabe
   /// (Claude por la API sí; Claude Code va por la cuenta de la persona).
   case fin(costoUSD: Double?)

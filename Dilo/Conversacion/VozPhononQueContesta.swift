@@ -3,6 +3,7 @@ import DiloEngines
 import DiloModes
 import DiloText
 import Foundation
+import Synchronization
 import os
 
 /// La voz de la **Conversación** con Phonon, la misma de «Leer en voz alta».
@@ -22,6 +23,19 @@ final class VozPhononQueContesta: VozQueContesta {
 
   var alEmpezar: (@MainActor () -> Void)?
   var alTerminar: (@MainActor () -> Void)?
+
+  /// Lo que está sonando, escrito desde el hilo de audio. Es contra lo que se
+  /// compara el micrófono para saber si la persona le habla encima. Con Apple
+  /// no se puede medir: `AVSpeechSynthesizer` no pasa por este motor.
+  private let medidorDeSalida = MedidorDeSalida()
+  var nivelDeSalida: (@Sendable () -> Float?)? {
+    let medidor = medidorDeSalida
+    return { medidor.nivel.withLock { $0 } }
+  }
+
+  private final class MedidorDeSalida: Sendable {
+    let nivel = Mutex<Float?>(0)
+  }
 
   private let settings: AppSettings
   private let instalacion: InstalacionDePhonon
@@ -72,6 +86,7 @@ final class VozPhononQueContesta: VozQueContesta {
     if quien == nil { quien = usaPhonon ? .phonon : .respaldo }
     switch quien {
     case .respaldo, nil:
+      medidorDeSalida.nivel.withLock { $0 = nil }
       respaldo.decir(limpia)
     case .phonon:
       cola.append(limpia)
@@ -101,6 +116,7 @@ final class VozPhononQueContesta: VozQueContesta {
     cola.removeAll()
     respaldo.detener()
     apagarElAudio()
+    medidorDeSalida.nivel.withLock { $0 = 0 }
     quien = nil
     porSonar = 0
     sono = false
@@ -179,6 +195,7 @@ final class VozPhononQueContesta: VozQueContesta {
     tarea = nil
     apagarElAudio()
     quien = .respaldo
+    medidorDeSalida.nivel.withLock { $0 = nil }
     pendientes.forEach { respaldo.decir($0) }
     if turnoCerrado { respaldo.cerrarElTurno() }
   }
@@ -190,6 +207,7 @@ final class VozPhononQueContesta: VozQueContesta {
   }
 
   private func terminarElTurno() {
+    medidorDeSalida.nivel.withLock { $0 = 0 }
     quien = nil
     sono = false
     turnoCerrado = false
@@ -217,6 +235,13 @@ final class VozPhononQueContesta: VozQueContesta {
     motor.attach(velocidad)
     motor.connect(reproductor, to: velocidad, format: Self.formato)
     motor.connect(velocidad, to: motor.mainMixerNode, format: Self.formato)
+    let medidor = medidorDeSalida
+    motor.mainMixerNode.installTap(onBus: 0, bufferSize: 2_048, format: nil) { bufer, _ in
+      guard let canal = bufer.floatChannelData?[0], bufer.frameLength > 0 else { return }
+      let muestras = Array(UnsafeBufferPointer(start: canal, count: Int(bufer.frameLength)))
+      let nivel = OidoDeLaLlamada.nivel(de: muestras)
+      medidor.nivel.withLock { $0 = nivel }
+    }
     try motor.start()
     reproductor.play()
     self.motor = motor
@@ -227,6 +252,7 @@ final class VozPhononQueContesta: VozQueContesta {
 
   private func apagarElAudio() {
     reproductor?.stop()
+    motor?.mainMixerNode.removeTap(onBus: 0)
     motor?.stop()
     reproductor = nil
     velocidad = nil

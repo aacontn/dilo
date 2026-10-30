@@ -74,6 +74,31 @@ final class DestinoClaudeCode: DestinoDeConversacion {
     return stream
   }
 
+  /// Un encargo del agente de la llamada, que ya entendió el proyecto y qué
+  /// hacer. Como un turno, pero sin pasar por lo dicho: `tarea` nil es retomar
+  /// y contar en qué quedó.
+  func encargar(
+    _ tarea: String?,
+    en proyecto: ProyectoDeClaudeCode,
+    retomar: Bool
+  ) -> AsyncThrowingStream<EventoDelDestino, any Error> {
+    let (stream, continuacion) = AsyncThrowingStream.makeStream(of: EventoDelDestino.self)
+    let mensaje = tarea ?? PromptDeClaudeCodePorVoz.alRetomar
+    let trabajo = Task { [weak self] in
+      guard let self else {
+        continuacion.finish()
+        return
+      }
+      await self.trabajar(mensaje, en: proyecto, retomar: retomar, continuacion)
+    }
+    continuacion.onTermination = { [weak self] motivo in
+      guard case .cancelled = motivo else { return }
+      trabajo.cancel()
+      Task { @MainActor in self?.interrumpir() }
+    }
+    return stream
+  }
+
   func colgar() {
     if let viva = sesion {
       viva.turno?.finish()
@@ -109,9 +134,6 @@ final class DestinoClaudeCode: DestinoDeConversacion {
     }
     esperandoProyecto = false
     tareaPendiente = nil
-    settings.claudeCodeUltimoProyecto = proyecto.carpeta
-
-    if let viva = sesion, viva.proyecto.carpeta != proyecto.carpeta { cerrarSesion() }
 
     let mensaje = tarea.isEmpty ? (pedido.retomar ? PromptDeClaudeCodePorVoz.alRetomar : nil) : tarea
     guard let mensaje else {
@@ -121,9 +143,21 @@ final class DestinoClaudeCode: DestinoDeConversacion {
       return
     }
 
+    await trabajar(mensaje, en: proyecto, retomar: pedido.retomar, continuacion)
+  }
+
+  private func trabajar(
+    _ mensaje: String,
+    en proyecto: ProyectoDeClaudeCode,
+    retomar: Bool,
+    _ continuacion: Continuacion
+  ) async {
+    settings.claudeCodeUltimoProyecto = proyecto.carpeta
+    if let viva = sesion, viva.proyecto.carpeta != proyecto.carpeta { cerrarSesion() }
+
     if sesion == nil {
       do {
-        try await abrir(proyecto, retomar: pedido.retomar)
+        try await abrir(proyecto, retomar: retomar)
       } catch {
         AppLog.conversacion.error(
           "claude code: no abrió (\((error as? FallaDeClaudeCode)?.nombreEnElLog ?? "otra", privacy: .public))"

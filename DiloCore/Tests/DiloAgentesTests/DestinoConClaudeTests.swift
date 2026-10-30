@@ -138,7 +138,6 @@ struct DestinoConClaudeTests {
         case let .pideAprobacion(aprobacion):
           aprobaciones.append(aprobacion)
           if let aprobar { aprobacion.responder(aprobar) }
-        case .pasarA: break
         case let .fin(costoUSD): costo = costoUSD
         }
       }
@@ -336,34 +335,42 @@ struct DestinoConClaudeTests {
     #expect(despues.count == 3)
   }
 
-  @Test func elTraspasoCierraElTurnoSinOtroPedidoYLoConversadoQuedaValido() async throws {
-    let claudeCode = Agente.deFabrica[1]
+  @Test func encargarNoCierraElTurnoYLaConversacionSigue() async throws {
+    let proyecto = ProyectoDeClaudeCode(nombre: "dilo", carpeta: "/tmp/dilo")
+    let mando = MandoDePrueba()
+    let herramientas = HerramientasDeLaConversacion.encargos(
+      agentes: [Agente.deFabrica[1]], proyectos: [proyecto], mando: mando
+    )
     let transporte = TransporteDePrueba([
       [SSE.inicio()] + SSE.herramienta(
-        0, id: "t1", nombre: HerramientasDeLaConversacion.nombreDelTraspaso,
-        json: [#"{"agente":"Claude Code","mensaje":"revisa los tests"}"#]
+        0, id: "t1", nombre: "encargar_trabajo",
+        json: [#"{"agente":"Claude Code","proyecto":"dilo","tarea":"revisa los tests"}"#]
       ) + SSE.fin("tool_use"),
-      [SSE.inicio()] + SSE.texto(0, ["Hola."]) + SSE.fin("end_turn"),
+      [SSE.inicio()] + SSE.texto(0, ["Listo, quedó encargado."]) + SSE.fin("end_turn"),
     ])
     let destino = DestinoConClaude(
-      agente: Agente.deFabrica[0], preparar: { HerramientasDelDestino() }, otrosAgentes: [claudeCode],
-      leerClave: { "clave" }, transporte: transporte.transporte
+      agente: Agente.deFabrica[0], preparar: { HerramientasDelDestino(herramientas: herramientas) },
+      deFondo: [Agente.deFabrica[1]], leerClave: { "clave" }, transporte: transporte.transporte
     )
-    var pasado: (Agente, String?)?
-    for try await evento in destino.responder(TurnoDeLaPersona(agente: destino.agente, texto: "revisa los tests")) {
-      if case let .pasarA(otro, mensaje, _) = evento { pasado = (otro, mensaje) }
-    }
-    #expect(pasado?.0 == claudeCode)
-    #expect(pasado?.1 == "revisa los tests")
-    #expect(transporte.cuerpos.count == 1)
+    let resultado = await recorrer(destino, "Claude Code, revisa los tests en Dilo")
+    #expect(resultado.falla == nil)
+    #expect(resultado.textos.joined() == "Listo, quedó encargado.")
+    #expect(resultado.aprobaciones.isEmpty)
+    #expect(transporte.cuerpos.count == 2)
+    #expect(mando.pedidos == ["Claude Code|dilo|revisa los tests|false"])
+  }
 
-    // El turno siguiente alterna: la API rechaza un `tool_use` sin su resultado.
-    for try await _ in destino.responder(TurnoDeLaPersona(agente: destino.agente, texto: "gracias")) {}
-    guard case let .lista(mensajes)? = transporte.cuerpos.last?["messages"] else {
-      Issue.record("sin mensajes")
-      return
-    }
-    #expect(mensajes.map { $0["role"] } == ["user", "assistant", "user", "assistant", "user"].map { .texto($0) })
+  @Test func unAvisoLoCuentaHaikuYNoLeMueveElTurnoAlRouter() async throws {
+    let transporte = TransporteDePrueba([
+      [SSE.inicio()] + SSE.texto(0, ["Hola."]) + SSE.fin("end_turn"),
+      [SSE.inicio()] + SSE.texto(0, ["Terminó."]) + SSE.fin("end_turn"),
+    ])
+    let destino = destino(transporte)
+    _ = await recorrer(destino, "hola, ¿cómo estás?")
+    let aviso = TurnoDeLaPersona(agente: dilo, texto: "\(ListaDeEncargos.marcaDeAviso) terminó", esAviso: true)
+    for try await _ in destino.responder(aviso) {}
+    #expect(destino.ultimaDecision == RouterDeModelos.Decision(.haiku, .trivial))
+    #expect(transporte.cuerpos.last?["model"] == .texto(NivelDeModelo.haiku.modelo.id))
   }
 
   @Test func sinClaveFallaSinPedirNada() async {
@@ -491,16 +498,44 @@ struct PiezasDelAgenteTests {
     #expect(todas.allSatisfy { $0.nombre.range(of: "^[a-zA-Z0-9_-]{1,64}$", options: .regularExpression) != nil })
   }
 
-  @Test func losOtrosAgentesSeOfrecenComoTraspasoYNoComoPaginas() {
-    let herramienta = HerramientasDeLaConversacion.pasarAAgente([Agente.deFabrica[1]])
-    #expect(herramienta.efecto == .lectura)
-    #expect(herramienta.descripcion.contains("Claude Code"))
-    let sistema = PromptDelAgente.sistema(
-      agente: Agente.deFabrica[0], conHerramientas: true, instrucciones: [], otrosAgentes: [Agente.deFabrica[1]],
-      ahora: Date(timeIntervalSince1970: 1_793_000_000), zona: TimeZone(identifier: "America/Santiago")!
+  @Test func losEncargosSalenDeLaListaYNuncaSonPaginas() async {
+    let proyecto = ProyectoDeClaudeCode(nombre: "andes-flags-plataforma", carpeta: "/tmp/a")
+    let mando = MandoDePrueba()
+    let herramientas = HerramientasDeLaConversacion.encargos(
+      agentes: [Agente.deFabrica[1]], proyectos: [proyecto], mando: mando
     )
-    #expect(sistema.contains("Otros agentes: Claude Code."))
+    #expect(herramientas.map(\.nombre) == ["encargar_trabajo", "ver_encargos", "detener_encargo"])
+    #expect(herramientas.allSatisfy { $0.efecto == .lectura })
+    #expect(herramientas[0].esquema["properties"]?["proyecto"]?["enum"] == .lista([.texto("andes-flags-plataforma")]))
+    #expect(HerramientasDeLaConversacion.encargos(agentes: [], proyectos: [proyecto], mando: mando).isEmpty)
+
+    let sistema = PromptDelAgente.sistema(
+      agente: Agente.deFabrica[0], conHerramientas: true, instrucciones: [], deFondo: [Agente.deFabrica[1]],
+      ultimoProyecto: "dilo", ahora: Date(timeIntervalSince1970: 1_793_000_000),
+      zona: TimeZone(identifier: "America/Santiago")!
+    )
+    #expect(sistema.contains("Eres la única voz de esta llamada"))
     #expect(sistema.contains("nunca los abras con abrir_url"))
+    #expect(sistema.contains("El último proyecto en que se trabajó fue dilo."))
+  }
+
+  @Test func encargarPideQueHacerOQueSeRetome() async throws {
+    let proyecto = ProyectoDeClaudeCode(nombre: "dilo", carpeta: "/tmp/dilo")
+    let mando = MandoDePrueba()
+    let encargar = try #require(
+      HerramientasDeLaConversacion.encargos(agentes: [Agente.deFabrica[1]], proyectos: [proyecto], mando: mando).first
+    )
+    let sinTarea = await encargar.ejecutar(.objeto(["agente": .texto("Claude Code"), "proyecto": .texto("dilo")]))
+    #expect(sinTarea.esError)
+    let otro = await encargar.ejecutar(.objeto([
+      "agente": .texto("Claude Code"), "proyecto": .texto("otro"), "retomar": .bool(true),
+    ]))
+    #expect(otro.esError)
+    let retoma = await encargar.ejecutar(.objeto([
+      "agente": .texto("Claude Code"), "proyecto": .texto("dilo"), "retomar": .bool(true),
+    ]))
+    #expect(!retoma.esError)
+    #expect(mando.pedidos == ["Claude Code|dilo|nil|true"])
   }
 
   @Test func elAgentePrincipalSeLlamaComoLePusieron() {
@@ -522,4 +557,21 @@ struct PiezasDelAgenteTests {
     #expect(sistema.contains("Llama a status."))
     #expect(sistema.contains("America/Santiago"))
   }
+}
+
+/// Anota lo encargado sin lanzar nada.
+private final class MandoDePrueba: MandoDeEncargos, @unchecked Sendable {
+  private let candado = NSLock()
+  private var anotados: [String] = []
+
+  var pedidos: [String] { candado.withLock { anotados } }
+
+  func encargar(agente: String, proyecto: ProyectoDeClaudeCode, tarea: String?, retomar: Bool) -> ResultadoDeHerramienta {
+    candado.withLock { anotados.append("\(agente)|\(proyecto.nombre)|\(tarea ?? "nil")|\(retomar)") }
+    return ResultadoDeHerramienta("Encargado.")
+  }
+
+  var informe: String { "Nada." }
+
+  func detener(proyecto: String) -> ResultadoDeHerramienta { ResultadoDeHerramienta("Detenido.") }
 }

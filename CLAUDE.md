@@ -1290,13 +1290,35 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
 `DiloModes`.
 
 - **Un turno a la vez** (`MaquinaDeLaConversacion`, pura): escuchando,
-  pensando, hablando. Half duplex: mientras Dilo piensa o habla el micrófono
-  no va al motor, para que no se escuche a sí mismo. Apretar el gatillo
-  interrumpe y te da el turno; tu turno termina por silencio (`FinDelTurno`:
+  pensando, hablando. Half duplex: mientras Dilo piensa o habla lo oído no va
+  al motor, para que no se escuche a sí mismo. Apretar el gatillo o hablarle
+  encima interrumpe y te da el turno; tu turno termina por silencio (`FinDelTurno`:
   `nivelDeVoz` 0,30 en la escala de 50 dB de la muesca, `silencioParaTerminar`
   700 ms después de al menos `vozMinima` 250 ms, 1,4 s si la frase queda abierta) o al soltar el gatillo. Sin voz
   `sinVozParaColgar` (90 s), cuelga sola. Los umbrales son de partida, sin
   medir con Alfonso: se calibran ahí.
+- **El micrófono queda abierto toda la llamada** (`OidoDeLaLlamada`, desde el
+  2026-10-30). Abrirlo en cada turno costaba 1,4 s con la webcam de Alfonso,
+  y lo dicho en ese rato se perdía. Lo oído vive en un búfer de RAM de 120 s
+  (`BuferDeEscucha`) que se borra al colgar y al silenciar, y silenciar cierra
+  el micrófono de verdad; el turno es un tramo de ahí, que transcribe Parakeet
+  prestado (`ParakeetCompartido`). Lo transcrito al callar se reusa si no hubo
+  voz después, así que el final del turno casi no espera. Cumple el contrato
+  de `MotorParaConversar`. Sin Parakeet, o con un Bluetooth como único
+  micrófono (`PlanDeMicrofono.paraLaEscucha`), la llamada sigue turno a turno
+  con el motor del dictado y sin interrumpir con la voz.
+- **Interrumpir hablando** (`DetectorDeInterrupcion`, puro). La voz publica
+  qué tan fuerte suena (`VozQueContesta.nivelDeSalida`, un tap en el mezclador
+  de Phonon); el detector aprende cuánto de eso vuelve por el micrófono y sólo
+  cuenta lo que pasa 9 dB por encima, 300 ms seguidos. Con audífonos basta
+  hablar; con parlantes fuertes hay que hablar más fuerte que el eco. Lo dicho
+  entra desde donde empezó la voz, no desde que se detectó. Pensando sólo
+  interrumpe si ya se consultó y no corre una herramienta, y nunca con una
+  aprobación esperando. Con la voz de Apple no se puede medir la salida:
+  interrumpe sólo el gatillo. No se usa el procesamiento de voz de Apple:
+  obliga a un solo motor para voz y micrófono y baja lo demás que suena. El
+  resumen de la llamada en el log dice cuántas interrupciones hubo y qué eco se
+  aprendió: con eso se calibra.
 - **El motor es el del dictado, por su contrato** (`MotorParaConversar`, que
   arma `DirectDictationController.Dependencies.live` con el mismo router de
   motores): un Parakeet en la RAM y no dos, y la conversación no sabe cuál
@@ -1377,17 +1399,28 @@ nombre y un destino que contesta.
   («cloud code», «suichbord»); «revisa Claude Code», «abre…», «pásame con…»
   cambian sin mandar nada; sin nombre, el último de la llamada y si no,
   Dilo. El menú de destino de la barra hace lo mismo con un clic.
-  También hay traspaso: cada agente con Claude tiene la herramienta
-  `pasar_a_agente`, armada desde los agentes conectados, y `.pasarA` sigue la
-  conversación con el otro en el mismo turno. Un agente nuevo queda alcanzable
-  apenas tiene destino en `RegistroDeDestinos`.
+  **La persona habla con una sola voz** (`unaSolaVoz`, 2026-10-30): lo que
+  nombra a un agente que trabaja de fondo (`Agente.trabajaDeFondo`) se le dice
+  tal cual al agente principal, que lo encarga. Esos no salen en el menú.
+- **Los encargos** (`EncargosDeFondo`, `ListaDeEncargos`,
+  `HerramientasDeEncargos`). El agente principal tiene `encargar_trabajo`,
+  `ver_encargos` y `detener_encargo`, armadas desde los agentes de fondo y el
+  catálogo de proyectos, así que un agente nuevo queda alcanzable apenas tiene
+  destino. Encargar vuelve de inmediato y la conversación sigue; hay una sesión
+  por proyecto y un encargo a la vez en cada uno. Lo que termina se le cuenta al
+  agente con un turno de aviso (`TurnoDeLaPersona.esAviso`, siempre con Haiku,
+  sin mover el router) apenas haya un hueco, nunca encima de nadie. La primera
+  aprobación de cada encargo también se avisa de viva voz. Las aprobaciones
+  hacen fila en la barra, y las de un encargo sobreviven a terminar o
+  interrumpir un turno. Mientras algo trabaja la llamada no cuelga sola; colgar
+  a mano detiene todo, porque los clics viven en la barra. Antes había un
+  traspaso (`pasar_a_agente`): Kami se iba y quedaba hablando un filtro sin
+  modelo que repetía «¿En qué proyecto?». No vuelve.
 - **Cada tipo se enchufa en `RegistroDeDestinos`**: `DestinosDeLaConversacion`
   registra `.dilo`, `.mcp` y `.claudeCode` (`DestinoClaudeCode`, cuyo detalle
   largo va sólo a la transcripción por `alTranscribir`). Un tipo sin fábrica
   contesta `DestinoSinConectar`, que lo dice en voz alta. El registro guarda
-  un destino por agente mientras dura la llamada. «Revisa Claude Code» no
-  sólo cambia de agente: le manda «retoma», que abre la última sesión del
-  proyecto y le pide que cuente en qué quedó.
+  un destino por agente mientras dura la llamada.
 - **La puerta para abrir la llamada desde afuera** es
   `ControladorDeLaConversacion.llamar(agente:primerTurno:)`: la usa la
   escucha de nombres con lo dicho después del nombre. Con la llamada en
@@ -1463,14 +1496,14 @@ en `DiloModes` (`MensajesDeClaudeCode`, `EntradaDeClaudeCode`,
   enlace» y un tope de ~480 caracteres cortado en una oración. Lo entero va
   por `alTranscribir`. Las herramientas van a la barra («Corriendo `git
   status`») y no se dicen.
-- **Proyectos por nombre** (`PedidoAClaudeCode`): «en Dilo, revisa los
-  tests» al principio de lo dicho, con o sin coma, por nombre entero o por
-  el principio de uno solo («switchboard» por `switchboard-os`). De fábrica,
-  cada carpeta de `~/Developer`; los de Ajustes → Claude → Claude Code por
-  voz le ganan por nombre (`diloClaudeCodeProyectos`). Sin nombre: la sesión
-  abierta, el último usado (`diloClaudeCodeUltimoProyecto`) o pregunta por
-  voz, y lo pedido se manda al contestar.
-- **Retomar** («retoma la sesión de Dilo», «revisa Claude Code»):
+- **Proyectos** (`CatalogoDeProyectos`): de fábrica, cada carpeta de
+  `~/Developer`; los de Ajustes → Claude → Claude Code por voz le ganan por
+  nombre (`diloClaudeCodeProyectos`). El agente principal los recibe como
+  lista cerrada en `encargar_trabajo`, y es él quien entiende «el de Andes
+  Flags» o pregunta. El último usado (`diloClaudeCodeUltimoProyecto`) va en su
+  prompt. `PedidoAClaudeCode` y `PreguntaDeProyecto` ya no se usan en la
+  llamada.
+- **Retomar** (`retomar` en `encargar_trabajo`):
   `--continue --fork-session`, la más reciente de la carpeta según la CLI, en
   una copia para no escribir encima de una sesión abierta en un terminal; sin
   tarea, le pide que cuente en qué quedó. Si Dilo tuvo que relanzar el

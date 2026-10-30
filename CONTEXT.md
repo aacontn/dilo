@@ -92,6 +92,12 @@ llamarlo («Dilo», «Claude Code», «Switchboard») y un **Destino** que
 contesta. Se le habla diciendo su nombre al principio o eligiéndolo en la
 barra de llamada. _Evitar_: bot, asistente, persona.
 
+**Encargo** ·
+Un trabajo que el **Agente** de la llamada le pasa a Claude Code para que corra
+por detrás mientras la conversación sigue. La persona no le habla a quien lo
+hace: se lo pide al agente, y el agente le cuenta cómo terminó. _Evitar_:
+traspaso, delegación, tarea (eso es de Claude Code por dentro).
+
 **Destino** ·
 Quien contesta los **Turno**s de un **Agente**: Claude con herramientas,
 una sesión de Claude Code, un servidor MCP. Lo que quiere hacer y cambia algo

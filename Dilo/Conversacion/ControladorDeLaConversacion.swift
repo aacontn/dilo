@@ -21,6 +21,12 @@ import os
 /// y se muestra en la muesca con «Aprobar» y «No»: la llamada espera el clic,
 /// no una respuesta de viva voz, y colgar responde que no.
 ///
+/// La persona habla siempre con una voz. Claude Code trabaja por detrás
+/// (`EncargosDeFondo`): el agente le encarga, sigue conversando y cuenta el
+/// resultado cuando termina. Y el micrófono queda abierto toda la llamada
+/// (`OidoDeLaLlamada`), que es lo que deja hablarle encima para interrumpirlo
+/// (`DetectorDeInterrupcion`).
+///
 /// Los turnos son half duplex (`MaquinaDeLaConversacion`), el fin de tu turno
 /// lo dice `FinDelTurno` o soltar el gatillo, y el gasto del mes tiene tope
 /// (`TopeDeGasto`). Todo eso es regla pura en `DiloModes`; acá sólo se
@@ -60,8 +66,12 @@ final class ControladorDeLaConversacion {
   private var agenteActual: Agente?
   /// Lo que se va a consultar cuando la máquina lo pida.
   private var pendiente: EnrutadorDeAgentes.Ruta?
-  /// La aprobación que espera un clic, si hay una.
-  private var aprobacion: Aprobacion?
+  /// Lo que espera un clic. La primera es la que muestra la barra. Las de un
+  /// encargo sobreviven a lo que pase en la conversación: terminar o
+  /// interrumpir un turno no le niega nada a un trabajo de fondo.
+  private var aprobaciones: [(aprobacion: Aprobacion, deFondo: Bool)] = []
+  /// Lo que hay que contarle al agente apenas se pueda hablar.
+  private var avisos: [String] = []
   private var contadorDeLineas = 0
 
   /// Lo que el audio va midiendo, escrito desde el hilo de audio y leído
@@ -73,6 +83,9 @@ final class ControladorDeLaConversacion {
       var fin: FinDelTurno?
       var nivel: Float = 0
       var escucha = 0
+      /// Si lo oído puede interrumpir: mientras el agente piensa o habla.
+      var atento = false
+      var detector = DetectorDeInterrupcion()
     }
 
     let candado = Mutex(Medicion())
@@ -99,6 +112,16 @@ final class ControladorDeLaConversacion {
   /// Después de un aviso que no tiene arreglo en la llamada —falta la
   /// clave, se llegó al tope—, colgar cuando termine de decirlo.
   private var colgarAlTerminar = false
+
+  /// El micrófono de la llamada. Nil si sigue con el motor del dictado.
+  private var oido: OidoAbierto?
+  /// Con qué motor se está oyendo este turno.
+  private var motorDelTurno: MotorParaConversar?
+  /// La voz que interrumpió: dónde empezó y cuánta se oyó.
+  private var interrupcion: (inicio: Int, voz: Duration)?
+  /// Mira, toda la llamada, si alguien interrumpió y si hay algo que contar.
+  private var atencion: Task<Void, Never>?
+  private var interrupciones = 0
 
   private var inicioDeLaSesion: ContinuousClock.Instant?
   private var turnos = 0
@@ -133,6 +156,17 @@ final class ControladorDeLaConversacion {
     destinos.alTranscribir = { [weak self] agente, texto in
       self?.agregarLinea(texto, deDilo: true, quien: agente.nombre, nota: true)
     }
+    destinos.encargos.alTranscribir = { [weak self] agente, texto in
+      self?.agregarLinea(texto, deDilo: true, quien: agente.nombre, nota: true)
+    }
+    destinos.encargos.alCambiar = { [weak self] linea in
+      self?.stage.conversacionContent.foto.encargo = linea
+    }
+    destinos.encargos.alTerminar = { [weak self] aviso in self?.avisos.append(aviso) }
+    destinos.encargos.alPedirClic = { [weak self] aprobacion, aviso in
+      self?.mostrar(aprobacion, deFondo: true)
+      if let aviso { self?.avisos.append(aviso) }
+    }
   }
 
   var enCurso: Bool { maquina.estado != .colgada }
@@ -154,13 +188,21 @@ final class ControladorDeLaConversacion {
   /// la llamada o Dilo; un texto vacío abre la llamada escuchando.
   func llamar(agente: Agente?, primerTurno: String?) {
     let texto = primerTurno?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    // «Claude Code, revisa los tests»: se lo dice al agente de la llamada, que
+    // es quien lo encarga. Sin mensaje, se le pide que lo retome.
+    var quien = agente
+    var dicho = texto
+    if let agente, agente.trabajaDeFondo {
+      quien = nil
+      dicho = texto.isEmpty ? String(localized: "Abre \(agente.nombre)") : "\(agente.nombre), \(texto)"
+    }
     guard enCurso else {
-      empezarLaLlamada(con: agente, primerTurno: texto)
+      empezarLaLlamada(con: quien, primerTurno: dicho)
       return
     }
-    if let agente { cambiarDeAgente(a: agente) }
-    guard !texto.isEmpty else { return }
-    entraUnTurno(TurnoDeLaPersona(agente: agente ?? agenteDeLaLlamada, texto: texto))
+    if let quien { cambiarDeAgente(a: quien) }
+    guard !dicho.isEmpty else { return }
+    entraUnTurno(TurnoDeLaPersona(agente: quien ?? agenteDeLaLlamada, texto: dicho))
   }
 
   /// La tecla de conversar, o cualquier gatillo mientras hay conversación.
@@ -173,7 +215,7 @@ final class ControladorDeLaConversacion {
         llamar(agente: nil, primerTurno: nil)
         return
       }
-      if maquina.silenciada { aplicar(.silenciar(false)) }
+      if maquina.silenciada { silenciar(false) }
       if maquina.estado == .pensando || maquina.estado == .hablando { aplicar(.interrumpir) }
       return
     }
@@ -188,10 +230,15 @@ final class ControladorDeLaConversacion {
     guard enCurso else { return }
     aplicar(.colgar)
     // Una aprobación sin decidir es un no: nada se hace sin el clic.
-    soltarLaAprobacion(false)
+    soltarLasAprobaciones()
     destinos.colgar()
     stage.cerrarLaConversacion()
     anotarElResumen()
+    cerrarElOido()
+    atencion?.cancel()
+    atencion = nil
+    avisos = []
+    interrupcion = nil
     agenteActual = nil
     pendiente = nil
     contestado = ""
@@ -244,6 +291,10 @@ final class ControladorDeLaConversacion {
     porModelo = [:]
     costoDeLaSesion = 0
     contadorDeLineas = 0
+    interrupciones = 0
+    medidor.withLock { $0 = Medidor.Medicion() }
+    abrirElOido()
+    prestarAtencion()
     voz.ajustar(ajustesDeLaVoz)
     agenteActual = agente
     var foto = FotoDeLaConversacion()
@@ -276,6 +327,11 @@ final class ControladorDeLaConversacion {
 
   private func aplicar(_ evento: MaquinaDeLaConversacion.Evento) {
     let efectos = maquina.recibir(evento)
+    let atento = !maquina.silenciada && (maquina.estado == .pensando || maquina.estado == .hablando)
+    medidor.withLock { medicion in
+      if atento && !medicion.atento { medicion.detector.reiniciar() }
+      medicion.atento = atento
+    }
     refrescarElEstado()
     for efecto in efectos { ejecutar(efecto) }
   }
@@ -298,13 +354,132 @@ final class ControladorDeLaConversacion {
     aplicar(.terminoDeHablar)
   }
 
+  // El oído de la llamada
+
+  /// Abre el micrófono de la llamada, en la misma fila que el motor: el primer
+  /// turno espera a que esté. Si no se puede, la llamada sigue con el motor del
+  /// dictado.
+  private func abrirElOido() {
+    guard DiloSpeechStack.cargadorDeParakeet.disponible, settings.motorDeVoz == .parakeet else { return }
+    let eleccion = settings.conversacionMicrofono
+    let medidor = medidor
+    let salida = voz.nivelDeSalida
+    enFila { [weak self] in
+      guard let self, inicioDeLaSesion != nil, oido == nil else { return }
+      let abierto = await OidoAbierto.abrir(
+        eleccion: eleccion,
+        transcribir: { audio in
+          try await ParakeetCompartido.motor.conElModelo { try await $0.transcribir(audio) }
+        },
+        alFallar: { [weak self] mensaje in
+          Task { @MainActor [weak self] in
+            AppLog.conversacion.error("llamada: se cayó el micrófono: \(mensaje, privacy: .public)")
+            self?.cerrarElOido()
+          }
+        },
+        alOir: { nivel, indice in
+          // Sin saber qué suena no se puede separar a la persona del eco.
+          let sonando = salida?()
+          medidor.withLock { medicion in
+            guard medicion.atento, let sonando else { return }
+            medicion.detector.muestra(microfono: nivel, salida: sonando, indice: indice, en: .now)
+          }
+        }
+      )
+      guard inicioDeLaSesion != nil else {
+        abierto?.cerrar()
+        return
+      }
+      oido = abierto
+      AppLog.conversacion.notice(
+        "llamada: micrófono \(abierto == nil ? "por turno, con el motor del dictado" : "abierto toda la llamada", privacy: .public)"
+      )
+      // Carga el modelo antes de que haga falta: al terminar el primer turno
+      // ya no se puede esperar.
+      if abierto != nil {
+        Task.detached(priority: .userInitiated) {
+          try? await ParakeetCompartido.motor.conElModelo { _ in }
+        }
+      }
+    }
+  }
+
+  private func cerrarElOido() {
+    oido?.cerrar()
+    oido = nil
+  }
+
+  /// Silenciar cierra el micrófono de verdad: silenciada, nada se oye. Se
+  /// reabre antes del turno, que espera en la misma fila.
+  private func silenciar(_ silenciada: Bool) {
+    if silenciada {
+      cerrarElOido()
+    } else {
+      abrirElOido()
+    }
+    aplicar(.silenciar(silenciada))
+  }
+
+  /// Mira si la persona interrumpió con la voz y si hay algo que contar.
+  private func prestarAtencion() {
+    atencion?.cancel()
+    atencion = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(for: Self.cadaCuantoMirar)
+        guard let self, !Task.isCancelled else { return }
+        if sePuedeInterrumpir, let voz = medidor.withLock({ medicion in
+          medicion.detector.inicioDeLaVoz.map { (inicio: $0, voz: medicion.detector.vozContada) }
+        }) {
+          interrumpioConLaVoz(voz)
+        }
+        contarLoQueLlego()
+      }
+    }
+  }
+
+  /// Hablando se puede interrumpir siempre. Pensando, sólo si ya se consultó y
+  /// nada corre: cortar una herramienta a medias o una aprobación por una voz
+  /// en la pieza sería peor que esperar. Y un aviso que cuelga no se corta.
+  private var sePuedeInterrumpir: Bool {
+    guard !colgarAlTerminar, aprobaciones.isEmpty else { return false }
+    switch maquina.estado {
+    case .hablando: return true
+    case .pensando: return consulta != nil && stage.conversacionContent.foto.herramienta == nil
+    case .escuchando, .colgada: return false
+    }
+  }
+
+  private func interrumpioConLaVoz(_ voz: (inicio: Int, voz: Duration)) {
+    interrupciones += 1
+    AppLog.conversacion.notice("turno \(self.turnos): interrumpido con la voz")
+    interrupcion = voz
+    aplicar(.interrumpir)
+  }
+
+  /// Lo que dejó un encargo se le cuenta al agente apenas la conversación
+  /// tiene un hueco: nunca encima de la persona ni del agente.
+  private func contarLoQueLlego() {
+    guard !avisos.isEmpty, maquina.estado == .escuchando else { return }
+    guard !medidor.withLock({ $0.fin?.huboVoz ?? false }) else { return }
+    let aviso = avisos.removeFirst()
+    escucha += 1
+    pendiente = .turno(TurnoDeLaPersona(agente: enrutador.porDefecto, texto: aviso, esAviso: true))
+    aplicar(.turnoDeAfuera)
+  }
+
   // Tu turno
 
   private func escuchar() {
-    guard let motor else { return }
+    let viene = interrupcion
+    interrupcion = nil
     escucha += 1
     let esta = escucha
-    medidor.withLock { $0 = Medidor.Medicion(fin: FinDelTurno(inicio: .now), nivel: 0, escucha: esta) }
+    let ahora = ContinuousClock.now
+    medidor.withLock { medicion in
+      medicion.fin = FinDelTurno(inicio: ahora, vozPrevia: viene?.voz ?? .zero)
+      medicion.nivel = 0
+      medicion.escucha = esta
+    }
     stage.conversacionContent.foto.parcial = ""
     let identificador = settings.recognitionLocaleIdentifier
     let eleccion = settings.conversacionMicrofono
@@ -325,12 +500,15 @@ final class ControladorDeLaConversacion {
         }
       }
     )
+    // Se decide en la fila: el oído de la llamada puede estar abriéndose.
     enFila { [weak self] in
+      guard let self, let motor = oido?.oido.motor(desde: viene?.inicio) ?? self.motor else { return }
+      motorDelTurno = motor
       do {
         let locale = try await motor.locale(identificador)
         try await motor.empezar(locale, eleccion, handlers)
       } catch {
-        self?.fallaDelMotor(error.localizedDescription, escucha: esta)
+        fallaDelMotor(error.localizedDescription, escucha: esta)
       }
     }
     vigilar(esta)
@@ -357,7 +535,7 @@ final class ControladorDeLaConversacion {
           aplicar(.terminoTuTurno)
           return
         }
-        if nadie {
+        if nadie, !destinos.encargos.hayTrabajando {
           AppLog.conversacion.notice("llamada: cuelga sola, nadie habló")
           colgar()
           return
@@ -375,10 +553,9 @@ final class ControladorDeLaConversacion {
     vigia?.cancel()
     vigia = nil
     stage.conversacionContent.foto.nivel = 0
-    guard let motor else { return }
     let esta = escucha
     guard entregar else {
-      enFila { await motor.cancelar() }
+      enFila { [weak self] in await self?.motorDelTurno?.cancelar() }
       return
     }
     let soltado = ContinuousClock.now
@@ -386,7 +563,7 @@ final class ControladorDeLaConversacion {
       soltado: soltado, silencio: medidor.withLock { $0.fin?.silencio(en: soltado) } ?? .zero
     )
     enFila { [weak self] in
-      let texto = (try? await motor.terminar()) ?? ""
+      let texto = (try? await self?.motorDelTurno?.terminar()) ?? ""
       let transcribir = ContinuousClock.now - soltado
       self?.transcrito(texto, escucha: esta, transcribir: transcribir)
     }
@@ -401,7 +578,7 @@ final class ControladorDeLaConversacion {
       return
     }
     tiempos?.transcribir = transcribir
-    let ruta = enrutador.enrutar(limpio, ultimo: agenteActual)
+    let ruta = enrutador.unaSolaVoz(enrutador.enrutar(limpio, ultimo: agenteActual), dicho: limpio)
     pendiente = ruta
     agregarLinea(limpio, deDilo: false)
     aplicar(.transcrito(vacio: false))
@@ -435,13 +612,6 @@ final class ControladorDeLaConversacion {
     }
     pendiente = nil
     switch ruta {
-    case let .cambiarA(agente) where agente.tipo == .claudeCode
-      && destinos.registro.estaConectado(agente.tipo.clase):
-      // «Revisa Claude Code» no es sólo cambiar: abre la última sesión y le
-      // pide que cuente en qué quedó («retoma», `PedidoAClaudeCode.entender`).
-      agenteActual = agente
-      refrescarElDestino()
-      consultar(TurnoDeLaPersona(agente: agente, texto: "retoma"))
     case let .cambiarA(agente):
       cambiarDeAgente(a: agente, diciendolo: true)
     case let .turno(turno):
@@ -515,13 +685,7 @@ final class ControladorDeLaConversacion {
           case let .pideAprobacion(aprobacion):
             // Lo que ya se dijo se termina de decir mientras espera el clic.
             if let resto = trozos.terminar() { voz.decir(resto) }
-            mostrar(aprobacion)
-          case let .pasarA(otro, mensaje, costoUSD):
-            if let resto = trozos.terminar() { voz.decir(resto) }
-            cerrarLoContestado(de: agente, costo: costoUSD)
-            pendiente = mensaje.map { .turno(TurnoDeLaPersona(agente: otro, texto: $0)) } ?? .cambiarA(otro)
-            consultar()
-            return
+            mostrar(aprobacion, deFondo: false)
           case let .fin(costoUSD):
             if let resto = trozos.terminar() { voz.decir(resto) }
             terminarElTurno(de: agente, costo: costoUSD)
@@ -582,16 +746,10 @@ final class ControladorDeLaConversacion {
     agente.tipo == .dilo && agente.nombre == "Dilo" ? nil : agente.nombre
   }
 
+  /// Lo que dijo el agente va a la transcripción y lo gastado al tope.
   private func terminarElTurno(de agente: Agente, costo: Double?) {
-    cerrarLoContestado(de: agente, costo: costo)
-    voz.cerrarElTurno()
-  }
-
-  /// Lo que dijo el agente va a la transcripción y lo gastado al tope. La voz
-  /// sigue: en un traspaso, el otro agente continúa en el mismo turno.
-  private func cerrarLoContestado(de agente: Agente, costo: Double?) {
     consulta = nil
-    soltarLaAprobacion(false)
+    soltarLasDelTurno()
     stage.conversacionContent.foto.herramienta = nil
     let respuesta = contestado.trimmingCharacters(in: .whitespacesAndNewlines)
     contestado = ""
@@ -602,6 +760,7 @@ final class ControladorDeLaConversacion {
       settings.conversacionGasto = TopeDeGasto.sumar(costo, a: settings.conversacionGasto, ahora: Date())
       stage.conversacionContent.foto.costo = Self.dolares(costoDeLaSesion)
     }
+    voz.cerrarElTurno()
   }
 
   /// Lo que un destino con Claude cuenta de su turno: al log, como siempre.
@@ -627,7 +786,7 @@ final class ControladorDeLaConversacion {
   private func cancelarLaConsulta() {
     consulta?.cancel()
     consulta = nil
-    soltarLaAprobacion(false)
+    soltarLasDelTurno()
     stage.conversacionContent.foto.herramienta = nil
     let alcanzo = contestado.trimmingCharacters(in: .whitespacesAndNewlines)
     contestado = ""
@@ -641,7 +800,7 @@ final class ControladorDeLaConversacion {
     consulta = nil
     contestado = ""
     contestando = nil
-    soltarLaAprobacion(false)
+    soltarLasDelTurno()
     stage.conversacionContent.foto.herramienta = nil
     let sinArreglo = falla == .faltaLaClave || falla == .claveRechazada
     decirUnAviso(falla.dichoEnLaConversacion, enLaBarra: falla.aviso, yColgar: sinArreglo)
@@ -651,7 +810,7 @@ final class ControladorDeLaConversacion {
     consulta = nil
     contestado = ""
     contestando = nil
-    soltarLaAprobacion(false)
+    soltarLasDelTurno()
     stage.conversacionContent.foto.herramienta = nil
     decirUnAviso(
       String(localized: "Algo falló con \(agente.nombre). ¿Me lo dices de nuevo?"),
@@ -663,33 +822,57 @@ final class ControladorDeLaConversacion {
   // La aprobación
 
   /// Pone la aprobación en la muesca, con su detalle en la transcripción. No
-  /// se dice en voz alta: no es una pregunta que se conteste con la voz.
-  private func mostrar(_ nueva: Aprobacion) {
-    soltarLaAprobacion(false)
-    aprobacion = nueva
-    stage.conversacionContent.foto.aprobacion = FotoDeLaConversacion.AprobacionEnLaBarra(
-      descripcion: nueva.descripcion, detalle: nueva.detalle
-    )
+  /// se dice en voz alta: no es una pregunta que se conteste con la voz. Si hay
+  /// otra esperando, ésta sigue en la fila.
+  private func mostrar(_ nueva: Aprobacion, deFondo: Bool) {
+    if !deFondo { soltarLasDelTurno() }
+    aprobaciones.append((nueva, deFondo))
     agregarLinea(
       String(localized: "Pide aprobar: \(nueva.detalle)"), deDilo: true, quien: quienDice(nueva.agente), nota: true
     )
     AppLog.conversacion.notice("aprobación: \(nueva.agente.id, privacy: .public) pide un clic")
+    mostrarLaPrimera()
+  }
+
+  private func mostrarLaPrimera() {
+    stage.conversacionContent.foto.aprobacion = aprobaciones.first.map {
+      FotoDeLaConversacion.AprobacionEnLaBarra(descripcion: $0.aprobacion.descripcion, detalle: $0.aprobacion.detalle)
+    }
     stage.remedirLaConversacion()
   }
 
-  /// El clic, o colgar o interrumpir (que son un no). La responde una sola
-  /// vez y la saca de la muesca.
-  private func soltarLaAprobacion(_ decision: Bool) {
-    guard let esperando = aprobacion else { return }
-    aprobacion = nil
-    stage.conversacionContent.foto.aprobacion = nil
-    esperando.responder(decision)
+  /// El clic. La responde una sola vez y pasa a la siguiente.
+  private func decidirLaAprobacion(_ decision: Bool) {
+    guard !aprobaciones.isEmpty else { return }
+    responder(aprobaciones.removeFirst().aprobacion, decision)
+    mostrarLaPrimera()
+  }
+
+  /// Interrumpir o terminar un turno: lo que él pidió queda en no. Las de un
+  /// encargo siguen esperando.
+  private func soltarLasDelTurno() {
+    let delTurno = aprobaciones.filter { !$0.deFondo }
+    guard !delTurno.isEmpty else { return }
+    aprobaciones.removeAll { !$0.deFondo }
+    delTurno.forEach { responder($0.aprobacion, false) }
+    mostrarLaPrimera()
+  }
+
+  /// Colgar: todo lo que no se decidió es un no.
+  private func soltarLasAprobaciones() {
+    let todas = aprobaciones
+    aprobaciones = []
+    todas.forEach { responder($0.aprobacion, false) }
+    mostrarLaPrimera()
+  }
+
+  private func responder(_ aprobacion: Aprobacion, _ decision: Bool) {
+    aprobacion.responder(decision)
     agregarLinea(
       decision ? String(localized: "Aprobado") : String(localized: "No aprobado"),
       deDilo: false, nota: true
     )
     AppLog.conversacion.notice("aprobación: \(decision ? "aprobada" : "no", privacy: .public)")
-    stage.remedirLaConversacion()
   }
 
   /// Un aviso dicho en voz alta y escrito en la barra. La voz es la que
@@ -730,7 +913,7 @@ final class ControladorDeLaConversacion {
     AccionesDeLaLlamada(
       silenciar: { [weak self] in
         guard let self else { return }
-        aplicar(.silenciar(!maquina.silenciada))
+        silenciar(!maquina.silenciada)
       },
       colgar: { [weak self] in self?.colgar() },
       alternarTranscripcion: { [weak self] in self?.desplegar(transcripcion: true) },
@@ -749,8 +932,8 @@ final class ControladorDeLaConversacion {
         cambiarDeAgente(a: agente)
         desplegarLosDestinos()
       },
-      aprobar: { [weak self] in self?.soltarLaAprobacion(true) },
-      rechazar: { [weak self] in self?.soltarLaAprobacion(false) }
+      aprobar: { [weak self] in self?.decidirLaAprobacion(true) },
+      rechazar: { [weak self] in self?.decidirLaAprobacion(false) }
     )
   }
 
@@ -770,7 +953,8 @@ final class ControladorDeLaConversacion {
     let actual = agenteDeLaLlamada
     var foto = stage.conversacionContent.foto
     foto.agente = Self.corto(actual.nombre)
-    foto.agentes = settings.conversacionAgentes.map { agente in
+    // Los que trabajan de fondo no se eligen: se les encarga por el agente.
+    foto.agentes = settings.conversacionAgentes.filter { !$0.trabajaDeFondo }.map { agente in
       FotoDeLaConversacion.Opcion(id: agente.id, titulo: agente.nombre, elegida: agente.id == actual.id)
     }
     stage.conversacionContent.foto = foto
@@ -839,6 +1023,10 @@ final class ControladorDeLaConversacion {
     guard !microfonos.isEmpty else { return }
     let actual = microfonos.firstIndex { $0.eleccion == settings.conversacionMicrofono } ?? 0
     settings.conversacionMicrofono = microfonos[(actual + 1) % microfonos.count].eleccion
+    if oido != nil, !maquina.microfonoAbierto {
+      cerrarElOido()
+      abrirElOido()
+    }
     refrescarLosAjustes()
   }
 
@@ -855,9 +1043,11 @@ final class ControladorDeLaConversacion {
   private func anotarElResumen() {
     let duracion = inicioDeLaSesion.map { ContinuousClock.now - $0 } ?? .zero
     let modelos = NivelDeModelo.allCases.map { "\($0.rawValue) \(porModelo[$0] ?? 0)" }.joined(separator: ", ")
+    let eco = medidor.withLock { $0.detector.ecoAprendido }.map { String(format: "%.2f", $0) } ?? "—"
     AppLog.conversacion.notice(
       """
       llamada: cuelga tras \(Self.ms(duracion), privacy: .public), \(self.turnos) turnos (\(modelos, privacy: .public)), \
+      \(self.interrupciones) interrupciones con la voz, eco \(eco, privacy: .public), \
       US$\(self.costoDeLaSesion, format: .fixed(precision: 4), privacy: .public)
       """
     )

@@ -29,6 +29,14 @@ public protocol VozQueContesta: AnyObject {
   func ajustar(_ ajustes: AjustesDeLaVoz)
   var alEmpezar: (@MainActor () -> Void)? { get set }
   var alTerminar: (@MainActor () -> Void)? { get set }
+  /// Qué tan fuerte está sonando, de 0 a 1 en la escala de la muesca, desde
+  /// cualquier hilo. Devuelve nil si no se sabe: sin esto no se puede separar
+  /// a la persona del eco, y hablarle encima no interrumpe.
+  var nivelDeSalida: (@Sendable () -> Float?)? { get }
+}
+
+extension VozQueContesta {
+  public var nivelDeSalida: (@Sendable () -> Float?)? { nil }
 }
 
 /// Con qué voz y a qué velocidad contesta la conversación.

@@ -11,6 +11,12 @@ Es la idea escrita en `Dilo/app/docs/superpowers/specs/2026-07-22-dilo-plataform
 **Dilo posee la experiencia de voz; las capacidades son conexiones que elige
 la persona.**
 
+> **Cambio del 2026-10-30, tras la prueba de la 0.11.1.** Alfonso: «no sirve para
+> un agente de voz real como el de ChatGPT». Pasar a Claude Code dejaba hablando
+> un filtro sin modelo. Ahora hay una sola voz: Kami se queda, Claude Code corre
+> por detrás como encargo, y se le puede hablar encima. Donde esto contradiga lo
+> de abajo, manda `AGENTS.md`, «Conversación».
+
 ## Agentes con nombre
 
 Un **Agente** es un nombre y un destino (`Agente`, `DestinoDeConversacion`

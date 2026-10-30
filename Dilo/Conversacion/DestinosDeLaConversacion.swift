@@ -30,6 +30,9 @@ final class DestinosDeLaConversacion {
   /// detalle entero de lo que hizo Claude Code (un diff, una salida larga).
   var alTranscribir: ((Agente, String) -> Void)?
 
+  /// Lo que el agente de la llamada le encarga a Claude Code por detrás.
+  let encargos: EncargosDeFondo
+
   private let settings: AppSettings
   private let leerClave: @Sendable () async -> String?
   private var clientes: [String: ClienteMCP] = [:]
@@ -37,6 +40,7 @@ final class DestinosDeLaConversacion {
   init(settings: AppSettings, leerClave: @escaping @Sendable () async -> String?) {
     self.settings = settings
     self.leerClave = leerClave
+    encargos = EncargosDeFondo(settings: settings) { [weak settings] in settings?.conversacionAgentes ?? [] }
     registro.registrar(.dilo) { [unowned self] agente in
       destinoConClaude(
         agente,
@@ -71,6 +75,7 @@ final class DestinosDeLaConversacion {
   /// La llamada se cortó: cada destino suelta lo suyo y los servidores MCP se
   /// cierran.
   func colgar() {
+    encargos.colgar()
     registro.colgarTodos()
     let todos = clientes.values
     clientes = [:]
@@ -97,11 +102,16 @@ final class DestinosDeLaConversacion {
     let conectados = servidores.map { (servidor: $0, cliente: cliente($0)) }
     let nombreDelServidor = servidores.first?.nombre ?? agente.nombre
     let faltaElServidor = !propias && servidores.isEmpty
-    // A quién le puede pasar la conversación: sale de la lista de agentes, así
-    // que uno nuevo queda alcanzable apenas tiene destino.
-    let otrosAgentes = settings.conversacionAgentes.filter {
-      $0.id != agente.id && registro.estaConectado($0.tipo.clase)
-    }
+    // A quién le puede encargar trabajo: sale de la lista de agentes, así que
+    // uno nuevo queda alcanzable apenas tiene destino. Sólo el agente principal
+    // encarga.
+    let deFondo = propias
+      ? settings.conversacionAgentes.filter { $0.trabajaDeFondo && registro.estaConectado($0.tipo.clase) } : []
+    let propiosDeAjustes = settings.claudeCodeProyectos
+    let incluirDeveloper = settings.claudeCodeIncluirDeveloper
+    let ultimaCarpeta = settings.claudeCodeUltimoProyecto
+    let ultimoProyecto = ultimaCarpeta.isEmpty ? nil : (ultimaCarpeta as NSString).lastPathComponent
+    let mando = encargos
     let destino = DestinoConClaude(
       agente: agente,
       preparar: {
@@ -111,9 +121,16 @@ final class DestinosDeLaConversacion {
             "Este agente no tiene un servidor MCP conectado y encendido. Dile a la persona que lo conecte en Dilo → Ajustes → Claude → Conexiones MCP."
           )])
         }
-        return await Self.preparar(propias: deDilo, servidores: conectados)
+        var todas = deDilo
+        if !deFondo.isEmpty {
+          let deDeveloper = incluirDeveloper ? DestinoClaudeCode.proyectosDeDeveloper() : []
+          let proyectos = CatalogoDeProyectos.todos(propios: propiosDeAjustes, deDeveloper: deDeveloper)
+          todas += HerramientasDeLaConversacion.encargos(agentes: deFondo, proyectos: proyectos, mando: mando)
+        }
+        return await Self.preparar(propias: todas, servidores: conectados)
       },
-      otrosAgentes: otrosAgentes,
+      deFondo: deFondo,
+      ultimoProyecto: ultimoProyecto,
       leerClave: leerClave,
       eleccionDeModelo: { [weak settings] in settings?.conversacionModelo ?? .automatico }
     )

@@ -3,9 +3,9 @@ import DiloEngines
 import Foundation
 import os
 
-/// El micrófono de la **escucha de nombres**: un `AVAudioEngine` propio, ni
-/// el del dictado ni el de la reunión, que entrega 16 kHz mono a quien
-/// escucha.
+/// El micrófono de la **escucha de nombres** y de la llamada
+/// (`OidoDeLaLlamada`): un `AVAudioEngine` propio, ni el del dictado ni el de
+/// la reunión, que entrega 16 kHz mono a quien escucha.
 ///
 /// Fija su micrófono sólo en este motor (`PlanDeMicrofono.paraLaEscucha`):
 /// Dilo sigue sin escribir la entrada del sistema, y un Bluetooth que nadie

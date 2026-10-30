@@ -61,6 +61,8 @@ struct FotoDeLaConversacion: Equatable {
   var verDestinos = false
   /// La herramienta que corre: «Buscando en tus reuniones…».
   var herramienta: String?
+  /// Lo que trabaja por detrás: «Claude Code en dilo».
+  var encargo: String?
   /// Lo que espera un clic. Mientras está, ocupa lo desplegado.
   var aprobacion: AprobacionEnLaBarra?
 
@@ -242,7 +244,7 @@ struct BarraDeLlamada: View {
     if let herramienta = foto.herramienta { return herramienta }
     if foto.silenciada { return String(localized: "Silenciado") }
     switch foto.fase {
-    case .escuchando: return String(localized: "Te escucho")
+    case .escuchando: return foto.encargo ?? String(localized: "Te escucho")
     case .pensando: return String(localized: "Pensando…")
     case .hablando: return String(localized: "Hablando")
     }
