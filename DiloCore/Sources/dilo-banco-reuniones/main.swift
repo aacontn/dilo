@@ -191,8 +191,9 @@ struct PalabrasDelCaso: Codable {
 }
 
 func transcribir(_ carpeta: URL, salida: URL) async throws {
-  guard ParakeetModelStore.estaDescargado else {
-    error("El modelo de Parakeet no está en \(ParakeetModelStore.carpetaDelModelo.path). Bájalo desde Dilo → Ajustes → Motor de voz.")
+  // Transcribe con la variante que dictaría la app (Ultra o v3, la que esté).
+  guard !ParakeetModelStore.enDisco().isEmpty else {
+    error("No hay un modelo de Parakeet en \(ParakeetModelStore.carpeta.path). Bájalo desde Dilo → Ajustes → Motor de voz.")
   }
   let motor = ParakeetEngine(captura: SinCaptura(), reposo: nil)
   let codificador = JSONEncoder()
