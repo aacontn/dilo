@@ -34,14 +34,25 @@ struct MedicionDeMotoresTests {
 
   private static let repeticiones = 5
 
+  /// Qué Parakeet se mide: `DILO_BENCH_VARIANTE=ultra`; v3 si no se dice.
+  private static var variante: VarianteDeParakeet {
+    ProcessInfo.processInfo.environment["DILO_BENCH_VARIANTE"].flatMap(VarianteDeParakeet.init(rawValue:)) ?? .v3
+  }
+
+  /// Dónde viven los modelos que se miden: `DILO_MODELOS` para bajarlos a
+  /// `/Volumes/SSD2` sin tocar los de la app.
+  private static var carpeta: URL {
+    ProcessInfo.processInfo.environment["DILO_MODELOS"].map { URL(filePath: $0) } ?? ParakeetModelStore.carpeta
+  }
+
   @Test(.enabled(if: MedicionDeMotoresTests.encendida))
   func parakeetSoltarATexto() async throws {
     let url = try #require(Self.wav, "falta DILO_BENCH_WAV")
     let muestras = try Self.leerMono16k(url)
     let segundos = Double(muestras.count) / ParakeetEngine.sampleRate
 
-    let almacen = ParakeetModelStore()
-    if !ParakeetModelStore.estaDescargado {
+    let almacen = ParakeetModelStore(variante: Self.variante, carpeta: Self.carpeta)
+    if !almacen.estaDescargado {
       let inicio = Date()
       try await almacen.descargar { avance in
         if Int(avance.fraccion * 100) % 20 == 0 {
@@ -50,8 +61,8 @@ struct MedicionDeMotoresTests {
       }
       print("descarga: \(Int(Date().timeIntervalSince(inicio))) s")
     }
-    let mb = Double(ParakeetModelStore.tamanoEnDisco) / 1_048_576
-    print("modelo en disco: \(String(format: "%.0f", mb)) MB — \(ParakeetModelStore.carpetaDelModelo.path)")
+    let mb = Double(ParakeetModelStore.tamanoEnDisco(Self.variante, en: Self.carpeta)) / 1_048_576
+    print("\(Self.variante.nombre) en disco: \(String(format: "%.0f", mb)) MB — \(almacen.carpetaDelModelo.path)")
 
     let modelos = try await almacen.cargar()
     let manager = AsrManager(config: .default)
@@ -104,12 +115,13 @@ struct MedicionDeMotoresTests {
   /// API. El número vive en la cabecera de `ParakeetEngine`.
   @Test(.enabled(if: MedicionDeMotoresTests.encendida))
   func cargaEnFrioDelModelo() async throws {
-    guard ParakeetModelStore.estaDescargado else {
-      print("CARGA: el modelo no está en disco; no se midió")
+    guard ParakeetModelStore.estaDescargado(Self.variante, en: Self.carpeta) else {
+      print("CARGA: \(Self.variante.nombre) no está en disco; no se midió")
       return
     }
 
-    let cargador = CargadorDeParakeet()
+    let variante = Self.variante
+    let cargador = CargadorDeParakeet(carpeta: Self.carpeta, elegida: { variante })
     let inicio = Date()
     let modelo = try await cargador.cargar()
     let frio = Date().timeIntervalSince(inicio)

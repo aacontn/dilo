@@ -37,7 +37,8 @@ struct InicioSettingsView: View {
       entrada.permisosQueFaltan = Set(Permiso.allCases.filter { permisos.estado(de: $0) == .falta })
     }
     entrada.motorElegido = settings.motorDeVoz
-    entrada.parakeetListo = descargas.listo
+    entrada.parakeetEnDisco = descargas.enDisco
+    entrada.varianteElegida = settings.varianteDeParakeet
     entrada.parakeetBajando = descargas.progreso != nil
     switch runtimeState.claves.estado(de: SettingsRuntimeState.cuentaDeAnthropic) {
     case .hay: entrada.hayClave = true
@@ -184,6 +185,12 @@ struct InicioSettingsView: View {
       estado.pedir(permiso)
     case let .ir(ajuste):
       runtimeState.filaPedida = ajuste
+    case let .bajar(variante):
+      // Baja ahí mismo; la barra y el «Cancelar» están en Motor de voz, y el
+      // aviso pasa a decir que se está bajando.
+      descargas.descargar(variante) { [settings] in
+        if variante == .recomendada { settings.varianteDeParakeet = nil }
+      }
     }
   }
 

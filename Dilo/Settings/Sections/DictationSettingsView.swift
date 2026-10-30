@@ -37,6 +37,49 @@ struct DictationSettingsView: View {
           selection: $settings.insertionDestination
         )
         .anclaDeAjuste(.entregarElTexto)
+
+        // Las dos leen o aprietan en otra app: donde el anfitrión no puede,
+        // se esconden (`HostCapabilities`).
+        if AjusteID.mayusculaSegunElCursor.estaDisponible {
+          SettingsRow(
+            title: "Adaptar la mayúscula al cursor",
+            description: "A mitad de frase el dictado entra con minúscula y con un espacio; después de un punto, con mayúscula. Los nombres y Tus palabras se quedan como están. Mira los tres caracteres antes del cursor al empezar."
+          ) {
+            Toggle("Adaptar la mayúscula al cursor", isOn: $settings.mayusculaSegunElCursor)
+              .labelsHidden()
+              .toggleStyle(.switch)
+          }
+          .anclaDeAjuste(.mayusculaSegunElCursor)
+        }
+
+        if AjusteID.envioHablado.estaDisponible {
+          SettingsRow(
+            title: "Decir «envía» al final manda el mensaje",
+            description: "Termina con «envía», «envíalo» o «mándalo», después de un punto o una pausa, y Dilo aprieta ↩ tras pegar. Nunca en una terminal, en un campo de contraseña ni si no supo que el texto entró. «Literal envía» la escribe."
+          ) {
+            Toggle("Decir «envía» al final manda el mensaje", isOn: $settings.envioHablado)
+              .labelsHidden()
+              .toggleStyle(.switch)
+          }
+          .anclaDeAjuste(.envioHablado)
+
+          if settings.envioHablado {
+            SettingsRow(
+              title: "Las frases que mandan",
+              description: "Separadas por comas. Vacío vuelve a las de fábrica."
+            ) {
+              TextField(
+                "envía, envíalo, mándalo",
+                text: Binding(
+                  get: { settings.frasesDeEnvio.joined(separator: ", ") },
+                  set: { settings.frasesDeEnvio = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
+                )
+              )
+              .textFieldStyle(.roundedBorder)
+              .frame(width: 200)
+            }
+          }
+        }
       }
 
       SettingsCard(title: "Historial") {

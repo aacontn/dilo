@@ -16,6 +16,8 @@ struct MotorSettingsView: View {
     VStack(spacing: 16) {
       SelectorDeMotor(settings: settings)
 
+      TusPalabrasEnParakeet(settings: settings)
+
       SettingsCard(title: "La memoria") {
         SettingsPickerRow(
           title: "Soltar el modelo de la RAM",
@@ -42,12 +44,23 @@ struct SelectorDeMotor: View {
 
   @State private var descargas = DescargaDeParakeet.compartida
 
-  /// Qué motor está elegido y cuál va a dictar de verdad. Son distintos
-  /// mientras Parakeet esté elegido sin su modelo en disco, y ésa es
-  /// justamente la confusión que Alfonso reportó el 2026-09-22: no podía
-  /// saber con cuál estaba dictando.
+  /// Qué motor está elegido, cuál va a dictar de verdad y, si es Parakeet,
+  /// cuál de los dos modelos. Elegido y en uso son distintos mientras
+  /// Parakeet esté elegido sin ningún modelo en disco, y ésa es justamente la
+  /// confusión que Alfonso reportó el 2026-09-22: no podía saber con cuál
+  /// estaba dictando.
   private var seleccion: EngineSelection {
-    EngineResolver.resolver(elegido: settings.motorDeVoz, parakeetDescargado: descargas.listo)
+    EngineResolver.resolver(
+      elegido: settings.motorDeVoz,
+      parakeetEnDisco: descargas.enDisco,
+      varianteElegida: settings.varianteDeParakeet
+    )
+  }
+
+  /// La variante que dictaría si el motor es Parakeet, aunque hoy esté
+  /// elegido Apple: es la que la tarjeta del modelo marca.
+  private var varianteEnUso: VarianteDeParakeet? {
+    ResolucionDeParakeet.enUso(enDisco: descargas.enDisco, elegida: settings.varianteDeParakeet)
   }
 
   var body: some View {
@@ -67,11 +80,10 @@ struct SelectorDeMotor: View {
       .anclaDeAjuste(.motorDeVoz)
 
       SettingsCard(title: "El modelo de Parakeet") {
-        SettingsRow(
-          title: "\(descargas.titulo)",
-          description: "\(descargas.detalle)"
-        ) {
-          control
+        // Ultra arriba: es la que se recomienda, y la que una instalación
+        // nueva ve primero.
+        ForEach([VarianteDeParakeet.ultra, .v3], id: \.self) { variante in
+          filaDelModelo(variante)
         }
 
         if let avance = descargas.progreso {
@@ -79,16 +91,30 @@ struct SelectorDeMotor: View {
             ProgressView(value: avance.fraccion)
               .progressViewStyle(.linear)
               .tint(SettingsTheme.accent)
-            Text(avance.fase)
+            Text(verbatim: avance.fase)
               .font(.caption)
               .foregroundStyle(.white.opacity(0.48))
           }
           .padding(.vertical, 12)
         }
 
-        if let error = descargas.error {
+        if let error = descargas.error, let fallida = descargas.fallida {
           SettingsRow(title: "No se pudo descargar", description: "\(error)") {
-            Button("Reintentar") { descargas.descargar() }
+            Button("Reintentar") { bajar(fallida) }
+              .buttonStyle(SettingsButtonStyle())
+          }
+        }
+
+        // Ultra terminó de bajar y v3 quedó sobrando: se ofrece, nunca se
+        // borra solo.
+        if let sobra = ResolucionDeParakeet.paraBorrar(enDisco: descargas.enDisco, enUso: varianteEnUso),
+          let enUso = varianteEnUso
+        {
+          SettingsRow(
+            title: "Ya dictas con \(enUso.nombre)",
+            description: "\(String(localized: "\(sobra.nombre) ocupa \(descargas.megas(de: sobra)) MB y ya no se usa. Va a la Papelera: si quieres volver, lo sacas de ahí."))"
+          ) {
+            Button("Mandar \(sobra.nombre) a la Papelera") { descargas.moverALaPapelera(sobra) }
               .buttonStyle(SettingsButtonStyle())
           }
         }
@@ -97,24 +123,68 @@ struct SelectorDeMotor: View {
 
       if settings.motorDeVoz == .parakeet, !descargas.listo, descargas.progreso == nil {
         AvisoDeDilo(
-          texto: "Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar."
+          texto: String(localized: "Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar.")
         )
       }
     }
     .task { descargas.refrescar() }
   }
 
-  @ViewBuilder
-  private var control: some View {
-    if descargas.progreso != nil {
-      Button("Cancelar") { descargas.cancelar() }
-        .buttonStyle(SettingsButtonStyle())
-    } else if descargas.listo {
-      Button("Borrar") { descargas.borrar() }
-        .buttonStyle(SettingsButtonStyle())
-    } else {
-      Button("Descargar") { descargas.descargar() }
-        .buttonStyle(SettingsButtonStyle())
+  /// Una fila por variante: qué es, si está y cuánto ocupa, si dicta, y qué
+  /// se puede hacer con ella.
+  private func filaDelModelo(_ variante: VarianteDeParakeet) -> some View {
+    let enDisco = descargas.enDisco.contains(variante)
+    let bajandoEsta = descargas.bajando == variante
+    let dicta = enDisco && varianteEnUso == variante
+    return SettingsRow(
+      title: "\(variante.nombre)",
+      description: "\(detalle(de: variante, enDisco: enDisco, bajando: bajandoEsta, dicta: dicta))"
+    ) {
+      HStack(spacing: 8) {
+        if bajandoEsta {
+          Button("Cancelar") { descargas.cancelar() }
+            .buttonStyle(SettingsButtonStyle())
+        } else if enDisco {
+          if !dicta {
+            Button("Usar este") { settings.varianteDeParakeet = variante }
+              .buttonStyle(SettingsButtonStyle())
+          }
+          Button("A la Papelera") { descargas.moverALaPapelera(variante) }
+            .buttonStyle(SettingsButtonStyle())
+        } else {
+          Button(variante == .recomendada ? "Bajar \(variante.nombre)" : "Descargar") { bajar(variante) }
+            .buttonStyle(SettingsButtonStyle())
+            .disabled(descargas.bajando != nil)
+        }
+      }
+    }
+  }
+
+  private func detalle(
+    de variante: VarianteDeParakeet, enDisco: Bool, bajando: Bool, dicta: Bool
+  ) -> String {
+    if bajando {
+      return String(localized: "Puedes cancelar cuando quieras; lo bajado se borra.")
+    }
+    if enDisco {
+      let megas = descargas.megas(de: variante)
+      return dicta
+        ? String(localized: "Dicta con este. Ocupa \(megas) MB; borrarlo no borra nada de lo que dictaste.")
+        : String(localized: "Está en esta compu (\(megas) MB), pero no dicta.")
+    }
+    switch variante {
+    case .ultra:
+      return String(localized: "Recomendado: se equivoca menos que v3 y es igual de rápido. Son \(variante.megasDeDescarga) MB y se bajan una sola vez.")
+    case .v3:
+      return String(localized: "El modelo de antes. Son \(variante.megasDeDescarga) MB y se bajan una sola vez.")
+    }
+  }
+
+  /// Bajar una variante. Si es la recomendada, al terminar se deja de fijar
+  /// otra a mano: «al terminar la descarga, pasa a Ultra».
+  private func bajar(_ variante: VarianteDeParakeet) {
+    descargas.descargar(variante) { [settings] in
+      if variante == .recomendada { settings.varianteDeParakeet = nil }
     }
   }
 }
@@ -247,88 +317,210 @@ private struct EtiquetaDeOrigen: View {
 }
 
 
-/// El estado de la descarga del modelo.
+/// El estado de los modelos de Parakeet en disco y de la descarga en curso.
 ///
 /// Es compartido y no de la vista porque cambiar de sección en Ajustes
-/// reemplaza la vista entera, y una descarga de 469 MB no se puede morir
-/// porque alguien fue a mirar los sonidos. Es el mismo problema que el árbol de
-/// origen resolvió sacando la instalación de los modelos de traducción fuera de su
-/// vista.
+/// reemplaza la vista entera, y una descarga de cientos de megas no se puede
+/// morir porque alguien fue a mirar los sonidos. Es el mismo problema que el
+/// árbol de origen resolvió sacando la instalación de los modelos de
+/// traducción fuera de su vista. Inicio y Motor de voz miran este mismo
+/// objeto. Se baja una variante a la vez.
 @MainActor
 @Observable
 final class DescargaDeParakeet {
   static let compartida = DescargaDeParakeet()
 
-  private let almacen = ParakeetModelStore()
+  private let almacenes: [VarianteDeParakeet: ParakeetModelStore] = Dictionary(
+    uniqueKeysWithValues: VarianteDeParakeet.allCases.map { ($0, ParakeetModelStore(variante: $0)) }
+  )
 
-  private(set) var listo = ParakeetModelStore.estaDescargado
-  private(set) var tamano: Int64 = 0
+  private(set) var enDisco = ParakeetModelStore.enDisco()
+  private(set) var tamanos: [VarianteDeParakeet: Int64] = [:]
+  private(set) var bajando: VarianteDeParakeet?
   private(set) var progreso: ProgresoDeDescarga?
   private(set) var error: String?
+  /// La variante cuya descarga falló, para «Reintentar».
+  private(set) var fallida: VarianteDeParakeet?
 
-  var titulo: String {
-    if progreso != nil { return "Descargando el modelo" }
-    return listo ? "El modelo está listo" : "Descargar el modelo"
-  }
+  /// Si hay algún Parakeet para dictar.
+  var listo: Bool { !enDisco.isEmpty }
 
-  var detalle: String {
-    if progreso != nil {
-      return "Puedes cancelar cuando quieras; lo bajado se borra."
-    }
-    if listo {
-      let mb = Double(tamano) / 1_048_576
-      return "Ocupa \(String(format: "%.0f", mb)) MB en esta compu. Borrarlo no borra nada de lo que dictaste."
-    }
-    return "Son 469 MB y se bajan una sola vez. Después dictas sin internet para siempre."
+  /// Lo que ocupa en disco, o lo que se baja si todavía no se midió.
+  func megas(de variante: VarianteDeParakeet) -> Int {
+    guard let bytes = tamanos[variante], bytes > 0 else { return variante.megasDeDescarga }
+    return Int((Double(bytes) / 1_048_576).rounded())
   }
 
   /// Mirar el disco, fuera del hilo principal: medir el modelo recorre cada
   /// archivo de sus `.mlmodelc`, y Ajustes lo hacía al aparecer Motor.
   func refrescar() {
     Task {
-      let (listo, tamano) = await Task.detached(priority: .userInitiated) {
-        let listo = ParakeetModelStore.estaDescargado
-        return (listo, listo ? ParakeetModelStore.tamanoEnDisco : 0)
+      let (enDisco, tamanos) = await Task.detached(priority: .userInitiated) {
+        let enDisco = ParakeetModelStore.enDisco()
+        var tamanos: [VarianteDeParakeet: Int64] = [:]
+        for variante in enDisco { tamanos[variante] = ParakeetModelStore.tamanoEnDisco(variante) }
+        return (enDisco, tamanos)
       }.value
-      self.listo = listo
-      self.tamano = tamano
+      self.enDisco = enDisco
+      self.tamanos = tamanos
     }
   }
 
-  func descargar() {
-    guard progreso == nil else { return }
+  func descargar(_ variante: VarianteDeParakeet, alTerminar: @escaping @MainActor () -> Void = {}) {
+    guard progreso == nil, let almacen = almacenes[variante] else { return }
     error = nil
-    progreso = ProgresoDeDescarga(fraccion: 0, fase: "Viendo qué falta…")
+    fallida = nil
+    bajando = variante
+    progreso = ProgresoDeDescarga(fraccion: 0, fase: String(localized: "Viendo qué falta…"))
 
     Task {
       do {
         try await almacen.descargar { avance in
           Task { @MainActor in self.progreso = avance }
         }
-        progreso = nil
-        refrescar()
+        terminar()
+        alTerminar()
       } catch is CancellationError {
-        progreso = nil
-        refrescar()
+        terminar()
       } catch {
-        progreso = nil
+        terminar()
+        fallida = variante
         self.error = error.localizedDescription
-        refrescar()
       }
     }
   }
 
   func cancelar() {
+    guard let bajando, let almacen = almacenes[bajando] else { return }
     Task {
       await almacen.cancelarDescarga()
-      progreso = nil
+      terminar()
+    }
+  }
+
+  func moverALaPapelera(_ variante: VarianteDeParakeet) {
+    guard let almacen = almacenes[variante] else { return }
+    Task {
+      do {
+        try await almacen.moverALaPapelera()
+      } catch {
+        self.error = error.localizedDescription
+      }
       refrescar()
     }
   }
 
-  func borrar() {
+  private func terminar() {
+    progreso = nil
+    bajando = nil
+    refrescar()
+  }
+}
+
+/// La segunda pasada de **Tus palabras** en Parakeet: un CTC chico busca tus
+/// términos en el audio y los escribe bien donde el motor los oyó mal.
+///
+/// El interruptor no hace nada hasta que el CTC está en disco, y por eso se
+/// muestra apagado y sin tocar mientras falta. Aun con el CTC, viene apagado
+/// (`PreferenciaDeTusPalabrasEnParakeet.deFabrica`, con la medición).
+/// El CTC vive en la carpeta de FluidAudio (`ModeloDeTusPalabras`) y tiene su
+/// propio «A la Papelera».
+struct TusPalabrasEnParakeet: View {
+  @Bindable var settings: AppSettings
+  @State private var ctc = DescargaDeTusPalabras.compartida
+
+  var body: some View {
+    SettingsCard(title: "Tus palabras en Parakeet") {
+      SettingsRow(
+        title: "Buscar Tus palabras en el audio",
+        description: "Una segunda pasada busca tus nombres y términos en lo que dijiste y los escribe como están en Tus palabras. Es de prueba: suma unos 250 ms al soltar y en español todavía cambia palabras que no son tuyas, por eso viene apagada."
+      ) {
+        Toggle(
+          "Buscar Tus palabras en el audio",
+          isOn: Binding(
+            get: { ctc.listo && settings.tusPalabrasEnParakeet },
+            set: { settings.tusPalabrasEnParakeet = $0 }
+          )
+        )
+        .labelsHidden()
+        .toggleStyle(.switch)
+        .disabled(!ctc.listo)
+      }
+      .anclaDeAjuste(.tusPalabrasEnParakeet)
+
+      SettingsRow(
+        title: "El modelo de Tus palabras",
+        description: "\(ctc.detalle)"
+      ) {
+        if ctc.bajando {
+          ProgressView().controlSize(.small)
+        } else if ctc.listo {
+          Button("A la Papelera") { ctc.moverALaPapelera() }
+            .buttonStyle(SettingsButtonStyle())
+        } else {
+          Button("Bajar") { ctc.descargar() }
+            .buttonStyle(SettingsButtonStyle())
+        }
+      }
+
+      if let error = ctc.error {
+        SettingsRow(title: "No se pudo descargar", description: "\(error)") {
+          Button("Reintentar") { ctc.descargar() }
+            .buttonStyle(SettingsButtonStyle())
+        }
+      }
+    }
+    .task { ctc.refrescar() }
+  }
+}
+
+/// El CTC de Tus palabras en disco y su descarga. Compartido por lo mismo que
+/// `DescargaDeParakeet`: cambiar de sección no puede matar una descarga.
+@MainActor
+@Observable
+final class DescargaDeTusPalabras {
+  static let compartida = DescargaDeTusPalabras()
+
+  private let modelo = ModeloDeTusPalabras()
+  private(set) var listo = ModeloDeTusPalabras.estaDescargado
+  private(set) var bajando = false
+  private(set) var error: String?
+
+  var detalle: String {
+    if bajando { return String(localized: "Bajando… son unos \(ModeloDeTusPalabras.megasDeDescarga) MB.") }
+    if listo { return String(localized: "Está en esta compu. Se carga junto con Parakeet cuando dictas.") }
+    return String(localized: "Son \(ModeloDeTusPalabras.megasDeDescarga) MB y se bajan una sola vez. Hasta entonces, Tus palabras se corrigen después del motor, como siempre.")
+  }
+
+  func refrescar() {
     Task {
-      try? await almacen.borrar()
+      listo = await Task.detached(priority: .userInitiated) { ModeloDeTusPalabras.estaDescargado }.value
+    }
+  }
+
+  func descargar() {
+    guard !bajando else { return }
+    bajando = true
+    error = nil
+    Task {
+      do {
+        try await modelo.descargar()
+      } catch is CancellationError {
+      } catch {
+        self.error = error.localizedDescription
+      }
+      bajando = false
+      refrescar()
+    }
+  }
+
+  func moverALaPapelera() {
+    Task {
+      do {
+        try await modelo.moverALaPapelera()
+      } catch {
+        self.error = error.localizedDescription
+      }
       refrescar()
     }
   }

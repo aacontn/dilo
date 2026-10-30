@@ -965,8 +965,12 @@ final class DirectDictationController {
         // uno y algún modo tiene sitios.
         sitioParaElegirModo: activeSlot.modoID == nil && settings.unAtajoDiloDecide
           && settings.modos.contains { !$0.sitios.isEmpty },
+        leerAntesDelCursor: settings.mayusculaSegunElCursor,
         lectores: dependencies.lectoresDeContexto
       )
+      // El corrector se despierta mientras la persona habla: consultarlo al
+      // soltar tiene que costar un milisegundo, no un tercio de segundo.
+      if settings.mayusculaSegunElCursor { dependencies.calentarCorrector() }
       send(.beginApproved)
       return
     }
@@ -1270,8 +1274,14 @@ final class DirectDictationController {
         // antes de que nadie más lo toque — espacios, muletillas y tus
         // palabras, en ese orden. Las preferencias son las que la sesión
         // capturó al empezar.
-        let limpio = DiloText.limpiar(crudo, con: session.textoPreferencias)
+        let reglas = DiloText.limpiar(crudo, con: session.textoPreferencias)
         relojDeFases.marcar(.limpio)
+        // «…nos vemos mañana. Envía.»: la frase se va acá, al final de las
+        // reglas, y no llega al modo ni a la traducción. Si de verdad se
+        // manda lo decide `PoliticaDelEnvio` después de pegar.
+        let (limpio, pidioEnviar) = session.frasesDeEnvio.map {
+          EnvioHablado.analizar(reglas, frases: $0)
+        } ?? (reglas, false)
 
         // Qué modo aplica. La tecla siempre gana; las reglas sólo opinan
         // cuando nadie eligió y la persona lo pidió (spec §7). Una frase
@@ -1401,6 +1411,18 @@ final class DirectDictationController {
           return
         }
 
+        // Lo último antes de pegar: la mayúscula y el espacio según lo que
+        // había antes del cursor al empezar. Sólo si se va a pegar, y sólo si
+        // la lectura llegó: sin ella no se toca nada.
+        if session.ajustarAlCursor, session.insertionDestination != .clipboardOnly {
+          text = AjusteAlCursor.ajustar(
+            text,
+            antesDelCursor: contexto.antesDelCursor,
+            tusPalabras: Set(session.textoPreferencias.palabrasPropias),
+            esPalabraComun: dependencies.esPalabraComun
+          )
+        }
+
         let entrega = await dependencies.insertText(
           text, focusedTarget, session.insertionDestination
         )
@@ -1410,6 +1432,24 @@ final class DirectDictationController {
           "session ended: \(entrega.nombreEnElLog, privacy: .public), \(UsageMetrics.wordCount(in: spoken), privacy: .public) words in \(speakingDuration, format: .fixed(precision: 1), privacy: .public)s"
         )
         if entrega.llego { dependencies.playPasteSound() }
+        // El ↩ de «envía», antes de soltar la sesión: el foco que se usa es
+        // el de este dictado, y `sessionEnded` lo deja en nil.
+        let envio = PoliticaDelEnvio.decidir(
+          pidio: pidioEnviar,
+          entrega: entrega,
+          textoVacio: text.isEmpty,
+          clase: ClaseDeDestino.de(bundleID: focusedTarget?.bundleID),
+          campoSeguro: focusedTarget?.isSecure ?? true,
+          modoSinTerminar: avisoDelModo != nil,
+          admitePegadoDirecto: Anfitrion.actual.admite(.pegadoDirecto)
+            && session.insertionDestination != .clipboardOnly
+        )
+        var avisoDelEnvio = envio.aviso
+        if envio == .enviar {
+          let mandado = await dependencies.pulsarIntro(focusedTarget)
+          AppLog.delivery.info("envía: \(mandado ? "mandado" : "no mandado: teclas apretadas", privacy: .public)")
+          if !mandado { avisoDelEnvio = PoliticaDelEnvio.avisoConTeclasApretadas }
+        }
         send(.sessionEnded)
         // Qué se acusa y qué se dice lo decide `ResultadoDelNotch.tras`. Lo
         // que no se pegó manda sobre el aviso del modo: las palabras sin
@@ -1432,7 +1472,7 @@ final class DirectDictationController {
         // Uno solo cabe. Que tradujo Apple va primero: es sobre el idioma
         // que acaba de aterrizar en el documento.
         if resultado.esAcuse || resultado == .copiado,
-          let aviso = avisoDeLaTraduccion ?? avisoDelModo
+          let aviso = avisoDelEnvio ?? avisoDeLaTraduccion ?? avisoDelModo
         {
           dependencies.showMessage("\(aviso)", nil)
         }

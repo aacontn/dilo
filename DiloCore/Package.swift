@@ -29,6 +29,10 @@ let package = Package(
     // compilado. Es de taller, no de producto: `scripts/metrics.sh` la
     // construye y la corre, y la app no la enlaza.
     .executable(name: "dilo-metrics", targets: ["dilo-metrics"]),
+    // El banco que compara Parakeet v3, Ultra y Nemotron sobre dictados
+    // reales: tiempo por archivo y WER contra un `.txt` al lado. También de
+    // taller: `scripts/comparar-motores.sh` lo construye y la app no lo enlaza.
+    .executable(name: "dilo-comparar-motores", targets: ["dilo-comparar-motores"]),
   ],
   dependencies: [
     // Parakeet TDT v3 y Ultra (int8) en Core ML. Apache 2.0. Se fija por
@@ -64,6 +68,14 @@ let package = Package(
     ),
     .target(name: "DiloMetrics"),
     .executableTarget(name: "dilo-metrics", dependencies: ["DiloMetrics"]),
+    .executableTarget(
+      name: "dilo-comparar-motores",
+      dependencies: [
+        "DiloEngines",
+        "DiloMetrics",
+        .product(name: "FluidAudio", package: "FluidAudio"),
+      ]
+    ),
     .testTarget(name: "DiloTextTests", dependencies: ["DiloText"]),
     .testTarget(name: "DiloModesTests", dependencies: ["DiloModes"]),
     .testTarget(name: "DiloConsumoTests", dependencies: ["DiloConsumo"]),

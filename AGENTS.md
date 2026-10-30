@@ -119,6 +119,23 @@ Distingue propuesta, implementación y deuda pendiente.
   —con el gatillo F19 cada dictado esperaba 2 s y caía en la tarjeta—. Para
   teclear sí estorba, mirada por su tecla y no por el bit. Cuando la
   compuerta se rinde, el log de `delivery` dice a nivel notice qué vio.
+- **«envía» al final aprieta ↩, y sólo cuando es seguro** (2026-10-29,
+  apagado de fábrica: `diloEnvioHablado`, frases en `diloFrasesDeEnvio`).
+  `EnvioHablado` (puro, `DiloText`) saca la frase al final de las reglas,
+  antes del modo, y sólo si va al final y apartada por un signo: en español
+  «envía» es un verbo. Si se aprieta ↩ lo decide `PoliticaDelEnvio`
+  (`DiloCapabilities`): el pegado confirmado, nunca en una terminal, un
+  campo seguro, «sólo copiar» o un modo que no terminó. El ↩ sale de
+  `AtajoSimulado.pulsacionesDeIntro`, que no existe con un modificador
+  apretado: `EnvioDelMensaje` espera 2 s a que lo suelten y si no, no manda
+  y lo dice.
+- **La mayúscula puede seguir al cursor** (`diloMayusculaSegunElCursor`,
+  apagado de fábrica hasta probarlo en apps reales). `CapturaDeContexto` lee
+  tres caracteres antes del cursor al empezar —sin rango en el ancla, nada—
+  y `AjusteAlCursor` (puro) pone minúscula y espacio a mitad de frase y
+  mayúscula tras un punto. Qué es un nombre lo dice el corrector en español
+  (`CorrectorEnEspanol`), que se calienta al empezar: su primera consulta
+  tarda ~300 ms y frío no baja nada.
 - **Dos trozos de dictado se pegan en un solo lugar: `DiloText.Union`.**
   Ningún motor, ni el HUD, ni el controlador juntan texto con `+`. Cada trozo
   llega recortado y sin saber qué vino antes, así que el espacio lo pone quien
@@ -136,6 +153,41 @@ Distingue propuesta, implementación y deuda pendiente.
   toma en RAM diez minutos, se dice en la muesca y se reintenta desde el panel
   de la barra. Los umbrales son de Ocelli e imnot, sin medir todavía en
   español: son constantes con nombre, y se calibran ahí.
+- **Parakeet tiene dos modelos, y nada se baja solo** (2026-10-29,
+  FluidAudio 0.18). `VarianteDeParakeet` es v3 (469 MB, la de siempre) o
+  Ultra (615 MB, la recomendada: mismo tokenizer, idiomas y contrato, menos
+  WER en FLEURS a la misma velocidad); para el resto de la app son el mismo
+  **Motor de voz** y `speechEngine` sigue guardando `parakeet`. Cuál dicta lo
+  decide `ResolucionDeParakeet` (puro) con lo que hay en disco y
+  `diloVarianteDeParakeet` («Usar este», vacío de fábrica): lo elegido si está,
+  si no Ultra, si no v3, si no Apple con aviso. Quien tiene v3 sigue con v3 y
+  Motor de voz e Inicio le ofrecen «Bajar Parakeet Ultra» con su tamaño; al
+  terminar dicta Ultra y Motor de voz ofrece mandar v3 a la Papelera. **Un
+  modelo nunca se borra definitivo**: `moverALaPapelera`; sólo lo bajado a
+  medias se borra. El motor compara la `firma` del modelo en la RAM con la del
+  cargador al empezar cada dictado y lo suelta si cambió: nunca a media
+  frase. La costura (`CosturaDeTrozos`) y los parciales valen igual con Ultra
+  (mismo tokenizer y ventana). El historial y las latencias guardan el nombre
+  con la variante («Parakeet Ultra»). Comparar con dictados propios:
+  `scripts/comparar-motores.sh` (ver «Cómo se compila y se prueba»).
+- **FluidAudio no escribe lo dicho en ningún lado.** Anota en debug e info el
+  texto que transcribe y en Debug lo espeja a la consola; `AppDelegate.main()`
+  llama a `RegistroDeFluidAudio.callar()` antes de crear un motor (sólo
+  advertencias o peor, nada a la consola). Las herramientas de taller que
+  cargan modelos lo llaman también.
+- **Tus palabras en Parakeet existe y viene apagada, por medición**
+  (`RefuerzoDeTusPalabras`, la deuda 2). Una segunda pasada con el CTC
+  parakeet-ctc-110m de FluidAudio (`VocabularyBoostingSession`) busca los
+  términos en el audio de la pasada final; Dilo aplica **sólo los reemplazos**
+  sobre el texto ya cosido (`ReemplazosDeVocabulario`), nunca el texto que
+  rearma FluidAudio, y no corre encima de un parcial. El CTC (99 MB) se baja a
+  pedido en Motor de voz y vive en la carpeta de FluidAudio, no en la de Dilo:
+  la sesión lee el tokenizer de `CtcModels.defaultCacheDirectory`. Medido el
+  2026-10-29 en el M1: +225 ms de mediana al soltar con Ultra (se pasa de los
+  300) y, siendo un CTC inglés, cambió palabras comunes por términos («mañana»
+  → «Martina»): el WER subió de 9,2 % a 16,3 %. Por eso
+  `diloTusPalabrasEnParakeet` viene en `false`; cambiarlo pide medir de nuevo
+  con `--tus-palabras`.
 - **El contexto de la app es material de consulta, vive en RAM y no sale del
   Mac sin permiso.** Al empezar un dictado `CapturaDeContexto` lee, en
   paralelo con el micrófono y sin que nadie lo espere al soltar, la app y su
@@ -235,10 +287,10 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | Módulo | Qué contiene | Tarea |
 | --- | --- | --- |
 | `DiloText` | unión de trozos, muletillas del español, diccionario personal, notas de versión, filtro de artefactos, frases fantasma, bucles, validador de la limpieza, números hablados, comandos de formato, reemplazos; el aprendizaje de correcciones y, con Claude, la revisión y el orden del diccionario (prompts, lectura, qué es seguro, deshacer, cuándo ordenar); la búsqueda de Ajustes (`BusquedaDeAjustes`) | 5, 9 |
-| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
+| `DiloEngines` | `SpeechEngine` + Apple + Parakeet (FluidAudio; v3 y Ultra, qué variante dicta, la segunda pasada de Tus palabras, el log callado), toma en RAM, recorte de bordes, revisión de la toma, micrófono muerto, plan de micrófono y lectura de la HAL, vigencia del motor tibio, guardia de reconstrucciones del motor de audio | 3 |
 | `DiloModes` | `Mode`, `Provider`, `Decider` por reglas; los modelos de Anthropic, la traducción con Claude (prompt, request, fallas, quién traduce) y la consulta con forma que usa el aprendizaje (`ConsultaAClaude`); las claves como las ve Ajustes (`ClavesDeLosProveedores`), «Probar conexión» (`PruebaDeConexion`) y los costos de referencia (`CostosDeClaude`) | 4 |
 | `DiloCapabilities` | `HostCapabilities` completa y sandbox, `Permiso`, las reglas puras del pegado (ancla del foco, compuertas, entrega, veredicto del campo, tecleo) | 2, 9 |
-| `DiloMetrics` | reposo, arranque, latencia soltar→texto | 7 (la app **no** lo enlaza: es taller) |
+| `DiloMetrics` | reposo, arranque, latencia soltar→texto, el WER del banco de motores | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque` | fase 5 |
 | `DiloPlataforma` | el URL scheme (`EnlaceDeDilo`), los agentes que avisan por su *hook* (`EventoDeAgente`, `RegistroDeAgentes`), las líneas para pegar en cada agente (`LineasDeLosHooks`) y el aviso de «Mostrar en la muesca» (`AvisoDeAfuera`) | fase 5 |
 
@@ -1212,7 +1264,18 @@ xcodebuild -project Dilo.xcodeproj -scheme Dilo \
 # descarga.
 ./scripts/metrics.sh /ruta/Debug/Dilo.app --tamano-de /ruta/Release/Dilo.app
 ./scripts/metrics.sh /ruta/Release/Dilo.app --sin-latencia   # sin el gancho Debug
+
+# Parakeet v3 contra Ultra (y Nemotron, sólo para medir) sobre una carpeta de
+# WAV, con el WER contra el .txt de al lado y el tiempo por archivo. Sin
+# ventanas; lee los modelos de la app o de --modelos.
+./scripts/comparar-motores.sh /ruta/a/dictados --motores v3,ultra
 ```
+
+`scripts/comparar-motores.sh` construye `dilo-comparar-motores` (otro
+ejecutable de taller del paquete, como `dilo-metrics`) y transcribe con
+`ParakeetEngine.transcribirSinSesion`, el mismo camino del reintento de la
+app. Bark 3.0 no entra: es sólo inglés. Las tildes cuentan en el WER
+(`ErrorDePalabras`); mayúsculas y puntuación, no.
 
 `scripts/metrics.sh` deja el reporte en `docs/metricas/ultima-medicion.json`
 —que **se versiona**, porque `swift test` lo lee y falla si un número se

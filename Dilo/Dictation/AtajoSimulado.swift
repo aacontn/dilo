@@ -110,6 +110,21 @@ enum AtajoSimulado {
     }
   }
 
+  /// ↩ solo, para mandar el mensaje cuando el dictado terminó con «envía».
+  ///
+  /// **Nil si la persona sostiene cualquier modificador**: ⇧↩ es un salto de
+  /// línea, ⌘↩ manda distinto en media docena de apps y ⌥↩ hace otra cosa en
+  /// otra media docena. Dilo no los suelta por ella ni aprieta encima: espera
+  /// o no manda. Bloq Mayús no cuenta —es un estado— y viaja como está.
+  static func pulsacionesDeIntro(con apretadas: TeclasApretadas) -> [Pulsacion]? {
+    guard apretadas.modificadores.isEmpty else { return nil }
+    let bloq: CGEventFlags = apretadas.bloqMayus ? .maskAlphaShift : []
+    return [
+      Pulsacion(tecla: intro, abajo: true, modificadores: bloq),
+      Pulsacion(tecla: intro, abajo: false, modificadores: bloq),
+    ]
+  }
+
   /// La secuencia de ⌘ + `tecla`, respetando lo que la persona ya sostiene.
   ///
   /// El último evento lleva siempre exactamente `apretadas.bits`: así ningún

@@ -65,8 +65,9 @@ dice **LOCAL** o **EN LÍNEA**. _Evitar_: backend, la IA, la nube.
 
 **Motor de voz** ·
 Lo que convierte voz en texto detrás del contrato `SpeechEngine`: Apple
-(`SpeechTranscriber`, 0 MB) o Parakeet v3 (FluidAudio, se descarga a pedido).
-Nada del resto de la app sabe cuál corre. _Evitar_: modelo, Whisper, ASR.
+(`SpeechTranscriber`, 0 MB) o Parakeet (FluidAudio, se descarga a pedido, en
+dos variantes: v3 y Ultra, la recomendada). Nada del resto de la app sabe
+cuál corre. _Evitar_: modelo, Whisper, ASR.
 
 **Modelo de texto** ·
 El modelo del sistema que reescribe texto que ya existe. Distinto de un

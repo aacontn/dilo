@@ -23,6 +23,17 @@
         }
       }
     },
+    "%@ ocupa %lld MB y ya no se usa. Va a la Papelera: si quieres volver, lo sacas de ahí.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ takes up %2$lld MB and isn't used anymore. It goes to the Trash: if you want to go back, take it out of there."
+          }
+        }
+      }
+    },
     "%@ palabras dictadas": {
       "extractionState": "manual",
       "localizations": {
@@ -52,6 +63,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ words over the last 14 days"
+          }
+        }
+      }
+    },
+    "%@ se equivoca menos y es igual de rápido. Son %lld MB; mientras bajan, sigues dictando como hoy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ makes fewer mistakes and is just as fast. It's %2$lld MB; while it downloads, you keep dictating as usual."
+          }
+        }
+      }
+    },
+    "%@ se está bajando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is downloading"
           }
         }
       }
@@ -155,6 +188,17 @@
         }
       }
     },
+    "A la Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Trash"
+          }
+        }
+      }
+    },
     "A los costados de la muesca puedes tener a la vista cómo va el Mac. Al pasar el mouse, la muesca abre el detalle.": {
       "extractionState": "manual",
       "localizations": {
@@ -173,6 +217,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "On either side of the notch you can keep your AI usage and how your Mac is doing in view. Hover over it and the notch opens the details."
+          }
+        }
+      }
+    },
+    "A mitad de frase el dictado entra con minúscula y con un espacio; después de un punto, con mayúscula. Los nombres y Tus palabras se quedan como están. Mira los tres caracteres antes del cursor al empezar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mid-sentence, dictation comes in lowercase and with a space; after a period, capitalized. Names and Your words stay as they are. It looks at the three characters before the cursor when you start."
           }
         }
       }
@@ -217,6 +272,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Getting started: permissions and a test dictation"
+          }
+        }
+      }
+    },
+    "Adaptar la mayúscula al cursor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match capitalization to the cursor"
           }
         }
       }
@@ -804,6 +870,17 @@
         }
       }
     },
+    "Bajando… son unos %lld MB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading… about %lld MB."
+          }
+        }
+      }
+    },
     "Bajar": {
       "extractionState": "manual",
       "localizations": {
@@ -811,6 +888,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Download"
+          }
+        }
+      }
+    },
+    "Bajar %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download %@"
           }
         }
       }
@@ -987,6 +1075,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check Now"
+          }
+        }
+      }
+    },
+    "Buscar Tus palabras en el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Look for Your words in the audio"
           }
         }
       }
@@ -1519,6 +1618,17 @@
         }
       }
     },
+    "Decir «envía» al final manda el mensaje": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saying “envía” at the end sends the message"
+          }
+        }
+      }
+    },
     "Deja que Dilo lea con tu propia voz entrenada": {
       "extractionState": "manual",
       "localizations": {
@@ -1570,6 +1680,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Later"
+          }
+        }
+      }
+    },
+    "Dicta con este. Ocupa %lld MB; borrarlo no borra nada de lo que dictaste.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dictating with this one. It takes up %lld MB; deleting it doesn't delete anything you dictated."
           }
         }
       }
@@ -1768,6 +1889,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Where a transcript goes if you don't drag it out of the HUD"
+          }
+        }
+      }
+    },
+    "El modelo de antes. Son %lld MB y se bajan una sola vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The previous model. It's %lld MB, downloaded only once."
+          }
+        }
+      }
+    },
+    "El modelo de Tus palabras": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Your words model"
           }
         }
       }
@@ -2168,6 +2311,28 @@
         }
       }
     },
+    "enviar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "send"
+          }
+        }
+      }
+    },
+    "envía, envíalo, mándalo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "envía, envíalo, mándalo"
+          }
+        }
+      }
+    },
     "Error en los datos de Actividad: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -2256,6 +2421,17 @@
         }
       }
     },
+    "espacio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "space"
+          }
+        }
+      }
+    },
     "Español": {
       "extractionState": "manual",
       "localizations": {
@@ -2318,6 +2494,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "This fills up with your first finished dictation."
+          }
+        }
+      }
+    },
+    "Está en esta compu (%lld MB), pero no dicta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's on this Mac (%lld MB), but it isn't the one dictating."
+          }
+        }
+      }
+    },
+    "Está en esta compu. Se carga junto con Parakeet cuando dictas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's on this Mac. It loads along with Parakeet when you dictate."
           }
         }
       }
@@ -2461,6 +2659,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Edge Glow + Draft"
+          }
+        }
+      }
+    },
+    "Hay un Parakeet más preciso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's a more accurate Parakeet"
           }
         }
       }
@@ -2637,6 +2846,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Beside the file"
+          }
+        }
+      }
+    },
+    "Las frases que mandan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The phrases that send"
           }
         }
       }
@@ -3125,6 +3345,28 @@
         }
       }
     },
+    "mandar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "send"
+          }
+        }
+      }
+    },
+    "Mandar %@ a la Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move %@ to the Trash"
+          }
+        }
+      }
+    },
     "Mantener y tocar": {
       "extractionState": "manual",
       "localizations": {
@@ -3213,6 +3455,17 @@
         }
       }
     },
+    "mayúscula": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "uppercase"
+          }
+        }
+      }
+    },
     "Memoria": {
       "extractionState": "manual",
       "localizations": {
@@ -3235,6 +3488,17 @@
         }
       }
     },
+    "mensaje": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "message"
+          }
+        }
+      }
+    },
     "Micrófono → primer audio": {
       "extractionState": "manual",
       "localizations": {
@@ -3253,6 +3517,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Voice visual"
+          }
+        }
+      }
+    },
+    "Mientras no descargues el modelo, Dilo dicta con Apple. No te vas a quedar sin dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Until you download the model, Dilo dictates with Apple. You won't be left without dictation."
+          }
+        }
+      }
+    },
+    "minúscula": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lowercase"
           }
         }
       }
@@ -3572,6 +3858,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Didn't paste"
+          }
+        }
+      }
+    },
+    "No se pudo descargar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download"
           }
         }
       }
@@ -4016,6 +4313,17 @@
         }
       }
     },
+    "Puedes cancelar cuando quieras; lo bajado se borra.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can cancel anytime; whatever was downloaded gets deleted."
+          }
+        }
+      }
+    },
     "Puedes seguir usando el otro idioma mientras tanto.": {
       "extractionState": "manual",
       "localizations": {
@@ -4221,6 +4529,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Longest streak · %@"
+          }
+        }
+      }
+    },
+    "Recomendado: se equivoca menos que v3 y es igual de rápido. Son %lld MB y se bajan una sola vez.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended: it makes fewer mistakes than v3 and is just as fast. It's %lld MB, downloaded only once."
           }
         }
       }
@@ -4489,6 +4808,17 @@
         }
       }
     },
+    "Separadas por comas. Vacío vuelve a las de fábrica.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separated by commas. Empty goes back to the defaults."
+          }
+        }
+      }
+    },
     "Si el texto se pasa de largo": {
       "extractionState": "manual",
       "localizations": {
@@ -4654,6 +4984,28 @@
         }
       }
     },
+    "Son %lld MB y se bajan una sola vez. Hasta entonces, Tus palabras se corrigen después del motor, como siempre.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's %lld MB, downloaded only once. Until then, Your words are fixed after the engine, as always."
+          }
+        }
+      }
+    },
+    "Son %lld MB. Mientras tanto dicta Apple: no te vas a quedar sin dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's %lld MB. Meanwhile Apple dictates: you won't be left without dictation."
+          }
+        }
+      }
+    },
     "Sólo limpiar": {
       "extractionState": "manual",
       "localizations": {
@@ -4804,6 +5156,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bindings"
+          }
+        }
+      }
+    },
+    "Termina con «envía», «envíalo» o «mándalo», después de un punto o una pausa, y Dilo aprieta ↩ tras pegar. Nunca en una terminal, en un campo de contraseña ni si no supo que el texto entró. «Literal envía» la escribe.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End with “envía”, “envíalo” or “mándalo” after a period or a pause, and Dilo presses ↩ after pasting. Never in a terminal, in a password field, or if it couldn't tell the text went in. “Literal envía” types the word."
           }
         }
       }
@@ -5177,6 +5540,17 @@
         }
       }
     },
+    "Tus palabras en Parakeet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words in Parakeet"
+          }
+        }
+      }
+    },
     "Tus palabras y las muletillas": {
       "extractionState": "manual",
       "localizations": {
@@ -5228,6 +5602,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "A little"
+          }
+        }
+      }
+    },
+    "Una segunda pasada busca tus nombres y términos en lo que dijiste y los escribe como están en Tus palabras. Es de prueba: suma unos 250 ms al soltar y en español todavía cambia palabras que no son tuyas, por eso viene apagada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A second pass looks for your names and terms in what you said and writes them as they are in Your words. It's experimental: it adds about 250 ms after you let go and, in Spanish, it still changes words that aren't yours, so it comes off."
           }
         }
       }
@@ -5331,6 +5716,17 @@
         }
       }
     },
+    "Usar este": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this one"
+          }
+        }
+      }
+    },
     "Va al modelo como instrucción. Una o dos frases claras funcionan mejor que una lista de reglas.": {
       "extractionState": "manual",
       "localizations": {
@@ -5397,6 +5793,17 @@
         }
       }
     },
+    "Viendo qué falta…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking what's missing…"
+          }
+        }
+      }
+    },
     "Volumen": {
       "extractionState": "manual",
       "localizations": {
@@ -5437,6 +5844,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read Aloud voice"
+          }
+        }
+      }
+    },
+    "Ya dictas con %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're already dictating with %@"
           }
         }
       }

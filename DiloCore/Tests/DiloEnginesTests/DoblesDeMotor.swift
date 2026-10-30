@@ -46,9 +46,11 @@ actor ModeloFalso: ModeloDeVoz {
   private let texto: String
   private(set) var liberaciones = 0
   private(set) var reinicios = 0
+  nonisolated let firma: String
 
-  init(texto: String) {
+  init(texto: String, firma: String = "") {
     self.texto = texto
+    self.firma = firma
   }
 
   func transcribir(_ muestras: [Float]) async throws -> String { texto }
@@ -112,6 +114,16 @@ actor CargadorFalso: CargadorDeModelo {
     disco.withLock { $0 = hay }
   }
 
+  /// Qué modelo traería una carga ahora: cambiarla es lo que pasa cuando
+  /// Ultra termina de bajar con v3 en la RAM.
+  private let firmaEnDisco = OSAllocatedUnfairLock(initialState: "v3")
+
+  nonisolated var firma: String { firmaEnDisco.withLock { $0 } }
+
+  nonisolated func cambiarFirma(_ firma: String) {
+    firmaEnDisco.withLock { $0 = firma }
+  }
+
   /// Cuántas cargas están esperando a que la prueba abra la puerta.
   private(set) var esperandoLaPuerta = 0
 
@@ -122,7 +134,7 @@ actor CargadorFalso: CargadorDeModelo {
       await withCheckedContinuation { esperando.append($0) }
       esperandoLaPuerta -= 1
     }
-    let modelo = ModeloFalso(texto: texto)
+    let modelo = ModeloFalso(texto: texto, firma: firma)
     ultimoModelo = modelo
     return modelo
   }

@@ -1,3 +1,4 @@
+import DiloCapabilities
 import DiloConsumo
 import DiloText
 import Foundation
@@ -21,6 +22,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case microfono
   case microfonoListo
   case entregarElTexto
+  case mayusculaSegunElCursor
+  case envioHablado
   case guardarElHistorial
   case carpetaDelHistorial
   case borrarElHistorial
@@ -69,6 +72,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   // Motor de voz
   case motorDeVoz
   case modeloDeParakeet
+  case tusPalabrasEnParakeet
   case soltarElModelo
   // Atajos
   case teclas
@@ -125,7 +129,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
 
   var seccion: SettingsSection {
     switch self {
-    case .atajoDeDictar, .microfono, .microfonoListo, .entregarElTexto, .guardarElHistorial,
+    case .atajoDeDictar, .microfono, .microfonoListo, .entregarElTexto, .mayusculaSegunElCursor,
+      .envioHablado, .guardarElHistorial,
       .carpetaDelHistorial, .borrarElHistorial, .idiomaDeDictado, .segundoIdioma,
       .teclaDelSegundoIdioma, .traducirA:
       .dictation
@@ -143,7 +148,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .historial
     case .guardarTranscripcionEn, .carpetaDeTranscripciones:
       .dropTranscription
-    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo:
+    case .motorDeVoz, .modeloDeParakeet, .tusPalabrasEnParakeet, .soltarElModelo:
       .motor
     case .teclas, .cuantoEsUnToque, .deshacerUnEsc:
       .shortcuts
@@ -172,6 +177,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       SettingsSection.readAloud.isAvailable
     case .buscarActualizaciones, .actualizacionesSolas:
       SettingsSection.updates.isAvailable
+    case .mayusculaSegunElCursor:
+      seccion.isAvailable && Anfitrion.actual.admite(.contextoDelCampo)
+    case .envioHablado:
+      seccion.isAvailable && Anfitrion.actual.admite(.pegadoDirecto)
     default:
       seccion.isAvailable
     }
@@ -183,6 +192,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .microfono: String(localized: "Con cuál te escucho")
     case .microfonoListo: String(localized: "Dejarlo listo entre dictados")
     case .entregarElTexto: String(localized: "Entregar el texto")
+    case .mayusculaSegunElCursor: String(localized: "Adaptar la mayúscula al cursor")
+    case .envioHablado: String(localized: "Decir «envía» al final manda el mensaje")
     case .guardarElHistorial: String(localized: "Guardar lo que dictas")
     case .carpetaDelHistorial: String(localized: "Carpeta del historial")
     case .borrarElHistorial: String(localized: "Borrar el historial")
@@ -225,6 +236,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .carpetaDeTranscripciones: String(localized: "Carpeta de las transcripciones")
     case .motorDeVoz: String(localized: "Motor de voz")
     case .modeloDeParakeet: String(localized: "El modelo de Parakeet")
+    case .tusPalabrasEnParakeet: String(localized: "Tus palabras en Parakeet")
     case .soltarElModelo: String(localized: "Soltar el modelo de la RAM")
     case .teclas: String(localized: "Teclas")
     case .cuantoEsUnToque: String(localized: "Cuánto es un toque, en ms")
@@ -304,7 +316,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .sacarMuletillas, .listaDeMuletillas: [String(localized: "muletillas"), "eh", String(localized: "o sea")]
     case .actividad, .latencias: [String(localized: "estadísticas"), String(localized: "palabras"), "CSV", String(localized: "latencia")]
     case .guardarTranscripcionEn, .carpetaDeTranscripciones: [String(localized: "transcribir"), String(localized: "archivo"), "audio", "video"]
-    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", String(localized: "motor"), "RAM", String(localized: "memoria")]
+    case .motorDeVoz, .modeloDeParakeet, .soltarElModelo: ["Apple", "Parakeet", "Ultra", String(localized: "motor"), "RAM", String(localized: "memoria")]
+    case .tusPalabrasEnParakeet: ["Parakeet", "CTC", String(localized: "vocabulario"), String(localized: "nombres"), String(localized: "diccionario")]
+    case .mayusculaSegunElCursor: [String(localized: "mayúscula"), String(localized: "minúscula"), "cursor", String(localized: "espacio")]
+    case .envioHablado: [String(localized: "enviar"), String(localized: "mandar"), "Enter", "↩", String(localized: "mensaje")]
     case .cuantoEsUnToque, .deshacerUnEsc: [String(localized: "toque"), String(localized: "mantener"), "Esc", String(localized: "cancelar")]
     case .color: ["Glaciar", "Grafito", String(localized: "paleta"), String(localized: "acento")]
     case .queSeVe, .estiloDeLaOnda, .paletaDelHalo, .centroDelHalo, .comoAparece, .textoLargo:
