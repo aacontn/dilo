@@ -1,3 +1,4 @@
+import DiloEngines
 import DiloModes
 import Foundation
 import Testing
@@ -98,6 +99,25 @@ struct AppSettingsTests {
     #expect(defaults.string(forKey: "hudRevealStyle") == "Drift")
     #expect(defaults.string(forKey: "hudLongDraftStyle") == "Tail Only")
     #expect(defaults.string(forKey: "readAloudVoice") == "com.apple.voice.enhanced.en-GB.Jamie")
+  }
+
+  /// Quién lee y con qué voz de Phonon (2026-10-29). Vacíos de fábrica: así
+  /// una instalación que nunca eligió sigue al de fábrica si cambia.
+  @Test func elMotorDeLecturaYLaVozDePhononSeGuardan() {
+    let defaults = freshDefaults()
+    let settings = AppSettings(defaults: defaults)
+    #expect(settings.readAloudMotor.isEmpty)
+    #expect(settings.readAloudVozPhonon.isEmpty)
+    #expect(MotorDeLectura(guardado: settings.readAloudMotor) == .phonon)
+
+    settings.readAloudMotor = MotorDeLectura.apple.rawValue
+    settings.readAloudVozPhonon = "Iker"
+    #expect(defaults.string(forKey: "readAloudMotor") == "apple")
+    #expect(defaults.string(forKey: "readAloudVozPhonon") == "Iker")
+
+    let reloaded = AppSettings(defaults: defaults)
+    #expect(MotorDeLectura(guardado: reloaded.readAloudMotor) == .apple)
+    #expect(VocesDePhonon.voz(reloaded.readAloudVozPhonon).nombre == "Iker")
   }
 
   @Test func keyBindingsPersistUnderTheirHistoricalKeys() {

@@ -25,7 +25,7 @@ struct AboutSettingsView: View {
 
         SettingsRow(
           title: "Todo pasa acá",
-          description: "El reconocimiento, la lectura en voz alta y la transformación de texto corren en esta compu, con frameworks de Apple. Dilo no guarda audio. Sólo los modos con proveedor en línea mandan texto afuera, y la tarjeta siempre lo dice."
+          description: "El reconocimiento, la lectura en voz alta y la transformación de texto corren en esta compu. Dilo no guarda audio. Sólo los modos con proveedor en línea mandan texto afuera, y la tarjeta siempre lo dice."
         ) {
           EmptyView()
         }
@@ -42,7 +42,7 @@ struct AboutSettingsView: View {
 
         SettingsRow(
           title: "Licencias de terceros",
-          description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT)."
+          description: "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT). Se bajan aparte, para leer en voz alta: Phonon 40m, de Gradium (CC BY-NC 4.0, uso personal y no comercial), hecho sobre Pocket TTS y Mimi de Kyutai · sus voces (Apache 2.0) · el motor ptts, de Gradium (MIT o Apache 2.0)."
         ) {
           EmptyView()
         }

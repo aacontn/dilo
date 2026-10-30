@@ -114,6 +114,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case modosEnElPanel
   // General
   case abrirAlIniciarSesion
+  case quienLee
+  case vozDePhonon
   case vozQueLee
   case traducirAntesDeLeer
   case bajarVoces
@@ -160,7 +162,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .porcentajeDelPlan, .avisosDeLimite, .agentesEnLaMuesca, .recientesDelPortapapeles,
       .proximaReunion, .notaRapida, .traducirEnElPanel, .modosEnElPanel:
       .datosDeLaMuesca
-    case .abrirAlIniciarSesion, .vozQueLee, .traducirAntesDeLeer, .bajarVoces, .vozPersonal:
+    case .abrirAlIniciarSesion, .quienLee, .vozDePhonon, .vozQueLee, .traducirAntesDeLeer, .bajarVoces,
+      .vozPersonal:
       .general
     case .novedades:
       .novedades
@@ -173,7 +176,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   /// encuentra buscando.
   var estaDisponible: Bool {
     switch self {
-    case .vozQueLee, .traducirAntesDeLeer, .bajarVoces, .vozPersonal:
+    case .quienLee, .vozDePhonon, .vozQueLee, .traducirAntesDeLeer, .bajarVoces, .vozPersonal:
       SettingsSection.readAloud.isAvailable
     case .buscarActualizaciones, .actualizacionesSolas:
       SettingsSection.updates.isAvailable
@@ -274,6 +277,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .traducirEnElPanel: String(localized: "Traducir")
     case .modosEnElPanel: String(localized: "Cambiar de modo")
     case .abrirAlIniciarSesion: String(localized: "Abrir Dilo al iniciar sesión")
+    case .quienLee: String(localized: "Quién lee")
+    case .vozDePhonon: String(localized: "Voz de Phonon")
     case .vozQueLee: String(localized: "Voz que lee")
     case .traducirAntesDeLeer: String(localized: "Traducir antes de leer")
     case .bajarVoces: String(localized: "Bajar voces premium")
@@ -335,6 +340,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .recientesDelPortapapeles, .proximaReunion, .notaRapida: [String(localized: "panel"), "hover", String(localized: "calendario"), String(localized: "Notas")]
     case .abrirAlIniciarSesion: [String(localized: "arranque"), "login"]
     case .vozQueLee, .bajarVoces, .vozPersonal: [String(localized: "leer en voz alta"), String(localized: "voz"), String(localized: "síntesis")]
+    case .quienLee, .vozDePhonon:
+      [String(localized: "leer en voz alta"), String(localized: "voz"), "Phonon", String(localized: "neural"), "Siri"]
     case .novedades: [String(localized: "versión"), String(localized: "cambios")]
     case .version, .buscarActualizaciones, .actualizacionesSolas: [String(localized: "actualizaciones"), "Sparkle", String(localized: "versión")]
     case .licencias: [String(localized: "licencia"), String(localized: "créditos"), String(localized: "acerca de")]

@@ -10554,6 +10554,402 @@
           }
         }
       }
+    },
+    "13 de España y 12 de México. No hay voces chilenas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "13 from Spain and 12 from Mexico. There are no Chilean voices."
+          }
+        }
+      }
+    },
+    "Bajando Phonon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading Phonon"
+          }
+        }
+      }
+    },
+    "Bajando Phonon: por ahora lee Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading Phonon: Apple reads for now"
+          }
+        }
+      }
+    },
+    "Bajar Phonon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download Phonon"
+          }
+        }
+      }
+    },
+    "El motor son 8 MB y cada voz 250 KB. Se bajan una vez; mientras, lee Apple.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The engine is 8 MB and each voice 250 KB. They download once; meanwhile, Apple reads."
+          }
+        }
+      }
+    },
+    "El reconocimiento, la lectura en voz alta y la transformación de texto corren en esta compu. Dilo no guarda audio. Sólo los modos con proveedor en línea mandan texto afuera, y la tarjeta siempre lo dice.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognition, reading aloud and text transformation run on this Mac. Dilo doesn't keep audio. Only modes with an online provider send text out, and their card always says so."
+          }
+        }
+      }
+    },
+    "En Ajustes del Sistema, entra a Contenido hablado → Voz del sistema → Gestionar voces y baja una voz Premium. Las voces de Siri no se pueden usar fuera de las apps de Apple. Las voces nuevas aparecen acá solas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In System Settings, go to Spoken Content → System voice → Manage Voices and download a Premium voice. Siri voices can't be used outside Apple's apps. New voices show up here on their own."
+          }
+        }
+      }
+    },
+    "España": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spain"
+          }
+        }
+      }
+    },
+    "Falta el modelo de Phonon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon's model is missing"
+          }
+        }
+      }
+    },
+    "Falta instalar Phonon: lee Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon isn't installed: Apple reads"
+          }
+        }
+      }
+    },
+    "Las voces instaladas en macOS": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The voices installed in macOS"
+          }
+        }
+      }
+    },
+    "Lee mientras Phonon no está listo y lo que no está en español": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reads while Phonon isn't ready, and anything that isn't Spanish"
+          }
+        }
+      }
+    },
+    "Lo bajado no calza con lo publicado y no se instaló.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The download doesn't match what was published, so it wasn't installed."
+          }
+        }
+      }
+    },
+    "Motor": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engine"
+          }
+        }
+      }
+    },
+    "México": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mexico"
+          }
+        }
+      }
+    },
+    "No se pudo abrir el motor bajado.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the downloaded engine."
+          }
+        }
+      }
+    },
+    "No se pudo bajar Phonon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download Phonon"
+          }
+        }
+      }
+    },
+    "No se pudo bajar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download."
+          }
+        }
+      }
+    },
+    "Phonon (neural)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon (neural)"
+          }
+        }
+      }
+    },
+    "Phonon 40m es de Gradium y se usa con su licencia CC BY-NC 4.0: uso personal, no comercial. Las voces son Apache 2.0. Se bajan aparte y no vienen dentro de Dilo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon 40m is by Gradium and is used under its CC BY-NC 4.0 license: personal, non-commercial use. The voices are Apache 2.0. They're downloaded separately and don't ship inside Dilo."
+          }
+        }
+      }
+    },
+    "Phonon está listo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon is ready"
+          }
+        }
+      }
+    },
+    "Phonon falló: lee Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon failed: Apple reads"
+          }
+        }
+      }
+    },
+    "Phonon: voz neural en español, en este Mac y sin internet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon: a neural Spanish voice, on this Mac and offline"
+          }
+        }
+      }
+    },
+    "Puedes cancelar; lo bajado a medias se borra.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can cancel; anything half-downloaded is deleted."
+          }
+        }
+      }
+    },
+    "Quién lee": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who reads"
+          }
+        }
+      }
+    },
+    "Revisando Phonon…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking Phonon…"
+          }
+        }
+      }
+    },
+    "Sin conexión. Vuelve a intentarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No connection. Try again."
+          }
+        }
+      }
+    },
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT). Se bajan aparte, para leer en voz alta: Phonon 40m, de Gradium (CC BY-NC 4.0, uso personal y no comercial), hecho sobre Pocket TTS y Mimi de Kyutai · sus voces (Apache 2.0) · el motor ptts, de Gradium (MIT o Apache 2.0).": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · Sparkle, by Andy Matuschak and others (MIT). Downloaded separately, for reading aloud: Phonon 40m, by Gradium (CC BY-NC 4.0, personal non-commercial use), built on Kyutai's Pocket TTS and Mimi · its voices (Apache 2.0) · the ptts engine, by Gradium (MIT or Apache 2.0)."
+          }
+        }
+      }
+    },
+    "Tiene términos de uso en Hugging Face y Dilo no lo baja solo. Instálalo una vez con scripts/instalar-phonon.sh (75 MB). Mientras, lee Apple.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It has terms of use on Hugging Face, so Dilo doesn't download it by itself. Install it once with scripts/instalar-phonon.sh (75 MB). Meanwhile, Apple reads."
+          }
+        }
+      }
+    },
+    "Voces de Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple voices"
+          }
+        }
+      }
+    },
+    "Voz de Apple": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple voice"
+          }
+        }
+      }
+    },
+    "Voz de Phonon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phonon voice"
+          }
+        }
+      }
+    },
+    "hombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "man"
+          }
+        }
+      }
+    },
+    "mujer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "woman"
+          }
+        }
+      }
+    },
+    "neural": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "neural"
+          }
+        }
+      }
+    },
+    "Ocupa unos 100 MB en esta compu y lee sin internet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It takes about 100 MB on this Mac and reads offline."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
