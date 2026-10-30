@@ -11445,6 +11445,116 @@
           }
         }
       }
+    },
+    "Preparado para tu Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready for your Mac"
+          }
+        }
+      }
+    },
+    "Preparar ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare now"
+          }
+        }
+      }
+    },
+    "Todavía no está en este Mac. Se baja solo al grabar tu primera reunión (unos 190 MB), o ahora.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's not on this Mac yet. It downloads by itself when you record your first meeting (about 190 MB), or now."
+          }
+        }
+      }
+    },
+    "Bajando el separador de voces…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading the voice separator…"
+          }
+        }
+      }
+    },
+    "Bajado. La primera vez se prepara para el Neural Engine y puede tardar varios minutos: Dilo lo hace solo cuando no estás dictando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded. The first time it gets ready for the Neural Engine and can take several minutes: Dilo does it by itself when you're not dictating."
+          }
+        }
+      }
+    },
+    "Preparándolo para el Neural Engine. La primera vez tarda varios minutos; después, menos de un segundo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting it ready for the Neural Engine. The first time takes several minutes; after that, under a second."
+          }
+        }
+      }
+    },
+    "Listo: la próxima pasada lo carga en menos de un segundo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready: the next pass loads it in under a second."
+          }
+        }
+      }
+    },
+    "No se pudo preparar (%@). Vuelve a intentarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't prepare it (%@). Try again."
+          }
+        }
+      }
+    },
+    "No pude bajar el separador de voces. Revisa la conexión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't download the voice separator. Check your connection."
+          }
+        }
+      }
+    },
+    "bajar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "download"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

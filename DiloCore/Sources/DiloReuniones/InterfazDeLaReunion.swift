@@ -155,11 +155,12 @@ public enum PrecalentadoDelDiarizador {
 
   /// Qué hacer ahora. Sólo con el modelo ya en disco: bajarlo es «a pedido»
   /// (lo pide grabar la primera reunión), nunca una descarga sola al abrir
-  /// Dilo.
+  /// Dilo. Grabando sí se compila: es justo el rato en que conviene, para
+  /// que la primera pasada no lo espere.
   public static func decidir(
-    modeloEnDisco: Bool, vaACompilar: Bool, dictando: Bool, afinando: Bool, enCurso: Bool
+    modeloEnDisco: Bool, vaACompilar: Bool, dictando: Bool, afinando: Bool, compilando: Bool
   ) -> Decision {
-    guard modeloEnDisco, vaACompilar, !enCurso else { return .nada }
+    guard modeloEnDisco, vaACompilar, !compilando else { return .nada }
     // Compilar para el Neural Engine se lo pelea a Parakeet: con un dictado
     // en curso, soltar → texto dejaría de ser < 300 ms.
     if dictando || afinando { return .esperar }

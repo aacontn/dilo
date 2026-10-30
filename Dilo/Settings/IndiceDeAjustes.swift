@@ -119,6 +119,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case listaDeReuniones
   case carpetaDeReuniones
   case diarizador
+  case prepararElSeparador
   case retencionDelAudio
   case microfonoDeReuniones
   // Dilo
@@ -166,7 +167,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .general
     case .buscarEnReuniones, .listaDeReuniones:
       .reuniones
-    case .carpetaDeReuniones, .diarizador, .retencionDelAudio, .microfonoDeReuniones:
+    case .carpetaDeReuniones, .diarizador, .prepararElSeparador, .retencionDelAudio, .microfonoDeReuniones:
       .grabarReuniones
     case .novedades:
       .novedades
@@ -281,6 +282,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .listaDeReuniones: String(localized: "Tus reuniones")
     case .carpetaDeReuniones: String(localized: "Carpeta de las reuniones")
     case .diarizador: String(localized: "Separador de voces")
+    case .prepararElSeparador: String(localized: "Preparado para tu Mac")
     case .retencionDelAudio: String(localized: "Cuánto se guarda el audio")
     case .microfonoDeReuniones: String(localized: "Tu pista")
     case .novedades: String(localized: "Novedades")
@@ -341,6 +343,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       [String(localized: "reunión"), String(localized: "guion"), String(localized: "hablantes"), String(localized: "llamada")]
     case .carpetaDeReuniones: [String(localized: "reunión"), String(localized: "carpeta"), "SSD", String(localized: "disco")]
     case .diarizador: [String(localized: "reunión"), "Nemotron", "Sortformer", String(localized: "hablantes"), String(localized: "voces")]
+    case .prepararElSeparador: ["Nemotron", "Neural Engine", String(localized: "bajar"), String(localized: "modelo")]
     case .retencionDelAudio: [String(localized: "reunión"), "audio", String(localized: "borrar"), String(localized: "Papelera"), "30"]
     case .microfonoDeReuniones: [String(localized: "reunión"), String(localized: "micrófono")]
     case .novedades: [String(localized: "versión"), String(localized: "cambios")]

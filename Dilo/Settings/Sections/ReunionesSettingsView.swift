@@ -309,6 +309,15 @@ struct AjustesDeReunionesView: View {
           controlWidth: 160
         )
         .anclaDeAjuste(.diarizador)
+        SettingsRow(title: "Preparado para tu Mac", description: Self.detalle(de: separador)) {
+          if Self.sePuedePreparar(separador) {
+            Button("Preparar ahora") { runtimeState.reuniones?.prepararElSeparador(bajarSiFalta: true) }
+              .buttonStyle(SettingsButtonStyle())
+          } else if separador == .bajando || separador == .preparando {
+            ProgressView().controlSize(.small)
+          }
+        }
+        .anclaDeAjuste(.prepararElSeparador)
       }
 
       SettingsCard(title: "El audio", icono: "waveform") {
@@ -335,8 +344,39 @@ struct AjustesDeReunionesView: View {
         .anclaDeAjuste(.microfonoDeReuniones)
       }
     }
-    .onAppear { microfonos.mirar() }
+    .onAppear {
+      microfonos.mirar()
+      runtimeState.reuniones?.revisarElSeparador()
+    }
     .onDisappear { microfonos.dejarDeMirar() }
+  }
+
+  private var separador: ControlDeReuniones.EstadoDelSeparador {
+    runtimeState.reuniones?.separador ?? runtimeState.separadorFijo
+  }
+
+  static func sePuedePreparar(_ estado: ControlDeReuniones.EstadoDelSeparador) -> Bool {
+    switch estado {
+    case .sinBajar, .porPreparar, .fallo: true
+    case .sinRevisar, .bajando, .preparando, .listo: false
+    }
+  }
+
+  /// La verdad sobre la primera vez: compilar para el Neural Engine tarda
+  /// minutos (412 s en un M1) y Dilo lo hace solo, en reposo, nunca dictando.
+  static func detalle(de estado: ControlDeReuniones.EstadoDelSeparador) -> LocalizedStringKey {
+    switch estado {
+    case .sinRevisar: ""
+    case .sinBajar:
+      "Todavía no está en este Mac. Se baja solo al grabar tu primera reunión (unos 190 MB), o ahora."
+    case .bajando: "Bajando el separador de voces…"
+    case .porPreparar:
+      "Bajado. La primera vez se prepara para el Neural Engine y puede tardar varios minutos: Dilo lo hace solo cuando no estás dictando."
+    case .preparando:
+      "Preparándolo para el Neural Engine. La primera vez tarda varios minutos; después, menos de un segundo."
+    case .listo: "Listo: la próxima pasada lo carga en menos de un segundo."
+    case let .fallo(motivo): "No se pudo preparar (\(motivo)). Vuelve a intentarlo."
+    }
   }
 
   /// Lo elegido que no está conectado se queda en la lista, dicho: si

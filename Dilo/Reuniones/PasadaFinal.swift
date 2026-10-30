@@ -16,6 +16,12 @@ struct PasadaFinal: Sendable {
 
   let parakeet: ParakeetEngine
   let separacion: SeparacionDeVoces
+  /// Justo antes de separar voces: espera una compilación en curso y dice si
+  /// la carga que viene va a compilar para el Neural Engine (412 s la
+  /// primera vez en un M1), para que la ventana diga la verdad.
+  var antesDeSeparar: @Sendable () async -> Bool = { false }
+  /// El diarizador que separó: su compilación ya quedó hecha.
+  var alSeparar: @Sendable (Diarizador) -> Void = { _ in }
 
   /// Afina una reunión y devuelve cómo quedó. Nunca lanza: lo que falla queda
   /// escrito en `reunion.falla`, con su arreglo, y la reunión se puede volver
@@ -58,12 +64,15 @@ struct PasadaFinal: Sendable {
     let audioDeEllos = lector(.ellos, de: enDisco)
     if !palabrasDeEllos.isEmpty, audioDeEllos.totalDeMuestras > 0 {
       let candidatos = preferido.esNemotron ? [preferido, .sortformer] : [preferido]
+      let compilara = await antesDeSeparar()
+      avance(AvanceDeLaPasada(etapa: .separandoVoces, compilandoPorPrimeraVez: compilara))
       for diarizador in candidatos {
         do {
           actividad = try await separacion.separar(diarizador, audio: audioDeEllos) { fraccion in
             avance(AvanceDeLaPasada(etapa: .separandoVoces, fraccionDeLaEtapa: fraccion))
           }
           reunion.versiones.diarizador = diarizador.version
+          alSeparar(diarizador)
           notaDeVoces = nil
           break
         } catch {

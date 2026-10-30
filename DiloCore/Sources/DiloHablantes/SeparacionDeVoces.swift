@@ -105,6 +105,42 @@ public actor SeparacionDeVoces {
     }
   }
 
+  /// Si el modelo ya está bajado en `carpeta`. Para Nemotron 3 se mira el
+  /// manifiesto del paquete compilado del preset, que es lo que FluidAudio
+  /// mira antes de bajar; para los demás, que haya una carpeta con su nombre.
+  public static func estaEnDisco(_ diarizador: Diarizador, carpeta: URL) -> Bool {
+    let fm = FileManager.default
+    if let config = diarizador.configDeNemotron {
+      let manifiesto = carpeta.appending(path: Repo.nemotron3Diarization.folderName)
+        .appending(path: config.hubSubdirectory).appending(path: config.modelFileName)
+        .appending(path: "coremldata.bin")
+      return fm.fileExists(atPath: manifiesto.path(percentEncoded: false))
+    }
+    let clave = diarizador == .sortformer ? "sortformer" : diarizador.rawValue.prefix(6).lowercased()
+    let carpetas = (try? fm.contentsOfDirectory(atPath: carpeta.path(percentEncoded: false))) ?? []
+    return carpetas.contains { $0.lowercased().contains(clave) }
+  }
+
+  /// Baja el modelo sin compilarlo para el Neural Engine: Nemotron 3 se carga
+  /// una vez sólo en CPU —rápido— y se suelta. Compilar para el Neural Engine
+  /// tarda minutos la primera vez y se deja para cuando no se dicta
+  /// (`PrecalentadoDelDiarizador`).
+  public func bajar(_ diarizador: Diarizador) async throws {
+    guard let config = diarizador.configDeNemotron else {
+      try await preparar(diarizador)
+      soltar()
+      return
+    }
+    try FileManager.default.createDirectory(at: carpetaDeModelos, withIntermediateDirectories: true)
+    do {
+      _ = try await Nemotron3Models.loadFromHuggingFace(
+        config: config, cacheDirectory: carpetaDeModelos, computeUnits: .cpuOnly
+      )
+    } catch {
+      throw FallaDeLaSeparacion.modeloNoDisponible(error.localizedDescription)
+    }
+  }
+
   /// Suelta los modelos de la RAM. La próxima reunión los vuelve a cargar del
   /// disco, sin bajarlos.
   public func soltar() {

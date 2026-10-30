@@ -66,4 +66,15 @@ struct InterfazDeReunionesTests {
     #expect(evento.asistentes == ["Camila Rojas"], "en un 1:1 el nombre se pone solo")
     #expect(evento.empieza == ahora)
   }
+
+  /// «Preparar ahora» sólo cuando hay algo que bajar o compilar; mientras
+  /// baja o compila, no se ofrece dos veces.
+  @Test func prepararElSeparadorSoloCuandoHaceFalta() {
+    #expect(AjustesDeReunionesView.sePuedePreparar(.sinBajar))
+    #expect(AjustesDeReunionesView.sePuedePreparar(.porPreparar))
+    #expect(AjustesDeReunionesView.sePuedePreparar(.fallo("x")))
+    #expect(!AjustesDeReunionesView.sePuedePreparar(.preparando))
+    #expect(!AjustesDeReunionesView.sePuedePreparar(.bajando))
+    #expect(!AjustesDeReunionesView.sePuedePreparar(.listo))
+  }
 }

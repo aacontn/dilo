@@ -100,9 +100,9 @@ struct InterfazDeLaReunionTests {
     let otra = PrecalentadoDelDiarizador.marca(diarizador: "nemotron3-fast32", sistema: "26.0", fluidAudio: "0.18.0")
     #expect(PrecalentadoDelDiarizador.vaACompilar(marcaGuardada: otra, actual: actual))
 
-    func decidir(modelo: Bool = true, compila: Bool = true, dictando: Bool = false, afinando: Bool = false, enCurso: Bool = false) -> PrecalentadoDelDiarizador.Decision {
+    func decidir(modelo: Bool = true, compila: Bool = true, dictando: Bool = false, afinando: Bool = false, compilando: Bool = false) -> PrecalentadoDelDiarizador.Decision {
       PrecalentadoDelDiarizador.decidir(
-        modeloEnDisco: modelo, vaACompilar: compila, dictando: dictando, afinando: afinando, enCurso: enCurso
+        modeloEnDisco: modelo, vaACompilar: compila, dictando: dictando, afinando: afinando, compilando: compilando
       )
     }
     #expect(decidir() == .precalentar)
@@ -110,7 +110,7 @@ struct InterfazDeLaReunionTests {
     #expect(decidir(compila: false) == .nada)
     #expect(decidir(dictando: true) == .esperar)
     #expect(decidir(afinando: true) == .esperar)
-    #expect(decidir(enCurso: true) == .nada)
+    #expect(decidir(compilando: true) == .nada, "uno a la vez: dos cargas se pelean el Neural Engine")
   }
 
   @Test func elAvanceDiceSiCompilaPorPrimeraVez() {

@@ -174,6 +174,7 @@ enum RenderAjustes {
     // concedido; sin clave, también falta Accesibilidad, para ver los avisos.
     runtime.permisosQueFaltanFijos = conClave ? [] : [.accesibilidad]
     runtime.reunionesFijas = reunionesDeEjemplo(ahora: ahora)
+    runtime.separadorFijo = .porPreparar
     runtime.defaultsDeReuniones = UserDefaults(suiteName: "/private/tmp/dilo-render-ajustes")!
     runtime.ultimoDictado = UltimoDictado(
       original: "eh mándale el informe a Carla antes del viernes",

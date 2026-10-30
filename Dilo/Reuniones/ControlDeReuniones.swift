@@ -73,6 +73,21 @@ final class ControlDeReuniones {
   private(set) var pasada: Pasada?
   private(set) var aviso: Aviso?
 
+  /// Cómo está el separador de voces elegido en este Mac: lo que dice
+  /// Ajustes → Grabar reuniones.
+  enum EstadoDelSeparador: Equatable, Sendable {
+    case sinRevisar
+    case sinBajar
+    case bajando
+    /// Bajado, pero la primera carga va a compilar para el Neural Engine.
+    case porPreparar
+    case preparando
+    case listo
+    case fallo(String)
+  }
+
+  private(set) var separador = EstadoDelSeparador.sinRevisar
+
   /// Para lo que no es SwiftUI (el panel de la barra): cada cambio de
   /// `enCurso` o `pasada`.
   @ObservationIgnored var alCambiar: (() -> Void)?
@@ -84,6 +99,10 @@ final class ControlDeReuniones {
   @ObservationIgnored private var afinando: Set<String> = []
   @ObservationIgnored private var separacion: SeparacionDeVoces?
   @ObservationIgnored private var observadorDelDisco: (any NSObjectProtocol)?
+  @ObservationIgnored private var dictando = false
+  /// La compilación para el Neural Engine en curso, si hay: una pasada que
+  /// llega a separar voces la espera en vez de cargar el modelo dos veces.
+  @ObservationIgnored private var precalentado: Task<Void, Never>?
   @ObservationIgnored private static let logger = Logger(subsystem: "cl.espaciodigital.dilo", category: "reuniones")
 
   init(
@@ -126,6 +145,9 @@ final class ControlDeReuniones {
       reflejar(grabadora.enVivo)
       grabadora.alCambiar = { [weak self] enVivo in self?.reflejar(enVivo) }
       alCambiar?()
+      // La primera reunión baja el separador de voces mientras graba (es «a
+      // pedido»: lo pidió grabar) y lo deja compilado para cuando termine.
+      prepararElSeparador(bajarSiFalta: true)
       return .empezo(id: grabadora.reunion.id)
     } catch {
       let motivo = error.localizedDescription
@@ -153,6 +175,9 @@ final class ControlDeReuniones {
   /// al guion.
   func dictado(enCurso: Bool) {
     grabadora?.dictado(enCurso: enCurso)
+    dictando = enCurso
+    // Lo que esperaba a que terminara el dictado, ahora.
+    if !enCurso, separador == .porPreparar { prepararElSeparador() }
   }
 
   /// Vuelve a correr la pasada final de una reunión ya grabada: tras una
@@ -171,8 +196,20 @@ final class ControlDeReuniones {
     afinando.insert(enDisco.id)
     let separacion = self.separacion ?? SeparacionDeVoces(carpetaDeModelos: Self.carpetaDeModelos)
     self.separacion = separacion
-    let pasadaFinal = PasadaFinal(parakeet: parakeet(), separacion: separacion)
     let diarizador = Diarizador.para(preferencias.diarizador)
+    let precalentado = self.precalentado
+    let marca = Self.marca(diarizador)
+    let pasadaFinal = PasadaFinal(
+      parakeet: parakeet(), separacion: separacion,
+      // Si una compilación está en curso, la pasada la espera; si nunca se
+      // compiló, la pasada misma compila y la ventana lo dice.
+      antesDeSeparar: {
+        await precalentado?.value
+        let guardada = try? String(contentsOf: Self.archivoDeLaMarca(diarizador), encoding: .utf8)
+        return PrecalentadoDelDiarizador.vaACompilar(marcaGuardada: guardada, actual: marca)
+      },
+      alSeparar: { usado in Self.anotarLaMarca(usado) }
+    )
     let politica = preferencias.audio
     pasada = Pasada(id: enDisco.id, titulo: enDisco.reunion.titulo, avance: AvanceDeLaPasada(etapa: .preparando))
     alCambiar?()
@@ -198,6 +235,7 @@ final class ControlDeReuniones {
 
   private func pasadaTermino(_ reunion: Reunion) {
     afinando.remove(reunion.id)
+    if separador == .porPreparar || separador == .preparando { revisarElSeparador() }
     if pasada?.id == reunion.id { pasada = nil }
     if reunion.estado == .lista {
       aviso = .guionListo(id: reunion.id)
@@ -283,7 +321,93 @@ final class ControlDeReuniones {
       }
       ConversionDelAudio.aplicar(todas, politica: politica)
       await self?.retomar(pendientes)
+      // Un separador bajado y sin compilar para este macOS (una
+      // actualización tira lo compilado): se prepara ahora, en reposo.
+      await self?.prepararElSeparador()
     }
+  }
+
+  /// Mira en el disco cómo está el separador elegido, sin cargar nada. Lo
+  /// llama Ajustes al abrirse.
+  func revisarElSeparador() {
+    guard precalentado == nil else { return }
+    let diarizador = Diarizador.para(preferencias.diarizador)
+    Task { [weak self] in
+      let estado = await Task.detached(priority: .utility) { Self.estadoEnDisco(diarizador) }.value
+      guard let self, self.precalentado == nil else { return }
+      self.separador = estado
+    }
+  }
+
+  nonisolated private static func estadoEnDisco(_ diarizador: Diarizador) -> EstadoDelSeparador {
+    guard SeparacionDeVoces.estaEnDisco(diarizador, carpeta: carpetaDeModelos) else { return .sinBajar }
+    let guardada = try? String(contentsOf: archivoDeLaMarca(diarizador), encoding: .utf8)
+    return PrecalentadoDelDiarizador.vaACompilar(marcaGuardada: guardada, actual: marca(diarizador))
+      ? .porPreparar : .listo
+  }
+
+  /// Compila el separador para el Neural Engine en segundo plano, si hace
+  /// falta y si se puede ahora (`PrecalentadoDelDiarizador.decidir`): nunca
+  /// durante un dictado ni junto a una pasada. Con `bajarSiFalta` lo baja
+  /// primero —sólo cuando la persona pidió reuniones: al grabar o con
+  /// «Preparar ahora»—; bajar no compila, así que puede correr dictando.
+  func prepararElSeparador(bajarSiFalta: Bool = false) {
+    guard precalentado == nil else { return }
+    let diarizador = Diarizador.para(preferencias.diarizador)
+    let separacion = self.separacion ?? SeparacionDeVoces(carpetaDeModelos: Self.carpetaDeModelos)
+    self.separacion = separacion
+    precalentado = Task { [weak self] in
+      var estado = await Task.detached(priority: .utility) { Self.estadoEnDisco(diarizador) }.value
+      if estado == .sinBajar, bajarSiFalta {
+        self?.separador = .bajando
+        do {
+          try await separacion.bajar(diarizador)
+          estado = await Task.detached(priority: .utility) { Self.estadoEnDisco(diarizador) }.value
+        } catch {
+          Self.logger.error("No se pudo bajar el separador: \(error.localizedDescription, privacy: .public)")
+          estado = .fallo(String(localized: "No pude bajar el separador de voces. Revisa la conexión."))
+        }
+      }
+      guard let self else { return }
+      let decision = PrecalentadoDelDiarizador.decidir(
+        modeloEnDisco: estado == .porPreparar || estado == .listo,
+        vaACompilar: estado == .porPreparar,
+        dictando: dictando, afinando: !afinando.isEmpty, compilando: false
+      )
+      guard decision == .precalentar else {
+        separador = estado
+        precalentado = nil
+        return
+      }
+      separador = .preparando
+      let inicio = Date()
+      do {
+        try await separacion.preparar(diarizador)
+        await separacion.soltar()
+        Self.anotarLaMarca(diarizador)
+        Self.logger.notice("Separador compilado para el Neural Engine en \(Int(Date().timeIntervalSince(inicio)), privacy: .public) s")
+        separador = .listo
+      } catch {
+        separador = .fallo(error.localizedDescription)
+      }
+      precalentado = nil
+    }
+  }
+
+  /// La marca de lo compilado, junto a los modelos.
+  nonisolated static func archivoDeLaMarca(_ diarizador: Diarizador) -> URL {
+    carpetaDeModelos.appending(path: ".precalentado-\(diarizador.rawValue)")
+  }
+
+  nonisolated static func marca(_ diarizador: Diarizador) -> String {
+    PrecalentadoDelDiarizador.marca(
+      diarizador: diarizador.rawValue, sistema: ProcessInfo.processInfo.operatingSystemVersionString,
+      fluidAudio: diarizador.version
+    )
+  }
+
+  nonisolated static func anotarLaMarca(_ diarizador: Diarizador) {
+    try? Data(marca(diarizador).utf8).write(to: archivoDeLaMarca(diarizador), options: .atomic)
   }
 
   private func retomar(_ pendientes: [ReunionEnDisco]) {
@@ -391,7 +515,7 @@ final class ControlDeReuniones {
 
   /// Los modelos de separar voces, junto al de Parakeet: en
   /// `Application Support/Dilo/models/`, se borran con Dilo.
-  static var carpetaDeModelos: URL { ParakeetModelStore.carpeta }
+  nonisolated static var carpetaDeModelos: URL { ParakeetModelStore.carpeta }
 }
 
 extension GrabadoraDeReunion {

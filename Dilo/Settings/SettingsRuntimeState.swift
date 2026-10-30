@@ -63,6 +63,8 @@ final class SettingsRuntimeState {
   /// Dónde se leen y escriben las preferencias de reuniones: las del Mac en
   /// la app, un dominio de `/private/tmp` en los renders.
   @ObservationIgnored var defaultsDeReuniones: UserDefaults = .standard
+  /// Para los renders: cómo está el separador de voces, sin mirar el disco.
+  var separadorFijo = ControlDeReuniones.EstadoDelSeparador.sinRevisar
 
   /// Language models currently downloading, as locale identifier to progress
   /// (0…1). A language picked before its model exists downloads in the
