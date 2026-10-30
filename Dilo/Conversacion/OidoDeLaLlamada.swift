@@ -121,9 +121,9 @@ actor OidoDeLaLlamada {
   /// habla, y apenas se calla. Lo que se pide al callar suele ser ya el texto
   /// final.
   private func transcribirLoQueVa(recienCallo: Bool) {
-    guard parcial == nil, let turno, let fin = turno.finDeLaVoz else { return }
+    guard parcial == nil, let turno, let fin = turno.finDeLaVoz, fin > turno.pedidoHasta else { return }
     let nuevas = bufer.escritas - turno.pedidoHasta
-    guard nuevas >= Self.muestrasEntreParciales || (recienCallo && fin > turno.pedidoHasta) else { return }
+    guard nuevas >= Self.muestrasEntreParciales || recienCallo else { return }
     let hasta = bufer.escritas
     let id = turno.id
     let rango = turno.inicio ..< hasta
