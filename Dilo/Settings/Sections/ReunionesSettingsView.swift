@@ -34,6 +34,8 @@ struct ReunionesSettingsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
+      // Las piezas devuelven `AnyView`, como en la ventana de la reunión: el
+      // `.app` tiene techo de 25 MB.
       if let enCurso = control?.enCurso {
         tarjetaEnCurso(enCurso)
       } else if let pasada = control?.pasada {
@@ -44,9 +46,9 @@ struct ReunionesSettingsView: View {
         .anclaDeAjuste(.buscarEnReuniones)
 
       if buscando {
-        listaDeResultados
+        AnyView(listaDeResultados)
       } else {
-        listaDeReuniones
+        AnyView(listaDeReuniones)
       }
 
       Button {
@@ -73,69 +75,75 @@ struct ReunionesSettingsView: View {
     }
   }
 
-  private func tarjetaEnCurso(_ enCurso: ControlDeReuniones.EnCurso) -> some View {
-    SettingsCard(title: "Grabando ahora", icono: "record.circle") {
-      SettingsRow(title: "\(enCurso.titulo)", description: "Tu micrófono y el audio del Mac, cada uno en su pista. El guion sale al terminar.") {
-        HStack(spacing: 8) {
-          TimelineView(.periodic(from: enCurso.inicio, by: 1)) { contexto in
-            Text(verbatim: RelojDeLaReunion.texto(contexto.date.timeIntervalSince(enCurso.inicio)))
-              .font(.system(size: 12, weight: .semibold).monospacedDigit())
-              .foregroundStyle(PaletaDeDilo.actual.grabando.color)
+  private func tarjetaEnCurso(_ enCurso: ControlDeReuniones.EnCurso) -> AnyView {
+    AnyView(
+      SettingsCard(title: "Grabando ahora", icono: "record.circle") {
+        SettingsRow(title: "\(enCurso.titulo)", description: "Tu micrófono y el audio del Mac, cada uno en su pista. El guion sale al terminar.") {
+          HStack(spacing: 8) {
+            TimelineView(.periodic(from: enCurso.inicio, by: 1)) { contexto in
+              Text(verbatim: RelojDeLaReunion.texto(contexto.date.timeIntervalSince(enCurso.inicio)))
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                .foregroundStyle(PaletaDeDilo.actual.grabando.color)
+            }
+            Button("Abrir") { runtimeState.abrirReunion(enCurso.id, nil) }
+              .buttonStyle(SettingsButtonStyle())
+            Button("Terminar") { control?.terminar() }
+              .buttonStyle(SettingsButtonStyle())
           }
-          Button("Abrir") { runtimeState.abrirReunion(enCurso.id, nil) }
-            .buttonStyle(SettingsButtonStyle())
-          Button("Terminar") { control?.terminar() }
-            .buttonStyle(SettingsButtonStyle())
         }
       }
-    }
+    )
   }
 
-  private func tarjetaAfinando(_ pasada: ControlDeReuniones.Pasada) -> some View {
-    SettingsCard(title: "Afinando el guion…", icono: "waveform.badge.magnifyingglass") {
-      VStack(alignment: .leading, spacing: 6) {
-        Text(verbatim: pasada.titulo)
-          .font(.system(size: 12.5, weight: .medium))
-        ProgressView(value: pasada.avance.total)
-          .tint(SettingsTheme.accent)
-        Text(LocalizedStringKey(pasada.avance.etapa.descripcion))
-          .font(.system(size: 11))
-          .foregroundStyle(.white.opacity(0.5))
-        if pasada.avance.compilandoPorPrimeraVez {
-          Text("La primera vez, el separador de voces se prepara para el Neural Engine: puede tardar varios minutos. Después tarda menos de un segundo.")
+  private func tarjetaAfinando(_ pasada: ControlDeReuniones.Pasada) -> AnyView {
+    AnyView(
+      SettingsCard(title: "Afinando el guion…", icono: "waveform.badge.magnifyingglass") {
+        VStack(alignment: .leading, spacing: 6) {
+          Text(verbatim: pasada.titulo)
+            .font(.system(size: 12.5, weight: .medium))
+          ProgressView(value: pasada.avance.total)
+            .tint(SettingsTheme.accent)
+          Text(LocalizedStringKey(pasada.avance.etapa.descripcion))
             .font(.system(size: 11))
-            .foregroundStyle(PaletaDeDilo.actual.aviso.color.opacity(0.9))
-            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(.white.opacity(0.5))
+          if pasada.avance.compilandoPorPrimeraVez {
+            Text("La primera vez, el separador de voces se prepara para el Neural Engine: puede tardar varios minutos. Después tarda menos de un segundo.")
+              .font(.system(size: 11))
+              .foregroundStyle(PaletaDeDilo.actual.aviso.color.opacity(0.9))
+              .fixedSize(horizontal: false, vertical: true)
+          }
         }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .onTapGesture { runtimeState.abrirReunion(pasada.id, nil) }
       }
-      .padding(.vertical, 10)
-      .contentShape(Rectangle())
-      .onTapGesture { runtimeState.abrirReunion(pasada.id, nil) }
-    }
+    )
   }
 
-  private var campoDeBusqueda: some View {
-    HStack(spacing: 7) {
-      Image(systemName: "magnifyingglass")
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(.white.opacity(0.5))
-      TextField(text: $consulta, prompt: Text("Busca por lo dicho o por quién lo dijo: «Camila despacho»")) {
-        Text("Buscar en tus reuniones")
-      }
-      .textFieldStyle(.plain)
-      .font(.system(size: 12.5))
-      if buscando {
-        Button { consulta = "" } label: {
-          Image(systemName: "xmark.circle.fill").foregroundStyle(.white.opacity(0.4))
+  private var campoDeBusqueda: AnyView {
+    AnyView(
+      HStack(spacing: 7) {
+        Image(systemName: "magnifyingglass")
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(.white.opacity(0.5))
+        TextField(text: $consulta, prompt: Text("Busca por lo dicho o por quién lo dijo: «Camila despacho»")) {
+          Text("Buscar en tus reuniones")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("Borrar la búsqueda"))
+        .textFieldStyle(.plain)
+        .font(.system(size: 12.5))
+        if buscando {
+          Button { consulta = "" } label: {
+            Image(systemName: "xmark.circle.fill").foregroundStyle(.white.opacity(0.4))
+          }
+          .buttonStyle(.plain)
+          .accessibilityLabel(Text("Borrar la búsqueda"))
+        }
       }
-    }
-    .padding(.horizontal, 11)
-    .frame(height: 32)
-    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(.white.opacity(0.06)))
-    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+      .padding(.horizontal, 11)
+      .frame(height: 32)
+      .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(.white.opacity(0.06)))
+      .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+    )
   }
 
   @ViewBuilder
@@ -162,49 +170,51 @@ struct ReunionesSettingsView: View {
     }
   }
 
-  private func fila(_ enDisco: ReunionEnDisco) -> some View {
+  private func fila(_ enDisco: ReunionEnDisco) -> AnyView {
     let reunion = enDisco.reunion
     let quienes = reunion.hablantes.map(\.nombreVisible).joined(separator: ", ")
     let estado = enDisco.estado
     let sePuedeAfinar = [.lista, .interrumpida].contains(estado) && control?.pasada?.id != reunion.id
-    return HStack(spacing: 12) {
-      VStack(alignment: .leading, spacing: 3) {
-        Text(verbatim: reunion.titulo)
-          .font(.system(size: 12.5, weight: .medium))
-          .foregroundStyle(.white.opacity(0.92))
-          .lineLimit(1)
-        Text(verbatim: "\(LineasDelGuion.fecha(reunion.inicio)) · \(LineasDelGuion.duracion(reunion.duracion())) · \(quienes)")
-          .font(.system(size: 11).monospacedDigit())
-          .foregroundStyle(.white.opacity(0.5))
-          .lineLimit(1)
-      }
-      Spacer(minLength: 8)
-      Text(Self.titulo(de: estado))
-        .font(.system(size: 10.5, weight: .semibold))
-        .foregroundStyle(Self.color(de: estado))
-        .padding(.horizontal, 7)
-        .frame(height: 18)
-        .background(Capsule(style: .continuous).fill(Self.color(de: estado).opacity(0.14)))
-      Menu {
-        Button("Abrir el guion") { runtimeState.abrirReunion(reunion.id, nil) }
-        if sePuedeAfinar {
-          Button("Afinar de nuevo") { control?.afinarDeNuevo(id: reunion.id) }
+    return AnyView(
+      HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text(verbatim: reunion.titulo)
+            .font(.system(size: 12.5, weight: .medium))
+            .foregroundStyle(.white.opacity(0.92))
+            .lineLimit(1)
+          Text(verbatim: "\(LineasDelGuion.fecha(reunion.inicio)) · \(LineasDelGuion.duracion(reunion.duracion())) · \(quienes)")
+            .font(.system(size: 11).monospacedDigit())
+            .foregroundStyle(.white.opacity(0.5))
+            .lineLimit(1)
         }
-        Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([enDisco.carpeta]) }
-      } label: {
-        Image(systemName: "ellipsis.circle")
+        Spacer(minLength: 8)
+        Text(Self.titulo(de: estado))
+          .font(.system(size: 10.5, weight: .semibold))
+          .foregroundStyle(Self.color(de: estado))
+          .padding(.horizontal, 7)
+          .frame(height: 18)
+          .background(Capsule(style: .continuous).fill(Self.color(de: estado).opacity(0.14)))
+        Menu {
+          Button("Abrir el guion") { runtimeState.abrirReunion(reunion.id, nil) }
+          if sePuedeAfinar {
+            Button("Afinar de nuevo") { control?.afinarDeNuevo(id: reunion.id) }
+          }
+          Button("Mostrar en Finder") { NSWorkspace.shared.activateFileViewerSelecting([enDisco.carpeta]) }
+        } label: {
+          Image(systemName: "ellipsis.circle")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel(Text("Más"))
       }
-      .menuStyle(.borderlessButton)
-      .menuIndicator(.hidden)
-      .fixedSize()
-      .accessibilityLabel(Text("Más"))
-    }
-    .padding(.vertical, 9)
-    .contentShape(Rectangle())
-    .onTapGesture { runtimeState.abrirReunion(reunion.id, nil) }
-    .overlay(alignment: .bottom) {
-      Rectangle().fill(.white.opacity(contrast == .increased ? 0.16 : 0.06)).frame(height: 1)
-    }
+      .padding(.vertical, 9)
+      .contentShape(Rectangle())
+      .onTapGesture { runtimeState.abrirReunion(reunion.id, nil) }
+      .overlay(alignment: .bottom) {
+        Rectangle().fill(.white.opacity(contrast == .increased ? 0.16 : 0.06)).frame(height: 1)
+      }
+    )
   }
 
   @ViewBuilder
