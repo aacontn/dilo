@@ -5,6 +5,7 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por hacer
 
+- 2026-10-30 · Rehacer la Conversación como un solo agente de voz. Prueba de la 0.11.1 (15:03): el traspaso a Claude Code anduvo, pero después ningún modelo contestó: 5 turnos seguidos con la frase fija de `PreguntaDeProyecto`, 2 a 24 ms después de transcribir, y `diloClaudeCodeUltimoProyecto` sigue vacío. Falta: que el agente no se vaya y use Claude Code como herramienta de fondo, interrumpir hablando (hoy es half duplex) y bajar el piso de 1,2-1,5 s sin modelo (700 ms de silencio + 340-640 ms de voz).
 - 2026-10-30 · Probar la Conversación como agente con la app abierta: herramientas («¿qué dicté ayer?», «¿qué tengo hoy?»), una aprobación (Aprobar, No, colgar esperando), «pásame con Switchboard», «Claude Code, en Dilo, revisa los tests», «revisa Claude Code», y que `eager_input_streaming` y el tool use no den 400 en Haiku, Sonnet y Opus 5.5.
 - 2026-10-30 · Autorizar a Dilo en Switchboard (ventana «Agentes»: emparejamiento con código, herramientas y proyectos) y ver si pide confirmar de nuevo tras cada build. (Alfonso)
 - 2026-10-30 · Probar «Escuchar mi nombre» un día con la voz y el micrófono de Alfonso: aciertos, falsas alarmas, pausas (dictado, conversación, reunión, pantalla bloqueada), Bluetooth sin bajar a calidad de llamada, CPU y RAM con `scripts/metrics.sh`.
