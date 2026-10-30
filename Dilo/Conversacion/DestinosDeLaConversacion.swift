@@ -26,6 +26,9 @@ final class DestinosDeLaConversacion {
   let registro = RegistroDeDestinos()
   /// Cada turno terminado de un destino con Claude, para el log y la barra.
   var alTerminarElTurno: ((Agente, ResumenDelTurno) -> Void)?
+  /// Lo que un destino manda sólo a la transcripción, sin decirlo: el
+  /// detalle entero de lo que hizo Claude Code (un diff, una salida larga).
+  var alTranscribir: ((Agente, String) -> Void)?
 
   private let settings: AppSettings
   private let leerClave: @Sendable () async -> String?
@@ -40,6 +43,11 @@ final class DestinosDeLaConversacion {
         propias: true,
         servidores: settings.servidoresMCP.filter { $0.encendido && $0.enDilo }
       )
+    }
+    registro.registrar(.claudeCode) { [unowned self] agente in
+      let destino = DestinoClaudeCode(agente: agente, settings: settings)
+      destino.alTranscribir = { [weak self] texto in self?.alTranscribir?(agente, texto) }
+      return destino
     }
     registro.registrar(.mcp) { [unowned self] agente in
       guard case let .mcp(id) = agente.tipo else { return DestinoSinConectar(agente: agente) }

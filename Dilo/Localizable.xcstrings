@@ -1,6 +1,17 @@
 {
   "sourceLanguage": "es",
   "strings": {
+    "%@ Vacío, Dilo lo busca donde lo deja el instalador y en tu shell.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Leave it empty and Dilo looks where the installer puts it and in your shell."
+          }
+        }
+      }
+    },
     "%@ en los últimos 14 días": {
       "extractionState": "manual",
       "localizations": {
@@ -232,6 +243,17 @@
         }
       }
     },
+    "Agregar carpeta…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add folder…"
+          }
+        }
+      }
+    },
     "Borrar: la reunión va a la Papelera": {
       "extractionState": "manual",
       "localizations": {
@@ -243,6 +265,39 @@
         }
       }
     },
+    "Buscando…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking…"
+          }
+        }
+      }
+    },
+    "Cada carpeta de ~/Developer se nombra por su nombre: «en dilo landing», «en switchboard». Hoy son %lld.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each folder in ~/Developer goes by its name: “in dilo landing”, “in switchboard”. There are %lld today."
+          }
+        }
+      }
+    },
+    "Cada permiso que pide Claude Code se aprueba con un clic en la muesca; la voz nunca aprueba. Dilo no lee los archivos de Claude Code: qué sesiones hay se lo pregunta a la CLI.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every permission Claude Code asks for is approved with a click in the notch; your voice never approves. Dilo doesn’t read Claude Code’s files: it asks the CLI which sessions there are."
+          }
+        }
+      }
+    },
     "Cerrar: la reunión sigue grabando": {
       "extractionState": "manual",
       "localizations": {
@@ -250,6 +305,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Close: the meeting keeps recording"
+          }
+        }
+      }
+    },
+    "Claude Code por voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code by voice"
           }
         }
       }
@@ -287,6 +353,17 @@
         }
       }
     },
+    "Dile «Claude Code, en Dilo, revisa los tests» y abre una sesión en esa carpeta. Usa tu cuenta de Claude Code, no tu clave de Anthropic.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say “Claude Code, in Dilo, check the tests” and it opens a session in that folder. It uses your Claude Code account, not your Anthropic key."
+          }
+        }
+      }
+    },
     "Dilo se cerró grabando. El audio quedó en disco: afínala para armar el guion.": {
       "extractionState": "manual",
       "localizations": {
@@ -305,6 +382,61 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dilo, the meeting"
+          }
+        }
+      }
+    },
+    "Dónde está Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where Claude Code is"
+          }
+        }
+      }
+    },
+    "El de tu Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Claude Code’s"
+          }
+        }
+      }
+    },
+    "El de tu Claude Code es el que tengas configurado en él. Lo que hace Claude Code se cobra a tu plan, no a tu clave.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yours is whatever you set up in Claude Code. What Claude Code does is billed to your plan, not your key."
+          }
+        }
+      }
+    },
+    "Elige la carpeta del proyecto. Su nombre es el que vas a decir; lo puedes cambiar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the project folder. Its name is what you’ll say; you can change it."
+          }
+        }
+      }
+    },
+    "Encontrada en %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found at %@."
           }
         }
       }
@@ -375,6 +507,17 @@
         }
       }
     },
+    "Modelo de Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code model"
+          }
+        }
+      }
+    },
     "Mostrar en Finder": {
       "extractionState": "manual",
       "localizations": {
@@ -386,6 +529,17 @@
         }
       }
     },
+    "No encontré la CLI claude.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn’t find the claude CLI."
+          }
+        }
+      }
+    },
     "Otro nombre…": {
       "extractionState": "manual",
       "localizations": {
@@ -393,6 +547,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Another name…"
+          }
+        }
+      }
+    },
+    "Proyectos de ~/Developer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projects in ~/Developer"
           }
         }
       }
@@ -481,6 +646,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your microphone: always you"
+          }
+        }
+      }
+    },
+    "Tus proyectos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your projects"
           }
         }
       }
@@ -2934,6 +3110,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deliver text by"
+          }
+        }
+      }
+    },
+    "Un nombre para decir y su carpeta. Le gana a uno de ~/Developer con el mismo nombre: así «Dilo» puede ir a otra carpeta.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A name to say and its folder. It wins over one in ~/Developer with the same name, so “Dilo” can point somewhere else."
+          }
+        }
+      }
+    },
+    "código": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "code"
           }
         }
       }
@@ -6552,6 +6750,17 @@
         }
       }
     },
+    "proyecto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "project"
+          }
+        }
+      }
+    },
     "seg": {
       "extractionState": "manual",
       "localizations": {
@@ -6559,6 +6768,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "sec"
+          }
+        }
+      }
+    },
+    "sesión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "session"
           }
         }
       }

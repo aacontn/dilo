@@ -126,6 +126,9 @@ final class ControladorDeLaConversacion {
     self.voz.alEmpezar = { [weak self] in self?.aplicar(.empezoAHablar) }
     self.voz.alTerminar = { [weak self] in self?.terminoDeHablar() }
     destinos.alTerminarElTurno = { [weak self] agente, resumen in self?.anotar(resumen, de: agente) }
+    destinos.alTranscribir = { [weak self] agente, texto in
+      self?.agregarLinea(texto, deDilo: true, quien: agente.nombre, nota: true)
+    }
   }
 
   var enCurso: Bool { maquina.estado != .colgada }
@@ -421,6 +424,13 @@ final class ControladorDeLaConversacion {
     }
     pendiente = nil
     switch ruta {
+    case let .cambiarA(agente) where agente.tipo == .claudeCode
+      && destinos.registro.estaConectado(agente.tipo.clase):
+      // «Revisa Claude Code» no es sólo cambiar: abre la última sesión y le
+      // pide que cuente en qué quedó («retoma», `PedidoAClaudeCode.entender`).
+      agenteActual = agente
+      refrescarElDestino()
+      consultar(TurnoDeLaPersona(agente: agente, texto: "retoma"))
     case let .cambiarA(agente):
       cambiarDeAgente(a: agente, diciendolo: true)
     case let .turno(turno):
