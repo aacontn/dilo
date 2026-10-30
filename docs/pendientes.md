@@ -5,6 +5,11 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por hacer
 
+- 2026-10-30 · Probar la Conversación como agente con la app abierta: herramientas («¿qué dicté ayer?», «¿qué tengo hoy?»), una aprobación (Aprobar, No, colgar esperando), «pásame con Switchboard», «Claude Code, en Dilo, revisa los tests», «revisa Claude Code», y que `eager_input_streaming` y el tool use no den 400 en Haiku, Sonnet y Opus 5.5.
+- 2026-10-30 · Autorizar a Dilo en Switchboard (ventana «Agentes»: emparejamiento con código, herramientas y proyectos) y ver si pide confirmar de nuevo tras cada build. (Alfonso)
+- 2026-10-30 · Probar «Escuchar mi nombre» un día con la voz y el micrófono de Alfonso: aciertos, falsas alarmas, pausas (dictado, conversación, reunión, pantalla bloqueada), Bluetooth sin bajar a calidad de llamada, CPU y RAM con `scripts/metrics.sh`.
+- 2026-10-30 · Dejar una sola tabla de cómo el motor escribe cada nombre: `EnrutadorDeAgentes.variantes(de:)` y `NombreQueDespierta.comoLoOyeElMotor` están duplicadas.
+
 - 2026-10-29 · `VentanaDeLaMuescaTests.elHitTestNilDejaPasarElClicALaVistaDeAbajo` falla en macOS 27 sin que el código haya cambiado: `NSHostingView` sin ventana no reclama el clic. Rehacer el test con una ventana o sacarlo.
 
 - 2026-10-15 · Probar en pantalla la fase 5 (agentes en la muesca, App Intents, MCP, CLI): lista en `docs/design/agentes-en-la-muesca.md`. Nunca tomando el Mac mientras Alfonso lo usa.

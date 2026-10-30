@@ -18,3 +18,6 @@
 - 2026-10-29 · Reuniones se construyen sin esperar la Fase 0: Nemotron 3 de fábrica, Sortformer elegible, y la Fase 0 pasa a ser un banco (`scripts/banco-reuniones.sh`) que se corre con reuniones reales · Alfonso: «démosle no más».
 - 2026-10-29 · La cuenta de Hugging Face (dev@espaciodigital.cl) vive en `Espacio Digital/herramientas/huggingface/`; otra cuenta irá en `huggingface-<cuenta>` · es de la agencia y el token sólo baja modelos.
 - 2026-10-30 · El tope de 25 MB se mide sobre el Release sin símbolos (`DEPLOYMENT_POSTPROCESSING` en Release, dSYM aparte) · es lo que se publica: 14,8 MB contra 27,5 MB con símbolos.
+- 2026-10-30 · La Conversación es un agente: agentes con nombre (Dilo, Claude Code, Switchboard), herramientas con aprobación por clic, cliente MCP y Claude Code por la CLI oficial · Alfonso: «la idea es que sea la interfaz de voz de las cosas que pueda hacer», como el modo hablado de Codex.
+- 2026-10-30 · La escucha de nombres usa Silero + Parakeet sobre el primer 1,5 s de cada tramo con voz, opcional y apagada de fábrica · 79 % de aciertos y cero falsas alarmas en 54 min de prosa, ~0,5 % de CPU; el CTC de FluidAudio es inglés y daba 212 falsas por hora.
+- 2026-10-30 · `~/Developer/dilo` apunta al repo nativo y `~/Developer/dilo-tauri` al congelado · Claude Code por voz saca de ahí los proyectos por nombre.
