@@ -136,6 +136,10 @@ Dilo lleva trabajo de otros adentro, publicado con licencia abierta:
   minutos de una toma, el filtro de lo que un motor escribe cuando no oyó
   palabras, y las reglas y umbrales del validador que revisa lo que devuelve
   el modelo de texto antes de pegarlo.
+- **[meeting-transcriber](https://github.com/pasrom/meeting-transcriber)**, de
+  pasrom (MIT) — de ahí vienen la forma del tap de Core Audio que graba el
+  audio del Mac en una reunión y el remuestreo que sigue los cambios de tasa
+  de los audífonos.
 - **[FluidAudio](https://github.com/FluidInference/FluidAudio)** (Apache 2.0)
   y **[Sparkle](https://github.com/sparkle-project/Sparkle)** (MIT), las dos
   dependencias.

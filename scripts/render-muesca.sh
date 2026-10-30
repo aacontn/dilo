@@ -46,6 +46,7 @@ swiftc -O \
   "$raiz/Dilo/CoreHUD/SiluetaDeLaMuesca.swift" \
   "$raiz/Dilo/CoreHUD/AsientosDeLaMuesca.swift" \
   "$raiz/Dilo/CoreHUD/HUDSegmentoAlCostado.swift" \
+  "$raiz/Dilo/CoreHUD/HUDReunionEnLaMuesca.swift" \
   "$raiz/Dilo/Dictation/HUD/Visuals/HUDVoiceVisualStyle.swift" \
   "$raiz/Dilo/CoreHUD/HUDMetrics.swift" \
   "$raiz/Dilo/CoreHUD/VidrioDeLaMuesca.swift" \

@@ -93,6 +93,15 @@ final class DictationHUDContent {
   /// Un clic en un segmento, con el id de su actividad. Lo cablea `HUDStage`.
   @ObservationIgnored var alTocarSegmento: ((String) -> Void)?
 
+  /// La reunión que se está grabando, o nil. Lo escribe `HUDStage` desde
+  /// `ControlDeReuniones`; si tiene la forma lo deciden los asientos
+  /// (`reunionEsPrincipal`).
+  var reunionEnCurso: ReunionEnLaMuesca?
+  var reunionEsPrincipal = false
+  /// La reunión, sólo cuando es ella la que tiene la forma: sin dictado y sin
+  /// ninguna sesión que la exija.
+  var reunionPrincipal: ReunionEnLaMuesca? { reunionEsPrincipal ? reunionEnCurso : nil }
+
   // MARK: El panel del hover
 
   /// Lo reciente que se puede volver a copiar, lo más nuevo primero
@@ -108,6 +117,9 @@ final class DictationHUDContent {
   @ObservationIgnored var alCopiarReciente: ((ElementoReciente) -> Void)?
   @ObservationIgnored var alElegirModo: ((String?) -> Void)?
   @ObservationIgnored var alAbrirReunion: (() -> Void)?
+  /// «Grabar» (false) o «Unirse y grabar» (true) en la tarjeta de la próxima
+  /// reunión. Lo cablea `InterfazDeReuniones`.
+  @ObservationIgnored var alGrabarReunion: ((Bool) -> Void)?
   /// Si el panel ofrece «Traducir», y a qué idioma: nil lo esconde,
   /// `sinDestino` lo muestra apagado y lleva a elegir el idioma en Ajustes.
   var traduccionDelPanel: TraduccionDelPanel?

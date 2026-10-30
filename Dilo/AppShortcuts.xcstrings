@@ -122,6 +122,39 @@
         }
       }
     },
+    "Grabar una reunión con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a meeting with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Grabar la reunión con ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record the meeting with ${applicationName}"
+          }
+        }
+      }
+    },
+    "Terminar la reunión en ${applicationName}": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the meeting in ${applicationName}"
+          }
+        }
+      }
+    },
     "Conversar con ${applicationName}": {
       "extractionState": "manual",
       "localizations": {

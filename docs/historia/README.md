@@ -29,7 +29,7 @@ para Dilo.
 
 ## Piezas adaptadas de otros proyectos
 
-Además del árbol de origen, hay código chico adaptado de dos proyectos MIT,
+Además del árbol de origen, hay código chico adaptado de tres proyectos MIT,
 con su copyright en `LICENSE` y su nombre en Acerca de:
 
 - **imnotpayingforwisprflow**, de Yosef Shammout (MIT): el recorte de
@@ -44,6 +44,13 @@ con su copyright en `LICENSE` y su nombre en Acerca de:
   `ScreenContextCapture.swift`) y el Jaro-Winkler del aprendizaje de
   correcciones (`DiloText/AprendizajeDeCorrecciones.swift`, de
   `CustomWordMatcher.swift`).
+- **meeting-transcriber**, de pasrom (MIT): para la pista `ellos` de las
+  reuniones, la forma del agregado privado del tap y que el búfer del tap es
+  el último del IOProc (`Dilo/Reuniones/CapturaDelSistema.swift`, de
+  `AppAudioCapture+AggregateDescription.swift`, `AppAudioCapture+TapBuffer.swift`
+  y `AppTapSession.swift`), y el remuestreo que se rearma al cambiar la tasa
+  (`Dilo/Reuniones/RemuestreoA16k.swift`, de `StreamingMonoResampler.swift`).
+  De FluidVoice (GPLv3) no se copió nada.
 
 Cada archivo lleva una línea de origen sobre el bloque adaptado. De otras apps
 que se estudiaron sin licencia abierta sólo se tomó la técnica, nunca el

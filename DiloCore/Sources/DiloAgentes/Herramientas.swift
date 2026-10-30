@@ -59,6 +59,7 @@ public struct FallaDeHerramienta: Error, Equatable, Sendable, Encodable {
     case argumentoInvalido = "argumento_invalido"
     case noEncontrado = "no_encontrado"
     case herramientaDesconocida = "herramienta_desconocida"
+    case reunionesIlegibles = "reuniones_ilegibles"
   }
 
   public let codigo: Codigo
@@ -76,15 +77,20 @@ public struct FallaDeHerramienta: Error, Equatable, Sendable, Encodable {
 }
 
 /// Las herramientas de Dilo y cómo se ejecutan. Las cuatro del plan (cap. 4
-/// §6), todas de lectura: el historial que la persona eligió guardar y Tus
-/// palabras. Lo que vive sólo en la app abierta —el último dictado si el
-/// historial está apagado, un dictado pedido por un agente— espera al socket
-/// de la fase 2.
+/// §6) y las tres de reuniones, todas de lectura: el historial que la persona
+/// eligió guardar, Tus palabras y los guiones de las reuniones. Lo que vive
+/// sólo en la app abierta —el último dictado si el historial está apagado, un
+/// dictado pedido por un agente, la reunión en curso— espera al socket de la
+/// fase 2.
 public struct HerramientasDeDilo: Sendable {
   public let fuente: any FuenteDeDilo
+  /// Dónde están las reuniones. Nil es un Dilo sin reuniones: las
+  /// herramientas siguen en la tabla y lo dicen.
+  public let reuniones: (any FuenteDeReuniones)?
 
-  public init(fuente: any FuenteDeDilo) {
+  public init(fuente: any FuenteDeDilo, reuniones: (any FuenteDeReuniones)? = nil) {
     self.fuente = fuente
+    self.reuniones = reuniones
   }
 
   /// Topes. Los extractos se cortan para que una lista de 50 no llene el
@@ -139,7 +145,7 @@ public struct HerramientasDeDilo: Sendable {
     requeridos: []
   )
 
-  public static let todas = [recientes, buscar, ver, palabras]
+  public static let todas = [recientes, buscar, ver, palabras] + HerramientasDeReuniones.todas
 
   public static func llamada(_ nombre: String) -> Herramienta? {
     todas.first { $0.nombre == nombre }
@@ -165,6 +171,9 @@ public struct HerramientasDeDilo: Sendable {
   }
 
   private func ejecutar(_ herramienta: Herramienta, _ args: Argumentos) async throws -> ValorJSON {
+    if HerramientasDeReuniones.todas.contains(herramienta) {
+      return try HerramientasDeReuniones.ejecutar(herramienta, args, fuente: reuniones)
+    }
     if herramienta == Self.palabras {
       return .lista(fuente.tusPalabras().map(ValorJSON.texto))
     }
@@ -276,6 +285,12 @@ struct Argumentos {
       )
     }
     return min(max(n, rango.lowerBound), rango.upperBound)
+  }
+
+  /// Un texto que puede no venir: nil si falta o viene vacío.
+  func textoOpcional(_ nombre: String) -> String? {
+    let texto = valores[nombre]?.comoTexto?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return texto.isEmpty ? nil : texto
   }
 
   func textoRequerido(_ nombre: String) throws -> String {

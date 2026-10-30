@@ -97,6 +97,7 @@ struct ServidorMCPTests {
     }
     #expect(herramientas.map { $0["name"]?.comoTexto } == [
       "dictados_recientes", "buscar_dictados", "ver_dictado", "tus_palabras",
+      "reuniones_recientes", "buscar_reuniones", "ver_reunion",
     ])
     for h in herramientas {
       #expect(h["annotations"]?["readOnlyHint"] == .bool(true))

@@ -123,6 +123,14 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case traducirAntesDeLeer
   case bajarVoces
   case vozPersonal
+  // Reuniones
+  case buscarEnReuniones
+  case listaDeReuniones
+  case carpetaDeReuniones
+  case diarizador
+  case prepararElSeparador
+  case retencionDelAudio
+  case microfonoDeReuniones
   // Dilo
   case novedades
   case version
@@ -169,6 +177,10 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .abrirAlIniciarSesion, .quienLee, .vozDePhonon, .vozQueLee, .traducirAntesDeLeer, .bajarVoces,
       .vozPersonal:
       .general
+    case .buscarEnReuniones, .listaDeReuniones:
+      .reuniones
+    case .carpetaDeReuniones, .diarizador, .prepararElSeparador, .retencionDelAudio, .microfonoDeReuniones:
+      .grabarReuniones
     case .novedades:
       .novedades
     case .version, .buscarActualizaciones, .actualizacionesSolas, .licencias:
@@ -290,6 +302,13 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .traducirAntesDeLeer: String(localized: "Traducir antes de leer")
     case .bajarVoces: String(localized: "Bajar voces premium")
     case .vozPersonal: String(localized: "Voz personal")
+    case .buscarEnReuniones: String(localized: "Buscar en tus reuniones")
+    case .listaDeReuniones: String(localized: "Tus reuniones")
+    case .carpetaDeReuniones: String(localized: "Carpeta de las reuniones")
+    case .diarizador: String(localized: "Separador de voces")
+    case .prepararElSeparador: String(localized: "Preparado para tu Mac")
+    case .retencionDelAudio: String(localized: "Cuánto se guarda el audio")
+    case .microfonoDeReuniones: String(localized: "Tu pista")
     case .novedades: String(localized: "Novedades")
     case .version: String(localized: "Versión")
     case .buscarActualizaciones: String(localized: "Buscar actualizaciones solo")
@@ -352,6 +371,13 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .vozQueLee, .bajarVoces, .vozPersonal: [String(localized: "leer en voz alta"), String(localized: "voz"), String(localized: "síntesis")]
     case .quienLee, .vozDePhonon:
       [String(localized: "leer en voz alta"), String(localized: "voz"), "Phonon", String(localized: "neural"), "Siri"]
+    case .buscarEnReuniones, .listaDeReuniones:
+      [String(localized: "reunión"), String(localized: "guion"), String(localized: "hablantes"), String(localized: "llamada")]
+    case .carpetaDeReuniones: [String(localized: "reunión"), String(localized: "carpeta"), "SSD", String(localized: "disco")]
+    case .diarizador: [String(localized: "reunión"), "Nemotron", "Sortformer", String(localized: "hablantes"), String(localized: "voces")]
+    case .prepararElSeparador: ["Nemotron", "Neural Engine", String(localized: "bajar"), String(localized: "modelo")]
+    case .retencionDelAudio: [String(localized: "reunión"), "audio", String(localized: "borrar"), String(localized: "Papelera"), "30"]
+    case .microfonoDeReuniones: [String(localized: "reunión"), String(localized: "micrófono")]
     case .novedades: [String(localized: "versión"), String(localized: "cambios")]
     case .version, .buscarActualizaciones, .actualizacionesSolas: [String(localized: "actualizaciones"), "Sparkle", String(localized: "versión")]
     case .licencias: [String(localized: "licencia"), String(localized: "créditos"), String(localized: "acerca de")]

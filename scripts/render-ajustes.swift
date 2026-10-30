@@ -1,6 +1,7 @@
 import AppKit
 import DiloCapabilities
 import DiloModes
+import DiloReuniones
 import DiloText
 import SwiftUI
 @testable import Dilo
@@ -71,6 +72,79 @@ enum RenderAjustes {
         como: "busqueda-\(nombre)"
       )
     }
+
+    try escribirLaVentanaDeLaReunion()
+  }
+
+  /// La ventana de la reunión en sus fases: grabando, afinando (con la
+  /// primera compilación de Nemotron), el guion con un chip abierto, una
+  /// línea resaltada y un solape, y una interrumpida. Sin disco ni audio: el
+  /// modelo se llena a mano.
+  @MainActor
+  static func escribirLaVentanaDeLaReunion() throws {
+    let inicio = Date().addingTimeInterval(-(42 * 60 + 18))
+    var reunion = Reunion(
+      id: "2026-10-29T15:30:07", titulo: "Revisión semanal con Camila y Pedro", inicio: inicio,
+      evento: EventoDeLaReunion(titulo: "Revisión semanal", asistentes: ["Camila Rojas", "Pedro Soto", "Ana Núñez"])
+    )
+    reunion.fin = inicio.addingTimeInterval(42 * 60)
+    reunion.estado = .lista
+    reunion.hablantes = [
+      .yo, Hablante(id: "h2", nombre: "Camila Rojas", pista: .ellos), Hablante(id: "h3", pista: .ellos),
+      Hablante(id: "h4", pista: .ellos),
+    ]
+    func linea(_ h: String, _ desde: Double, _ texto: String, solape: Bool = false) -> LineaDelGuion {
+      LineaDelGuion(hablante: h, desde: desde, hasta: desde + 4, texto: texto, solape: solape, primeraPalabra: 0)
+    }
+    let lineas = [
+      linea("yo", 40, "Partamos por el precio, que es lo que quedó pendiente la semana pasada."),
+      linea("h2", 52, "Ya, te cuento lo que conversamos con Pedro: el precio lo podemos cerrar hoy, pero con despacho incluido."),
+      linea("h3", 61, "Ojo que el despacho a regiones es aparte.", solape: true),
+      linea("h2", 66, "Sí, sin regiones. Santiago y alrededores nomás."),
+      linea("yo", 80, "Perfecto. ¿Y los plazos?"),
+      linea("h4", 95, "Perdón, me uno tarde. ¿Ya vieron lo del contrato?"),
+      linea("h3", 104, "Recién partimos con eso. Te mando el borrador después de la reunión."),
+      linea("yo", 120, "Buenísimo. Entonces quedamos con el precio cerrado y el contrato para el jueves."),
+    ]
+    func modelo(_ fase: ModeloDeLaReunion.Fase) -> ModeloDeLaReunion {
+      let m = ModeloDeLaReunion()
+      m.fase = fase
+      m.titulo = reunion.titulo
+      m.inicio = inicio
+      m.reunion = reunion
+      m.estado = .lista
+      m.lineas = lineas
+      m.hayAudio = true
+      return m
+    }
+    let grabando = modelo(.grabando)
+    grabando.enVivo = ReunionEnLaMuesca(inicio: inicio, titulo: reunion.titulo, microfono: .encendida, parlante: .ambar)
+    let afinando = modelo(.afinando(AvanceDeLaPasada(etapa: .separandoVoces, fraccionDeLaEtapa: 0, compilandoPorPrimeraVez: true)))
+    let afinandoNormal = modelo(.afinando(AvanceDeLaPasada(etapa: .transcribiendoEllos, fraccionDeLaEtapa: 0.4)))
+    let guion = modelo(.lista)
+    guion.opcionesDe = "h3"
+    guion.lineaResaltada = 3
+    guion.reproduciendo = 1
+    let escribiendo = modelo(.lista)
+    escribiendo.opcionesDe = "h4"
+    escribiendo.escribiendoNombre = true
+    escribiendo.nombreEscrito = "Matías"
+    escribiendo.copiado = .paraClaude
+    var interrumpida = reunion
+    interrumpida.estado = .interrumpida
+    let sinGuion = modelo(.sinGuion)
+    sinGuion.reunion = interrumpida
+    sinGuion.estado = .interrumpida
+    for (nombre, m) in [
+      ("reunion-grabando", grabando), ("reunion-afinando-primera-vez", afinando), ("reunion-afinando", afinandoNormal),
+      ("reunion-guion", guion), ("reunion-otro-nombre", escribiendo), ("reunion-interrumpida", sinGuion),
+    ] {
+      try escribir(
+        VistaDeLaReunion(modelo: m).environment(\.materialDeAjustes, .imitacion),
+        tamaño: VistaDeLaReunion.tamano,
+        como: nombre
+      )
+    }
   }
 
   /// Las secciones que se miran, con y sin clave de Anthropic donde la
@@ -99,12 +173,37 @@ enum RenderAjustes {
     // Sin preguntarle a TCC por el proceso del render: con clave, todo
     // concedido; sin clave, también falta Accesibilidad, para ver los avisos.
     runtime.permisosQueFaltanFijos = conClave ? [] : [.accesibilidad]
+    runtime.reunionesFijas = reunionesDeEjemplo(ahora: ahora)
+    runtime.separadorFijo = .porPreparar
+    runtime.defaultsDeReuniones = UserDefaults(suiteName: "/private/tmp/dilo-render-ajustes")!
     runtime.ultimoDictado = UltimoDictado(
       original: "eh mándale el informe a Carla antes del viernes",
       limpio: "Mándale el informe a Carla antes del viernes.",
       cuando: ahora.addingTimeInterval(-4 * 60)
     )
     return runtime
+  }
+
+  /// Cinco reuniones en sus estados, para la lista de Reuniones.
+  static func reunionesDeEjemplo(ahora: Date) -> [ReunionEnDisco] {
+    func una(
+      _ titulo: String, haceHoras: Double, minutos: Double, estado: EstadoDeLaReunion, nombres: [String?],
+      enElRespaldo: Bool = false
+    ) -> ReunionEnDisco {
+      let inicio = ahora.addingTimeInterval(-haceHoras * 3600)
+      var r = Reunion(id: CarpetaDeReunion.id(inicio: inicio), titulo: titulo, inicio: inicio)
+      r.fin = inicio.addingTimeInterval(minutos * 60)
+      r.estado = estado
+      r.hablantes = [.yo] + nombres.enumerated().map { Hablante(id: Hablante.id(numero: $0.offset + 2), nombre: $0.element, pista: .ellos) }
+      return ReunionEnDisco(reunion: r, carpeta: URL(filePath: "/private/tmp/r"), enElRespaldo: enElRespaldo)
+    }
+    return [
+      una("Revisión semanal con Camila y Pedro", haceHoras: 0.3, minutos: 42, estado: .afinando, nombres: ["Camila Rojas", nil]),
+      una("1:1 con Camila", haceHoras: 26, minutos: 28, estado: .lista, nombres: ["Camila Rojas"]),
+      una("Cotización Andes Flags", haceHoras: 50, minutos: 55, estado: .lista, nombres: ["Pedro Soto", "Ana Núñez", nil, nil]),
+      una("Llamada con proveedor", haceHoras: 74, minutos: 12, estado: .interrumpida, nombres: [nil]),
+      una("Reunión", haceHoras: 98, minutos: 33, estado: .afinando, nombres: [], enElRespaldo: true),
+    ]
   }
 
   /// Un historial de uso de dos semanas, en un archivo temporal.

@@ -81,12 +81,18 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
   case conversacionAjustes = "conversacion-ajustes"
   case conversacionSilenciada = "conversacion-silenciada"
   case conversacionAviso = "conversacion-aviso"
+  /// Una reunión grabando sin dictado: `● 12:04` y las dos marcas con la
+  /// forma (`HUDReunionEnLaMuesca`); la misma con el parlante en ámbar, que
+  /// es la vigía a los 5 s de ceros; y dictando, la reunión al costado.
+  case reunion
+  case reunionSinLlamada = "reunion-sin-llamada"
+  case dictandoConReunion = "dictando-reunion"
 
   /// El texto de muestra cuando el pedido no trae uno: largo a propósito en
   /// las escenas que tienen que probar el recorte por la izquierda.
   var textoDeMuestra: String? {
     switch self {
-    case .dictando, .dictandoConSegmentos: "Aprieta, habla, suelta"
+    case .dictando, .dictandoConSegmentos, .dictandoConReunion: "Aprieta, habla, suelta"
     case .dictandoTraduciendo: "nos vemos el martes en la oficina"
     case .dictandoLargo:
       "y entonces le dije que el informe de Kubernetes tenía que estar listo para el jueves a primera hora"
@@ -109,7 +115,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .reposo, .reposoConDatos, .hover, .hoverCompleto, .hoverVidrio, .hoverCompletoVidrio, .hoverSinIdioma:
       .reposo
     case .segmentoToma, .segmentoRetenido, .dosSegmentos, .segmentosEncogidos, .segmentosConPalabra,
-      .segmentoConDatos, .agenteEsperando:
+      .segmentoConDatos, .agenteEsperando, .reunion, .reunionSinLlamada:
       .reposo
     // La conversación no mueve la máquina del contrato: la barra es otra
     // superficie (`HUDStage+Conversacion`).
@@ -118,7 +124,7 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
       .reposo
     case .cargandoModelo: .preparando(.cargandoModelo)
     case .faltaMicrofono: .preparando(.permisoDeMicrofono)
-    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo: .dictando
+    case .dictando, .dictandoLargo, .dictandoConSegmentos, .dictandoTraduciendo, .dictandoConReunion: .dictando
     case .procesando: .procesando
     case .acuse: .resultado(.listo)
     case .copiado: .resultado(.copiado)
@@ -136,6 +142,20 @@ enum EscenaDeMuestra: String, CaseIterable, Sendable {
     case .segmentoRetenido: (false, true)
     case .dosSegmentos, .dictandoConSegmentos, .segmentosEncogidos, .segmentosConPalabra: (true, true)
     default: (false, false)
+    }
+  }
+
+  /// La reunión que pone la escena, o nil. Empezó hace doce minutos: el
+  /// reloj corre desde ahí, como en la app.
+  var reunionDeMuestra: ReunionEnLaMuesca? {
+    let inicio = Date().addingTimeInterval(-(12 * 60 + 4))
+    switch self {
+    case .reunion, .dictandoConReunion:
+      return ReunionEnLaMuesca(inicio: inicio, titulo: "Revisión semanal", microfono: .encendida, parlante: .encendida)
+    case .reunionSinLlamada:
+      return ReunionEnLaMuesca(inicio: inicio, titulo: "Revisión semanal", microfono: .encendida, parlante: .ambar)
+    default:
+      return nil
     }
   }
 

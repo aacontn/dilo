@@ -4,9 +4,9 @@ import AppIntents
 /// sin que nadie arme nada. Cada frase nombra la app, como exige la API; el
 /// inglés se traduce desde acá en `AppShortcuts.xcstrings`.
 ///
-/// No están todas: «Último dictado» y «Mostrar en la muesca» devuelven o
-/// reciben algo y sólo tienen sentido dentro de un atajo, donde se eligen
-/// igual.
+/// No están todas: «Último dictado», «Mostrar en la muesca», «Última
+/// reunión» y «Buscar en tus reuniones» devuelven o reciben algo y sólo
+/// tienen sentido dentro de un atajo, donde se eligen igual. Apple deja diez.
 struct AtajosDeDilo: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
@@ -51,6 +51,18 @@ struct AtajosDeDilo: AppShortcutsProvider {
       phrases: ["Transcribir un archivo con \(.applicationName)"],
       shortTitle: "Transcribir un archivo",
       systemImageName: "waveform"
+    )
+    AppShortcut(
+      intent: GrabarReunionIntent(),
+      phrases: ["Grabar una reunión con \(.applicationName)", "Grabar la reunión con \(.applicationName)"],
+      shortTitle: "Grabar una reunión",
+      systemImageName: "record.circle"
+    )
+    AppShortcut(
+      intent: TerminarReunionIntent(),
+      phrases: ["Terminar la reunión en \(.applicationName)"],
+      shortTitle: "Terminar la reunión",
+      systemImageName: "stop.circle"
     )
     AppShortcut(
       intent: BuscarEnHistorialIntent(),

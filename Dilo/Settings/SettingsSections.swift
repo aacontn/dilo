@@ -26,9 +26,10 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
   var sections: [SettingsSection] {
     let orden: [SettingsSection]
     switch self {
-    case .portada: orden = [.inicio]
+    // Reuniones es un destino, no un ajuste: va con Inicio, arriba de TU VOZ.
+    case .portada: orden = [.inicio, .reuniones]
     case .voz: orden = [.dictation, .modos, .palabras, .historial, .dropTranscription]
-    case .settings: orden = [.claude, .motor, .shortcuts, .appearance, .datosDeLaMuesca, .general]
+    case .settings: orden = [.claude, .motor, .grabarReuniones, .shortcuts, .appearance, .datosDeLaMuesca, .general]
     case .dilo: orden = [.novedades, .about]
     }
     return orden.filter(\.isAvailable)
@@ -37,6 +38,8 @@ enum SettingsSectionGroup: String, CaseIterable, Identifiable {
 
 enum SettingsSection: String, CaseIterable, Identifiable {
   case inicio
+  case reuniones
+  case grabarReuniones
   case claude
   case general
   case appearance
@@ -59,8 +62,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var id: Self { self }
   var group: SettingsSectionGroup {
     switch self {
-    case .inicio: .portada
-    case .claude: .settings
+    case .inicio, .reuniones: .portada
+    case .claude, .grabarReuniones: .settings
     case .dictation, .modos, .palabras, .historial, .dropTranscription, .insights: .voz
     case .general, .appearance, .datosDeLaMuesca, .sounds, .motor, .readAloud, .language,
       .shortcuts: .settings
@@ -82,6 +85,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var title: String {
     switch self {
     case .inicio: String(localized: "Inicio")
+    case .reuniones: String(localized: "Reuniones")
+    case .grabarReuniones: String(localized: "Grabar reuniones")
     case .claude: String(localized: "Claude")
     case .general: String(localized: "General")
     case .appearance: String(localized: "Apariencia")
@@ -106,6 +111,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var subtitle: String {
     switch self {
     case .inicio: String(localized: "Cómo está Dilo, y lo que más se toca")
+    case .reuniones: String(localized: "El guion de quién dijo qué, buscable")
+    case .grabarReuniones: String(localized: "Dónde se guardan, quién separa las voces y el audio")
     case .claude: String(localized: "Tu clave de Anthropic y lo que Claude hace en Dilo")
     case .general: String(localized: "Cómo arranca Dilo y la voz que te lee")
     case .appearance: String(localized: "Cómo se ve la muesca, y cómo suena")
@@ -146,6 +153,8 @@ enum SettingsSection: String, CaseIterable, Identifiable {
   var icon: String {
     switch self {
     case .inicio: "house.fill"
+    case .reuniones: "person.2.wave.2.fill"
+    case .grabarReuniones: "record.circle"
     case .claude: "sparkle"
     case .general: "gearshape.fill"
     case .appearance: "paintpalette.fill"

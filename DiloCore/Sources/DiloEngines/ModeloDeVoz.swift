@@ -131,7 +131,9 @@ public struct CargadorDeParakeet: CargadorDeModelo {
 /// Parakeet cargado: el `AsrManager` y el estado del decoder que los parciales
 /// arrastran de un trozo al siguiente.
 actor ModeloDeParakeet: ModeloDeVoz {
-  private let manager: AsrManager
+  /// Sin `private`: la pasada final de una reunión transcribe un archivo
+  /// entero con este mismo manager (`ParakeetEngine+Reuniones.swift`).
+  let manager: AsrManager
   private var estadoParcial: TdtDecoderState?
   nonisolated let variante: VarianteDeParakeet
   private let refuerzo: RefuerzoDeTusPalabras?

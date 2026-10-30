@@ -74,6 +74,31 @@ struct PanelDeLaBarraTests {
     #expect(!PanelDeLaBarra.contenido(entrada).todasLasAcciones.contains(.conversar))
   }
 
+  /// Reuniones: «Grabar una reunión» en reposo; grabando, la reunión arriba
+  /// con su tiempo y «Terminar» primero.
+  @Test func grabarYTerminarUnaReunion() {
+    var entrada = PanelDeLaBarra.Entrada()
+    entrada.ahora = ahora
+    var contenido = PanelDeLaBarra.contenido(entrada)
+    #expect(contenido.todasLasAcciones.contains(.grabarReunion))
+    #expect(!contenido.todasLasAcciones.contains(.terminarReunion))
+
+    entrada.reunion = PanelDeLaBarra.Reunion(titulo: "Reunión con Camila", inicio: ahora.addingTimeInterval(-724))
+    contenido = PanelDeLaBarra.contenido(entrada)
+    #expect(contenido.acciones.first?.accion == .terminarReunion)
+    #expect(contenido.acciones.first?.atajo == "12:04")
+    #expect(!contenido.todasLasAcciones.contains(.grabarReunion))
+    #expect(contenido.encabezado.estado == String(localized: "Grabando la reunión · \("12:04")"))
+    #expect(contenido.encabezado.tono == .activo)
+    // Dictando encima, el dictado se lleva el encabezado y la reunión sigue
+    // a mano.
+    entrada.dictando = true
+    contenido = PanelDeLaBarra.contenido(entrada)
+    #expect(contenido.encabezado.estado == String(localized: "Dictando"))
+    #expect(contenido.acciones.first?.accion == .terminarReunion)
+    #expect(PanelDeLaBarra.reloj(3_750) == "1:02:30")
+  }
+
   @Test func ningunaAccionSeOfreceDosVeces() {
     let acciones = PanelDeLaBarra.contenido(entradaCompleta).todasLasAcciones
     #expect(Set(acciones).count == acciones.count)

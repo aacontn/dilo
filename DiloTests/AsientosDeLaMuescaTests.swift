@@ -10,9 +10,9 @@ import Testing
 /// fuentes iguales no se turnan el costado cada vez que se actualizan.
 @Suite("Asientos de la muesca")
 struct AsientosDeLaMuescaTests {
-  /// Una reunión grabando, como la que va a llegar en v2: abre el micrófono
-  /// pero le cede la forma al dictado.
-  private let reunion = ActividadDeLaMuesca(id: "reunion", prioridad: .alta, abreElMicrofono: true)
+  /// Una reunión grabando, la de verdad (`ActividadDeLaMuesca.reunion`):
+  /// abre el micrófono pero le cede la forma al dictado.
+  private let reunion = ActividadDeLaMuesca.reunion
 
   private func costado(_ id: String, _ prioridad: PrioridadDeActividad = .normal, lado: LadoDelAsiento? = nil)
     -> ActividadDeLaMuesca
@@ -21,6 +21,22 @@ struct AsientosDeLaMuescaTests {
   }
 
   private var dictado: ActividadDeLaMuesca { .sesion(escuchando: true) }
+
+  /// Dictando, la reunión baja a la izquierda: la derecha es de la toma que
+  /// quedó para reintentar, y las dos caben sin turnarse.
+  @Test func dictandoLaReunionVaALaIzquierdaYLaTomaALaDerecha() {
+    var a = AsientosDeLaMuesca()
+    a.recibir(.publicar(reunion))
+    a.recibir(.publicar(.tomaGuardada))
+    #expect(a.principal?.id == "reunion")
+    a.recibir(.publicar(dictado))
+    #expect(a.principal?.id == "sesion")
+    #expect(a.asiento(de: "reunion") == .costado(.izquierda))
+    #expect(a.asiento(de: "toma") == .costado(.derecha))
+    // Terminado el dictado, la reunión vuelve a la forma.
+    a.recibir(.retirar(id: "sesion"))
+    #expect(a.principal?.id == "reunion")
+  }
 
   @Test func sinNadiePublicadoLaMuescaDescansa() {
     let asientos = AsientosDeLaMuesca()

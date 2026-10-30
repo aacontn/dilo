@@ -49,6 +49,11 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// como una notificación, y el contrato del notch pide lo contrario
   /// (`EstadoDelNotch`).
   var tamañoEnReposo: CGSize? = nil
+  /// La silueta quieta de este momento cuando no es la de fábrica: con una
+  /// reunión grabando, la muesca descansa del tamaño de dictar
+  /// (`HUDNotchGeometry.tamañoDeLaReunion`). Crecer hasta ahí no es abrir el
+  /// panel del hover: sin hombros de Droppy, sin vidrio y sin sombra.
+  var siluetaQuieta: CGSize? = nil
   /// Clips the content to the shape.
   ///
   /// Off by default: the dictation visuals bloom past the silhouette on
@@ -137,7 +142,12 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// otro tamaño que la de fábrica.
   private var panelDelHoverAbierto: Bool {
     isCollapsedIntoHousing && tamañoEnReposo != nil
-      && renderedSize != HUDNotchGeometry.reposoSize(for: screen)
+      && renderedSize != reposoDeAhora
+  }
+
+  /// La silueta a la que se vuelve al cerrar el hover.
+  private var reposoDeAhora: CGSize {
+    siluetaQuieta ?? HUDNotchGeometry.reposoSize(for: screen)
   }
 
   private var isCollapsedIntoHousing: Bool {
@@ -165,7 +175,7 @@ struct HUDSurface<Content: View, Overlays: View>: View {
   /// nada.
   private var proyectaSombra: Bool {
     guard isCollapsedIntoHousing else { return true }
-    return renderedSize != HUDNotchGeometry.reposoSize(for: screen)
+    return renderedSize != reposoDeAhora
   }
 
   /// Growing from the housing, the content exists only while the shape is open
@@ -230,7 +240,7 @@ struct HUDSurface<Content: View, Overlays: View>: View {
     if isRevealed {
       return formaGrande ? CurvaDeLaMuesca.apertura.animacion : revealAnimation
     }
-    let vuelveAlReposo = renderedSize == HUDNotchGeometry.reposoSize(for: screen)
+    let vuelveAlReposo = renderedSize == reposoDeAhora
     // El panel del hover, con vidrio o en negro, abre y cierra con los
     // resortes de Droppy (0,47/0,76 al abrir, 0,54/0,90 al cerrar): son parte
     // de cómo se ve la forma abierta, no del estilo elegido.

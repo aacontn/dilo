@@ -199,6 +199,633 @@
         }
       }
     },
+    "Afinando el guion…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refining the script…"
+          }
+        }
+      }
+    },
+    "Afinar de nuevo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refine again"
+          }
+        }
+      }
+    },
+    "Afínala para armar el guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refine it to build the script."
+          }
+        }
+      }
+    },
+    "Borrar: la reunión va a la Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete: the meeting goes to the Trash"
+          }
+        }
+      }
+    },
+    "Cerrar: la reunión sigue grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close: the meeting keeps recording"
+          }
+        }
+      }
+    },
+    "Clic para escuchar desde aquí": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to listen from here"
+          }
+        }
+      }
+    },
+    "Clic para ponerle nombre; arrástralo sobre otro para juntarlos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click to name them; drag onto another to merge them"
+          }
+        }
+      }
+    },
+    "Copiar la línea": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the line"
+          }
+        }
+      }
+    },
+    "Dilo se cerró grabando. El audio quedó en disco: afínala para armar el guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo quit while recording. The audio is on disk: refine it to build the script."
+          }
+        }
+      }
+    },
+    "Dilo, la reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dilo, the meeting"
+          }
+        }
+      }
+    },
+    "Esperando el disco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the disk"
+          }
+        }
+      }
+    },
+    "Grabando. El guion sale al terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording. The script comes out when you end"
+          }
+        }
+      }
+    },
+    "La primera vez, el separador de voces se prepara para el Neural Engine: puede tardar varios minutos. Después tarda menos de un segundo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first time, the voice separator gets ready for the Neural Engine: it can take several minutes. After that it takes under a second."
+          }
+        }
+      }
+    },
+    "La reunión quedó en el Mac porque el disco de las reuniones no estaba. Se muda y se afina sola cuando vuelva.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting stayed on the Mac because the meetings disk wasn't there. It moves and refines itself when the disk is back."
+          }
+        }
+      }
+    },
+    "La reunión se interrumpió": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting was interrupted"
+          }
+        }
+      }
+    },
+    "Micrófono y audio del Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone and Mac audio"
+          }
+        }
+      }
+    },
+    "Mostrar en Finder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        }
+      }
+    },
+    "Otro nombre…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another name…"
+          }
+        }
+      }
+    },
+    "Quitar el nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove the name"
+          }
+        }
+      }
+    },
+    "Reasignar a": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reassign to"
+          }
+        }
+      }
+    },
+    "Se dijo a la vez que otra voz": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Said over another voice"
+          }
+        }
+      }
+    },
+    "Siempre encima": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always on top"
+          }
+        }
+      }
+    },
+    "Sin palabras en el guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No words in the script."
+          }
+        }
+      }
+    },
+    "Todavía no hay guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No script yet"
+          }
+        }
+      }
+    },
+    "Tu micrófono y el audio del Mac, cada uno en su pista. Puedes cerrar esta ventana: la reunión sigue grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone and the Mac's audio, each on its own track. You can close this window: the meeting keeps recording."
+          }
+        }
+      }
+    },
+    "Tu micrófono: siempre eres tú": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone: always you"
+          }
+        }
+      }
+    },
+    "Un hablante nuevo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new speaker"
+          }
+        }
+      }
+    },
+    "Copiar para Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy for Claude"
+          }
+        }
+      }
+    },
+    "Sí": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes"
+          }
+        }
+      }
+    },
+    "No": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
+          }
+        }
+      }
+    },
+    "Preparando los modelos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the models"
+          }
+        }
+      }
+    },
+    "Transcribiendo tu micrófono": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing your microphone"
+          }
+        }
+      }
+    },
+    "Transcribiendo la llamada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing the call"
+          }
+        }
+      }
+    },
+    "Separando las voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separating the voices"
+          }
+        }
+      }
+    },
+    "Armando el guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Building the script"
+          }
+        }
+      }
+    },
+    "30 días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 days"
+          }
+        }
+      }
+    },
+    "Abrir el guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the script"
+          }
+        }
+      }
+    },
+    "Afinando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refining"
+          }
+        }
+      }
+    },
+    "Borrar al terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete when done"
+          }
+        }
+      }
+    },
+    "Busca por lo dicho o por quién lo dijo: «Camila despacho»": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search by what was said or who said it: “Camila shipping”"
+          }
+        }
+      }
+    },
+    "Carpeta de las reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings folder"
+          }
+        }
+      }
+    },
+    "Carpeta, separador de voces y cuánto dura el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder, voice separator and how long the audio stays"
+          }
+        }
+      }
+    },
+    "Corre al terminar, sobre el audio de la llamada, en tu Mac. Nemotron 3 separa hasta 8 voces con solapes; Sortformer, hasta 4. Si Nemotron 3 falla, separa Sortformer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs when the meeting ends, on the call audio, on your Mac. Nemotron 3 separates up to 8 voices with overlaps; Sortformer, up to 4. If Nemotron 3 fails, Sortformer separates."
+          }
+        }
+      }
+    },
+    "Cuánto se guarda el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long the audio is kept"
+          }
+        }
+      }
+    },
+    "Dónde se guardan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where they're saved"
+          }
+        }
+      }
+    },
+    "Dónde se guardan, quién separa las voces y el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where they're saved, who separates the voices, and the audio"
+          }
+        }
+      }
+    },
+    "El audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio"
+          }
+        }
+      }
+    },
+    "El guion de quién dijo qué, buscable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script of who said what, searchable"
+          }
+        }
+      }
+    },
+    "El guion se queda para siempre; esto es sólo el audio. Al quedar listo pasa a AAC, unos 30 MB por hora, y lo que se borra va a la Papelera.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script stays forever; this is only the audio. Once ready it becomes AAC, about 30 MB per hour, and whatever is deleted goes to the Trash."
+          }
+        }
+      }
+    },
+    "El micrófono de la pista «Yo». El del sistema es el que con más probabilidad usa la llamada. No cambia la entrada del sistema ni el micrófono de dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone for the “Me” track. The system one is the one the call most likely uses. It doesn't change the system input or the dictation microphone."
+          }
+        }
+      }
+    },
+    "Elige dónde se guardan las reuniones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where meetings are saved."
+          }
+        }
+      }
+    },
+    "En tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In your meetings"
+          }
+        }
+      }
+    },
+    "Grabando ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording now"
+          }
+        }
+      }
+    },
+    "Grabar reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record meetings"
+          }
+        }
+      }
+    },
+    "Grábalas desde el panel de la barra, desde la próxima reunión en la muesca o con Atajos. Quedan en tu disco con el guion de quién dijo qué.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record them from the menu bar panel, from the next meeting in the notch, or with Shortcuts. They stay on your disk with the script of who said what."
+          }
+        }
+      }
+    },
+    "Guardarlo siempre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep it forever"
+          }
+        }
+      }
+    },
+    "Interrumpida": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupted"
+          }
+        }
+      }
+    },
     "A los costados de la muesca puedes tener a la vista cómo va el Mac. Al pasar el mouse, la muesca abre el detalle.": {
       "extractionState": "manual",
       "localizations": {
@@ -5083,24 +5710,13 @@
         }
       }
     },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT).": {
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · meeting-transcriber, de pasrom (MIT) · Sparkle, de Andy Matuschak y otros (MIT).": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT)."
-          }
-        }
-      }
-    },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT).": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · Sparkle, by Andy Matuschak and others (MIT)."
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · meeting-transcriber, by pasrom (MIT) · Sparkle, by Andy Matuschak and others (MIT)."
           }
         }
       }
@@ -10555,6 +11171,391 @@
         }
       }
     },
+    "Grabando la reunión · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording the meeting · %@"
+          }
+        }
+      }
+    },
+    "Terminar la reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the meeting"
+          }
+        }
+      }
+    },
+    "Terminar la reunión y armar su guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the meeting and build its script"
+          }
+        }
+      }
+    },
+    "Grabar una reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a meeting"
+          }
+        }
+      }
+    },
+    "Grabar una reunión: tu micrófono y el audio del Mac, cada uno en su pista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record a meeting: your microphone and the Mac's audio, each on its own track"
+          }
+        }
+      }
+    },
+    "Ya hay una reunión grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting is already recording."
+          }
+        }
+      }
+    },
+    "Queda muy poco disco para grabar (%lld MB). Libera al menos 1 GB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's too little disk space to record (%lld MB). Free up at least 1 GB."
+          }
+        }
+      }
+    },
+    "No pude crear la carpeta de la reunión: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't create the meeting's folder: %@"
+          }
+        }
+      }
+    },
+    "No pude abrir ni el micrófono ni el audio del Mac: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't open the microphone or the Mac's audio: %@"
+          }
+        }
+      }
+    },
+    "Falta el modelo de voz: bájalo en Ajustes → Motor de voz y vuelve a afinar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The voice model is missing: download it in Settings → Voice engine and refine again."
+          }
+        }
+      }
+    },
+    "No pude transcribir la reunión (%@). Vuelve a afinarla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't transcribe the meeting (%@). Refine it again."
+          }
+        }
+      }
+    },
+    "Las voces de la llamada no se separaron: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The call's voices weren't separated: %@"
+          }
+        }
+      }
+    },
+    "No pude escribir el guion: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't write the script: %@"
+          }
+        }
+      }
+    },
+    "Empieza a grabar una reunión en este Mac: tu micrófono y el audio del Mac, cada uno en su pista. Al terminar sale el guion con quién dijo qué. Nada sale de esta compu.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starts recording a meeting on this Mac: your microphone and the Mac's audio, each on its own track. When it ends you get the script of who said what. Nothing leaves this computer."
+          }
+        }
+      }
+    },
+    "Termina la reunión que Dilo está grabando. El guion sale en unos minutos, cuando termina de afinarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends the meeting Dilo is recording. The script is ready in a few minutes, once Dilo finishes refining it."
+          }
+        }
+      }
+    },
+    "Última reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last meeting"
+          }
+        }
+      }
+    },
+    "Devuelve el guion de la última reunión que grabó Dilo, en Markdown: quién dijo qué y cuándo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Returns the script of the last meeting Dilo recorded, in Markdown: who said what and when."
+          }
+        }
+      }
+    },
+    "Buscar en tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search your meetings"
+          }
+        }
+      }
+    },
+    "Líneas de tus reuniones que contienen un texto o que dijo una persona, sin importar tildes ni mayúsculas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lines from your meetings that contain some text or that a person said, ignoring accents and case."
+          }
+        }
+      }
+    },
+    "Cuántas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How many"
+          }
+        }
+      }
+    },
+    "Buscar ${consulta} en tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search your meetings for ${consulta}"
+          }
+        }
+      }
+    },
+    "Grabando la reunión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording the meeting."
+          }
+        }
+      }
+    },
+    "Ya estaba grabando una reunión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A meeting was already recording."
+          }
+        }
+      }
+    },
+    "Listo. El guion sale cuando Dilo termine de afinarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done. The script will be ready when Dilo finishes refining it."
+          }
+        }
+      }
+    },
+    "La reunión no empezó: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The meeting didn't start: %@"
+          }
+        }
+      }
+    },
+    "No hay ninguna reunión grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meeting is recording."
+          }
+        }
+      }
+    },
+    "Todavía no hay ninguna reunión con guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There's no meeting with a script yet."
+          }
+        }
+      }
+    },
+    "Grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording"
+          }
+        }
+      }
+    },
+    "Reunión grabando: abre su ventana": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting recording: opens its window"
+          }
+        }
+      }
+    },
+    "Reunión grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meeting recording"
+          }
+        }
+      }
+    },
+    "Abre la ventana de la reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the meeting window"
+          }
+        }
+      }
+    },
+    "Sin audio de la llamada: falta un permiso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No call audio: a permission is missing"
+          }
+        }
+      }
+    },
+    "Tu micrófono no suena: revisa el permiso": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone is silent: check the permission"
+          }
+        }
+      }
+    },
+    "Queda poco disco: la reunión sigue grabando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low disk space: the meeting keeps recording"
+          }
+        }
+      }
+    },
+    "El guion no salió: míralo en Reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script didn't come out: see it in Meetings"
+          }
+        }
+      }
+    },
     "Algo falló con Claude. ¿Me lo dices de nuevo?": {
       "extractionState": "manual",
       "localizations": {
@@ -10771,6 +11772,226 @@
           "stringUnit": {
             "state": "translated",
             "value": "Default"
+          }
+        }
+      }
+    },
+    "Lista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        }
+      }
+    },
+    "Nada todavía con eso. La búsqueda no distingue tildes ni mayúsculas, y mira también quién lo dijo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing with that yet. Search ignores accents and capitals, and also looks at who said it."
+          }
+        }
+      }
+    },
+    "Nemotron 3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nemotron 3"
+          }
+        }
+      }
+    },
+    "Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trash"
+          }
+        }
+      }
+    },
+    "Quién separa las voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who separates the voices"
+          }
+        }
+      }
+    },
+    "Reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings"
+          }
+        }
+      }
+    },
+    "Separador de voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice separator"
+          }
+        }
+      }
+    },
+    "Si el disco no está al grabar, la reunión queda en el Mac y se muda sola cuando vuelva.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the disk isn't there when recording, the meeting stays on the Mac and moves itself when the disk is back."
+          }
+        }
+      }
+    },
+    "Sortformer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sortformer"
+          }
+        }
+      }
+    },
+    "Todavía no hay reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings yet"
+          }
+        }
+      }
+    },
+    "Tu micrófono y el audio del Mac, cada uno en su pista. El guion sale al terminar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone and the Mac's audio, each on its own track. The script comes out when you end."
+          }
+        }
+      }
+    },
+    "Tu pista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your track"
+          }
+        }
+      }
+    },
+    "Tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings"
+          }
+        }
+      }
+    },
+    "Un clic abre el guion en esa línea.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A click opens the script at that line."
+          }
+        }
+      }
+    },
+    "Un clic abre el guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A click opens the script."
+          }
+        }
+      }
+    },
+    "borrar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "delete"
+          }
+        }
+      }
+    },
+    "carpeta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "folder"
+          }
+        }
+      }
+    },
+    "disco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "disk"
+          }
+        }
+      }
+    },
+    "guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "script"
+          }
+        }
+      }
+    },
+    "hablantes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "speakers"
           }
         }
       }
@@ -11138,6 +12359,160 @@
         }
       }
     },
+    "reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "meeting"
+          }
+        }
+      }
+    },
+    "voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "voices"
+          }
+        }
+      }
+    },
+    "Grabar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record"
+          }
+        }
+      }
+    },
+    "Unirse y grabar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join and record"
+          }
+        }
+      }
+    },
+    "Preparado para tu Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready for your Mac"
+          }
+        }
+      }
+    },
+    "Preparar ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prepare now"
+          }
+        }
+      }
+    },
+    "Todavía no está en este Mac. Se baja solo al grabar tu primera reunión (unos 190 MB), o ahora.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's not on this Mac yet. It downloads by itself when you record your first meeting (about 190 MB), or now."
+          }
+        }
+      }
+    },
+    "Bajando el separador de voces…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading the voice separator…"
+          }
+        }
+      }
+    },
+    "Bajado. La primera vez se prepara para el Neural Engine y puede tardar varios minutos: Dilo lo hace solo cuando no estás dictando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded. The first time it gets ready for the Neural Engine and can take several minutes: Dilo does it by itself when you're not dictating."
+          }
+        }
+      }
+    },
+    "Preparándolo para el Neural Engine. La primera vez tarda varios minutos; después, menos de un segundo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Getting it ready for the Neural Engine. The first time takes several minutes; after that, under a second."
+          }
+        }
+      }
+    },
+    "Listo: la próxima pasada lo carga en menos de un segundo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready: the next pass loads it in under a second."
+          }
+        }
+      }
+    },
+    "No se pudo preparar (%@). Vuelve a intentarlo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't prepare it (%@). Try again."
+          }
+        }
+      }
+    },
+    "No pude bajar el separador de voces. Revisa la conexión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I couldn't download the voice separator. Check your connection."
+          }
+        }
+      }
+    },
+    "bajar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "download"
+          }
+        }
+      }
+    },
     "tope": {
       "extractionState": "manual",
       "localizations": {
@@ -11468,13 +12843,13 @@
         }
       }
     },
-    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · Sparkle, de Andy Matuschak y otros (MIT). Se bajan aparte, para leer en voz alta: Phonon 40m, de Gradium (CC BY-NC 4.0, uso personal y no comercial), hecho sobre Pocket TTS y Mimi de Kyutai · sus voces (Apache 2.0) · el motor ptts, de Gradium (MIT o Apache 2.0).": {
+    "Talkify, de Tornike Gomareli (MIT) · Handy, de CJ Pais (MIT) · FluidAudio, de FluidInference (Apache 2.0) · imnotpayingforwisprflow, de Yosef Shammout (MIT) · Muesli, de Pranav Hari (MIT) · meeting-transcriber, de pasrom (MIT) · Sparkle, de Andy Matuschak y otros (MIT). Se bajan aparte, para leer en voz alta: Phonon 40m, de Gradium (CC BY-NC 4.0, uso personal y no comercial), hecho sobre Pocket TTS y Mimi de Kyutai · sus voces (Apache 2.0) · el motor ptts, de Gradium (MIT o Apache 2.0).": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · Sparkle, by Andy Matuschak and others (MIT). Downloaded separately, for reading aloud: Phonon 40m, by Gradium (CC BY-NC 4.0, personal non-commercial use), built on Kyutai's Pocket TTS and Mimi · its voices (Apache 2.0) · the ptts engine, by Gradium (MIT or Apache 2.0)."
+            "value": "Talkify, by Tornike Gomareli (MIT) · Handy, by CJ Pais (MIT) · FluidAudio, by FluidInference (Apache 2.0) · imnotpayingforwisprflow, by Yosef Shammout (MIT) · Muesli, by Pranav Hari (MIT) · meeting-transcriber, by pasrom (MIT) · Sparkle, by Andy Matuschak and others (MIT). Downloaded separately, for reading aloud: Phonon 40m, by Gradium (CC BY-NC 4.0, personal non-commercial use), built on Kyutai's Pocket TTS and Mimi · its voices (Apache 2.0) · the ptts engine, by Gradium (MIT or Apache 2.0)."
           }
         }
       }
