@@ -30,6 +30,7 @@ public enum Umbrales {
   /// El `.app` sin modelos < 25 MB (spec §3: "descarga"). Subió de 20 a 25
   /// con el motor doble: FluidAudio pesa ~12 MB y es el precio de Parakeet
   /// local; en v2 también diariza, así que podarlo hoy sería trabajo tirado.
-  /// Yap pesa 4 MB porque sólo usa Apple; Dilo trae su propio motor.
+  /// Yap pesa 4 MB porque sólo usa Apple; Dilo trae su propio motor. Se mide
+  /// sobre el Release sin símbolos, que es lo que se publica (2026-10-29).
   public static let tamanoDelAppMB = 25.0
 }

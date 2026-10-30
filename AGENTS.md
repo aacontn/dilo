@@ -1583,6 +1583,14 @@ descarga— y medir ahí daba 34 MB contra un umbral de 25: era medir otra app.
 Si le pasas un Debug, `dilo-metrics` no lo mide y te dice que compiles Release
 y se lo des con `--tamano-de`; sin medir sigue siendo un fallo.
 
+**Y el Release sale sin símbolos, como se publica** (Alfonso, 2026-10-29). El
+target `Dilo` lleva `DEPLOYMENT_POSTPROCESSING = YES` en Release, así que
+`STRIP_INSTALLED_PRODUCT` quita la tabla de símbolos al compilar y no sólo al
+archivar; el `Dilo.app.dSYM` queda al lado para leer reportes de caída. Antes
+el Release de `build` los traía adentro y la regla medía otra cosa que lo que
+se descarga: con reuniones, Phonon y la Conversación juntos daba 27,5 MB
+contra ~15 MB publicados. Los 25 MB se miden sobre lo que se publica.
+
 **Qué se mide dónde.** En un Mac se miden los cinco números y lo que no se
 pudo medir es un fallo, sin excepciones. En CI, `--ci` (o `GITHUB_ACTIONS`)
 cambia sólo una cosa: lo que ese entorno no puede medir se anota con su razón,
