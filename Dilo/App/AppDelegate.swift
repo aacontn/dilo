@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var ordenador: OrdenadorDelDiccionario?
   /// La Conversación: hablarle a Dilo y que conteste en voz alta.
   private var conversacion: ControladorDeLaConversacion?
+  /// La escucha de nombres: «Dilo, …» abre la conversación sin apretar nada.
+  private var escucha: EscuchaDeNombres?
   /// Las URL que llegan antes de que la app termine de arrancar: abrir
   /// `dilo://` con Dilo cerrado lo lanza, y AppKit entrega la URL antes de
   /// `applicationDidFinishLaunching`.
@@ -212,8 +214,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.conversacion = conversacion
     conversacion.hayDictado = { [weak settingsRuntimeState] in settingsRuntimeState?.isDictating ?? false }
-    conversacion.alCambiar = { [weak statusItemController] conversando in
+    // La escucha de nombres se pausa sola mientras algo más usa el micrófono
+    // (abajo: el dictado, la conversación, la reunión).
+    let escucha = EscuchaDeNombres(settings: settings)
+    self.escucha = escucha
+    // Oír un nombre abre la llamada con ese agente, y lo dicho después del
+    // nombre es su primer turno. Se escuchan los agentes de Ajustes que se
+    // llaman por nombre.
+    escucha.agentes = { [weak settings] in settings?.conversacionAgentes ?? Agente.deFabrica }
+    escucha.oyoUnNombre = { [weak conversacion] agente, primerTurno in
+      conversacion?.llamar(agente: agente, primerTurno: primerTurno)
+    }
+    conversacion.alCambiar = { [weak statusItemController, weak escucha] conversando in
       statusItemController?.setConversando(conversando)
+      escucha?.marcar(.conversacion, conversando)
     }
     dictationController.hayConversacion = { [weak conversacion] in conversacion?.enCurso ?? false }
     dictationController.onConversacion = { [weak conversacion] apretado in
@@ -294,10 +308,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     self.reuniones = reuniones
     statusItemController.grabarReunion = { _ = reuniones.grabar() }
     statusItemController.terminarReunion = { _ = reuniones.terminar() }
-    reuniones.alCambiar = { [weak statusItemController, weak reuniones] in
+    reuniones.alCambiar = { [weak statusItemController, weak reuniones, weak escucha] in
       statusItemController?.setReunion(
         reuniones?.enCurso.map { PanelDeLaBarra.Reunion(titulo: $0.titulo, inicio: $0.inicio) }
       )
+      escucha?.marcar(.reunion, reuniones?.enCurso != nil)
     }
     PuenteDeAtajos.reuniones = reuniones
     // Y lo que se ve: la reunión en la muesca, sus avisos y su ventana.
@@ -336,6 +351,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
       statusItemController?.setRecording(isRecording, accent: accent)
       settingsRuntimeState?.isDictating = isRecording
+      self?.escucha?.marcar(.dictado, isRecording)
       if isRecording { self?.conversacion?.colgar() }
     }
     #if DEBUG
@@ -403,6 +419,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     applyKeyBindings()
     observeKeyBindings()
     observeLanguages()
+    escucha.empezar()
 
     // A background check is postponed while a session is running, so an update
     // window can never take focus mid-dictation and move the insertion target.
@@ -509,6 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    escucha?.detener()
     conversacion?.colgar()
     // Salir con una reunión grabando la cierra con sus WAV completos; la
     // pasada final no alcanza a correr y se retoma al volver a abrir Dilo.

@@ -12469,6 +12469,171 @@
         }
       }
     },
+    "Escuchar mi nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listen for my name"
+          }
+        }
+      }
+    },
+    "Di «Dilo, …» y se abre la conversación, sin apretar nada. El micrófono queda abierto y macOS muestra el punto naranja; lo que se oye vive unos segundos en la memoria y se pisa solo: nunca se graba, ni va al historial, ni sale del Mac. La primera vez baja un detector de voz de 1 MB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Say “Dilo, …” and the conversation opens, no key needed. The microphone stays open and macOS shows the orange dot; what it hears lives in memory for a few seconds and is overwritten on its own: it’s never recorded, never goes to your history, and never leaves your Mac. The first time, it downloads a 1 MB voice detector."
+          }
+        }
+      }
+    },
+    "Mientras escucha gasta menos de 1 % de un núcleo con gente hablando cerca, y menos aún en silencio (medido en un M1), y unos 10 MB de memoria; cuando oye voz usa el Parakeet del dictado. Se pausa sola mientras dictas, conversas o grabas una reunión, y con la pantalla bloqueada. Con audífonos Bluetooth escucha con el micrófono del Mac, para que la música no baje a calidad de llamada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While listening it uses under 1% of one core with people talking nearby, and even less in silence (measured on an M1), plus about 10 MB of memory; when it hears speech it uses dictation’s Parakeet. It pauses on its own while you dictate, talk, or record a meeting, and while the screen is locked. With Bluetooth headphones it listens through the Mac’s microphone, so your music doesn’t drop to call quality."
+          }
+        }
+      }
+    },
+    "En pausa: escucha con Parakeet, y no está. Bájalo en Motor de voz.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused: it listens with Parakeet, which isn’t installed. Download it in Speech Engine."
+          }
+        }
+      }
+    },
+    "En pausa: no pude bajar el detector de voz (1 MB). Revisa la conexión y vuelve a prenderla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused: couldn’t download the voice detector (1 MB). Check your connection and turn it on again."
+          }
+        }
+      }
+    },
+    "En pausa: ningún agente se llama por nombre.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused: no agent answers to its name."
+          }
+        }
+      }
+    },
+    "En pausa: no hay un micrófono para dejar abierto. Un Bluetooth sólo se usa si lo eliges en la barra de la conversación.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused: there’s no microphone to keep open. A Bluetooth one is used only if you pick it in the conversation bar."
+          }
+        }
+      }
+    },
+    "En pausa mientras dictas.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused while you dictate."
+          }
+        }
+      }
+    },
+    "En pausa durante la conversación.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused during the conversation."
+          }
+        }
+      }
+    },
+    "En pausa mientras grabas una reunión.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused while you record a meeting."
+          }
+        }
+      }
+    },
+    "En pausa con la pantalla bloqueada.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused while the screen is locked."
+          }
+        }
+      }
+    },
+    "palabra de activación": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wake word"
+          }
+        }
+      }
+    },
+    "oye Dilo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hey Dilo"
+          }
+        }
+      }
+    },
+    "manos libres": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hands-free"
+          }
+        }
+      }
+    },
+    "nombre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "name"
+          }
+        }
+      }
+    },
     "Tope del mes": {
       "extractionState": "manual",
       "localizations": {

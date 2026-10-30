@@ -854,6 +854,64 @@ que sólo se prueba a mano están en `docs/design/agentes-en-la-muesca.md`.
   reposo con y sin él (`scripts/metrics.sh`) y comparar «primer búfer a N ms
   de abrir (motor tibio: sí/no)» en el log, categoría `audio`.
 
+### Escucha de nombres
+
+Alfonso, 2026-10-30 (`docs/design/conversacion-agente.md`): decir «Dilo, …»
+abre la Conversación sin apretar el atajo. **Apagada de fábrica**
+(`diloEscucharMiNombre`, Ajustes → Claude → Conversación → «Escuchar mi
+nombre»).
+
+- **Prendida, el micrófono queda abierto** (punto naranja) y lo oído vive en
+  `BuferDeEscucha`: 12 s en la RAM que se pisan solos y se borran con ceros
+  al pausar. Nunca a disco, a un log, al historial ni fuera del Mac; al log
+  (categoría `escucha`) van sólo «escuchando», «en pausa» y el id del agente
+  oído. Es **la excepción declarada al ~0 % de CPU en reposo**, sólo con la
+  escucha prendida.
+- **El camino, medido** (espiga en `/Volumes/SSD 1/Dilo/taller/escucha/`,
+  fuera del repo, con audios de `say`): Silero (FluidAudio, ~1 MB, se baja
+  la primera vez que se prende) mira cada trozo de 256 ms; cuando alguien
+  empieza a hablar, `VentanaDeEscucha` pide transcribir **sólo el primer
+  1,5 s** con el Parakeet del dictado (`ParakeetCompartido.conElModelo`: un
+  modelo en la RAM, con su reposo de siempre) y `NombreQueDespierta` mira si
+  empieza con un nombre. Sin nombre, el resto del tramo se ignora sin
+  transcribir; con nombre, se espera 1,1 s de silencio (el de `FinDelTurno`)
+  y se transcribe el tramo entero para el primer turno. En un M1: 79 % de
+  los llamados de `say` oídos (92 % con las voces neuronales), 0 falsas
+  alarmas en 54 min de prosa y 10 de ruido, **0,44–0,65 % de un núcleo con
+  voz alrededor y ~0,15 % en silencio**, +7 MB por Silero; se sabe 0,85 s
+  después del nombre y el llamado llega 1,2 s después de que la persona
+  termina. El CTC de FluidAudio no sirve para «Dilo»: es inglés y
+  sus puntajes no separan el nombre de «dile», «dijo» o «Milo» (212 falsas
+  por hora). `SpeechTranscriber` de Apple oye parecido, pero correrlo de fondo
+  ocupa un análisis del tope que ya usa el dictado
+  (`docs/research/system-audio-capture.md`).
+- **«Dilo» es también un verbo.** `NombreQueDespierta` sólo despierta con el
+  nombre al principio y **apartado**: solo, o seguido del signo que Parakeet
+  pone cuando hay pausa («Dilo, …»). «Dilo otra vez» no despierta (0 de 60
+  medidos). Parakeet escribe «Dilo» bien en menos de la mitad de los
+  llamados; lo que escribe en su lugar («digo», «dimo», «lilo», «nilo»…)
+  está en `comoLoOyeElMotor`, medido, y también exige el signo. Con el
+  nombre ya oído, el tramo entero no lo exige (`exigirApartado: false`).
+- **Se pausa sola** (`PausasDeLaEscucha`, pura): mientras hay dictado,
+  conversación o reunión, con la pantalla bloqueada o el Mac durmiendo, sin
+  Parakeet en disco, sin agentes que se llamen por nombre, sin detector y
+  sin micrófono. «No molestar» no: saberlo pide `INFocusStatusCenter`, con su
+  permiso y un entitlement.
+- **El micrófono** es el de la Conversación (`diloConversacionMicrofonoUID`)
+  con la regla de siempre, salvo una cosa (`PlanDeMicrofono.paraLaEscucha`):
+  **en automático nunca abre un Bluetooth**, porque tenerlo abierto deja los
+  audífonos en el perfil de llamada mientras dure; sin otro micrófono, no
+  escucha y Ajustes lo dice. Un `AVAudioEngine` propio
+  (`MicrofonoDeLaEscucha`), fijado sólo en ese motor y con la misma
+  `GuardiaDeReconstruccion`.
+- **Para conectarla**: `EscuchaDeNombres.oyoUnNombre(agente, primerTurno)`
+  en el actor principal; `primerTurno` es nil si sólo se dijo el nombre.
+  `agentes` dice a quién escuchar (de fábrica `Agente.deFabrica`).
+- **Medir de nuevo**: `swift build --product dilo-banco-escucha -c release`
+  en `DiloCore` y correrlo; arma los audios largos desde
+  `taller/escucha/audios/` (que genera `generar-corpus.py` con `say -o`) y
+  deja `resultados/resultados.md`. Nada abre el micrófono ni suena.
+
 ## Agentes: servidor MCP y CLI
 
 Desde el 2026-10-15 (plan, fase 5 paso 3) **el mismo binario de Dilo** es

@@ -129,6 +129,8 @@ final class AppSettings {
     static let claudeCodeUltimoProyecto = "diloClaudeCodeUltimoProyecto"
     static let claudeCodeModelo = "diloClaudeCodeModelo"
     static let claudeCodeRuta = "diloClaudeCodeRuta"
+    // La escucha de nombres (2026-10-30).
+    static let escucharMiNombre = "diloEscucharMiNombre"
   }
 
   /// La clave de Tus palabras, para quien las lee fuera del actor principal:
@@ -813,6 +815,13 @@ final class AppSettings {
     didSet { defaults.set(mayusculaSegunElCursor, forKey: Keys.mayusculaSegunElCursor) }
   }
 
+  /// Si la escucha de nombres está prendida: «Dilo, …» abre la conversación
+  /// sin apretar nada (`EscuchaDeNombres`). Apagada de fábrica: deja el
+  /// micrófono abierto y gasta CPU en reposo.
+  var escucharMiNombre: Bool {
+    didSet { defaults.set(escucharMiNombre, forKey: Keys.escucharMiNombre) }
+  }
+
   /// Si terminar con «envía» aprieta ↩ después de pegar (`EnvioHablado`).
   /// Apagado de fábrica: mandar un mensaje no se deshace.
   var envioHablado: Bool {
@@ -1157,6 +1166,7 @@ final class AppSettings {
     motorDeVoz = EnginePreference.leer(defaults)
     mayusculaSegunElCursor = defaults.bool(forKey: Keys.mayusculaSegunElCursor)
     envioHablado = defaults.bool(forKey: Keys.envioHablado)
+    escucharMiNombre = defaults.bool(forKey: Keys.escucharMiNombre)
     frasesDeEnvio = defaults.stringArray(forKey: Keys.frasesDeEnvio) ?? EnvioHablado.frasesDeFabrica
     varianteDeParakeet = PreferenciaDeVariante.leer(defaults)
     tusPalabrasEnParakeet = PreferenciaDeTusPalabrasEnParakeet.leer(defaults)
