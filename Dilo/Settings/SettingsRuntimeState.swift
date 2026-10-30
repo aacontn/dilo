@@ -1,5 +1,6 @@
 import DiloCapabilities
 import DiloModes
+import DiloReuniones
 import Foundation
 import Observation
 
@@ -51,6 +52,17 @@ final class SettingsRuntimeState {
   /// Quien ordena Tus palabras con Claude: «Ordenar ahora» y el deshacer
   /// del registro, en Ajustes → Tus palabras. Nil en las vistas previas.
   var ordenador: OrdenadorDelDiccionario?
+
+  /// Reuniones: el control que la lista y los ajustes miran. Nil en las
+  /// vistas previas y en los renders.
+  var reuniones: ControlDeReuniones?
+  /// Para los renders: la lista fija, sin leer el disco.
+  var reunionesFijas: [ReunionEnDisco]?
+  /// Abre la ventana de una reunión, en una línea si viene de la búsqueda.
+  @ObservationIgnored var abrirReunion: (String, Int?) -> Void = { _, _ in }
+  /// Dónde se leen y escriben las preferencias de reuniones: las del Mac en
+  /// la app, un dominio de `/private/tmp` en los renders.
+  @ObservationIgnored var defaultsDeReuniones: UserDefaults = .standard
 
   /// Language models currently downloading, as locale identifier to progress
   /// (0…1). A language picked before its model exists downloads in the

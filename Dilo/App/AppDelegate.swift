@@ -279,6 +279,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let interfazDeReuniones = InterfazDeReuniones(control: reuniones, stage: stage)
     self.interfazDeReuniones = interfazDeReuniones
     interfazDeReuniones.empezar()
+    settingsRuntimeState.reuniones = reuniones
+    settingsRuntimeState.abrirReunion = { [weak interfazDeReuniones] id, linea in
+      interfazDeReuniones?.abrirLaVentana(id: id, linea: linea)
+    }
     // Lo que quedó grabando si la app murió, lo que espera el SSD y la
     // retención del audio: en segundo plano, después de que el arranque ya
     // terminó.

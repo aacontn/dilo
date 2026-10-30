@@ -10917,6 +10917,512 @@
           }
         }
       }
+    },
+    "30 días": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 days"
+          }
+        }
+      }
+    },
+    "Abrir el guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the script"
+          }
+        }
+      }
+    },
+    "Afinando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refining"
+          }
+        }
+      }
+    },
+    "Borrar al terminar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete when done"
+          }
+        }
+      }
+    },
+    "Busca por lo dicho o por quién lo dijo: «Camila despacho»": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search by what was said or who said it: “Camila shipping”"
+          }
+        }
+      }
+    },
+    "Carpeta de las reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings folder"
+          }
+        }
+      }
+    },
+    "Carpeta, separador de voces y cuánto dura el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder, voice separator and how long the audio stays"
+          }
+        }
+      }
+    },
+    "Corre al terminar, sobre el audio de la llamada, en tu Mac. Nemotron 3 separa hasta 8 voces con solapes; Sortformer, hasta 4. Si Nemotron 3 falla, separa Sortformer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs when the meeting ends, on the call audio, on your Mac. Nemotron 3 separates up to 8 voices with overlaps; Sortformer, up to 4. If Nemotron 3 fails, Sortformer separates."
+          }
+        }
+      }
+    },
+    "Cuánto se guarda el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How long the audio is kept"
+          }
+        }
+      }
+    },
+    "Dónde se guardan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where they're saved"
+          }
+        }
+      }
+    },
+    "Dónde se guardan, quién separa las voces y el audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where they're saved, who separates the voices, and the audio"
+          }
+        }
+      }
+    },
+    "El audio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio"
+          }
+        }
+      }
+    },
+    "El guion de quién dijo qué, buscable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script of who said what, searchable"
+          }
+        }
+      }
+    },
+    "El guion se queda para siempre; esto es sólo el audio. Al quedar listo pasa a AAC, unos 30 MB por hora, y lo que se borra va a la Papelera.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script stays forever; this is only the audio. Once ready it becomes AAC, about 30 MB per hour, and whatever is deleted goes to the Trash."
+          }
+        }
+      }
+    },
+    "El micrófono de la pista «Yo». El del sistema es el que con más probabilidad usa la llamada. No cambia la entrada del sistema ni el micrófono de dictar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The microphone for the “Me” track. The system one is the one the call most likely uses. It doesn't change the system input or the dictation microphone."
+          }
+        }
+      }
+    },
+    "Elige dónde se guardan las reuniones.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose where meetings are saved."
+          }
+        }
+      }
+    },
+    "En tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In your meetings"
+          }
+        }
+      }
+    },
+    "Grabando ahora": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording now"
+          }
+        }
+      }
+    },
+    "Grabar reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record meetings"
+          }
+        }
+      }
+    },
+    "Grábalas desde el panel de la barra, desde la próxima reunión en la muesca o con Atajos. Quedan en tu disco con el guion de quién dijo qué.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record them from the menu bar panel, from the next meeting in the notch, or with Shortcuts. They stay on your disk with the script of who said what."
+          }
+        }
+      }
+    },
+    "Guardarlo siempre": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep it forever"
+          }
+        }
+      }
+    },
+    "Interrumpida": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrupted"
+          }
+        }
+      }
+    },
+    "La de fábrica": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The default"
+          }
+        }
+      }
+    },
+    "Lista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        }
+      }
+    },
+    "Nada todavía con eso. La búsqueda no distingue tildes ni mayúsculas, y mira también quién lo dijo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing with that yet. Search ignores accents and capitals, and also looks at who said it."
+          }
+        }
+      }
+    },
+    "Nemotron 3": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nemotron 3"
+          }
+        }
+      }
+    },
+    "Papelera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trash"
+          }
+        }
+      }
+    },
+    "Quién separa las voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who separates the voices"
+          }
+        }
+      }
+    },
+    "Reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meetings"
+          }
+        }
+      }
+    },
+    "Separador de voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voice separator"
+          }
+        }
+      }
+    },
+    "Si el disco no está al grabar, la reunión queda en el Mac y se muda sola cuando vuelva.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the disk isn't there when recording, the meeting stays on the Mac and moves itself when the disk is back."
+          }
+        }
+      }
+    },
+    "Sortformer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sortformer"
+          }
+        }
+      }
+    },
+    "Todavía no hay reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No meetings yet"
+          }
+        }
+      }
+    },
+    "Tu micrófono y el audio del Mac, cada uno en su pista. El guion sale al terminar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your microphone and the Mac's audio, each on its own track. The script comes out when you end."
+          }
+        }
+      }
+    },
+    "Tu pista": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your track"
+          }
+        }
+      }
+    },
+    "Tus reuniones": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your meetings"
+          }
+        }
+      }
+    },
+    "Un clic abre el guion en esa línea.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A click opens the script at that line."
+          }
+        }
+      }
+    },
+    "Un clic abre el guion.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A click opens the script."
+          }
+        }
+      }
+    },
+    "borrar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "delete"
+          }
+        }
+      }
+    },
+    "carpeta": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "folder"
+          }
+        }
+      }
+    },
+    "disco": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "disk"
+          }
+        }
+      }
+    },
+    "guion": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "script"
+          }
+        }
+      }
+    },
+    "hablantes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "speakers"
+          }
+        }
+      }
+    },
+    "llamada": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "call"
+          }
+        }
+      }
+    },
+    "reunión": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "meeting"
+          }
+        }
+      }
+    },
+    "voces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "voices"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

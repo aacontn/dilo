@@ -570,6 +570,10 @@ private struct SettingsContent: View {
     switch section {
     case .inicio:
       InicioSettingsView(settings: settings, runtimeState: runtimeState, tracker: usageTracker)
+    case .reuniones:
+      ReunionesSettingsView(runtimeState: runtimeState)
+    case .grabarReuniones:
+      AjustesDeReunionesView(runtimeState: runtimeState)
     case .claude:
       ClaudeSettingsView(settings: settings, runtimeState: runtimeState)
     case .general:

@@ -173,12 +173,36 @@ enum RenderAjustes {
     // Sin preguntarle a TCC por el proceso del render: con clave, todo
     // concedido; sin clave, también falta Accesibilidad, para ver los avisos.
     runtime.permisosQueFaltanFijos = conClave ? [] : [.accesibilidad]
+    runtime.reunionesFijas = reunionesDeEjemplo(ahora: ahora)
+    runtime.defaultsDeReuniones = UserDefaults(suiteName: "/private/tmp/dilo-render-ajustes")!
     runtime.ultimoDictado = UltimoDictado(
       original: "eh mándale el informe a Carla antes del viernes",
       limpio: "Mándale el informe a Carla antes del viernes.",
       cuando: ahora.addingTimeInterval(-4 * 60)
     )
     return runtime
+  }
+
+  /// Cinco reuniones en sus estados, para la lista de Reuniones.
+  static func reunionesDeEjemplo(ahora: Date) -> [ReunionEnDisco] {
+    func una(
+      _ titulo: String, haceHoras: Double, minutos: Double, estado: EstadoDeLaReunion, nombres: [String?],
+      enElRespaldo: Bool = false
+    ) -> ReunionEnDisco {
+      let inicio = ahora.addingTimeInterval(-haceHoras * 3600)
+      var r = Reunion(id: CarpetaDeReunion.id(inicio: inicio), titulo: titulo, inicio: inicio)
+      r.fin = inicio.addingTimeInterval(minutos * 60)
+      r.estado = estado
+      r.hablantes = [.yo] + nombres.enumerated().map { Hablante(id: Hablante.id(numero: $0.offset + 2), nombre: $0.element, pista: .ellos) }
+      return ReunionEnDisco(reunion: r, carpeta: URL(filePath: "/private/tmp/r"), enElRespaldo: enElRespaldo)
+    }
+    return [
+      una("Revisión semanal con Camila y Pedro", haceHoras: 0.3, minutos: 42, estado: .afinando, nombres: ["Camila Rojas", nil]),
+      una("1:1 con Camila", haceHoras: 26, minutos: 28, estado: .lista, nombres: ["Camila Rojas"]),
+      una("Cotización Andes Flags", haceHoras: 50, minutos: 55, estado: .lista, nombres: ["Pedro Soto", "Ana Núñez", nil, nil]),
+      una("Llamada con proveedor", haceHoras: 74, minutos: 12, estado: .interrumpida, nombres: [nil]),
+      una("Reunión", haceHoras: 98, minutos: 33, estado: .afinando, nombres: [], enElRespaldo: true),
+    ]
   }
 
   /// Un historial de uso de dos semanas, en un archivo temporal.
