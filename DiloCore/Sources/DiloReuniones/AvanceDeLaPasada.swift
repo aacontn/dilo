@@ -39,10 +39,16 @@ public struct AvanceDeLaPasada: Sendable, Equatable {
   public var etapa: Etapa
   /// Cuánto de la etapa va, 0…1.
   public var fraccionDeLaEtapa: Double
+  /// Si la etapa está esperando que el separador de voces se compile para el
+  /// Neural Engine por primera vez (`PrecalentadoDelDiarizador`): son minutos
+  /// sin avance que medir, y la ventana lo dice en vez de quedarse quieta
+  /// como si se hubiera colgado.
+  public var compilandoPorPrimeraVez: Bool
 
-  public init(etapa: Etapa, fraccionDeLaEtapa: Double = 0) {
+  public init(etapa: Etapa, fraccionDeLaEtapa: Double = 0, compilandoPorPrimeraVez: Bool = false) {
     self.etapa = etapa
     self.fraccionDeLaEtapa = min(max(fraccionDeLaEtapa, 0), 1)
+    self.compilandoPorPrimeraVez = compilandoPorPrimeraVez
   }
 
   /// El avance total, 0…1. Nunca retrocede al pasar de una etapa a la
