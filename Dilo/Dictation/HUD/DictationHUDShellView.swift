@@ -355,8 +355,7 @@ struct DictationHUDShellView: View {
           // Con una reunión grabando, la cabecera la sigue diciendo: abrir
           // el panel no esconde la grabación.
           if let reunion = content.reunionEnCurso {
-            HUDReunionViva(reunion: reunion, alto: HUDNotchGeometry.alturaDeCabecera(for: screen))
-              .frame(width: HUDNotchGeometry.tamañoDictando(for: screen).width)
+            HUDReunionViva(reunion: reunion, alto: HUDNotchGeometry.alturaDeCabecera(for: screen), compacta: true)
             Spacer(minLength: 0)
           }
           if screen.anchoDeLosLados > 0, let derecho = content.datoDerecho {

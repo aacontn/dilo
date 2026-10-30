@@ -36,6 +36,9 @@ struct ProximaReunion: Equatable, Sendable {
   let termina: Date
   /// El enlace de la videollamada, si el evento trae uno reconocible.
   let enlace: URL?
+  /// Los otros asistentes por nombre (sin quien mira): lo que «Grabar» le
+  /// pasa a la reunión para nombrar al otro en un 1:1.
+  var asistentes: [String] = []
 }
 
 /// Cómo ofrece el panel la traducción.
@@ -226,14 +229,7 @@ struct HUDPanelDelHover: View {
         .lineLimit(1)
         .layoutPriority(1)
       Spacer(minLength: 6)
-      if reunion.enlace != nil {
-        Text("Unirse")
-          .font(.system(size: 10.5, weight: .semibold))
-          .foregroundStyle(.black)
-          .padding(.horizontal, 9)
-          .frame(height: 18)
-          .background(Capsule(style: .continuous).fill(pronto ? PaletaDeDilo.actual.acento.color : .white))
-      }
+      botonesDeGrabar(reunion, pronto: pronto)
     }
     .padding(.leading, 9)
     .padding(.trailing, 4)
@@ -246,6 +242,47 @@ struct HUDPanelDelHover: View {
     .onTapGesture { content.alAbrirReunion?() }
     .accessibilityElement(children: .combine)
     .accessibilityAddTraits(.isButton)
+  }
+
+  /// «Grabar», y «Unirse y grabar» cuando el evento trae enlace (spec,
+  /// «Empezar»). Grabando ya, una sola marca que abre la reunión. Sin
+  /// enlace, un clic en la tarjeta sigue abriendo Calendario; con enlace,
+  /// unirse sin grabar sigue siendo el clic en la tarjeta.
+  @ViewBuilder
+  private func botonesDeGrabar(_ reunion: ProximaReunion, pronto: Bool) -> some View {
+    if content.reunionEnCurso != nil {
+      HStack(spacing: 4) {
+        Circle().fill(PaletaDeDilo.actual.grabando.color).frame(width: 6, height: 6)
+        Text("Grabando").font(.system(size: 10.5, weight: .semibold)).foregroundStyle(.white.opacity(0.85))
+      }
+      .padding(.horizontal, 8)
+    } else {
+      botonDeGrabar(Text("Grabar"), lleno: reunion.enlace == nil && pronto) {
+        content.alGrabarReunion?(false)
+      }
+      if reunion.enlace != nil {
+        botonDeGrabar(Text("Unirse y grabar"), lleno: true, color: pronto ? PaletaDeDilo.actual.acento.color : .white) {
+          content.alGrabarReunion?(true)
+        }
+      }
+    }
+  }
+
+  private func botonDeGrabar(
+    _ titulo: Text, lleno: Bool, color: Color = .white, accion: @escaping () -> Void
+  ) -> some View {
+    Button(action: accion) {
+      titulo
+      .font(.system(size: 10.5, weight: .semibold))
+      .lineLimit(1)
+      .fixedSize()
+      .foregroundStyle(lleno ? .black : .white.opacity(0.9))
+      .padding(.horizontal, 8)
+      .frame(height: 18)
+      .background(Capsule(style: .continuous).fill(lleno ? color : .white.opacity(0.1)))
+    }
+    .buttonStyle(.plain)
+    .layoutPriority(2)
   }
 
   static func esPronto(_ reunion: ProximaReunion, ahora: Date) -> Bool {

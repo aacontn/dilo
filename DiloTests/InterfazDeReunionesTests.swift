@@ -54,4 +54,16 @@ struct InterfazDeReunionesTests {
     #expect(modelo.nombre("h2") == "Camila")
     #expect(modelo.nombre(nil) == "Sin identificar")
   }
+
+  @Test func grabarDesdeLaTarjetaLlevaLosAsistentes() {
+    let ahora = Date()
+    let proxima = ProximaReunion(
+      titulo: "1:1 con Camila", empieza: ahora, termina: ahora.addingTimeInterval(1800), enlace: nil,
+      asistentes: ["Camila Rojas"]
+    )
+    let evento = InterfazDeReuniones.evento(de: proxima)
+    #expect(evento.titulo == "1:1 con Camila")
+    #expect(evento.asistentes == ["Camila Rojas"], "en un 1:1 el nombre se pone solo")
+    #expect(evento.empieza == ahora)
+  }
 }

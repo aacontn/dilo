@@ -11423,6 +11423,28 @@
           }
         }
       }
+    },
+    "Grabar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record"
+          }
+        }
+      }
+    },
+    "Unirse y grabar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join and record"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

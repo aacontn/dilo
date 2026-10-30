@@ -36,6 +36,9 @@ struct HUDReunionEnLaMuesca: View {
   /// El alto exacto de la forma: la vista lo llena y no lo estira, como
   /// `HUDMarcaDeReposo`.
   let alto: CGFloat
+  /// En la cabecera del panel del hover: todo junto y al centro, sin
+  /// repartirse el ancho, para dejarles los costados a los datos.
+  var compacta = false
 
   var body: some View {
     HStack(spacing: 5) {
@@ -48,12 +51,13 @@ struct HUDReunionEnLaMuesca: View {
         .foregroundStyle(.white.opacity(0.92))
         .lineLimit(1)
         .fixedSize()
-      Spacer(minLength: 6)
+      if compacta { Color.clear.frame(width: 4) } else { Spacer(minLength: 6) }
       HUDMarcaDePista(simbolo: "mic.fill", tachado: "mic.slash.fill", marca: microfono)
       HUDMarcaDePista(simbolo: "speaker.wave.2.fill", tachado: "speaker.slash.fill", marca: parlante)
     }
-    .padding(.horizontal, 12)
+    .padding(.horizontal, compacta ? 0 : 12)
     .frame(height: alto)
+    .fixedSize(horizontal: compacta, vertical: false)
     .accessibilityElement(children: .ignore)
     .accessibilityLabel(Text("Reunión grabando"))
     .accessibilityValue(Text(verbatim: tiempo))

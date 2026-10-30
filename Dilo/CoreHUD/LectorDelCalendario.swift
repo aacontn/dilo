@@ -78,6 +78,8 @@ final class LectorDelCalendario {
     let cancelado: Bool
     let textos: [String]
     let url: URL?
+    /// Los otros asistentes por nombre (`EKParticipant.name`, sin quien mira).
+    var asistentes: [String] = []
   }
 
   static func evento(_ e: EKEvent) -> Evento {
@@ -88,7 +90,8 @@ final class LectorDelCalendario {
       todoElDia: e.isAllDay,
       cancelado: e.status == .canceled,
       textos: [e.location, e.notes].compactMap { $0 },
-      url: e.url
+      url: e.url,
+      asistentes: EventoActualDelCalendario.asistentes(de: e)
     )
   }
 
@@ -105,7 +108,8 @@ final class LectorDelCalendario {
           titulo: $0.titulo.isEmpty ? String(localized: "Reunión") : $0.titulo,
           empieza: $0.empieza,
           termina: $0.termina,
-          enlace: enlaceDeVideollamada(url: $0.url, textos: $0.textos)
+          enlace: enlaceDeVideollamada(url: $0.url, textos: $0.textos),
+          asistentes: $0.asistentes
         )
       }
   }

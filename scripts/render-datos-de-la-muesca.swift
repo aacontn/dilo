@@ -135,6 +135,42 @@ enum RenderDatos {
       )
     }
 
+    // Reuniones: la tarjeta con «Grabar» y «Unirse y grabar» es la del panel
+    // completo de arriba. Grabando, la cabecera del panel lleva la reunión y
+    // la tarjeta dice «Grabando»; y la reunión con la forma, con la vista de
+    // verdad (no la del render de la muesca).
+    let reunion = ReunionEnLaMuesca(
+      inicio: ahora.addingTimeInterval(-(12 * 60 + 4)), titulo: "Revisión semanal", microfono: .encendida, parlante: .ambar
+    )
+    panel.reunionEnCurso = reunion
+    panel.reunionEsPrincipal = true
+    try escribir(
+      escritorio(pantalla: conPanel, oscuro: true, alto: 280) {
+        DictationHUDShellView(screen: conPanel, settings: settings.sessionSettings, content: panel)
+      },
+      tamaño: CGSize(width: 640, height: 280),
+      oscuro: true,
+      como: "hover-panel-grabando"
+    )
+    for (nombre, pantallaDeLaReunion) in [("reposo-reunion", pantallaSimulada), ("reposo-reunion-datos", conPanel)] {
+      let conReunion = DictationHUDContent()
+      if pantallaDeLaReunion.anchoDeLosLados > 0 {
+        VistaPreviaDeLosDatos.posar(conReunion, izquierdo: .claude, derecho: .codex, conPlan: true, encima: false, ahora: ahora)
+      }
+      conReunion.reunionEnCurso = reunion
+      conReunion.reunionEsPrincipal = true
+      for oscuro in [true, false] {
+        try escribir(
+          escritorio(pantalla: pantallaDeLaReunion, oscuro: oscuro) {
+            DictationHUDShellView(screen: pantallaDeLaReunion, settings: settings.sessionSettings, content: conReunion)
+          },
+          tamaño: CGSize(width: 640, height: 150),
+          oscuro: oscuro,
+          como: "\(nombre)-\(oscuro ? "oscuro" : "claro")"
+        )
+      }
+    }
+
     // Dictando una nota rápida: la línea lleva el ícono de nota adelante.
     let nota = DictationHUDContent()
     nota.estado = .dictando

@@ -117,6 +117,9 @@ final class DictationHUDContent {
   @ObservationIgnored var alCopiarReciente: ((ElementoReciente) -> Void)?
   @ObservationIgnored var alElegirModo: ((String?) -> Void)?
   @ObservationIgnored var alAbrirReunion: (() -> Void)?
+  /// «Grabar» (false) o «Unirse y grabar» (true) en la tarjeta de la próxima
+  /// reunión. Lo cablea `InterfazDeReuniones`.
+  @ObservationIgnored var alGrabarReunion: ((Bool) -> Void)?
   /// Si el panel ofrece «Traducir», y a qué idioma: nil lo esconde,
   /// `sinDestino` lo muestra apagado y lleva a elegir el idioma en Ajustes.
   var traduccionDelPanel: TraduccionDelPanel?

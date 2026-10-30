@@ -44,6 +44,7 @@ struct MuestraEnCurso {
     var alCopiarReciente: ((ElementoReciente) -> Void)?
     var alElegirModo: ((String?) -> Void)?
     var alAbrirReunion: (() -> Void)?
+    var alGrabarReunion: ((Bool) -> Void)?
     var alDictarNota: (() -> Void)?
     var alHacerClic: (() -> Void)?
     var alTocarLaTarjeta: ((TarjetaDeRespaldo) -> Void)?
@@ -57,6 +58,7 @@ struct MuestraEnCurso {
       alCopiarReciente = content.alCopiarReciente
       alElegirModo = content.alElegirModo
       alAbrirReunion = content.alAbrirReunion
+      alGrabarReunion = content.alGrabarReunion
       alDictarNota = content.alDictarNota
       alHacerClic = content.alHacerClic
       alTocarLaTarjeta = content.alTocarLaTarjeta
@@ -71,6 +73,7 @@ struct MuestraEnCurso {
       content.alCopiarReciente = alCopiarReciente
       content.alElegirModo = alElegirModo
       content.alAbrirReunion = alAbrirReunion
+      content.alGrabarReunion = alGrabarReunion
       content.alDictarNota = alDictarNota
       content.alHacerClic = alHacerClic
       content.alTocarLaTarjeta = alTocarLaTarjeta
@@ -325,7 +328,8 @@ extension HUDStage {
       titulo: "Revisión semanal con el equipo de producto",
       empieza: ahora.addingTimeInterval(8 * 60),
       termina: ahora.addingTimeInterval(38 * 60),
-      enlace: URL(string: "https://meet.google.com/abc-defg-hij")
+      enlace: URL(string: "https://meet.google.com/abc-defg-hij"),
+      asistentes: ["Camila Rojas", "Pedro Soto"]
     )
     dictationContent.modosDelPanel = [
       ModoDelPanel(id: "correo", nombre: "Correo"),

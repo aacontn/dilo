@@ -9,6 +9,7 @@ import SwiftUI
 struct HUDReunionViva: View {
   let reunion: ReunionEnLaMuesca
   let alto: CGFloat
+  var compacta = false
 
   static let refresco: TimeInterval = 0.25
 
@@ -18,7 +19,8 @@ struct HUDReunionViva: View {
         tiempo: RelojDeLaReunion.texto(contexto.date.timeIntervalSince(reunion.inicio)),
         microfono: reunion.microfono,
         parlante: reunion.parlante,
-        alto: alto
+        alto: alto,
+        compacta: compacta
       )
     }
   }

@@ -30,8 +30,26 @@ final class InterfazDeReuniones {
 
   func empezar() {
     stage?.alAbrirLaReunion = { [weak self] in self?.abrirLaVentana() }
+    stage?.dictationContent.alGrabarReunion = { [weak self] unirse in self?.grabarLaProxima(unirse: unirse) }
     seguir()
     reflejar()
+  }
+
+  /// «Grabar» o «Unirse y grabar» desde la tarjeta de la próxima reunión:
+  /// título, hora y asistentes salen del evento. Unirse abre la llamada
+  /// después de que la grabación ya empezó, para no perder el saludo.
+  func grabarLaProxima(unirse: Bool) {
+    guard let proxima = stage?.dictationContent.proximaReunion else { return }
+    control.grabar(evento: Self.evento(de: proxima))
+    // Unirse es lo que la persona pidió aunque grabar no haya podido: el
+    // motivo lo dice la muesca.
+    if unirse { LectorDelCalendario.abrir(proxima) }
+  }
+
+  static func evento(de proxima: ProximaReunion) -> EventoDeLaReunion {
+    EventoDeLaReunion(
+      titulo: proxima.titulo, empieza: proxima.empieza, termina: proxima.termina, asistentes: proxima.asistentes
+    )
   }
 
   private func seguir() {
