@@ -919,9 +919,32 @@ struct DirectDictationControllerTests {
     #expect(recorder.count(of: "intro") == 0)
   }
 
+  /// Un campo seguro no llega ni a grabar (`BloqueoDelDictado.campoProtegido`),
+  /// así que «envía» nunca tiene qué mandar; la regla propia del envío para
+  /// ese caso está en `PoliticaDelEnvioTests`.
   @Test func enUnCampoSeguroNoSeManda() async {
-    let recorder = await dictarConEnvia("Listo, envíalo.", destino: Self.makeTarget(isSecure: true))
+    let recorder = Recorder()
+    let prewarmed = OSAllocatedUnfairLock(initialState: false)
+    let settings = AppSettings(defaults: freshDefaults())
+    settings.envioHablado = true
+    var dependencias = makeDependencies(
+      recorder: recorder,
+      prewarmed: prewarmed,
+      captureFocusedTarget: { Self.makeTarget(isSecure: true) },
+      finishRecognition: { "Listo, envíalo." }
+    )
+    dependencias.pulsarIntro = { _ in
+      recorder.events.append("intro")
+      return true
+    }
+    let controller = makeController(settings: settings, dependencies: dependencias)
+    await prepare(controller, prewarmed: prewarmed)
+
+    controller.toggleFromMenu()
+
+    #expect(controller.sessionStateForTesting == .idle)
     #expect(recorder.count(of: "intro") == 0)
+    controller.stop()
   }
 
   @Test func emptyFinishTextStillRecordsAZeroWordSession() async {

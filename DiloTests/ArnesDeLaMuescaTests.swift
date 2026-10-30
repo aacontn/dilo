@@ -39,7 +39,7 @@ struct ArnesDeLaMuescaTests {
     #expect(throws: PedidoDeMuestras.Rechazo.vacio) { try leer("") }
     #expect(throws: PedidoDeMuestras.Rechazo.vacio) { try leer("mostrar --segundos 3") }
     #expect(throws: PedidoDeMuestras.Rechazo.ordenDesconocida("bailar")) { try leer("bailar dictando") }
-    #expect(throws: PedidoDeMuestras.Rechazo.escenaDesconocida("reunion")) { try leer("mostrar reunion") }
+    #expect(throws: PedidoDeMuestras.Rechazo.escenaDesconocida("fiesta")) { try leer("mostrar fiesta") }
     #expect(throws: PedidoDeMuestras.Rechazo.segundosFueraDeRango) { try leer("mostrar dictando --segundos 0") }
     #expect(throws: PedidoDeMuestras.Rechazo.segundosFueraDeRango) { try leer("mostrar dictando --segundos 31") }
     #expect(throws: PedidoDeMuestras.Rechazo.segundosFueraDeRango) { try leer("mostrar dictando --segundos") }
