@@ -33,10 +33,6 @@ final class VozPhononQueContesta: VozQueContesta {
     return { medidor.nivel.withLock { $0 } }
   }
 
-  private final class MedidorDeSalida: Sendable {
-    let nivel = Mutex<Float?>(0)
-  }
-
   private let settings: AppSettings
   private let instalacion: InstalacionDePhonon
   private let sintetizador: SintetizadorPhonon
@@ -235,13 +231,7 @@ final class VozPhononQueContesta: VozQueContesta {
     motor.attach(velocidad)
     motor.connect(reproductor, to: velocidad, format: Self.formato)
     motor.connect(velocidad, to: motor.mainMixerNode, format: Self.formato)
-    let medidor = medidorDeSalida
-    motor.mainMixerNode.installTap(onBus: 0, bufferSize: 2_048, format: nil) { bufer, _ in
-      guard let canal = bufer.floatChannelData?[0], bufer.frameLength > 0 else { return }
-      let muestras = Array(UnsafeBufferPointer(start: canal, count: Int(bufer.frameLength)))
-      let nivel = OidoDeLaLlamada.nivel(de: muestras)
-      medidor.nivel.withLock { $0 = nivel }
-    }
+    motor.mainMixerNode.installTap(onBus: 0, bufferSize: 2_048, format: nil, block: medidorDeSalida.bloque)
     try motor.start()
     reproductor.play()
     self.motor = motor
@@ -268,5 +258,24 @@ final class VozPhononQueContesta: VozQueContesta {
       bufer.floatChannelData![0].update(from: origen.baseAddress!, count: muestras.count)
     }
     return bufer
+  }
+}
+
+/// Qué tan fuerte está sonando la voz. Nil si no se sabe (dice Apple).
+///
+/// Vive fuera de `VozPhononQueContesta` a propósito: el tap corre en una cola de
+/// audio, y un bloque escrito dentro de una clase `@MainActor` hereda ese
+/// aislamiento. Swift lo revisa al entrar y mata la app; así se cayó la 0.12.0
+/// la primera vez que Kami habló.
+final class MedidorDeSalida: Sendable {
+  let nivel = Mutex<Float?>(0)
+
+  var bloque: AVAudioNodeTapBlock {
+    { [self] bufer, _ in
+      guard let canal = bufer.floatChannelData?[0], bufer.frameLength > 0 else { return }
+      let muestras = Array(UnsafeBufferPointer(start: canal, count: Int(bufer.frameLength)))
+      let medido = OidoDeLaLlamada.nivel(de: muestras)
+      nivel.withLock { $0 = medido }
+    }
   }
 }

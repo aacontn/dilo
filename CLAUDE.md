@@ -1309,7 +1309,8 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   con el motor del dictado y sin interrumpir con la voz.
 - **Interrumpir hablando** (`DetectorDeInterrupcion`, puro). La voz publica
   qué tan fuerte suena (`VozQueContesta.nivelDeSalida`, un tap en el mezclador
-  de Phonon); el detector aprende cuánto de eso vuelve por el micrófono y sólo
+  de Phonon, armado por `MedidorDeSalida` y no dentro de una clase `@MainActor`:
+  el tap corre en una cola de audio y ese aislamiento mata la app); el detector aprende cuánto de eso vuelve por el micrófono y sólo
   cuenta lo que pasa 9 dB por encima, 300 ms seguidos. Con audífonos basta
   hablar; con parlantes fuertes hay que hablar más fuerte que el eco. Lo dicho
   entra desde donde empezó la voz, no desde que se detectó. Pensando sólo
