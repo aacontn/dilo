@@ -57,4 +57,13 @@ enum GrabacionesDeClaudeCode {
   static let retomarUnaQueNoExiste: [String] = [
     #"{"type":"result","subtype":"error_during_execution","is_error":true,"duration_ms":0,"num_turns":0,"stop_reason":null,"session_id":"00000000-0000-4000-8000-000000000000","total_cost_usd":0,"permission_denials":[],"errors":["No conversation found with session ID: 00000000-0000-4000-8000-000000000000"]}"#,
   ]
+
+  /// Sin sesión iniciada (una `CLAUDE_CONFIG_DIR` vacía): `init`, un mensaje
+  /// sintético con `error: "authentication_failed"` y un `result` con
+  /// `is_error`; sale con 1. `claude auth status` dice `loggedIn: false`.
+  static let sinSesion: [String] = [
+    #"{"type":"system","subtype":"init","cwd":"/Volumes/SSD2/claude-code-pruebas/p5","session_id":"2cdf5186-89c8-4a6a-bac8-d794129c24fe","model":"claude-haiku-5-5","permissionMode":"default","apiKeySource":"none","claude_code_version":"2.1.309"}"#,
+    #"{"type":"assistant","message":{"id":"7cb9d748-0ce3-4353-adeb-ef7974d856c8","model":"<synthetic>","role":"assistant","type":"message","content":[{"type":"text","text":"Not logged in · Please run /login"}],"stop_reason":"stop_sequence"},"parent_tool_use_id":null,"session_id":"2cdf5186-89c8-4a6a-bac8-d794129c24fe","error":"authentication_failed"}"#,
+    #"{"type":"result","subtype":"success","is_error":true,"duration_ms":108,"num_turns":1,"result":"Not logged in · Please run /login","stop_reason":"stop_sequence","terminal_reason":"api_error","session_id":"2cdf5186-89c8-4a6a-bac8-d794129c24fe","total_cost_usd":0,"permission_denials":[]}"#,
+  ]
 }

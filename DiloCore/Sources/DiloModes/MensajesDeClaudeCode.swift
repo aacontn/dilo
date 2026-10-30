@@ -37,6 +37,11 @@ public enum MensajeDeClaudeCode: Equatable, Sendable {
   case pedidoDesconocido(id: String, tipo: String)
   /// `control_response`: la CLI contestó un pedido nuestro.
   case respuestaDeControl(id: String, error: String?)
+  /// Un mensaje `assistant` sintético con `error`: la CLI no llegó a hablar
+  /// con Claude (`authentication_failed` sin sesión iniciada, `rate_limit`,
+  /// `overloaded`…). Su texto («Not logged in · Please run /login») no se
+  /// dice: se explica en español.
+  case errorDeLaAPI(String)
   /// `result`: terminó el turno, bien, con error o interrumpido.
   case fin(ResultadoDeClaudeCode)
 }
@@ -159,6 +164,7 @@ public enum LectorDeClaudeCode {
       // Lo de un subagente trae `parent_tool_use_id`: es trabajo interno, la
       // voz sólo sigue al agente principal.
       guard objeto["parent_tool_use_id"] == nil || objeto["parent_tool_use_id"] is NSNull else { return [] }
+      if let error = objeto["error"] as? String, !error.isEmpty { return [.errorDeLaAPI(error)] }
       return bloques(objeto).compactMap(deAsistente)
     case "user":
       guard objeto["parent_tool_use_id"] == nil || objeto["parent_tool_use_id"] is NSNull else { return [] }

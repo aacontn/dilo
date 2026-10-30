@@ -112,8 +112,18 @@ struct TraductorDeClaudeCodeTests {
   @Test func retomarUnaSesionQueNoExisteEsFalla() {
     let (salidas, _) = traducir(GrabacionesDeClaudeCode.retomarUnaQueNoExiste)
     #expect(
-      salidas == [.fin(falla: "No conversation found with session ID: 00000000-0000-4000-8000-000000000000", interrumpido: false)]
+      salidas == [
+        .fin(
+          falla: .turnoFallido(detalle: "No conversation found with session ID: 00000000-0000-4000-8000-000000000000"),
+          interrumpido: false
+        )
+      ]
     )
+  }
+
+  @Test func sinSesionIniciadaNoSeLeeElTextoEnIngles() {
+    let (salidas, _) = traducir(GrabacionesDeClaudeCode.sinSesion)
+    #expect(salidas == [.fin(falla: .sinSesion, interrumpido: false)])
   }
 
   @Test func unaHerramientaSinResultadoSeCierraAlTerminar() {

@@ -19,7 +19,7 @@ public enum SalidaDelTurno: Equatable, Sendable {
   case contestarError(id: String)
   /// Terminó el turno. `falla` es lo que salió mal, si salió mal; un turno
   /// interrumpido no es falla.
-  case fin(falla: String?, interrumpido: Bool)
+  case fin(falla: FallaDeClaudeCode?, interrumpido: Bool)
 }
 
 /// Pasa los mensajes de la CLI a salidas del turno, recordando el id de la
@@ -34,6 +34,8 @@ public struct TraductorDeClaudeCode: Sendable {
   /// Las herramientas que empezaron y no terminaron, por id, con cómo se
   /// nombraron en la barra.
   private var enCurso: [(id: String, nombre: String)] = []
+  /// El `error` del mensaje sintético del turno, si lo hubo.
+  private var errorDeLaAPI: String?
 
   public init(agente: String) {
     self.agente = agente
@@ -70,12 +72,24 @@ public struct TraductorDeClaudeCode: Sendable {
       return [.contestarError(id: id)]
     case .respuestaDeControl:
       return []
+    case let .errorDeLaAPI(error):
+      errorDeLaAPI = error
+      return []
     case let .fin(resultado):
       if let sesion = resultado.sesion { self.sesion = sesion }
       let pendientes = enCurso.map { SalidaDelTurno.herramienta($0.nombre, enCurso: false) }
       enCurso = []
-      return pendientes + [.fin(falla: resultado.falla, interrumpido: resultado.fueInterrumpido)]
+      let falla = resultado.falla.map { Self.falla($0, errorDeLaAPI: errorDeLaAPI) }
+      errorDeLaAPI = nil
+      return pendientes + [.fin(falla: falla, interrumpido: resultado.fueInterrumpido)]
     }
+  }
+
+  /// Sin sesión iniciada la CLI igual arranca: dice su `init`, manda un
+  /// mensaje sintético con `error: "authentication_failed"` y cierra el
+  /// turno con `is_error` (medido con una configuración vacía).
+  static func falla(_ detalle: String, errorDeLaAPI: String?) -> FallaDeClaudeCode {
+    errorDeLaAPI == "authentication_failed" ? .sinSesion : .turnoFallido(detalle: detalle)
   }
 }
 
