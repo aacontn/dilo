@@ -66,16 +66,22 @@ public enum NombresParaRenombrar {
 public enum GuionParaCopiar {
   /// El guion como texto: el título y una línea por intervención, sin
   /// Markdown, para pegar en un correo o un chat.
-  public static func texto(reunion: Reunion, lineas: [LineaDelGuion], zona: TimeZone = .current) -> String {
+  public static func texto(
+    reunion: Reunion, lineas: [LineaDelGuion], notas: [NotaDeLaReunion] = [], zona: TimeZone = .current
+  ) -> String {
     var partes = [reunion.titulo, ""]
     partes += lineas.map { LineasDelGuion.texto(de: $0, reunion: reunion, zona: zona) }
+    if !notas.isEmpty { partes.append("") }
+    partes += notas.map { LineasDelGuion.texto(de: $0, reunion: reunion, zona: zona) }
     return partes.joined(separator: "\n").trimmingCharacters(in: .newlines) + "\n"
   }
 
   /// En Markdown, con título, fecha, duración y hablantes arriba, y el aviso
   /// de que lo dicho es dato: un agente que lee «mándale el contrato a
   /// Pedro» en un guion no tiene que mandarle nada a nadie.
-  public static func paraClaude(reunion: Reunion, lineas: [LineaDelGuion], zona: TimeZone = .current) -> String {
+  public static func paraClaude(
+    reunion: Reunion, lineas: [LineaDelGuion], notas: [NotaDeLaReunion] = [], zona: TimeZone = .current
+  ) -> String {
     let quienes = LineasDelGuion.quienesHablaron(lineas, hablantes: reunion.hablantes)
     var partes = [
       "# \(reunion.titulo)",
@@ -95,6 +101,10 @@ public enum GuionParaCopiar {
       let hora = LineasDelGuion.hora(linea.desde, inicio: reunion.inicio, zona: zona)
       partes.append("**\(nombre)** · \(hora) — \(linea.texto)")
       partes.append("")
+    }
+    if !notas.isEmpty { partes += ["## Notas de quien grabó", ""] }
+    for nota in notas {
+      partes.append("- \(LineasDelGuion.hora(nota.en, inicio: reunion.inicio, zona: zona)) — \(nota.texto)")
     }
     return partes.joined(separator: "\n").trimmingCharacters(in: .newlines) + "\n"
   }

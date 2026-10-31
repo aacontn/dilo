@@ -24,6 +24,8 @@ final class PistaEnDisco: @unchecked Sendable {
     /// Segundos de audio escritos.
     var segundos: Double = 0
     var yaSono = false
+    /// Segundos seguidos en ceros exactos.
+    var segundosEnCeros = 0
   }
 
   private static let logger = Logger(subsystem: "cl.espaciodigital.dilo", category: "reuniones")
@@ -36,13 +38,19 @@ final class PistaEnDisco: @unchecked Sendable {
   private let anotarAncla: @Sendable (AnclaDeReloj) -> Void
   private let alCambiar: @Sendable (Estado) -> Void
   private let alFallar: @Sendable (String) -> Void
+  /// Lo que se acaba de escribir, para el guion en vivo. No espera a nadie.
+  private let alOir: @Sendable (TranscripcionEnVivo.Entrega) -> Void
 
   private var carpeta: URL
   private var archivo: FileHandle?
   private(set) var partes: [String] = []
   private var bytesEnLaParte = 0
   private var muestrasEscritas: Int64 = 0
+  private var muestrasOidas: Int64 = 0
   private let remuestreo = RemuestreoA16k()
+  /// La tasa de cada bloque del tap, medida: la que dice Core Audio envejece.
+  /// El micrófono no la necesita: su formato llega con cada búfer.
+  private var tasaMedida: TasaMedida?
   private var vigia: VigiaDeSilencio
   private var temporizador: DispatchSourceTimer?
   private var tics = 0
@@ -65,7 +73,8 @@ final class PistaEnDisco: @unchecked Sendable {
     bufer: BuferAnular,
     anotarAncla: @escaping @Sendable (AnclaDeReloj) -> Void,
     alCambiar: @escaping @Sendable (Estado) -> Void,
-    alFallar: @escaping @Sendable (String) -> Void
+    alFallar: @escaping @Sendable (String) -> Void,
+    alOir: @escaping @Sendable (TranscripcionEnVivo.Entrega) -> Void
   ) {
     self.pista = pista
     self.carpeta = carpeta
@@ -73,6 +82,7 @@ final class PistaEnDisco: @unchecked Sendable {
     self.anotarAncla = anotarAncla
     self.alCambiar = alCambiar
     self.alFallar = alFallar
+    self.alOir = alOir
     vigia = VigiaDeSilencio(sinBuferesSonCeros: pista == .yo)
     cola = DispatchQueue(label: "cl.espaciodigital.dilo.reuniones.\(pista.rawValue)", qos: .utility)
   }
@@ -165,20 +175,23 @@ final class PistaEnDisco: @unchecked Sendable {
     var salida: [Float] = []
     var reales = 0
     var medida = (todasCero: true, pico: Float(-160))
+    var hostDeLaSalida: Double?
     bufer.vaciar { bloque in
       guard bloque.muestras.count > 0 else { return }
+      let tasa = tasaDe(bloque)
       if let esperado = hostEsperado {
         let hueco = bloque.host - esperado
         if hueco > Self.huecoMinimo {
           salida += [Float](repeating: 0, count: Int(min(hueco, Self.huecoMaximo) * RemuestreoA16k.tasa))
         }
       }
-      hostEsperado = bloque.host + Double(bloque.muestras.count) / bloque.tasa
+      hostEsperado = bloque.host + Double(bloque.muestras.count) / tasa
+      if hostDeLaSalida == nil { hostDeLaSalida = bloque.host - Double(salida.count) / RemuestreoA16k.tasa }
       if anclaPendiente {
         anclaPendiente = false
         anotarAncla(AnclaDeReloj(pista: pista, muestra: muestrasEscritas + Int64(salida.count), host: bloque.host))
       }
-      let convertidas = remuestreo.convertir(bloque.muestras, tasa: bloque.tasa)
+      let convertidas = remuestreo.convertir(bloque.muestras, tasa: tasa)
       let m = convertidas.withUnsafeBufferPointer { VigiaDeSilencio.medir($0) }
       medida = (medida.todasCero && m.todasCero, max(medida.pico, m.pico))
       reales += convertidas.count
@@ -194,12 +207,28 @@ final class PistaEnDisco: @unchecked Sendable {
         marcarFalla("No pude escribir \(pista.rawValue): \(error.localizedDescription)")
       }
     }
+    if !salida.isEmpty, let hostDeLaSalida {
+      alOir(.init(pista: pista, muestras: salida, muestraInicial: muestrasOidas, host: hostDeLaSalida))
+      muestrasOidas += Int64(salida.count)
+    }
     alCambiar(
       Estado(
         vigia: vigia.estado, nivel: vigia.nivel, pareceFaltarPermiso: vigia.pareceFaltarPermiso,
-        segundos: Double(muestrasEscritas) / RemuestreoA16k.tasa, yaSono: vigia.yaSono
+        segundos: Double(muestrasEscritas) / RemuestreoA16k.tasa, yaSono: vigia.yaSono,
+        segundosEnCeros: vigia.segundosEnCeros
       )
     )
+  }
+
+  private func tasaDe(_ bloque: BuferAnular.Bloque) -> Double {
+    guard pista == .ellos else { return bloque.tasa }
+    var medida = tasaMedida ?? TasaMedida(tasa: bloque.tasa)
+    let tasa = medida.bloque(cuadros: bloque.muestras.count, host: bloque.host, declarada: bloque.tasa)
+    if tasa != tasaMedida?.tasa, tasa != bloque.tasa {
+      Self.logger.notice("La pista ellos llega a \(tasa, privacy: .public) Hz, no a \(bloque.tasa, privacy: .public) Hz")
+    }
+    tasaMedida = medida
+    return tasa
   }
 
   private func escribirCabecera() {

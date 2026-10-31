@@ -405,6 +405,15 @@ The mitigation available from the documentation is to read `kAudioTapPropertyFor
 listener rather than caching the format once, and to prefer a mixdown tap when a fixed device is not
 required. Untested.
 
+**Measured 2026-10-31, and the mitigation above does not work.** With a WH-CH720N in its call profile,
+`kAudioTapPropertyFormat` still said 48 kHz while the private aggregate's
+`kAudioDevicePropertyNominalSampleRate` said 16 kHz, and the IOProc delivered 16,000 frames per second.
+The format listener never fired, not even when the headphones went up to 44.1 kHz mid-meeting. Read the
+rate from the aggregate and measure frames against host time (`TasaMedida`). Also: without
+`NSAudioCaptureUsageDescription` in the built `Info.plist`, `tccd` refuses the request without prompting
+and the IOProc delivers exact zeros; `INFOPLIST_KEY_NSAudioCaptureUsageDescription` is silently dropped
+by Xcode, so the key has to be in the `Info.plist` file itself.
+
 ## 5. Prior art
 
 - **Apple, *Capturing system audio with Core Audio taps***,

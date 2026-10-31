@@ -66,6 +66,16 @@ public struct VigiaDeSilencio: Sendable, Equatable {
   /// (`system-audio-capture.md`), esto es lo que se infiere.
   public var pareceFaltarPermiso: Bool { estado == .sinAudio && !yaSono }
 
+  /// Si toca volver a armar el tap de una pista que nunca sonó: a los 15, 30,
+  /// 60, 120 y 240 s de ceros. Un tap armado sin permiso entrega ceros para
+  /// siempre, aunque la persona acabe de darlo en el diálogo de macOS; y
+  /// rearmar cada rato sobre una llamada muda sería tocar el audio por nada.
+  public static func tocaRearmar(segundosEnCeros: Int) -> Bool {
+    guard segundosEnCeros >= segundosParaAviso, segundosEnCeros % segundosParaAviso == 0 else { return false }
+    let veces = segundosEnCeros / segundosParaAviso
+    return veces <= 16 && veces & (veces - 1) == 0
+  }
+
   /// Si un bloque de muestras es entero cero exacto, y su pico en dBFS.
   public static func medir(_ muestras: UnsafeBufferPointer<Float>) -> (todasCero: Bool, pico: Float) {
     var pico: Float = 0

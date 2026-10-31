@@ -2,6 +2,15 @@
 
 **Fecha:** 2026-10-21 · **Estado:** propuesta para revisión de Alfonso; **compuerta de entrada pendiente** (Fase 0, §Verificación) · **Base:** 0.9.3 (`main` en `6758027`), [spec nativo](2026-09-20-dilo-mac-nativo-design.md) («Notetaker: nada menos que Granola», §5, «Notas para el spec de v2») · **Reemplaza:** el camino en línea de `Dilo/app/docs/superpowers/specs/2026-08-27-reuniones-en-linea-design.md` (repo Tauri, congelado)
 
+**Cambio 2026-10-31:** el guion en vivo y las notas entraron antes que el resto
+de sus fases, a pedido de Alfonso («solo graba mi micrófono y no tengo como lo
+hace notetaker»): en vivo por pista y sin hablantes, con Silero y el Parakeet
+del dictado por tramos, no los trozos de 2 s con estado del decoder de abajo; y
+notas ancladas al tiempo en `notas.jsonl`, sin la fusión con el guion de la
+Fase 5. La ventana ya no «nunca» toma el teclado: lo toma con el campo de la
+nota abierto, sin activar Dilo. El detalle vigente está en `AGENTS.md`,
+«Reuniones».
+
 **Cambio 2026-10-21 (2):** Alfonso eligió el modelo de FluidMeet y Wispr Flow
 sobre el de Granola («me gusta más el modelo de FluidMeet; creo que es más
 parecido también a Wispr Flow con notetaker»). El centro pasa de las notas

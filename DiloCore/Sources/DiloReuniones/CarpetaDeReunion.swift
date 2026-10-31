@@ -15,6 +15,7 @@ public enum CarpetaDeReunion {
   public static let guion = "guion.jsonl"
   public static let guionLegible = "guion.md"
   public static let relojes = "relojes.jsonl"
+  public static let notas = "notas.jsonl"
 
   /// La raíz de fábrica: junto al repo, dentro de la entidad Dilo, en el SSD
   /// que se respalda cada noche (spec, «Datos»).

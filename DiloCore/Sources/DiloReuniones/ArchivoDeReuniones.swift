@@ -87,6 +87,16 @@ public struct LectorDeReuniones: Sendable {
     try? String(contentsOf: reunion.archivo(CarpetaDeReunion.guionLegible), encoding: .utf8)
   }
 
+  /// Las notas de la persona, en orden; ninguna si no escribió.
+  public static func notas(de reunion: ReunionEnDisco) -> [NotaDeLaReunion] {
+    notas(en: reunion.carpeta)
+  }
+
+  public static func notas(en carpeta: URL) -> [NotaDeLaReunion] {
+    guard let datos = try? Data(contentsOf: carpeta.appending(path: CarpetaDeReunion.notas)) else { return [] }
+    return ArchivoDeNotas.leer(datos)
+  }
+
   public static func relojes(de reunion: ReunionEnDisco) -> [AnclaDeReloj] {
     guard let datos = try? Data(contentsOf: reunion.archivo(CarpetaDeReunion.relojes)) else { return [] }
     return AnclaDeReloj.leer(datos)
@@ -111,12 +121,22 @@ public enum EscritorDeReunion {
     try regenerarLegible(palabras, reunion: reunion, en: carpeta, zona: zona)
   }
 
+  /// `notas.jsonl`, entero: se llama una vez por nota, y si la reunión se mudó
+  /// al respaldo la copia de allá tiene que tenerlas todas.
+  public static func guardarNotas(_ notas: [NotaDeLaReunion], en carpeta: URL) throws {
+    try FileManager.default.createDirectory(at: carpeta, withIntermediateDirectories: true)
+    try ArchivoDeNotas.codificar(notas).write(to: carpeta.appending(path: CarpetaDeReunion.notas), options: .atomic)
+  }
+
   /// Vuelve a escribir `guion.md`: tras renombrar a un hablante, el guion es
-  /// el mismo pero los nombres no.
+  /// el mismo pero los nombres no. Las notas se leen de su archivo, para que
+  /// ningún camino las pierda.
   public static func regenerarLegible(
     _ palabras: [PalabraDelGuion], reunion: Reunion, en carpeta: URL, zona: TimeZone = .current
   ) throws {
-    let markdown = LineasDelGuion.markdown(reunion: reunion, lineas: LineasDelGuion.armar(palabras), zona: zona)
+    let markdown = LineasDelGuion.markdown(
+      reunion: reunion, lineas: LineasDelGuion.armar(palabras), notas: LectorDeReuniones.notas(en: carpeta), zona: zona
+    )
     try Data(markdown.utf8).write(to: carpeta.appending(path: CarpetaDeReunion.guionLegible), options: .atomic)
   }
 

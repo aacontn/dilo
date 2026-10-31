@@ -41,6 +41,7 @@ final class GrabadoraDeReunion {
   private(set) var reunion: Reunion
   private(set) var carpeta: URL
   private(set) var enVivo: EnVivo
+  private(set) var notas: [NotaDeLaReunion] = []
   var alCambiar: ((EnVivo) -> Void)?
 
   private let respaldo: URL
@@ -57,7 +58,8 @@ final class GrabadoraDeReunion {
   /// Arma la carpeta, decide el disco y abre las dos pistas. Lanza sólo si no
   /// se puede grabar nada.
   static func empezar(
-    evento: EventoDeLaReunion?, preferencias: PreferenciasDeReuniones, respaldo: URL
+    evento: EventoDeLaReunion?, preferencias: PreferenciasDeReuniones, respaldo: URL,
+    alOir: @escaping @Sendable (TranscripcionEnVivo.Entrega) -> Void
   ) throws(FallaAlGrabar) -> GrabadoraDeReunion {
     let inicio = Date()
     let titulo = evento?.titulo.trimmingCharacters(in: .whitespacesAndNewlines).nilSiVacio ?? String(localized: "Reunión")
@@ -91,7 +93,7 @@ final class GrabadoraDeReunion {
     }
     let grabadora = GrabadoraDeReunion(
       reunion: reunion, carpeta: carpeta, lugar: lugar, respaldo: respaldo,
-      microfonoUID: preferencias.microfonoUID
+      microfonoUID: preferencias.microfonoUID, alOir: alOir
     )
     let abiertas = grabadora.abrirPistas()
     guard abiertas > 0 else {
@@ -108,7 +110,8 @@ final class GrabadoraDeReunion {
   }
 
   private init(
-    reunion: Reunion, carpeta: URL, lugar: PoliticaDeDisco.Lugar, respaldo: URL, microfonoUID: String?
+    reunion: Reunion, carpeta: URL, lugar: PoliticaDeDisco.Lugar, respaldo: URL, microfonoUID: String?,
+    alOir: @escaping @Sendable (TranscripcionEnVivo.Entrega) -> Void
   ) {
     self.reunion = reunion
     self.carpeta = carpeta
@@ -128,12 +131,14 @@ final class GrabadoraDeReunion {
     pistaYo = PistaEnDisco(
       pista: .yo, carpeta: carpeta, bufer: bufferDeYo, anotarAncla: { relojes.anotar($0) },
       alCambiar: { estado in Task { @MainActor in mensajero.grabadora?.pista(.yo, cambio: estado) } },
-      alFallar: { motivo in Task { @MainActor in mensajero.grabadora?.pistaNoEscribe(.yo, motivo) } }
+      alFallar: { motivo in Task { @MainActor in mensajero.grabadora?.pistaNoEscribe(.yo, motivo) } },
+      alOir: alOir
     )
     pistaEllos = PistaEnDisco(
       pista: .ellos, carpeta: carpeta, bufer: bufferDeEllos, anotarAncla: { relojes.anotar($0) },
       alCambiar: { estado in Task { @MainActor in mensajero.grabadora?.pista(.ellos, cambio: estado) } },
-      alFallar: { motivo in Task { @MainActor in mensajero.grabadora?.pistaNoEscribe(.ellos, motivo) } }
+      alFallar: { motivo in Task { @MainActor in mensajero.grabadora?.pistaNoEscribe(.ellos, motivo) } },
+      alOir: alOir
     )
     mensajero.grabadora = self
   }
@@ -188,6 +193,25 @@ final class GrabadoraDeReunion {
     }
   }
 
+  /// Una nota de la persona, con la hora en que la escribió. A disco en el
+  /// acto: si la app muere, la nota no se pierde con ella.
+  @discardableResult
+  func anotar(_ texto: String) -> Bool {
+    guard let limpio = NotaDeLaReunion.limpiar(texto) else { return false }
+    notas.append(NotaDeLaReunion(en: Date().timeIntervalSince(reunion.inicio), texto: limpio))
+    guardarNotas()
+    return true
+  }
+
+  private func guardarNotas() {
+    do {
+      try EscritorDeReunion.guardarNotas(notas, en: carpeta)
+    } catch {
+      // Sigue en la RAM: la próxima nota, o la mudanza al respaldo, la escribe.
+      Self.logger.error("No pude guardar las notas: \(error.localizedDescription, privacy: .public)")
+    }
+  }
+
   /// Cierra las capturas, completa los WAV y deja la reunión lista para
   /// afinar.
   func terminar() -> ReunionEnDisco {
@@ -215,6 +239,10 @@ final class GrabadoraDeReunion {
 
   private func pista(_ pista: Pista, cambio estado: PistaEnDisco.Estado) {
     if pista == .yo { enVivo.yo = estado } else { enVivo.ellos = estado }
+    if pista == .ellos, !estado.yaSono, VigiaDeSilencio.tocaRearmar(segundosEnCeros: estado.segundosEnCeros) {
+      Self.logger.notice("La pista ellos nunca sonó: rearmo el tap por si acaban de dar el permiso")
+      sistema.rearmar()
+    }
     alCambiar?(enVivo)
   }
 
@@ -253,6 +281,7 @@ final class GrabadoraDeReunion {
     _ = pistaEllos.mudarA(nueva)
     actualizarPartes()
     guardar()
+    if !notas.isEmpty { guardarNotas() }
     alCambiar?(enVivo)
   }
 

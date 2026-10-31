@@ -42,6 +42,8 @@ codesign -f -s "$IDENTIDAD" -o runtime --timestamp \
   --entitlements "$RAIZ/Dilo.entitlements" "$APP" 2>&1 | grep -v "replacing existing" || true
 codesign --verify --deep --strict "$APP"
 codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "device.audio-input"
+# Sin esta clave macOS rechaza el tap sin preguntar y la pista `ellos` sale muda.
+plutil -extract NSAudioCaptureUsageDescription raw "$APP/Contents/Info.plist" >/dev/null
 echo "  firma y entitlements OK"
 
 if [[ $NOTARIZAR == 1 ]]; then

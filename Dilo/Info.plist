@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Sólo Sparkle y el URL scheme. Todas las demás claves se siguen
-	     generando desde los build settings (GENERATE_INFOPLIST_FILE sigue
-	     encendido y se fusiona con este archivo), porque Sparkle lee
-	     SUPublicEDKey directo del bundle y el passthrough INFOPLIST_KEY_ de
-	     Xcode descarta en silencio las claves que no conoce; CFBundleURLTypes
-	     tampoco tiene INFOPLIST_KEY_. (Heredado del árbol de origen, sigue
-	     siendo cierto.)
+	<!-- Sparkle, el URL scheme y el permiso del audio del sistema. Todas las
+	     demás claves se siguen generando desde los build settings
+	     (GENERATE_INFOPLIST_FILE sigue encendido y se fusiona con este
+	     archivo), porque Sparkle lee SUPublicEDKey directo del bundle y el
+	     passthrough INFOPLIST_KEY_ de Xcode descarta en silencio las claves
+	     que no conoce; CFBundleURLTypes tampoco tiene INFOPLIST_KEY_.
+	     (Heredado del árbol de origen, sigue siendo cierto.)
 
 	     Ojo con editar este archivo con PlistBuddy: reescribe el plist entero
 	     y se lleva estos comentarios. Cámbialo a mano o con sed.
@@ -20,6 +20,13 @@
 	     apunta al repo donde van a vivir los releases; si termina llamándose
 	     distinto, esta línea y la constante REPO de scripts/release.sh son
 	     los dos únicos lugares que cambian. -->
+	<!-- macOS rechaza el tap de Core Audio sin esta clave, sin preguntar y sin
+	     error: entrega ceros. Xcode no conoce INFOPLIST_KEY_ para ella y la
+	     botaba en silencio, así que la pista `ellos` salió muda hasta la
+	     0.12.2 (lo dijo tccd: «without NSAudioCaptureUsageDescription key»).
+	     `ReunionesEnLaAppTests` e `instalar-local.sh` vigilan que siga acá. -->
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Dilo graba el audio de tus reuniones en esta compu para armar el guion de quién dijo qué. Nada sale de esta compu.</string>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/aacontn/dilo/main/appcast.xml</string>
 	<!-- Mitad pública de la llave EdDSA de Dilo, generada en este Mac con

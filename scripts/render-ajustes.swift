@@ -117,11 +117,43 @@ enum RenderAjustes {
       m.hayAudio = true
       return m
     }
+    func enVivo(_ id: Int, _ pista: Pista, _ desde: Double, _ texto: String, abierta: Bool = false) -> LineaEnVivo {
+      LineaEnVivo(id: id, pista: pista, desde: desde, hasta: desde + 4, texto: texto, abierta: abierta)
+    }
+    let elementos = ElementoEnVivo.armar(
+      lineas: [
+        enVivo(1, .yo, 40, "Partamos por el precio, que es lo que quedó pendiente la semana pasada."),
+        enVivo(2, .ellos, 52, "Ya, te cuento lo que conversamos con Pedro: el precio lo podemos cerrar hoy, pero con despacho incluido."),
+        enVivo(3, .ellos, 58, "Ojo que el despacho a regiones es aparte."),
+        enVivo(4, .yo, 80, "Perfecto. ¿Y los plazos?"),
+        enVivo(5, .ellos, 95, "Recién partimos con eso. Te mando el borrador después de la reunión."),
+        enVivo(6, .yo, 120, "Buenísimo. Entonces quedamos con el precio cerrado y el contrato para"),
+      ].map { $0.id == 6 ? enVivo(6, .yo, 120, $0.texto, abierta: true) : $0 },
+      notas: [NotaDeLaReunion(en: 100, texto: "Pedir el borrador del contrato antes del jueves")]
+    )
     let grabando = modelo(.grabando)
-    grabando.enVivo = ReunionEnLaMuesca(inicio: inicio, titulo: reunion.titulo, microfono: .encendida, parlante: .ambar)
+    grabando.enVivo = ReunionEnLaMuesca(inicio: inicio, titulo: reunion.titulo, microfono: .encendida, parlante: .encendida)
+    grabando.elementosEnVivo = elementos
+    let escuchando = modelo(.grabando)
+    escuchando.enVivo = ReunionEnLaMuesca(inicio: inicio, titulo: reunion.titulo, microfono: .encendida, parlante: .apagada)
+    let sinPermiso = modelo(.grabando)
+    sinPermiso.enVivo = ReunionEnLaMuesca(inicio: inicio, titulo: reunion.titulo, microfono: .encendida, parlante: .sinAudio)
+    sinPermiso.elementosEnVivo = Array(elementos.prefix(1))
+    sinPermiso.faltaElPermisoDelAudio = true
+    let nota = modelo(.grabando)
+    nota.enVivo = grabando.enVivo
+    nota.elementosEnVivo = elementos
+    nota.escribiendoNota = true
+    nota.notaEscrita = "Preguntarle a Pedro por el despacho"
+    let notaGuardada = modelo(.grabando)
+    notaGuardada.enVivo = grabando.enVivo
+    notaGuardada.elementosEnVivo = elementos
+    notaGuardada.notaEscrita = "Preguntarle a Pedro por el despacho"
     let afinando = modelo(.afinando(AvanceDeLaPasada(etapa: .separandoVoces, fraccionDeLaEtapa: 0, compilandoPorPrimeraVez: true)))
     let afinandoNormal = modelo(.afinando(AvanceDeLaPasada(etapa: .transcribiendoEllos, fraccionDeLaEtapa: 0.4)))
+    afinandoNormal.elementosEnVivo = elementos
     let guion = modelo(.lista)
+    guion.notas = [NotaDeLaReunion(en: 100, texto: "Pedir el borrador del contrato antes del jueves")]
     guion.opcionesDe = "h3"
     guion.lineaResaltada = 3
     guion.reproduciendo = 1
@@ -130,13 +162,16 @@ enum RenderAjustes {
     escribiendo.escribiendoNombre = true
     escribiendo.nombreEscrito = "Matías"
     escribiendo.copiado = .paraClaude
+    escribiendo.notas = guion.notas
     var interrumpida = reunion
     interrumpida.estado = .interrumpida
     let sinGuion = modelo(.sinGuion)
     sinGuion.reunion = interrumpida
     sinGuion.estado = .interrumpida
     for (nombre, m) in [
-      ("reunion-grabando", grabando), ("reunion-afinando-primera-vez", afinando), ("reunion-afinando", afinandoNormal),
+      ("reunion-grabando", grabando), ("reunion-escuchando", escuchando), ("reunion-sin-permiso", sinPermiso),
+      ("reunion-escribiendo-nota", nota), ("reunion-nota-a-medias", notaGuardada),
+      ("reunion-afinando-primera-vez", afinando), ("reunion-afinando", afinandoNormal),
       ("reunion-guion", guion), ("reunion-otro-nombre", escribiendo), ("reunion-interrumpida", sinGuion),
     ] {
       try escribir(
