@@ -6,16 +6,19 @@ import os
 
 /// El panel de la reunión: **nunca toma el foco** —mirarlo no le roba el
 /// teclado a Zoom—, como el panel de la barra (`.nonactivatingPanel`). La
-/// única excepción es escribir «Otro nombre…»: ahí, y sólo mientras dura el
-/// campo, el panel acepta el teclado sin activar Dilo.
+/// excepción es escribir una nota u «Otro nombre…»: ahí, y sólo mientras dura
+/// el campo, el panel acepta el teclado sin activar Dilo; la app de la reunión
+/// sigue siendo la activa.
 final class VentanaDeLaReunion: NSPanel {
-  /// Verdadero sólo con el campo de «Otro nombre…» abierto.
+  /// Verdadero sólo con un campo abierto.
   var aceptaElTeclado = false
+  /// Un clic en otra app le quitó el teclado.
+  var alPerderElTeclado: (() -> Void)?
 
   init() {
     super.init(
       contentRect: NSRect(origin: .zero, size: VistaDeLaReunion.tamano),
-      styleMask: [.borderless, .nonactivatingPanel],
+      styleMask: [.borderless, .nonactivatingPanel, .resizable],
       backing: .buffered,
       defer: false
     )
@@ -27,6 +30,7 @@ final class VentanaDeLaReunion: NSPanel {
     hidesOnDeactivate = false
     isReleasedWhenClosed = false
     isMovableByWindowBackground = true
+    minSize = VistaDeLaReunion.tamanoMinimo
     title = String(localized: "Reunión")
     identifier = NSUserInterfaceItemIdentifier("DiloVentanaDeLaReunion")
     setAccessibilityLabel(String(localized: "Dilo, la reunión"))
@@ -34,6 +38,26 @@ final class VentanaDeLaReunion: NSPanel {
 
   override var canBecomeKey: Bool { aceptaElTeclado }
   override var canBecomeMain: Bool { false }
+
+  override func resignKey() {
+    super.resignKey()
+    alPerderElTeclado?()
+  }
+
+  /// Dilo no tiene menú Edición, que es donde macOS busca ⌘V: sin esto, en el
+  /// campo no se puede pegar, y el dictado pega con ⌘V.
+  override func performKeyEquivalent(with event: NSEvent) -> Bool {
+    let teclas: [String: Selector] = [
+      "v": #selector(NSText.paste(_:)), "c": #selector(NSText.copy(_:)), "x": #selector(NSText.cut(_:)),
+      "a": #selector(NSText.selectAll(_:)),
+    ]
+    if aceptaElTeclado, event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command,
+      let accion = event.charactersIgnoringModifiers.flatMap({ teclas[$0] }), firstResponder?.tryToPerform(accion, with: self) == true
+    {
+      return true
+    }
+    return super.performKeyEquivalent(with: event)
+  }
 }
 
 /// El primer clic sobre una ventana que no es key ya es un clic.
@@ -41,8 +65,9 @@ private final class HospedajeDeLaReunion<Contenido: View>: NSHostingView<Conteni
   override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
-/// Abre la ventana de la reunión y la mantiene al día: grabando, afinando
-/// con su avance real, y el guion al terminar. Las ediciones —renombrar,
+/// Abre la ventana de la reunión y la mantiene al día: lo que se va diciendo
+/// y tus notas mientras graba, afinando con su avance real, y el guion al
+/// terminar. Las ediciones —renombrar,
 /// juntar, reasignar— pasan por `ControlDeReuniones` y se vuelven a leer del
 /// disco: el guion es el de los archivos, no una copia en la ventana.
 ///
@@ -69,6 +94,7 @@ final class ControlDeLaVentanaDeReunion {
     self.defaults = defaults
     modelo.siempreEncima = defaults.object(forKey: Self.claveSiempreEncima) as? Bool ?? true
     modelo.acciones = acciones
+    control.antesDeTerminar = { [weak self] in self?.guardarLaNota() }
   }
 
   /// Muestra una reunión: la que se pide, o la que graba, o la que se afina,
@@ -98,8 +124,11 @@ final class ControlDeLaVentanaDeReunion {
     enDisco = nil
     modelo.reproduciendo = nil
     modelo.opcionesDe = nil
-    modelo.escribiendoNombre = false
+    soltarElTeclado()
     modelo.confirmandoBorrar = false
+    modelo.notaEscrita = ""
+    modelo.notas = []
+    modelo.elementosEnVivo = []
     modelo.lineas = []
     modelo.reunion = nil
     modelo.fase = .cargando
@@ -117,8 +146,10 @@ final class ControlDeLaVentanaDeReunion {
     let panel = VentanaDeLaReunion()
     let hospedaje = HospedajeDeLaReunion(rootView: VistaDeLaReunion(modelo: modelo))
     hospedaje.sizingOptions = []
+    hospedaje.autoresizingMask = [.width, .height]
     panel.contentView = hospedaje
     hospedaje.frame = NSRect(origin: .zero, size: VistaDeLaReunion.tamano)
+    panel.alPerderElTeclado = { [weak self] in self?.soltarElTeclado() }
     // Arriba a la derecha de la pantalla principal, bajo la barra; después
     // se queda donde la persona la deje.
     if !panel.setFrameUsingName("DiloVentanaDeLaReunion"), let pantalla = NSScreen.main?.visibleFrame {
@@ -131,18 +162,21 @@ final class ControlDeLaVentanaDeReunion {
   func cerrar() {
     reproductor.parar()
     modelo.reproduciendo = nil
-    dejarDeEscribir()
+    soltarElTeclado()
     panel?.orderOut(nil)
   }
 
   /// Sigue al control mientras la ventana está abierta: el paso de grabando
-  /// a afinando a lista, y las marcas.
+  /// a afinando a lista, las marcas, lo que se va diciendo y las notas. Con
+  /// la ventana cerrada no cuesta nada: al abrirla se lee lo que haya.
   private func seguir() {
     guard !observando else { return }
     observando = true
     withObservationTracking {
       _ = control.enCurso
       _ = control.pasada
+      _ = control.vivo
+      _ = control.notas
     } onChange: { [weak self] in
       Task { @MainActor in
         guard let self else { return }
@@ -161,16 +195,27 @@ final class ControlDeLaVentanaDeReunion {
       modelo.titulo = enCurso.titulo
       modelo.inicio = enCurso.inicio
       modelo.enVivo = ReunionEnLaMuesca(enCurso)
+      modelo.faltaElPermisoDelAudio = enCurso.ellos.vigia == .sinAudio && enCurso.ellos.pareceFaltarPermiso
+      reflejarLoEnVivo()
       return
     }
     modelo.enVivo = nil
+    modelo.faltaElPermisoDelAudio = false
     if let pasada = control.pasada, pasada.id == id {
       modelo.titulo = pasada.titulo
       modelo.fase = .afinando(pasada.avance)
+      reflejarLoEnVivo()
       return
     }
     guard let id else { return }
     Task { [weak self] in await self?.recargar(id) }
+  }
+
+  private func reflejarLoEnVivo() {
+    guard control.idDelVivo == id else { return }
+    modelo.notas = control.notas
+    modelo.sinMotorEnVivo = control.vivo.sinMotor
+    modelo.elementosEnVivo = ElementoEnVivo.armar(lineas: control.vivo.lineas, notas: control.notas)
   }
 
   /// Lee la reunión del disco y la pone en la ventana.
@@ -188,6 +233,8 @@ final class ControlDeLaVentanaDeReunion {
     modelo.titulo = reunion.titulo
     modelo.inicio = reunion.inicio
     modelo.lineas = leida.lineas
+    modelo.notas = leida.notas
+    modelo.elementosEnVivo = []
     modelo.hayAudio = ReproduccionDelGuion.hayAudio(reunion)
     modelo.fase = reunion.estado == .lista && !leida.reunion.enElRespaldo ? .lista : .sinGuion
   }
@@ -202,7 +249,28 @@ final class ControlDeLaVentanaDeReunion {
     }
     a.renombrar = { [weak self] hablante, nombre in self?.renombrar(hablante, a: nombre) }
     a.escribirNombre = { [weak self] abrir in
-      if abrir { self?.empezarAEscribir() } else { self?.dejarDeEscribir() }
+      guard let self else { return }
+      if abrir {
+        modelo.nombreEscrito = ""
+        modelo.escribiendoNombre = true
+        tomarElTeclado()
+      } else {
+        soltarElTeclado()
+      }
+    }
+    a.escribirNota = { [weak self] abrir in
+      guard let self else { return }
+      if abrir {
+        modelo.escribiendoNota = true
+        tomarElTeclado()
+      } else {
+        soltarElTeclado()
+      }
+    }
+    a.guardarNota = { [weak self] in self?.guardarLaNota() }
+    a.abrirElPermiso = {
+      guard let url = URL(string: ControlDeReuniones.panelDelAudioDelSistema) else { return }
+      NSWorkspace.shared.open(url)
     }
     a.juntar = { [weak self] origen, destino in
       self?.editar { control, id in try await control.juntar(origen, en: destino, id: id) }
@@ -233,7 +301,7 @@ final class ControlDeLaVentanaDeReunion {
   }
 
   private func renombrar(_ hablante: String, a nombre: String?) {
-    dejarDeEscribir()
+    soltarElTeclado()
     modelo.opcionesDe = nil
     editar { control, id in try await control.renombrar(hablante: hablante, a: nombre, en: id) }
   }
@@ -251,17 +319,29 @@ final class ControlDeLaVentanaDeReunion {
     }
   }
 
-  private func empezarAEscribir() {
-    modelo.nombreEscrito = ""
-    modelo.escribiendoNombre = true
+  /// Guarda lo escrito y devuelve el teclado: se escribe una nota sin dejar
+  /// de estar en la llamada.
+  private func guardarLaNota() {
+    if control.anotar(modelo.notaEscrita) { modelo.notaEscrita = "" }
+    soltarElTeclado()
+  }
+
+  private func tomarElTeclado() {
     panel?.aceptaElTeclado = true
     panel?.makeKey()
   }
 
-  private func dejarDeEscribir() {
+  private func soltarElTeclado() {
     modelo.escribiendoNombre = false
-    panel?.aceptaElTeclado = false
-    panel?.resignKey()
+    modelo.escribiendoNota = false
+    guard let panel, panel.aceptaElTeclado else { return }
+    panel.aceptaElTeclado = false
+    // `resignKey` sólo avisa: quien vuelve a tener el teclado es la app activa,
+    // y eso pasa cuando la ventana key deja de estar en pantalla.
+    if panel.isKeyWindow {
+      panel.orderOut(nil)
+      panel.orderFrontRegardless()
+    }
   }
 
   private func reproducir(_ indice: Int) {
@@ -277,8 +357,8 @@ final class ControlDeLaVentanaDeReunion {
   private func copiar(_ copia: ModeloDeLaReunion.Copia) {
     guard let reunion = modelo.reunion else { return }
     let texto = copia == .texto
-      ? GuionParaCopiar.texto(reunion: reunion, lineas: modelo.lineas)
-      : GuionParaCopiar.paraClaude(reunion: reunion, lineas: modelo.lineas)
+      ? GuionParaCopiar.texto(reunion: reunion, lineas: modelo.lineas, notas: modelo.notas)
+      : GuionParaCopiar.paraClaude(reunion: reunion, lineas: modelo.lineas, notas: modelo.notas)
     alPortapapeles(texto)
     modelo.copiado = copia
     Task { [weak self] in

@@ -88,14 +88,26 @@ final class ControlDeReuniones {
 
   private(set) var separador = EstadoDelSeparador.sinRevisar
 
+  /// Lo que se va diciendo en la reunión que graba, y sigue a la vista
+  /// mientras se afina. Aparte de `enCurso`, que cambia cada segundo y mueve la
+  /// muesca: esto sólo lo mira la ventana.
+  private(set) var vivo = GuionEnVivo()
+  private(set) var notas: [NotaDeLaReunion] = []
+  /// De qué reunión son `vivo` y `notas`.
+  private(set) var idDelVivo: String?
+
   /// Para lo que no es SwiftUI (el panel de la barra): cada cambio de
   /// `enCurso` o `pasada`.
   @ObservationIgnored var alCambiar: (() -> Void)?
+  /// Justo antes de cerrar la grabación, venga de donde venga el «Terminar»:
+  /// la ventana guarda la nota a medio escribir.
+  @ObservationIgnored var antesDeTerminar: (() -> Void)?
 
   @ObservationIgnored private let defaults: UserDefaults
   @ObservationIgnored private let respaldo: URL
   @ObservationIgnored private let parakeet: @MainActor () -> ParakeetEngine
   @ObservationIgnored private var grabadora: GrabadoraDeReunion?
+  @ObservationIgnored private var transcripcion: TranscripcionEnVivo?
   @ObservationIgnored private var afinando: Set<String> = []
   @ObservationIgnored private var separacion: SeparacionDeVoces?
   @ObservationIgnored private var observadorDelDisco: (any NSObjectProtocol)?
@@ -134,10 +146,17 @@ final class ControlDeReuniones {
   func grabar(evento: EventoDeLaReunion? = nil) -> ResultadoAlGrabar {
     if let enCurso { return .yaGrabando(id: enCurso.id) }
     do {
+      let transcripcion = armarLaTranscripcion()
       let grabadora = try GrabadoraDeReunion.empezar(
-        evento: evento ?? EventoActualDelCalendario.leer(), preferencias: preferencias, respaldo: respaldo
+        evento: evento ?? EventoActualDelCalendario.leer(), preferencias: preferencias, respaldo: respaldo,
+        alOir: { transcripcion.recibir($0) }
       )
       self.grabadora = grabadora
+      self.transcripcion = transcripcion
+      Task.detached(priority: .utility) { await transcripcion.escuchar() }
+      vivo = GuionEnVivo()
+      notas = []
+      idDelVivo = grabadora.reunion.id
       enCurso = EnCurso(
         id: grabadora.reunion.id, titulo: grabadora.reunion.titulo, inicio: grabadora.reunion.inicio,
         carpeta: grabadora.carpeta, lugar: grabadora.enVivo.lugar
@@ -163,8 +182,12 @@ final class ControlDeReuniones {
   @discardableResult
   func terminar() -> String? {
     guard let grabadora else { return nil }
+    antesDeTerminar?()
     let enDisco = grabadora.terminar()
     self.grabadora = nil
+    let transcripcion = self.transcripcion
+    self.transcripcion = nil
+    Task { await transcripcion?.terminar() }
     enCurso = nil
     alCambiar?()
     afinar(enDisco)
@@ -176,8 +199,49 @@ final class ControlDeReuniones {
   func dictado(enCurso: Bool) {
     grabadora?.dictado(enCurso: enCurso)
     dictando = enCurso
+    let transcripcion = self.transcripcion
+    Task { await transcripcion?.dictado(enCurso: enCurso) }
     // Lo que esperaba a que terminara el dictado, ahora.
     if !enCurso, separador == .porPreparar { prepararElSeparador() }
+  }
+
+  /// Una nota en la reunión que graba. Devuelve si quedó: una nota vacía no.
+  @discardableResult
+  func anotar(_ texto: String) -> Bool {
+    guard let grabadora, grabadora.anotar(texto) else { return false }
+    notas = grabadora.notas
+    return true
+  }
+
+  /// El guion en vivo de esta reunión: con el mismo Parakeet del dictado y un
+  /// detector de voz por pista, porque cada uno lleva su estado. El detector se
+  /// baja la primera vez que hace falta (~1 MB, lo pidió grabar); sin él, sigue
+  /// por nivel.
+  private func armarLaTranscripcion() -> TranscripcionEnVivo {
+    let motor = parakeet()
+    let logger = Self.logger
+    let (detectorYo, detectorEllos) = (DetectorDeVozSilero(), DetectorDeVozSilero())
+    let aplicar: @Sendable (NovedadEnVivo) -> Void = { [weak self] novedad in
+      Task { @MainActor in self?.vivo.aplicar(novedad) }
+    }
+    // Cargar el modelo en frío tarda hasta 26 s: mejor mientras la gente se
+    // saluda que encima de la primera frase.
+    Task.detached(priority: .utility) { try? await motor.conElModelo { _ in } }
+    return TranscripcionEnVivo(
+      inicioHost: RelojDelMac.ahora,
+      transcribir: { audio in
+        do {
+          return try await motor.transcribirSinSesion(audio)
+        } catch EngineError.modeloNoDescargado {
+          throw FallaDelVivo.sinMotor
+        } catch {
+          logger.error("El guion en vivo no pudo transcribir un tramo: \(error.localizedDescription, privacy: .public)")
+          throw error
+        }
+      },
+      detectar: { pista, trozo in try await (pista == .yo ? detectorYo : detectorEllos).probabilidad(trozo) },
+      alCambiar: aplicar
+    )
   }
 
   /// Vuelve a correr la pasada final de una reunión ya grabada: tras una
@@ -237,6 +301,11 @@ final class ControlDeReuniones {
     afinando.remove(reunion.id)
     if separador == .porPreparar || separador == .preparando { revisarElSeparador() }
     if pasada?.id == reunion.id { pasada = nil }
+    if idDelVivo == reunion.id {
+      idDelVivo = nil
+      vivo = GuionEnVivo()
+      notas = []
+    }
     if reunion.estado == .lista {
       aviso = .guionListo(id: reunion.id)
     } else if let falla = reunion.falla {
@@ -503,13 +572,13 @@ final class ControlDeReuniones {
     }.value
   }
 
-  /// Una reunión leída de nuevo, con su guion en líneas, fuera del hilo
-  /// principal. Nil si ya no está.
-  func leer(id: String) async -> (reunion: ReunionEnDisco, lineas: [LineaDelGuion])? {
+  /// Una reunión leída de nuevo, con su guion en líneas y sus notas, fuera
+  /// del hilo principal. Nil si ya no está.
+  func leer(id: String) async -> (reunion: ReunionEnDisco, lineas: [LineaDelGuion], notas: [NotaDeLaReunion])? {
     let lector = self.lector
     return await Task.detached(priority: .userInitiated) {
       guard let enDisco = try? lector.reunion(id: id) else { return nil }
-      return (enDisco, LectorDeReuniones.lineas(de: enDisco))
+      return (enDisco, LectorDeReuniones.lineas(de: enDisco), LectorDeReuniones.notas(de: enDisco))
     }.value
   }
 

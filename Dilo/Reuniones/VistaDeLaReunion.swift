@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 @Observable
 final class ModeloDeLaReunion {
   enum Fase: Equatable {
-    /// Fase 1: no hay guion en vivo; «Grabando. El guion sale al terminar».
+    /// Lo que se va diciendo, tus notas y el campo para escribir otra.
     case grabando
     /// La pasada final, con su avance real.
     case afinando(AvanceDeLaPasada)
@@ -25,6 +25,17 @@ final class ModeloDeLaReunion {
   var inicio = Date()
   /// La reunión grabando, para el reloj y las marcas de la cabecera.
   var enVivo: ReunionEnLaMuesca?
+  /// Lo dicho y tus notas, en orden, mientras graba y mientras se afina.
+  var elementosEnVivo: [ElementoEnVivo] = []
+  /// No hay modelo de voz: la reunión graba, pero el vivo no va a salir.
+  var sinMotorEnVivo = false
+  /// `ellos` lleva 15 s en ceros y nunca sonó.
+  var faltaElPermisoDelAudio = false
+  var notas: [NotaDeLaReunion] = []
+  /// Con el campo de la nota abierto. Lo escrito sobrevive a cerrarlo: un clic
+  /// en la llamada no se lleva la nota a medio escribir.
+  var escribiendoNota = false
+  var notaEscrita = ""
   var reunion: Reunion?
   var estado: EstadoParaMostrar?
   var lineas: [LineaDelGuion] = []
@@ -53,6 +64,9 @@ final class ModeloDeLaReunion {
     var afinarDeNuevo: () -> Void = {}
     var renombrar: (String, String?) -> Void = { _, _ in }
     var escribirNombre: (Bool) -> Void = { _ in }
+    var escribirNota: (Bool) -> Void = { _ in }
+    var guardarNota: () -> Void = {}
+    var abrirElPermiso: () -> Void = {}
     var juntar: (String, String) -> Void = { _, _ in }
     var reasignar: (Int, String?) -> Void = { _, _ in }
     var reproducir: (Int) -> Void = { _ in }
@@ -76,13 +90,14 @@ final class ModeloDeLaReunion {
   func nombre(_ id: String?) -> String { LineasDelGuion.nombre(id, en: hablantes) }
 }
 
-/// La ventana de la reunión: el guion, no una libreta (spec, «Mientras
-/// graba»). 380×520 con el vidrio ahumado de Ajustes; arriba el título, el
-/// tiempo, las dos marcas y «Terminar»; abajo, según la fase, «Grabando»,
-/// «Afinando el guion…» con el avance real, o el guion con sus hablantes
-/// como chips y sus acciones.
+/// La ventana de la reunión (spec, «Mientras graba»). 380×520 con el vidrio
+/// ahumado de Ajustes, y se agranda tirando del borde; arriba el título, el
+/// tiempo, las dos marcas y «Terminar»; abajo, según la fase, lo que se va
+/// diciendo con tus notas, «Afinando el guion…» con el avance real, o el guion
+/// con sus hablantes como chips y sus acciones.
 struct VistaDeLaReunion: View {
   static let tamano = CGSize(width: 380, height: 520)
+  static let tamanoMinimo = CGSize(width: 320, height: 300)
 
   @Bindable var modelo: ModeloDeLaReunion
   @Environment(\.accessibilityReduceMotion) private var reducirMovimiento
@@ -101,10 +116,16 @@ struct VistaDeLaReunion: View {
         pie
       }
     }
-    .frame(width: Self.tamano.width, height: Self.tamano.height)
+    .frame(
+      minWidth: Self.tamanoMinimo.width, maxWidth: .infinity, minHeight: Self.tamanoMinimo.height, maxHeight: .infinity
+    )
     .superficieDeDilo()
     .onExitCommand {
-      if modelo.escribiendoNombre { modelo.acciones.escribirNombre(false) } else { modelo.acciones.cerrar() }
+      if modelo.escribiendoNombre || modelo.escribiendoNota {
+        modelo.acciones.escribirNota(false)
+      } else {
+        modelo.acciones.cerrar()
+      }
     }
   }
 
@@ -191,13 +212,17 @@ struct VistaDeLaReunion: View {
   private var cuerpo: some View {
     switch modelo.fase {
     case .grabando:
-      aviso(
-        simbolo: "waveform",
-        titulo: "Grabando. El guion sale al terminar",
-        detalle: Text("Tu micrófono y el audio del Mac, cada uno en su pista. Puedes cerrar esta ventana: la reunión sigue grabando.")
-      )
+      grabando
     case let .afinando(avance):
-      afinando(avance)
+      VStack(spacing: 0) {
+        if modelo.elementosEnVivo.isEmpty {
+          afinando(avance)
+        } else {
+          afinando(avance).padding(.vertical, 12)
+          Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+          ListaEnVivo(modelo: modelo)
+        }
+      }
     case .lista:
       guion
     case .sinGuion:
@@ -205,6 +230,52 @@ struct VistaDeLaReunion: View {
     case .cargando:
       ProgressView().controlSize(.small)
     }
+  }
+
+  private var grabando: AnyView {
+    AnyView(
+      VStack(spacing: 0) {
+        if modelo.faltaElPermisoDelAudio { avisoDelPermiso }
+        if modelo.elementosEnVivo.isEmpty {
+          Spacer(minLength: 0)
+          aviso(
+            simbolo: "waveform",
+            titulo: modelo.sinMotorEnVivo ? "Grabando. El guion sale al terminar" : "Escuchando",
+            detalle: modelo.sinMotorEnVivo
+              ? Text("Sin Parakeet no hay transcripción en vivo. Tu micrófono y el audio del Mac se graban igual, cada uno en su pista.")
+              : Text("Lo que se diga va a ir apareciendo aquí. Puedes cerrar esta ventana: la reunión sigue grabando.")
+          )
+          Spacer(minLength: 0)
+        } else {
+          ListaEnVivo(modelo: modelo)
+        }
+        Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+        CampoDeLaNota(modelo: modelo)
+      }
+    )
+  }
+
+  /// La marca tachada es chica y el aviso de la muesca dura segundos: mientras
+  /// falte el permiso, acá se ve con su arreglo.
+  private var avisoDelPermiso: AnyView {
+    AnyView(
+      HStack(spacing: 8) {
+        Image(systemName: "speaker.slash.fill")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(PaletaDeDilo.actual.aviso.color)
+        Text("Sin audio de la llamada: falta un permiso")
+          .font(.system(size: 11.5, weight: .medium))
+          .foregroundStyle(.white.opacity(0.9))
+          .lineLimit(2)
+        Spacer(minLength: 4)
+        Button("Abrir", action: modelo.acciones.abrirElPermiso)
+          .controlSize(.small)
+          .help(Text("Abre el panel exacto de Ajustes del Sistema"))
+      }
+      .padding(.horizontal, 14)
+      .padding(.vertical, 8)
+      .background(.white.opacity(0.06))
+    )
   }
 
   private func aviso(simbolo: String, titulo: LocalizedStringKey, detalle: Text) -> AnyView {
@@ -301,6 +372,7 @@ struct VistaDeLaReunion: View {
         ScrollViewReader { lector in
           ScrollView {
             LazyVStack(alignment: .leading, spacing: 9) {
+              if !modelo.notas.isEmpty { tusNotas }
               if modelo.lineas.isEmpty {
                 Text("Sin palabras en el guion.")
                   .font(.system(size: 12))
@@ -321,6 +393,20 @@ struct VistaDeLaReunion: View {
           }
         }
       }
+    )
+  }
+
+  private var tusNotas: AnyView {
+    AnyView(
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Tus notas")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.white.opacity(0.6))
+        ForEach(modelo.notas) { nota in
+          FilaDeNota(nota: nota, inicio: modelo.inicio)
+        }
+      }
+      .padding(.bottom, 4)
     )
   }
 
@@ -538,12 +624,16 @@ struct VistaDeLaReunion: View {
     )
   }
 
+  /// En vivo todavía no se sabe quién es quién: `ellos` va en el primer color
+  /// de la rueda.
+  static let colorDeEllos = Color(red: 0.49, green: 0.98, blue: 0.77)
+
   /// Un color por hablante, estable por su número: Yo en el acento, los
   /// demás en una rueda que se distingue sobre el vidrio oscuro.
   static func color(de hablante: Hablante) -> Color {
     guard hablante.id != Hablante.yo.id else { return PaletaDeDilo.actual.acento.color }
     let rueda: [Color] = [
-      Color(red: 0.49, green: 0.98, blue: 0.77),
+      colorDeEllos,
       Color(red: 0.65, green: 0.65, blue: 0.98),
       Color(red: 1.0, green: 0.80, blue: 0.42),
       Color(red: 1.0, green: 0.55, blue: 0.62),
@@ -552,6 +642,175 @@ struct VistaDeLaReunion: View {
       Color(red: 0.72, green: 0.92, blue: 0.45),
     ]
     return rueda[((hablante.numero ?? 2) - 2) % rueda.count]
+  }
+}
+
+/// Lo que se va diciendo y tus notas, en orden. El scroll sigue al final salvo
+/// que hayas subido a leer; lo que todavía se está diciendo va en gris, y la
+/// pasada final deja el guion de verdad.
+private struct ListaEnVivo: View {
+  let modelo: ModeloDeLaReunion
+  @State private var siguiendo = true
+  @Environment(\.accessibilityReduceMotion) private var reducirMovimiento
+
+  private static let fin = "fin"
+
+  var body: some View {
+    ScrollViewReader { lector in
+      ZStack(alignment: .bottom) {
+        ScrollView {
+          LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(modelo.elementosEnVivo) { elemento in
+              fila(elemento)
+            }
+            Color.clear.frame(height: 1).id(Self.fin)
+          }
+          .padding(.horizontal, 14)
+          .padding(.vertical, 10)
+        }
+        .defaultScrollAnchor(.bottom)
+        .onScrollGeometryChange(for: Bool.self) { geometria in
+          geometria.contentSize.height - geometria.visibleRect.maxY < 48
+        } action: { _, alFinal in
+          siguiendo = alFinal
+        }
+        .onChange(of: modelo.elementosEnVivo.last) {
+          guard siguiendo else { return }
+          withAnimation(reducirMovimiento ? nil : .easeOut(duration: 0.2)) {
+            lector.scrollTo(Self.fin, anchor: .bottom)
+          }
+        }
+        if !siguiendo {
+          Button {
+            lector.scrollTo(Self.fin, anchor: .bottom)
+          } label: {
+            Label("Ir a lo último", systemImage: "arrow.down")
+              .font(.system(size: 11, weight: .semibold))
+              .foregroundStyle(.white)
+              .padding(.horizontal, 10)
+              .frame(height: 24)
+              .background(Capsule(style: .continuous).fill(.black.opacity(0.55)))
+          }
+          .buttonStyle(.plain)
+          .padding(.bottom, 8)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func fila(_ elemento: ElementoEnVivo) -> some View {
+    switch elemento {
+    case let .linea(linea, conCabecera):
+      VStack(alignment: .leading, spacing: 2) {
+        if conCabecera {
+          HStack(spacing: 5) {
+            Text(linea.pista == .yo ? "Yo" : "Ellos")
+              .font(.system(size: 11, weight: .semibold))
+              .foregroundStyle(linea.pista == .yo ? PaletaDeDilo.actual.acento.color : VistaDeLaReunion.colorDeEllos)
+            Text(verbatim: LineasDelGuion.hora(linea.desde, inicio: modelo.inicio))
+              .font(.system(size: 10.5).monospacedDigit())
+              .foregroundStyle(.white.opacity(0.4))
+          }
+        }
+        Text(verbatim: linea.texto)
+          .font(.system(size: 12.5))
+          .foregroundStyle(.white.opacity(linea.abierta ? 0.55 : 0.92))
+          .fixedSize(horizontal: false, vertical: true)
+          .textSelection(.enabled)
+      }
+      .padding(.horizontal, 6)
+      .padding(.top, conCabecera ? 9 : 3)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    case let .nota(nota):
+      FilaDeNota(nota: nota, inicio: modelo.inicio).padding(.top, 9)
+    }
+  }
+}
+
+/// Una nota tuya: en la lista en vivo y arriba del guion.
+private struct FilaDeNota: View {
+  let nota: NotaDeLaReunion
+  let inicio: Date
+
+  var body: some View {
+    HStack(alignment: .firstTextBaseline, spacing: 6) {
+      Image(systemName: "note.text")
+        .font(.system(size: 10.5, weight: .semibold))
+        .foregroundStyle(PaletaDeDilo.actual.acento.color)
+      Text(verbatim: nota.texto)
+        .font(.system(size: 12.5))
+        .foregroundStyle(.white.opacity(0.92))
+        .fixedSize(horizontal: false, vertical: true)
+        .textSelection(.enabled)
+      Spacer(minLength: 4)
+      Text(verbatim: LineasDelGuion.hora(nota.en, inicio: inicio))
+        .font(.system(size: 10.5).monospacedDigit())
+        .foregroundStyle(.white.opacity(0.4))
+    }
+    .padding(.horizontal, 8)
+    .padding(.vertical, 6)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 7, style: .continuous).fill(PaletaDeDilo.actual.acento.color.opacity(0.1))
+    )
+  }
+}
+
+/// El pie mientras graba. Cerrado es un botón, así la ventana no toma el
+/// teclado por estar a la vista; un clic abre el campo, Intro guarda y devuelve
+/// el teclado a la llamada, Esc lo devuelve sin perder lo escrito.
+private struct CampoDeLaNota: View {
+  @Bindable var modelo: ModeloDeLaReunion
+  @FocusState private var enfocado: Bool
+  @State private var seleccion: TextSelection?
+
+  var body: some View {
+    Group {
+      if modelo.escribiendoNota {
+        HStack(spacing: 6) {
+          TextField("", text: $modelo.notaEscrita, selection: $seleccion, prompt: Text("Escribe una nota…"))
+            .textFieldStyle(.plain)
+            .font(.system(size: 12.5))
+            .foregroundStyle(.white)
+            .focused($enfocado)
+            .onSubmit(modelo.acciones.guardarNota)
+            .task {
+              enfocado = true
+              // Al enfocarse el campo selecciona todo, y la primera tecla se
+              // llevaría lo que quedó a medio escribir.
+              seleccion = TextSelection(insertionPoint: modelo.notaEscrita.endIndex)
+            }
+          Button("Guardar", action: modelo.acciones.guardarNota)
+            .controlSize(.small)
+        }
+      } else {
+        Button {
+          modelo.acciones.escribirNota(true)
+        } label: {
+          HStack(spacing: 7) {
+            Image(systemName: "square.and.pencil")
+              .font(.system(size: 11.5, weight: .medium))
+            Group {
+              if modelo.notaEscrita.isEmpty {
+                Text("Agregar una nota")
+              } else {
+                Text(verbatim: modelo.notaEscrita)
+              }
+            }
+            .font(.system(size: 12))
+            .lineLimit(1)
+            Spacer(minLength: 0)
+          }
+          .foregroundStyle(.white.opacity(0.6))
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(Text("Queda con la reunión, a la hora en que la escribes"))
+      }
+    }
+    .padding(.horizontal, 14)
+    .frame(height: 40)
   }
 }
 

@@ -5,6 +5,9 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por hacer
 
+- 2026-10-31 · Probar Reuniones 0.13.0 en una reunión real (Alfonso): que macOS pregunte por el audio del sistema, que `ellos` suene a velocidad normal y dure lo mismo que `yo` con audífonos Bluetooth en llamada, que el vivo avance por las dos pistas, y escribir y dictar una nota sin perder el foco de la llamada. Lista en `docs/design/probar-reuniones-en-vivo.md`.
+- 2026-10-31 · Medir en esa reunión la CPU y la RAM del vivo y cuánto va detrás de lo dicho (spec: < 25 % de un núcleo y ≤ 4 s). Con voces de `say` a ritmo real dio 9 % de un núcleo y hasta ~2,5 s.
+- 2026-10-31 · Hablantes en el vivo con Nemotron `fast32` (spec F2), y el eco con parlantes: en vivo, lo que el micrófono recapta de los parlantes sale también como «Yo»; la pasada final sí lo saca.
 - 2026-10-31 · Interrumpir con la voz también con parlantes: pide el procesamiento de voz de Apple (`setVoiceProcessingEnabled`), con voz y micrófono en un mismo motor y sin bajar lo demás que suena. No se puede probar sin Alfonso en la pieza.
 - 2026-10-31 · Probar por voz en la 0.12.2 lo que falta: encargar a Claude Code y seguir conversando, el aviso al terminar y el clic. La llamada del 30-10 (20:49, 25 s) no lo tocó. Sí midió: sin caídas, 2 interrupciones, eco −0,25, de callar a oír 2,36-2,58 s (silencio 0,72; transcribir 2-10 ms; Claude 0,9-1,25; primera frase 0,2-0,45; Phonon 0,4-0,7) y 3,6 s con la frase abierta. Falta confirmar con Alfonso si las dos interrupciones fueron suyas: la segunda duró casi sólo lo que tarda en detectarse.
 - 2026-10-30 · Sacar `PedidoAClaudeCode` y `PreguntaDeProyecto` si la 0.12.0 anda: la llamada ya no los usa.

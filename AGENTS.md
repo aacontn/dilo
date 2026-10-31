@@ -295,7 +295,7 @@ sin abrir Xcode. La app lo enlaza una sola vez (Tarea 0); después nadie toca
 | `DiloMetrics` | reposo, arranque, latencia soltar→texto, el WER del banco de motores | 7 (la app **no** lo enlaza: es taller) |
 | `DiloAgentes` | servidor MCP (JSON-RPC por stdio), CLI `dilo`, la tabla de herramientas que comparten, `ModoDeArranque`; el cliente MCP por stdio (`ClienteMCP`) y el destino `.dilo` de la Conversación, Claude con herramientas (`DestinoConClaude`, `HerramientasDeLaConversacion`). Depende de `DiloModes` | fase 5 |
 | `DiloPlataforma` | el URL scheme (`EnlaceDeDilo`), los agentes que avisan por su *hook* (`EventoDeAgente`, `RegistroDeAgentes`), las líneas para pegar en cada agente (`LineasDeLosHooks`) y el aviso de «Mostrar en la muesca» (`AvisoDeAfuera`) | fase 5 |
-| `DiloReuniones` | Reuniones, lo puro: `reunion.json`, el guion palabra a palabra, carpetas ASCII, estados, relojes, palabra → hablante, eco, lo dictado, líneas y `guion.md`, búsqueda, retención, disco, búfer anular, cabecera WAV, vigía de silencio. Sin FluidAudio | reuniones F1 |
+| `DiloReuniones` | Reuniones, lo puro: `reunion.json`, el guion palabra a palabra, carpetas ASCII, estados, relojes, palabra → hablante, eco, lo dictado, líneas y `guion.md`, búsqueda, retención, disco, búfer anular, cabecera WAV, vigía de silencio, tasa medida del tap, el guion en vivo (`TramosDeVoz`, `TranscripcionEnVivo`, `GuionEnVivo`) y las notas. Sin FluidAudio | reuniones F1 |
 | `DiloHablantes` | quién habló, con FluidAudio: Nemotron 3, Sortformer, LS-EEND, VBx y huellas de CAM++ detrás de `SeparacionDeVoces`. Viaja en el producto `DiloEngines` | reuniones F1 |
 
 **El acento de la app es Glaciar** (decisión de Alfonso del 2026-10-14: «el
@@ -1541,6 +1541,21 @@ Claude nunca corre solo.
   `AudioHardwareCreateProcessTap` + agregado **privado** con `TapAutoStart`,
   `.unmuted`); ni ScreenCaptureKit ni APIs privadas. Si una falla, la otra
   sigue: dos capturas independientes, no un agregado con las dos.
+- **El permiso del tap es `NSAudioCaptureUsageDescription`, a mano en
+  `Dilo/Info.plist`.** Xcode no tiene `INFOPLIST_KEY_` para esa clave y la bota
+  en silencio; sin ella macOS rechaza el tap sin preguntar y sin error, y el
+  IOProc entrega ceros. Hasta la 0.12.2 la pista `ellos` salió muda por eso. Lo
+  vigilan `ReunionesEnLaAppTests` e `instalar-local.sh`. Para ver qué decidió
+  macOS: `/usr/bin/log show --predicate 'process == "tccd" AND eventMessage
+  CONTAINS "AudioCapture"'` y, en `coreaudiod`, «Client is not granted access
+  to the tap». Un tap armado sin permiso sigue en ceros aunque lo den después:
+  si `ellos` nunca sonó se rearma a los 15, 30, 60, 120 y 240 s de ceros
+  (`VigiaDeSilencio.tocaRearmar`).
+- **La tasa de `ellos` es la del agregado, no la del tap.**
+  `kAudioTapPropertyFormat` dice 48 kHz aunque la salida ande en 16 kHz, y el
+  IOProc entrega al ritmo del agregado. Unos audífonos Bluetooth cambian de
+  16 a 44,1 kHz a media reunión sin cambiar de dispositivo ni avisar, así que
+  `PistaEnDisco` además mide cuadros contra la hora del Mac (`TasaMedida`).
 - **El IOProc no escribe a disco.** Baja a mono y copia a un `BuferAnular`
   (SPSC, sin locks ni memoria nueva); `PistaEnDisco` lo vacía cada segundo,
   remuestrea a 16 kHz con la tasa de cada bloque (`RemuestreoA16k`), rellena
@@ -1562,6 +1577,30 @@ Claude nunca corre solo.
   (`ControlDeReuniones.alArrancar`, en segundo plano y diez segundos después
   del arranque). Salir de Dilo grabando cierra los WAV y deja la pasada
   para la próxima vez.
+- **El guion en vivo** (`TranscripcionEnVivo`) es para leer lo que se acaba de
+  decir; el registro lo deja la pasada final. Recibe lo que `PistaEnDisco` ya
+  escribió, así que si falla la grabación no se entera. Silero (uno por pista,
+  ~1 MB, se baja al grabar si falta; sin él, por nivel) abre un tramo con la
+  voz, el Parakeet del dictado lo transcribe entero cada 1,5 s de audio nuevo y
+  un silencio de 0,7 s lo deja firme; un monólogo se corta a los 18 s en su
+  pausa más honda (`TramosDeVoz`). Una transcripción a la vez, lo firme antes
+  que lo parcial. Medido el 2026-10-31 en el Mac mini con Ultra, Silero y dos
+  voces de `say` a ritmo real: 140 ms de mediana por transcripción (230 de
+  máxima, en un tramo de 13 s), 9 % de un núcleo en una escena hablada dos
+  tercios del tiempo, y hasta ~2,5 s detrás de lo dicho. Falta medirlo en una
+  llamada de verdad. **Dictando no se le
+  pide nada al modelo**, para que soltar → texto siga bajo 300 ms: lo de `ellos`
+  se junta y sale al terminar, lo de `yo` en ese rato no entra. Sin hablantes:
+  en vivo sólo se sabe la pista, «Yo» o «Ellos». El audio de un tramo abierto y
+  lo dicho viven en RAM; `control.vivo` se borra al quedar el guion.
+- **Las notas** van a `notas.jsonl` en el acto, enteras en cada nota: si la
+  reunión se muda al respaldo la copia de allá las tiene todas. Viven aparte
+  porque nacen antes que el guion y la pasada final lo reescribe.
+  `regenerarLegible` las lee de ahí, así que entran a `guion.md` por cualquier
+  camino, al final (`## Notas`) y no entre las líneas: la búsqueda abre el guion
+  por número de línea, y una en medio lo correría. Tienen la forma de una línea
+  (`Nota · 15:32 — …`), así que también se encuentran, y llegan a los agentes y
+  a los dos «Copiar».
 - **La pasada final** (`PasadaFinal`): Parakeet sobre cada archivo entero con
   el **mismo** `ParakeetEngine` del dictado (`ParakeetCompartido`, anotado
   por `DiloSpeechStack`; `ParakeetEngine.conElModelo` lo presta y el reposo
@@ -1585,7 +1624,9 @@ Claude nunca corre solo.
   `vigia`, `nivel`, `conSenal`, `pareceFaltarPermiso`, `falla`;
   `espacioBajo`), `pasada` (id, título y `AvanceDeLaPasada` con etapa y
   total real), `aviso` (con `panelDelAudioDelSistema` para el arreglo del
-  permiso), `grabar(evento:)`, `terminar()`, `afinarDeNuevo(id:)`,
+  permiso), `vivo` y `notas` (de `idDelVivo`, aparte de `enCurso` para no mover
+  la muesca con cada palabra), `grabar(evento:)`, `anotar(_:)`, `terminar()`,
+  `afinarDeNuevo(id:)`,
   `reunionesRecientes()`, `buscar(_:hablante:maximo:)`, `guionDeLaUltima()`,
   `renombrar(hablante:a:en:)`, `juntar`, `reasignar`, `borrar(id:)` (a la
   Papelera), `leer(id:)` y el separador (`separador`,
@@ -1614,14 +1655,25 @@ Claude nunca corre solo.
   `render-muesca.sh` (`reunion/`) y con la vista de verdad en
   `render-datos-de-la-muesca.sh` (`reposo-reunion*`, `hover-panel-grabando`).
 - **La ventana de la reunión** (`VentanaDeLaReunion`, `VistaDeLaReunion`,
-  `ControlDeLaVentanaDeReunion`): 380×520, vidrio de Ajustes, **nunca toma
-  el foco** (`.nonactivatingPanel`), salvo mientras se escribe «Otro
-  nombre…». «Siempre encima» encendido de fábrica
-  (`diloReunionesSiempreEncima`). Grabando, «Grabando. El guion sale al
-  terminar»; afinando, el avance real; después el guion, que se vuelve a
-  leer del disco tras cada edición. Un clic en una línea reproduce las dos
-  pistas desde ahí, cada una en su reloj (`ReproductorDelGuion`). Cerrarla
-  no termina la reunión. PNG en `render-ajustes.sh` (`reunion-*.png`).
+  `ControlDeLaVentanaDeReunion`): 380×520 y se agranda desde el borde, vidrio
+  de Ajustes, **se abre sola al empezar a grabar** y **no toma el foco**
+  (`.nonactivatingPanel`). Grabando muestra lo que se va diciendo y tus notas
+  en orden (`ElementoEnVivo`): lo abierto en gris, el scroll sigue al final
+  salvo que hayas subido a leer. Abajo, «Agregar una nota» es un botón; recién
+  un clic abre el campo y el panel acepta el teclado **sin activar Dilo**: la
+  app de la reunión sigue activa. Intro guarda y devuelve el teclado (`orderOut`
+  y `orderFrontRegardless`, porque `resignKey` sólo avisa), Esc o un clic en
+  otra app lo devuelven sin perder lo escrito, y «Terminar» por cualquier camino
+  guarda lo que quedó (`antesDeTerminar`). Dilo no tiene menú Edición: el panel
+  atiende ⌘V, ⌘C, ⌘X y ⌘A él mismo, y sin eso tampoco entraría un dictado.
+  Sin permiso del audio lo dice con su arreglo mientras dure, no sólo en la
+  muesca. «Siempre encima» encendido de fábrica (`diloReunionesSiempreEncima`).
+  Afinando, el avance real con lo dicho debajo; después el guion, con tus notas
+  arriba, que se vuelve a leer del disco tras cada edición. Un clic en una línea
+  reproduce las dos pistas desde ahí, cada una en su reloj
+  (`ReproductorDelGuion`). Cerrarla no termina la reunión y con ella cerrada no
+  cuesta nada: el vivo sigue y se lee al abrirla. PNG en `render-ajustes.sh`
+  (`reunion-*.png`).
 - **Reuniones es un destino** (con Inicio, arriba de TU VOZ) y sus ajustes
   son «Grabar reuniones» en AJUSTES (`ReunionesSettingsView`,
   `AjustesDeReunionesView`); los renders fijan la lista

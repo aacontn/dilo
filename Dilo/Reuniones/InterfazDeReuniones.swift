@@ -72,6 +72,9 @@ final class InterfazDeReuniones {
     // entra cuando se suelte (la devuelve la muestra misma).
     guard !stage.enMuestra else { return }
     stage.mostrarReunion(ahora)
+    // Empezó: lo dicho y las notas a la vista desde el primer minuto, sin
+    // quitarle el foco a la llamada. Cerrarla no para nada.
+    if antes == nil, ahora != nil { abrirLaVentana() }
     // Terminó: la muesca vuelve a reposo con su check (spec, «Terminar»).
     if antes != nil, ahora == nil { stage.acusarElFinDeLaReunion() }
     if let aviso = control.aviso {

@@ -127,7 +127,13 @@ public enum LineasDelGuion {
   /// `guion.md`: la vista para leer y para agentes. Se genera de
   /// `reunion.json` y `guion.jsonl`; nadie lo edita a mano. Es también lo que
   /// «Copiar para Claude» deja en el portapapeles.
-  public static func markdown(reunion: Reunion, lineas: [LineaDelGuion], zona: TimeZone = .current) -> String {
+  ///
+  /// Las notas van al final y no entre las líneas: la búsqueda abre el guion
+  /// por el número de línea de este archivo, y una nota en medio lo correría.
+  /// Tienen la misma forma de renglón, así que también se encuentran.
+  public static func markdown(
+    reunion: Reunion, lineas: [LineaDelGuion], notas: [NotaDeLaReunion] = [], zona: TimeZone = .current
+  ) -> String {
     var partes = ["# \(reunion.titulo)", ""]
     var cabecera = "\(fecha(reunion.inicio, zona: zona)) · \(duracion(reunion.duracion(ahora: reunion.fin ?? reunion.inicio)))"
     let quienes = quienesHablaron(lineas, hablantes: reunion.hablantes)
@@ -141,7 +147,17 @@ public enum LineasDelGuion {
       partes.append(texto(de: linea, reunion: reunion, zona: zona))
       partes.append("")
     }
+    if !notas.isEmpty { partes += ["## Notas", ""] }
+    for nota in notas {
+      partes.append(texto(de: nota, reunion: reunion, zona: zona))
+      partes.append("")
+    }
     return partes.joined(separator: "\n").trimmingCharacters(in: .newlines) + "\n"
+  }
+
+  /// `Nota · 15:32 — Revisar el contrato`
+  public static func texto(de nota: NotaDeLaReunion, reunion: Reunion, zona: TimeZone = .current) -> String {
+    "Nota · \(hora(nota.en, inicio: reunion.inicio, zona: zona)) — \(nota.texto)"
   }
 
   /// `Camila · 15:31 — Ya, te cuento…`

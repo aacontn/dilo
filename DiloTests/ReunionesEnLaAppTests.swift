@@ -57,6 +57,14 @@ struct ReunionesEnLaAppTests {
     #expect(app.maximoPedido == EjecucionDeAtajos.maximoDeResultados)
   }
 
+  /// macOS rechaza el tap sin esta clave y la pista `ellos` sale muda, sin
+  /// ningún error. Xcode bota en silencio la `INFOPLIST_KEY_` de esta clave:
+  /// por eso vive a mano en `Dilo/Info.plist`.
+  @Test func elPermisoDelAudioDelSistemaViajaEnLaApp() throws {
+    let razon = try #require(Bundle.main.object(forInfoDictionaryKey: "NSAudioCaptureUsageDescription") as? String)
+    #expect(!razon.isEmpty)
+  }
+
   @Test func elPanelDelPermisoEsElDelAudioDelSistema() {
     #expect(ControlDeReuniones.panelDelAudioDelSistema.hasSuffix("Privacy_AudioCapture"))
   }

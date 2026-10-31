@@ -23,8 +23,9 @@ import os
 ///   la salida del usuario y no corre hasta que algo suena.
 /// - El tap no silencia la fuente (`.unmuted`): lo que oyes no cambia.
 /// - El IOProc corre en el hilo de tiempo real: baja a mono y copia al búfer
-///   anular, nada más. La tasa la lee de una variable atómica que se
-///   actualiza cuando cambia el formato del tap (AirPods).
+///   anular, nada más. La tasa es la del **agregado**, no la del tap: el tap
+///   dice 48 kHz aunque la salida esté en 16 kHz, y lo que entrega el IOProc va
+///   al ritmo del agregado. Lo que cambie después lo mide `TasaMedida`.
 /// - Si cambia la salida del sistema, se rearma el tap sobre la nueva.
 final class CapturaDelSistema: @unchecked Sendable {
   enum Falla: Error, LocalizedError {
@@ -49,7 +50,6 @@ final class CapturaDelSistema: @unchecked Sendable {
   private var agregadoID = AudioObjectID(kAudioObjectUnknown)
   private var procID: AudioDeviceIOProcID?
   private var oyenteDeSalida: AudioObjectPropertyListenerBlock?
-  private var oyenteDeFormato: AudioObjectPropertyListenerBlock?
   private var activa = false
 
   /// Una falla después de empezar (el rearmado tras cambiar la salida). La
@@ -71,6 +71,21 @@ final class CapturaDelSistema: @unchecked Sendable {
       activa = true
     }
     escucharLaSalida()
+  }
+
+  /// Vuelve a armar el tap sobre la misma salida: uno armado sin permiso sigue
+  /// entregando ceros aunque la persona lo dé después. No espera.
+  func rearmar() {
+    cola.async { [self] in
+      guard activa else { return }
+      desarmar()
+      do {
+        try armar()
+      } catch {
+        Self.logger.error("No pude rearmar el tap: \(error.localizedDescription, privacy: .public)")
+        alFallar?(error.localizedDescription)
+      }
+    }
   }
 
   func detener() {
@@ -119,7 +134,6 @@ final class CapturaDelSistema: @unchecked Sendable {
       desarmar()
       throw Falla.formato("\(formato.mBitsPerChannel) bits, banderas \(formato.mFormatFlags)")
     }
-    tasa.fijar(formato.mSampleRate)
 
     let agregado: [String: Any] = [
       kAudioAggregateDeviceNameKey: "Dilo · reunión",
@@ -139,6 +153,8 @@ final class CapturaDelSistema: @unchecked Sendable {
       throw Falla.hal("crear el dispositivo privado del tap", estado)
     }
     agregadoID = nuevoAgregado
+    let nominal = HALDeReuniones.leer(agregadoID, kAudioDevicePropertyNominalSampleRate, inicial: Float64(0)) ?? 0
+    tasa.fijar(nominal > 0 ? nominal : formato.mSampleRate)
 
     let bufer = self.bufer
     let tasa = self.tasa
@@ -164,28 +180,13 @@ final class CapturaDelSistema: @unchecked Sendable {
     }
     procID = nuevoProc
 
-    // El formato del tap cambia con la salida (los AirPods con micrófono
-    // abierto bajan de tasa): se relee y cada bloque se remuestrea con la
-    // suya.
-    let oyente: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-      guard let self, self.tapID != kAudioObjectUnknown,
-        let formato = HALDeReuniones.leer(self.tapID, kAudioTapPropertyFormat, inicial: AudioStreamBasicDescription()),
-        formato.mSampleRate > 0
-      else { return }
-      self.tasa.fijar(formato.mSampleRate)
-      Self.logger.notice("El tap cambió de formato: \(formato.mSampleRate, privacy: .public) Hz")
-    }
-    var direccionDeFormato = HALDeReuniones.direccion(kAudioTapPropertyFormat)
-    AudioObjectAddPropertyListenerBlock(tapID, &direccionDeFormato, cola, oyente)
-    oyenteDeFormato = oyente
-
     estado = AudioDeviceStart(agregadoID, nuevoProc)
     guard estado == noErr else {
       desarmar()
       throw Falla.hal("arrancar el tap", estado)
     }
     Self.logger.notice(
-      "Tap del sistema armado: \(formato.mSampleRate, privacy: .public) Hz, \(formato.mChannelsPerFrame, privacy: .public) canales"
+      "Tap del sistema armado: tap a \(formato.mSampleRate, privacy: .public) Hz, agregado a \(nominal, privacy: .public) Hz, \(formato.mChannelsPerFrame, privacy: .public) canales"
     )
   }
 
@@ -193,11 +194,6 @@ final class CapturaDelSistema: @unchecked Sendable {
   /// IOProc, el agregado y al final el tap. Lo que no se alcanzó a crear se
   /// salta.
   private func desarmar() {
-    if let oyenteDeFormato, tapID != kAudioObjectUnknown {
-      var direccion = HALDeReuniones.direccion(kAudioTapPropertyFormat)
-      AudioObjectRemovePropertyListenerBlock(tapID, &direccion, cola, oyenteDeFormato)
-    }
-    oyenteDeFormato = nil
     if let procID, agregadoID != kAudioObjectUnknown {
       AudioDeviceStop(agregadoID, procID)
       AudioDeviceDestroyIOProcID(agregadoID, procID)
@@ -229,7 +225,7 @@ final class CapturaDelSistema: @unchecked Sendable {
   }
 }
 
-/// La tasa del tap, compartida entre la cola que la actualiza y el hilo de
+/// La tasa del agregado, compartida entre la cola que la fija y el hilo de
 /// audio que la lee, sin locks.
 final class TasaCompartida: Sendable {
   private let bits = Atomic<UInt64>(48_000.0.bitPattern)

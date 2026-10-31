@@ -463,6 +463,127 @@
         }
       }
     },
+    "Escuchando": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening"
+          }
+        }
+      }
+    },
+    "Lo que se diga va a ir apareciendo aquí. Puedes cerrar esta ventana: la reunión sigue grabando.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's said will show up here as it happens. You can close this window: the meeting keeps recording."
+          }
+        }
+      }
+    },
+    "Sin Parakeet no hay transcripción en vivo. Tu micrófono y el audio del Mac se graban igual, cada uno en su pista.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without Parakeet there's no live transcript. Your microphone and the Mac's audio are still recorded, each on its own track."
+          }
+        }
+      }
+    },
+    "Abre el panel exacto de Ajustes del Sistema": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the exact pane in System Settings"
+          }
+        }
+      }
+    },
+    "Tus notas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your notes"
+          }
+        }
+      }
+    },
+    "Ir a lo último": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jump to latest"
+          }
+        }
+      }
+    },
+    "Yo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Me"
+          }
+        }
+      }
+    },
+    "Ellos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Them"
+          }
+        }
+      }
+    },
+    "Escribe una nota…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a note…"
+          }
+        }
+      }
+    },
+    "Agregar una nota": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a note"
+          }
+        }
+      }
+    },
+    "Queda con la reunión, a la hora en que la escribes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stays with the meeting, at the time you write it"
+          }
+        }
+      }
+    },
     "La primera vez, el separador de voces se prepara para el Neural Engine: puede tardar varios minutos. Después tarda menos de un segundo.": {
       "extractionState": "manual",
       "localizations": {
@@ -624,17 +745,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No script yet"
-          }
-        }
-      }
-    },
-    "Tu micrófono y el audio del Mac, cada uno en su pista. Puedes cerrar esta ventana: la reunión sigue grabando.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your microphone and the Mac's audio, each on its own track. You can close this window: the meeting keeps recording."
           }
         }
       }

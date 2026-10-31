@@ -1,7 +1,8 @@
 import FluidAudio
 import Foundation
 
-/// El detector de voz de la **escucha de nombres**: Silero v6 en Core ML, por
+/// El detector de voz de la **escucha de nombres** y del guion en vivo de una
+/// reunión: Silero v6 en Core ML, por
 /// FluidAudio, un trozo de 256 ms a la vez con su estado.
 ///
 /// Es lo que corre todo el rato con la escucha prendida, y por eso es lo que
@@ -9,9 +10,9 @@ import Foundation
 /// 2026-10-30, por debajo del 1 % de un núcleo de un M1. El **Motor de voz**
 /// sólo corre cuando esto dice que hay voz (`VentanaDeEscucha`).
 ///
-/// El modelo pesa ~1 MB y se baja la primera vez que se prende la escucha, a
-/// la carpeta de modelos de Dilo: la persona lo pidió al prender el
-/// interruptor, y Ajustes lo dice. Nada más lo baja.
+/// El modelo pesa ~1 MB y se baja la primera vez que se prende la escucha o
+/// que se graba una reunión, a la carpeta de modelos de Dilo: en los dos casos
+/// lo pidió la persona. Nada más lo baja.
 public actor DetectorDeVozSilero {
   /// 4.096 muestras a 16 kHz: el trozo para el que está hecho el modelo.
   public static let trozo = VadManager.chunkSize
