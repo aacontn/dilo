@@ -122,6 +122,8 @@ final class ControladorDeLaConversacion {
   /// Mira, toda la llamada, si alguien interrumpió y si hay algo que contar.
   private var atencion: Task<Void, Never>?
   private var interrupciones = 0
+  /// Si este turno ya avisó que está mirando algo.
+  private var avisoQueMira = false
 
   private var inicioDeLaSesion: ContinuousClock.Instant?
   private var turnos = 0
@@ -674,6 +676,7 @@ final class ControladorDeLaConversacion {
 
     let destino = destinos.destino(para: agente)
     let numero = turnos
+    avisoQueMira = false
     contestado = ""
     contestando = agente
     let flujo = destino.responder(turno)
@@ -697,7 +700,16 @@ final class ControladorDeLaConversacion {
             }
           case let .herramienta(nombre, enCurso):
             stage.conversacionContent.foto.herramienta = enCurso ? nombre : nil
-            if enCurso { agregarLinea(nombre, deDilo: true, quien: quienDice(agente), nota: true) }
+            if enCurso {
+              agregarLinea(nombre, deDilo: true, quien: quienDice(agente), nota: true)
+              // Con una herramienta el turno tarda 4 o 5 s, y en una llamada ese
+              // silencio parece una falla. Lo dice la app: pedírselo al modelo
+              // no alcanzó.
+              if contestado.isEmpty, !avisoQueMira {
+                avisoQueMira = true
+                voz.decir(String(localized: "Déjame ver."))
+              }
+            }
           case let .pideAprobacion(aprobacion):
             // Lo que ya se dijo se termina de decir mientras espera el clic.
             if let resto = trozos.terminar() { voz.decir(resto) }

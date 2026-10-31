@@ -16,7 +16,9 @@ import Foundation
 /// Con la cancelación de eco de Apple (`conCancelacion`, `AudioDeLaLlamada`) es
 /// al revés: la voz del agente no llega al micrófono, medido en 0,00, y todo lo
 /// que llega es la persona. Hablándole encima el procesamiento la deja pasar a
-/// golpes, así que no se pide voz seguida: unos pocos trozos en un segundo.
+/// golpes, así que mientras suena no se pide voz seguida: unos pocos trozos en un
+/// segundo. Sin nada sonando eso sería demasiado poco, y cualquier ruido cortaría
+/// al agente mientras piensa: rige el umbral de siempre.
 ///
 /// Los niveles van en la escala de la muesca (0 a 1 sobre 50 dB). Sin nada
 /// sonando, el umbral es el de siempre (`FinDelTurno.nivelDeVoz`).
@@ -100,7 +102,9 @@ public struct DetectorDeInterrupcion: Sendable {
     indice: Int,
     en instante: ContinuousClock.Instant
   ) {
-    if conCancelacion {
+    salidas.removeAll { instante - $0.instante > Self.memoriaDeLaSalida }
+    if salida >= Self.salidaAudible { salidas.append((instante, salida)) }
+    if conCancelacion, !salidas.isEmpty {
       golpes.removeAll { instante - $0.instante > Self.ventanaDeGolpes }
       if microfono >= Self.vozConCancelacion { golpes.append((instante, indice)) }
       if golpes.count >= Self.golpesParaInterrumpir {
@@ -109,9 +113,7 @@ public struct DetectorDeInterrupcion: Sendable {
       }
       return
     }
-    salidas.removeAll { instante - $0.instante > Self.memoriaDeLaSalida }
-    if salida >= Self.salidaAudible { salidas.append((instante, salida)) }
-    let referencia = salidas.map(\.nivel).max()
+    let referencia = conCancelacion ? nil : salidas.map(\.nivel).max()
 
     var umbral = FinDelTurno.nivelDeVoz
     if let referencia {

@@ -1317,8 +1317,9 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
   Medido en el Mac mini con la webcam: Kami 0,00 en el micrófono, Alfonso hasta
   0,60 y hasta 0,48 hablándole encima; sin cancelación los dos llegan parejo
   (0,26-0,48) y por niveles no se pueden separar: el 2026-10-30 Kami se cortó
-  sola y lo que oyó de sí misma le llegó como un turno. Con cancelación
-  interrumpen 3 trozos de voz en 1 s. Con audífonos Bluetooth, o si no arranca,
+  sola y lo que oyó de sí misma le llegó como un turno. Con cancelación,
+  mientras suena interrumpen 3 trozos de voz en 1 s; sin nada sonando, el umbral
+  de siempre, para que un ruido no lo corte mientras piensa. Con audífonos Bluetooth, o si no arranca,
   sigue el micrófono solo, comparando contra lo que suena (9 dB, 400 ms), y con
   un eco de −0,45 o más sólo interrumpe el gatillo. Comparar el texto no sirve
   (0,8 s de audio: 54 % de aciertos, medido). Lo dicho entra desde donde empezó

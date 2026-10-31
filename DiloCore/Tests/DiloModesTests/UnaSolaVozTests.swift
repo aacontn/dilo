@@ -153,6 +153,20 @@ struct DetectorDeInterrupcionTests {
     #expect(detector.inicioDeLaVoz == nil)
   }
 
+  @Test func conCancelacionUnRuidoNoCortaAlAgenteMientrasPiensa() {
+    var detector = DetectorDeInterrupcion()
+    detector.conCancelacion = true
+    oir(&detector, Array(repeating: (0.15, 0), count: 10))
+    #expect(detector.inicioDeLaVoz == nil)
+  }
+
+  @Test func conCancelacionHablarMientrasPiensaSiLoCorta() {
+    var detector = DetectorDeInterrupcion()
+    detector.conCancelacion = true
+    oir(&detector, Array(repeating: (0.5, 0), count: 6))
+    #expect(detector.inicioDeLaVoz == 0)
+  }
+
   @Test func elEcoAprendidoSeQuedaEntreTurnos() {
     let detector = calibrado(eco: -0.3)
     #expect(abs((detector.ecoAprendido ?? 0) - -0.3) < 0.01)

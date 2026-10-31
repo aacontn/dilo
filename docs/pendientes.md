@@ -5,6 +5,7 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por hacer
 
+- 2026-10-31 · En la llamada de la 0.13.0 (12:50, 13 turnos, 7 interrupciones) 3 interrupciones cayeron mientras pensaba, justo después de cerrar el turno: puede ser Alfonso siguiendo tras una pausa, o ruido. La 0.13.1 sube ese umbral; ver si siguen. No bajar el silencio de 700 ms hasta saberlo.
 - 2026-10-31 · Confirmar en una llamada con la 0.13.0: interrumpir hablando con parlantes, si Kami suena peor por el motor con cancelación, y si Parakeet entiende igual con la voz procesada.
 - 2026-10-31 · Probar por voz lo que falta: encargar a Claude Code y seguir conversando, el aviso al terminar y el clic. La llamada del 30-10 (20:49, 25 s) no lo tocó. Sí midió: sin caídas, 2 interrupciones, eco −0,25, de callar a oír 2,36-2,58 s (silencio 0,72; transcribir 2-10 ms; Claude 0,9-1,25; primera frase 0,2-0,45; Phonon 0,4-0,7) y 3,6 s con la frase abierta. Falta confirmar con Alfonso si las dos interrupciones fueron suyas: la segunda duró casi sólo lo que tarda en detectarse.
 - 2026-10-31 · Probar Reuniones 0.13.0 en una reunión real (Alfonso): que macOS pregunte por el audio del sistema, que `ellos` suene a velocidad normal y dure lo mismo que `yo` con audífonos Bluetooth en llamada, que el vivo avance por las dos pistas, y escribir y dictar una nota sin perder el foco de la llamada. Lista en `docs/design/probar-reuniones-en-vivo.md`.
