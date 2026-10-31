@@ -89,16 +89,39 @@ struct DetectorDeInterrupcionTests {
 
   @Test func suPropiaVozPorLosParlantesNoInterrumpe() {
     var detector = calibrado(eco: -0.3)
+    #expect(detector.hayParlantes)
     // El eco sube y baja con lo que suena, atrasado.
     let eco: [(Float, Float)] = [(0.5, 0.8), (0.45, 0.7), (0.52, 0.8), (0.48, 0.75), (0.5, 0.8), (0.46, 0.7)]
     oir(&detector, eco + eco, desde: 10)
     #expect(detector.inicioDeLaVoz == nil)
   }
 
-  @Test func laPersonaPorEncimaDelEcoInterrumpeDesdeDondeEmpezo() {
-    var detector = calibrado(eco: -0.3)
-    oir(&detector, [(0.5, 0.8), (0.72, 0.8), (0.74, 0.8), (0.72, 0.8), (0.74, 0.8)], desde: 10)
+  @Test func conAudifonosInterrumpeDesdeDondeEmpezo() {
+    var detector = calibrado(eco: -0.6)
+    oir(&detector, [(0.2, 0.8), (0.72, 0.8), (0.74, 0.8), (0.72, 0.8), (0.74, 0.8), (0.72, 0.8)], desde: 10)
+    #expect(!detector.hayParlantes)
     #expect(detector.inicioDeLaVoz == 11 * 1_600)
+  }
+
+  @Test func conParlantesNiHablandoFuerteInterrumpe() {
+    var detector = calibrado(eco: -0.25)
+    #expect(detector.hayParlantes)
+    oir(&detector, Array(repeating: (0.9, 0.8), count: 12), desde: 10)
+    #expect(detector.inicioDeLaVoz == nil)
+  }
+
+  @Test func conParlantesPeroSinNadaSonandoSiInterrumpe() {
+    var detector = calibrado(eco: -0.25)
+    oir(&detector, Array(repeating: (0.6, 0), count: 6), desde: 10)
+    #expect(detector.inicioDeLaVoz != nil)
+  }
+
+  @Test func losPicosDelEcoNoSeBorranConLosHuecosEntreSilabas() {
+    var detector = calibrado(eco: -0.25)
+    let silabas: [(Float, Float)] = [(0.55, 0.8), (0.1, 0.8), (0.55, 0.8), (0.1, 0.8)]
+    oir(&detector, Array(repeating: silabas, count: 8).flatMap { $0 }, desde: 10)
+    #expect(detector.hayParlantes)
+    #expect(detector.inicioDeLaVoz == nil)
   }
 
   @Test func conAudifonosBastaHablarNormal() {

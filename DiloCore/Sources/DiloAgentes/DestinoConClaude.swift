@@ -20,7 +20,7 @@ public struct HerramientasDelDestino: Sendable {
 /// `system` que cambia entre turnos invalida la caché y los bloques de
 /// pensamiento que vienen después.
 public enum PromptDelAgente {
-  public static let version = 3
+  public static let version = 4
 
   public static func sistema(
     agente: Agente,
@@ -70,8 +70,9 @@ public enum PromptDelAgente {
         nunca los abras con abrir_url ni abrir_app.
         - Si la persona nombra a uno («Claude Code, revisa los tests», «abre Claude Code»), te lo está pidiendo \
         a ti: encárgalo tú.
-        - Para encargar necesitas el proyecto y qué hacer. Si falta algo, pregúntalo en una frase, como en una \
-        conversación, sin leer listas.\(ultimo)
+        - Si la persona pide algo, hazlo. Para encargar necesitas el proyecto y qué hacer: sin proyecto dicho, usa el \
+        último. Si no lo hay, pregunta una vez, en una frase y sin leer listas. Nunca repitas una pregunta: si no \
+        quedó claro, elige lo más probable, encárgalo y di cuál elegiste.\(ultimo)
         - Si sólo pide abrirlo, revisarlo o retomarlo, usa retomar: abre la última sesión de ese proyecto y \
         cuenta en qué quedó.
         - Encargar no espera a que termine. Di en una frase corta que ya quedó y sigue conversando. No prometas \

@@ -517,6 +517,7 @@ struct PiezasDelAgenteTests {
     #expect(sistema.contains("Eres la única voz de esta llamada"))
     #expect(sistema.contains("nunca los abras con abrir_url"))
     #expect(sistema.contains("El último proyecto en que se trabajó fue dilo."))
+    #expect(sistema.contains("Nunca repitas una pregunta"))
   }
 
   @Test func encargarPideQueHacerOQueSeRetome() async throws {

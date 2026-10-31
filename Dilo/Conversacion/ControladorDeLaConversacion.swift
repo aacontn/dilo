@@ -578,6 +578,9 @@ final class ControladorDeLaConversacion {
       return
     }
     tiempos?.transcribir = transcribir
+    // Cuántas palabras y no cuáles: lo dicho no va a un log. Una interrupción
+    // que deja dos palabras sueltas se ve acá.
+    AppLog.conversacion.notice("turno \(self.turnos + 1): oí \(limpio.split(separator: " ").count) palabras")
     let ruta = enrutador.unaSolaVoz(enrutador.enrutar(limpio, ultimo: agenteActual), dicho: limpio)
     pendiente = ruta
     agregarLinea(limpio, deDilo: false)

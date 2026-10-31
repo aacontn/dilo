@@ -1310,15 +1310,17 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
 - **Interrumpir hablando** (`DetectorDeInterrupcion`, puro). La voz publica
   qué tan fuerte suena (`VozQueContesta.nivelDeSalida`, un tap en el mezclador
   de Phonon, armado por `MedidorDeSalida` y no dentro de una clase `@MainActor`:
-  el tap corre en una cola de audio y ese aislamiento mata la app); el detector aprende cuánto de eso vuelve por el micrófono y sólo
-  cuenta lo que pasa 9 dB por encima, 300 ms seguidos. Con audífonos basta
-  hablar; con parlantes fuertes hay que hablar más fuerte que el eco. Lo dicho
+  el tap corre en una cola de audio y ese aislamiento mata la app); el detector aprende cuánto de eso vuelve por el micrófono. Con audífonos
+  cuenta lo que pasa 9 dB por encima, 400 ms seguidos. **Con parlantes (eco de
+  −0,45 o más) la voz no interrumpe, sólo el gatillo**: el 2026-10-30 Kami se
+  cortó sola dos veces y lo que oyó de sí misma le llegó como un turno. Comparar
+  el texto no sirve (0,8 s de audio: 54 % de aciertos, medido). Lo dicho
   entra desde donde empezó la voz, no desde que se detectó. Pensando sólo
   interrumpe si ya se consultó y no corre una herramienta, y nunca con una
   aprobación esperando. Con la voz de Apple no se puede medir la salida:
-  interrumpe sólo el gatillo. No se usa el procesamiento de voz de Apple:
-  obliga a un solo motor para voz y micrófono y baja lo demás que suena. El
-  resumen de la llamada en el log dice cuántas interrupciones hubo y qué eco se
+  interrumpe sólo el gatillo. Interrumpir con parlantes pide el procesamiento
+  de voz de Apple, que obliga a un solo motor para voz y micrófono y baja lo
+  demás que suena; no está hecho. El resumen de la llamada en el log dice cuántas interrupciones hubo y qué eco se
   aprendió: con eso se calibra.
 - **El motor es el del dictado, por su contrato** (`MotorParaConversar`, que
   arma `DirectDictationController.Dependencies.live` con el mismo router de
