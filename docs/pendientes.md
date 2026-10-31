@@ -5,8 +5,8 @@ Estado al 2026-10-29: `main` local (sin push) en la 0.10.0, instalada y notariza
 
 ## Por hacer
 
-- 2026-10-31 · Interrumpir con la voz también con parlantes: pide el procesamiento de voz de Apple (`setVoiceProcessingEnabled`), con voz y micrófono en un mismo motor y sin bajar lo demás que suena. No se puede probar sin Alfonso en la pieza.
-- 2026-10-31 · Probar por voz en la 0.12.2 lo que falta: encargar a Claude Code y seguir conversando, el aviso al terminar y el clic. La llamada del 30-10 (20:49, 25 s) no lo tocó. Sí midió: sin caídas, 2 interrupciones, eco −0,25, de callar a oír 2,36-2,58 s (silencio 0,72; transcribir 2-10 ms; Claude 0,9-1,25; primera frase 0,2-0,45; Phonon 0,4-0,7) y 3,6 s con la frase abierta. Falta confirmar con Alfonso si las dos interrupciones fueron suyas: la segunda duró casi sólo lo que tarda en detectarse.
+- 2026-10-31 · Confirmar en una llamada con la 0.13.0: interrumpir hablando con parlantes, si Kami suena peor por el motor con cancelación, y si Parakeet entiende igual con la voz procesada.
+- 2026-10-31 · Probar por voz lo que falta: encargar a Claude Code y seguir conversando, el aviso al terminar y el clic. La llamada del 30-10 (20:49, 25 s) no lo tocó. Sí midió: sin caídas, 2 interrupciones, eco −0,25, de callar a oír 2,36-2,58 s (silencio 0,72; transcribir 2-10 ms; Claude 0,9-1,25; primera frase 0,2-0,45; Phonon 0,4-0,7) y 3,6 s con la frase abierta. Falta confirmar con Alfonso si las dos interrupciones fueron suyas: la segunda duró casi sólo lo que tarda en detectarse.
 - 2026-10-30 · Sacar `PedidoAClaudeCode` y `PreguntaDeProyecto` si la 0.12.0 anda: la llamada ya no los usa.
 - 2026-10-30 · Probar la Conversación como agente con la app abierta: herramientas («¿qué dicté ayer?», «¿qué tengo hoy?»), una aprobación (Aprobar, No, colgar esperando), «pásame con Switchboard», «Claude Code, en Dilo, revisa los tests», «revisa Claude Code», y que `eager_input_streaming` y el tool use no den 400 en Haiku, Sonnet y Opus 5.5.
 - 2026-10-30 · Autorizar a Dilo en Switchboard (ventana «Agentes»: emparejamiento con código, herramientas y proyectos) y ver si pide confirmar de nuevo tras cada build. (Alfonso)

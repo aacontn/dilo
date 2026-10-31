@@ -364,6 +364,7 @@ final class ControladorDeLaConversacion {
     let eleccion = settings.conversacionMicrofono
     let medidor = medidor
     let salida = voz.nivelDeSalida
+    let phonon = voz as? VozPhononQueContesta
     enFila { [weak self] in
       guard let self, inicioDeLaSesion != nil, oido == nil else { return }
       let abierto = await OidoAbierto.abrir(
@@ -371,18 +372,23 @@ final class ControladorDeLaConversacion {
         transcribir: { audio in
           try await ParakeetCompartido.motor.conElModelo { try await $0.transcribir(audio) }
         },
+        medidorDeSalida: phonon?.medidorDeSalida ?? MedidorDeSalida(),
         alFallar: { [weak self] mensaje in
           Task { @MainActor [weak self] in
+            guard let self else { return }
             AppLog.conversacion.error("llamada: se cayó el micrófono: \(mensaje, privacy: .public)")
-            self?.cerrarElOido()
+            cerrarElOido()
+            if enCurso { abrirElOido() }
           }
         },
         alOir: { nivel, indice in
-          // Sin saber qué suena no se puede separar a la persona del eco.
           let sonando = salida?()
           medidor.withLock { medicion in
-            guard medicion.atento, let sonando else { return }
-            medicion.detector.muestra(microfono: nivel, salida: sonando, indice: indice, en: .now)
+            guard medicion.atento else { return }
+            // Sin cancelación, y sin saber qué suena, no se puede separar a la
+            // persona del eco.
+            guard medicion.detector.conCancelacion || sonando != nil else { return }
+            medicion.detector.muestra(microfono: nivel, salida: sonando ?? 0, indice: indice, en: .now)
           }
         }
       )
@@ -391,9 +397,12 @@ final class ControladorDeLaConversacion {
         return
       }
       oido = abierto
-      AppLog.conversacion.notice(
-        "llamada: micrófono \(abierto == nil ? "por turno, con el motor del dictado" : "abierto toda la llamada", privacy: .public)"
-      )
+      phonon?.usar(abierto?.audio)
+      let conCancelacion = abierto?.audio != nil
+      medidor.withLock { $0.detector.conCancelacion = conCancelacion }
+      let como = abierto == nil ? "por turno, con el motor del dictado"
+        : conCancelacion ? "abierto toda la llamada, con cancelación de eco" : "abierto toda la llamada"
+      AppLog.conversacion.notice("llamada: micrófono \(como, privacy: .public)")
       // Carga el modelo antes de que haga falta: al terminar el primer turno
       // ya no se puede esperar.
       if abierto != nil {
@@ -405,14 +414,18 @@ final class ControladorDeLaConversacion {
   }
 
   private func cerrarElOido() {
+    (voz as? VozPhononQueContesta)?.usar(nil)
     oido?.cerrar()
     oido = nil
   }
 
-  /// Silenciar cierra el micrófono de verdad: silenciada, nada se oye. Se
-  /// reabre antes del turno, que espera en la misma fila.
+  /// Silenciar corta el micrófono de verdad: silenciada, nada se oye. Sin
+  /// cancelación se cierra y se reabre antes del turno, que espera en la misma
+  /// fila. Con ella se corta adentro: por ese motor suena la voz.
   private func silenciar(_ silenciada: Bool) {
-    if silenciada {
+    if let audio = oido?.audio {
+      audio.silenciar(silenciada)
+    } else if silenciada {
       cerrarElOido()
     } else {
       abrirElOido()

@@ -10,8 +10,8 @@ import os
 /// `audio`), y lo dicho en ese rato no existía para nadie: contestarle rápido
 /// a Dilo era perder las primeras palabras. Además, hablarle encima necesita un
 /// micrófono andando mientras él habla. Lo oído vive en un búfer de RAM que se
-/// pisa solo (`BuferDeEscucha`) y se borra al colgar o al silenciar: nunca va a
-/// disco, a un log ni fuera del Mac. El turno es un tramo de ese búfer, que
+/// pisa solo (`BuferDeEscucha`) y se borra al colgar: nunca va a disco, a un log
+/// ni fuera del Mac. El turno es un tramo de ese búfer, que
 /// transcribe Parakeet prestado del dictado.
 ///
 /// Cumple el mismo contrato que el motor del dictado (`motor(desde:)`), así que
@@ -168,7 +168,10 @@ actor OidoDeLaLlamada {
 @MainActor
 struct OidoAbierto {
   let oido: OidoDeLaLlamada
-  private let microfono: MicrofonoDeLaEscucha
+  /// El audio con cancelación de eco. Nil es el micrófono solo: con audífonos,
+  /// o si la cancelación no arrancó.
+  let audio: AudioDeLaLlamada?
+  private let microfono: MicrofonoDeLaEscucha?
   private let flujo: AsyncStream<[Float]>.Continuation
   private let tarea: Task<Void, Never>
 
@@ -178,6 +181,7 @@ struct OidoAbierto {
   static func abrir(
     eleccion: EleccionDeMicrofono,
     transcribir: @escaping OidoDeLaLlamada.Transcribir,
+    medidorDeSalida: MedidorDeSalida,
     alFallar: @escaping @Sendable (String) -> Void,
     alOir: @escaping @Sendable (_ nivel: Float, _ indice: Int) -> Void
   ) async -> OidoAbierto? {
@@ -190,11 +194,36 @@ struct OidoAbierto {
       )
     }.value
     guard let plan else { return nil }
+    let conAudifonos = await Task.detached(priority: .userInitiated) { () -> Bool in
+      DispositivosDeAudio.salidaDelSistema().map { DispositivosDeAudio.transporte(de: $0) == .bluetooth } ?? false
+    }.value
     let (flujo, continuacion) = AsyncStream.makeStream(of: [Float].self, bufferingPolicy: .bufferingNewest(64))
     let oido = OidoDeLaLlamada(transcribir: transcribir, alOir: alOir)
+    let entrada = plan.fijarA
+
+    // Por unos audífonos no vuelve nada: no hace falta cancelar, y el
+    // procesamiento los podría pasar al perfil de llamada.
+    if !conAudifonos {
+      let audio = AudioDeLaLlamada(medidor: medidorDeSalida) { continuacion.yield($0) }
+      audio.alFallar = alFallar
+      let formato = VozPhononQueContesta.formato
+      let arranco = await Task.detached(priority: .userInitiated) { () -> Bool in
+        do {
+          try audio.empezar(entrada: entrada, formatoDeLaVoz: formato)
+          return true
+        } catch {
+          AppLog.conversacion.error("llamada: la cancelación de eco no arrancó: \(error.localizedDescription, privacy: .public)")
+          return false
+        }
+      }.value
+      if arranco {
+        let tarea = Task.detached(priority: .userInitiated) { await oido.escuchar(flujo) }
+        return OidoAbierto(oido: oido, audio: audio, microfono: nil, flujo: continuacion, tarea: tarea)
+      }
+    }
+
     let microfono = MicrofonoDeLaEscucha { continuacion.yield($0) }
     microfono.alFallar = alFallar
-    let entrada = plan.fijarA
     let abrio = await Task.detached(priority: .userInitiated) { () -> Bool in
       do {
         try microfono.empezar(entrada: entrada)
@@ -208,12 +237,13 @@ struct OidoAbierto {
       return nil
     }
     let tarea = Task.detached(priority: .userInitiated) { await oido.escuchar(flujo) }
-    return OidoAbierto(oido: oido, microfono: microfono, flujo: continuacion, tarea: tarea)
+    return OidoAbierto(oido: oido, audio: nil, microfono: microfono, flujo: continuacion, tarea: tarea)
   }
 
   /// Cierra el micrófono y borra lo oído.
   func cerrar() {
-    microfono.detener()
+    audio?.detener()
+    microfono?.detener()
     flujo.finish()
     let oido = oido
     let tarea = tarea

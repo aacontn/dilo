@@ -26,6 +26,13 @@ public enum DispositivosDeAudio {
     return id == kAudioObjectUnknown ? nil : id
   }
 
+  public static func salidaDelSistema() -> AudioDeviceID? {
+    let id: AudioDeviceID? = leerValor(
+      AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultOutputDevice
+    )
+    return id == kAudioObjectUnknown ? nil : id
+  }
+
   /// Si alguien —cualquier proceso— tiene el dispositivo corriendo. Es lo que
   /// prende el indicador naranja del micrófono; sirve para comprobar que un
   /// motor preparado y sin `start()` no lo prende.

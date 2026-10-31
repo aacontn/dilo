@@ -1300,8 +1300,8 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
 - **El micrófono queda abierto toda la llamada** (`OidoDeLaLlamada`, desde el
   2026-10-30). Abrirlo en cada turno costaba 1,4 s con la webcam de Alfonso,
   y lo dicho en ese rato se perdía. Lo oído vive en un búfer de RAM de 120 s
-  (`BuferDeEscucha`) que se borra al colgar y al silenciar, y silenciar cierra
-  el micrófono de verdad; el turno es un tramo de ahí, que transcribe Parakeet
+  (`BuferDeEscucha`) que se borra al colgar, y silenciar corta el micrófono de
+  verdad; el turno es un tramo de ahí, que transcribe Parakeet
   prestado (`ParakeetCompartido`). Lo transcrito al callar se reusa si no hubo
   voz después, así que el final del turno casi no espera. Cumple el contrato
   de `MotorParaConversar`. Sin Parakeet, o con un Bluetooth como único
@@ -1310,17 +1310,23 @@ del Mac; sólo viaja texto.** Código en `Dilo/Conversacion/`, reglas en
 - **Interrumpir hablando** (`DetectorDeInterrupcion`, puro). La voz publica
   qué tan fuerte suena (`VozQueContesta.nivelDeSalida`, un tap en el mezclador
   de Phonon, armado por `MedidorDeSalida` y no dentro de una clase `@MainActor`:
-  el tap corre en una cola de audio y ese aislamiento mata la app); el detector aprende cuánto de eso vuelve por el micrófono. Con audífonos
-  cuenta lo que pasa 9 dB por encima, 400 ms seguidos. **Con parlantes (eco de
-  −0,45 o más) la voz no interrumpe, sólo el gatillo**: el 2026-10-30 Kami se
-  cortó sola dos veces y lo que oyó de sí misma le llegó como un turno. Comparar
-  el texto no sirve (0,8 s de audio: 54 % de aciertos, medido). Lo dicho
-  entra desde donde empezó la voz, no desde que se detectó. Pensando sólo
+  el tap corre en una cola de audio y ese aislamiento mata la app). Con
+  parlantes la llamada usa **la cancelación de eco de Apple**
+  (`AudioDeLaLlamada`): voz y micrófono en un solo motor, y el procesamiento se
+  prende después de armar el grafo (al revés, `start()` falla con -10875).
+  Medido en el Mac mini con la webcam: Kami 0,00 en el micrófono, Alfonso hasta
+  0,60 y hasta 0,48 hablándole encima; sin cancelación los dos llegan parejo
+  (0,26-0,48) y por niveles no se pueden separar: el 2026-10-30 Kami se cortó
+  sola y lo que oyó de sí misma le llegó como un turno. Con cancelación
+  interrumpen 3 trozos de voz en 1 s. Con audífonos Bluetooth, o si no arranca,
+  sigue el micrófono solo, comparando contra lo que suena (9 dB, 400 ms), y con
+  un eco de −0,45 o más sólo interrumpe el gatillo. Comparar el texto no sirve
+  (0,8 s de audio: 54 % de aciertos, medido). Lo dicho entra desde donde empezó
+  la voz, no desde que se detectó. Pensando sólo
   interrumpe si ya se consultó y no corre una herramienta, y nunca con una
   aprobación esperando. Con la voz de Apple no se puede medir la salida:
-  interrumpe sólo el gatillo. Interrumpir con parlantes pide el procesamiento
-  de voz de Apple, que obliga a un solo motor para voz y micrófono y baja lo
-  demás que suena; no está hecho. El resumen de la llamada en el log dice cuántas interrupciones hubo y qué eco se
+  interrumpe sólo el gatillo, salvo con cancelación. Lo demás que suena no se
+  baja (`duckingLevel: .min`). El resumen de la llamada en el log dice cuántas interrupciones hubo y qué eco se
   aprendió: con eso se calibra.
 - **El motor es el del dictado, por su contrato** (`MotorParaConversar`, que
   arma `DirectDictationController.Dependencies.live` con el mismo router de

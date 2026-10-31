@@ -27,7 +27,7 @@ final class VozPhononQueContesta: VozQueContesta {
   /// Lo que está sonando, escrito desde el hilo de audio. Es contra lo que se
   /// compara el micrófono para saber si la persona le habla encima. Con Apple
   /// no se puede medir: `AVSpeechSynthesizer` no pasa por este motor.
-  private let medidorDeSalida = MedidorDeSalida()
+  let medidorDeSalida = MedidorDeSalida()
   var nivelDeSalida: (@Sendable () -> Float?)? {
     let medidor = medidorDeSalida
     return { medidor.nivel.withLock { $0 } }
@@ -56,6 +56,9 @@ final class VozPhononQueContesta: VozQueContesta {
   /// callado trae otra generación y no cuenta.
   private var generacion = 0
 
+  /// El audio de la llamada, si la voz suena por el mismo motor que el
+  /// micrófono (`AudioDeLaLlamada`). Nil es el motor propio de siempre.
+  private var compartido: AudioDeLaLlamada?
   private var motor: AVAudioEngine?
   private var reproductor: AVAudioPlayerNode?
   private var velocidad: AVAudioUnitTimePitch?
@@ -67,6 +70,20 @@ final class VozPhononQueContesta: VozQueContesta {
     respaldo.alEmpezar = { [weak self] in self?.alEmpezar?() }
     respaldo.alTerminar = { [weak self] in self?.terminarElTurno() }
     mirarElDisco()
+  }
+
+  /// Dónde suena la voz desde ahora. Si el audio compartido se fue a mitad de
+  /// una frase, lo que quedaba por sonar se perdió: el turno termina acá para
+  /// que la llamada no se quede esperando.
+  func usar(_ audio: AudioDeLaLlamada?) {
+    if audio == nil, compartido != nil, reproductor != nil {
+      let hablaba = quien != nil
+      detener()
+      compartido = nil
+      if hablaba { alTerminar?() }
+      return
+    }
+    compartido = audio
   }
 
   func ajustar(_ ajustes: AjustesDeLaVoz) {
@@ -211,7 +228,7 @@ final class VozPhononQueContesta: VozQueContesta {
     alTerminar?()
   }
 
-  private static let formato = AVAudioFormat(
+  static let formato = AVAudioFormat(
     standardFormatWithSampleRate: SintetizadorPhonon.frecuencia, channels: 1
   )!
 
@@ -223,6 +240,13 @@ final class VozPhononQueContesta: VozQueContesta {
   /// en sintetizar el primer trozo le da tiempo de despertar sin demorar nada.
   private func reproductorListo() throws -> AVAudioPlayerNode {
     if let reproductor { return reproductor }
+    if let compartido {
+      compartido.velocidad.rate = Float(ajustes.velocidad)
+      compartido.reproductor.play()
+      reproductor = compartido.reproductor
+      velocidad = compartido.velocidad
+      return compartido.reproductor
+    }
     let motor = AVAudioEngine()
     let reproductor = AVAudioPlayerNode()
     let velocidad = AVAudioUnitTimePitch()

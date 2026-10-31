@@ -13,10 +13,13 @@ import Foundation
 /// tecla. Tampoco sirve comparar el texto: medio segundo de audio da palabras
 /// inventadas (medido, 54 % de aciertos con 0,8 s).
 ///
-/// Separarla de verdad con parlantes pide el procesamiento de voz de Apple, que
-/// obliga a un solo motor de audio para voz y micrófono y baja lo demás que
-/// suena. Los niveles van en la escala de la muesca (0 a 1 sobre 50 dB). Sin
-/// nada sonando, el umbral es el de siempre (`FinDelTurno.nivelDeVoz`).
+/// Con la cancelación de eco de Apple (`conCancelacion`, `AudioDeLaLlamada`) es
+/// al revés: la voz del agente no llega al micrófono, medido en 0,00, y todo lo
+/// que llega es la persona. Hablándole encima el procesamiento la deja pasar a
+/// golpes, así que no se pide voz seguida: unos pocos trozos en un segundo.
+///
+/// Los niveles van en la escala de la muesca (0 a 1 sobre 50 dB). Sin nada
+/// sonando, el umbral es el de siempre (`FinDelTurno.nivelDeVoz`).
 public struct DetectorDeInterrupcion: Sendable {
   /// Cuánto por encima del eco tiene que estar la voz: 0,18 son 9 dB.
   public static let margen: Float = 0.18
@@ -40,6 +43,17 @@ public struct DetectorDeInterrupcion: Sendable {
   /// Un hueco de este largo entre sílabas no corta la voz que se venía contando.
   static let huecoEntreSilabas: Duration = .milliseconds(250)
 
+  /// Bajo esto, con la cancelación de eco, no hay nadie.
+  static let vozConCancelacion: Float = 0.10
+  /// Cuántos trozos con voz en `ventanaDeGolpes` interrumpen. Cada trozo son
+  /// 100 ms de micrófono.
+  static let golpesParaInterrumpir = 3
+  static let ventanaDeGolpes: Duration = .seconds(1)
+
+  /// Si la voz del agente ya no llega al micrófono.
+  public var conCancelacion = false
+
+  private var golpes: [(instante: ContinuousClock.Instant, indice: Int)] = []
   private var eco: Float?
   private var mayorEco: Float?
   private var sonandoDesde: ContinuousClock.Instant?
@@ -68,6 +82,7 @@ public struct DetectorDeInterrupcion: Sendable {
   /// Empieza otro turno del agente. Lo aprendido del eco se queda: los
   /// parlantes son los mismos en toda la llamada.
   public mutating func reiniciar() {
+    golpes.removeAll()
     salidas.removeAll()
     sonandoDesde = nil
     ultimaVoz = nil
@@ -85,6 +100,15 @@ public struct DetectorDeInterrupcion: Sendable {
     indice: Int,
     en instante: ContinuousClock.Instant
   ) {
+    if conCancelacion {
+      golpes.removeAll { instante - $0.instante > Self.ventanaDeGolpes }
+      if microfono >= Self.vozConCancelacion { golpes.append((instante, indice)) }
+      if golpes.count >= Self.golpesParaInterrumpir {
+        primeraMuestra = primeraMuestra ?? golpes[0].indice
+        voz = max(voz, Self.vozParaInterrumpir)
+      }
+      return
+    }
     salidas.removeAll { instante - $0.instante > Self.memoriaDeLaSalida }
     if salida >= Self.salidaAudible { salidas.append((instante, salida)) }
     let referencia = salidas.map(\.nivel).max()

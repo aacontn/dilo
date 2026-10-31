@@ -126,7 +126,7 @@ final class MicrofonoDeLaEscucha: @unchecked Sendable {
   /// conversor se rehace si el formato cambia (un Bluetooth que cambia de
   /// perfil) y guarda su estado entre bloques, para no meter un clic en
   /// cada costura.
-  private final class Conversor: @unchecked Sendable {
+  final class Conversor: @unchecked Sendable {
     let salida: AVAudioFormat
     private var conversor: AVAudioConverter?
     private var entrada: AVAudioFormat?

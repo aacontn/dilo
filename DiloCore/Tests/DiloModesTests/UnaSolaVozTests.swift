@@ -130,6 +130,29 @@ struct DetectorDeInterrupcionTests {
     #expect(detector.inicioDeLaVoz != nil)
   }
 
+  @Test func conCancelacionLoQueLlegaEsLaPersonaAunqueVengaAGolpes() {
+    var detector = DetectorDeInterrupcion()
+    detector.conCancelacion = true
+    let aGolpes: [(Float, Float)] = [(0, 0.8), (0.16, 0.8), (0, 0.8), (0.3, 0.8), (0, 0.8), (0.14, 0.8)]
+    oir(&detector, aGolpes, desde: 10)
+    #expect(detector.inicioDeLaVoz == 11 * 1_600)
+    #expect(detector.vozContada >= DetectorDeInterrupcion.vozParaInterrumpir)
+  }
+
+  @Test func conCancelacionSuPropiaVozQuedaEnCero() {
+    var detector = DetectorDeInterrupcion()
+    detector.conCancelacion = true
+    oir(&detector, Array(repeating: (0.0, 0.8), count: 30))
+    #expect(detector.inicioDeLaVoz == nil)
+  }
+
+  @Test func conCancelacionDosGolpesSueltosNoInterrumpen() {
+    var detector = DetectorDeInterrupcion()
+    detector.conCancelacion = true
+    oir(&detector, [(0.3, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0.3, 0), (0.3, 0)])
+    #expect(detector.inicioDeLaVoz == nil)
+  }
+
   @Test func elEcoAprendidoSeQuedaEntreTurnos() {
     let detector = calibrado(eco: -0.3)
     #expect(abs((detector.ecoAprendido ?? 0) - -0.3) < 0.01)
