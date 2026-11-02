@@ -360,9 +360,12 @@ final class ControladorDeLaConversacion {
 
   /// Abre el micrófono de la llamada, en la misma fila que el motor: el primer
   /// turno espera a que esté. Si no se puede, la llamada sigue con el motor del
-  /// dictado.
+  /// dictado. Basta con Parakeet en disco, aunque se dicte con Apple: como
+  /// en las reuniones, el oído lo pide prestado (`ParakeetCompartido`), y
+  /// hasta la 0.14.1 dictar con Apple dejaba la llamada sin interrumpir con
+  /// la voz.
   private func abrirElOido() {
-    guard DiloSpeechStack.cargadorDeParakeet.disponible, settings.motorDeVoz == .parakeet else { return }
+    guard DiloSpeechStack.cargadorDeParakeet.disponible else { return }
     let eleccion = settings.conversacionMicrofono
     let medidor = medidor
     let salida = voz.nivelDeSalida
