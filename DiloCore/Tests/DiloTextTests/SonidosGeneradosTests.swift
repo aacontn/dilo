@@ -1,16 +1,16 @@
 import Foundation
 import Testing
 
-/// El juego de sonidos Marimba se genera con
-/// `scripts/generar-sonidos-marimba.py` y se commitea ya renderizado, así que
-/// nada verifica en tiempo de compilación que los WAV sigan siendo los que el
-/// script produce. Este test abre los archivos del repo, lee el header RIFF a
+/// Los juegos Marimba y Synth3Grave (el de fábrica) se generan con
+/// `scripts/generar-sonidos-marimba.py` y `scripts/generar-sonidos-synth3-grave.py`
+/// y se commitean ya renderizados, así que nada verifica en tiempo de
+/// compilación que los WAV sigan siendo los que el script produce. Este test abre los archivos del repo, lee el header RIFF a
 /// mano y mide el pico: si alguien los reemplaza por un archivo bajado de
 /// internet, con otro formato o con un nivel de alarma, falla acá.
 ///
 /// Vive en `DiloTextTests` porque `swift test` corre sin abrir Xcode y porque
 /// es el módulo donde ya viven las guardias de repo (`InstruccionesDeAgente`).
-struct SonidosDeMarimbaTests {
+struct SonidosGeneradosTests {
   /// `DiloCore/Tests/DiloTextTests/<archivo>` → la raíz del repo.
   static let raiz = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
@@ -19,7 +19,14 @@ struct SonidosDeMarimbaTests {
     .deletingLastPathComponent()
 
   static let carpeta = raiz.appending(path: "Dilo/Resources/Sounds")
-  static let archivos = ["MarimbaBegin.wav", "MarimbaEnd.wav", "MarimbaPaste.wav"]
+  /// Cada juego con el script que lo regenera.
+  static let juegos = [
+    ("Marimba", "scripts/generar-sonidos-marimba.py"),
+    ("Synth3Grave", "scripts/generar-sonidos-synth3-grave.py"),
+  ]
+  static let archivos = juegos.flatMap { juego, _ in
+    ["Begin", "End", "Paste"].map { "\(juego)\($0).wav" }
+  }
 
   /// Lo mínimo de un WAV PCM que hace falta para juzgarlo: el formato y las
   /// muestras. Parsear el header a mano —y no con AVFoundation— es a
@@ -82,24 +89,28 @@ struct SonidosDeMarimbaTests {
     return WAV(canales: canales, frecuencia: frecuencia, bitsPorMuestra: bits, muestras: muestras)
   }
 
-  @Test func elJuegoTieneSusTresArchivos() {
-    for nombre in Self.archivos {
+  @Test func cadaJuegoTieneSusTresArchivos() {
+    for (juego, script) in Self.juegos {
+      for pieza in ["Begin", "End", "Paste"] {
+        let nombre = "\(juego)\(pieza).wav"
+        #expect(
+          FileManager.default.fileExists(atPath: Self.carpeta.appending(path: nombre).path),
+          "falta \(nombre): regenéralo con \(script)"
+        )
+      }
+    }
+  }
+
+  @Test func cadaGeneradorEstaVersionado() {
+    for (_, script) in Self.juegos {
       #expect(
-        FileManager.default.fileExists(atPath: Self.carpeta.appending(path: nombre).path),
-        "falta \(nombre): regenéralo con scripts/generar-sonidos-marimba.py"
+        FileManager.default.fileExists(atPath: Self.raiz.appending(path: script).path),
+        "sin \(script) los WAV dejan de ser reproducibles"
       )
     }
   }
 
-  @Test func elGeneradorEstaVersionado() {
-    let script = Self.raiz.appending(path: "scripts/generar-sonidos-marimba.py")
-    #expect(
-      FileManager.default.fileExists(atPath: script.path),
-      "sin el generador los WAV dejan de ser reproducibles"
-    )
-  }
-
-  @Test(arguments: SonidosDeMarimbaTests.archivos)
+  @Test(arguments: SonidosGeneradosTests.archivos)
   func cadaWAVEsMono48kDe16Bits(_ nombre: String) throws {
     let wav = try Self.leer(nombre)
     #expect(wav.canales == 1)
@@ -117,7 +128,7 @@ struct SonidosDeMarimbaTests {
   /// —también de fábrica— el aviso de empezar aterrizaba en −20 dBFS. Sonaba y
   /// no se notaba, que para un aviso es lo mismo que no sonar. Sigue sin ser
   /// una alarma: −6 deja seis decibeles de aire y no recorta en ninguna punta.
-  @Test(arguments: SonidosDeMarimbaTests.archivos)
+  @Test(arguments: SonidosGeneradosTests.archivos)
   func cadaWAVLlegaAlPicoEsperado(_ nombre: String) throws {
     let wav = try Self.leer(nombre)
     #expect(
@@ -128,7 +139,7 @@ struct SonidosDeMarimbaTests {
 
   /// Una cola larga convierte el aviso en música de espera, y una muestra
   /// distinta de cero en cualquiera de las dos puntas es un clic.
-  @Test(arguments: SonidosDeMarimbaTests.archivos)
+  @Test(arguments: SonidosGeneradosTests.archivos)
   func cadaWAVEsCortoYSinClics(_ nombre: String) throws {
     let wav = try Self.leer(nombre)
     #expect(wav.duracion <= 0.5, "\(nombre) dura \(wav.duracion) s")

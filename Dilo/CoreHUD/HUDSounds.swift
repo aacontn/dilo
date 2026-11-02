@@ -9,7 +9,12 @@ import AppKit
 /// picks are stored under, and it prefixes the bundled asset names
 /// (`<rawValue>Begin/End/Paste.wav`). Renaming a case breaks both.
 enum DictationSoundSet: String, CaseIterable {
-  /// El default desde 0.4.0. Marimba sintetizada en el repo con
+  /// El default desde el 2026-11-02: Alfonso lo eligió de dos tandas de
+  /// candidatos porque Marimba y Click no le gustaban y Synth3 era «el más
+  /// agradable». Es el gesto de Synth3 una quinta más grave y con más cuerpo,
+  /// sintetizado con `scripts/generar-sonidos-synth3-grave.py`. Activo propio.
+  case synth3Grave = "Synth3Grave"
+  /// El default de 0.4.0 a 0.13. Marimba sintetizada en el repo con
   /// `scripts/generar-sonidos-marimba.py`: dos notas ascendentes al empezar,
   /// las mismas al revés al terminar, una sola al pegar. Activo propio.
   case marimba = "Marimba"

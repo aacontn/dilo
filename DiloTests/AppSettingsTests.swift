@@ -16,7 +16,7 @@ struct AppSettingsTests {
 
   @Test func emptyStoreYieldsDefaults() {
     let settings = AppSettings(defaults: freshDefaults())
-    #expect(settings.soundSet == .marimba)
+    #expect(settings.soundSet == .synth3Grave)
     #expect(settings.dictationSoundsEnabled)
     #expect(settings.dictationSoundVolume == 0.5)
     #expect(settings.voiceVisual == .waveform)
@@ -32,7 +32,7 @@ struct AppSettingsTests {
     #expect(settings.readAloudBinding == .optionEscape)
   }
 
-  /// Marimba pasó a ser el default en 0.4.0, y un cambio de default no puede
+  /// Synth3Grave pasó a ser el default el 2026-11-02, y un cambio de default no puede
   /// mover a quien ya eligió: el valor guardado gana siempre.
   @Test func unaEleccionPreviaSobreviveAlCambioDeDefault() {
     let defaults = freshDefaults()
@@ -375,7 +375,7 @@ struct AppSettingsTests {
     defaults.set("Sparkles", forKey: "hudVoiceVisual")
 
     let settings = AppSettings(defaults: defaults)
-    #expect(settings.soundSet == .marimba)
+    #expect(settings.soundSet == .synth3Grave)
     #expect(settings.voiceVisual == .waveform)
   }
 
@@ -391,7 +391,7 @@ struct AppSettingsTests {
     settings.glowPalette = .aurora
     settings.hudScale = 0.6
 
-    #expect(snapshot.sounds.set == .marimba)
+    #expect(snapshot.sounds.set == .synth3Grave)
     #expect(snapshot.voiceVisual == .waveform)
     #expect(snapshot.waveformStyle == .brasas)
     #expect(snapshot.revealStyle == .slide)

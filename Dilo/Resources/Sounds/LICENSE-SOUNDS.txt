@@ -1,6 +1,12 @@
 Session sound sets. Pop (CC-BY-NC, freesound #321807) was removed in Dilo 0.4.0:
 nothing NonCommercial ships in the bundle.
 
+Synth3GraveBegin.wav / Synth3GraveEnd.wav / Synth3GravePaste.wav
+  Synthesized in-repo by scripts/generar-sonidos-synth3-grave.py
+  (damped harmonic partials plus a fixed-seed noise burst, 48 kHz mono,
+  peak -6 dBFS). Original Dilo assets — no external license. The default
+  set since 2026-11-02.
+
 MarimbaBegin.wav / MarimbaEnd.wav / MarimbaPaste.wav
   Synthesized in-repo by scripts/generar-sonidos-marimba.py
   (additive marimba bar: 1x/3.9x/9.2x partials, 3 ms attack, 300 ms tail,

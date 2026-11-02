@@ -973,9 +973,10 @@ final class AppSettings {
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
-    // Marimba es el default desde 0.4.0: Synth8 sonaba a alarma sintética.
-    // Quien ya eligió otro juego lo conserva — el valor guardado manda.
-    soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .marimba
+    // Synth3Grave es el default desde el 2026-11-02 (antes Marimba, y antes
+    // Synth8, que sonaba a alarma sintética). Quien ya eligió otro juego lo
+    // conserva — el valor guardado manda.
+    soundSet = Self.stored(in: defaults, key: Keys.soundSet) ?? .synth3Grave
     dictationSoundsEnabled = defaults.object(forKey: Keys.soundsEnabled) as? Bool ?? true
     microfonoDeDictado = EleccionDeMicrofono(
       uid: defaults.string(forKey: Keys.microfonoElegidoUID) ?? "",

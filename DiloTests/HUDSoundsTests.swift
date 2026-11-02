@@ -19,11 +19,11 @@ struct HUDSoundsTests {
     }
   }
 
-  /// Marimba es el default: si sus archivos no llegan al bundle, la app se
+  /// Synth3Grave es el default: si sus archivos no llegan al bundle, la app se
   /// instala muda de fábrica.
-  @Test func marimbaEsReproducibleYTieneDuracion() {
+  @Test func elDeFabricaEsReproducibleYTieneDuracion() {
     let sounds = HUDSounds()
-    #expect(sounds.hasPreviewSounds(for: .marimba))
-    #expect(sounds.beginDuration(for: .marimba) > 0)
+    #expect(sounds.hasPreviewSounds(for: .synth3Grave))
+    #expect(sounds.beginDuration(for: .synth3Grave) > 0)
   }
 }
