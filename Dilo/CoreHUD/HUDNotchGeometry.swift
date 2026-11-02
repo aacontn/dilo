@@ -68,9 +68,26 @@ enum HUDNotchGeometry {
     /// (`HUDSurface.proyectaSombra`); a los lados, sólo lo que las dos alas
     /// cóncavas cuelgan fuera de la silueta.
     case reposo
+    /// La reunión con la forma: la muesca de dictar, quieta, por horas. La
+    /// ventana es esa silueta con sus alas y lo justo para el rebote al
+    /// crecer, sin sombra (`HUDSurface.siluetaQuieta`). Con la ventana
+    /// `abierta` la reunión dejaba ~190 puntos bajo la muesca sin recibir
+    /// clics toda la llamada (Alfonso, 2026-11-02: «abajo del notch queda
+    /// inutilizado»), porque la forma toma el mouse para abrir su ventana.
+    case quieta
     /// Cualquier forma abierta o creciendo: la ventana da lugar al estado más
     /// alto, a su sombra y al sobrepaso del resorte.
     case abierta
+
+    /// Para saber si cambiar de encuadre es crecer —en el acto— o encoger
+    /// —después de la animación—.
+    var orden: Int {
+      switch self {
+      case .reposo: 0
+      case .quieta: 1
+      case .abierta: 2
+      }
+    }
   }
 
   /// Lo que la sombra dibujada necesita alrededor de la forma para no salir
@@ -625,6 +642,16 @@ enum HUDNotchGeometry {
         // punto de más sería barra de menús que la ventana se queda sin
         // dibujar nada en ella.
         height: silueta.height
+      )
+    case .quieta:
+      let silueta = tamañoDeLaReunion(for: screen)
+      let sobrepaso = HUDRevealStyle.sobrepasoMaximo
+      let holgura = filletSize(for: screen) + silueta.width * sobrepaso / 2
+        + (screen.llevaSegmentos ? estiramientoMaximo(for: screen, compacta: false) : 0)
+      return CGSize(
+        width: min((silueta.width + holgura * 2).rounded(.up), screen.frame.width),
+        // El rebote sólo empuja hacia abajo (el anclaje es `.top`).
+        height: (silueta.height * (1 + sobrepaso)).rounded(.up)
       )
     case .abierta:
       let holgura = holguraDeRevelacion(for: screen)

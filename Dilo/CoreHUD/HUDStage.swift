@@ -990,8 +990,9 @@ final class HUDStage {
     guard estado.esCompacto, occupant != .conversacion else { return .abierta }
     if dictationContent.contextoVisible != nil { return .abierta }
     // La reunión con la forma mide lo de dictar: no cabe en la ventana del
-    // reposo, que es la silueta justa.
-    if dictationContent.reunionPrincipal != nil { return .abierta }
+    // reposo, que es la silueta justa, y la abierta le quitaría los clics a
+    // lo que hay debajo durante toda la llamada.
+    if dictationContent.reunionPrincipal != nil { return .quieta }
     if occupant == .drop || dropContent.mode != .none { return .abierta }
     return .reposo
   }
@@ -1011,20 +1012,23 @@ final class HUDStage {
   /// terminó (`dismissDuration`, la duración perceptual del encogimiento).
   private func ajustarVentana(a necesario: HUDNotchGeometry.EncuadreDeLaVentana) {
     guard let pantalla = pantallaActual else { return }
-    guard necesario == .reposo else {
+    guard necesario.orden < encuadre.orden else {
       encogerTask?.cancel()
       encogerTask = nil
-      guard encuadre != .abierta else { return }
-      aplicarEncuadre(.abierta, en: pantalla)
+      guard encuadre != necesario else { return }
+      aplicarEncuadre(necesario, en: pantalla)
       return
     }
-    guard encuadre == .abierta, encogerTask == nil else { return }
+    guard encogerTask == nil else { return }
     encogerTask = Task { [weak self, reloj] in
       try? await reloj.sleep(Self.dismissDuration)
       guard !Task.isCancelled, let self else { return }
       encogerTask = nil
-      guard encuadreNecesario == .reposo, let actual = pantallaActual else { return }
-      aplicarEncuadre(.reposo, en: actual)
+      // Lo que pide ahora, que puede no ser lo que pedía al empezar a
+      // esperar: el hover se cerró sobre una reunión y queda la quieta.
+      let ahora = encuadreNecesario
+      guard ahora.orden < encuadre.orden, let actual = pantallaActual else { return }
+      aplicarEncuadre(ahora, en: actual)
     }
   }
 
@@ -1589,7 +1593,7 @@ final class HUDStage {
     // Con un encogimiento en curso la ventana se queda grande hasta que
     // termine: volver a medir la pantalla no es razón para cortar el cierre
     // por la mitad.
-    aplicarEncuadre(encogerTask == nil ? encuadreNecesario : .abierta, en: screen)
+    aplicarEncuadre(encogerTask == nil ? encuadreNecesario : encuadre, en: screen)
     panel.assertOverlayOrder()
     actualizarPresencia()
     actualizarZonaInteractiva()

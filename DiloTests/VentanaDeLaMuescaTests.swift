@@ -52,6 +52,7 @@ struct VentanaDeLaMuescaTests {
   /// acá a propósito: es lo que no puede volver.
   @Test(arguments: [
     HUDNotchGeometry.EncuadreDeLaVentana.reposo,
+    HUDNotchGeometry.EncuadreDeLaVentana.quieta,
     HUDNotchGeometry.EncuadreDeLaVentana.abierta,
   ])
   func laVentanaEsLaSiluetaMasSuHolgura(encuadre: HUDNotchGeometry.EncuadreDeLaVentana) {
@@ -65,6 +66,13 @@ struct VentanaDeLaMuescaTests {
         // Ni un punto de alto de más: en reposo no hay sombra que alojar, y
         // lo que sobrara sería barra de menús que la ventana se queda.
         #expect(ventana.height == silueta.height)
+      case .quieta:
+        let silueta = HUDNotchGeometry.tamañoDeLaReunion(for: pantalla)
+        let alas = HUDNotchGeometry.filletSize(for: pantalla)
+        #expect(ventana.width >= silueta.width + alas * 2)
+        #expect(ventana.height >= silueta.height)
+        // Lo justo para el rebote al crecer, sin sombra.
+        #expect(ventana.height <= (silueta.height * (1 + HUDRevealStyle.sobrepasoMaximo)).rounded(.up))
       case .abierta:
         let holgura = HUDNotchGeometry.holguraDeRevelacion(for: pantalla)
         #expect(ventana.width == HUDMetrics.standard.contentWidth + holgura * 2)
@@ -90,6 +98,19 @@ struct VentanaDeLaMuescaTests {
     // menús ni un punto.
     #expect(reposo.height == simulado.menuBarHeight)
     #expect(reposo.width < 180)
+  }
+
+  /// Grabando una reunión la forma toma el mouse —un clic abre su ventana—
+  /// durante horas, así que la ventana no puede ser la abierta: con ella
+  /// quedaban ~90 puntos bajo la muesca sin recibir clics toda la llamada
+  /// (Alfonso, 2026-11-02: «abajo del notch queda inutilizado»).
+  @Test func grabandoUnaReunionLaVentanaNoBajaDeLaMuesca() {
+    let quieta = HUDNotchGeometry.windowSize(for: simulado, encuadre: .quieta)
+    let reunion = HUDNotchGeometry.tamañoDeLaReunion(for: simulado)
+    #expect(quieta.height <= (reunion.height * 1.2).rounded(.up), "a lo más el rebote")
+    #expect(quieta.width < 240)
+    #expect(HUDNotchGeometry.EncuadreDeLaVentana.reposo.orden < HUDNotchGeometry.EncuadreDeLaVentana.quieta.orden)
+    #expect(HUDNotchGeometry.EncuadreDeLaVentana.quieta.orden < HUDNotchGeometry.EncuadreDeLaVentana.abierta.orden)
   }
 
   /// En reposo la ventana no lleva sombra, así que tampoco lleva holgura para
@@ -166,7 +187,7 @@ struct VentanaDeLaMuescaTests {
   /// notch simulado sigue naciendo del borde de arriba y la píldora sigue
   /// colgando debajo de la barra, en los dos encuadres.
   @Test func laVentanaCambiaDeTamanoYNoDeSitio() {
-    for encuadre in [HUDNotchGeometry.EncuadreDeLaVentana.reposo, .abierta] {
+    for encuadre in [HUDNotchGeometry.EncuadreDeLaVentana.reposo, .quieta, .abierta] {
       let enSimulado = HUDNotchGeometry.windowFrame(for: simulado, encuadre: encuadre)
       #expect(enSimulado.maxY == simulado.frame.maxY)
       #expect(enSimulado.midX == simulado.frame.midX)

@@ -323,8 +323,8 @@ struct DictationHUDShellView: View {
   /// cuando la forma se abre, así que `ventana=` tiene que decir cuál de las
   /// dos estaba puesta (`HUDNotchGeometry.EncuadreDeLaVentana`).
   private var encuadreDeLaVentana: HUDNotchGeometry.EncuadreDeLaVentana {
-    content.estado.esCompacto && content.contextoVisible == nil && content.reunionPrincipal == nil
-      ? .reposo : .abierta
+    guard content.estado.esCompacto, content.contextoVisible == nil else { return .abierta }
+    return content.reunionPrincipal == nil ? .reposo : .quieta
   }
 
   /// El tamaño que la forma tiene ahora mismo: la silueta en reposo —abierta
