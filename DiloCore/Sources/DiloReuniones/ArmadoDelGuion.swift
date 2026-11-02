@@ -42,6 +42,9 @@ public enum ArmadoDelGuion {
     relojes: [AnclaDeReloj],
     reunion: Reunion
   ) -> Resultado {
+    // Antes que nada: un bucle del modelo no es habla de nadie.
+    let yo = BuclesDeLaPista.colapsar(yo)
+    let ellos = BuclesDeLaPista.colapsar(ellos)
     let alineacion = AlineacionDeRelojes(relojes)
     let atribuidas = atribuir(ellos, actividad: actividad)
     let numeros = numerarPorLlegada(atribuidas.map(\.indice))

@@ -52,6 +52,12 @@ extension ParakeetEngine {
   /// dictado (`conElModelo`) y el camino de FluidAudio para archivos largos,
   /// que lee de disco sin cargar la hora entera a la RAM. `avance` va de 0 a
   /// 1 por las ventanas ya decodificadas.
+  /// El nombre del modelo que transcribe ahora («Parakeet Ultra»), para que
+  /// la reunión anote el que de verdad la afinó.
+  public func nombreDelModelo() async throws -> String {
+    try await conElModelo { modelo in (modelo as? ModeloDeParakeet)?.variante.nombre ?? "Parakeet" }
+  }
+
   public func transcribirArchivoConTiempos(
     _ url: URL, avance: @escaping @Sendable (Double) -> Void = { _ in }
   ) async throws -> [PalabraConTiempo] {

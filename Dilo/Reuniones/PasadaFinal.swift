@@ -12,7 +12,9 @@ import os
 /// avance que publica es real: el de cada etapa por el audio ya leído.
 struct PasadaFinal: Sendable {
   private static let logger = Logger(subsystem: "cl.espaciodigital.dilo", category: "reuniones")
-  static let versionDelMotor = "Parakeet TDT v3 int8 (FluidAudio 0.18.0)"
+  /// Hasta la 0.14.0 era un texto fijo, «Parakeet TDT v3», aunque afinara
+  /// Ultra.
+  static func versionDelMotor(_ modelo: String) -> String { "\(modelo) (FluidAudio 0.18.0)" }
 
   let parakeet: ParakeetEngine
   let separacion: SeparacionDeVoces
@@ -88,7 +90,7 @@ struct PasadaFinal: Sendable {
       relojes: LectorDeReuniones.relojes(de: enDisco), reunion: reunion
     )
     reunion.hablantes = armado.hablantes
-    reunion.versiones.motorDeVoz = Self.versionDelMotor
+    reunion.versiones.motorDeVoz = Self.versionDelMotor((try? await parakeet.nombreDelModelo()) ?? "Parakeet")
     reunion.versiones.app = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
     reunion.estado = .lista
     reunion.afinadaEl = Date()
