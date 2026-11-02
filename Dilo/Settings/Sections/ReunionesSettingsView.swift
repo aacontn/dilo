@@ -345,7 +345,7 @@ struct AjustesDeReunionesView: View {
       SettingsCard(title: "Micrófono", icono: "mic") {
         SettingsPickerRow(
           title: "Tu pista",
-          description: "El micrófono de la pista «Yo». El del sistema es el que con más probabilidad usa la llamada. No cambia la entrada del sistema ni el micrófono de dictar.",
+          description: "El micrófono de la pista «Yo». En automático usa la entrada del sistema, salvo que sean audífonos Bluetooth y haya otro, para que no bajen a calidad de llamada. No cambia la entrada del sistema ni el micrófono de dictar.",
           options: [nil] + microfonos.conectadas.map { Optional($0.uid) } + faltante,
           optionLabel: etiquetaDelMicrofono,
           selection: Binding(get: { preferencias.microfonoUID }, set: { valor in guardar { $0.microfonoUID = valor } }),
@@ -397,7 +397,7 @@ struct AjustesDeReunionesView: View {
   }
 
   private func etiquetaDelMicrofono(_ uid: String?) -> String {
-    guard let uid else { return String(localized: "El del sistema") }
+    guard let uid else { return String(localized: "Automático") }
     if let entrada = microfonos.conectadas.first(where: { $0.uid == uid }) { return entrada.nombre }
     return String(localized: "\(uid) (no conectado)")
   }

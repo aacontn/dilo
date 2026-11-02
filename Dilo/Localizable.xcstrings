@@ -1024,13 +1024,13 @@
         }
       }
     },
-    "El micrófono de la pista «Yo». El del sistema es el que con más probabilidad usa la llamada. No cambia la entrada del sistema ni el micrófono de dictar.": {
+    "El micrófono de la pista «Yo». En automático usa la entrada del sistema, salvo que sean audífonos Bluetooth y haya otro, para que no bajen a calidad de llamada. No cambia la entrada del sistema ni el micrófono de dictar.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The microphone for the “Me” track. The system one is the one the call most likely uses. It doesn't change the system input or the dictation microphone."
+            "value": "The microphone for the “Me” track. Automatic uses the system input, unless it's Bluetooth headphones and another one is available, so they don't drop to call quality. It doesn't change the system input or the dictation microphone."
           }
         }
       }

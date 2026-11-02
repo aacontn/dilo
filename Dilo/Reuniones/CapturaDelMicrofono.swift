@@ -4,10 +4,11 @@ import DiloReuniones
 import Foundation
 import os
 
-/// La pista `yo`: un `AVAudioEngine` propio, no el del dictado, sobre la
-/// entrada del sistema —la que con más probabilidad usa la llamada— o la que
-/// se eligió en Ajustes (spec, «Captura»). Lo fija sólo en este motor: Dilo
-/// sigue sin escribir la entrada del sistema.
+/// La pista `yo`: un `AVAudioEngine` propio, no el del dictado, sobre el
+/// micrófono que decide `PlanDeMicrofono.paraLaReunion`: la entrada del sistema
+/// —la que con más probabilidad usa la llamada—, salvo que sea Bluetooth y haya
+/// otro, o el que se eligió en Ajustes (spec, «Captura»). Lo fija sólo en este
+/// motor: Dilo sigue sin escribir la entrada del sistema.
 ///
 /// Se reconstruye cuando la ruta cambia de verdad, con la misma guardia que
 /// el dictado (`GuardiaDeReconstruccion`): más de cuatro reconstrucciones en
@@ -55,12 +56,16 @@ final class CapturaDelMicrofono: @unchecked Sendable {
   private func armar() throws {
     let motor = AVAudioEngine()
     let fija = cerrojo.withLock { !guardia.dejoDeFijar }
-    if fija, let uidElegido, let entrada = DispositivosDeAudio.entradas().first(where: { $0.uid == uidElegido }) {
+    let entradas = DispositivosDeAudio.entradas()
+    let delSistema = DispositivosDeAudio.entradaDelSistema()
+    let plan = PlanDeMicrofono.paraLaReunion(
+      uidElegido: uidElegido, entradas: entradas, entradaDelSistema: delSistema, tapaCerrada: Tapa.estaCerrada
+    )
+    if fija, let entrada = plan.fijarA {
       try motor.fijarEntrada(entrada)
       dispositivo = entrada.nombre
     } else {
-      let delSistema = DispositivosDeAudio.entradaDelSistema()
-      dispositivo = DispositivosDeAudio.entradas().first { $0.id == delSistema }?.nombre
+      dispositivo = entradas.first { $0.id == delSistema }?.nombre
     }
     let entrada = motor.inputNode
     let bufer = self.bufer

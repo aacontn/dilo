@@ -1542,8 +1542,11 @@ nada de esto). El producto es **el guion de quién dijo qué**, todo local, y
 Claude nunca corre solo.
 
 - **Dos pistas que nunca se mezclan.** `yo` es un `AVAudioEngine` propio
-  (`CapturaDelMicrofono`) sobre la entrada del sistema o la elegida
-  (`diloReunionesMicrofonoUID`), fijada sólo en ese motor. `ellos` es un tap
+  (`CapturaDelMicrofono`) sobre lo que decide `PlanDeMicrofono.paraLaReunion`:
+  la entrada del sistema o la elegida (`diloReunionesMicrofonoUID`), fijada
+  sólo en ese motor. En automático no abre un Bluetooth si hay otro micrófono,
+  porque dejaría los audífonos en el perfil de llamada toda la reunión; sin
+  otro, sí lo abre, porque perder tu voz es peor. `ellos` es un tap
   de Core Audio global sin Dilo (`CapturaDelSistema`: `CATapDescription` +
   `AudioHardwareCreateProcessTap` + agregado **privado** con `TapAutoStart`,
   `.unmuted`); ni ScreenCaptureKit ni APIs privadas. Si una falla, la otra

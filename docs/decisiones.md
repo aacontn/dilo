@@ -38,3 +38,4 @@
 - 2026-10-31 · El vivo no le pide nada al modelo mientras se dicta · soltar → texto < 300 ms manda sobre el vivo; lo atrasado sale al terminar el dictado.
 - 2026-10-31 · La ventana se abre sola al grabar y toma el teclado sólo con el campo de la nota abierto · Alfonso: «debería ser accesible mientras estoy en la reunión», sin robarle el foco a la llamada.
 - 2026-10-31 · Las notas van en `notas.jsonl` y al final de `guion.md`, no entre las líneas · la pasada final reescribe el guion y la búsqueda lo abre por número de línea.
+- 2026-11-02 · La pista `yo` en automático no abre un Bluetooth si hay otro micrófono (`PlanDeMicrofono.paraLaReunion`); sin otro sí lo abre · Alfonso: Dilo le dejaba los audífonos mal varias veces. Causa probable, sin reproducir: Reuniones seguía la entrada del sistema y dejaba el WH-CH720N en perfil de llamada mientras el dictado ya lo evitaba.
