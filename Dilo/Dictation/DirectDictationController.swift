@@ -44,6 +44,7 @@ final class DirectDictationController {
   private var keyEventMonitor: GlobalKeyEventMonitor?
   private var machine = DictationSessionMachine()
   private let ducking = AudioDuckingSession()
+  private let silenciador = SilenciadorDeLoQueSuena()
   /// Held for the length of a session. Without it, a Dilo that has sat
   /// idle for hours is napped, and the HUD's animation clock with it (#77).
   private let activity = ActivityAssertion(reason: "Direct Dictation session")
@@ -421,6 +422,7 @@ final class DirectDictationController {
   func stop() {
     // Before anything else: quitting mid-session must not leave the Mac quiet.
     ducking.restore()
+    silenciador.devolver()
     noSpeechTask?.cancel()
     permissionTask?.cancel()
     permissionWatchTask?.cancel()
@@ -835,8 +837,10 @@ final class DirectDictationController {
       // the volume cannot be left down by a route nobody thought about.
       if isRecording {
         if currentSessionSettings?.ducksOtherAudio == true { ducking.duck() }
+        if currentSessionSettings?.silenciaLoQueSuena == true { silenciador.callar() }
       } else {
         ducking.restore()
+        silenciador.devolver()
         activity.release()
         contextoDelDictado.cancelar()
         registrarLatencia()

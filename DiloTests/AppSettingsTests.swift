@@ -18,6 +18,7 @@ struct AppSettingsTests {
     let settings = AppSettings(defaults: freshDefaults())
     #expect(settings.soundSet == .synth3Grave)
     #expect(settings.dictationSoundsEnabled)
+    #expect(settings.silenciarAlDictar)
     #expect(settings.dictationSoundVolume == 0.5)
     #expect(settings.voiceVisual == .waveform)
     // Brasas desde el 2026-09-21: es la onda que Dilo ya tenía en el overlay

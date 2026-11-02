@@ -106,6 +106,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case sonarAlDictar
   case juegoDeSonidos
   case volumen
+  case silenciarAlDictar
   // Datos en la muesca
   case datoClaudeCode
   case datoCodex
@@ -177,7 +178,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .shortcuts
     case .color, .queSeVe, .estiloDeLaOnda, .paletaDelHalo, .centroDelHalo, .tamanoDelNotch,
       .pantallasSinNotch, .enQuePantalla, .esperaDelHover, .modoEnReposo, .panelConVidrio,
-      .esconderAlCompartir, .comoAparece, .textoLargo, .sonarAlDictar, .juegoDeSonidos, .volumen:
+      .esconderAlCompartir, .comoAparece, .textoLargo, .sonarAlDictar, .juegoDeSonidos, .volumen,
+      .silenciarAlDictar:
       .appearance
     case .datoClaudeCode, .datoCodex, .datoCPU, .datoMemoria, .datoGPU, .datoRed, .datoDisco,
       .porcentajeDelPlan, .avisosDeLimite, .agentesEnLaMuesca, .recientesDelPortapapeles,
@@ -297,6 +299,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .sonarAlDictar: String(localized: "Sonar al dictar")
     case .juegoDeSonidos: String(localized: "Juego de sonidos")
     case .volumen: String(localized: "Volumen")
+    case .silenciarAlDictar: String(localized: "Silenciar lo que suena al dictar")
     case .datoClaudeCode: String(localized: "Claude Code")
     case .datoCodex: String(localized: "Codex")
     case .datoCPU: String(localized: "CPU")
@@ -392,6 +395,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .panelConVidrio, .esconderAlCompartir:
       [String(localized: "muesca"), "notch", String(localized: "píldora"), String(localized: "pantalla"), "hover"]
     case .sonarAlDictar, .juegoDeSonidos, .volumen: [String(localized: "sonidos"), String(localized: "audio")]
+    case .silenciarAlDictar:
+      [String(localized: "música"), String(localized: "pausar"), String(localized: "bajar"), String(localized: "audio")]
     case .datoClaudeCode, .datoCodex, .porcentajeDelPlan, .avisosDeLimite:
       [String(localized: "consumo"), String(localized: "límite"), String(localized: "tokens"), String(localized: "muesca")]
     case .datoCPU, .datoMemoria, .datoGPU, .datoRed, .datoDisco: [String(localized: "muesca"), String(localized: "sistema"), "RAM"]

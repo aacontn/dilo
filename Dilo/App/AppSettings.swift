@@ -21,6 +21,7 @@ final class AppSettings {
     static let soundSet = "dictationSoundSet"
     static let soundsEnabled = "dictationSoundsEnabled"
     static let duckOtherAudio = "duckOtherAudioWhileDictating"
+    static let silenciarAlDictar = "diloSilenciarAlDictar"
     static let microfonoElegidoUID = "diloMicrofonoElegidoUID"
     static let microfonoElegidoNombre = "diloMicrofonoElegidoNombre"
     static let motorDeAudioTibio = "diloMotorDeAudioTibio"
@@ -153,6 +154,13 @@ final class AppSettings {
 
   var dictationSoundsEnabled: Bool {
     didSet { defaults.set(dictationSoundsEnabled, forKey: Keys.soundsEnabled) }
+  }
+
+  /// Calla las otras apps mientras dictas (`SilencioAlDictar`), por app y sin
+  /// tocar el volumen del sistema. Prendido de fábrica: Alfonso lo pidió el
+  /// 2026-11-02 para no tener que hablar por encima de lo que suena.
+  var silenciarAlDictar: Bool {
+    didSet { defaults.set(silenciarAlDictar, forKey: Keys.silenciarAlDictar) }
   }
 
   /// Con qué micrófono escucha el dictado. **Automático de fábrica**: la
@@ -989,6 +997,7 @@ final class AppSettings {
     // se silencia la música al dictar, se pausa la reproducción (spec §8.3).
     // El mecanismo (AudioDucker) queda con sus tests por si ese día llega.
     duckOtherAudioWhileDictating = false
+    silenciarAlDictar = defaults.object(forKey: Keys.silenciarAlDictar) as? Bool ?? true
     let storedSoundVolume = defaults.object(forKey: Keys.soundVolume) as? Double ?? 0.5
     storedDictationSoundVolume = DictationSoundSettings.normalizedVolume(storedSoundVolume)
     transcriptDestination = Self.stored(in: defaults, key: Keys.transcriptDestination) ?? .besideSource
@@ -1352,6 +1361,9 @@ struct DictationSessionSettings: Equatable {
   /// Captured with everything else: a session that started while ducking was
   /// on has to restore the volume even if the toggle flips mid-session.
   let ducksOtherAudio: Bool
+  /// Si esta sesión calla lo que suena. Congelado como lo demás: apagarlo a
+  /// media sesión no deja nada callado, porque terminar siempre lo suelta.
+  let silenciaLoQueSuena: Bool
   /// La biblioteca de modos entera, congelada al empezar: es lo que las
   /// flechas recorren mientras hablas, y leerla de Ajustes a mitad de camino
   /// dejaría la lista cambiando debajo de la persona.
@@ -1460,6 +1472,7 @@ struct DictationSessionSettings: Equatable {
     historyEnabled = settings.dictationHistoryEnabled
     historyFolder = settings.resolvedHistoryFolder
     ducksOtherAudio = settings.duckOtherAudioWhileDictating
+    silenciaLoQueSuena = settings.silenciarAlDictar
     modos = settings.modos
     unAtajoDiloDecide = settings.unAtajoDiloDecide
     proveedores = settings.proveedores

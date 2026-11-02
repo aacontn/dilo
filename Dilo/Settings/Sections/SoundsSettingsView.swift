@@ -47,6 +47,16 @@ struct SoundsSettingsView: View {
       .disabled(!settings.dictationSoundsEnabled)
 
       SettingsRow(
+        title: "Silenciar lo que suena al dictar",
+        description: "Las otras apps se callan mientras hablas y vuelven al soltar. Una llamada no se calla."
+      ) {
+        Toggle("Silenciar lo que suena al dictar", isOn: $settings.silenciarAlDictar)
+          .labelsHidden()
+          .toggleStyle(.switch)
+      }
+      .anclaDeAjuste(.silenciarAlDictar)
+
+      SettingsRow(
         title: "Escuchar",
         description: "Suena el par que elegiste"
       ) {

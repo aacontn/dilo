@@ -1,6 +1,50 @@
 {
   "sourceLanguage": "es",
   "strings": {
+    "Silenciar lo que suena al dictar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute what's playing while dictating"
+          }
+        }
+      }
+    },
+    "Las otras apps se callan mientras hablas y vuelven al soltar. Una llamada no se calla.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other apps go quiet while you speak and come back when you let go. Calls are never muted."
+          }
+        }
+      }
+    },
+    "música": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "music"
+          }
+        }
+      }
+    },
+    "pausar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pause"
+          }
+        }
+      }
+    },
     "%@ Vacío, Dilo lo busca donde lo deja el instalador y en tu shell.": {
       "extractionState": "manual",
       "localizations": {

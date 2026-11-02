@@ -216,8 +216,14 @@ Distingue propuesta, implementación y deuda pendiente.
   saca; aplica solo lo que no pierde nada escrito a mano, propone lo demás,
   y todo queda en un registro con deshacer.
 - **Nunca se toca el volumen maestro.** El "Duck other audio" heredado está
-  apagado y escondido. Si algún día se silencia la música al dictar, se
-  **pausa la reproducción**; el volumen es del usuario.
+  apagado y escondido; el volumen es del usuario. Lo que suena se calla **por
+  app** mientras dictas (2026-11-02, `diloSilenciarAlDictar`, prendido):
+  `SilenciadorDeLoQueSuena` arma un tap de Core Audio en `.muted` sobre los
+  procesos que `SilencioAlDictar` (puro) elige —los que suenan, nunca Dilo ni
+  una app con el micrófono abierto, que es una llamada— y lo suelta al
+  terminar. No se pausa con la tecla de reproducir: es un interruptor a
+  ciegas que puede echar a andar lo que estaba en pausa, y saber qué suena
+  pide MediaRemote, que es privado.
 - **El notch es el escenario permanente, y en una pantalla sin carcasa el
   default es el notch simulado** (cambió el 2026-09-21; antes era la píldora).
   La forma no aparece al dictar: está siempre, en reposo, y lo que cambia es
