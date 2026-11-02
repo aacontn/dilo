@@ -62,6 +62,7 @@ public struct PreferenciasDeReuniones: Sendable, Equatable {
     public static let diarizador = "diloReunionesDiarizador"
     public static let audio = "diloReunionesAudio"
     public static let microfonoUID = "diloReunionesMicrofonoUID"
+    public static let detectarLlamadas = "diloReunionesDetectarLlamadas"
   }
 
   /// Quién separa las voces de `ellos` al terminar.
@@ -82,17 +83,23 @@ public struct PreferenciasDeReuniones: Sendable, Equatable {
   /// El micrófono de la pista `yo` por UID, o nil para la entrada del
   /// sistema, que es la que con más probabilidad usa la llamada.
   public var microfonoUID: String?
+  /// Si la muesca ofrece grabar cuando una app de llamadas abre el micrófono.
+  /// Prendido de fábrica: mirar no abre el micrófono y grabar sigue siendo un
+  /// clic de la persona.
+  public var detectarLlamadas: Bool
 
   public init(
     carpeta: URL = CarpetaDeReunion.raizDeFabrica,
     diarizador: Diarizador = .porDefecto,
     audio: PoliticaDelAudio = .porDefecto,
-    microfonoUID: String? = nil
+    microfonoUID: String? = nil,
+    detectarLlamadas: Bool = true
   ) {
     self.carpeta = carpeta
     self.diarizador = diarizador
     self.audio = audio
     self.microfonoUID = microfonoUID
+    self.detectarLlamadas = detectarLlamadas
   }
 
   /// Un valor que no se reconoce cae al de fábrica: una versión vieja o un
@@ -103,7 +110,8 @@ public struct PreferenciasDeReuniones: Sendable, Equatable {
       carpeta: ruta.isEmpty ? CarpetaDeReunion.raizDeFabrica : URL(filePath: ruta, directoryHint: .isDirectory),
       diarizador: defaults.string(forKey: Clave.diarizador).flatMap(Diarizador.init(rawValue:)) ?? .porDefecto,
       audio: defaults.string(forKey: Clave.audio).flatMap(PoliticaDelAudio.init(rawValue:)) ?? .porDefecto,
-      microfonoUID: defaults.string(forKey: Clave.microfonoUID).flatMap { $0.isEmpty ? nil : $0 }
+      microfonoUID: defaults.string(forKey: Clave.microfonoUID).flatMap { $0.isEmpty ? nil : $0 },
+      detectarLlamadas: defaults.object(forKey: Clave.detectarLlamadas) as? Bool ?? true
     )
   }
 
@@ -118,5 +126,6 @@ public struct PreferenciasDeReuniones: Sendable, Equatable {
     if let microfonoUID { defaults.set(microfonoUID, forKey: Clave.microfonoUID) } else {
       defaults.removeObject(forKey: Clave.microfonoUID)
     }
+    defaults.set(detectarLlamadas, forKey: Clave.detectarLlamadas)
   }
 }

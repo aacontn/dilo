@@ -16,6 +16,10 @@ final class InterfazDeReuniones {
   private weak var stage: HUDStage?
   /// La ventana de la reunión. Se crea con el primer clic.
   private(set) lazy var ventana = ControlDeLaVentanaDeReunion(control: control)
+  private var vigia: VigiaDeLlamadas?
+  private var detector = DetectorDeLlamadas()
+  private var llamadas: Set<AppDeLlamada> = []
+  private var proximaRevision: Task<Void, Never>?
 
   init(control: ControlDeReuniones, stage: HUDStage) {
     self.control = control
@@ -33,6 +37,50 @@ final class InterfazDeReuniones {
     stage?.dictationContent.alGrabarReunion = { [weak self] unirse in self?.grabarLaProxima(unirse: unirse) }
     seguir()
     reflejar()
+  }
+
+  /// La vigía existe sólo con el ajuste prendido. Apagada no queda ningún
+  /// oyente en Core Audio.
+  private func ajustarLaVigia() {
+    guard control.detectaLlamadas else {
+      vigia?.detener()
+      vigia = nil
+      proximaRevision?.cancel()
+      llamadas = []
+      detector = DetectorDeLlamadas()
+      return
+    }
+    guard vigia == nil else { return }
+    let vigia = VigiaDeLlamadas { [weak self] activas in
+      Task { @MainActor in
+        self?.llamadas = activas
+        self?.revisarLasLlamadas()
+      }
+    }
+    self.vigia = vigia
+    vigia.empezar()
+  }
+
+  private func revisarLasLlamadas() {
+    guard let stage else { return }
+    proximaRevision?.cancel()
+    let ocupado = stage.estado != .reposo || stage.occupant != .none || stage.enMuestra
+    switch detector.observar(activas: llamadas, ahora: .now, grabando: control.grabando, ocupado: ocupado) {
+    case .nada:
+      break
+    case let .revisarEn(segundos):
+      proximaRevision = Task { [weak self] in
+        try? await Task.sleep(for: .seconds(segundos))
+        guard !Task.isCancelled else { return }
+        self?.revisarLasLlamadas()
+      }
+    case let .ofrecer(app):
+      stage.mostrarAviso(Self.oferta(de: app))
+    }
+  }
+
+  static func oferta(de app: AppDeLlamada) -> AvisoConAccion {
+    AvisoConAccion(texto: String(localized: "¿Grabo la llamada de \(app.nombre)?"), accion: .grabarLaLlamada)
   }
 
   /// «Grabar» o «Unirse y grabar» desde la tarjeta de la próxima reunión:
@@ -56,6 +104,7 @@ final class InterfazDeReuniones {
     withObservationTracking {
       _ = control.enCurso
       _ = control.aviso
+      _ = control.detectaLlamadas
     } onChange: { [weak self] in
       Task { @MainActor in
         self?.reflejar()
@@ -65,6 +114,8 @@ final class InterfazDeReuniones {
   }
 
   private func reflejar() {
+    ajustarLaVigia()
+    revisarLasLlamadas()
     guard let stage else { return }
     let ahora = control.enCurso.map(ReunionEnLaMuesca.init)
     let antes = stage.dictationContent.reunionEnCurso

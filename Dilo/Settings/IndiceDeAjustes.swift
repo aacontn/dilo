@@ -138,6 +138,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
   case prepararElSeparador
   case retencionDelAudio
   case microfonoDeReuniones
+  case detectarLlamadas
   // Dilo
   case novedades
   case version
@@ -187,7 +188,8 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
       .general
     case .buscarEnReuniones, .listaDeReuniones:
       .reuniones
-    case .carpetaDeReuniones, .diarizador, .prepararElSeparador, .retencionDelAudio, .microfonoDeReuniones:
+    case .carpetaDeReuniones, .diarizador, .prepararElSeparador, .retencionDelAudio, .microfonoDeReuniones,
+      .detectarLlamadas:
       .grabarReuniones
     case .novedades:
       .novedades
@@ -324,6 +326,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .prepararElSeparador: String(localized: "Preparado para tu Mac")
     case .retencionDelAudio: String(localized: "Cuánto se guarda el audio")
     case .microfonoDeReuniones: String(localized: "Tu pista")
+    case .detectarLlamadas: String(localized: "Ofrecer grabar las llamadas")
     case .novedades: String(localized: "Novedades")
     case .version: String(localized: "Versión")
     case .buscarActualizaciones: String(localized: "Buscar actualizaciones solo")
@@ -405,6 +408,7 @@ enum AjusteID: String, CaseIterable, Identifiable, Hashable {
     case .prepararElSeparador: ["Nemotron", "Neural Engine", String(localized: "bajar"), String(localized: "modelo")]
     case .retencionDelAudio: [String(localized: "reunión"), "audio", String(localized: "borrar"), String(localized: "Papelera"), "30"]
     case .microfonoDeReuniones: [String(localized: "reunión"), String(localized: "micrófono")]
+    case .detectarLlamadas: [String(localized: "reunión"), String(localized: "llamada"), String(localized: "detectar"), "Zoom", "Meet", "Teams"]
     case .novedades: [String(localized: "versión"), String(localized: "cambios")]
     case .version, .buscarActualizaciones, .actualizacionesSolas: [String(localized: "actualizaciones"), "Sparkle", String(localized: "versión")]
     case .licencias: [String(localized: "licencia"), String(localized: "créditos"), String(localized: "acerca de")]

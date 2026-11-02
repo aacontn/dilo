@@ -95,6 +95,8 @@ final class ControlDeReuniones {
   private(set) var notas: [NotaDeLaReunion] = []
   /// De qué reunión son `vivo` y `notas`.
   private(set) var idDelVivo: String?
+  /// Si Dilo está mirando las llamadas para ofrecer grabarlas.
+  private(set) var detectaLlamadas: Bool
 
   /// Para lo que no es SwiftUI (el panel de la barra): cada cambio de
   /// `enCurso` o `pasada`.
@@ -127,6 +129,13 @@ final class ControlDeReuniones {
     self.defaults = defaults
     self.respaldo = respaldo
     self.parakeet = parakeet
+    detectaLlamadas = PreferenciasDeReuniones.leer(defaults).detectarLlamadas
+  }
+
+  /// Ajustes cambió las preferencias: la vigía de llamadas se prende o se apaga
+  /// en el acto, sin mirar `UserDefaults` en cada aviso de Core Audio.
+  func revisarLaDeteccion() {
+    detectaLlamadas = preferencias.detectarLlamadas
   }
 
   var preferencias: PreferenciasDeReuniones { PreferenciasDeReuniones.leer(defaults) }

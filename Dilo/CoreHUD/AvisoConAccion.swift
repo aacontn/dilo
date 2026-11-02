@@ -14,6 +14,9 @@ struct AvisoConAccion: Equatable, Sendable {
     /// Recupera el dictado que un Esc canceló y lo entrega
     /// (`GestoDelGatillo.ventanaParaDeshacer`).
     case deshacerCancelacion
+    /// Empieza a grabar la llamada que Dilo detectó. Es el único camino desde
+    /// la detección: nada empieza a grabar solo.
+    case grabarLaLlamada
   }
 
   /// Una línea que cabe en la muesca: qué falta y que el clic lo arregla.
@@ -29,7 +32,7 @@ struct AvisoConAccion: Equatable, Sendable {
   /// clic después de que lo retenido se soltó no tendría nada que entregar.
   var duracion: Duration {
     switch accion {
-    case .abrirAjustes: Self.duracionDeUnArreglo
+    case .abrirAjustes, .grabarLaLlamada: Self.duracionDeUnArreglo
     case .deshacerCancelacion: GestoDelGatillo.ventanaParaDeshacer
     }
   }

@@ -1068,6 +1068,50 @@
         }
       }
     },
+    "Ofrecer grabar las llamadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offer to record calls"
+          }
+        }
+      }
+    },
+    "Llamadas": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calls"
+          }
+        }
+      }
+    },
+    "detectar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "detect"
+          }
+        }
+      }
+    },
+    "Cuando Zoom, Teams, FaceTime, un navegador u otra app de llamadas abre el micrófono, la muesca te pregunta. Un clic graba; si la ignoras, no insiste. Nunca empieza sola.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When Zoom, Teams, FaceTime, a browser or another call app opens the microphone, the notch asks you. One click records; if you ignore it, it won't insist. It never starts on its own."
+          }
+        }
+      }
+    },
     "Grabar reuniones": {
       "extractionState": "manual",
       "localizations": {
@@ -6944,6 +6988,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Delete “%@”?"
+          }
+        }
+      }
+    },
+    "¿Grabo la llamada de %@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record the %@ call?"
           }
         }
       }

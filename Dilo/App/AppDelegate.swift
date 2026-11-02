@@ -255,12 +255,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     stage.alPedirCopiar = { [weak statusItemController] in
       statusItemController?.copiarLoUltimo()
     }
-    stage.alPedirAccion = { accion in
+    stage.alPedirAccion = { [weak self] accion in
       switch accion {
       case let .abrirAjustes(panel):
         if let url = URL(string: panel) { NSWorkspace.shared.open(url) }
       case .deshacerCancelacion:
         dictationController.deshacerCancelacion()
+      case .grabarLaLlamada:
+        self?.interfazDeReuniones?.control.grabar()
       }
     }
     // Lo que llega de afuera y pide un segmento al costado: los agentes de

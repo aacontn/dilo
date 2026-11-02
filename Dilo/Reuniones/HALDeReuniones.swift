@@ -36,6 +36,24 @@ enum HALDeReuniones {
     return id == kAudioObjectUnknown ? nil : id
   }
 
+  /// Los procesos que Core Audio conoce: los que abrieron audio alguna vez.
+  static var procesos: [AudioObjectID] {
+    var direccion = direccion(kAudioHardwarePropertyProcessObjectList)
+    var tamaño: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(sistema, &direccion, 0, nil, &tamaño) == noErr else { return [] }
+    var lista = [AudioObjectID](repeating: kAudioObjectUnknown, count: Int(tamaño) / MemoryLayout<AudioObjectID>.size)
+    guard AudioObjectGetPropertyData(sistema, &direccion, 0, nil, &tamaño, &lista) == noErr else { return [] }
+    return lista
+  }
+
+  static func abreElMicrofono(_ proceso: AudioObjectID) -> Bool {
+    leer(proceso, kAudioProcessPropertyIsRunningInput, inicial: UInt32(0)) == 1
+  }
+
+  static func paquete(de proceso: AudioObjectID) -> String? {
+    texto(proceso, kAudioProcessPropertyBundleID)
+  }
+
   /// El objeto de proceso de Core Audio de este proceso, o nil si todavía no
   /// abrió audio (entonces no hay nada de Dilo que excluir del tap).
   static var procesoPropio: AudioObjectID? {

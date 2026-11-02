@@ -1587,6 +1587,17 @@ Claude nunca corre solo.
   (`ControlDeReuniones.alArrancar`, en segundo plano y diez segundos después
   del arranque). Salir de Dilo grabando cierra los WAV y deja la pasada
   para la próxima vez.
+- **La detección ofrece, nunca graba** (`diloReunionesDetectarLlamadas`,
+  prendida de fábrica, Grabar reuniones → Llamadas). `VigiaDeLlamadas` deja
+  oyentes de Core Audio en la lista de procesos y en
+  `kAudioProcessPropertyIsRunningInput` de cada uno: sin sondeo, sin abrir el
+  micrófono y sin permisos. Qué paquete es una llamada lo dice `AppsDeLlamadas`
+  y cuándo ofrecer, `DetectorDeLlamadas` (puros, `DiloReuniones`): 3 s de
+  micrófono abierto, una vez por llamada, y 5 min sin micrófono separan una
+  llamada de la siguiente porque Meet lo cierra al silenciarte. Un navegador
+  cuenta por sí solo: el costo de un falso positivo es una pregunta. La oferta
+  es un `AvisoConAccion` (`grabarLaLlamada`): sólo con la muesca libre, y ese
+  clic es el único camino a `grabar`. Los números son de partida, sin medir.
 - **El guion en vivo** (`TranscripcionEnVivo`) es para leer lo que se acaba de
   decir; el registro lo deja la pasada final. Recibe lo que `PistaEnDisco` ya
   escribió, así que si falla la grabación no se entera. Silero (uno por pista,

@@ -283,6 +283,7 @@ struct AjustesDeReunionesView: View {
   private func guardar(_ cambio: (inout PreferenciasDeReuniones) -> Void) {
     cambio(&preferencias)
     preferencias.guardar(en: runtimeState.defaultsDeReuniones)
+    runtimeState.reuniones?.revisarLaDeteccion()
   }
 
   var body: some View {
@@ -340,6 +341,21 @@ struct AjustesDeReunionesView: View {
           controlWidth: 160
         )
         .anclaDeAjuste(.retencionDelAudio)
+      }
+
+      SettingsCard(title: "Llamadas", icono: "phone") {
+        SettingsRow(
+          title: "Ofrecer grabar las llamadas",
+          description: "Cuando Zoom, Teams, FaceTime, un navegador u otra app de llamadas abre el micrófono, la muesca te pregunta. Un clic graba; si la ignoras, no insiste. Nunca empieza sola."
+        ) {
+          Toggle("", isOn: Binding(
+            get: { preferencias.detectarLlamadas },
+            set: { valor in guardar { $0.detectarLlamadas = valor } }
+          ))
+          .labelsHidden()
+          .toggleStyle(.switch)
+        }
+        .anclaDeAjuste(.detectarLlamadas)
       }
 
       SettingsCard(title: "Micrófono", icono: "mic") {

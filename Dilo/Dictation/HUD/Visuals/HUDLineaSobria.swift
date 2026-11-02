@@ -178,6 +178,7 @@ struct HUDLineaSobria: View {
       switch aviso.accion {
       case .abrirAjustes: return ("gearshape.fill", paleta.acento.color)
       case .deshacerCancelacion: return ("arrow.uturn.backward", paleta.acento.color)
+      case .grabarLaLlamada: return ("record.circle", paleta.grabando.color)
       }
     default: return nil
     }
@@ -201,6 +202,7 @@ struct HUDLineaSobria: View {
     switch aviso.accion {
     case .abrirAjustes: return String(localized: "Abrir")
     case .deshacerCancelacion: return String(localized: "Deshacer")
+    case .grabarLaLlamada: return String(localized: "Grabar")
     }
   }
 
